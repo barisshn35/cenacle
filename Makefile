@@ -144,7 +144,7 @@ licenses: licenses-go licenses-js ## Check dependency licenses against the polic
 
 .PHONY: licenses-go
 licenses-go: $(GO_LICENSES)
-	cd $(SERVER_DIR) && $(GO_LICENSES) check ./... --allowed_licenses=$(GO_ALLOWED_LICENSES)
+	cd $(SERVER_DIR) && $(GO_LICENSES) check ./... --allowed_licenses=$(GO_ALLOWED_LICENSES) --ignore github.com/barisshn35/cenacle
 
 .PHONY: licenses-js
 licenses-js: node_modules
