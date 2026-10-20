@@ -30,6 +30,11 @@ export interface ConfirmDialogProps {
   /** Defaults to the localized "Cancel". */
   cancelLabel?: string;
   /**
+   * Adds "This cannot be undone." Set only when nothing (not even an admin
+   * restore within the retention period) can bring the data back.
+   */
+  irreversible?: boolean;
+  /**
    * S3 only: the user must type this exact text (usually the object's name)
    * before the confirm button is enabled.
    */
@@ -57,6 +62,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   confirmationText,
+  irreversible = false,
   onConfirm,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
@@ -131,7 +137,7 @@ export function ConfirmDialog({
                 className="flex flex-col gap-1.5 text-muted-foreground"
               >
                 {description}
-                {severity === 's3' && (
+                {irreversible && (
                   <p className="font-medium text-foreground">{t('ui:confirm.irreversible')}</p>
                 )}
               </AlertDialog.Description>

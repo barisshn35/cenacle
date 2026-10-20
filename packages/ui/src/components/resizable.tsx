@@ -6,9 +6,15 @@ import { cn } from '../lib/utils';
 import * as ResizablePrimitive from 'react-resizable-panels';
 import { useTranslation } from 'react-i18next';
 
-function ResizablePanelGroup({ className, ...props }: ResizablePrimitive.GroupProps) {
+function ResizablePanelGroup({
+  className,
+  // Pointer hit areas of the handles follow the project target sizes.
+  resizeTargetMinimumSize = { fine: 28, coarse: 44 },
+  ...props
+}: ResizablePrimitive.GroupProps) {
   return (
     <ResizablePrimitive.Group
+      resizeTargetMinimumSize={resizeTargetMinimumSize}
       data-slot="resizable-panel-group"
       className={cn('flex h-full w-full aria-[orientation=vertical]:flex-col', className)}
       {...props}
@@ -44,3 +50,4 @@ function ResizableHandle({
 }
 
 export { ResizableHandle, ResizablePanel, ResizablePanelGroup };
+export { usePanelRef, type PanelImperativeHandle } from 'react-resizable-panels';

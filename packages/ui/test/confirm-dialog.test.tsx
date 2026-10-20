@@ -81,6 +81,7 @@ describe('ConfirmDialog', () => {
         title="Delete #ops-alerts permanently?"
         confirmLabel="Delete channel"
         confirmationText="ops-alerts"
+        irreversible
         onConfirm={onConfirm}
       />,
     );
@@ -103,6 +104,12 @@ describe('ConfirmDialog', () => {
 
     await userEvent.click(action);
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('only claims irreversibility when told so', async () => {
+    render(<Harness severity="s3" />);
+    await screen.findByRole('alertdialog');
+    expect(screen.queryByText('This cannot be undone.')).not.toBeInTheDocument();
   });
 
   it('shows the impact summary slot', async () => {
