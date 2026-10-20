@@ -1,0 +1,14 @@
+{
+  "close": "Kapat",
+  "sidebar": {
+    "title": "Kenar çubuğu",
+    "description": "Çalışma alanları ve kanallar için gezinme.",
+    "toggle": "Kenar çubuğunu aç/kapat"
+  },
+  "resize": {
+    "handle": "Paneli yeniden boyutlandır"
+  },
+  "toast": {
+    "region": "Bildirimler"
+  }
+}

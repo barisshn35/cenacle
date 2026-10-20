@@ -2,5 +2,6 @@ packages:
   - web
   - idp
   - packages/*
+saveExact: true
 allowBuilds:
   esbuild: true
