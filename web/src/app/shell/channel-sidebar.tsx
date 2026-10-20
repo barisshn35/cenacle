@@ -69,6 +69,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
     <Sidebar
       collapsible={mobile ? 'offcanvas' : 'none'}
       className={mobile ? undefined : 'h-full w-full border-r border-sidebar-border'}
+      role={mobile ? undefined : 'navigation'}
       aria-label={t('shell.channelNav')}
     >
       <SidebarHeader className="gap-2 border-b border-sidebar-border">

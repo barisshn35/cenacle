@@ -34,11 +34,6 @@ export function WorkspaceRail() {
                     <button
                       type="button"
                       aria-current={isActive ? 'page' : undefined}
-                      aria-label={
-                        w.mentions > 0
-                          ? `${w.name}, ${t('shell.mentions', { count: w.mentions })}`
-                          : w.name
-                      }
                       onClick={() => select(w.id)}
                       className={cn(
                         'relative flex size-12 items-center justify-center rounded-2xl text-sm font-semibold transition-[border-radius,background-color] duration-(--duration-base) ease-(--ease-out) outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -49,7 +44,12 @@ export function WorkspaceRail() {
                     />
                   }
                 >
-                  {w.initials}
+                  <span aria-hidden>{w.initials}</span>
+                  <span className="sr-only">
+                    {w.mentions > 0
+                      ? `${w.name}, ${t('shell.mentions', { count: w.mentions })}`
+                      : w.name}
+                  </span>
                   {w.mentions > 0 && (
                     <span
                       aria-hidden
