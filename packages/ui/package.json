@@ -14,7 +14,8 @@
     "./hooks/*": "./src/hooks/*.ts",
     "./theme": "./src/theme/index.ts",
     "./components/*": "./src/components/*.tsx",
-    "./i18n": "./src/i18n/index.ts"
+    "./i18n": "./src/i18n/index.ts",
+    "./i18n/*.json": "./src/i18n/*.json"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
