@@ -1,0 +1,14 @@
+{
+  "close": "Close",
+  "sidebar": {
+    "title": "Sidebar",
+    "description": "Navigation for workspaces and channels.",
+    "toggle": "Toggle sidebar"
+  },
+  "resize": {
+    "handle": "Resize panel"
+  },
+  "toast": {
+    "region": "Notifications"
+  }
+}

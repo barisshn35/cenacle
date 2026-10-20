@@ -1,0 +1,8 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Fonts are bundled from npm (Fontsource, SIL OFL-1.1) and served by our own
+ * origin. No CDN, no Google Fonts.
+ */
+@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/geist-mono/wght.css';
