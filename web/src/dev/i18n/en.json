@@ -1,0 +1,44 @@
+{
+  "gallery": {
+    "title": "Component gallery",
+    "subtitle": "Development only. Every interactive element is measured by the target size test.",
+    "variant": "Variant",
+    "sections": {
+      "buttons": "Buttons",
+      "inputs": "Inputs",
+      "tooltipKbd": "Tooltip and keyboard keys",
+      "feedback": "Separator and skeleton",
+      "scrollArea": "Scroll area",
+      "sidebar": "Sidebar",
+      "resizable": "Resizable panels",
+      "toasts": "Toasts",
+      "confirm": "Confirm dialogs",
+      "errors": "Error states"
+    },
+    "samples": {
+      "save": "Save changes",
+      "delete": "Delete",
+      "showToast": "Show a toast",
+      "toastMessage": "Settings saved.",
+      "deleteMessage": "Delete message",
+      "messageDeleted": "Message deleted.",
+      "undone": "Message restored.",
+      "archiveChannel": "Archive channel",
+      "archiveTitle": "Archive #{{channel}}?",
+      "archiveDescription": "Messages are kept and stay searchable, but nobody can post. Bots and webhooks cannot post to this channel. You can unarchive it at any time.",
+      "archiveImpact": "2 bots and 1 webhook will stop posting here.",
+      "archived": "#{{channel}} archived.",
+      "deleteChannel": "Delete channel",
+      "deleteTitle": "Delete #{{channel}} permanently?",
+      "deleteDescription": "All 1,284 messages and 37 files are removed for every member. Admins can restore it for 30 days; after that it is gone.",
+      "deleteImpact": "1,284 messages and 37 files will be deleted.",
+      "nameLabel": "Display name",
+      "namePlaceholder": "e.g. Ayşe Yılmaz",
+      "nameError": "Display name is required.",
+      "toggleRight": "Toggle right panel",
+      "leftPanel": "Left panel",
+      "rightPanel": "Right panel",
+      "inlineLink": "inline link"
+    }
+  }
+}

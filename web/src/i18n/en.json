@@ -1,0 +1,67 @@
+{
+  "appName": "Cenacle",
+  "glossary": {
+    "workspace": "Workspace",
+    "workspaces": "Workspaces",
+    "channel": "Channel",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "disable": "Disable",
+    "enable": "Enable",
+    "delete": "Delete",
+    "mute": "Mute",
+    "rotateToken": "Rotate token",
+    "revokeToken": "Revoke token",
+    "markAsRead": "Mark as read",
+    "cancel": "Cancel",
+    "undo": "Undo"
+  },
+  "appearance": {
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "density": "Density",
+    "densityAuto": "Automatic",
+    "densityCompact": "Compact",
+    "densityComfortable": "Comfortable",
+    "language": "Language"
+  },
+  "shell": {
+    "workspaceNav": "Workspaces",
+    "addWorkspace": "Add a workspace",
+    "channelNav": "Channels",
+    "jumpTo": "Jump to…",
+    "directMessages": "Direct messages",
+    "unread": "Unread",
+    "mentions_one": "{{count}} mention",
+    "mentions_other": "{{count}} mentions",
+    "presence": {
+      "online": "Online",
+      "away": "Away",
+      "dnd": "Do not disturb",
+      "offline": "Offline"
+    },
+    "channelTypes": {
+      "public": "Public channel",
+      "private": "Private channel",
+      "announcement": "Announcement channel"
+    },
+    "toggleDetails": "Channel details",
+    "closeDetails": "Close channel details",
+    "details": "Details",
+    "about": "About",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members",
+    "messagesPlaceholder": "Messages will appear here. Live chat arrives in v0.4.",
+    "channelStart": "This is the start of #{{channel}}.",
+    "composerPlaceholder": "Message #{{channel}}",
+    "composerDisabled": "Sending messages is not available yet.",
+    "notAvailable": "Not available yet",
+    "settings": "Settings",
+    "you": "You"
+  },
+  "notFound": {
+    "home": "Go to Cenacle"
+  }
+}
