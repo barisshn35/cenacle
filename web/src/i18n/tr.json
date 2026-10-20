@@ -1,0 +1,67 @@
+{
+  "appName": "Cenacle",
+  "glossary": {
+    "workspace": "Çalışma alanı",
+    "workspaces": "Çalışma alanları",
+    "channel": "Kanal",
+    "archive": "Arşivle",
+    "unarchive": "Arşivden çıkar",
+    "disable": "Devre dışı bırak",
+    "enable": "Etkinleştir",
+    "delete": "Sil",
+    "mute": "Sessize al",
+    "rotateToken": "Token'ı yenile",
+    "revokeToken": "Token'ı iptal et",
+    "markAsRead": "Okundu olarak işaretle",
+    "cancel": "Vazgeç",
+    "undo": "Geri al"
+  },
+  "appearance": {
+    "theme": "Tema",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeSystem": "Sistem",
+    "density": "Yoğunluk",
+    "densityAuto": "Otomatik",
+    "densityCompact": "Sıkı",
+    "densityComfortable": "Rahat",
+    "language": "Dil"
+  },
+  "shell": {
+    "workspaceNav": "Çalışma alanları",
+    "addWorkspace": "Çalışma alanı ekle",
+    "channelNav": "Kanallar",
+    "jumpTo": "Git…",
+    "directMessages": "Doğrudan mesajlar",
+    "unread": "Okunmamış",
+    "mentions_one": "{{count}} bahsetme",
+    "mentions_other": "{{count}} bahsetme",
+    "presence": {
+      "online": "Çevrimiçi",
+      "away": "Uzakta",
+      "dnd": "Rahatsız etmeyin",
+      "offline": "Çevrimdışı"
+    },
+    "channelTypes": {
+      "public": "Herkese açık kanal",
+      "private": "Özel kanal",
+      "announcement": "Duyuru kanalı"
+    },
+    "toggleDetails": "Kanal ayrıntıları",
+    "closeDetails": "Kanal ayrıntılarını kapat",
+    "details": "Ayrıntılar",
+    "about": "Hakkında",
+    "members_one": "{{count}} üye",
+    "members_other": "{{count}} üye",
+    "messagesPlaceholder": "Mesajlar burada görünecek. Canlı sohbet v0.4 ile geliyor.",
+    "channelStart": "#{{channel}} kanalının başlangıcı.",
+    "composerPlaceholder": "#{{channel}} kanalına mesaj yaz",
+    "composerDisabled": "Mesaj gönderme henüz kullanılamıyor.",
+    "notAvailable": "Henüz kullanılamıyor",
+    "settings": "Ayarlar",
+    "you": "Sen"
+  },
+  "notFound": {
+    "home": "Cenacle'a git"
+  }
+}

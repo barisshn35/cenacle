@@ -1,0 +1,44 @@
+{
+  "gallery": {
+    "title": "Bileşen galerisi",
+    "subtitle": "Yalnızca geliştirme. Her etkileşimli öğe hedef boyutu testiyle ölçülür.",
+    "variant": "Varyant",
+    "sections": {
+      "buttons": "Düğmeler",
+      "inputs": "Giriş alanları",
+      "tooltipKbd": "İpucu ve klavye tuşları",
+      "feedback": "Ayırıcı ve iskelet",
+      "scrollArea": "Kaydırma alanı",
+      "sidebar": "Kenar çubuğu",
+      "resizable": "Yeniden boyutlandırılabilir paneller",
+      "toasts": "Bildirimler",
+      "confirm": "Onay pencereleri",
+      "errors": "Hata durumları"
+    },
+    "samples": {
+      "save": "Değişiklikleri kaydet",
+      "delete": "Sil",
+      "showToast": "Bildirim göster",
+      "toastMessage": "Ayarlar kaydedildi.",
+      "deleteMessage": "Mesajı sil",
+      "messageDeleted": "Mesaj silindi.",
+      "undone": "Mesaj geri getirildi.",
+      "archiveChannel": "Kanalı arşivle",
+      "archiveTitle": "#{{channel}} arşivlensin mi?",
+      "archiveDescription": "Mesajlar korunur ve aranabilir kalır, ancak kimse mesaj yazamaz. Botlar ve webhook'lar bu kanala yazamaz. İstediğin zaman arşivden çıkarabilirsin.",
+      "archiveImpact": "2 bot ve 1 webhook bu kanala yazmayı bırakacak.",
+      "archived": "#{{channel}} arşivlendi.",
+      "deleteChannel": "Kanalı sil",
+      "deleteTitle": "#{{channel}} kalıcı olarak silinsin mi?",
+      "deleteDescription": "1.284 mesajın ve 37 dosyanın tamamı tüm üyeler için kaldırılır. Yöneticiler 30 gün içinde geri getirebilir; sonrasında geri dönüşü yoktur.",
+      "deleteImpact": "1.284 mesaj ve 37 dosya silinecek.",
+      "nameLabel": "Görünen ad",
+      "namePlaceholder": "ör. Ayşe Yılmaz",
+      "nameError": "Görünen ad gerekli.",
+      "toggleRight": "Sağ paneli aç/kapat",
+      "leftPanel": "Sol panel",
+      "rightPanel": "Sağ panel",
+      "inlineLink": "metin içi bağlantı"
+    }
+  }
+}
