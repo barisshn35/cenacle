@@ -4,10 +4,10 @@
 
 Cenacle is pre-1.0. Only the latest released minor version receives security fixes.
 
-| Version | Supported |
-| ------- | --------- |
-| 0.x (latest) | ✅ |
-| older   | ❌ |
+| Version      | Supported |
+| ------------ | --------- |
+| 0.x (latest) | ✅        |
+| older        | ❌        |
 
 ## Reporting a vulnerability
 
