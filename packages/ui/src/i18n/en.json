@@ -10,5 +10,57 @@
   },
   "toast": {
     "region": "Notifications"
+  },
+  "confirm": {
+    "cancel": "Cancel",
+    "typeToConfirm": "To confirm, type <strong>{{name}}</strong>",
+    "typeToConfirmLabel": "To confirm, type {{name}}",
+    "mismatch": "The name does not match yet.",
+    "irreversible": "This cannot be undone.",
+    "working": "Working…",
+    "failed": "The action could not be completed. Nothing was changed. Try again."
+  },
+  "undo": {
+    "action": "Undo"
+  },
+  "errors": {
+    "codeLabel": "Error code",
+    "requestIdLabel": "Request ID",
+    "retry": "Try again",
+    "server_error": {
+      "title": "Something went wrong on our side.",
+      "reason": "The server could not complete the request.",
+      "action": "Try again. If it keeps happening, give your administrator the request ID below."
+    },
+    "network_error": {
+      "title": "Can't reach Cenacle.",
+      "reason": "Your device may be offline, or the server cannot be reached.",
+      "action": "Check your connection and try again."
+    },
+    "forbidden": {
+      "title": "You don't have permission to do this.",
+      "reason": "Your role in this workspace does not allow this action.",
+      "action": "Ask a workspace admin for access."
+    },
+    "not_found": {
+      "title": "This page doesn't exist.",
+      "reason": "It may have been moved or deleted.",
+      "action": "Check the address or go back."
+    },
+    "rate_limited": {
+      "title": "You're going a little fast.",
+      "reason": "Too many requests were sent in a short time.",
+      "action": "Try again in {{seconds}} seconds."
+    },
+    "session_expired": {
+      "title": "Your session has ended.",
+      "reason": "For your security, you were signed out.",
+      "action": "Sign in again. Your drafts and place are kept."
+    },
+    "service_unavailable": {
+      "title": "Cenacle is temporarily unavailable.",
+      "reason": "The service is starting up or under maintenance.",
+      "action": "Try again in a moment."
+    }
   }
 }

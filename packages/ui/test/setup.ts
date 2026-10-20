@@ -36,3 +36,12 @@ if (typeof window.matchMedia !== 'function') {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+// jsdom lacks pointer capture, which sonner uses for swipe-to-dismiss.
+if (!('setPointerCapture' in HTMLElement.prototype)) {
+  Object.assign(HTMLElement.prototype, {
+    setPointerCapture() {},
+    releasePointerCapture() {},
+    hasPointerCapture: () => false,
+  });
+}
