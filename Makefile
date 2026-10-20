@@ -148,7 +148,7 @@ licenses-go: $(GO_LICENSES)
 
 .PHONY: licenses-js
 licenses-js: node_modules
-	pnpm licenses
+	pnpm run check:licenses
 
 .PHONY: vuln
 vuln: $(GOVULNCHECK) ## Scan Go code for known vulnerabilities
