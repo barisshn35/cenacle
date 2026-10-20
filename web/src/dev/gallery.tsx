@@ -402,7 +402,7 @@ export function Gallery() {
   const search = useRouterState({ select: (s) => s.location.searchStr });
   return (
     <div className="min-h-full bg-background text-foreground" data-gallery={search || 'default'}>
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6">
+      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6">
         <header className="flex flex-col gap-3">
           <h1 className="text-2xl font-semibold">{t('gallery.title')}</h1>
           <p className="text-sm text-muted-foreground">{t('gallery.subtitle')}</p>
@@ -438,7 +438,7 @@ export function Gallery() {
         <Section id="errors" title={t('gallery.sections.errors')}>
           <ErrorsSection />
         </Section>
-      </div>
+      </main>
     </div>
   );
 }

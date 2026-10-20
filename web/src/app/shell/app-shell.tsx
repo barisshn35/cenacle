@@ -69,7 +69,8 @@ function DesktopShell() {
             if (open !== useLayout.getState().detailsOpen) setDetailsOpen(open);
           }}
         >
-          <DetailsPanel />
+          {/* Collapsed content is not rendered, so it leaves the tab order and the a11y tree. */}
+          {detailsOpen && <DetailsPanel />}
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
