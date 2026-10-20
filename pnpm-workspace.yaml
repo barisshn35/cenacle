@@ -2,3 +2,5 @@ packages:
   - web
   - idp
   - packages/*
+allowBuilds:
+  esbuild: true
