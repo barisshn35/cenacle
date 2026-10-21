@@ -8,6 +8,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-21
+
+Workspaces with owners, admins and members, invitation links, channel manager appointments.
+
 ### Added
 
 - Workspaces: the rail lists them, `/w/<id>` opens one. Everything that existed moves to
@@ -31,7 +35,7 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-060): reversible migration
+- See [docs/upgrade](docs/upgrade/README.md#060): reversible migration
   `00007_workspaces`.
 
 ## [0.5.0] - 2026-10-21
@@ -231,7 +235,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/barisshn35/cenacle/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/barisshn35/cenacle/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/barisshn35/cenacle/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/barisshn35/cenacle/compare/v0.2.0...v0.3.0

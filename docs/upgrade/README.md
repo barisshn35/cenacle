@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.6.0)
+### 0.6.0
 
 - Chat migration `00007_workspaces` creates the default workspace ("Cenacle") and moves
   every channel, category and user into it; the current administrator becomes its owner.
