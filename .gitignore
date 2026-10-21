@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+# Example configuration files are committed; real ones never are.
+!.env.*.example
 
 # Tooling
 /.bin/
@@ -31,3 +33,5 @@ Thumbs.db
 # Production secrets and settings (deploy/compose)
 deploy/compose/secrets/
 deploy/compose/.env.prod
+deploy/compose/certs/*
+!deploy/compose/certs/README.txt

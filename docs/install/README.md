@@ -59,9 +59,11 @@ container are only reachable through Caddy.
    `AAAA` records only when IPv6 is allowed through.
 3. **DNS first:** both host names must resolve to the host before the first start,
    otherwise Caddy cannot obtain certificates (it retries automatically).
-4. **Air-gapped networks:** without access to Let's Encrypt, provide your own certificates
-   (company CA) to Caddy instead of automatic issuance; move images with
-   `docker save` / `docker load`. See the [upgrade guide](../upgrade/README.md).
+4. **Certificates without Let's Encrypt:** set `CENACLE_TLS_MODE` in `.env.prod`:
+   `files` loads your own certificate from `deploy/compose/certs/tls.crt` (full chain) and
+   `tls.key`; `internal` uses Caddy's internal CA (clients must trust it). In air-gapped
+   networks move images with `docker save` / `docker load`
+   (see the [upgrade guide](../upgrade/README.md)).
 5. **Sharing a host:** if another reverse proxy already owns 80/443, either install Cenacle
    on a separate host or put it behind that proxy (forward both host names to Caddy on an
    internal port and remove the published ports from `prod.yml`).

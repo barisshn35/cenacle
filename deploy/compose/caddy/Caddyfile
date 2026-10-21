@@ -6,7 +6,22 @@
 	admin off
 }
 
+# TLS mode, chosen with CENACLE_TLS_MODE in .env.prod:
+#   acme      automatic certificates from Let's Encrypt (default; needs ports 80/443
+#             reachable from the internet)
+#   files     your own certificate: certs/tls.crt (full chain) and certs/tls.key
+#   internal  Caddy's internal CA (testing or closed networks; clients must trust it)
+(tls-acme) {
+}
+(tls-files) {
+	tls /certs/tls.crt /certs/tls.key
+}
+(tls-internal) {
+	tls internal
+}
+
 {$CENACLE_DOMAIN} {
+	import tls-{$CENACLE_TLS_MODE:acme}
 	encode zstd gzip
 
 	# API and WebSocket go to the chat server; everything else is the SPA.
@@ -26,6 +41,7 @@
 }
 
 {$CENACLE_ID_DOMAIN} {
+	import tls-{$CENACLE_TLS_MODE:acme}
 	encode zstd gzip
 	reverse_proxy idp:8190
 }
