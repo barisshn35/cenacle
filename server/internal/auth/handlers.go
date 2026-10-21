@@ -242,23 +242,40 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 	return signedIn{token: sessionToken, session: session}, nil
 }
 
-// applyRoles makes a signed-in user a member of the default channels and
-// gives or takes the administrator flag according to the configured address
-// (only a verified address counts; there is at most one administrator).
+// applyRoles makes a signed-in user a member of the default workspace and of
+// the default channels of their workspaces, and gives or takes the instance
+// administrator flag according to the configured address (only a verified
+// address counts; there is at most one). The administrator owns the default
+// workspace.
 func (h *Handlers) applyRoles(ctx context.Context, user store.User) error {
+	if _, err := h.Users.JoinDefaultWorkspace(ctx, user.ID); err != nil {
+		return err
+	}
 	if _, err := h.Users.JoinDefaultChannels(ctx, user.ID); err != nil {
 		return err
 	}
 	admin := h.AdminEmail != "" && user.EmailVerified && strings.EqualFold(user.Email, h.AdminEmail)
-	if admin == user.IsAdmin {
-		return nil
-	}
-	if admin {
-		if err := h.Users.ClearAdminExcept(ctx, user.ID); err != nil {
+	if admin != user.IsAdmin {
+		if admin {
+			if err := h.Users.ClearAdminExcept(ctx, user.ID); err != nil {
+				return err
+			}
+		}
+		if err := h.Users.SetAdmin(ctx, store.SetAdminParams{ID: user.ID, IsAdmin: admin}); err != nil {
 			return err
 		}
 	}
-	return h.Users.SetAdmin(ctx, store.SetAdminParams{ID: user.ID, IsAdmin: admin})
+	if !admin {
+		return nil
+	}
+	def, err := h.Users.GetDefaultWorkspace(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = h.Users.SetWorkspaceRole(ctx, store.SetWorkspaceRoleParams{
+		WorkspaceID: def.ID, UserID: user.ID, Role: "owner",
+	})
+	return err
 }
 
 // Logout implements api.ServerInterface. It succeeds without a session too,
@@ -291,7 +308,7 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
 			EmailVerified: p.User.EmailVerified,
 			DisplayName:   p.User.DisplayName,
 		},
-		Permissions:        api.Permissions{CreateChannels: p.User.IsAdmin},
+		Permissions:        api.Permissions{CreateWorkspaces: p.User.IsAdmin},
 		CreatedAt:          p.Session.CreatedAt,
 		ExpiresAt:          p.Session.ExpiresAt,
 		IdleTimeoutSeconds: int(h.Sessions.IdleTimeout / time.Second),

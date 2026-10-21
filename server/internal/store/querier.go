@@ -12,18 +12,23 @@ import (
 )
 
 type Querier interface {
-	// AddAllUsers makes every user a member of a channel.
+	// AddAllUsers makes every member of the channel's workspace a member of it.
 	AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error)
+	AddAllUsersToWorkspace(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	AddMember(ctx context.Context, arg AddMemberParams) (int64, error)
+	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
-	CreateCategory(ctx context.Context, name string) (ChannelCategory, error)
+	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) (ChannelCategory, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
+	CreateInvite(ctx context.Context, arg CreateInviteParams) (WorkspaceInvite, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
 	DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error)
@@ -38,36 +43,55 @@ type Querier interface {
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
+	GetDefaultWorkspace(ctx context.Context) (Workspace, error)
+	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
 	GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error)
 	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
-	// JoinDefaultChannels makes a user a member of every default channel.
+	GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error)
+	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
+	GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRoleParams) (string, error)
+	// JoinDefaultChannels makes a user a member of every default channel of the
+	// workspaces they belong to.
 	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (int64, error)
-	// ListAllChannels returns the public channels and the private channels the
-	// user belongs to, with the user's role ('' when not a member).
-	ListAllChannels(ctx context.Context, userID pgtype.UUID) ([]ListAllChannelsRow, error)
-	ListCategories(ctx context.Context) ([]ChannelCategory, error)
-	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
+	// JoinDefaultWorkspace makes a user a member of the default workspace.
+	JoinDefaultWorkspace(ctx context.Context, userID pgtype.UUID) (int64, error)
+	// LeaveWorkspaceChannels takes a user out of every channel of a workspace.
+	LeaveWorkspaceChannels(ctx context.Context, arg LeaveWorkspaceChannelsParams) (int64, error)
+	// ListAllChannels returns the public channels of a workspace and its private
+	// channels the user belongs to, with the user's role ('' when not a member).
+	ListAllChannels(ctx context.Context, arg ListAllChannelsParams) ([]ListAllChannelsRow, error)
+	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
+	// ListInvites returns the invitations of a workspace that can still be used.
+	ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceInvite, error)
+	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelIDsRow, error)
 	// ListMemberChannels returns the channels a user belongs to with the user's
-	// role: mandatory ones first, then by name.
+	// roles in each and in its workspace: mandatory ones first, then by name.
 	ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelsRow, error)
 	ListMembers(ctx context.Context, channelID pgtype.UUID) ([]ListMembersRow, error)
 	// ListMessagesBefore returns up to row_limit messages of a channel older than
 	// the cursor (all when before is NULL), newest first, with their authors.
 	// Deleted messages are left out.
 	ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error)
+	// ListUserWorkspaces returns a user's workspaces with their role, the default
+	// workspace first.
+	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListUserWorkspacesRow, error)
+	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
 	// PurgeDeletedMessages removes messages that can no longer be restored.
 	PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error)
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
+	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) (int64, error)
+	RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.
 	RestoreMessage(ctx context.Context, arg RestoreMessageParams) (Message, error)
 	// RevokeAdminUnlessEmail removes the administrator flag from a user whose
 	// e-mail address is no longer the configured one ('' revokes it from all).
 	RevokeAdminUnlessEmail(ctx context.Context, email string) error
-	// SearchUsers finds users by name or e-mail address (pattern: a LIKE pattern
-	// with % and _ escaped by the caller).
+	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
+	// SearchUsers finds members of a workspace by name or e-mail address
+	// (pattern: a LIKE pattern with % and _ escaped by the caller).
 	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error)
 	// ServerTime returns the database clock; used as a smoke test of the
 	// sqlc/pgx setup.
@@ -77,6 +101,8 @@ type Querier interface {
 	SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error)
 	SetAdmin(ctx context.Context, arg SetAdminParams) error
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
+	SetChannelMemberRole(ctx context.Context, arg SetChannelMemberRoleParams) (int64, error)
+	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)
 	// TouchSession records use of a session at most once per minute, which keeps
 	// writes low while the idle timeout stays accurate to the minute.
 	TouchSession(ctx context.Context, arg TouchSessionParams) error
@@ -85,6 +111,8 @@ type Querier interface {
 	// UpsertUserFromIdentity creates the user of an identity on first sign-in and
 	// refreshes the profile claims on every later one.
 	UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFromIdentityParams) (User, error)
+	// UseInvite counts one use of a valid invitation; no row when it is not valid.
+	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
 }
 
 var _ Querier = (*Queries)(nil)

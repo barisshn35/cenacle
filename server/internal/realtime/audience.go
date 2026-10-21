@@ -9,39 +9,51 @@ import (
 )
 
 // audience decides which events one connection receives: messages of the
-// channels its user belongs to, and changes of that user's memberships, which
-// it tracks as they arrive.
+// channels its user belongs to, changes of those channels and of the user's
+// workspaces, and changes of the user's memberships, which it tracks as they
+// arrive.
 type audience struct {
-	user     string
-	channels map[string]bool
+	user string
+	// channel id -> workspace id
+	channels   map[string]string
+	workspaces map[string]bool
 }
 
-type channelEventData struct {
+type eventData struct {
 	Channel struct {
-		ID string `json:"id"`
+		ID          string `json:"id"`
+		WorkspaceID string `json:"workspace_id"`
 	} `json:"channel"`
-	UserID    string `json:"user_id"`
-	ChannelID string `json:"channel_id"`
+	UserID      string `json:"user_id"`
+	ChannelID   string `json:"channel_id"`
+	WorkspaceID string `json:"workspace_id"`
+}
+
+func (a *audience) inChannel(id string) bool {
+	_, ok := a.channels[id]
+	return ok
 }
 
 func (a *audience) allows(ev events.Event) bool {
-	var d channelEventData
+	var d eventData
 	if err := json.Unmarshal(ev.Data, &d); err != nil {
 		return false
 	}
 	switch ev.Type {
-	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted:
-		return a.channels[d.ChannelID]
-	case events.CategoriesChanged:
-		return true
-	case events.ChannelCreated: // default channels: everyone is a member
-		a.channels[d.Channel.ID] = true
+	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted,
+		events.ChannelUpdated, events.ChannelMembersChanged:
+		return a.inChannel(d.ChannelID)
+	case events.ChannelCreated: // a channel for everyone in its workspace
+		if !a.workspaces[d.Channel.WorkspaceID] {
+			return false
+		}
+		a.channels[d.Channel.ID] = d.Channel.WorkspaceID
 		return true
 	case events.ChannelJoined:
 		if d.UserID != a.user {
 			return false
 		}
-		a.channels[d.Channel.ID] = true
+		a.channels[d.Channel.ID] = d.Channel.WorkspaceID
 		return true
 	case events.ChannelLeft:
 		if d.UserID != a.user {
@@ -49,8 +61,25 @@ func (a *audience) allows(ev events.Event) bool {
 		}
 		delete(a.channels, d.Channel.ID)
 		return true
-	case events.ChannelUpdated, events.ChannelMembersChanged:
-		return a.channels[d.ChannelID]
+	case events.CategoriesChanged, events.WorkspaceUpdated, events.WorkspaceMembersChanged:
+		return a.workspaces[d.WorkspaceID]
+	case events.WorkspaceJoined:
+		if d.UserID != a.user {
+			return false
+		}
+		a.workspaces[d.WorkspaceID] = true
+		return true
+	case events.WorkspaceLeft:
+		if d.UserID != a.user {
+			return false
+		}
+		delete(a.workspaces, d.WorkspaceID)
+		for id, ws := range a.channels {
+			if ws == d.WorkspaceID {
+				delete(a.channels, id)
+			}
+		}
+		return true
 	default:
 		return false // unknown events stay on the server
 	}

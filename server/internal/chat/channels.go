@@ -48,35 +48,49 @@ const (
 	MaxTopic       = 250
 )
 
-// Visibility and member roles.
+// Visibility, channel roles and workspace roles.
 const (
 	Public      = "public"
 	Private     = "private"
 	RoleMember  = "member"
 	RoleManager = "manager"
+
+	WorkspaceOwner  = "owner"
+	WorkspaceAdmin  = "admin"
+	WorkspaceMember = "member"
 )
 
-// canPost: everyone in standard channels, only the administrator in
-// announcement channels.
-func canPost(c store.Channel, user store.User) bool {
-	return !c.ArchivedAt.Valid && (c.Kind != KindAnnouncement || user.IsAdmin)
+// access is what a user is in a channel ("" when not a member) and in its
+// workspace.
+type access struct {
+	ch, ws string
 }
 
-// canManage: the channel's managers and the administrator.
-func canManage(role string, user store.User) bool {
-	return user.IsAdmin || role == RoleManager
+// admin: the workspace's owners and admins run its channels.
+func (a access) admin() bool { return isWorkspaceAdmin(a.ws) }
+
+func isWorkspaceAdmin(role string) bool { return role == WorkspaceOwner || role == WorkspaceAdmin }
+
+// canPost: everyone in standard channels, only workspace owners and admins in
+// announcement channels; nobody in archived ones.
+func canPost(c store.Channel, a access) bool {
+	return !c.ArchivedAt.Valid && (c.Kind != KindAnnouncement || a.admin())
 }
 
-// toAPI describes a channel for a user whose role in it is role ("" when not
-// a member).
-func toAPI(c store.Channel, role string, user store.User) api.Channel {
-	member := role != ""
+// canManage: the channel's managers and the workspace's owners and admins.
+func canManage(a access) bool {
+	return a.admin() || a.ch == RoleManager
+}
+
+// toAPI describes a channel for a user with the given access.
+func toAPI(c store.Channel, a access) api.Channel {
+	member := a.ch != ""
 	out := api.Channel{
-		Id: uuid(c.ID), Name: c.Name, Topic: c.Topic, Kind: api.ChannelKind(c.Kind),
+		Id: uuid(c.ID), WorkspaceId: uuid(c.WorkspaceID), Name: c.Name, Topic: c.Topic, Kind: api.ChannelKind(c.Kind),
 		Visibility: api.ChannelVisibility(c.Visibility),
 		IsDefault:  c.IsDefault, IsMandatory: c.IsMandatory, IsMember: member,
-		CanPost:   member && canPost(c, user),
-		CanManage: canManage(role, user),
+		CanPost:   member && canPost(c, a),
+		CanManage: canManage(a),
 		Archived:  c.ArchivedAt.Valid,
 	}
 	if c.CategoryID.Valid {
@@ -103,25 +117,31 @@ func (h *Handlers) ListChannels(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]api.Channel, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, toAPI(row.Channel, row.Role, p.User))
+		out = append(out, toAPI(row.Channel, access{ch: row.Role, ws: row.WorkspaceRole}))
 	}
 	writeChannels(w, out)
 }
 
 // ListChannelDirectory implements api.ServerInterface.
-func (h *Handlers) ListChannelDirectory(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) ListChannelDirectory(w http.ResponseWriter, r *http.Request, params api.ListChannelDirectoryParams) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
 	if !ok {
 		return
 	}
-	rows, err := h.Queries.ListAllChannels(r.Context(), p.User.ID)
+	wsRole, ok := h.workspaceRole(w, r, params.WorkspaceId, p.User)
+	if !ok {
+		return
+	}
+	rows, err := h.Queries.ListAllChannels(r.Context(), store.ListAllChannelsParams{
+		UserID: p.User.ID, WorkspaceID: pgUUID(params.WorkspaceId),
+	})
 	if err != nil {
 		h.unavailable(w, r, "list channel directory", err)
 		return
 	}
 	out := make([]api.Channel, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, toAPI(row.Channel, row.Role, p.User))
+		out = append(out, toAPI(row.Channel, access{ch: row.Role, ws: wsRole}))
 	}
 	writeChannels(w, out)
 }
@@ -168,12 +188,16 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !p.User.IsAdmin {
-		forbidden(w, r, httpx.CodeForbidden, "Only the administrator can create channels.")
-		return
-	}
 	var in api.NewChannel
 	if !decode(w, r, &in) {
+		return
+	}
+	wsRole, ok := h.workspaceRole(w, r, in.WorkspaceId, p.User)
+	if !ok {
+		return
+	}
+	if !isWorkspaceAdmin(wsRole) {
+		forbidden(w, r, httpx.CodeForbidden, "Only the workspace's owners and admins can create channels.")
 		return
 	}
 	name, problem := cleanName(in.Name)
@@ -204,7 +228,8 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c, err := h.Queries.CreateChannel(r.Context(), store.CreateChannelParams{
-		Name: name, Topic: topic, Kind: kind, IsDefault: isDefault, Visibility: visibility, CreatedBy: p.User.ID,
+		WorkspaceID: pgUUID(in.WorkspaceId), Name: name, Topic: topic, Kind: kind, IsDefault: isDefault,
+		Visibility: visibility, CreatedBy: p.User.ID,
 	})
 	if isUniqueViolation(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
@@ -224,9 +249,9 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w, r, "add channel members", err)
 		return
 	}
-	out := toAPI(c, RoleManager, p.User)
+	out := toAPI(c, access{ch: RoleManager, ws: wsRole})
 	if isDefault {
-		h.publish(r.Context(), events.ChannelCreated, ChannelEvent{Channel: toAPI(c, RoleMember, store.User{})})
+		h.publish(r.Context(), events.ChannelCreated, ChannelEvent{Channel: toAPI(c, access{ch: RoleMember})})
 	} else {
 		h.publish(r.Context(), events.ChannelJoined, ChannelEvent{Channel: out, UserID: uuid(p.User.ID).String()})
 	}
@@ -244,31 +269,55 @@ type ChannelEvent struct {
 	ChannelID string      `json:"channel_id,omitempty"`
 }
 
-// visibleChannel loads a channel the user may see: public channels, and
-// private ones only for members (and the administrator); other private
-// channels answer 404 as if they did not exist. It returns the user's role
-// ("" when not a member).
-func (h *Handlers) visibleChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, string, bool) {
+// workspaceRole returns the user's role in a workspace; to non-members the
+// workspace does not exist (404).
+func (h *Handlers) workspaceRole(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (string, bool) {
+	role, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{
+		WorkspaceID: pgUUID(id), UserID: user.ID,
+	})
+	if err != nil {
+		h.unavailable(w, r, "get workspace role", err)
+		return "", false
+	}
+	if role == "" {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
+			Detail: "No workspace with this id."})
+		return "", false
+	}
+	return role, true
+}
+
+// visibleChannel loads a channel the user may see: channels of the user's
+// workspaces that are public, and private ones only for their members and the
+// workspace's owners and admins; anything else answers 404 as if it did not
+// exist. It returns the user's access ("" channel role when not a member).
+func (h *Handlers) visibleChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, access, bool) {
 	c, ok := h.channel(w, r, id)
 	if !ok {
-		return c, "", false
+		return c, access{}, false
 	}
-	role, err := h.Queries.GetMemberRole(r.Context(), store.GetMemberRoleParams{ChannelID: c.ID, UserID: user.ID})
+	ws, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: c.WorkspaceID, UserID: user.ID})
+	if err != nil {
+		h.unavailable(w, r, "get workspace role", err)
+		return c, access{}, false
+	}
+	ch, err := h.Queries.GetMemberRole(r.Context(), store.GetMemberRoleParams{ChannelID: c.ID, UserID: user.ID})
 	if err != nil {
 		h.unavailable(w, r, "get membership", err)
-		return c, "", false
+		return c, access{}, false
 	}
-	if c.Visibility == Private && role == "" && !user.IsAdmin {
+	a := access{ch: ch, ws: ws}
+	if ws == "" || (c.Visibility == Private && ch == "" && !a.admin()) {
 		channelNotFound(w, r)
-		return c, "", false
+		return c, access{}, false
 	}
-	return c, role, true
+	return c, a, true
 }
 
 // memberChannel is visibleChannel for operations that need membership.
-func (h *Handlers) memberChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, string, bool) {
+func (h *Handlers) memberChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, access, bool) {
 	c, role, ok := h.visibleChannel(w, r, id, user)
-	if ok && role == "" {
+	if ok && role.ch == "" {
 		forbidden(w, r, CodeNotAMember, "Join the channel first.")
 		return c, role, false
 	}
@@ -285,13 +334,13 @@ func (h *Handlers) JoinChannel(w http.ResponseWriter, r *http.Request, channelID
 	if !ok {
 		return
 	}
-	if role != "" {
-		httpx.WriteJSON(w, http.StatusOK, toAPI(c, role, p.User))
+	if role.ch != "" {
+		httpx.WriteJSON(w, http.StatusOK, toAPI(c, role))
 		return
 	}
 	if c.Visibility == Private {
-		// Private channels are joined by being added by a manager (the
-		// administrator adds themselves through the member list).
+		// Private channels are joined by being added by a manager (workspace
+		// admins add themselves through the member list).
 		channelNotFound(w, r)
 		return
 	}
@@ -299,7 +348,7 @@ func (h *Handlers) JoinChannel(w http.ResponseWriter, r *http.Request, channelID
 		h.unavailable(w, r, "join channel", err)
 		return
 	}
-	out := toAPI(c, RoleMember, p.User)
+	out := toAPI(c, access{ch: RoleMember, ws: role.ws})
 	h.membersChanged(r.Context(), c, p.User.ID, events.ChannelJoined, out)
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
@@ -324,7 +373,7 @@ func (h *Handlers) LeaveChannel(w http.ResponseWriter, r *http.Request, channelI
 		return
 	}
 	if n > 0 {
-		h.membersChanged(r.Context(), c, p.User.ID, events.ChannelLeft, toAPI(c, "", store.User{}))
+		h.membersChanged(r.Context(), c, p.User.ID, events.ChannelLeft, toAPI(c, access{}))
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -350,7 +399,7 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 	if !ok {
 		return
 	}
-	if !canManage(role, p.User) {
+	if !canManage(role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can change it.")
 		return
 	}
@@ -393,9 +442,9 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 	h.publish(r.Context(), events.ChannelUpdated, ChannelEvent{
-		Channel: toAPI(c, RoleMember, store.User{}), ChannelID: uuid(c.ID).String(),
+		Channel: toAPI(c, access{ch: RoleMember}), ChannelID: uuid(c.ID).String(),
 	})
-	httpx.WriteJSON(w, http.StatusOK, toAPI(c, role, p.User))
+	httpx.WriteJSON(w, http.StatusOK, toAPI(c, role))
 }
 
 // ListChannelMembers implements api.ServerInterface.
@@ -428,7 +477,7 @@ func (h *Handlers) ListChannelMembers(w http.ResponseWriter, r *http.Request, ch
 // managedChannel loads a channel the user manages, or answers.
 func (h *Handlers) managedChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, bool) {
 	c, role, ok := h.visibleChannel(w, r, id, user)
-	if ok && !canManage(role, user) {
+	if ok && !canManage(role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can add or remove people.")
 		return c, false
 	}
@@ -460,6 +509,16 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 		h.unavailable(w, r, "get user", err)
 		return
 	}
+	// Only members of the workspace can join its channels.
+	targetWs, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: c.WorkspaceID, UserID: u.ID})
+	if err != nil {
+		h.unavailable(w, r, "get workspace role", err)
+		return
+	}
+	if targetWs == "" {
+		badRequest(w, r, "This person is not a member of the workspace.")
+		return
+	}
 	n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: u.ID, Role: RoleMember})
 	if err != nil {
 		h.unavailable(w, r, "add member", err)
@@ -471,7 +530,7 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 		return
 	}
 	if n > 0 {
-		h.membersChanged(r.Context(), c, u.ID, events.ChannelJoined, toAPI(c, RoleMember, u))
+		h.membersChanged(r.Context(), c, u.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember, ws: targetWs}))
 	}
 	httpx.WriteJSON(w, http.StatusOK, api.Member{
 		User: api.Person{Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email}, Role: api.MemberRole(role),
@@ -502,14 +561,18 @@ func (h *Handlers) RemoveChannelMember(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 	if n > 0 {
-		h.membersChanged(r.Context(), c, pgUUID(userID), events.ChannelLeft, toAPI(c, "", store.User{}))
+		h.membersChanged(r.Context(), c, pgUUID(userID), events.ChannelLeft, toAPI(c, access{}))
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // SearchUsers implements api.ServerInterface.
 func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params api.SearchUsersParams) {
-	if _, ok := auth.RequirePrincipal(w, r, h.Cookies); !ok {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	if _, ok := h.workspaceRole(w, r, params.WorkspaceId, p.User); !ok {
 		return
 	}
 	q := strings.TrimSpace(params.Q)
@@ -524,7 +587,7 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 	// The search text is literal: escape LIKE's wildcards.
 	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q)
 	rows, err := h.Queries.SearchUsers(r.Context(), store.SearchUsersParams{
-		Pattern: "%" + escaped + "%", RowLimit: int32(limit),
+		WorkspaceID: pgUUID(params.WorkspaceId), Pattern: "%" + escaped + "%", RowLimit: int32(limit),
 	})
 	if err != nil {
 		h.unavailable(w, r, "search users", err)
@@ -557,18 +620,30 @@ func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	return true
 }
 
-// Defaults are the channels configured at installation.
+// Defaults are the channels configured at installation; they belong to the
+// default workspace.
 type Defaults struct {
 	Announcement string
 	Channels     []string
 	AdminEmail   string
 }
 
-// EnsureDefaults creates the configured channels (or brings existing ones to
-// the configured kind), makes every user a member of the default channels and
-// takes the administrator flag from users whose address is no longer
-// configured. It is safe to run on every start of every instance.
+// EnsureDefaults makes sure the default workspace exists with every user in
+// it, creates its configured channels (or brings existing ones to the
+// configured kind) with every member in them, and takes the administrator
+// flag from users whose address is no longer configured. It is safe to run on
+// every start of every instance.
 func EnsureDefaults(ctx context.Context, q store.Querier, d Defaults) error {
+	ws, err := q.GetDefaultWorkspace(ctx)
+	if isNoRows(err) {
+		ws, err = q.CreateWorkspace(ctx, store.CreateWorkspaceParams{Name: "Cenacle", IsDefault: true})
+	}
+	if err != nil {
+		return fmt.Errorf("default workspace: %w", err)
+	}
+	if _, err := q.AddAllUsersToWorkspace(ctx, ws.ID); err != nil {
+		return fmt.Errorf("members of the default workspace: %w", err)
+	}
 	type spec struct {
 		name, topic, kind string
 		mandatory         bool
@@ -582,7 +657,7 @@ func EnsureDefaults(ctx context.Context, q store.Querier, d Defaults) error {
 	}
 	for _, s := range specs {
 		c, err := q.EnsureChannel(ctx, store.EnsureChannelParams{
-			Name: s.name, Topic: s.topic, Kind: s.kind, IsDefault: true, IsMandatory: s.mandatory,
+			WorkspaceID: ws.ID, Name: s.name, Topic: s.topic, Kind: s.kind, IsDefault: true, IsMandatory: s.mandatory,
 		})
 		if err != nil {
 			return fmt.Errorf("ensure channel %q: %w", s.name, err)
@@ -606,7 +681,7 @@ func RunEnsureDefaults(ctx context.Context, q store.Querier, d Defaults, log *sl
 		if err == nil {
 			log.Info("default channels ready", "announcement", d.Announcement, "default", d.Channels)
 			if d.AdminEmail == "" {
-				log.Warn("no administrator configured (CENACLE_ADMIN_EMAIL): nobody can create channels")
+				log.Warn("no administrator configured (CENACLE_ADMIN_EMAIL): nobody owns the default workspace yet")
 			}
 			return
 		}

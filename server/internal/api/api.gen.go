@@ -122,6 +122,87 @@ func (e NewChannelVisibility) Valid() bool {
 	}
 }
 
+// Defines values for WorkspaceRole.
+const (
+	WorkspaceRoleAdmin  WorkspaceRole = "admin"
+	WorkspaceRoleMember WorkspaceRole = "member"
+	WorkspaceRoleOwner  WorkspaceRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the WorkspaceRole enum.
+func (e WorkspaceRole) Valid() bool {
+	switch e {
+	case WorkspaceRoleAdmin:
+		return true
+	case WorkspaceRoleMember:
+		return true
+	case WorkspaceRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkspaceMemberRole.
+const (
+	WorkspaceMemberRoleAdmin  WorkspaceMemberRole = "admin"
+	WorkspaceMemberRoleMember WorkspaceMemberRole = "member"
+	WorkspaceMemberRoleOwner  WorkspaceMemberRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the WorkspaceMemberRole enum.
+func (e WorkspaceMemberRole) Valid() bool {
+	switch e {
+	case WorkspaceMemberRoleAdmin:
+		return true
+	case WorkspaceMemberRoleMember:
+		return true
+	case WorkspaceMemberRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetChannelMemberRoleJSONBodyRole.
+const (
+	SetChannelMemberRoleJSONBodyRoleManager SetChannelMemberRoleJSONBodyRole = "manager"
+	SetChannelMemberRoleJSONBodyRoleMember  SetChannelMemberRoleJSONBodyRole = "member"
+)
+
+// Valid indicates whether the value is a known member of the SetChannelMemberRoleJSONBodyRole enum.
+func (e SetChannelMemberRoleJSONBodyRole) Valid() bool {
+	switch e {
+	case SetChannelMemberRoleJSONBodyRoleManager:
+		return true
+	case SetChannelMemberRoleJSONBodyRoleMember:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetWorkspaceRoleJSONBodyRole.
+const (
+	SetWorkspaceRoleJSONBodyRoleAdmin  SetWorkspaceRoleJSONBodyRole = "admin"
+	SetWorkspaceRoleJSONBodyRoleMember SetWorkspaceRoleJSONBodyRole = "member"
+	SetWorkspaceRoleJSONBodyRoleOwner  SetWorkspaceRoleJSONBodyRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the SetWorkspaceRoleJSONBodyRole enum.
+func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
+	switch e {
+	case SetWorkspaceRoleJSONBodyRoleAdmin:
+		return true
+	case SetWorkspaceRoleJSONBodyRoleMember:
+		return true
+	case SetWorkspaceRoleJSONBodyRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
 // Author defines model for Author.
 type Author struct {
 	DisplayName string             `json:"display_name"`
@@ -161,7 +242,8 @@ type Channel struct {
 	Topic string      `json:"topic"`
 
 	// Visibility Private channels are visible to their members only.
-	Visibility ChannelVisibility `json:"visibility"`
+	Visibility  ChannelVisibility  `json:"visibility"`
+	WorkspaceId openapi_types.UUID `json:"workspace_id"`
 }
 
 // ChannelKind In announcement channels only the administrator can send.
@@ -184,6 +266,25 @@ type ChannelUpdate struct {
 
 // ChannelUpdateVisibility defines model for ChannelUpdate.Visibility.
 type ChannelUpdateVisibility string
+
+// Invite defines model for Invite.
+type Invite struct {
+	CreatedAt time.Time          `json:"created_at"`
+	ExpiresAt time.Time          `json:"expires_at"`
+	Id        openapi_types.UUID `json:"id"`
+	MaxUses   *int               `json:"max_uses"`
+	Uses      int                `json:"uses"`
+}
+
+// InvitePreview defines model for InvitePreview.
+type InvitePreview struct {
+	IsMember bool `json:"is_member"`
+
+	// Valid False when expired, used up or revoked.
+	Valid         bool               `json:"valid"`
+	WorkspaceId   openapi_types.UUID `json:"workspace_id"`
+	WorkspaceName string             `json:"workspace_name"`
+}
 
 // Logout defines model for Logout.
 type Logout struct {
@@ -228,9 +329,10 @@ type NewChannel struct {
 	Kind      *NewChannelKind `json:"kind,omitempty"`
 
 	// Name Display name, unique regardless of case; surrounding spaces are removed.
-	Name       string                `json:"name"`
-	Topic      *string               `json:"topic,omitempty"`
-	Visibility *NewChannelVisibility `json:"visibility,omitempty"`
+	Name        string                `json:"name"`
+	Topic       *string               `json:"topic,omitempty"`
+	Visibility  *NewChannelVisibility `json:"visibility,omitempty"`
+	WorkspaceId openapi_types.UUID    `json:"workspace_id"`
 }
 
 // NewChannelKind defines model for NewChannel.Kind.
@@ -245,9 +347,10 @@ type NewMessage struct {
 	Nonce string `json:"nonce"`
 }
 
-// Permissions What the user may do (roles replace the single administrator later).
+// Permissions What the user may do across the instance. Rights inside a workspace follow
+// the role there (see Workspace).
 type Permissions struct {
-	CreateChannels bool `json:"create_channels"`
+	CreateWorkspaces bool `json:"create_workspaces"`
 }
 
 // Person defines model for Person.
@@ -279,7 +382,8 @@ type Session struct {
 	// IdleTimeoutSeconds The session also ends after this long without use.
 	IdleTimeoutSeconds int `json:"idle_timeout_seconds"`
 
-	// Permissions What the user may do (roles replace the single administrator later).
+	// Permissions What the user may do across the instance. Rights inside a workspace follow
+	// the role there (see Workspace).
 	Permissions Permissions `json:"permissions"`
 	User        User        `json:"user"`
 }
@@ -291,6 +395,28 @@ type User struct {
 	EmailVerified bool               `json:"email_verified"`
 	Id            openapi_types.UUID `json:"id"`
 }
+
+// Workspace defines model for Workspace.
+type Workspace struct {
+	Id openapi_types.UUID `json:"id"`
+
+	// IsDefault Everyone who signs in belongs to the default workspace.
+	IsDefault bool          `json:"is_default"`
+	Name      string        `json:"name"`
+	Role      WorkspaceRole `json:"role"`
+}
+
+// WorkspaceRole defines model for Workspace.Role.
+type WorkspaceRole string
+
+// WorkspaceMember defines model for WorkspaceMember.
+type WorkspaceMember struct {
+	Role WorkspaceMemberRole `json:"role"`
+	User Person              `json:"user"`
+}
+
+// WorkspaceMemberRole defines model for WorkspaceMember.Role.
+type WorkspaceMemberRole string
 
 // WsTicket defines model for WsTicket.
 type WsTicket struct {
@@ -314,15 +440,26 @@ type LoginParams struct {
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
 }
 
+// ListCategoriesParams defines parameters for ListCategories.
+type ListCategoriesParams struct {
+	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
+}
+
 // CreateCategoryJSONBody defines parameters for CreateCategory.
 type CreateCategoryJSONBody struct {
-	Name string `json:"name"`
+	Name        string             `json:"name"`
+	WorkspaceId openapi_types.UUID `json:"workspace_id"`
 }
 
 // UpdateCategoryJSONBody defines parameters for UpdateCategory.
 type UpdateCategoryJSONBody struct {
 	Name     *string `json:"name,omitempty"`
 	Position *int    `json:"position,omitempty"`
+}
+
+// ListChannelDirectoryParams defines parameters for ListChannelDirectory.
+type ListChannelDirectoryParams struct {
+	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
 }
 
 // SetChannelCategoryJSONBody defines parameters for SetChannelCategory.
@@ -335,6 +472,14 @@ type SetChannelCategoryJSONBody struct {
 type AddChannelMemberJSONBody struct {
 	UserId openapi_types.UUID `json:"user_id"`
 }
+
+// SetChannelMemberRoleJSONBody defines parameters for SetChannelMemberRole.
+type SetChannelMemberRoleJSONBody struct {
+	Role SetChannelMemberRoleJSONBodyRole `json:"role"`
+}
+
+// SetChannelMemberRoleJSONBodyRole defines parameters for SetChannelMemberRole.
+type SetChannelMemberRoleJSONBodyRole string
 
 // ListMessagesParams defines parameters for ListMessages.
 type ListMessagesParams struct {
@@ -349,9 +494,34 @@ type EditMessageJSONBody struct {
 
 // SearchUsersParams defines parameters for SearchUsers.
 type SearchUsersParams struct {
-	Q     string `form:"q" json:"q"`
-	Limit *int   `form:"limit,omitempty" json:"limit,omitempty"`
+	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
+	Q           string             `form:"q" json:"q"`
+	Limit       *int               `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// CreateWorkspaceJSONBody defines parameters for CreateWorkspace.
+type CreateWorkspaceJSONBody struct {
+	Name string `json:"name"`
+}
+
+// RenameWorkspaceJSONBody defines parameters for RenameWorkspace.
+type RenameWorkspaceJSONBody struct {
+	Name string `json:"name"`
+}
+
+// CreateInviteJSONBody defines parameters for CreateInvite.
+type CreateInviteJSONBody struct {
+	ExpiresInHours *int `json:"expires_in_hours,omitempty"`
+	MaxUses        *int `json:"max_uses,omitempty"`
+}
+
+// SetWorkspaceRoleJSONBody defines parameters for SetWorkspaceRole.
+type SetWorkspaceRoleJSONBody struct {
+	Role SetWorkspaceRoleJSONBodyRole `json:"role"`
+}
+
+// SetWorkspaceRoleJSONBodyRole defines parameters for SetWorkspaceRole.
+type SetWorkspaceRoleJSONBodyRole string
 
 // CreateCategoryJSONRequestBody defines body for CreateCategory for application/json ContentType.
 type CreateCategoryJSONRequestBody CreateCategoryJSONBody
@@ -371,11 +541,26 @@ type SetChannelCategoryJSONRequestBody SetChannelCategoryJSONBody
 // AddChannelMemberJSONRequestBody defines body for AddChannelMember for application/json ContentType.
 type AddChannelMemberJSONRequestBody AddChannelMemberJSONBody
 
+// SetChannelMemberRoleJSONRequestBody defines body for SetChannelMemberRole for application/json ContentType.
+type SetChannelMemberRoleJSONRequestBody SetChannelMemberRoleJSONBody
+
 // CreateMessageJSONRequestBody defines body for CreateMessage for application/json ContentType.
 type CreateMessageJSONRequestBody = NewMessage
 
 // EditMessageJSONRequestBody defines body for EditMessage for application/json ContentType.
 type EditMessageJSONRequestBody EditMessageJSONBody
+
+// CreateWorkspaceJSONRequestBody defines body for CreateWorkspace for application/json ContentType.
+type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
+
+// RenameWorkspaceJSONRequestBody defines body for RenameWorkspace for application/json ContentType.
+type RenameWorkspaceJSONRequestBody RenameWorkspaceJSONBody
+
+// CreateInviteJSONRequestBody defines body for CreateInvite for application/json ContentType.
+type CreateInviteJSONRequestBody CreateInviteJSONBody
+
+// SetWorkspaceRoleJSONRequestBody defines body for SetWorkspaceRole for application/json ContentType.
+type SetWorkspaceRoleJSONRequestBody SetWorkspaceRoleJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -388,34 +573,34 @@ type ServerInterface interface {
 	// Logout End the current session
 	// (POST /api/auth/logout)
 	Logout(w http.ResponseWriter, r *http.Request)
-	// ListCategories Channel categories, in order
+	// ListCategories Channel categories of a workspace, in order
 	// (GET /api/categories)
-	ListCategories(w http.ResponseWriter, r *http.Request)
-	// CreateCategory Create a category (administrator)
+	ListCategories(w http.ResponseWriter, r *http.Request, params ListCategoriesParams)
+	// CreateCategory Create a category (workspace owners and admins)
 	// (POST /api/categories)
 	CreateCategory(w http.ResponseWriter, r *http.Request)
-	// DeleteCategory Delete a category (administrator); its channels stay, without category
+	// DeleteCategory Delete a category (workspace owners and admins); its channels stay
 	// (DELETE /api/categories/{category_id})
 	DeleteCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID)
-	// UpdateCategory Rename or move a category (administrator)
+	// UpdateCategory Rename or move a category (workspace owners and admins)
 	// (PATCH /api/categories/{category_id})
 	UpdateCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID)
 	// ListChannels Channels the user is a member of
 	// (GET /api/channels)
 	ListChannels(w http.ResponseWriter, r *http.Request)
-	// CreateChannel Create a channel (administrator only)
+	// CreateChannel Create a channel (workspace owners and admins)
 	// (POST /api/channels)
 	CreateChannel(w http.ResponseWriter, r *http.Request)
-	// ListChannelDirectory Channels the user can see, with membership
+	// ListChannelDirectory Channels of a workspace the user can see, with membership
 	// (GET /api/channels/directory)
-	ListChannelDirectory(w http.ResponseWriter, r *http.Request)
+	ListChannelDirectory(w http.ResponseWriter, r *http.Request, params ListChannelDirectoryParams)
 	// UpdateChannel Rename, change visibility or topic (channel managers)
 	// (PATCH /api/channels/{channel_id})
 	UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// ArchiveChannel Archive a channel (channel managers)
 	// (POST /api/channels/{channel_id}/archive)
 	ArchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
-	// SetChannelCategory Put a channel in a category (administrator)
+	// SetChannelCategory Put a channel in a category (workspace owners and admins)
 	// (PUT /api/channels/{channel_id}/category)
 	SetChannelCategory(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// JoinChannel Join a public channel
@@ -433,6 +618,9 @@ type ServerInterface interface {
 	// RemoveChannelMember Remove someone from a channel (channel managers)
 	// (DELETE /api/channels/{channel_id}/members/{user_id})
 	RemoveChannelMember(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, userId openapi_types.UUID)
+	// SetChannelMemberRole Make a member a channel manager, or back (channel managers)
+	// (PATCH /api/channels/{channel_id}/members/{user_id})
+	SetChannelMemberRole(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, userId openapi_types.UUID)
 	// ListMessages Messages of a channel, newest page first
 	// (GET /api/channels/{channel_id}/messages)
 	ListMessages(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListMessagesParams)
@@ -451,12 +639,45 @@ type ServerInterface interface {
 	// UnarchiveChannel Restore an archived channel (channel managers)
 	// (POST /api/channels/{channel_id}/unarchive)
 	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// GetInvite What an invitation leads to
+	// (GET /api/invites/{token})
+	GetInvite(w http.ResponseWriter, r *http.Request, token string)
+	// AcceptInvite Join the workspace of an invitation
+	// (POST /api/invites/{token}/accept)
+	AcceptInvite(w http.ResponseWriter, r *http.Request, token string)
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
-	// SearchUsers Find people by name or e-mail address
+	// SearchUsers Find members of a workspace by name or e-mail address
 	// (GET /api/users)
 	SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams)
+	// ListWorkspaces The user's workspaces, the default one first
+	// (GET /api/workspaces)
+	ListWorkspaces(w http.ResponseWriter, r *http.Request)
+	// CreateWorkspace Create a workspace (the instance administrator)
+	// (POST /api/workspaces)
+	CreateWorkspace(w http.ResponseWriter, r *http.Request)
+	// RenameWorkspace Rename a workspace (owners and admins)
+	// (PATCH /api/workspaces/{workspace_id})
+	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListInvites Invitations that can still be used (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/invites)
+	ListInvites(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateInvite Create an invitation link (owners and admins)
+	// (POST /api/workspaces/{workspace_id}/invites)
+	CreateInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// RevokeInvite Revoke an invitation (owners and admins)
+	// (DELETE /api/workspaces/{workspace_id}/invites/{invite_id})
+	RevokeInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, inviteId openapi_types.UUID)
+	// ListWorkspaceMembers Members of a workspace with their roles
+	// (GET /api/workspaces/{workspace_id}/members)
+	ListWorkspaceMembers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// RemoveWorkspaceMember Remove someone from a workspace (owners and admins), or leave it yourself
+	// (DELETE /api/workspaces/{workspace_id}/members/{user_id})
+	RemoveWorkspaceMember(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
+	// SetWorkspaceRole Change someone's role
+	// (PATCH /api/workspaces/{workspace_id}/members/{user_id})
+	SetWorkspaceRole(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
 	// CreateWsTicket Ticket for opening the WebSocket
 	// (POST /api/ws/ticket)
 	CreateWsTicket(w http.ResponseWriter, r *http.Request)
@@ -484,25 +705,25 @@ func (_ Unimplemented) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// ListCategories Channel categories, in order
+// ListCategories Channel categories of a workspace, in order
 // (GET /api/categories)
-func (_ Unimplemented) ListCategories(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListCategories(w http.ResponseWriter, r *http.Request, params ListCategoriesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// CreateCategory Create a category (administrator)
+// CreateCategory Create a category (workspace owners and admins)
 // (POST /api/categories)
 func (_ Unimplemented) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// DeleteCategory Delete a category (administrator); its channels stay, without category
+// DeleteCategory Delete a category (workspace owners and admins); its channels stay
 // (DELETE /api/categories/{category_id})
 func (_ Unimplemented) DeleteCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// UpdateCategory Rename or move a category (administrator)
+// UpdateCategory Rename or move a category (workspace owners and admins)
 // (PATCH /api/categories/{category_id})
 func (_ Unimplemented) UpdateCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -514,15 +735,15 @@ func (_ Unimplemented) ListChannels(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// CreateChannel Create a channel (administrator only)
+// CreateChannel Create a channel (workspace owners and admins)
 // (POST /api/channels)
 func (_ Unimplemented) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// ListChannelDirectory Channels the user can see, with membership
+// ListChannelDirectory Channels of a workspace the user can see, with membership
 // (GET /api/channels/directory)
-func (_ Unimplemented) ListChannelDirectory(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListChannelDirectory(w http.ResponseWriter, r *http.Request, params ListChannelDirectoryParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -538,7 +759,7 @@ func (_ Unimplemented) ArchiveChannel(w http.ResponseWriter, r *http.Request, ch
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// SetChannelCategory Put a channel in a category (administrator)
+// SetChannelCategory Put a channel in a category (workspace owners and admins)
 // (PUT /api/channels/{channel_id}/category)
 func (_ Unimplemented) SetChannelCategory(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -571,6 +792,12 @@ func (_ Unimplemented) AddChannelMember(w http.ResponseWriter, r *http.Request, 
 // RemoveChannelMember Remove someone from a channel (channel managers)
 // (DELETE /api/channels/{channel_id}/members/{user_id})
 func (_ Unimplemented) RemoveChannelMember(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetChannelMemberRole Make a member a channel manager, or back (channel managers)
+// (PATCH /api/channels/{channel_id}/members/{user_id})
+func (_ Unimplemented) SetChannelMemberRole(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, userId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -610,15 +837,81 @@ func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetInvite What an invitation leads to
+// (GET /api/invites/{token})
+func (_ Unimplemented) GetInvite(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AcceptInvite Join the workspace of an invitation
+// (POST /api/invites/{token}/accept)
+func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetSession The current session and its user
 // (GET /api/session)
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// SearchUsers Find people by name or e-mail address
+// SearchUsers Find members of a workspace by name or e-mail address
 // (GET /api/users)
 func (_ Unimplemented) SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWorkspaces The user's workspaces, the default one first
+// (GET /api/workspaces)
+func (_ Unimplemented) ListWorkspaces(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateWorkspace Create a workspace (the instance administrator)
+// (POST /api/workspaces)
+func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RenameWorkspace Rename a workspace (owners and admins)
+// (PATCH /api/workspaces/{workspace_id})
+func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListInvites Invitations that can still be used (owners and admins)
+// (GET /api/workspaces/{workspace_id}/invites)
+func (_ Unimplemented) ListInvites(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateInvite Create an invitation link (owners and admins)
+// (POST /api/workspaces/{workspace_id}/invites)
+func (_ Unimplemented) CreateInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeInvite Revoke an invitation (owners and admins)
+// (DELETE /api/workspaces/{workspace_id}/invites/{invite_id})
+func (_ Unimplemented) RevokeInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, inviteId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWorkspaceMembers Members of a workspace with their roles
+// (GET /api/workspaces/{workspace_id}/members)
+func (_ Unimplemented) ListWorkspaceMembers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveWorkspaceMember Remove someone from a workspace (owners and admins), or leave it yourself
+// (DELETE /api/workspaces/{workspace_id}/members/{user_id})
+func (_ Unimplemented) RemoveWorkspaceMember(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWorkspaceRole Change someone's role
+// (PATCH /api/workspaces/{workspace_id}/members/{user_id})
+func (_ Unimplemented) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -772,8 +1065,27 @@ func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request
 // ListCategories operation middleware
 func (siw *ServerInterfaceWrapper) ListCategories(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCategoriesParams
+
+	// ------------- Required query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListCategories(w, r)
+		siw.Handler.ListCategories(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -880,8 +1192,27 @@ func (siw *ServerInterfaceWrapper) CreateChannel(w http.ResponseWriter, r *http.
 // ListChannelDirectory operation middleware
 func (siw *ServerInterfaceWrapper) ListChannelDirectory(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListChannelDirectoryParams
+
+	// ------------- Required query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListChannelDirectory(w, r)
+		siw.Handler.ListChannelDirectory(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1108,6 +1439,41 @@ func (siw *ServerInterfaceWrapper) RemoveChannelMember(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// SetChannelMemberRole operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelMemberRole(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelMemberRole(w, r, channelId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMessages operation middleware
 func (siw *ServerInterfaceWrapper) ListMessages(w http.ResponseWriter, r *http.Request) {
 
@@ -1320,6 +1686,58 @@ func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// GetInvite operation middleware
+func (siw *ServerInterfaceWrapper) GetInvite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", chi.URLParam(r, "token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInvite(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcceptInvite operation middleware
+func (siw *ServerInterfaceWrapper) AcceptInvite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", chi.URLParam(r, "token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcceptInvite(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
 
@@ -1342,6 +1760,19 @@ func (siw *ServerInterfaceWrapper) SearchUsers(w http.ResponseWriter, r *http.Re
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params SearchUsersParams
+
+	// ------------- Required query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
 
 	// ------------- Required query parameter "q" -------------
 
@@ -1371,6 +1802,243 @@ func (siw *ServerInterfaceWrapper) SearchUsers(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SearchUsers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWorkspaces operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkspaces(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkspaces(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateWorkspace operation middleware
+func (siw *ServerInterfaceWrapper) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateWorkspace(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RenameWorkspace operation middleware
+func (siw *ServerInterfaceWrapper) RenameWorkspace(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RenameWorkspace(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListInvites operation middleware
+func (siw *ServerInterfaceWrapper) ListInvites(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInvites(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateInvite operation middleware
+func (siw *ServerInterfaceWrapper) CreateInvite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateInvite(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeInvite operation middleware
+func (siw *ServerInterfaceWrapper) RevokeInvite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "invite_id" -------------
+	var inviteId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invite_id", chi.URLParam(r, "invite_id"), &inviteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invite_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeInvite(w, r, workspaceId, inviteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWorkspaceMembers operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkspaceMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkspaceMembers(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveWorkspaceMember operation middleware
+func (siw *ServerInterfaceWrapper) RemoveWorkspaceMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveWorkspaceMember(w, r, workspaceId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetWorkspaceRole operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspaceRole(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspaceRole(w, r, workspaceId, userId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1508,6 +2176,39 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces", wrapper.ListWorkspaces)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces", wrapper.CreateWorkspace)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/workspaces/{workspace_id}", wrapper.RenameWorkspace)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/members", wrapper.ListWorkspaceMembers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/workspaces/{workspace_id}/members/{user_id}", wrapper.RemoveWorkspaceMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/workspaces/{workspace_id}/members/{user_id}", wrapper.SetWorkspaceRole)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/invites", wrapper.ListInvites)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/invites", wrapper.CreateInvite)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/workspaces/{workspace_id}/invites/{invite_id}", wrapper.RevokeInvite)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/invites/{token}", wrapper.GetInvite)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/invites/{token}/accept", wrapper.AcceptInvite)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/auth/login", wrapper.Login)
 	})
 	r.Group(func(r chi.Router) {
@@ -1569,6 +2270,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/channels/{channel_id}/members/{user_id}", wrapper.RemoveChannelMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/channels/{channel_id}/members/{user_id}", wrapper.SetChannelMemberRole)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/users", wrapper.SearchUsers)

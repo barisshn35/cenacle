@@ -16,6 +16,8 @@ info:
 servers:
   - url: /
 tags:
+  - name: workspaces
+    description: Workspaces, their members and invitations
   - name: auth
     description: Sign-in with Cenacle ID and sessions
   - name: chat
@@ -23,6 +25,295 @@ tags:
   - name: realtime
     description: Live events over WebSocket
 paths:
+  /api/workspaces:
+    get:
+      tags: [workspaces]
+      operationId: listWorkspaces
+      summary: The user's workspaces, the default one first
+      responses:
+        '200':
+          description: Workspaces with the user's role.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [workspaces]
+                properties:
+                  workspaces:
+                    type: array
+                    items: { $ref: '#/components/schemas/Workspace' }
+        '401':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [workspaces]
+      operationId: createWorkspace
+      summary: Create a workspace (the instance administrator)
+      description: The creator becomes its owner; a General channel for everyone is created.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [workspaces]
+      operationId: renameWorkspace
+      summary: Rename a workspace (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        '200':
+          description: Renamed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/members:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [workspaces]
+      operationId: listWorkspaceMembers
+      summary: Members of a workspace with their roles
+      responses:
+        '200':
+          description: Owners first, then admins, then members.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [members]
+                properties:
+                  members:
+                    type: array
+                    items: { $ref: '#/components/schemas/WorkspaceMember' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/members/{user_id}:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: user_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [workspaces]
+      operationId: setWorkspaceRole
+      summary: Change someone's role
+      description: |
+        Admins make members admins and back; only owners grant or take the owner
+        role. A workspace always keeps at least one owner.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [owner, admin, member] }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorkspaceMember' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [workspaces]
+      operationId: removeWorkspaceMember
+      summary: Remove someone from a workspace (owners and admins), or leave it yourself
+      description: |
+        They leave all its channels too. Nobody leaves the default workspace, and the
+        last owner cannot leave.
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/invites:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [workspaces]
+      operationId: listInvites
+      summary: Invitations that can still be used (owners and admins)
+      responses:
+        '200':
+          description: Invitations.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invites]
+                properties:
+                  invites:
+                    type: array
+                    items: { $ref: '#/components/schemas/Invite' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [workspaces]
+      operationId: createInvite
+      summary: Create an invitation link (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expires_in_hours: { type: integer, minimum: 1, maximum: 720, default: 168 }
+                max_uses: { type: integer, minimum: 1, maximum: 1000, nullable: true }
+      responses:
+        '201':
+          description: |
+            Created. The token is shown only now; the link is
+            `<app>/invite/<token>`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invite, token]
+                properties:
+                  invite: { $ref: '#/components/schemas/Invite' }
+                  token: { type: string }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/invites/{invite_id}:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: invite_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [workspaces]
+      operationId: revokeInvite
+      summary: Revoke an invitation (owners and admins)
+      responses:
+        '204':
+          description: Revoked.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/invites/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema: { type: string, maxLength: 100 }
+    get:
+      tags: [workspaces]
+      operationId: getInvite
+      summary: What an invitation leads to
+      responses:
+        '200':
+          description: The workspace and whether the invitation can be used.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InvitePreview' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/invites/{token}/accept:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema: { type: string, maxLength: 100 }
+    post:
+      tags: [workspaces]
+      operationId: acceptInvite
+      summary: Join the workspace of an invitation
+      responses:
+        '200':
+          description: Member (also when already one).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
   /api/auth/login:
     get:
       tags: [auth]
@@ -138,7 +429,7 @@ paths:
     post:
       tags: [chat]
       operationId: createChannel
-      summary: Create a channel (administrator only)
+      summary: Create a channel (workspace owners and admins)
       description: |
         The creator becomes a member. A default channel has every user as a
         member, also users who sign in for the first time later.
@@ -247,7 +538,7 @@ paths:
     put:
       tags: [chat]
       operationId: setChannelCategory
-      summary: Put a channel in a category (administrator)
+      summary: Put a channel in a category (workspace owners and admins)
       requestBody:
         required: true
         content:
@@ -357,7 +648,12 @@ paths:
     get:
       tags: [chat]
       operationId: listCategories
-      summary: Channel categories, in order
+      summary: Channel categories of a workspace, in order
+      parameters:
+        - name: workspace_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
       responses:
         '200':
           description: Categories.
@@ -375,15 +671,16 @@ paths:
     post:
       tags: [chat]
       operationId: createCategory
-      summary: Create a category (administrator)
+      summary: Create a category (workspace owners and admins)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [name]
+              required: [workspace_id, name]
               properties:
+                workspace_id: { type: string, format: uuid }
                 name: { type: string, minLength: 1, maxLength: 80 }
       responses:
         '201':
@@ -408,7 +705,7 @@ paths:
     patch:
       tags: [chat]
       operationId: updateCategory
-      summary: Rename or move a category (administrator)
+      summary: Rename or move a category (workspace owners and admins)
       requestBody:
         required: true
         content:
@@ -437,7 +734,7 @@ paths:
     delete:
       tags: [chat]
       operationId: deleteCategory
-      summary: Delete a category (administrator); its channels stay, without category
+      summary: Delete a category (workspace owners and admins); its channels stay
       responses:
         '204':
           description: Deleted.
@@ -515,6 +812,33 @@ paths:
         in: path
         required: true
         schema: { type: string, format: uuid }
+    patch:
+      tags: [chat]
+      operationId: setChannelMemberRole
+      summary: Make a member a channel manager, or back (channel managers)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [member, manager] }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
     delete:
       tags: [chat]
       operationId: removeChannelMember
@@ -533,8 +857,12 @@ paths:
     get:
       tags: [chat]
       operationId: searchUsers
-      summary: Find people by name or e-mail address
+      summary: Find members of a workspace by name or e-mail address
       parameters:
+        - name: workspace_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
         - name: q
           in: query
           required: true
@@ -560,7 +888,12 @@ paths:
     get:
       tags: [chat]
       operationId: listChannelDirectory
-      summary: Channels the user can see, with membership
+      summary: Channels of a workspace the user can see, with membership
+      parameters:
+        - name: workspace_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
       responses:
         '200':
           description: |
@@ -741,11 +1074,47 @@ components:
         expires_in:
           type: integer
           description: Seconds until the ticket expires.
+    Workspace:
+      type: object
+      required: [id, name, is_default, role]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        is_default:
+          type: boolean
+          description: Everyone who signs in belongs to the default workspace.
+        role: { type: string, enum: [owner, admin, member] }
+    WorkspaceMember:
+      type: object
+      required: [user, role]
+      properties:
+        user: { $ref: '#/components/schemas/Person' }
+        role: { type: string, enum: [owner, admin, member] }
+    Invite:
+      type: object
+      required: [id, created_at, expires_at, max_uses, uses]
+      properties:
+        id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        max_uses: { type: integer, nullable: true }
+        uses: { type: integer }
+    InvitePreview:
+      type: object
+      required: [workspace_id, workspace_name, valid, is_member]
+      properties:
+        workspace_id: { type: string, format: uuid }
+        workspace_name: { type: string }
+        valid:
+          type: boolean
+          description: False when expired, used up or revoked.
+        is_member: { type: boolean }
     Channel:
       type: object
       required:
         [
           id,
+          workspace_id,
           name,
           topic,
           kind,
@@ -760,6 +1129,7 @@ components:
         ]
       properties:
         id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
         name: { type: string }
         topic: { type: string }
         kind:
@@ -822,8 +1192,9 @@ components:
           items: { $ref: '#/components/schemas/Channel' }
     NewChannel:
       type: object
-      required: [name]
+      required: [workspace_id, name]
       properties:
+        workspace_id: { type: string, format: uuid }
         name:
           type: string
           minLength: 1
@@ -889,10 +1260,12 @@ components:
         has_more: { type: boolean }
     Permissions:
       type: object
-      required: [create_channels]
-      description: What the user may do (roles replace the single administrator later).
+      required: [create_workspaces]
+      description: |
+        What the user may do across the instance. Rights inside a workspace follow
+        the role there (see Workspace).
       properties:
-        create_channels: { type: boolean }
+        create_workspaces: { type: boolean }
     Logout:
       type: object
       required: [end_session_url]

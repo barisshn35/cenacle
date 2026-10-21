@@ -19,6 +19,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
 // Close codes of the protocol (4000-4999 are for applications).
@@ -56,9 +57,10 @@ type SessionChecker interface {
 	SessionActive(ctx context.Context, id pgtype.UUID) (bool, error)
 }
 
-// MembershipSource lists the channels a user belongs to.
+// MembershipSource lists the channels and workspaces a user belongs to.
 type MembershipSource interface {
-	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
+	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]store.ListMemberChannelIDsRow, error)
+	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]store.ListUserWorkspacesRow, error)
 }
 
 // Handler serves the ticket endpoint and the WebSocket.
@@ -265,13 +267,24 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) audience(ctx context.Context, userID pgtype.UUID) (*audience, error) {
-	ids, err := h.Members.ListMemberChannelIDs(ctx, userID)
+	chs, err := h.Members.ListMemberChannelIDs(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	a := &audience{user: uuidString(userID), channels: make(map[string]bool, len(ids))}
-	for _, id := range ids {
-		a.channels[uuidString(id)] = true
+	wss, err := h.Members.ListUserWorkspaces(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	a := &audience{
+		user:       uuidString(userID),
+		channels:   make(map[string]string, len(chs)),
+		workspaces: make(map[string]bool, len(wss)),
+	}
+	for _, c := range chs {
+		a.channels[uuidString(c.ChannelID)] = uuidString(c.WorkspaceID)
+	}
+	for _, w := range wss {
+		a.workspaces[uuidString(w.Workspace.ID)] = true
 	}
 	return a, nil
 }

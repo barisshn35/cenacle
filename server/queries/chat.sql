@@ -1,23 +1,28 @@
 -- name: ListMemberChannels :many
 -- ListMemberChannels returns the channels a user belongs to with the user's
--- role: mandatory ones first, then by name.
-SELECT sqlc.embed(c), m.role
+-- roles in each and in its workspace: mandatory ones first, then by name.
+SELECT sqlc.embed(c), m.role, wm.role AS workspace_role
 FROM channels c
 JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id
+JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id
 WHERE c.archived_at IS NULL
 ORDER BY c.is_mandatory DESC, lower(c.name);
 
 -- name: ListAllChannels :many
--- ListAllChannels returns the public channels and the private channels the
--- user belongs to, with the user's role ('' when not a member).
+-- ListAllChannels returns the public channels of a workspace and its private
+-- channels the user belongs to, with the user's role ('' when not a member).
 SELECT sqlc.embed(c), coalesce(m.role, '')::text AS role
 FROM channels c
 LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id
-WHERE c.visibility = 'public' OR m.user_id IS NOT NULL
+WHERE c.workspace_id = @workspace_id
+  AND (c.visibility = 'public' OR m.user_id IS NOT NULL)
 ORDER BY c.is_mandatory DESC, lower(c.name);
 
 -- name: ListMemberChannelIDs :many
-SELECT channel_id FROM channel_members WHERE user_id = @user_id;
+SELECT m.channel_id, c.workspace_id
+FROM channel_members m
+JOIN channels c ON c.id = m.channel_id
+WHERE m.user_id = @user_id;
 
 -- name: GetChannel :one
 SELECT * FROM channels WHERE id = @id;
@@ -48,14 +53,15 @@ WHERE id = @id
 RETURNING *;
 
 -- name: ListCategories :many
-SELECT * FROM channel_categories ORDER BY position, lower(name);
+SELECT * FROM channel_categories WHERE workspace_id = @workspace_id ORDER BY position, lower(name);
 
 -- name: GetCategory :one
 SELECT * FROM channel_categories WHERE id = @id;
 
 -- name: CreateCategory :one
-INSERT INTO channel_categories (name, position)
-VALUES (@name, coalesce((SELECT max(position) + 1 FROM channel_categories), 0))
+INSERT INTO channel_categories (workspace_id, name, position)
+VALUES (@workspace_id, @name,
+        coalesce((SELECT max(position) + 1 FROM channel_categories WHERE workspace_id = @workspace_id), 0))
 RETURNING *;
 
 -- name: UpdateCategory :one
@@ -66,17 +72,17 @@ RETURNING *;
 DELETE FROM channel_categories WHERE id = @id;
 
 -- name: CreateChannel :one
-INSERT INTO channels (name, topic, kind, is_default, visibility, created_by)
-VALUES (@name, @topic, @kind, @is_default, @visibility, @created_by)
+INSERT INTO channels (workspace_id, name, topic, kind, is_default, visibility, created_by)
+VALUES (@workspace_id, @name, @topic, @kind, @is_default, @visibility, @created_by)
 RETURNING *;
 
 -- name: EnsureChannel :one
 -- EnsureChannel creates a configured channel or brings an existing one of that
 -- name to the configured kind and flags (and public: everyone is a member);
 -- the topic of an existing channel is kept.
-INSERT INTO channels (name, topic, kind, is_default, is_mandatory)
-VALUES (@name, @topic, @kind, @is_default, @is_mandatory)
-ON CONFLICT ((lower(name))) DO UPDATE
+INSERT INTO channels (workspace_id, name, topic, kind, is_default, is_mandatory)
+VALUES (@workspace_id, @name, @topic, @kind, @is_default, @is_mandatory)
+ON CONFLICT (workspace_id, (lower(name))) DO UPDATE
 SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory,
     visibility = 'public'
 RETURNING *;
@@ -89,16 +95,26 @@ ON CONFLICT DO NOTHING;
 DELETE FROM channel_members WHERE channel_id = @channel_id AND user_id = @user_id;
 
 -- name: AddAllUsers :execrows
--- AddAllUsers makes every user a member of a channel.
+-- AddAllUsers makes every member of the channel's workspace a member of it.
 INSERT INTO channel_members (channel_id, user_id)
-SELECT @channel_id, id FROM users
+SELECT c.id, wm.user_id
+FROM channels c
+JOIN workspace_members wm ON wm.workspace_id = c.workspace_id
+WHERE c.id = @channel_id
 ON CONFLICT DO NOTHING;
 
 -- name: JoinDefaultChannels :execrows
--- JoinDefaultChannels makes a user a member of every default channel.
+-- JoinDefaultChannels makes a user a member of every default channel of the
+-- workspaces they belong to.
 INSERT INTO channel_members (channel_id, user_id)
-SELECT id, @user_id FROM channels WHERE is_default
+SELECT c.id, @user_id
+FROM channels c
+JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id
+WHERE c.is_default
 ON CONFLICT DO NOTHING;
+
+-- name: SetChannelMemberRole :execrows
+UPDATE channel_members SET role = @role WHERE channel_id = @channel_id AND user_id = @user_id;
 
 -- name: CreateMessage :one
 -- CreateMessage inserts a message; with a nonce the author used before it

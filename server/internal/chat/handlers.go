@@ -154,7 +154,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest, Detail: problem})
 		return
 	}
-	c, _, ok := h.memberChannel(w, r, channelID, p.User)
+	c, role, ok := h.memberChannel(w, r, channelID, p.User)
 	if !ok {
 		return
 	}
@@ -162,8 +162,8 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
 		return
 	}
-	if !canPost(c, p.User) {
-		forbidden(w, r, CodeReadOnlyChannel, "Only the administrator can send messages in this channel.")
+	if !canPost(c, role) {
+		forbidden(w, r, CodeReadOnlyChannel, "Only the workspace's owners and admins can send messages in this channel.")
 		return
 	}
 

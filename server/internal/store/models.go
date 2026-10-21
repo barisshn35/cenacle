@@ -22,13 +22,15 @@ type Channel struct {
 	Visibility  string             `json:"visibility"`
 	ArchivedAt  pgtype.Timestamptz `json:"archived_at"`
 	CategoryID  pgtype.UUID        `json:"category_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
 }
 
 type ChannelCategory struct {
-	ID        pgtype.UUID `json:"id"`
-	Name      string      `json:"name"`
-	Position  int32       `json:"position"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID          pgtype.UUID `json:"id"`
+	Name        string      `json:"name"`
+	Position    int32       `json:"position"`
+	CreatedAt   time.Time   `json:"created_at"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
 }
 
 type ChannelMember struct {
@@ -72,4 +74,30 @@ type User struct {
 	UpdatedAt     time.Time          `json:"updated_at"`
 	LastLoginAt   pgtype.Timestamptz `json:"last_login_at"`
 	IsAdmin       bool               `json:"is_admin"`
+}
+
+type Workspace struct {
+	ID        pgtype.UUID `json:"id"`
+	Name      string      `json:"name"`
+	IsDefault bool        `json:"is_default"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type WorkspaceInvite struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	TokenHash   []byte             `json:"token_hash"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	ExpiresAt   time.Time          `json:"expires_at"`
+	MaxUses     pgtype.Int4        `json:"max_uses"`
+	Uses        int32              `json:"uses"`
+	RevokedAt   pgtype.Timestamptz `json:"revoked_at"`
+}
+
+type WorkspaceMember struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	UserID      pgtype.UUID `json:"user_id"`
+	Role        string      `json:"role"`
+	JoinedAt    time.Time   `json:"joined_at"`
 }

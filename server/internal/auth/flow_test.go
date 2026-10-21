@@ -486,12 +486,12 @@ func TestSignInAppliesAdministratorAndDefaultChannels(t *testing.T) {
 	permissions := func(c *http.Client) bool {
 		var s struct {
 			Permissions struct {
-				CreateChannels bool `json:"create_channels"`
+				CreateWorkspaces bool `json:"create_workspaces"`
 			} `json:"permissions"`
 		}
 		_, body := e.do(c, http.MethodGet, "/api/session", nil)
 		_ = json.Unmarshal(body, &s)
-		return s.Permissions.CreateChannels
+		return s.Permissions.CreateWorkspaces
 	}
 
 	// ayse@example.com (verified) is the configured administrator.

@@ -36,6 +36,8 @@ type stack struct {
 	sessions *auth.Sessions
 	hub      *realtime.Hub
 	client   *http.Client
+	// defaultWS is the default workspace, used by calls that name none.
+	defaultWS string
 }
 
 type shared struct {
@@ -119,6 +121,9 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: o.httpTimeout > 0}}
 	t.Cleanup(client.CloseIdleConnections)
 	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub, client: client}
+	if err := sh.pool.QueryRow(context.Background(), "SELECT id::text FROM workspaces WHERE is_default").Scan(&s.defaultWS); err != nil {
+		t.Fatal(err)
+	}
 	// Wait until the hub follows the log, so no event published by a test is missed.
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -153,11 +158,17 @@ func (s *stack) userWithEmail(subject, name, email string) string {
 		s.t.Fatal(err)
 	}
 	// What sign-in does after the OIDC flow (tested in package auth).
+	if _, err := q.JoinDefaultWorkspace(ctx, u.ID); err != nil {
+		s.t.Fatal(err)
+	}
 	if _, err := q.JoinDefaultChannels(ctx, u.ID); err != nil {
 		s.t.Fatal(err)
 	}
 	if email == adminEmail {
 		if err := q.SetAdmin(ctx, store.SetAdminParams{ID: u.ID, IsAdmin: true}); err != nil {
+			s.t.Fatal(err)
+		}
+		if _, err := s.pool.Exec(ctx, "UPDATE workspace_members SET role = 'owner' WHERE user_id = $1", u.ID); err != nil {
 			s.t.Fatal(err)
 		}
 	}
@@ -168,8 +179,31 @@ func (s *stack) userWithEmail(subject, name, email string) string {
 	return token
 }
 
+// call sends an API request. Requests that need a workspace and name none
+// get the default workspace (query parameter or body field).
 func (s *stack) call(method, path, token string, body any, out any) *http.Response {
 	s.t.Helper()
+	if method == http.MethodGet && !strings.Contains(path, "workspace_id=") &&
+		(strings.HasPrefix(path, "/api/channels/directory") || strings.HasPrefix(path, "/api/categories") ||
+			strings.HasPrefix(path, "/api/users")) {
+		sep := "?"
+		if strings.Contains(path, "?") {
+			sep = "&"
+		}
+		path += sep + "workspace_id=" + s.defaultWS
+	}
+	if method == http.MethodPost && (path == "/api/channels" || path == "/api/categories") {
+		switch b := body.(type) {
+		case map[string]any:
+			if _, ok := b["workspace_id"]; !ok {
+				b["workspace_id"] = s.defaultWS
+			}
+		case map[string]string:
+			if _, ok := b["workspace_id"]; !ok {
+				b["workspace_id"] = s.defaultWS
+			}
+		}
+	}
 	var rd io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)

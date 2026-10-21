@@ -42,7 +42,7 @@ func (h *Handlers) setArchived(w http.ResponseWriter, r *http.Request, channelID
 	if !ok {
 		return
 	}
-	if !canManage(role, p.User) {
+	if !canManage(role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can archive it.")
 		return
 	}
@@ -56,9 +56,9 @@ func (h *Handlers) setArchived(w http.ResponseWriter, r *http.Request, channelID
 		return
 	}
 	h.publish(r.Context(), events.ChannelUpdated, ChannelEvent{
-		Channel: toAPI(c, RoleMember, store.User{}), ChannelID: uuid(c.ID).String(),
+		Channel: toAPI(c, access{ch: RoleMember}), ChannelID: uuid(c.ID).String(),
 	})
-	httpx.WriteJSON(w, http.StatusOK, toAPI(c, role, p.User))
+	httpx.WriteJSON(w, http.StatusOK, toAPI(c, role))
 }
 
 // ArchiveChannel implements api.ServerInterface.
@@ -77,24 +77,62 @@ func categoryAPI(c store.ChannelCategory) api.Category {
 	return api.Category{Id: uuid(c.ID), Name: c.Name, Position: int(c.Position)}
 }
 
-// requireAdmin answers 403 unless the user is the administrator.
-func requireAdmin(w http.ResponseWriter, r *http.Request, user store.User) bool {
-	if !user.IsAdmin {
-		forbidden(w, r, httpx.CodeForbidden, "Only the administrator can organize categories.")
-	}
-	return user.IsAdmin
+func (h *Handlers) categoriesChanged(ctx context.Context, workspaceID pgtype.UUID) {
+	h.publish(ctx, events.CategoriesChanged, WorkspaceRef{WorkspaceID: uuid(workspaceID).String()})
 }
 
-func (h *Handlers) categoriesChanged(ctx context.Context) {
-	h.publish(ctx, events.CategoriesChanged, struct{}{})
+// WorkspaceRef is the data of events about a workspace as a whole.
+type WorkspaceRef struct {
+	WorkspaceID string `json:"workspace_id"`
+}
+
+func categoryNotFound(w http.ResponseWriter, r *http.Request) {
+	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
+		Detail: "No category with this id."})
+}
+
+// requireWorkspaceAdmin answers 403 unless the role is owner or admin.
+func requireWorkspaceAdmin(w http.ResponseWriter, r *http.Request, role string) bool {
+	if !isWorkspaceAdmin(role) {
+		forbidden(w, r, httpx.CodeForbidden, "Only the workspace's owners and admins can organize categories.")
+		return false
+	}
+	return true
+}
+
+// managedCategory loads a category of a workspace the user administers.
+func (h *Handlers) managedCategory(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.ChannelCategory, bool) {
+	c, err := h.Queries.GetCategory(r.Context(), pgUUID(id))
+	if isNoRows(err) {
+		categoryNotFound(w, r)
+		return c, false
+	}
+	if err != nil {
+		h.unavailable(w, r, "get category", err)
+		return c, false
+	}
+	role, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: c.WorkspaceID, UserID: user.ID})
+	if err != nil {
+		h.unavailable(w, r, "get workspace role", err)
+		return c, false
+	}
+	if role == "" {
+		categoryNotFound(w, r)
+		return c, false
+	}
+	return c, requireWorkspaceAdmin(w, r, role)
 }
 
 // ListCategories implements api.ServerInterface.
-func (h *Handlers) ListCategories(w http.ResponseWriter, r *http.Request) {
-	if _, ok := auth.RequirePrincipal(w, r, h.Cookies); !ok {
+func (h *Handlers) ListCategories(w http.ResponseWriter, r *http.Request, params api.ListCategoriesParams) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
 		return
 	}
-	rows, err := h.Queries.ListCategories(r.Context())
+	if _, ok := h.workspaceRole(w, r, params.WorkspaceId, p.User); !ok {
+		return
+	}
+	rows, err := h.Queries.ListCategories(r.Context(), pgUUID(params.WorkspaceId))
 	if err != nil {
 		h.unavailable(w, r, "list categories", err)
 		return
@@ -111,13 +149,18 @@ func (h *Handlers) ListCategories(w http.ResponseWriter, r *http.Request) {
 // CreateCategory implements api.ServerInterface.
 func (h *Handlers) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireAdmin(w, r, p.User) {
+	if !ok {
 		return
 	}
 	var in struct {
-		Name string `json:"name"`
+		WorkspaceID openapi_types.UUID `json:"workspace_id"`
+		Name        string             `json:"name"`
 	}
 	if !decode(w, r, &in) {
+		return
+	}
+	role, ok := h.workspaceRole(w, r, in.WorkspaceID, p.User)
+	if !ok || !requireWorkspaceAdmin(w, r, role) {
 		return
 	}
 	name, problem := cleanName(in.Name)
@@ -125,7 +168,7 @@ func (h *Handlers) CreateCategory(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, r, strings.Replace(problem, "channel", "category", 1))
 		return
 	}
-	c, err := h.Queries.CreateCategory(r.Context(), name)
+	c, err := h.Queries.CreateCategory(r.Context(), store.CreateCategoryParams{WorkspaceID: pgUUID(in.WorkspaceID), Name: name})
 	if isUniqueViolation(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
 			Detail: "A category with this name exists."})
@@ -135,14 +178,14 @@ func (h *Handlers) CreateCategory(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w, r, "create category", err)
 		return
 	}
-	h.categoriesChanged(r.Context())
+	h.categoriesChanged(r.Context(), c.WorkspaceID)
 	httpx.WriteJSON(w, http.StatusCreated, categoryAPI(c))
 }
 
 // UpdateCategory implements api.ServerInterface.
 func (h *Handlers) UpdateCategory(w http.ResponseWriter, r *http.Request, categoryID openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireAdmin(w, r, p.User) {
+	if !ok {
 		return
 	}
 	var in struct {
@@ -152,14 +195,8 @@ func (h *Handlers) UpdateCategory(w http.ResponseWriter, r *http.Request, catego
 	if !decode(w, r, &in) {
 		return
 	}
-	c, err := h.Queries.GetCategory(r.Context(), pgUUID(categoryID))
-	if isNoRows(err) {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
-			Detail: "No category with this id."})
-		return
-	}
-	if err != nil {
-		h.unavailable(w, r, "get category", err)
+	c, ok := h.managedCategory(w, r, categoryID, p.User)
+	if !ok {
 		return
 	}
 	name, position := c.Name, c.Position
@@ -177,7 +214,7 @@ func (h *Handlers) UpdateCategory(w http.ResponseWriter, r *http.Request, catego
 		}
 		position = int32(*in.Position)
 	}
-	c, err = h.Queries.UpdateCategory(r.Context(), store.UpdateCategoryParams{ID: c.ID, Name: name, Position: position})
+	c, err := h.Queries.UpdateCategory(r.Context(), store.UpdateCategoryParams{ID: c.ID, Name: name, Position: position})
 	if isUniqueViolation(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
 			Detail: "A category with this name exists."})
@@ -187,34 +224,32 @@ func (h *Handlers) UpdateCategory(w http.ResponseWriter, r *http.Request, catego
 		h.unavailable(w, r, "update category", err)
 		return
 	}
-	h.categoriesChanged(r.Context())
+	h.categoriesChanged(r.Context(), c.WorkspaceID)
 	httpx.WriteJSON(w, http.StatusOK, categoryAPI(c))
 }
 
 // DeleteCategory implements api.ServerInterface.
 func (h *Handlers) DeleteCategory(w http.ResponseWriter, r *http.Request, categoryID openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireAdmin(w, r, p.User) {
+	if !ok {
 		return
 	}
-	n, err := h.Queries.DeleteCategory(r.Context(), pgUUID(categoryID))
-	if err != nil {
+	c, ok := h.managedCategory(w, r, categoryID, p.User)
+	if !ok {
+		return
+	}
+	if _, err := h.Queries.DeleteCategory(r.Context(), c.ID); err != nil {
 		h.unavailable(w, r, "delete category", err)
 		return
 	}
-	if n == 0 {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
-			Detail: "No category with this id."})
-		return
-	}
-	h.categoriesChanged(r.Context())
+	h.categoriesChanged(r.Context(), c.WorkspaceID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // SetChannelCategory implements api.ServerInterface.
 func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireAdmin(w, r, p.User) {
+	if !ok {
 		return
 	}
 	var in struct {
@@ -224,20 +259,22 @@ func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, ch
 		return
 	}
 	c, role, ok := h.visibleChannel(w, r, channelID, p.User)
-	if !ok {
+	if !ok || !requireWorkspaceAdmin(w, r, role.ws) {
 		return
 	}
 	category := c.CategoryID
 	category.Valid = in.CategoryID != nil
 	if in.CategoryID != nil {
-		if _, err := h.Queries.GetCategory(r.Context(), pgUUID(*in.CategoryID)); isNoRows(err) {
-			badRequest(w, r, "No category with this id.")
+		cat, err := h.Queries.GetCategory(r.Context(), pgUUID(*in.CategoryID))
+		if isNoRows(err) || (err == nil && cat.WorkspaceID != c.WorkspaceID) {
+			badRequest(w, r, "No category with this id in the channel's workspace.")
 			return
-		} else if err != nil {
+		}
+		if err != nil {
 			h.unavailable(w, r, "get category", err)
 			return
 		}
-		category = pgUUID(*in.CategoryID)
+		category = cat.ID
 	}
 	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
 		ID: c.ID, Name: c.Name, Visibility: c.Visibility, Topic: c.Topic, CategoryID: category,
@@ -246,9 +283,9 @@ func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, ch
 		h.unavailable(w, r, "set channel category", err)
 		return
 	}
-	// Categories organize everyone's sidebar: all clients reload.
-	h.categoriesChanged(r.Context())
-	httpx.WriteJSON(w, http.StatusOK, toAPI(c, role, p.User))
+	// Categories organize the sidebar of the whole workspace: its clients reload.
+	h.categoriesChanged(r.Context(), c.WorkspaceID)
+	httpx.WriteJSON(w, http.StatusOK, toAPI(c, role))
 }
 
 // --- editing and deleting messages ------------------------------------------
@@ -260,7 +297,7 @@ type MessageRef struct {
 }
 
 // message loads a message of a channel the user belongs to.
-func (h *Handlers) message(w http.ResponseWriter, r *http.Request, channelID, messageID openapi_types.UUID, user store.User) (store.Channel, string, store.GetMessageRow, bool) {
+func (h *Handlers) message(w http.ResponseWriter, r *http.Request, channelID, messageID openapi_types.UUID, user store.User) (store.Channel, access, store.GetMessageRow, bool) {
 	c, role, ok := h.memberChannel(w, r, channelID, user)
 	if !ok {
 		return c, role, store.GetMessageRow{}, false
@@ -279,8 +316,8 @@ func (h *Handlers) message(w http.ResponseWriter, r *http.Request, channelID, me
 }
 
 // canRemove: a message's author, or a manager of its channel.
-func canRemove(m store.GetMessageRow, role string, user store.User) bool {
-	return m.AuthorID == user.ID || canManage(role, user)
+func canRemove(m store.GetMessageRow, a access, user store.User) bool {
+	return m.AuthorID == user.ID || canManage(a)
 }
 
 // EditMessage implements api.ServerInterface.

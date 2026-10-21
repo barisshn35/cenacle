@@ -57,15 +57,18 @@ func (q *Queries) RevokeAdminUnlessEmail(ctx context.Context, email string) erro
 }
 
 const searchUsers = `-- name: SearchUsers :many
-SELECT id, display_name, email FROM users
-WHERE display_name ILIKE $1 OR email ILIKE $1
-ORDER BY lower(display_name), id
-LIMIT $2
+SELECT u.id, u.display_name, u.email
+FROM users u
+JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = $1
+WHERE u.display_name ILIKE $2 OR u.email ILIKE $2
+ORDER BY lower(u.display_name), u.id
+LIMIT $3
 `
 
 type SearchUsersParams struct {
-	Pattern  string `json:"pattern"`
-	RowLimit int32  `json:"row_limit"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Pattern     string      `json:"pattern"`
+	RowLimit    int32       `json:"row_limit"`
 }
 
 type SearchUsersRow struct {
@@ -74,10 +77,10 @@ type SearchUsersRow struct {
 	Email       string      `json:"email"`
 }
 
-// SearchUsers finds users by name or e-mail address (pattern: a LIKE pattern
-// with % and _ escaped by the caller).
+// SearchUsers finds members of a workspace by name or e-mail address
+// (pattern: a LIKE pattern with % and _ escaped by the caller).
 func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error) {
-	rows, err := q.db.Query(ctx, searchUsers, arg.Pattern, arg.RowLimit)
+	rows, err := q.db.Query(ctx, searchUsers, arg.WorkspaceID, arg.Pattern, arg.RowLimit)
 	if err != nil {
 		return nil, err
 	}

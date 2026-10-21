@@ -32,11 +32,18 @@ const (
 	MessageCreated = "message.created"
 	MessageUpdated = "message.updated"
 	MessageDeleted = "message.deleted"
-	// CategoriesChanged goes to everyone: categories organize every sidebar.
+	// CategoriesChanged goes to the members of a workspace.
 	CategoriesChanged = "categories.changed"
-	ChannelCreated    = "channel.created"
-	ChannelJoined     = "channel.joined"
-	ChannelLeft       = "channel.left"
+	// WorkspaceJoined and WorkspaceLeft go to the user concerned (joined is also
+	// sent when their role changes); WorkspaceUpdated and
+	// WorkspaceMembersChanged to the workspace's members.
+	WorkspaceJoined         = "workspace.joined"
+	WorkspaceLeft           = "workspace.left"
+	WorkspaceUpdated        = "workspace.updated"
+	WorkspaceMembersChanged = "workspace.members_changed"
+	ChannelCreated          = "channel.created"
+	ChannelJoined           = "channel.joined"
+	ChannelLeft             = "channel.left"
 	// ChannelUpdated and ChannelMembersChanged go to the channel's members.
 	ChannelUpdated        = "channel.updated"
 	ChannelMembersChanged = "channel.members_changed"
