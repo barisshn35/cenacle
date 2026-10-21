@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import { QueryClient, type InfiniteData } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { InfiniteQueryObserver, QueryClient, type InfiniteData } from '@tanstack/react-query';
+import { describe, expect, it, vi } from 'vitest';
 import {
   addMessage,
   applyReaction,
@@ -46,6 +46,31 @@ describe('message cache', () => {
     // Channels that were never opened are left alone.
     addMessage(qc, { ...msg('05'), channel_id: 'c2' });
     expect(qc.getQueryData(['messages', 'c2'])).toBeUndefined();
+  });
+
+  it('restarts a first fetch that is still on its way when an event arrives', async () => {
+    const qc = new QueryClient();
+    const answers = [['01'], ['01', '02']];
+    let calls = 0;
+    // Like the message list: an observer starts the first fetch.
+    const observer = new InfiniteQueryObserver(qc, {
+      queryKey: ['messages', 'c1'],
+      queryFn: async () => {
+        const ids = answers[calls++]!;
+        await new Promise((r) => setTimeout(r, 10));
+        return { messages: ids.map(msg), has_more: false };
+      },
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: () => undefined,
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    // The server stored 02 after the first fetch read the channel.
+    addMessage(qc, msg('02'));
+    await vi.waitFor(() =>
+      expect(flatten(qc.getQueryData(['messages', 'c1'])).map((m) => m.id)).toEqual(['01', '02']),
+    );
+    expect(calls).toBe(2);
+    unsubscribe();
   });
 
   it('drops older pages before reloading', async () => {

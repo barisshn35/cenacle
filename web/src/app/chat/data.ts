@@ -243,6 +243,26 @@ export function reloadMessages(queryClient: QueryClient): Promise<void> {
 
 type MessageCache = InfiniteData<MessagePage, string | undefined>;
 
+/** Queries that refetch once the fetch on its way has settled. */
+const refetchAfter = new WeakSet<object>();
+
+/**
+ * A fetch of the channel's messages that is still on its way may have read
+ * the channel before an event: fetch again once it settles, so the event is
+ * not lost. (A first fetch cannot be restarted: TanStack Query joins it.)
+ */
+function refetchIfInFlight(queryClient: QueryClient, channelId: string): void {
+  const query = queryClient
+    .getQueryCache()
+    .find({ queryKey: ['messages', channelId], exact: true });
+  if (!query || query.state.fetchStatus !== 'fetching' || refetchAfter.has(query)) return;
+  refetchAfter.add(query);
+  void Promise.allSettled([query.promise]).then(() => {
+    refetchAfter.delete(query);
+    return queryClient.refetchQueries({ queryKey: ['messages', channelId], exact: true });
+  });
+}
+
 /** Changes one loaded message. */
 function patchMessage(
   queryClient: QueryClient,
@@ -250,6 +270,7 @@ function patchMessage(
   id: string,
   patch: (m: Message) => Message,
 ): void {
+  refetchIfInFlight(queryClient, channelId);
   queryClient.setQueryData<MessageCache>(['messages', channelId], (data) =>
     data
       ? {
@@ -321,6 +342,7 @@ export function removeMessage(
   queryClient: QueryClient,
   ref: Pick<Message, 'id' | 'channel_id'>,
 ): void {
+  refetchIfInFlight(queryClient, ref.channel_id);
   queryClient.setQueryData<MessageCache>(['messages', ref.channel_id], (data) =>
     data
       ? {
@@ -336,10 +358,11 @@ export function removeMessage(
 
 /** Adds a message to the newest page unless it is there already. */
 export function addMessage(queryClient: QueryClient, message: Message): void {
+  refetchIfInFlight(queryClient, message.channel_id);
   queryClient.setQueryData<InfiniteData<MessagePage, string | undefined>>(
     ['messages', message.channel_id],
     (data) => {
-      if (!data) return data; // not loaded: it will come with the first fetch
+      if (!data) return data; // not loaded: it comes with the (restarted) first fetch
       if (data.pages.some((p) => p.messages.some((m) => m.id === message.id))) return data;
       const [newest, ...older] = data.pages;
       const messages = [...(newest?.messages ?? []), message].sort((a, b) =>
