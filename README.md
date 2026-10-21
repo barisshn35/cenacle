@@ -123,7 +123,9 @@ flowchart LR
   with undo; channels are renamed, archived and grouped in categories
   ([ADR 0007](docs/adr/0007-channel-and-message-management.md)). Workspaces have owners,
   admins and members, and people join with invitation links
-  ([ADR 0008](docs/adr/0008-workspaces-and-roles.md)).
+  ([ADR 0008](docs/adr/0008-workspaces-and-roles.md)). Direct and group conversations,
+  unread counts, presence and typing notices complete the live chat
+  ([ADR 0009](docs/adr/0009-direct-messages-unread-presence.md)).
 - **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify); `node-oidc-provider` from v0.2.
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared

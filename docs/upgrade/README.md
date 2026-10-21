@@ -39,6 +39,14 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.7.0)
+
+- Chat migration `00008_direct_messages_and_unread` allows direct and group conversations
+  and adds read positions; every existing member starts with everything read (no flood of
+  unread messages). Reversible (`migrate down` deletes conversations and read positions).
+- Presence and typing use Valkey pub/sub (`cenacle:ephemeral`) and keys under
+  `cenacle:presence:`; nothing to configure.
+
 ### 0.6.0
 
 - Chat migration `00007_workspaces` creates the default workspace ("Cenacle") and moves

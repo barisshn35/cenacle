@@ -3,28 +3,32 @@
 One concept, one word, everywhere: web, desktop, documentation and API messages. Texts are
 managed as i18n keys; English is the default language, Turkish has equal quality.
 
-| Concept              | English                         | Turkish                          | i18n key                                  | Notes                                     |
-| -------------------- | ------------------------------- | -------------------------------- | ----------------------------------------- | ----------------------------------------- |
-| Workspace            | Workspace                       | Çalışma alanı                    | `glossary.workspace`                      | Never "server" / "sunucu"                 |
-| Channel              | Channel                         | Kanal                            | `glossary.channel`                        |                                           |
-| Archive              | Archive / Unarchive             | Arşivle / Arşivden çıkar         | `glossary.archive`, `glossary.unarchive`  | Different from delete                     |
-| Disable              | Disable / Enable                | Devre dışı bırak / Etkinleştir   | `glossary.disable`, `glossary.enable`     | Bots, webhooks, users                     |
-| Delete               | Delete                          | Sil                              | `glossary.delete`                         | Only for permanent removal and messages   |
-| Mute                 | Mute                            | Sessize al                       | `glossary.mute`                           | Stops notifications; unread stays visible |
-| Rotate token         | Rotate token                    | Token'ı yenile                   | `glossary.rotateToken`                    | Never "reset" / "sıfırla"                 |
-| Revoke token         | Revoke token                    | Token'ı iptal et                 | `glossary.revokeToken`                    |                                           |
-| Mark as read         | Mark as read                    | Okundu olarak işaretle           | `glossary.markAsRead`                     |                                           |
-| Cancel               | Cancel                          | Vazgeç                           | `glossary.cancel`, `ui:confirm.cancel`    | The safe choice in every dialog           |
-| Undo                 | Undo                            | Geri al                          | `glossary.undo`, `ui:undo.action`         |                                           |
-| Identity server      | Cenacle ID                      | Cenacle ID                       | —                                         | Product name of the IdP in the UI         |
-| Sign in              | Sign in / Sign out              | Giriş yap / Çıkış yap            | `auth.signOut`                            | Never "log in" / "oturum aç"              |
-| Session              | Session                         | Oturum                           | —                                         | "Your session has ended"                  |
-| Announcement channel | Announcement channel            | Duyuru kanalı                    | `channels.kinds.announcement`             | Only the administrator posts              |
-| Join / Leave         | Join / Leave channel            | Katıl / Kanaldan ayrıl           | `channels.join`, `channels.leave`         | Leaving shows "Undo", no confirmation     |
-| Visibility           | Public / Private                | Herkese açık / Özel              | `channels.visibility.*`                   | Private channels show a lock              |
-| Channel manager      | Manager                         | Yönetici                         | `channels.manager`                        | Adds and removes people                   |
-| Workspace roles      | Owner / Admin / Member          | Sahip / Yönetici / Üye           | `workspaces.roles.*`                      | "Admin" here is a workspace role          |
-| Invitation           | Invite people / Invitation link | Kişi davet et / Davet bağlantısı | `workspaces.invitePeople`, `invites.link` | Links expire and can be revoked           |
+| Concept              | English                         | Turkish                               | i18n key                                  | Notes                                     |
+| -------------------- | ------------------------------- | ------------------------------------- | ----------------------------------------- | ----------------------------------------- |
+| Workspace            | Workspace                       | Çalışma alanı                         | `glossary.workspace`                      | Never "server" / "sunucu"                 |
+| Channel              | Channel                         | Kanal                                 | `glossary.channel`                        |                                           |
+| Archive              | Archive / Unarchive             | Arşivle / Arşivden çıkar              | `glossary.archive`, `glossary.unarchive`  | Different from delete                     |
+| Disable              | Disable / Enable                | Devre dışı bırak / Etkinleştir        | `glossary.disable`, `glossary.enable`     | Bots, webhooks, users                     |
+| Delete               | Delete                          | Sil                                   | `glossary.delete`                         | Only for permanent removal and messages   |
+| Mute                 | Mute                            | Sessize al                            | `glossary.mute`                           | Stops notifications; unread stays visible |
+| Rotate token         | Rotate token                    | Token'ı yenile                        | `glossary.rotateToken`                    | Never "reset" / "sıfırla"                 |
+| Revoke token         | Revoke token                    | Token'ı iptal et                      | `glossary.revokeToken`                    |                                           |
+| Mark as read         | Mark as read                    | Okundu olarak işaretle                | `glossary.markAsRead`                     |                                           |
+| Cancel               | Cancel                          | Vazgeç                                | `glossary.cancel`, `ui:confirm.cancel`    | The safe choice in every dialog           |
+| Undo                 | Undo                            | Geri al                               | `glossary.undo`, `ui:undo.action`         |                                           |
+| Identity server      | Cenacle ID                      | Cenacle ID                            | —                                         | Product name of the IdP in the UI         |
+| Sign in              | Sign in / Sign out              | Giriş yap / Çıkış yap                 | `auth.signOut`                            | Never "log in" / "oturum aç"              |
+| Session              | Session                         | Oturum                                | —                                         | "Your session has ended"                  |
+| Announcement channel | Announcement channel            | Duyuru kanalı                         | `channels.kinds.announcement`             | Only the administrator posts              |
+| Join / Leave         | Join / Leave channel            | Katıl / Kanaldan ayrıl                | `channels.join`, `channels.leave`         | Leaving shows "Undo", no confirmation     |
+| Visibility           | Public / Private                | Herkese açık / Özel                   | `channels.visibility.*`                   | Private channels show a lock              |
+| Channel manager      | Manager                         | Yönetici                              | `channels.manager`                        | Adds and removes people                   |
+| Workspace roles      | Owner / Admin / Member          | Sahip / Yönetici / Üye                | `workspaces.roles.*`                      | "Admin" here is a workspace role          |
+| Invitation           | Invite people / Invitation link | Kişi davet et / Davet bağlantısı      | `workspaces.invitePeople`, `invites.link` | Links expire and can be revoked           |
+| Direct messages      | Direct messages                 | Doğrudan mesajlar                     | `dm.title`                                | Direct (2 people) and group conversations |
+| Conversation         | Direct / Group conversation     | Birebir / Grup konuşması              | `channels.kinds.direct`, `.group`         | Same people, same conversation            |
+| Status (presence)    | Online / Away / Do not disturb  | Çevrimiçi / Uzakta / Rahatsız etmeyin | `shell.presence.*`                        | Offline: Çevrimdışı; color and shape      |
+| New messages         | New messages                    | Yeni mesajlar                         | `chat.newMessages`                        | The line above the first unread message   |
 
 ## Rules
 

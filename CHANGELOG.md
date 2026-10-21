@@ -8,6 +8,21 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Direct and group conversations (up to 9 people): "Direct messages" in the sidebar, the
+  same people always meet in the same conversation; only they see it.
+- Unread messages: counts for conversations, bold and a dot for channels, a mark on the
+  workspace rail, a "New messages" line; reading on one device clears the others.
+- Presence (online, away, do not disturb, offline) on conversations and a status menu on
+  your avatar.
+- "… is typing" under the composer.
+
+### Changed
+
+- Workspace owners and admins do not see conversations of others (they see private
+  channels as before). Channel names cannot start with `direct:` or `group:`.
+
 ## [0.6.0] - 2026-10-21
 
 Workspaces with owners, admins and members, invitation links, channel manager appointments.
