@@ -144,7 +144,8 @@ licenses: licenses-go licenses-js ## Check dependency licenses against the polic
 
 .PHONY: licenses-go
 licenses-go: $(GO_LICENSES)
-	cd $(SERVER_DIR) && $(GO_LICENSES) check ./... --allowed_licenses=$(GO_ALLOWED_LICENSES) --ignore github.com/barisshn35/cenacle
+	# GOROOT of the pinned toolchain (go.mod), not the one go-licenses was built with.
+	cd $(SERVER_DIR) && GOROOT="$$(go env GOROOT)" $(GO_LICENSES) check ./... --allowed_licenses=$(GO_ALLOWED_LICENSES) --ignore github.com/barisshn35/cenacle
 
 .PHONY: licenses-js
 licenses-js: node_modules
