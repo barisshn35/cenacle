@@ -12,8 +12,8 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.4.** Sign in with Cenacle ID and chat live in channels.
-> Channel management, workspaces and direct messages follow (see the
+> **Status: v0.5 in progress.** Sign in with Cenacle ID and chat live in channels.
+> Workspaces, roles and direct messages follow (see the
 > [roadmap](#roadmap)).
 
 ## Highlights
@@ -119,7 +119,9 @@ flowchart LR
   WebSocket from a Valkey stream shared by all instances
   ([ADR 0005](docs/adr/0005-live-chat.md)). Channels everyone belongs to are set at
   installation; one administrator creates channels until roles arrive
-  ([ADR 0006](docs/adr/0006-channel-membership.md)).
+  ([ADR 0006](docs/adr/0006-channel-membership.md)). Messages can be edited and deleted
+  with undo; channels are renamed, archived and grouped in categories
+  ([ADR 0007](docs/adr/0007-channel-and-message-management.md)).
 - **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify); `node-oidc-provider` from v0.2.
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
@@ -145,9 +147,9 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.1     | Skeleton: services, design system foundations, infrastructure, CI                     |
 | v0.2     | Cenacle ID core (OIDC provider)                                                       |
 | v0.3     | OIDC sign-in in chat, sessions                                                        |
-| **v0.4** | **Live chat, WebSocket tickets**                                                      |
-| v0.5     | Channels, categories, cursor pagination                                               |
-| v0.6     | Workspaces, roles, private and announcement channels                                  |
+| v0.4     | Live chat, WebSocket tickets, channel membership, public and private channels         |
+| **v0.5** | **Editing and deleting messages, channel settings, categories, quick switcher**       |
+| v0.6     | Workspaces, roles, invitations                                                        |
 | v0.7     | Direct messages, unread, presence, typing                                             |
 | v0.8     | TOTP MFA, session management, back-channel logout, audit log                          |
 | v0.9     | Markdown, reactions, mentions, attachments, transactional outbox                      |

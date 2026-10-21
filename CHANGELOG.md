@@ -8,6 +8,21 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Edit your messages (marked as edited) and delete them with Undo; channel managers can
+  delete any message in their channels. Deleted messages are removed for good after 5
+  minutes.
+- Channel settings for managers: rename, topic, visibility, archive (read-only, out of the
+  sidebar, restorable).
+- Categories set by the administrator group channels in everyone's sidebar.
+- Quick switcher: Ctrl/⌘+K jumps to a channel by name.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-050): reversible migration
+  `00006_channel_and_message_management`.
+
 ## [0.4.0] - 2026-10-21
 
 Live chat in channels: messages over WebSocket, channel membership, channels for everyone
