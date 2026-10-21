@@ -30,7 +30,15 @@ import (
 const (
 	KindStandard     = "standard"
 	KindAnnouncement = "announcement"
+	// Direct (two people) and group conversations: private, without
+	// managers, keyed by their people (see conversationKey).
+	KindDirect = "direct"
+	KindGroup  = "group"
 )
+
+// isConversation: direct and group conversations, which only their people
+// see and nobody manages.
+func isConversation(c store.Channel) bool { return c.Kind == KindDirect || c.Kind == KindGroup }
 
 // Problem codes of channel operations.
 const (
@@ -77,9 +85,10 @@ func canPost(c store.Channel, a access) bool {
 	return !c.ArchivedAt.Valid && (c.Kind != KindAnnouncement || a.admin())
 }
 
-// canManage: the channel's managers and the workspace's owners and admins.
-func canManage(a access) bool {
-	return a.admin() || a.ch == RoleManager
+// canManage: the channel's managers and the workspace's owners and admins;
+// nobody in conversations.
+func canManage(c store.Channel, a access) bool {
+	return !isConversation(c) && (a.admin() || a.ch == RoleManager)
 }
 
 // toAPI describes a channel for a user with the given access.
@@ -89,9 +98,10 @@ func toAPI(c store.Channel, a access) api.Channel {
 		Id: uuid(c.ID), WorkspaceId: uuid(c.WorkspaceID), Name: c.Name, Topic: c.Topic, Kind: api.ChannelKind(c.Kind),
 		Visibility: api.ChannelVisibility(c.Visibility),
 		IsDefault:  c.IsDefault, IsMandatory: c.IsMandatory, IsMember: member,
-		CanPost:   member && canPost(c, a),
-		CanManage: canManage(a),
-		Archived:  c.ArchivedAt.Valid,
+		CanPost:      member && canPost(c, a),
+		CanManage:    canManage(c, a),
+		Archived:     c.ArchivedAt.Valid,
+		Participants: []api.Person{},
 	}
 	if c.CategoryID.Valid {
 		id := uuid(c.CategoryID)
@@ -115,9 +125,23 @@ func (h *Handlers) ListChannels(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w, r, "list channels", err)
 		return
 	}
+	people, err := h.participants(r.Context(), p.User.ID)
+	if err != nil {
+		h.unavailable(w, r, "list participants", err)
+		return
+	}
 	out := make([]api.Channel, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, toAPI(row.Channel, access{ch: row.Role, ws: row.WorkspaceRole}))
+		c := toAPI(row.Channel, access{ch: row.Role, ws: row.WorkspaceRole})
+		c.UnreadCount = int(row.UnreadCount)
+		if row.LastReadID.Valid {
+			id := uuid(row.LastReadID)
+			c.LastReadId = &id
+		}
+		if list, ok := people[c.Id]; ok {
+			c.Participants = list
+		}
+		out = append(out, c)
 	}
 	writeChannels(w, out)
 }
@@ -156,6 +180,8 @@ func cleanName(name string) (string, string) {
 		return "", "The channel name is longer than 80 characters."
 	case !utf8.ValidString(name) || strings.ContainsFunc(name, unicode.IsControl):
 		return "", "The channel name contains invalid characters."
+	case hasConversationPrefix(name):
+		return "", "Channel names cannot start with \"direct:\" or \"group:\"."
 	}
 	return name, ""
 }
@@ -307,7 +333,7 @@ func (h *Handlers) visibleChannel(w http.ResponseWriter, r *http.Request, id ope
 		return c, access{}, false
 	}
 	a := access{ch: ch, ws: ws}
-	if ws == "" || (c.Visibility == Private && ch == "" && !a.admin()) {
+	if ws == "" || (c.Visibility == Private && ch == "" && (!a.admin() || isConversation(c))) {
 		channelNotFound(w, r)
 		return c, access{}, false
 	}
@@ -399,7 +425,7 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 	if !ok {
 		return
 	}
-	if !canManage(role) {
+	if !canManage(c, role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can change it.")
 		return
 	}
@@ -477,7 +503,7 @@ func (h *Handlers) ListChannelMembers(w http.ResponseWriter, r *http.Request, ch
 // managedChannel loads a channel the user manages, or answers.
 func (h *Handlers) managedChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, bool) {
 	c, role, ok := h.visibleChannel(w, r, id, user)
-	if ok && !canManage(role) {
+	if ok && !canManage(c, role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can add or remove people.")
 		return c, false
 	}

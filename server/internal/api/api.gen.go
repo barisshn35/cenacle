@@ -17,6 +17,8 @@ import (
 // Defines values for ChannelKind.
 const (
 	ChannelKindAnnouncement ChannelKind = "announcement"
+	ChannelKindDirect       ChannelKind = "direct"
+	ChannelKindGroup        ChannelKind = "group"
 	ChannelKindStandard     ChannelKind = "standard"
 )
 
@@ -24,6 +26,10 @@ const (
 func (e ChannelKind) Valid() bool {
 	switch e {
 	case ChannelKindAnnouncement:
+		return true
+	case ChannelKindDirect:
+		return true
+	case ChannelKindGroup:
 		return true
 	case ChannelKindStandard:
 		return true
@@ -122,6 +128,27 @@ func (e NewChannelVisibility) Valid() bool {
 	}
 }
 
+// Defines values for PresenceStatus.
+const (
+	PresenceStatusAway   PresenceStatus = "away"
+	PresenceStatusDnd    PresenceStatus = "dnd"
+	PresenceStatusOnline PresenceStatus = "online"
+)
+
+// Valid indicates whether the value is a known member of the PresenceStatus enum.
+func (e PresenceStatus) Valid() bool {
+	switch e {
+	case PresenceStatusAway:
+		return true
+	case PresenceStatusDnd:
+		return true
+	case PresenceStatusOnline:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WorkspaceRole.
 const (
 	WorkspaceRoleAdmin  WorkspaceRole = "admin"
@@ -182,6 +209,27 @@ func (e SetChannelMemberRoleJSONBodyRole) Valid() bool {
 	}
 }
 
+// Defines values for SetPresenceJSONBodyStatus.
+const (
+	SetPresenceJSONBodyStatusAway   SetPresenceJSONBodyStatus = "away"
+	SetPresenceJSONBodyStatusDnd    SetPresenceJSONBodyStatus = "dnd"
+	SetPresenceJSONBodyStatusOnline SetPresenceJSONBodyStatus = "online"
+)
+
+// Valid indicates whether the value is a known member of the SetPresenceJSONBodyStatus enum.
+func (e SetPresenceJSONBodyStatus) Valid() bool {
+	switch e {
+	case SetPresenceJSONBodyStatusAway:
+		return true
+	case SetPresenceJSONBodyStatusDnd:
+		return true
+	case SetPresenceJSONBodyStatusOnline:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetWorkspaceRoleJSONBodyRole.
 const (
 	SetWorkspaceRoleJSONBodyRoleAdmin  SetWorkspaceRoleJSONBodyRole = "admin"
@@ -236,17 +284,26 @@ type Channel struct {
 	IsMandatory bool `json:"is_mandatory"`
 	IsMember    bool `json:"is_member"`
 
-	// Kind In announcement channels only the administrator can send.
-	Kind  ChannelKind `json:"kind"`
-	Name  string      `json:"name"`
-	Topic string      `json:"topic"`
+	// Kind In announcement channels only workspace owners and admins send. Direct and
+	// group conversations have participants instead of a name.
+	Kind       ChannelKind         `json:"kind"`
+	LastReadId *openapi_types.UUID `json:"last_read_id"`
+	Name       string              `json:"name"`
+
+	// Participants The other people of a direct or group conversation (empty for channels).
+	Participants []Person `json:"participants"`
+	Topic        string   `json:"topic"`
+
+	// UnreadCount Messages of others after the read position, counted up to 100.
+	UnreadCount int `json:"unread_count"`
 
 	// Visibility Private channels are visible to their members only.
 	Visibility  ChannelVisibility  `json:"visibility"`
 	WorkspaceId openapi_types.UUID `json:"workspace_id"`
 }
 
-// ChannelKind In announcement channels only the administrator can send.
+// ChannelKind In announcement channels only workspace owners and admins send. Direct and
+// group conversations have participants instead of a name.
 type ChannelKind string
 
 // ChannelVisibility Private channels are visible to their members only.
@@ -359,6 +416,15 @@ type Person struct {
 	Email       string             `json:"email"`
 	Id          openapi_types.UUID `json:"id"`
 }
+
+// Presence defines model for Presence.
+type Presence struct {
+	Status PresenceStatus     `json:"status"`
+	UserId openapi_types.UUID `json:"user_id"`
+}
+
+// PresenceStatus defines model for Presence.Status.
+type PresenceStatus string
 
 // Problem defines model for Problem.
 type Problem struct {
@@ -492,6 +558,19 @@ type EditMessageJSONBody struct {
 	Body string `json:"body"`
 }
 
+// MarkReadJSONBody defines parameters for MarkRead.
+type MarkReadJSONBody struct {
+	MessageId openapi_types.UUID `json:"message_id"`
+}
+
+// SetPresenceJSONBody defines parameters for SetPresence.
+type SetPresenceJSONBody struct {
+	Status SetPresenceJSONBodyStatus `json:"status"`
+}
+
+// SetPresenceJSONBodyStatus defines parameters for SetPresence.
+type SetPresenceJSONBodyStatus string
+
 // SearchUsersParams defines parameters for SearchUsers.
 type SearchUsersParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
@@ -507,6 +586,11 @@ type CreateWorkspaceJSONBody struct {
 // RenameWorkspaceJSONBody defines parameters for RenameWorkspace.
 type RenameWorkspaceJSONBody struct {
 	Name string `json:"name"`
+}
+
+// OpenConversationJSONBody defines parameters for OpenConversation.
+type OpenConversationJSONBody struct {
+	UserIds []openapi_types.UUID `json:"user_ids"`
 }
 
 // CreateInviteJSONBody defines parameters for CreateInvite.
@@ -550,11 +634,20 @@ type CreateMessageJSONRequestBody = NewMessage
 // EditMessageJSONRequestBody defines body for EditMessage for application/json ContentType.
 type EditMessageJSONRequestBody EditMessageJSONBody
 
+// MarkReadJSONRequestBody defines body for MarkRead for application/json ContentType.
+type MarkReadJSONRequestBody MarkReadJSONBody
+
+// SetPresenceJSONRequestBody defines body for SetPresence for application/json ContentType.
+type SetPresenceJSONRequestBody SetPresenceJSONBody
+
 // CreateWorkspaceJSONRequestBody defines body for CreateWorkspace for application/json ContentType.
 type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
 
 // RenameWorkspaceJSONRequestBody defines body for RenameWorkspace for application/json ContentType.
 type RenameWorkspaceJSONRequestBody RenameWorkspaceJSONBody
+
+// OpenConversationJSONRequestBody defines body for OpenConversation for application/json ContentType.
+type OpenConversationJSONRequestBody OpenConversationJSONBody
 
 // CreateInviteJSONRequestBody defines body for CreateInvite for application/json ContentType.
 type CreateInviteJSONRequestBody CreateInviteJSONBody
@@ -636,6 +729,12 @@ type ServerInterface interface {
 	// RestoreMessage Undo deleting a message (whoever may delete it)
 	// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
 	RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// MarkRead Mark a channel read up to a message
+	// (POST /api/channels/{channel_id}/read)
+	MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// SendTyping Tell the channel you are typing (every few seconds while typing)
+	// (POST /api/channels/{channel_id}/typing)
+	SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// UnarchiveChannel Restore an archived channel (channel managers)
 	// (POST /api/channels/{channel_id}/unarchive)
 	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -645,6 +744,9 @@ type ServerInterface interface {
 	// AcceptInvite Join the workspace of an invitation
 	// (POST /api/invites/{token}/accept)
 	AcceptInvite(w http.ResponseWriter, r *http.Request, token string)
+	// SetPresence Set your own status
+	// (PUT /api/presence)
+	SetPresence(w http.ResponseWriter, r *http.Request)
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -660,6 +762,9 @@ type ServerInterface interface {
 	// RenameWorkspace Rename a workspace (owners and admins)
 	// (PATCH /api/workspaces/{workspace_id})
 	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// OpenConversation Open a direct or group conversation
+	// (POST /api/workspaces/{workspace_id}/conversations)
+	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListInvites Invitations that can still be used (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/invites)
 	ListInvites(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -678,6 +783,9 @@ type ServerInterface interface {
 	// SetWorkspaceRole Change someone's role
 	// (PATCH /api/workspaces/{workspace_id}/members/{user_id})
 	SetWorkspaceRole(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
+	// ListPresence Who of a workspace is online, away or busy
+	// (GET /api/workspaces/{workspace_id}/presence)
+	ListPresence(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// CreateWsTicket Ticket for opening the WebSocket
 	// (POST /api/ws/ticket)
 	CreateWsTicket(w http.ResponseWriter, r *http.Request)
@@ -831,6 +939,18 @@ func (_ Unimplemented) RestoreMessage(w http.ResponseWriter, r *http.Request, ch
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// MarkRead Mark a channel read up to a message
+// (POST /api/channels/{channel_id}/read)
+func (_ Unimplemented) MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SendTyping Tell the channel you are typing (every few seconds while typing)
+// (POST /api/channels/{channel_id}/typing)
+func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // UnarchiveChannel Restore an archived channel (channel managers)
 // (POST /api/channels/{channel_id}/unarchive)
 func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -846,6 +966,12 @@ func (_ Unimplemented) GetInvite(w http.ResponseWriter, r *http.Request, token s
 // AcceptInvite Join the workspace of an invitation
 // (POST /api/invites/{token}/accept)
 func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetPresence Set your own status
+// (PUT /api/presence)
+func (_ Unimplemented) SetPresence(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -876,6 +1002,12 @@ func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 // RenameWorkspace Rename a workspace (owners and admins)
 // (PATCH /api/workspaces/{workspace_id})
 func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// OpenConversation Open a direct or group conversation
+// (POST /api/workspaces/{workspace_id}/conversations)
+func (_ Unimplemented) OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -912,6 +1044,12 @@ func (_ Unimplemented) RemoveWorkspaceMember(w http.ResponseWriter, r *http.Requ
 // SetWorkspaceRole Change someone's role
 // (PATCH /api/workspaces/{workspace_id}/members/{user_id})
 func (_ Unimplemented) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListPresence Who of a workspace is online, away or busy
+// (GET /api/workspaces/{workspace_id}/presence)
+func (_ Unimplemented) ListPresence(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1660,6 +1798,58 @@ func (siw *ServerInterfaceWrapper) RestoreMessage(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// MarkRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkRead(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SendTyping operation middleware
+func (siw *ServerInterfaceWrapper) SendTyping(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SendTyping(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // UnarchiveChannel operation middleware
 func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *http.Request) {
 
@@ -1729,6 +1919,20 @@ func (siw *ServerInterfaceWrapper) AcceptInvite(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AcceptInvite(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetPresence operation middleware
+func (siw *ServerInterfaceWrapper) SetPresence(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPresence(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1856,6 +2060,32 @@ func (siw *ServerInterfaceWrapper) RenameWorkspace(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RenameWorkspace(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OpenConversation operation middleware
+func (siw *ServerInterfaceWrapper) OpenConversation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OpenConversation(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2048,6 +2278,32 @@ func (siw *ServerInterfaceWrapper) SetWorkspaceRole(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListPresence operation middleware
+func (siw *ServerInterfaceWrapper) ListPresence(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPresence(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateWsTicket operation middleware
 func (siw *ServerInterfaceWrapper) CreateWsTicket(w http.ResponseWriter, r *http.Request) {
 
@@ -2194,6 +2450,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/workspaces/{workspace_id}/members/{user_id}", wrapper.SetWorkspaceRole)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/conversations", wrapper.OpenConversation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/presence", wrapper.ListPresence)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/presence", wrapper.SetPresence)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/invites", wrapper.ListInvites)
 	})
 	r.Group(func(r chi.Router) {
@@ -2231,6 +2496,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}", wrapper.UpdateChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/read", wrapper.MarkRead)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/typing", wrapper.SendTyping)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/archive", wrapper.ArchiveChannel)

@@ -23,6 +23,9 @@ type Querier interface {
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (ChannelCategory, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
+	// CreateConversation creates a direct or group conversation, or returns the
+	// existing one with the same key (name).
+	CreateConversation(ctx context.Context, arg CreateConversationParams) (Channel, error)
 	CreateInvite(ctx context.Context, arg CreateInviteParams) (WorkspaceInvite, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
@@ -43,6 +46,7 @@ type Querier interface {
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
+	GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error)
 	GetDefaultWorkspace(ctx context.Context) (Workspace, error)
 	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
@@ -64,6 +68,9 @@ type Querier interface {
 	// channels the user belongs to, with the user's role ('' when not a member).
 	ListAllChannels(ctx context.Context, arg ListAllChannelsParams) ([]ListAllChannelsRow, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
+	// ListConversationParticipants returns, for each direct or group conversation
+	// of a user, the other people in it.
+	ListConversationParticipants(ctx context.Context, userID pgtype.UUID) ([]ListConversationParticipantsRow, error)
 	// ListInvites returns the invitations of a workspace that can still be used.
 	ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceInvite, error)
 	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelIDsRow, error)
@@ -79,6 +86,8 @@ type Querier interface {
 	// workspace first.
 	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListUserWorkspacesRow, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
+	// MarkRead moves a member's read position forward (never back).
+	MarkRead(ctx context.Context, arg MarkReadParams) (int64, error)
 	// PurgeDeletedMessages removes messages that can no longer be restored.
 	PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error)
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)

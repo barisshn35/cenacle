@@ -4,6 +4,8 @@ package realtime
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -61,14 +63,18 @@ type SessionChecker interface {
 type MembershipSource interface {
 	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]store.ListMemberChannelIDsRow, error)
 	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]store.ListUserWorkspacesRow, error)
+	GetWorkspaceRole(ctx context.Context, arg store.GetWorkspaceRoleParams) (string, error)
+	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]store.ListWorkspaceMembersRow, error)
 }
 
 // Handler serves the ticket endpoint and the WebSocket.
 type Handler struct {
-	Hub       *Hub
-	Tickets   TicketStore
-	Sessions  SessionChecker
-	Members   MembershipSource
+	Hub      *Hub
+	Tickets  TicketStore
+	Sessions SessionChecker
+	Members  MembershipSource
+	// Presence tracks connections; optional.
+	Presence  *Presence
 	Cookies   auth.Cookies
 	PublicURL *url.URL
 	Settings  Settings
@@ -124,8 +130,12 @@ func newClient(size int) *client {
 }
 
 // deliver never blocks the hub: a client whose queue is full is closed and
-// resumes after reconnecting.
+// resumes after reconnecting. Short-lived events are dropped instead once
+// the queue is half full: they are not worth a reconnect.
 func (c *client) deliver(ev events.Event) {
+	if ev.ID == "" && len(c.queue) >= cap(c.queue)/2 {
+		return
+	}
 	select {
 	case c.queue <- ev:
 	default:
@@ -211,6 +221,12 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	}
 	sent := start
 	forward := func(ev events.Event) error {
+		if ev.ID == "" { // short-lived: not ordered, not resumed
+			if !aud.allows(ev) {
+				return nil
+			}
+			return send(frame{Op: "ephemeral", Type: ev.Type, Data: ev.Data})
+		}
 		id, err := events.ParseID(ev.ID)
 		if err != nil || !sent.Less(id) {
 			return nil // already sent
@@ -234,6 +250,24 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		if err := forward(ev); err != nil {
 			return
 		}
+	}
+
+	if h.Presence != nil {
+		connID := randomID()
+		h.Presence.Connected(ctx, t.UserID, connID)
+		defer h.Presence.Disconnected(context.WithoutCancel(ctx), t.UserID, connID)
+		beat := time.NewTicker(presenceTTL / 3)
+		defer beat.Stop()
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-beat.C:
+					h.Presence.Heartbeat(ctx, t.UserID, connID)
+				}
+			}
+		}()
 	}
 
 	ping := time.NewTicker(h.Settings.Heartbeat)
@@ -323,4 +357,82 @@ func (h *Handler) startingPoint(ctx context.Context, lastEventID string) (events
 		return events.ID{}, nil, false, err
 	}
 	return after, backlog, false, nil
+}
+
+func randomID() string {
+	b := make([]byte, 12)
+	_, _ = rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+// ListPresence implements api.ServerInterface.
+func (h *Handler) ListPresence(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	ws := pgtype.UUID{Bytes: workspaceID, Valid: true}
+	role, err := h.Members.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: ws, UserID: p.User.ID})
+	if err != nil {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable})
+		return
+	}
+	if role == "" {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
+			Detail: "No workspace with this id."})
+		return
+	}
+	members, err := h.Members.ListWorkspaceMembers(r.Context(), ws)
+	if err != nil {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable})
+		return
+	}
+	ids := make([]string, len(members))
+	for i, m := range members {
+		ids[i] = uuidString(m.ID)
+	}
+	type entry struct {
+		UserID string `json:"user_id"`
+		Status string `json:"status"`
+	}
+	out := []entry{}
+	if h.Presence != nil {
+		statuses, err := h.Presence.Statuses(r.Context(), ids)
+		if err != nil {
+			httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable})
+			return
+		}
+		for _, id := range ids {
+			if s, ok := statuses[id]; ok {
+				out = append(out, entry{id, s})
+			}
+		}
+	}
+	httpx.WriteJSON(w, http.StatusOK, struct {
+		Presence []entry `json:"presence"`
+	}{out})
+}
+
+// SetPresence implements api.ServerInterface.
+func (h *Handler) SetPresence(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	var in struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&in); err != nil ||
+		(in.Status != StatusOnline && in.Status != StatusAway && in.Status != StatusDND) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest,
+			Detail: "status must be online, away or dnd."})
+		return
+	}
+	if h.Presence != nil {
+		if err := h.Presence.SetStatus(r.Context(), p.User.ID, in.Status); err != nil {
+			httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable})
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

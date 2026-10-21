@@ -1,7 +1,13 @@
 -- name: ListMemberChannels :many
 -- ListMemberChannels returns the channels a user belongs to with the user's
 -- roles in each and in its workspace: mandatory ones first, then by name.
-SELECT sqlc.embed(c), m.role, wm.role AS workspace_role
+SELECT sqlc.embed(c), m.role, wm.role AS workspace_role, m.last_read_id,
+       -- Unread messages of others, counted up to 100 (clients show "99+").
+       (SELECT count(*) FROM (
+            SELECT 1 FROM messages x
+            WHERE x.channel_id = c.id AND x.deleted_at IS NULL AND x.author_id <> @user_id
+              AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
+            LIMIT 100) unread)::int AS unread_count
 FROM channels c
 JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id
@@ -15,6 +21,7 @@ SELECT sqlc.embed(c), coalesce(m.role, '')::text AS role
 FROM channels c
 LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id
 WHERE c.workspace_id = @workspace_id
+  AND c.kind IN ('standard', 'announcement')
   AND (c.visibility = 'public' OR m.user_id IS NOT NULL)
 ORDER BY c.is_mandatory DESC, lower(c.name);
 
@@ -165,3 +172,31 @@ RETURNING *;
 -- name: PurgeDeletedMessages :execrows
 -- PurgeDeletedMessages removes messages that can no longer be restored.
 DELETE FROM messages WHERE deleted_at <= now() - sqlc.arg(restore_window)::interval;
+
+-- name: GetChannelByName :one
+SELECT * FROM channels WHERE workspace_id = @workspace_id AND lower(name) = lower(@name);
+
+-- name: CreateConversation :one
+-- CreateConversation creates a direct or group conversation, or returns the
+-- existing one with the same key (name).
+INSERT INTO channels (workspace_id, name, kind, visibility, created_by)
+VALUES (@workspace_id, @name, @kind, 'private', @created_by)
+ON CONFLICT (workspace_id, (lower(name))) DO UPDATE SET name = EXCLUDED.name
+RETURNING *;
+
+-- name: ListConversationParticipants :many
+-- ListConversationParticipants returns, for each direct or group conversation
+-- of a user, the other people in it.
+SELECT m.channel_id, u.id AS user_id, u.display_name, u.email
+FROM channel_members me
+JOIN channels c ON c.id = me.channel_id AND c.kind IN ('direct', 'group')
+JOIN channel_members m ON m.channel_id = c.id AND m.user_id <> @user_id
+JOIN users u ON u.id = m.user_id
+WHERE me.user_id = @user_id
+ORDER BY m.channel_id, lower(u.display_name);
+
+-- name: MarkRead :execrows
+-- MarkRead moves a member's read position forward (never back).
+UPDATE channel_members SET last_read_id = @message_id
+WHERE channel_id = @channel_id AND user_id = @user_id
+  AND (last_read_id IS NULL OR last_read_id < @message_id);

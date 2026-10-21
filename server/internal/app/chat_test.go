@@ -85,10 +85,13 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	queries := store.New(sh.pool)
 	sessions := &auth.Sessions{Queries: queries, IdleTimeout: time.Hour, MaxAge: 24 * time.Hour}
 	eventLog := &events.Log{Valkey: sh.valkey, Key: sh.stream, MaxLen: o.maxLen}
-	hub := &realtime.Hub{Log: eventLog, Logger: log}
+	ephemeral := &events.Ephemeral{Valkey: sh.valkey, Channel: sh.stream + ":ephemeral"}
+	hub := &realtime.Hub{Log: eventLog, Ephemeral: ephemeral, Logger: log}
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	go hub.Run(ctx)
+	go hub.RunEphemeral(ctx)
+	presence := &realtime.Presence{Valkey: sh.valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(store.New(sh.pool)), Log: log}
 
 	var router http.Handler
 	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,11 +111,11 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			Sessions: sessions, Users: queries, Cookies: cookies, PublicURL: public, Log: log,
 		},
 		Chat: &chat.Handlers{
-			Queries: queries, Events: eventLog, Limiter: sh.valkey, Cookies: cookies, Log: log,
+			Queries: queries, Events: eventLog, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},
 		Realtime: &realtime.Handler{
-			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Cookies: cookies, PublicURL: public,
+			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Presence: presence, Cookies: cookies, PublicURL: public,
 			Settings: o.settings, Log: log,
 		},
 	})
@@ -407,19 +410,36 @@ func (s *stack) connect(token, lastEventID string) *websocket.Conn {
 	return c
 }
 
+// read returns the next frame of the event stream; short-lived (ephemeral)
+// frames are skipped.
 func read(t *testing.T, c *websocket.Conn) frame {
+	t.Helper()
+	return readFrame(t, c, func(f frame) bool { return f.Op != "ephemeral" })
+}
+
+// readEphemeral returns the next short-lived frame of a type.
+func readEphemeral(t *testing.T, c *websocket.Conn, typ string) frame {
+	t.Helper()
+	return readFrame(t, c, func(f frame) bool { return f.Op == "ephemeral" && f.Type == typ })
+}
+
+func readFrame(t *testing.T, c *websocket.Conn, want func(frame) bool) frame {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, raw, err := c.Read(ctx)
-	if err != nil {
-		t.Fatalf("read: %v", err)
+	for {
+		_, raw, err := c.Read(ctx)
+		if err != nil {
+			t.Fatalf("read: %v", err)
+		}
+		var f frame
+		if err := json.Unmarshal(raw, &f); err != nil {
+			t.Fatal(err)
+		}
+		if want(f) {
+			return f
+		}
 	}
-	var f frame
-	if err := json.Unmarshal(raw, &f); err != nil {
-		t.Fatal(err)
-	}
-	return f
 }
 
 func closeStatus(t *testing.T, c *websocket.Conn) websocket.StatusCode {

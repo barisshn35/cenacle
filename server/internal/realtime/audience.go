@@ -24,9 +24,10 @@ type eventData struct {
 		ID          string `json:"id"`
 		WorkspaceID string `json:"workspace_id"`
 	} `json:"channel"`
-	UserID      string `json:"user_id"`
-	ChannelID   string `json:"channel_id"`
-	WorkspaceID string `json:"workspace_id"`
+	UserID       string   `json:"user_id"`
+	ChannelID    string   `json:"channel_id"`
+	WorkspaceID  string   `json:"workspace_id"`
+	WorkspaceIDs []string `json:"workspace_ids"`
 }
 
 func (a *audience) inChannel(id string) bool {
@@ -61,6 +62,17 @@ func (a *audience) allows(ev events.Event) bool {
 		}
 		delete(a.channels, d.Channel.ID)
 		return true
+	case events.Typing: // others typing in the user's channels
+		return d.UserID != a.user && a.inChannel(d.ChannelID)
+	case events.ChannelRead: // the user's read position, for their other devices
+		return d.UserID == a.user
+	case events.PresenceChanged:
+		for _, ws := range d.WorkspaceIDs {
+			if a.workspaces[ws] {
+				return true
+			}
+		}
+		return false
 	case events.CategoriesChanged, events.WorkspaceUpdated, events.WorkspaceMembersChanged:
 		return a.workspaces[d.WorkspaceID]
 	case events.WorkspaceJoined:

@@ -32,6 +32,8 @@ const (
 	MessageCreated = "message.created"
 	MessageUpdated = "message.updated"
 	MessageDeleted = "message.deleted"
+	// ChannelRead goes to the user who read (their other devices).
+	ChannelRead = "channel.read"
 	// CategoriesChanged goes to the members of a workspace.
 	CategoriesChanged = "categories.changed"
 	// WorkspaceJoined and WorkspaceLeft go to the user concerned (joined is also

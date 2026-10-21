@@ -15,8 +15,10 @@ import (
 // Hub follows the event log and hands every event to the clients connected
 // to this instance.
 type Hub struct {
-	Log    *events.Log
-	Logger *slog.Logger
+	Log *events.Log
+	// Ephemeral carries short-lived events (typing, presence); optional.
+	Ephemeral *events.Ephemeral
+	Logger    *slog.Logger
 
 	mu      sync.Mutex
 	clients map[*client]struct{}
@@ -57,6 +59,25 @@ func (h *Hub) resyncAll() {
 	defer h.mu.Unlock()
 	for c := range h.clients {
 		c.requestResync()
+	}
+}
+
+// RunEphemeral hands short-lived events to the clients until ctx ends,
+// subscribing again after failures.
+func (h *Hub) RunEphemeral(ctx context.Context) {
+	if h.Ephemeral == nil {
+		return
+	}
+	backoff := time.Second
+	for ctx.Err() == nil {
+		err := h.Ephemeral.Subscribe(ctx, func(ev events.Event) {
+			backoff = time.Second
+			h.broadcast(ev)
+		})
+		if err != nil && ctx.Err() == nil {
+			h.Logger.Warn("ephemeral events unavailable", "error", err)
+			sleep(ctx, &backoff)
+		}
 	}
 }
 

@@ -42,7 +42,7 @@ func (h *Handlers) setArchived(w http.ResponseWriter, r *http.Request, channelID
 	if !ok {
 		return
 	}
-	if !canManage(role) {
+	if !canManage(c, role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can archive it.")
 		return
 	}
@@ -259,6 +259,10 @@ func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, ch
 		return
 	}
 	c, role, ok := h.visibleChannel(w, r, channelID, p.User)
+	if ok && isConversation(c) {
+		forbidden(w, r, httpx.CodeForbidden, "Conversations have no category.")
+		return
+	}
 	if !ok || !requireWorkspaceAdmin(w, r, role.ws) {
 		return
 	}
@@ -316,8 +320,8 @@ func (h *Handlers) message(w http.ResponseWriter, r *http.Request, channelID, me
 }
 
 // canRemove: a message's author, or a manager of its channel.
-func canRemove(m store.GetMessageRow, a access, user store.User) bool {
-	return m.AuthorID == user.ID || canManage(a)
+func canRemove(c store.Channel, m store.GetMessageRow, a access, user store.User) bool {
+	return m.AuthorID == user.ID || canManage(c, a)
 }
 
 // EditMessage implements api.ServerInterface.
@@ -373,7 +377,7 @@ func (h *Handlers) DeleteMessage(w http.ResponseWriter, r *http.Request, channel
 	if !ok {
 		return
 	}
-	if !canRemove(m, role, p.User) {
+	if !canRemove(c, m, role, p.User) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the author or a channel manager can delete a message.")
 		return
 	}
@@ -393,11 +397,11 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 	if !ok {
 		return
 	}
-	_, role, m, ok := h.message(w, r, channelID, messageID, p.User)
+	c, role, m, ok := h.message(w, r, channelID, messageID, p.User)
 	if !ok {
 		return
 	}
-	if !canRemove(m, role, p.User) {
+	if !canRemove(c, m, role, p.User) {
 		forbidden(w, r, httpx.CodeForbidden, "Only the author or a channel manager can restore a message.")
 		return
 	}

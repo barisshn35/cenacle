@@ -127,8 +127,14 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	go sessions.RunCleanup(ctx, 10*time.Minute, log)
 
 	eventLog := &events.Log{Valkey: valkey, Key: "cenacle:events", MaxLen: 10_000}
-	hub := &realtime.Hub{Log: eventLog, Logger: log}
+	ephemeral := &events.Ephemeral{Valkey: valkey, Channel: "cenacle:ephemeral"}
+	hub := &realtime.Hub{Log: eventLog, Ephemeral: ephemeral, Logger: log}
 	go hub.Run(ctx)
+	go hub.RunEphemeral(ctx)
+	presence := &realtime.Presence{
+		Valkey: valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(queries), Log: log,
+	}
+	go presence.RunSweeper(ctx, 10*time.Second)
 	cookies := auth.NewCookies(cfg.PublicURL)
 	go chat.RunPurge(ctx, queries, time.Minute, log)
 	go chat.RunEnsureDefaults(ctx, queries, chat.Defaults{
@@ -161,6 +167,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Chat: &chat.Handlers{
 				Queries:           queries,
 				Events:            eventLog,
+				Ephemeral:         ephemeral,
 				Limiter:           valkey,
 				Cookies:           cookies,
 				Log:               log,
@@ -173,6 +180,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				Tickets:   valkey,
 				Sessions:  sessions,
 				Members:   queries,
+				Presence:  presence,
 				Cookies:   cookies,
 				PublicURL: cfg.PublicURL,
 				Settings:  realtime.DefaultSettings,

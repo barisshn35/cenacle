@@ -37,9 +37,11 @@ type RateLimiter interface {
 type Handlers struct {
 	Queries store.Querier
 	Events  *events.Log
-	Limiter RateLimiter
-	Cookies auth.Cookies
-	Log     *slog.Logger
+	// Ephemeral carries typing notices; optional.
+	Ephemeral *events.Ephemeral
+	Limiter   RateLimiter
+	Cookies   auth.Cookies
+	Log       *slog.Logger
 	// Configured lists the channels of the installation settings, which keep
 	// their names.
 	Configured []string
@@ -194,6 +196,11 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 	out := messageAPI(msg, p.User.DisplayName)
+	// What you send, you have read. No channel.read: the sender's other
+	// devices see message.created and move their read position themselves.
+	if _, err := h.Queries.MarkRead(r.Context(), store.MarkReadParams{ChannelID: c.ID, UserID: p.User.ID, MessageID: msg.ID}); err != nil {
+		h.Log.WarnContext(r.Context(), "mark own message read", "error", err)
+	}
 	// The message is stored; if the event cannot be appended, clients still
 	// see it when they load the channel (a transactional outbox follows in v0.9).
 	h.publish(r.Context(), events.MessageCreated, out)

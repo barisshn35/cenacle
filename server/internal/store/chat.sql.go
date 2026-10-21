@@ -118,6 +118,47 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 	return i, err
 }
 
+const createConversation = `-- name: CreateConversation :one
+INSERT INTO channels (workspace_id, name, kind, visibility, created_by)
+VALUES ($1, $2, $3, 'private', $4)
+ON CONFLICT (workspace_id, (lower(name))) DO UPDATE SET name = EXCLUDED.name
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id
+`
+
+type CreateConversationParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Name        string      `json:"name"`
+	Kind        string      `json:"kind"`
+	CreatedBy   pgtype.UUID `json:"created_by"`
+}
+
+// CreateConversation creates a direct or group conversation, or returns the
+// existing one with the same key (name).
+func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversationParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, createConversation,
+		arg.WorkspaceID,
+		arg.Name,
+		arg.Kind,
+		arg.CreatedBy,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Topic,
+		&i.CreatedAt,
+		&i.Kind,
+		&i.IsDefault,
+		&i.IsMandatory,
+		&i.CreatedBy,
+		&i.Visibility,
+		&i.ArchivedAt,
+		&i.CategoryID,
+		&i.WorkspaceID,
+	)
+	return i, err
+}
+
 const createMessage = `-- name: CreateMessage :one
 INSERT INTO messages (channel_id, author_id, body, nonce)
 VALUES ($1, $2, $3, $4)
@@ -313,6 +354,35 @@ func (q *Queries) GetChannel(ctx context.Context, id pgtype.UUID) (Channel, erro
 	return i, err
 }
 
+const getChannelByName = `-- name: GetChannelByName :one
+SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id FROM channels WHERE workspace_id = $1 AND lower(name) = lower($2)
+`
+
+type GetChannelByNameParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Name        string      `json:"name"`
+}
+
+func (q *Queries) GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, getChannelByName, arg.WorkspaceID, arg.Name)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Topic,
+		&i.CreatedAt,
+		&i.Kind,
+		&i.IsDefault,
+		&i.IsMandatory,
+		&i.CreatedBy,
+		&i.Visibility,
+		&i.ArchivedAt,
+		&i.CategoryID,
+		&i.WorkspaceID,
+	)
+	return i, err
+}
+
 const getMemberRole = `-- name: GetMemberRole :one
 SELECT coalesce((
     SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2
@@ -425,6 +495,7 @@ SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory
 FROM channels c
 LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
 WHERE c.workspace_id = $2
+  AND c.kind IN ('standard', 'announcement')
   AND (c.visibility = 'public' OR m.user_id IS NOT NULL)
 ORDER BY c.is_mandatory DESC, lower(c.name)
 `
@@ -505,6 +576,50 @@ func (q *Queries) ListCategories(ctx context.Context, workspaceID pgtype.UUID) (
 	return items, nil
 }
 
+const listConversationParticipants = `-- name: ListConversationParticipants :many
+SELECT m.channel_id, u.id AS user_id, u.display_name, u.email
+FROM channel_members me
+JOIN channels c ON c.id = me.channel_id AND c.kind IN ('direct', 'group')
+JOIN channel_members m ON m.channel_id = c.id AND m.user_id <> $1
+JOIN users u ON u.id = m.user_id
+WHERE me.user_id = $1
+ORDER BY m.channel_id, lower(u.display_name)
+`
+
+type ListConversationParticipantsRow struct {
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	UserID      pgtype.UUID `json:"user_id"`
+	DisplayName string      `json:"display_name"`
+	Email       string      `json:"email"`
+}
+
+// ListConversationParticipants returns, for each direct or group conversation
+// of a user, the other people in it.
+func (q *Queries) ListConversationParticipants(ctx context.Context, userID pgtype.UUID) ([]ListConversationParticipantsRow, error) {
+	rows, err := q.db.Query(ctx, listConversationParticipants, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListConversationParticipantsRow
+	for rows.Next() {
+		var i ListConversationParticipantsRow
+		if err := rows.Scan(
+			&i.ChannelID,
+			&i.UserID,
+			&i.DisplayName,
+			&i.Email,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMemberChannelIDs = `-- name: ListMemberChannelIDs :many
 SELECT m.channel_id, c.workspace_id
 FROM channel_members m
@@ -538,7 +653,13 @@ func (q *Queries) ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) 
 }
 
 const listMemberChannels = `-- name: ListMemberChannels :many
-SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, m.role, wm.role AS workspace_role
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, m.role, wm.role AS workspace_role, m.last_read_id,
+       -- Unread messages of others, counted up to 100 (clients show "99+").
+       (SELECT count(*) FROM (
+            SELECT 1 FROM messages x
+            WHERE x.channel_id = c.id AND x.deleted_at IS NULL AND x.author_id <> $1
+              AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
+            LIMIT 100) unread)::int AS unread_count
 FROM channels c
 JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = $1
@@ -547,9 +668,11 @@ ORDER BY c.is_mandatory DESC, lower(c.name)
 `
 
 type ListMemberChannelsRow struct {
-	Channel       Channel `json:"channel"`
-	Role          string  `json:"role"`
-	WorkspaceRole string  `json:"workspace_role"`
+	Channel       Channel     `json:"channel"`
+	Role          string      `json:"role"`
+	WorkspaceRole string      `json:"workspace_role"`
+	LastReadID    pgtype.UUID `json:"last_read_id"`
+	UnreadCount   int32       `json:"unread_count"`
 }
 
 // ListMemberChannels returns the channels a user belongs to with the user's
@@ -578,6 +701,8 @@ func (q *Queries) ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([
 			&i.Channel.WorkspaceID,
 			&i.Role,
 			&i.WorkspaceRole,
+			&i.LastReadID,
+			&i.UnreadCount,
 		); err != nil {
 			return nil, err
 		}
@@ -693,6 +818,27 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 		return nil, err
 	}
 	return items, nil
+}
+
+const markRead = `-- name: MarkRead :execrows
+UPDATE channel_members SET last_read_id = $1
+WHERE channel_id = $2 AND user_id = $3
+  AND (last_read_id IS NULL OR last_read_id < $1)
+`
+
+type MarkReadParams struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+// MarkRead moves a member's read position forward (never back).
+func (q *Queries) MarkRead(ctx context.Context, arg MarkReadParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markRead, arg.MessageID, arg.ChannelID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const purgeDeletedMessages = `-- name: PurgeDeletedMessages :execrows

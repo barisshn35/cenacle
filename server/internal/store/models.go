@@ -34,10 +34,11 @@ type ChannelCategory struct {
 }
 
 type ChannelMember struct {
-	ChannelID pgtype.UUID `json:"channel_id"`
-	UserID    pgtype.UUID `json:"user_id"`
-	JoinedAt  time.Time   `json:"joined_at"`
-	Role      string      `json:"role"`
+	ChannelID  pgtype.UUID `json:"channel_id"`
+	UserID     pgtype.UUID `json:"user_id"`
+	JoinedAt   time.Time   `json:"joined_at"`
+	Role       string      `json:"role"`
+	LastReadID pgtype.UUID `json:"last_read_id"`
 }
 
 type Message struct {
