@@ -39,6 +39,15 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.13.0)
+
+- No migration. The proxy image changes (load balancing across server instances): pull or
+  rebuild it with the others.
+- `CENACLE_DRAIN_DELAY` (5 s in `prod.yml`) delays shutdown; the server gets 30 s to stop
+  (`stop_grace_period`).
+- Run `./gen-secrets.sh` again before using `observability.yml` or `backup.yml` (it adds their
+  secrets and keeps the others).
+
 ### 0.12.0
 
 - Run `./gen-secrets.sh` again before upgrading: it keeps every existing secret and adds the

@@ -8,6 +8,35 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Scaling and operations: several instances, metrics and traces, backups with point-in-time
+recovery, a Helm chart, offline installs and imports from Mattermost and Slack.
+
+### Added
+
+- Several chat server instances behind Caddy (`--scale server=N`), with requests and
+  WebSockets balanced across them; a drain delay before shutdown for rolling upgrades.
+- Prometheus metrics (`CENACLE_METRICS_ADDR`, `IDP_METRICS_PORT`) and OpenTelemetry traces
+  (`OTEL_EXPORTER_OTLP_ENDPOINT`); logs carry trace ids.
+- Optional observability stack (`observability.yml`): Prometheus, Tempo, Loki, Alloy and
+  Grafana with a Cenacle dashboard.
+- Optional continuous archiving with WAL-G (`backup.yml`) and a documented restore.
+- `cenacle-server status` and `cenacle-server support-bundle`.
+- Helm chart (`deploy/helm/cenacle`) and a Kubernetes guide.
+- Offline bundles of every image (`deploy/airgap`).
+- `cenacle-server import mattermost|slack`: a one-time import of another chat's history
+  from its export files; imported people take over their accounts at first sign-in.
+
+### Fixed
+
+- People who joined at their first sign-in did not appear in open member lists (and could
+  not be mentioned) until a reload.
+- Characters typed quickly right after picking a command or a mention could land before it.
+- Large downloads were cut off by the server's write timeout.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0130).
+
 ## [0.12.0] - 2026-10-22
 
 Files: uploads, previews, a viewer and the channel's files.
