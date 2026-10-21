@@ -8,6 +8,7 @@ import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Logo } from '@cenacle/ui/brand';
 import { SessionContext, sessionQuery, signinSearchFor } from './session';
+import { RealtimeProvider } from '../chat/realtime';
 
 /**
  * Renders the app for signed-in users. When the session ends while the app
@@ -35,7 +36,9 @@ export function RequireSession() {
   if (session.data && !ended) {
     return (
       <SessionContext.Provider value={session.data}>
-        <Outlet />
+        <RealtimeProvider>
+          <Outlet />
+        </RealtimeProvider>
       </SessionContext.Provider>
     );
   }

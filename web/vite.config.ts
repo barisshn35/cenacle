@@ -7,7 +7,7 @@ const port = Number(process.env.WEB_PORT ?? 5173);
 // The chat server, reached through this dev server so the app, its API and
 // the session cookie share one origin (as behind the production proxy).
 const api = process.env.CENACLE_DEV_API ?? 'http://127.0.0.1:8180';
-const proxy = { '/api': { target: api } };
+const proxy = { '/api': { target: api }, '/ws': { target: api, ws: true } };
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

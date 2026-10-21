@@ -16,6 +16,7 @@ import { RequireSession } from './auth/require-session';
 import { SigninPage } from './auth/signin';
 import { sessionQuery, signinSearchFor, validateSigninSearch } from './auth/session';
 import { queryClient } from './query-client';
+import { ChannelIndex } from './chat/channel-index';
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -43,6 +44,12 @@ const appRoute = createRoute({
 const indexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/',
+  component: ChannelIndex,
+});
+
+const channelRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/c/$channelId',
   component: AppShell,
 });
 
@@ -77,7 +84,11 @@ const galleryRoute = createRoute({
 });
 
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([appRoute.addChildren([indexRoute]), signinRoute, galleryRoute]),
+  routeTree: rootRoute.addChildren([
+    appRoute.addChildren([indexRoute, channelRoute]),
+    signinRoute,
+    galleryRoute,
+  ]),
   defaultPreload: 'intent',
 });
 

@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-import {
-  ChevronDownIcon,
-  HashIcon,
-  LockIcon,
-  LogOutIcon,
-  MegaphoneIcon,
-  SearchIcon,
-  SettingsIcon,
-} from 'lucide-react';
+import { ChevronDownIcon, HashIcon, LogOutIcon, SearchIcon, SettingsIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Kbd } from '@cenacle/ui/components/kbd';
@@ -20,53 +14,70 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
+  useSidebar,
 } from '@cenacle/ui/components/sidebar';
 import { Button } from '@cenacle/ui/components/button';
-import { cn } from '@cenacle/ui/lib/utils';
 import { Logo } from '@cenacle/ui/brand';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
-import { categories, directMessages, workspaces, type ChannelKind } from '../../lib/sample-data';
+import { workspaces } from '../../lib/sample-data';
 import { useLayout } from '../../stores/layout';
 import { PresenceIndicator } from './presence';
 import { useSession } from '../auth/session';
 import { initials, useSignOut } from '../auth/sign-out';
+import { channelsQuery } from '../chat/data';
+import { useActiveChannel } from '../chat/active-channel';
 
-const channelIcon: Record<ChannelKind, typeof HashIcon> = {
-  public: HashIcon,
-  private: LockIcon,
-  announcement: MegaphoneIcon,
-};
-
-function MentionBadge({ count }: { count: number }) {
+function ChannelList() {
   const { t } = useTranslation();
-  if (count === 0) return null;
-  return (
-    <SidebarMenuBadge className="rounded-full bg-mention px-1.5 text-mention-foreground peer-data-active/menu-button:text-mention-foreground">
-      <span aria-hidden>{count}</span>
-      <span className="sr-only">{t('shell.mentions', { count })}</span>
-    </SidebarMenuBadge>
-  );
-}
+  const channels = useQuery(channelsQuery);
+  const { id: activeId } = useActiveChannel();
+  const { isMobile, setOpenMobile } = useSidebar();
 
-/** Unread without mentions = bold name + small dot (never a number). */
-function UnreadDot() {
-  const { t } = useTranslation();
+  if (channels.isPending) {
+    return (
+      <SidebarMenu>
+        {[0, 1, 2].map((i) => (
+          <SidebarMenuItem key={i}>
+            <SidebarMenuSkeleton showIcon />
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    );
+  }
   return (
-    <SidebarMenuBadge>
-      <span aria-hidden className="size-2 rounded-full bg-unread" />
-      <span className="sr-only">{t('shell.unread')}</span>
-    </SidebarMenuBadge>
+    <SidebarMenu>
+      {(channels.data ?? []).map((ch) => {
+        const isActive = ch.id === activeId;
+        return (
+          <SidebarMenuItem key={ch.id}>
+            <SidebarMenuButton
+              isActive={isActive}
+              render={
+                <Link
+                  to="/c/$channelId"
+                  params={{ channelId: ch.id }}
+                  aria-current={isActive ? 'page' : undefined}
+                  // Picking a channel closes the drawer on phones.
+                  onClick={() => isMobile && setOpenMobile(false)}
+                />
+              }
+            >
+              <HashIcon aria-label={t('shell.channelTypes.public')} strokeWidth={1.75} />
+              <span>{ch.name}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
   );
 }
 
 export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
   const activeWorkspace = useLayout((s) => s.activeWorkspaceId);
-  const activeChannel = useLayout((s) => s.activeChannelId);
-  const selectChannel = useLayout((s) => s.selectChannel);
   const workspace = workspaces.find((w) => w.id === activeWorkspace) ?? workspaces[0]!;
   const notAvailable = () => toast(t('shell.notAvailable'));
 
@@ -103,62 +114,10 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       </SidebarHeader>
 
       <SidebarContent>
-        {categories.map((cat) => (
-          <SidebarGroup key={cat.id}>
-            <SidebarGroupLabel>{cat.name}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {cat.channels.map((ch) => {
-                  const Icon = channelIcon[ch.kind];
-                  const isActive = ch.id === activeChannel;
-                  return (
-                    <SidebarMenuItem key={ch.id}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        aria-current={isActive ? 'page' : undefined}
-                        onClick={() => selectChannel(ch.id)}
-                        className={cn(ch.unread && !isActive && 'font-semibold text-foreground')}
-                      >
-                        <Icon aria-label={t(`shell.channelTypes.${ch.kind}`)} strokeWidth={1.75} />
-                        <span>{ch.name}</span>
-                      </SidebarMenuButton>
-                      {ch.mentions > 0 ? (
-                        <MentionBadge count={ch.mentions} />
-                      ) : (
-                        ch.unread && !isActive && <UnreadDot />
-                      )}
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-
         <SidebarGroup>
-          <SidebarGroupLabel>{t('shell.directMessages')}</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('shell.channels')}</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {directMessages.map((dm) => (
-                <SidebarMenuItem key={dm.id}>
-                  <SidebarMenuButton
-                    isActive={dm.id === activeChannel}
-                    onClick={() => selectChannel(dm.id)}
-                    className={cn(dm.unread && 'font-semibold text-foreground')}
-                  >
-                    <span className="relative flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-[10px] font-semibold">
-                      <span aria-hidden>{dm.initials}</span>
-                      <PresenceIndicator
-                        presence={dm.presence}
-                        className="absolute -right-1 -bottom-1"
-                      />
-                    </span>
-                    <span>{dm.name}</span>
-                  </SidebarMenuButton>
-                  {dm.mentions > 0 && <MentionBadge count={dm.mentions} />}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <ChannelList />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

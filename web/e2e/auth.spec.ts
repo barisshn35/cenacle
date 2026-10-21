@@ -5,6 +5,7 @@ import {
   VARIANTS,
   expectNoAxeViolations,
   expectTargetSizes,
+  mockApi,
   mockSession,
 } from './helpers';
 
@@ -31,9 +32,9 @@ test('return_to never leaves the app', async ({ page }) => {
 });
 
 test('a signed-in user skips the sign-in page', async ({ page }) => {
-  await mockSession(page);
+  await mockApi(page);
   await page.goto('/signin');
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/c\//);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('general');
 });
 
@@ -72,6 +73,7 @@ for (const v of VARIANTS) {
 
 test('the server being unreachable is not mistaken for signed out', async ({ page }) => {
   let down = true;
+  await mockApi(page);
   await page.route('**/api/session', (route) =>
     down ? route.abort('connectionrefused') : route.fulfill({ json: SESSION }),
   );
@@ -87,7 +89,7 @@ test('signing out ends the session and opens the Cenacle ID sign-out page', asyn
   page,
   isMobile,
 }) => {
-  await mockSession(page);
+  await mockApi(page);
   let logoutOrigin: string | undefined;
   await page.route('**/api/auth/logout', async (route) => {
     logoutOrigin = route.request().headers()['origin'];

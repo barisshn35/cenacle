@@ -1,0 +1,274 @@
+// SPDX-License-Identifier: Apache-2.0
+import { useMemo } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { CircleAlertIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Virtuoso } from 'react-virtuoso';
+import { Button } from '@cenacle/ui/components/button';
+import { ErrorState } from '@cenacle/ui/components/error-state';
+import { Skeleton } from '@cenacle/ui/components/skeleton';
+import { ApiError } from '@cenacle/core/api';
+import { cn } from '@cenacle/ui/lib/utils';
+import { useSession } from '../auth/session';
+import { initials } from '../auth/sign-out';
+import { flatten, messagesQuery, type Message } from './data';
+import { usePending, type PendingMessage } from './pending';
+import { useSendMessage } from './send';
+
+/** A row of the timeline: a confirmed or a pending message. */
+type Row =
+  | { kind: 'message'; key: string; message: Message; first: boolean; day?: string }
+  | { kind: 'pending'; key: string; pending: PendingMessage };
+
+/** Consecutive messages of one author within 5 minutes share a header. */
+const GROUP_MS = 5 * 60_000;
+
+// Virtuoso keeps the scroll position when older pages are prepended if the
+// index of the first item decreases by the number of items added.
+const START_INDEX = 1_000_000;
+
+function useFormatters() {
+  const { i18n } = useTranslation();
+  return useMemo(
+    () => ({
+      time: new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }),
+      day: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full' }),
+      full: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }),
+    }),
+    [i18n.language],
+  );
+}
+
+function toRows(
+  messages: Message[],
+  pending: PendingMessage[],
+  dayFmt: Intl.DateTimeFormat,
+): Row[] {
+  const rows: Row[] = [];
+  let prev: Message | undefined;
+  for (const m of messages) {
+    const at = new Date(m.created_at);
+    const day = dayFmt.format(at);
+    const newDay = !prev || dayFmt.format(new Date(prev.created_at)) !== day;
+    const first =
+      newDay ||
+      prev!.author.id !== m.author.id ||
+      at.getTime() - new Date(prev!.created_at).getTime() > GROUP_MS;
+    rows.push({ kind: 'message', key: m.id, message: m, first, day: newDay ? day : undefined });
+    prev = m;
+  }
+  for (const p of pending) rows.push({ kind: 'pending', key: p.nonce, pending: p });
+  return rows;
+}
+
+function Avatar({ name }: { name: string }) {
+  return (
+    <span
+      aria-hidden
+      className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold"
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+function MessageRow({
+  row,
+  fmt,
+}: {
+  row: Extract<Row, { kind: 'message' }>;
+  fmt: ReturnType<typeof useFormatters>;
+}) {
+  const { message: m } = row;
+  const at = new Date(m.created_at);
+  return (
+    <div>
+      {row.day && (
+        <div
+          role="separator"
+          aria-label={row.day}
+          className="flex items-center gap-3 px-4 pt-4 pb-1"
+        >
+          <span aria-hidden className="h-px flex-1 bg-border" />
+          <span className="text-xs font-medium text-muted-foreground">{row.day}</span>
+          <span aria-hidden className="h-px flex-1 bg-border" />
+        </div>
+      )}
+      <article
+        aria-labelledby={`m-${m.id}-author`}
+        data-testid="message"
+        className={cn(
+          'group flex gap-3 px-4 hover:bg-muted/40',
+          row.first ? 'pt-3 pb-0.5' : 'py-0.5',
+        )}
+      >
+        {row.first ? <Avatar name={m.author.display_name} /> : <span className="w-9 shrink-0" />}
+        <div className="min-w-0 flex-1">
+          <header className={cn('flex items-baseline gap-2', !row.first && 'sr-only')}>
+            <span id={`m-${m.id}-author`} className="text-sm font-semibold">
+              {m.author.display_name}
+            </span>
+            <time
+              dateTime={m.created_at}
+              title={fmt.full.format(at)}
+              className="text-xs text-muted-foreground"
+            >
+              {fmt.time.format(at)}
+            </time>
+          </header>
+          <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{m.body}</p>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+/** A message of the current user that the server has not confirmed yet. */
+function PendingRow({ p }: { p: PendingMessage }) {
+  const { t } = useTranslation();
+  const { user } = useSession();
+  const { retry, discard } = useSendMessage();
+  const failed = p.status === 'failed';
+  const name = user.display_name || user.email;
+  return (
+    <article
+      data-testid="pending-message"
+      aria-busy={!failed}
+      aria-label={name}
+      className="flex gap-3 px-4 pt-3 pb-0.5"
+    >
+      <Avatar name={name} />
+      <div className="min-w-0 flex-1">
+        <header className="flex items-baseline gap-2">
+          <span className="text-sm font-semibold">{name}</span>
+          {!failed && <span className="text-xs text-muted-foreground">{t('chat.sending')}</span>}
+        </header>
+        <p
+          className={cn(
+            'text-[15px] leading-relaxed break-words whitespace-pre-wrap',
+            !failed && 'text-muted-foreground',
+          )}
+        >
+          {p.body}
+        </p>
+        {failed ? (
+          <div role="alert" className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+            <CircleAlertIcon aria-hidden className="size-4 text-destructive" strokeWidth={1.75} />
+            <span>
+              {p.retryAfter ? t('chat.tooFast', { seconds: p.retryAfter }) : t('chat.notSent')}
+            </span>
+            <Button size="sm" variant="outline" onClick={() => void retry(p)}>
+              {t('chat.retry')}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => discard(p.nonce)}>
+              {t('chat.discard')}
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function Loading() {
+  return (
+    <div aria-hidden className="flex flex-col gap-5 px-4 py-6">
+      {[72, 48, 88, 60].map((w, i) => (
+        <div key={i} className="flex gap-3">
+          <Skeleton className="size-9 shrink-0 rounded-lg" />
+          <div className="flex flex-1 flex-col gap-2 pt-0.5">
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="h-3.5" style={{ width: `${w}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The timeline of a channel: newest at the bottom, older pages load on scroll up. */
+export function MessageList({
+  channelId,
+  channelName,
+}: {
+  channelId: string;
+  channelName: string;
+}) {
+  const { t } = useTranslation();
+  const fmt = useFormatters();
+  const query = useInfiniteQuery(messagesQuery(channelId));
+  const allPending = usePending((s) => s.items);
+  const pending = useMemo(
+    () => allPending.filter((p) => p.channelId === channelId),
+    [allPending, channelId],
+  );
+  const messages = useMemo(() => flatten(query.data), [query.data]);
+  const rows = useMemo(() => toRows(messages, pending, fmt.day), [messages, pending, fmt.day]);
+
+  // Prepending older messages lowers the index of the first row.
+  const olderCount = useMemo(
+    () => (query.data ? query.data.pages.slice(1).reduce((n, p) => n + p.messages.length, 0) : 0),
+    [query.data],
+  );
+
+  if (query.isPending) return <Loading />;
+  if (query.isError) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <ErrorState
+          problem={query.error instanceof ApiError ? query.error.problem : { status: 500 }}
+          actions={<Button onClick={() => void query.refetch()}>{t('ui:errors.retry')}</Button>}
+        />
+      </div>
+    );
+  }
+
+  const intro = (
+    <div className="flex flex-col gap-1 px-4 pt-8 pb-4">
+      <p className="font-display text-2xl font-medium">
+        {t('shell.channelStart', { channel: channelName })}
+      </p>
+      <p className="text-sm text-muted-foreground">{t('chat.channelIntro')}</p>
+    </div>
+  );
+
+  return (
+    <div
+      role="log"
+      aria-label={t('chat.messagesIn', { channel: channelName })}
+      className="min-h-0 flex-1"
+    >
+      <Virtuoso
+        className="h-full"
+        data={rows}
+        firstItemIndex={START_INDEX - olderCount}
+        initialTopMostItemIndex={Math.max(rows.length - 1, 0)}
+        computeItemKey={(_, row) => row.key}
+        // Stay at the bottom when new messages arrive, if the reader is there.
+        followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
+        alignToBottom
+        startReached={() => {
+          if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
+        }}
+        components={{
+          Header: () =>
+            query.hasNextPage ? (
+              <div className="flex justify-center py-3 text-xs text-muted-foreground">
+                {query.isFetchingNextPage ? t('chat.loadingOlder') : ''}
+              </div>
+            ) : (
+              intro
+            ),
+          Footer: () => <div className="h-3" />,
+        }}
+        itemContent={(_, row) =>
+          row.kind === 'message' ? (
+            <MessageRow row={row} fmt={fmt} />
+          ) : (
+            <PendingRow p={row.pending} />
+          )
+        }
+      />
+    </div>
+  );
+}

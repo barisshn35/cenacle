@@ -32,10 +32,6 @@
     "addWorkspace": "Add a workspace",
     "channelNav": "Channels",
     "jumpTo": "Jump to…",
-    "directMessages": "Direct messages",
-    "unread": "Unread",
-    "mentions_one": "{{count}} mention",
-    "mentions_other": "{{count}} mentions",
     "presence": {
       "online": "Online",
       "away": "Away",
@@ -51,14 +47,12 @@
     "closeDetails": "Close channel details",
     "details": "Details",
     "about": "About",
-    "members_one": "{{count}} member",
-    "members_other": "{{count}} members",
-    "messagesPlaceholder": "Messages will appear here. Live chat arrives in v0.4.",
     "channelStart": "This is the start of #{{channel}}.",
     "composerPlaceholder": "Message #{{channel}}",
-    "composerDisabled": "Sending messages is not available yet.",
     "notAvailable": "Not available yet",
-    "settings": "Settings"
+    "settings": "Settings",
+    "channels": "Channels",
+    "noTopic": "No topic yet."
   },
   "notFound": {
     "home": "Go to Cenacle"
@@ -93,5 +87,21 @@
         "action": "Try again in a moment."
       }
     }
+  },
+  "chat": {
+    "channelIntro": "Messages are visible to everyone who can sign in to this Cenacle.",
+    "messagesIn": "Messages in #{{channel}}",
+    "loadingOlder": "Loading older messages…",
+    "send": "Send message",
+    "sending": "Sending…",
+    "notSent": "Not sent. Check your connection.",
+    "tooFast": "Not sent: you're going a little fast. Try again in {{seconds}} seconds.",
+    "retry": "Try again",
+    "discard": "Discard",
+    "reconnecting": "Reconnecting… New messages appear when the connection is back.",
+    "offline": "You're offline. Messages you send are kept and can be sent again.",
+    "charactersLeft_one": "{{count}} character left",
+    "charactersLeft_other": "{{count}} characters left",
+    "noChannels": "There are no channels yet."
   }
 }

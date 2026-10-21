@@ -179,3 +179,88 @@ export async function mockSession(page: Page, session: typeof SESSION | null = S
         }),
   );
 }
+
+export const GENERAL = {
+  id: '01a15e50-2335-7d7d-bbee-8e7809fd8ad2',
+  name: 'general',
+  topic: 'Anything and everything.',
+};
+
+export interface MockMessage {
+  id: string;
+  channel_id: string;
+  author: { id: string; display_name: string };
+  body: string;
+  nonce: string;
+  created_at: string;
+}
+
+export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): MockMessage {
+  const id = `01a15e50-0000-7000-8000-${String(n).padStart(12, '0')}`;
+  return {
+    id,
+    channel_id: GENERAL.id,
+    author: {
+      id: `01a15e50-aaaa-7000-8000-${author.length.toString().padStart(12, '0')}`,
+      display_name: author,
+    },
+    body,
+    nonce: `nonce-${n}`,
+    created_at: new Date(Date.UTC(2026, 9, 21, 9, n)).toISOString(),
+  };
+}
+
+/** Handle to the fake chat server of a test. */
+export interface MockApi {
+  /** Sends an event over the open WebSocket. */
+  emit(type: string, data: unknown): void;
+  /** Bodies of POSTed messages. */
+  sent: { body: string; nonce: string }[];
+}
+
+/**
+ * A fake chat server in the browser: session, #general with `messages`, the
+ * ticket endpoint and a WebSocket that says hello. Tests run without the
+ * Go server.
+ */
+export async function mockApi(
+  page: Page,
+  opts: { messages?: MockMessage[]; failSend?: number } = {},
+): Promise<MockApi> {
+  await mockSession(page);
+  const api: MockApi & { socket?: import('@playwright/test').WebSocketRoute; seq: number } = {
+    sent: [],
+    seq: 1,
+    emit(type, data) {
+      this.seq++;
+      this.socket?.send(JSON.stringify({ op: 'event', id: `${this.seq}-0`, type, data }));
+    },
+  };
+  let failures = opts.failSend ?? 0;
+  await page.route('**/api/channels', (route) => route.fulfill({ json: { channels: [GENERAL] } }));
+  await page.route('**/api/channels/*/messages*', async (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { messages: opts.messages ?? [], has_more: false } });
+    }
+    if (failures > 0) {
+      failures--;
+      return route.abort('internetdisconnected');
+    }
+    const input = route.request().postDataJSON() as { body: string; nonce: string };
+    api.sent.push(input);
+    const message = {
+      ...mockMessage(1000 + api.sent.length, input.body, SESSION.user.display_name),
+      author: { id: SESSION.user.id, display_name: SESSION.user.display_name },
+      nonce: input.nonce,
+    };
+    return route.fulfill({ status: 201, json: message });
+  });
+  await page.route('**/api/ws/ticket', (route) =>
+    route.fulfill({ status: 201, json: { ticket: 'test-ticket', expires_in: 30 } }),
+  );
+  await page.routeWebSocket('**/ws?*', (ws) => {
+    api.socket = ws;
+    ws.send(JSON.stringify({ op: 'hello', last_event_id: '1-0', heartbeat_ms: 25000 }));
+  });
+  return api;
+}

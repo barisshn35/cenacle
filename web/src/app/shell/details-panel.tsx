@@ -2,12 +2,12 @@
 import { XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
-import { findChannel } from '../../lib/sample-data';
 import { useLayout } from '../../stores/layout';
+import { useActiveChannel } from '../chat/active-channel';
 
 export function DetailsPanel() {
   const { t } = useTranslation();
-  const channel = findChannel(useLayout((s) => s.activeChannelId));
+  const { channel } = useActiveChannel();
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
 
   return (
@@ -31,13 +31,7 @@ export function DetailsPanel() {
             <dt className="text-xs font-medium text-muted-foreground uppercase">
               {t('shell.about')}
             </dt>
-            <dd>{channel.topic}</dd>
-          </div>
-          <div className="flex flex-col gap-1">
-            <dt className="sr-only">{t('shell.members', { count: channel.members })}</dt>
-            <dd className="text-muted-foreground">
-              {t('shell.members', { count: channel.members })}
-            </dd>
+            <dd>{channel.topic || t('shell.noTopic')}</dd>
           </div>
         </dl>
       )}

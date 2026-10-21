@@ -5,9 +5,10 @@ import { IDP_URL, WEB_URL, idpEnv } from '../playwright.stack.config';
 
 const EMAIL = 'deniz@example.com';
 const PASSWORD = 'e2e stack password 2026';
+const SECOND = { email: 'mert@example.com', name: 'Mert Demir' };
 
-/** Creates the account at Cenacle ID with its CLI (or resets its password). */
-function ensureAccount() {
+/** Creates an account at Cenacle ID with its CLI (or resets its password). */
+function ensureAccount(email = EMAIL, name = 'Deniz Kaya') {
   const run = (args: string[]) =>
     execFileSync('pnpm', ['exec', 'tsx', 'src/cli.ts', ...args], {
       cwd: '../idp',
@@ -16,17 +17,20 @@ function ensureAccount() {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   try {
-    run(['users', 'create', '--email', EMAIL, '--name', 'Deniz Kaya', '--verified']);
+    run(['users', 'create', '--email', email, '--name', name, '--verified']);
   } catch {
-    run(['users', 'set-password', '--email', EMAIL]);
+    run(['users', 'set-password', '--email', email]);
   }
 }
 
-test.beforeAll(ensureAccount);
+test.beforeAll(() => {
+  ensureAccount();
+  ensureAccount(SECOND.email, SECOND.name);
+});
 
-async function signInAtIdP(page: Page) {
+async function signInAtIdP(page: Page, email = EMAIL) {
   await page.waitForURL(`${IDP_URL}/**`);
-  await page.getByLabel('E-mail address').fill(EMAIL);
+  await page.getByLabel('E-mail address').fill(email);
   await page.getByLabel('Password').fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
 }
@@ -37,12 +41,11 @@ test('signing in with Cenacle ID and out again', async ({ page }) => {
     if (!['localhost', '127.0.0.1'].includes(new URL(r.url()).hostname)) external.push(r.url());
   });
 
-  // A deep link survives the round trip through Cenacle ID.
-  await page.goto('/?channel=deploys');
-  await expect(page).toHaveURL(/\/signin\?return_to=/);
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/signin$/);
   await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
   await signInAtIdP(page);
-  await expect(page).toHaveURL(`${WEB_URL}/?channel=deploys`);
+  await expect(page).toHaveURL(/\/c\/[0-9a-f-]{36}$/); // #general
   await expect(page.getByTestId('current-user')).toHaveText('Deniz Kaya');
 
   const cookie = (await page.context().cookies(WEB_URL)).find((c) => c.name === 'cenacle_session');
@@ -92,4 +95,35 @@ test('a session cannot be used from another origin', async ({ page, request }) =
   expect((await res.json()).code).toBe('cross_site_request');
   // Still signed in.
   expect((await page.request.get('/api/session')).status()).toBe(200);
+});
+
+test('two people chat live, also after a reconnect', async ({ browser }) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message #general').waitFor();
+    return page;
+  };
+  const deniz = await open(EMAIL);
+  const mert = await open(SECOND.email);
+  const stamp = Date.now().toString(36);
+
+  await deniz.getByLabel('Message #general').fill(`Merhaba Mert ${stamp}`);
+  await deniz.getByLabel('Message #general').press('Enter');
+  await expect(mert.getByText(`Merhaba Mert ${stamp}`)).toBeVisible();
+
+  // Mert loses the connection; a message sent meanwhile arrives after it is back.
+  await mert.context().setOffline(true);
+  await expect(mert.getByRole('status').filter({ hasText: "You're offline" })).toBeVisible();
+  await deniz.getByLabel('Message #general').fill(`Kaçırma bunu ${stamp}`);
+  await deniz.getByLabel('Message #general').press('Enter');
+  await mert.context().setOffline(false);
+  await expect(mert.getByText(`Kaçırma bunu ${stamp}`)).toBeVisible();
+  await expect(mert.getByText(`Kaçırma bunu ${stamp}`)).toHaveCount(1);
+
+  await mert.getByLabel('Message #general').fill(`Selam Deniz ${stamp}`);
+  await mert.getByLabel('Message #general').press('Enter');
+  await expect(deniz.getByText(`Selam Deniz ${stamp}`)).toBeVisible();
 });

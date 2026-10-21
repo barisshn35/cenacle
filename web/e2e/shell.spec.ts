@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 import { expect, test } from '@playwright/test';
-import { trackExternalRequests, mockSession } from './helpers';
+import { mockApi, trackExternalRequests } from './helpers';
 
-// The app needs a session; the chat server is not running in these tests.
-test.beforeEach(({ page }) => mockSession(page));
+// The app needs a session and the chat API; the chat server is not running in these tests.
+test.beforeEach(async ({ page }) => {
+  await mockApi(page);
+});
 
 test('no requests leave our origin (no CDN, fonts or telemetry)', async ({ page }) => {
   const external = trackExternalRequests(page);
@@ -21,6 +23,7 @@ test('fonts are served locally', async ({ page }) => {
     if (r.request().resourceType() === 'font') fonts.push(r.url());
   });
   await page.goto('/');
+  await page.getByRole('heading', { level: 1 }).waitFor();
   await page.evaluate(() => document.fonts.ready);
   expect(await page.evaluate(() => document.fonts.check('16px "Geist Variable"'))).toBe(true);
   for (const f of fonts) expect(new URL(f).hostname).toBe('127.0.0.1');

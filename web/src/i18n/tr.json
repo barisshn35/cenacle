@@ -32,10 +32,6 @@
     "addWorkspace": "Çalışma alanı ekle",
     "channelNav": "Kanallar",
     "jumpTo": "Git…",
-    "directMessages": "Doğrudan mesajlar",
-    "unread": "Okunmamış",
-    "mentions_one": "{{count}} bahsetme",
-    "mentions_other": "{{count}} bahsetme",
     "presence": {
       "online": "Çevrimiçi",
       "away": "Uzakta",
@@ -51,14 +47,12 @@
     "closeDetails": "Kanal ayrıntılarını kapat",
     "details": "Ayrıntılar",
     "about": "Hakkında",
-    "members_one": "{{count}} üye",
-    "members_other": "{{count}} üye",
-    "messagesPlaceholder": "Mesajlar burada görünecek. Canlı sohbet v0.4 ile geliyor.",
     "channelStart": "#{{channel}} kanalının başlangıcı.",
     "composerPlaceholder": "#{{channel}} kanalına mesaj yaz",
-    "composerDisabled": "Mesaj gönderme henüz kullanılamıyor.",
     "notAvailable": "Henüz kullanılamıyor",
-    "settings": "Ayarlar"
+    "settings": "Ayarlar",
+    "channels": "Kanallar",
+    "noTopic": "Henüz konu yok."
   },
   "notFound": {
     "home": "Cenacle'a git"
@@ -93,5 +87,21 @@
         "action": "Biraz sonra tekrar dene."
       }
     }
+  },
+  "chat": {
+    "channelIntro": "Mesajları bu Cenacle'a giriş yapabilen herkes görür.",
+    "messagesIn": "#{{channel}} kanalındaki mesajlar",
+    "loadingOlder": "Eski mesajlar yükleniyor…",
+    "send": "Mesajı gönder",
+    "sending": "Gönderiliyor…",
+    "notSent": "Gönderilemedi. Bağlantını kontrol et.",
+    "tooFast": "Gönderilemedi: biraz hızlı gidiyorsun. {{seconds}} saniye sonra tekrar dene.",
+    "retry": "Tekrar dene",
+    "discard": "Sil",
+    "reconnecting": "Yeniden bağlanılıyor… Bağlantı gelince yeni mesajlar görünür.",
+    "offline": "Çevrimdışısın. Gönderdiğin mesajlar saklanır ve yeniden gönderilebilir.",
+    "charactersLeft_one": "{{count}} karakter kaldı",
+    "charactersLeft_other": "{{count}} karakter kaldı",
+    "noChannels": "Henüz kanal yok."
   }
 }
