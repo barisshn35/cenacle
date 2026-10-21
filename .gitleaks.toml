@@ -13,3 +13,10 @@ regexes = [
   # base64 of "dev-only-key-encryption-key-32b!"
   '''^IDP_KEY_ENCRYPTION_KEY=ZGV2LW9ubHkta2V5LWVuY3J5cHRpb24ta2V5LTMyYiE=$''',
 ]
+
+[[allowlists]]
+description = "Fake secrets returned by mocked APIs in end-to-end tests"
+regexTarget = "line"
+regexes = [
+  '''json: \{ token, secret: 'cnb_rotated-0123456789' \}''',
+]
