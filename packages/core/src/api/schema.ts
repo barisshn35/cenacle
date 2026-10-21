@@ -92,6 +92,72 @@ export interface paths {
     patch: operations['setWorkspaceRole'];
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/conversations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Open a direct or group conversation
+     * @description With one other person a direct conversation, with 2 to 8 a group. The same
+     *     people always get the same conversation back (200); a new one answers 201.
+     */
+    post: operations['openConversation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/presence': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * Who of a workspace is online, away or busy
+     * @description Members not listed are offline. Changes arrive as `presence.changed`.
+     */
+    get: operations['listPresence'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/presence': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set your own status
+     * @description `away` and `dnd` (do not disturb) hold while you are connected; `online`
+     *     clears them. Without a connection you are offline.
+     */
+    put: operations['setPresence'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspace_id}/invites': {
     parameters: {
       query?: never;
@@ -328,6 +394,50 @@ export interface paths {
      * @description Default channels cannot be private (400); names stay unique (409).
      */
     patch: operations['updateChannel'];
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/read': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mark a channel read up to a message
+     * @description The read position only moves forward; the user's other devices get `channel.read`.
+     */
+    post: operations['markRead'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/typing': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Tell the channel you are typing (every few seconds while typing)
+     * @description Members receive a short-lived `typing` notice; it is not stored.
+     */
+    post: operations['sendTyping'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/api/channels/{channel_id}/archive': {
@@ -715,10 +825,11 @@ export interface components {
       name: string;
       topic: string;
       /**
-       * @description In announcement channels only the administrator can send.
+       * @description In announcement channels only workspace owners and admins send. Direct and
+       *     group conversations have participants instead of a name.
        * @enum {string}
        */
-      kind: 'standard' | 'announcement';
+      kind: 'standard' | 'announcement' | 'direct' | 'group';
       /** @description Every user is a member. */
       is_default: boolean;
       /** @description Members cannot leave. */
@@ -735,6 +846,12 @@ export interface components {
       can_manage: boolean;
       /** @description Archived channels are read-only. */
       archived: boolean;
+      /** @description Messages of others after the read position, counted up to 100. */
+      unread_count: number;
+      /** Format: uuid */
+      last_read_id: string | null;
+      /** @description The other people of a direct or group conversation (empty for channels). */
+      participants: components['schemas']['Person'][];
       /** Format: uuid */
       category_id: string | null;
     };
@@ -743,6 +860,12 @@ export interface components {
       /** @enum {string} */
       visibility?: 'public' | 'private';
       topic?: string;
+    };
+    Presence: {
+      /** Format: uuid */
+      user_id: string;
+      /** @enum {string} */
+      status: 'online' | 'away' | 'dnd';
     };
     Person: {
       /** Format: uuid */
@@ -1010,6 +1133,99 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  openConversation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          user_ids: string[];
+        };
+      };
+    };
+    responses: {
+      /** @description The existing conversation. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Channel'];
+        };
+      };
+      /** @description A new conversation. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Channel'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listPresence: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Statuses. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            presence: components['schemas']['Presence'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setPresence: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          status: 'online' | 'away' | 'dnd';
+        };
+      };
+    };
+    responses: {
+      /** @description Set. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
     };
   };
   listInvites: {
@@ -1337,6 +1553,60 @@ export interface operations {
         };
       };
       400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  markRead: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          message_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Marked. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  sendTyping: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Sent (or dropped when sent too often). */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];

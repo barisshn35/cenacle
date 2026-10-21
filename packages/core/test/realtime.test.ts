@@ -98,6 +98,30 @@ describe('RealtimeClient', () => {
     client.stop();
   });
 
+  it('hands short-lived notices over without moving the resume position', async () => {
+    const onEphemeral = vi.fn();
+    const client = new RealtimeClient(
+      { onEvent: () => {}, onResync: () => {}, onEphemeral },
+      {
+        getTicket: vi.fn().mockResolvedValue('t'),
+        url: (t, id) => `ws://test/ws?ticket=${t}${id ? `&last_event_id=${id}` : ''}`,
+        WebSocketImpl: FakeSocket as unknown as typeof WebSocket,
+        random: () => 1,
+        minDelay: 100,
+        environment: fakeEnv().env,
+      },
+    );
+    client.start();
+    await vi.runAllTimersAsync();
+    last().receive({ op: 'hello', last_event_id: '5-0', heartbeat_ms: 1 });
+    last().receive({ op: 'ephemeral', type: 'typing', data: { user_id: 'u' } });
+    expect(onEphemeral).toHaveBeenCalledWith({ type: 'typing', data: { user_id: 'u' } });
+    last().drop();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(last().url).toBe('ws://test/ws?ticket=t&last_event_id=5-0');
+    client.stop();
+  });
+
   it('resumes after the last event with growing, capped delays', async () => {
     const getTicket = vi.fn().mockResolvedValueOnce('t1').mockResolvedValue('t2');
     const { client, onResync, statuses } = setup(getTicket);

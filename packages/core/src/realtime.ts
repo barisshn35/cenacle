@@ -11,9 +11,16 @@ export interface RealtimeEvent {
   data: unknown;
 }
 
+/** A short-lived notice (typing, presence): not stored, not resumed. */
+export interface EphemeralEvent {
+  type: string;
+  data: unknown;
+}
+
 type Frame =
   | { op: 'hello'; last_event_id: string; heartbeat_ms: number }
   | { op: 'event'; id: string; type: string; data: unknown }
+  | { op: 'ephemeral'; type: string; data: unknown }
   | { op: 'resync' };
 
 /** Close codes of the server (see the API spec). */
@@ -24,6 +31,8 @@ export const CLOSE_TOO_SLOW = 4008;
 export interface RealtimeHandlers {
   /** An event, in order, exactly once per connection. */
   onEvent(event: RealtimeEvent): void;
+  /** A short-lived notice; missed ones are not replayed. */
+  onEphemeral?(event: EphemeralEvent): void;
   /** Events may have been missed: reload data from the API. */
   onResync(): void;
   onStatus?(status: ConnectionStatus): void;
@@ -229,6 +238,9 @@ export class RealtimeClient {
         case 'event':
           this.lastEventId = frame.id;
           this.handlers.onEvent({ id: frame.id, type: frame.type, data: frame.data });
+          break;
+        case 'ephemeral':
+          this.handlers.onEphemeral?.({ type: frame.type, data: frame.data });
           break;
         case 'resync':
           this.handlers.onResync();
