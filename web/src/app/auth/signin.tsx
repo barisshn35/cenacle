@@ -39,8 +39,10 @@ export function SigninPage() {
   const returnTo = safeReturnPath(search.return_to);
   const session = useQuery(sessionQuery);
 
-  // Already signed in (e.g. the page was bookmarked): go straight on.
-  if (session.data) return <Navigate to={returnTo} replace />;
+  // Already signed in (e.g. the page was bookmarked): go straight on. A
+  // session that just ended keeps its old data next to the error: that is
+  // not signed in, and redirecting would bounce back here forever.
+  if (session.data && !session.isError) return <Navigate to={returnTo} replace />;
 
   return (
     <div className="flex min-h-svh flex-col bg-background">

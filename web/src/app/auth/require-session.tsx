@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -23,8 +23,12 @@ export function RequireSession() {
   const navigate = useNavigate();
   const ended = session.isError && isUnauthenticated(session.error);
 
+  // Navigate once: the location changes while navigating, and following it
+  // would start a new navigation each time (an endless loop).
+  const redirected = useRef(false);
   useEffect(() => {
-    if (ended) {
+    if (ended && !redirected.current) {
+      redirected.current = true;
       void navigate({
         to: '/signin',
         search: signinSearchFor(href, 'session_expired'),
