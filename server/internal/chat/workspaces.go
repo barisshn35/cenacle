@@ -14,6 +14,7 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
@@ -101,6 +102,7 @@ func (h *Handlers) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.publish(ctx, events.WorkspaceJoined, WorkspaceEvent{WorkspaceID: uuid(ws.ID).String(), UserID: uuid(p.User.ID).String()})
+	h.record(r, ws.ID, audit.WorkspaceCreated, "workspace", uuid(ws.ID).String(), map[string]any{"name": ws.Name})
 	httpx.WriteJSON(w, http.StatusCreated, workspaceAPI(ws, WorkspaceOwner))
 }
 
@@ -149,6 +151,7 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 		return
 	}
 	h.publish(r.Context(), events.WorkspaceUpdated, WorkspaceEvent{WorkspaceID: uuid(ws.ID).String()})
+	h.record(r, ws.ID, audit.WorkspaceRenamed, "workspace", uuid(ws.ID).String(), map[string]any{"name": ws.Name})
 	httpx.WriteJSON(w, http.StatusOK, workspaceAPI(ws, role))
 }
 
@@ -255,6 +258,8 @@ func (h *Handlers) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, work
 	h.membersOfWorkspaceChanged(ctx, ws.ID)
 	// Rights in every channel of the workspace may have changed for them.
 	h.publish(ctx, events.WorkspaceJoined, WorkspaceEvent{WorkspaceID: uuid(ws.ID).String(), UserID: uuid(u.ID).String()})
+	h.record(r, ws.ID, audit.WorkspaceRoleChanged, "user", uuid(u.ID).String(),
+		map[string]any{"name": u.DisplayName, "from": target, "to": in.Role})
 	httpx.WriteJSON(w, http.StatusOK, api.WorkspaceMember{
 		User: personAPI(u.ID, u.DisplayName, u.Email), Role: api.WorkspaceMemberRole(in.Role),
 	})
@@ -314,6 +319,11 @@ func (h *Handlers) RemoveWorkspaceMember(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	h.publish(ctx, events.WorkspaceLeft, WorkspaceEvent{WorkspaceID: uuid(ws.ID).String(), UserID: uuid(pgUUID(userID)).String()})
+	if self {
+		h.record(r, ws.ID, audit.WorkspaceLeft, "user", userID.String(), nil)
+	} else {
+		h.record(r, ws.ID, audit.WorkspaceMemberRemoved, "user", userID.String(), nil)
+	}
 	h.membersOfWorkspaceChanged(ctx, ws.ID)
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -404,6 +414,8 @@ func (h *Handlers) CreateInvite(w http.ResponseWriter, r *http.Request, workspac
 		h.unavailable(w, r, "create invite", err)
 		return
 	}
+	h.record(r, ws.ID, audit.InviteCreated, "invite", uuid(inv.ID).String(),
+		map[string]any{"expires_in_hours": hours, "max_uses": maxUses})
 	httpx.WriteJSON(w, http.StatusCreated, struct {
 		Invite api.Invite `json:"invite"`
 		Token  string     `json:"token"`
@@ -420,7 +432,11 @@ func (h *Handlers) RevokeInvite(w http.ResponseWriter, r *http.Request, workspac
 	if !ok {
 		return
 	}
-	if _, err := h.Queries.RevokeInvite(r.Context(), store.RevokeInviteParams{ID: pgUUID(inviteID), WorkspaceID: ws.ID}); err != nil {
+	n, err := h.Queries.RevokeInvite(r.Context(), store.RevokeInviteParams{ID: pgUUID(inviteID), WorkspaceID: ws.ID})
+	if err == nil && n > 0 {
+		h.record(r, ws.ID, audit.InviteRevoked, "invite", inviteID.String(), nil)
+	}
+	if err != nil {
 		h.unavailable(w, r, "revoke invite", err)
 		return
 	}
@@ -508,6 +524,7 @@ func (h *Handlers) AcceptInvite(w http.ResponseWriter, r *http.Request, token st
 		}
 		role = WorkspaceMember
 		h.publish(ctx, events.WorkspaceJoined, WorkspaceEvent{WorkspaceID: uuid(wsID).String(), UserID: uuid(p.User.ID).String()})
+		h.record(r, wsID, audit.InviteAccepted, "invite", uuid(row.WorkspaceInvite.ID).String(), nil)
 		h.membersOfWorkspaceChanged(ctx, wsID)
 	}
 	ws, err := h.Queries.GetWorkspace(ctx, wsID)
@@ -556,6 +573,8 @@ func (h *Handlers) SetChannelMemberRole(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	h.publish(r.Context(), events.ChannelMembersChanged, ChannelEvent{ChannelID: uuid(c.ID).String()})
+	h.record(r, c.WorkspaceID, audit.ChannelRoleChanged, "channel", uuid(c.ID).String(),
+		map[string]any{"channel": c.Name, "user_id": uuid(u.ID).String(), "user": u.DisplayName, "role": in.Role})
 	// Their rights in the channel changed: their channel list reloads.
 	h.publish(r.Context(), events.ChannelJoined, ChannelEvent{
 		Channel: toAPI(c, access{ch: in.Role}), UserID: uuid(u.ID).String(),

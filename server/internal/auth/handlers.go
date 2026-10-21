@@ -19,6 +19,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
@@ -65,7 +66,9 @@ type Handlers struct {
 	TrustProxy bool
 	// AdminEmail is the verified address of the administrator ("" for none).
 	AdminEmail string
-	Log        *slog.Logger
+	// Audit records ended sessions; optional.
+	Audit *audit.Log
+	Log   *slog.Logger
 }
 
 func randomString() string {
@@ -207,6 +210,13 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 	if subtle.ConstantTimeCompare([]byte(idToken.Nonce), []byte(f.Nonce)) != 1 {
 		return signedIn{}, errors.New("id token nonce mismatch")
 	}
+	// The IdP's session id, for back-channel logout (absent when not registered).
+	var idSession struct {
+		SID string `json:"sid"`
+	}
+	if err := idToken.Claims(&idSession); err != nil {
+		return signedIn{}, err
+	}
 
 	info, err := provider.UserInfo(octx, oauth2.StaticTokenSource(token))
 	if err != nil {
@@ -235,7 +245,7 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 	if err := h.applyRoles(ctx, user); err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
-	sessionToken, session, err := h.Sessions.Create(ctx, user.ID, client)
+	sessionToken, session, err := h.Sessions.Create(ctx, user.ID, client, idSession.SID)
 	if err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
@@ -312,6 +322,7 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:          p.Session.CreatedAt,
 		ExpiresAt:          p.Session.ExpiresAt,
 		IdleTimeoutSeconds: int(h.Sessions.IdleTimeout / time.Second),
+		AccountUrl:         h.accountURL(),
 	})
 }
 

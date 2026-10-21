@@ -31,6 +31,7 @@ import (
 	"github.com/pressly/goose/v3/lock"
 
 	"github.com/barisshn35/cenacle/server/internal/app"
+	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/cache"
 	"github.com/barisshn35/cenacle/server/internal/chat"
@@ -136,6 +137,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	go presence.RunSweeper(ctx, 10*time.Second)
 	cookies := auth.NewCookies(cfg.PublicURL)
+	auditLog := &audit.Log{Queries: queries, Logger: log}
 	go chat.RunPurge(ctx, queries, time.Minute, log)
 	go chat.RunEnsureDefaults(ctx, queries, chat.Defaults{
 		Announcement: cfg.AnnouncementChannel, Channels: cfg.DefaultChannels, AdminEmail: cfg.AdminEmail,
@@ -162,12 +164,14 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				PublicURL:  cfg.PublicURL,
 				TrustProxy: cfg.TrustProxy,
 				AdminEmail: cfg.AdminEmail,
+				Audit:      auditLog,
 				Log:        log,
 			},
 			Chat: &chat.Handlers{
 				Queries:           queries,
 				Events:            eventLog,
 				Ephemeral:         ephemeral,
+				Audit:             auditLog,
 				Limiter:           valkey,
 				Cookies:           cookies,
 				Log:               log,

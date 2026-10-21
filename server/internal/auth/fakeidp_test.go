@@ -32,8 +32,9 @@ type fakeIdP struct {
 	key *rsa.PrivateKey
 
 	mu sync.Mutex
-	// Subject, Email and Name describe the signed-in user.
-	Subject, Email, Name string
+	// Subject, Email and Name describe the signed-in user; SID is the IdP
+	// session put into ID tokens ("" for none).
+	Subject, Email, Name, SID string
 	// AuthError makes /auth answer with this OAuth error instead of a code.
 	AuthError string
 	// Tamper hooks for negative tests.
@@ -140,10 +141,14 @@ func (f *fakeIdP) token(w http.ResponseWriter, r *http.Request) {
 	if f.WrongNonce != "" {
 		nonce = f.WrongNonce
 	}
-	idToken := f.sign(map[string]any{
+	claims := map[string]any{
 		"iss": f.Issuer(), "sub": f.Subject, "aud": testClientID, "nonce": nonce,
 		"iat": time.Now().Unix(), "exp": time.Now().Add(10 * time.Minute).Unix(),
-	})
+	}
+	if f.SID != "" {
+		claims["sid"] = f.SID
+	}
+	idToken := f.sign(claims)
 	writeJSON(w, map[string]any{
 		"access_token": "at-" + f.Subject, "token_type": "Bearer", "expires_in": 600,
 		"id_token": idToken, "scope": auth.Get("scope"),
@@ -181,4 +186,25 @@ func (f *fakeIdP) sign(claims map[string]any) string {
 		f.t.Fatal(err)
 	}
 	return raw
+}
+
+// logoutToken is a logout token as Cenacle ID sends it; extra replaces or
+// (with nil) removes claims.
+func (f *fakeIdP) logoutToken(sub, sid string, extra map[string]any) string {
+	claims := map[string]any{
+		"iss": f.Issuer(), "aud": testClientID, "sub": sub, "sid": sid, "jti": randomCode(),
+		"iat": time.Now().Unix(), "exp": time.Now().Add(2 * time.Minute).Unix(),
+		"events": map[string]any{"http://schemas.openid.net/event/backchannel-logout": map[string]any{}},
+	}
+	if sid == "" {
+		delete(claims, "sid")
+	}
+	for k, v := range extra {
+		if v == nil {
+			delete(claims, k)
+		} else {
+			claims[k] = v
+		}
+	}
+	return f.sign(claims)
 }

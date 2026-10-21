@@ -10,6 +10,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AuditEvent struct {
+	ID          pgtype.UUID `json:"id"`
+	At          time.Time   `json:"at"`
+	ActorID     pgtype.UUID `json:"actor_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Action      string      `json:"action"`
+	TargetType  string      `json:"target_type"`
+	TargetID    string      `json:"target_id"`
+	IpAddress   string      `json:"ip_address"`
+	Detail      []byte      `json:"detail"`
+}
+
 type Channel struct {
 	ID          pgtype.UUID        `json:"id"`
 	Name        string             `json:"name"`
@@ -62,6 +74,7 @@ type Session struct {
 	ExpiresAt  time.Time   `json:"expires_at"`
 	UserAgent  string      `json:"user_agent"`
 	IpAddress  string      `json:"ip_address"`
+	IdpSid     string      `json:"idp_sid"`
 }
 
 type User struct {

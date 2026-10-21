@@ -16,6 +16,7 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
@@ -39,9 +40,11 @@ type Handlers struct {
 	Events  *events.Log
 	// Ephemeral carries typing notices; optional.
 	Ephemeral *events.Ephemeral
-	Limiter   RateLimiter
-	Cookies   auth.Cookies
-	Log       *slog.Logger
+	// Audit records security-relevant actions; optional.
+	Audit   *audit.Log
+	Limiter RateLimiter
+	Cookies auth.Cookies
+	Log     *slog.Logger
 	// Configured lists the channels of the installation settings, which keep
 	// their names.
 	Configured []string

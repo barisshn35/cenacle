@@ -1,6 +1,6 @@
 -- name: CreateSession :one
-INSERT INTO sessions (user_id, token_hash, expires_at, user_agent, ip_address)
-VALUES (@user_id, @token_hash, @expires_at, @user_agent, @ip_address)
+INSERT INTO sessions (user_id, token_hash, expires_at, user_agent, ip_address, idp_sid)
+VALUES (@user_id, @token_hash, @expires_at, @user_agent, @ip_address, @idp_sid)
 RETURNING *;
 
 -- name: GetActiveSession :one
@@ -37,3 +37,32 @@ SELECT EXISTS (
       AND expires_at > now()
       AND last_seen_at > now() - sqlc.arg(idle_timeout)::interval
 );
+
+-- name: ListUserSessions :many
+-- ListUserSessions returns a user's usable sessions, most recently used first.
+SELECT * FROM sessions
+WHERE user_id = @user_id AND expires_at > now()
+  AND last_seen_at > now() - sqlc.arg(idle_timeout)::interval
+ORDER BY last_seen_at DESC, id DESC;
+
+-- name: DeleteUserSession :execrows
+DELETE FROM sessions WHERE id = @id AND user_id = @user_id;
+
+-- name: DeleteOtherSessions :execrows
+-- DeleteOtherSessions ends a user's sessions except one (uuid nil: all of them).
+DELETE FROM sessions WHERE user_id = @user_id AND id <> @keep;
+
+-- name: DeleteSessionsByIdpSid :many
+-- DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
+DELETE FROM sessions s
+USING users u
+WHERE s.user_id = u.id AND s.idp_sid = @idp_sid AND u.auth_service = @auth_service
+  AND u.auth_data = @auth_data
+RETURNING s.user_id;
+
+-- name: DeleteSessionsBySubject :many
+-- DeleteSessionsBySubject ends every session of an identity (logout without sid).
+DELETE FROM sessions s
+USING users u
+WHERE s.user_id = u.id AND u.auth_service = @auth_service AND u.auth_data = @auth_data
+RETURNING s.user_id;

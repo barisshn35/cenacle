@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/barisshn35/cenacle/server/internal/app"
+	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/cache"
 	"github.com/barisshn35/cenacle/server/internal/chat"
@@ -104,14 +105,17 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	t.Cleanup(srv.Close)
 	public, _ := url.Parse(srv.URL)
 	cookies := auth.NewCookies(public)
+	auditLog := &audit.Log{Queries: queries, Logger: log}
 	router = app.NewRouter(app.Deps{
 		Log: log,
 		Auth: &auth.Handlers{
 			IdP:      &auth.IdentityProvider{Issuer: "http://127.0.0.1:1", HTTPClient: http.DefaultClient},
-			Sessions: sessions, Users: queries, Cookies: cookies, PublicURL: public, Log: log,
+			Sessions: sessions, Users: queries, Flows: sh.valkey, Cookies: cookies, PublicURL: public,
+			Audit: auditLog, Log: log,
 		},
 		Chat: &chat.Handlers{
 			Queries: queries, Events: eventLog, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
+			Audit:             auditLog,
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},
 		Realtime: &realtime.Handler{
@@ -175,7 +179,7 @@ func (s *stack) userWithEmail(subject, name, email string) string {
 			s.t.Fatal(err)
 		}
 	}
-	token, _, err := s.sessions.Create(ctx, u.ID, auth.ClientInfo{})
+	token, _, err := s.sessions.Create(ctx, u.ID, auth.ClientInfo{}, "")
 	if err != nil {
 		s.t.Fatal(err)
 	}

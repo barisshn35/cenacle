@@ -251,6 +251,21 @@ func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
 	}
 }
 
+// AuditEvent defines model for AuditEvent.
+type AuditEvent struct {
+	// Action E.g. workspace.role_changed, channel.archived, invite.created.
+	Action string `json:"action"`
+	Actor  *struct {
+		DisplayName string             `json:"display_name"`
+		Id          openapi_types.UUID `json:"id"`
+	} `json:"actor"`
+	At         time.Time              `json:"at"`
+	Detail     map[string]interface{} `json:"detail"`
+	Id         openapi_types.UUID     `json:"id"`
+	TargetId   string                 `json:"target_id"`
+	TargetType string                 `json:"target_type"`
+}
+
 // Author defines model for Author.
 type Author struct {
 	DisplayName string             `json:"display_name"`
@@ -323,6 +338,20 @@ type ChannelUpdate struct {
 
 // ChannelUpdateVisibility defines model for ChannelUpdate.Visibility.
 type ChannelUpdateVisibility string
+
+// DeviceSession defines model for DeviceSession.
+type DeviceSession struct {
+	CreatedAt time.Time `json:"created_at"`
+
+	// Current The session of this request.
+	Current   bool               `json:"current"`
+	Id        openapi_types.UUID `json:"id"`
+	IpAddress string             `json:"ip_address"`
+
+	// LastSeenAt Recorded at most once a minute.
+	LastSeenAt time.Time `json:"last_seen_at"`
+	UserAgent  string    `json:"user_agent"`
+}
 
 // Invite defines model for Invite.
 type Invite struct {
@@ -440,7 +469,9 @@ type Problem struct {
 
 // Session defines model for Session.
 type Session struct {
-	CreatedAt time.Time `json:"created_at"`
+	// AccountUrl Cenacle ID's account page (two-step verification), returning here.
+	AccountUrl string    `json:"account_url"`
+	CreatedAt  time.Time `json:"created_at"`
 
 	// ExpiresAt Absolute end of the session.
 	ExpiresAt time.Time `json:"expires_at"`
@@ -489,6 +520,11 @@ type WsTicket struct {
 	// ExpiresIn Seconds until the ticket expires.
 	ExpiresIn int    `json:"expires_in"`
 	Ticket    string `json:"ticket"`
+}
+
+// BackchannelLogoutFormdataBody defines parameters for BackchannelLogout.
+type BackchannelLogoutFormdataBody struct {
+	LogoutToken string `form:"logout_token" json:"logout_token"`
 }
 
 // AuthCallbackParams defines parameters for AuthCallback.
@@ -571,6 +607,11 @@ type SetPresenceJSONBody struct {
 // SetPresenceJSONBodyStatus defines parameters for SetPresence.
 type SetPresenceJSONBodyStatus string
 
+// EndAllSessionsJSONBody defines parameters for EndAllSessions.
+type EndAllSessionsJSONBody struct {
+	KeepCurrent bool `json:"keep_current"`
+}
+
 // SearchUsersParams defines parameters for SearchUsers.
 type SearchUsersParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
@@ -586,6 +627,13 @@ type CreateWorkspaceJSONBody struct {
 // RenameWorkspaceJSONBody defines parameters for RenameWorkspace.
 type RenameWorkspaceJSONBody struct {
 	Name string `json:"name"`
+}
+
+// ListWorkspaceAuditParams defines parameters for ListWorkspaceAudit.
+type ListWorkspaceAuditParams struct {
+	// Before Events older than this one (cursor).
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // OpenConversationJSONBody defines parameters for OpenConversation.
@@ -606,6 +654,9 @@ type SetWorkspaceRoleJSONBody struct {
 
 // SetWorkspaceRoleJSONBodyRole defines parameters for SetWorkspaceRole.
 type SetWorkspaceRoleJSONBodyRole string
+
+// BackchannelLogoutFormdataRequestBody defines body for BackchannelLogout for application/x-www-form-urlencoded ContentType.
+type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
 
 // CreateCategoryJSONRequestBody defines body for CreateCategory for application/json ContentType.
 type CreateCategoryJSONRequestBody CreateCategoryJSONBody
@@ -640,6 +691,9 @@ type MarkReadJSONRequestBody MarkReadJSONBody
 // SetPresenceJSONRequestBody defines body for SetPresence for application/json ContentType.
 type SetPresenceJSONRequestBody SetPresenceJSONBody
 
+// EndAllSessionsJSONRequestBody defines body for EndAllSessions for application/json ContentType.
+type EndAllSessionsJSONRequestBody EndAllSessionsJSONBody
+
 // CreateWorkspaceJSONRequestBody defines body for CreateWorkspace for application/json ContentType.
 type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
 
@@ -657,6 +711,9 @@ type SetWorkspaceRoleJSONRequestBody SetWorkspaceRoleJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// BackchannelLogout OpenID Connect Back-Channel Logout (called by Cenacle ID)
+	// (POST /api/auth/backchannel-logout)
+	BackchannelLogout(w http.ResponseWriter, r *http.Request)
 	// AuthCallback Finish sign-in (redirect target of Cenacle ID)
 	// (GET /api/auth/callback)
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
@@ -750,6 +807,15 @@ type ServerInterface interface {
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
+	// ListSessions Your signed-in devices
+	// (GET /api/sessions)
+	ListSessions(w http.ResponseWriter, r *http.Request)
+	// EndAllSessions Sign out everywhere
+	// (POST /api/sessions/end-all)
+	EndAllSessions(w http.ResponseWriter, r *http.Request)
+	// EndSession Sign out one device
+	// (DELETE /api/sessions/{session_id})
+	EndSession(w http.ResponseWriter, r *http.Request, sessionId openapi_types.UUID)
 	// SearchUsers Find members of a workspace by name or e-mail address
 	// (GET /api/users)
 	SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams)
@@ -762,6 +828,9 @@ type ServerInterface interface {
 	// RenameWorkspace Rename a workspace (owners and admins)
 	// (PATCH /api/workspaces/{workspace_id})
 	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListWorkspaceAudit The workspace's audit log (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/audit)
+	ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListWorkspaceAuditParams)
 	// OpenConversation Open a direct or group conversation
 	// (POST /api/workspaces/{workspace_id}/conversations)
 	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -794,6 +863,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// BackchannelLogout OpenID Connect Back-Channel Logout (called by Cenacle ID)
+// (POST /api/auth/backchannel-logout)
+func (_ Unimplemented) BackchannelLogout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // AuthCallback Finish sign-in (redirect target of Cenacle ID)
 // (GET /api/auth/callback)
@@ -981,6 +1056,24 @@ func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListSessions Your signed-in devices
+// (GET /api/sessions)
+func (_ Unimplemented) ListSessions(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// EndAllSessions Sign out everywhere
+// (POST /api/sessions/end-all)
+func (_ Unimplemented) EndAllSessions(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// EndSession Sign out one device
+// (DELETE /api/sessions/{session_id})
+func (_ Unimplemented) EndSession(w http.ResponseWriter, r *http.Request, sessionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SearchUsers Find members of a workspace by name or e-mail address
 // (GET /api/users)
 func (_ Unimplemented) SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams) {
@@ -1002,6 +1095,12 @@ func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 // RenameWorkspace Rename a workspace (owners and admins)
 // (PATCH /api/workspaces/{workspace_id})
 func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWorkspaceAudit The workspace's audit log (owners and admins)
+// (GET /api/workspaces/{workspace_id}/audit)
+func (_ Unimplemented) ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListWorkspaceAuditParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1067,6 +1166,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// BackchannelLogout operation middleware
+func (siw *ServerInterfaceWrapper) BackchannelLogout(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BackchannelLogout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // AuthCallback operation middleware
 func (siw *ServerInterfaceWrapper) AuthCallback(w http.ResponseWriter, r *http.Request) {
@@ -1956,6 +2069,60 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ListSessions operation middleware
+func (siw *ServerInterfaceWrapper) ListSessions(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSessions(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndAllSessions operation middleware
+func (siw *ServerInterfaceWrapper) EndAllSessions(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndAllSessions(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndSession operation middleware
+func (siw *ServerInterfaceWrapper) EndSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "session_id" -------------
+	var sessionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "session_id", chi.URLParam(r, "session_id"), &sessionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "session_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndSession(w, r, sessionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SearchUsers operation middleware
 func (siw *ServerInterfaceWrapper) SearchUsers(w http.ResponseWriter, r *http.Request) {
 
@@ -2060,6 +2227,61 @@ func (siw *ServerInterfaceWrapper) RenameWorkspace(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RenameWorkspace(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWorkspaceAudit operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkspaceAudit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListWorkspaceAuditParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkspaceAudit(w, r, workspaceId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2484,6 +2706,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/session", wrapper.GetSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/sessions", wrapper.ListSessions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/sessions/{session_id}", wrapper.EndSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/sessions/end-all", wrapper.EndAllSessions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/auth/backchannel-logout", wrapper.BackchannelLogout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/audit", wrapper.ListWorkspaceAudit)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/ws/ticket", wrapper.CreateWsTicket)

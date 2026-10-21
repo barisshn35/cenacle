@@ -13,9 +13,9 @@ import (
 )
 
 const createSession = `-- name: CreateSession :one
-INSERT INTO sessions (user_id, token_hash, expires_at, user_agent, ip_address)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, user_agent, ip_address
+INSERT INTO sessions (user_id, token_hash, expires_at, user_agent, ip_address, idp_sid)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, token_hash, created_at, last_seen_at, expires_at, user_agent, ip_address, idp_sid
 `
 
 type CreateSessionParams struct {
@@ -24,6 +24,7 @@ type CreateSessionParams struct {
 	ExpiresAt time.Time   `json:"expires_at"`
 	UserAgent string      `json:"user_agent"`
 	IpAddress string      `json:"ip_address"`
+	IdpSid    string      `json:"idp_sid"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
@@ -33,6 +34,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		arg.ExpiresAt,
 		arg.UserAgent,
 		arg.IpAddress,
+		arg.IdpSid,
 	)
 	var i Session
 	err := row.Scan(
@@ -44,6 +46,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.ExpiresAt,
 		&i.UserAgent,
 		&i.IpAddress,
+		&i.IdpSid,
 	)
 	return i, err
 }
@@ -62,6 +65,24 @@ func (q *Queries) DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.
 	return result.RowsAffected(), nil
 }
 
+const deleteOtherSessions = `-- name: DeleteOtherSessions :execrows
+DELETE FROM sessions WHERE user_id = $1 AND id <> $2
+`
+
+type DeleteOtherSessionsParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Keep   pgtype.UUID `json:"keep"`
+}
+
+// DeleteOtherSessions ends a user's sessions except one (uuid nil: all of them).
+func (q *Queries) DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteOtherSessions, arg.UserID, arg.Keep)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM sessions WHERE id = $1
 `
@@ -71,8 +92,93 @@ func (q *Queries) DeleteSession(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const deleteSessionsByIdpSid = `-- name: DeleteSessionsByIdpSid :many
+DELETE FROM sessions s
+USING users u
+WHERE s.user_id = u.id AND s.idp_sid = $1 AND u.auth_service = $2
+  AND u.auth_data = $3
+RETURNING s.user_id
+`
+
+type DeleteSessionsByIdpSidParams struct {
+	IdpSid      string `json:"idp_sid"`
+	AuthService string `json:"auth_service"`
+	AuthData    string `json:"auth_data"`
+}
+
+// DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
+func (q *Queries) DeleteSessionsByIdpSid(ctx context.Context, arg DeleteSessionsByIdpSidParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, deleteSessionsByIdpSid, arg.IdpSid, arg.AuthService, arg.AuthData)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var user_id pgtype.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deleteSessionsBySubject = `-- name: DeleteSessionsBySubject :many
+DELETE FROM sessions s
+USING users u
+WHERE s.user_id = u.id AND u.auth_service = $1 AND u.auth_data = $2
+RETURNING s.user_id
+`
+
+type DeleteSessionsBySubjectParams struct {
+	AuthService string `json:"auth_service"`
+	AuthData    string `json:"auth_data"`
+}
+
+// DeleteSessionsBySubject ends every session of an identity (logout without sid).
+func (q *Queries) DeleteSessionsBySubject(ctx context.Context, arg DeleteSessionsBySubjectParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, deleteSessionsBySubject, arg.AuthService, arg.AuthData)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var user_id pgtype.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const deleteUserSession = `-- name: DeleteUserSession :execrows
+DELETE FROM sessions WHERE id = $1 AND user_id = $2
+`
+
+type DeleteUserSessionParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteUserSession(ctx context.Context, arg DeleteUserSessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUserSession, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getActiveSession = `-- name: GetActiveSession :one
-SELECT s.id, s.user_id, s.token_hash, s.created_at, s.last_seen_at, s.expires_at, s.user_agent, s.ip_address, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin
+SELECT s.id, s.user_id, s.token_hash, s.created_at, s.last_seen_at, s.expires_at, s.user_agent, s.ip_address, s.idp_sid, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1
@@ -104,6 +210,7 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 		&i.Session.ExpiresAt,
 		&i.Session.UserAgent,
 		&i.Session.IpAddress,
+		&i.Session.IdpSid,
 		&i.User.ID,
 		&i.User.AuthService,
 		&i.User.AuthData,
@@ -116,6 +223,49 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 		&i.User.IsAdmin,
 	)
 	return i, err
+}
+
+const listUserSessions = `-- name: ListUserSessions :many
+SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, user_agent, ip_address, idp_sid FROM sessions
+WHERE user_id = $1 AND expires_at > now()
+  AND last_seen_at > now() - $2::interval
+ORDER BY last_seen_at DESC, id DESC
+`
+
+type ListUserSessionsParams struct {
+	UserID      pgtype.UUID     `json:"user_id"`
+	IdleTimeout pgtype.Interval `json:"idle_timeout"`
+}
+
+// ListUserSessions returns a user's usable sessions, most recently used first.
+func (q *Queries) ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error) {
+	rows, err := q.db.Query(ctx, listUserSessions, arg.UserID, arg.IdleTimeout)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TokenHash,
+			&i.CreatedAt,
+			&i.LastSeenAt,
+			&i.ExpiresAt,
+			&i.UserAgent,
+			&i.IpAddress,
+			&i.IdpSid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sessionIsActive = `-- name: SessionIsActive :one

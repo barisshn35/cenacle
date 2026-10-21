@@ -477,6 +477,137 @@ paths:
               schema: { $ref: '#/components/schemas/Session' }
         '401':
           $ref: '#/components/responses/Problem'
+  /api/sessions:
+    get:
+      tags: [auth]
+      operationId: listSessions
+      summary: Your signed-in devices
+      responses:
+        '200':
+          description: Usable sessions, most recently used first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessions]
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: '#/components/schemas/DeviceSession' }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/sessions/{session_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [auth]
+      operationId: endSession
+      summary: Sign out one device
+      responses:
+        '204':
+          description: Ended (open connections of that device close).
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/sessions/end-all:
+    post:
+      tags: [auth]
+      operationId: endAllSessions
+      summary: Sign out everywhere
+      description: Ends every session of the user, or every other one with `keep_current`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keep_current]
+              properties:
+                keep_current: { type: boolean }
+      responses:
+        '200':
+          description: Ended.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ended]
+                properties:
+                  ended: { type: integer }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/auth/backchannel-logout:
+    post:
+      tags: [auth]
+      operationId: backchannelLogout
+      summary: OpenID Connect Back-Channel Logout (called by Cenacle ID)
+      description: |
+        Cenacle ID posts a signed logout token when a sign-in ends there; the sessions
+        that came from that sign-in (`sid`), or from that identity when the token names
+        none, end. Not for browsers.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [logout_token]
+              properties:
+                logout_token: { type: string }
+      responses:
+        '200':
+          description: Accepted.
+        '400':
+          description: The logout token is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string }
+                  error_description: { type: string }
+  /api/workspaces/{workspace_id}/audit:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [chat]
+      operationId: listWorkspaceAudit
+      summary: The workspace's audit log (owners and admins)
+      parameters:
+        - name: before
+          in: query
+          schema: { type: string, format: uuid }
+          description: Events older than this one (cursor).
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Events, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, has_more]
+                properties:
+                  events:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditEvent' }
+                  has_more: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/ws/ticket:
     post:
       tags: [realtime]
@@ -492,6 +623,8 @@ paths:
         - `{"op":"hello","last_event_id":"<id>","heartbeat_ms":25000}` after connecting;
         - `{"op":"event","id":"<id>","type":"message.created","data":{...}}` for each event,
           in order, starting after `last_event_id` when it was given;
+        - `{"op":"ephemeral","type":"typing","data":{...}}` for short-lived notices
+          (`typing`, `presence.changed`): no id, never resumed or replayed;
         - `{"op":"resync"}` when the events since `last_event_id` are no longer
           available: reload the data and continue from the id in `hello`.
 
@@ -1199,8 +1332,11 @@ components:
         display_name: { type: string }
     Session:
       type: object
-      required: [user, permissions, created_at, expires_at, idle_timeout_seconds]
+      required: [user, permissions, created_at, expires_at, idle_timeout_seconds, account_url]
       properties:
+        account_url:
+          type: string
+          description: Cenacle ID's account page (two-step verification), returning here.
         user: { $ref: '#/components/schemas/User' }
         permissions: { $ref: '#/components/schemas/Permissions' }
         created_at: { type: string, format: date-time }
@@ -1211,6 +1347,42 @@ components:
         idle_timeout_seconds:
           type: integer
           description: The session also ends after this long without use.
+    DeviceSession:
+      type: object
+      required: [id, created_at, last_seen_at, user_agent, ip_address, current]
+      properties:
+        id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        last_seen_at:
+          type: string
+          format: date-time
+          description: Recorded at most once a minute.
+        user_agent: { type: string }
+        ip_address: { type: string }
+        current:
+          type: boolean
+          description: The session of this request.
+    AuditEvent:
+      type: object
+      required: [id, at, actor, action, target_type, target_id, detail]
+      properties:
+        id: { type: string, format: uuid }
+        at: { type: string, format: date-time }
+        actor:
+          type: object
+          nullable: true
+          required: [id, display_name]
+          properties:
+            id: { type: string, format: uuid }
+            display_name: { type: string }
+        action:
+          type: string
+          description: E.g. workspace.role_changed, channel.archived, invite.created.
+        target_type: { type: string }
+        target_id: { type: string }
+        detail:
+          type: object
+          additionalProperties: true
     WsTicket:
       type: object
       required: [ticket, expires_in]

@@ -116,10 +116,11 @@ func Authenticate(s *Sessions, c Cookies, trustProxy bool, log *slog.Logger) fun
 				next.ServeHTTP(w, r)
 				return
 			}
-			p, err := s.Authenticate(r.Context(), token,
-				ClientInfo{UserAgent: r.UserAgent(), IP: ClientIP(r, trustProxy)})
+			ip := ClientIP(r, trustProxy)
+			p, err := s.Authenticate(r.Context(), token, ClientInfo{UserAgent: r.UserAgent(), IP: ip})
 			switch {
 			case err == nil:
+				p.IP = ip
 				r = r.WithContext(WithPrincipal(r.Context(), p))
 			case errors.Is(err, ErrNoSession):
 			default:

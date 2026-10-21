@@ -20,6 +20,7 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
@@ -276,6 +277,8 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out := toAPI(c, access{ch: RoleManager, ws: wsRole})
+	h.record(r, c.WorkspaceID, audit.ChannelCreated, "channel", uuid(c.ID).String(),
+		map[string]any{"channel": c.Name, "visibility": c.Visibility, "kind": c.Kind, "everyone": isDefault})
 	if isDefault {
 		h.publish(r.Context(), events.ChannelCreated, ChannelEvent{Channel: toAPI(c, access{ch: RoleMember})})
 	} else {
@@ -455,9 +458,16 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 		badRequest(w, r, problem)
 		return
 	}
+	before := c
 	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
 		ID: c.ID, Name: name, Visibility: visibility, Topic: topic, CategoryID: c.CategoryID,
 	})
+	if err == nil && (before.Name != c.Name || before.Visibility != c.Visibility) {
+		h.record(r, c.WorkspaceID, audit.ChannelUpdated, "channel", uuid(c.ID).String(), map[string]any{
+			"channel": c.Name, "previous_name": before.Name, "visibility": c.Visibility,
+			"previous_visibility": before.Visibility,
+		})
+	}
 	if isUniqueViolation(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
 			Detail: "A channel with this name exists."})
@@ -557,6 +567,8 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, u.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember, ws: targetWs}))
+		h.record(r, c.WorkspaceID, audit.ChannelMemberAdded, "channel", uuid(c.ID).String(),
+			map[string]any{"channel": c.Name, "user_id": uuid(u.ID).String(), "user": u.DisplayName})
 	}
 	httpx.WriteJSON(w, http.StatusOK, api.Member{
 		User: api.Person{Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email}, Role: api.MemberRole(role),
@@ -588,6 +600,8 @@ func (h *Handlers) RemoveChannelMember(w http.ResponseWriter, r *http.Request, c
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, pgUUID(userID), events.ChannelLeft, toAPI(c, access{}))
+		h.record(r, c.WorkspaceID, audit.ChannelMemberRemoved, "channel", uuid(c.ID).String(),
+			map[string]any{"channel": c.Name, "user_id": userID.String()})
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

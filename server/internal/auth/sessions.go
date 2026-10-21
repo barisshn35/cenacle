@@ -55,6 +55,8 @@ func validTokenFormat(token string) bool {
 type Principal struct {
 	Session store.Session
 	User    store.User
+	// IP is the client address of the request (for the audit log).
+	IP string
 }
 
 // ClientInfo describes the client a session is used from.
@@ -83,8 +85,9 @@ type Sessions struct {
 	MaxAge time.Duration
 }
 
-// Create starts a session for userID and returns its token.
-func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client ClientInfo) (string, store.Session, error) {
+// Create starts a session for userID and returns its token. idpSID is the
+// identity provider's session it came from ("" if unknown).
+func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client ClientInfo, idpSID string) (string, store.Session, error) {
 	token, hash := newToken()
 	sess, err := s.Queries.CreateSession(ctx, store.CreateSessionParams{
 		UserID:    userID,
@@ -92,6 +95,7 @@ func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client Client
 		ExpiresAt: time.Now().Add(s.MaxAge),
 		UserAgent: client.userAgent(),
 		IpAddress: client.IP,
+		IdpSid:    idpSID,
 	})
 	if err != nil {
 		return "", store.Session{}, fmt.Errorf("create session: %w", err)

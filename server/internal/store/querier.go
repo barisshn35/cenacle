@@ -35,7 +35,14 @@ type Querier interface {
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
 	DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error)
+	// DeleteOtherSessions ends a user's sessions except one (uuid nil: all of them).
+	DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) (int64, error)
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
+	// DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
+	DeleteSessionsByIdpSid(ctx context.Context, arg DeleteSessionsByIdpSidParams) ([]pgtype.UUID, error)
+	// DeleteSessionsBySubject ends every session of an identity (logout without sid).
+	DeleteSessionsBySubject(ctx context.Context, arg DeleteSessionsBySubjectParams) ([]pgtype.UUID, error)
+	DeleteUserSession(ctx context.Context, arg DeleteUserSessionParams) (int64, error)
 	EditMessage(ctx context.Context, arg EditMessageParams) (Message, error)
 	// EnsureChannel creates a configured channel or brings an existing one of that
 	// name to the configured kind and flags (and public: everyone is a member);
@@ -57,6 +64,7 @@ type Querier interface {
 	GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error)
 	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
 	GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRoleParams) (string, error)
+	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	// JoinDefaultChannels makes a user a member of every default channel of the
 	// workspaces they belong to.
 	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (int64, error)
@@ -82,9 +90,13 @@ type Querier interface {
 	// the cursor (all when before is NULL), newest first, with their authors.
 	// Deleted messages are left out.
 	ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error)
+	// ListUserSessions returns a user's usable sessions, most recently used first.
+	ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error)
 	// ListUserWorkspaces returns a user's workspaces with their role, the default
 	// workspace first.
 	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListUserWorkspacesRow, error)
+	// ListWorkspaceAudit returns a workspace's events newest first, before a cursor.
+	ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAuditParams) ([]ListWorkspaceAuditRow, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
 	// MarkRead moves a member's read position forward (never back).
 	MarkRead(ctx context.Context, arg MarkReadParams) (int64, error)

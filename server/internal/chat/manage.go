@@ -13,6 +13,7 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
@@ -55,6 +56,11 @@ func (h *Handlers) setArchived(w http.ResponseWriter, r *http.Request, channelID
 		h.unavailable(w, r, "archive channel", err)
 		return
 	}
+	action := audit.ChannelArchived
+	if !archived {
+		action = audit.ChannelUnarchived
+	}
+	h.record(r, c.WorkspaceID, action, "channel", uuid(c.ID).String(), map[string]any{"channel": c.Name})
 	h.publish(r.Context(), events.ChannelUpdated, ChannelEvent{
 		Channel: toAPI(c, access{ch: RoleMember}), ChannelID: uuid(c.ID).String(),
 	})
@@ -387,6 +393,10 @@ func (h *Handlers) DeleteMessage(w http.ResponseWriter, r *http.Request, channel
 			return
 		}
 		h.publish(r.Context(), events.MessageDeleted, MessageRef{ID: uuid(m.ID).String(), ChannelID: uuid(c.ID).String()})
+		if m.AuthorID != p.User.ID { // moderation
+			h.record(r, c.WorkspaceID, audit.MessageRemoved, "message", uuid(m.ID).String(),
+				map[string]any{"channel": c.Name, "author": m.AuthorName})
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
