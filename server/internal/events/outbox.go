@@ -119,16 +119,16 @@ func (r *Relay) drain(ctx context.Context, q *store.Queries) (int, error) {
 	if err != nil || len(rows) == 0 {
 		return 0, err
 	}
-	var last int64
+	var done []int64
 	var appendErr error
 	for _, row := range rows {
 		if _, appendErr = r.Log.Append(ctx, row.Type, json.RawMessage(row.Data)); appendErr != nil {
 			break
 		}
-		last = row.ID
+		done = append(done, row.ID)
 	}
-	if last > 0 {
-		if err := q.DeleteOutboxEvents(ctx, last); err != nil {
+	if len(done) > 0 {
+		if err := q.DeleteOutboxEvents(ctx, done); err != nil {
 			return 0, err
 		}
 	}

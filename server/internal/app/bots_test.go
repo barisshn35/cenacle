@@ -119,6 +119,22 @@ func TestBotsTokensAndWebhooks(t *testing.T) {
 		t.Errorf("unknown hook = %d", res.StatusCode)
 	}
 
+	// A nonce belongs to one message: reusing it elsewhere is a conflict.
+	var ops channel
+	s.call(http.MethodPost, "/api/channels", admin, map[string]any{"name": "Ops"}, &ops)
+	s.call(http.MethodPost, "/api/channels/"+ops.ID+"/members", admin, map[string]string{"user_id": b.UserID}, nil)
+	if _, res := s.send(token, ops.ID, "x", "bot-nonce-1"); res.StatusCode != http.StatusConflict {
+		t.Errorf("nonce reused in another channel = %d", res.StatusCode)
+	}
+	// Announcement channels stay read-only for bots, through webhooks too.
+	var central struct {
+		URL string `json:"url"`
+	}
+	s.call(http.MethodPost, "/api/bots/"+b.ID+"/webhooks", admin, map[string]string{"name": "Duyuru", "channel_id": s.channelID(admin, "Central"), "kind": "generic"}, &central)
+	if res := s.raw(http.MethodPost, central.URL, "", `{"text":"x"}`); res.StatusCode != http.StatusForbidden {
+		t.Errorf("webhook into an announcement channel = %d", res.StatusCode)
+	}
+
 	// Disabling the bot stops its tokens and webhooks; enabling brings them back.
 	s.call(http.MethodPatch, "/api/bots/"+b.ID, admin, map[string]bool{"disabled": true}, nil)
 	if _, res := s.send(token, general, "x", "bot-nonce-3"); res.StatusCode != http.StatusUnauthorized {

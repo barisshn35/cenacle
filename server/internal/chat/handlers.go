@@ -6,6 +6,7 @@ package chat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -136,6 +137,12 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 }
 
 // validBody trims surrounding blank lines and spaces and checks the length.
+// errNonceReused: the author used the nonce for another message.
+var errNonceReused = errors.New("nonce reused")
+
+// CodeNonceReused answers a nonce used before for another message.
+const CodeNonceReused = "nonce_reused"
+
 func trimBody(body string) string { return strings.TrimSpace(body) }
 
 func validBody(body string) (string, string) {
@@ -207,6 +214,11 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		out, err = postMessage(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments)
 		return err
 	})
+	if errors.Is(err, errNonceReused) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNonceReused,
+			Detail: "This nonce belongs to another message; use a new one."})
+		return
+	}
 	if err != nil {
 		h.unavailable(w, r, "create message", err)
 		return
@@ -225,6 +237,11 @@ func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author 
 		msg, err = q.GetMessageByNonce(ctx, store.GetMessageByNonceParams{AuthorID: author.ID, Nonce: nonce})
 		if err != nil {
 			return api.Message{}, err
+		}
+		// A retry is the same message in the same channel; anything else reuses
+		// a nonce by mistake.
+		if msg.ChannelID != c.ID || msg.DeletedAt.Valid {
+			return api.Message{}, errNonceReused
 		}
 		msgs := []api.Message{messageAPI(msg, author.DisplayName, author.IsBot)}
 		err = decorate(ctx, q, author.ID, msgs)

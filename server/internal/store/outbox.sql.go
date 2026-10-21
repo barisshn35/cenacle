@@ -10,11 +10,13 @@ import (
 )
 
 const deleteOutboxEvents = `-- name: DeleteOutboxEvents :exec
-DELETE FROM event_outbox WHERE id <= $1
+DELETE FROM event_outbox WHERE id = ANY($1::bigint[])
 `
 
-func (q *Queries) DeleteOutboxEvents(ctx context.Context, lastID int64) error {
-	_, err := q.db.Exec(ctx, deleteOutboxEvents, lastID)
+// DeleteOutboxEvents removes exactly the events that were relayed: a lower id
+// that committed later must stay for the next round.
+func (q *Queries) DeleteOutboxEvents(ctx context.Context, ids []int64) error {
+	_, err := q.db.Exec(ctx, deleteOutboxEvents, ids)
 	return err
 }
 

@@ -392,8 +392,8 @@ func (h *Handlers) CreateWebhook(w http.ResponseWriter, r *http.Request, botID o
 	if !ok {
 		return
 	}
-	if c.WorkspaceID != b.Bot.WorkspaceID || isConversation(c) {
-		badRequest(w, r, "The channel must be a channel of the bot's workspace.")
+	if c.WorkspaceID != b.Bot.WorkspaceID || isConversation(c) || c.ArchivedAt.Valid {
+		badRequest(w, r, "The channel must be an open channel of the bot's workspace.")
 		return
 	}
 	secret := hookSecret()
@@ -539,6 +539,12 @@ func (h *Handlers) PostWebhook(w http.ResponseWriter, r *http.Request, token str
 	}
 	if member == "" || c.ArchivedAt.Valid {
 		forbidden(w, r, CodeBotNotInChannel, "The bot is no longer a member of the channel, or it is archived.")
+		return
+	}
+	// The channel's rules apply as for the bot's token: bots are members, so
+	// announcement channels are read-only for them.
+	if !canPost(c, access{ch: member, ws: WorkspaceMember}) {
+		forbidden(w, r, CodeReadOnlyChannel, "Only the workspace's owners and admins can send messages in this channel.")
 		return
 	}
 	err = h.inTx(r.Context(), func(q *store.Queries) error {

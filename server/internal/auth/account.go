@@ -177,8 +177,10 @@ func (h *Handlers) BackchannelLogout(w http.ResponseWriter, r *http.Request) {
 		backchannelError(w, "The logout token is invalid.")
 		return
 	}
-	// Each token works once.
-	if err := h.Flows.PutNew(r.Context(), "cenacle:auth:logout-jti:"+claims.JTI, []byte{1}, logoutTokenTTL); err != nil {
+	// Each token works once; if ending the sessions fails, the mark is taken
+	// back so the identity provider can retry.
+	jtiKey := "cenacle:auth:logout-jti:" + claims.JTI
+	if err := h.Flows.PutNew(r.Context(), jtiKey, []byte{1}, logoutTokenTTL); err != nil {
 		h.Log.InfoContext(r.Context(), "logout token replayed", "error", err)
 		backchannelError(w, "The logout token was used before.")
 		return
@@ -195,6 +197,7 @@ func (h *Handlers) BackchannelLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		h.Log.ErrorContext(r.Context(), "back-channel logout", "error", err)
+		_, _ = h.Flows.Take(context.WithoutCancel(r.Context()), jtiKey)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}

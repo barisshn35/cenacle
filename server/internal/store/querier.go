@@ -46,7 +46,9 @@ type Querier interface {
 	DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error)
 	// DeleteOtherSessions ends a user's sessions except one (uuid nil: all of them).
 	DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) (int64, error)
-	DeleteOutboxEvents(ctx context.Context, lastID int64) error
+	// DeleteOutboxEvents removes exactly the events that were relayed: a lower id
+	// that committed later must stay for the next round.
+	DeleteOutboxEvents(ctx context.Context, ids []int64) error
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	// DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
 	DeleteSessionsByIdpSid(ctx context.Context, arg DeleteSessionsByIdpSidParams) ([]pgtype.UUID, error)

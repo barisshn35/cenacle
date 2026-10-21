@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -46,13 +47,21 @@ func AccessLog(log *slog.Logger) func(http.Handler) http.Handler {
 			log.LogAttrs(r.Context(), slog.LevelInfo, "http request",
 				slog.String("request_id", RequestIDFrom(r.Context())),
 				slog.String("method", r.Method),
-				slog.String("path", r.URL.Path),
+				slog.String("path", loggedPath(r.URL.Path)),
 				slog.Int("status", ww.Status()),
 				slog.Int("bytes", ww.BytesWritten()),
 				slog.Duration("duration", time.Since(start)),
 			)
 		})
 	}
+}
+
+// loggedPath hides secrets carried in paths (incoming webhook addresses).
+func loggedPath(path string) string {
+	if strings.HasPrefix(path, "/api/hooks/") {
+		return "/api/hooks/[redacted]"
+	}
+	return path
 }
 
 // SecurityHeaders sets conservative headers on every API response.

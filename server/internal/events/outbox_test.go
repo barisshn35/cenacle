@@ -77,3 +77,45 @@ func TestRelayMovesOutboxEventsInOrderWithOneLeader(t *testing.T) {
 		t.Errorf("outbox not emptied: %d rows, %v", len(rows), err)
 	}
 }
+
+// An event whose transaction commits after a later one is relayed too.
+func TestRelayKeepsEventsThatCommitLate(t *testing.T) {
+	pool := testdb.Open(t)
+	l := newLog(t)
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+	go (&events.Relay{Pool: pool, Log: l, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Idle: 50 * time.Millisecond}).Run(ctx)
+
+	slow, err := pool.Begin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = slow.Rollback(context.Background()) }()
+	if err := store.New(slow).InsertOutboxEvent(context.Background(), store.InsertOutboxEventParams{Type: "late", Data: []byte(`{}`)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.New(pool).InsertOutboxEvent(context.Background(), store.InsertOutboxEventParams{Type: "early", Data: []byte(`{}`)}); err != nil {
+		t.Fatal(err)
+	}
+	wait := func(n int) []events.Event {
+		deadline := time.Now().Add(10 * time.Second)
+		for time.Now().Before(deadline) {
+			got, _ := l.Since(context.Background(), events.ID{}, 100)
+			if len(got) >= n {
+				return got
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		t.Fatalf("fewer than %d events arrived", n)
+		return nil
+	}
+	wait(1)
+	time.Sleep(200 * time.Millisecond) // the relay has deleted what it sent
+	if err := slow.Commit(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	got := wait(2)
+	if got[0].Type != "early" || got[1].Type != "late" {
+		t.Errorf("events = %s, %s", got[0].Type, got[1].Type)
+	}
+}
