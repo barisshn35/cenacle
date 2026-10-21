@@ -14,6 +14,7 @@ SQLC_VERSION          := 1.31.1
 GOLANGCI_LINT_VERSION := 2.15.0
 GO_LICENSES_VERSION   := v2.0.1
 GOVULNCHECK_VERSION   := v1.9.0
+OAPI_CODEGEN_VERSION  := v2.8.0
 
 # License policy for Go modules (see docs/adr/0001-monorepo-and-tooling.md).
 GO_ALLOWED_LICENSES := MIT,ISC,BSD-2-Clause,BSD-3-Clause,Apache-2.0,MPL-2.0,0BSD,Unlicense
@@ -36,6 +37,7 @@ SQLC          := $(BIN_DIR)/sqlc
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 GO_LICENSES   := $(BIN_DIR)/go-licenses
 GOVULNCHECK   := $(BIN_DIR)/govulncheck
+OAPI_CODEGEN  := $(BIN_DIR)/oapi-codegen
 
 .DEFAULT_GOAL := help
 
@@ -46,7 +48,7 @@ help: ## Show available targets
 # --- Tooling -----------------------------------------------------------------
 
 .PHONY: tools
-tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) ## Install pinned dev tools into ./.bin
+tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) $(OAPI_CODEGEN) ## Install pinned dev tools into ./.bin
 
 $(SQLC):
 	@mkdir -p $(BIN_DIR)
@@ -62,6 +64,9 @@ $(GO_LICENSES):
 
 $(GOVULNCHECK):
 	GOBIN=$(BIN_DIR) go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
+
+$(OAPI_CODEGEN):
+	GOBIN=$(BIN_DIR) go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
 
 node_modules: package.json pnpm-lock.yaml
 	pnpm install --frozen-lockfile
@@ -106,8 +111,9 @@ migrate-down: ## Roll back the latest chat database migration
 	cd $(SERVER_DIR) && go run ./cmd/server migrate down
 
 .PHONY: gen
-gen: $(SQLC) node_modules ## Generate code (sqlc, OpenAPI types)
+gen: $(SQLC) $(OAPI_CODEGEN) node_modules ## Generate code (sqlc, OpenAPI server and client types)
 	cd $(SERVER_DIR) && $(SQLC) generate
+	cd $(SERVER_DIR)/api && $(OAPI_CODEGEN) -config oapi-codegen.yaml openapi.yaml
 	pnpm --filter @cenacle/core gen:api
 
 # --- Quality gates -------------------------------------------------------------
@@ -142,9 +148,9 @@ test-e2e: node_modules ## Run Playwright tests (target size, a11y, no external r
 .PHONY: licenses
 licenses: licenses-go licenses-js ## Check dependency licenses against the policy
 
+# GOROOT is the one of the pinned toolchain (go.mod), not the one go-licenses was built with.
 .PHONY: licenses-go
 licenses-go: $(GO_LICENSES)
-	# GOROOT of the pinned toolchain (go.mod), not the one go-licenses was built with.
 	cd $(SERVER_DIR) && GOROOT="$$(go env GOROOT)" $(GO_LICENSES) check ./... --allowed_licenses=$(GO_ALLOWED_LICENSES) --ignore github.com/barisshn35/cenacle
 
 .PHONY: licenses-js

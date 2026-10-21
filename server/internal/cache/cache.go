@@ -5,7 +5,10 @@ package cache
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/valkey-io/valkey-go"
 )
@@ -64,4 +67,37 @@ func (c *Client) Check(ctx context.Context) error {
 		return err
 	}
 	return vc.Do(ctx, vc.B().Ping().Build()).Error()
+}
+
+// ErrNotFound is returned by Take for missing or expired keys.
+var ErrNotFound = errors.New("cache: key not found")
+
+// PutNew stores value under key for ttl unless the key exists.
+func (c *Client) PutNew(ctx context.Context, key string, value []byte, ttl time.Duration) error {
+	vc, err := c.Get()
+	if err != nil {
+		return err
+	}
+	cmd := vc.B().Set().Key(key).Value(valkey.BinaryString(value)).Nx().Px(ttl).Build()
+	if err := vc.Do(ctx, cmd).Error(); err != nil {
+		if valkey.IsValkeyNil(err) {
+			return fmt.Errorf("cache: key %q exists", key)
+		}
+		return err
+	}
+	return nil
+}
+
+// Take returns and deletes the value under key (GETDEL), so a value can be
+// used once only.
+func (c *Client) Take(ctx context.Context, key string) ([]byte, error) {
+	vc, err := c.Get()
+	if err != nil {
+		return nil, err
+	}
+	b, err := vc.Do(ctx, vc.B().Getdel().Key(key).Build()).AsBytes()
+	if valkey.IsValkeyNil(err) {
+		return nil, ErrNotFound
+	}
+	return b, err
 }

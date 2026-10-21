@@ -31,6 +31,9 @@ const (
 	CodeMethodNotAllowed = "method_not_allowed"
 	CodeInternal         = "internal_error"
 	CodeUnavailable      = "service_unavailable"
+	CodeBadRequest       = "invalid_request"
+	CodeUnauthenticated  = "unauthenticated"
+	CodeCrossSite        = "cross_site_request"
 )
 
 // WriteProblem writes p as application/problem+json. Missing fields are
@@ -76,4 +79,13 @@ func MethodNotAllowed(w http.ResponseWriter, r *http.Request) {
 		Code:   CodeMethodNotAllowed,
 		Detail: "The resource does not support this HTTP method.",
 	})
+}
+
+// WriteJSON writes v as an uncacheable JSON response.
+func WriteJSON(w http.ResponseWriter, status int, v any) {
+	h := w.Header()
+	h.Set("Content-Type", "application/json")
+	h.Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
 }

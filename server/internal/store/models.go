@@ -3,3 +3,32 @@
 //   sqlc v1.31.1
 
 package store
+
+import (
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type Session struct {
+	ID         pgtype.UUID `json:"id"`
+	UserID     pgtype.UUID `json:"user_id"`
+	TokenHash  []byte      `json:"token_hash"`
+	CreatedAt  time.Time   `json:"created_at"`
+	LastSeenAt time.Time   `json:"last_seen_at"`
+	ExpiresAt  time.Time   `json:"expires_at"`
+	UserAgent  string      `json:"user_agent"`
+	IpAddress  string      `json:"ip_address"`
+}
+
+type User struct {
+	ID            pgtype.UUID        `json:"id"`
+	AuthService   string             `json:"auth_service"`
+	AuthData      string             `json:"auth_data"`
+	Email         string             `json:"email"`
+	EmailVerified bool               `json:"email_verified"`
+	DisplayName   string             `json:"display_name"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
+	LastLoginAt   pgtype.Timestamptz `json:"last_login_at"`
+}

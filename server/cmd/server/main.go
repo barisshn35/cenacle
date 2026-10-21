@@ -31,6 +31,7 @@ import (
 	"github.com/pressly/goose/v3/lock"
 
 	"github.com/barisshn35/cenacle/server/internal/app"
+	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/cache"
 	"github.com/barisshn35/cenacle/server/internal/config"
 	"github.com/barisshn35/cenacle/server/internal/db"
@@ -77,7 +78,7 @@ func run(args []string) error {
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
 	}
 
-	cfg, err := config.FromEnv()
+	cfg, err := config.FromEnv(args[0] == "serve")
 	if err != nil {
 		return err
 	}
@@ -114,12 +115,36 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		log.Warn("database not reachable at startup", "error", err)
 	}
 
+	queries := store.New(pool)
+	idpClient, err := auth.NewHTTPClient(cfg.OIDCIssuer, cfg.OIDCBackchannelURL)
+	if err != nil {
+		return err
+	}
+	sessions := &auth.Sessions{Queries: queries, IdleTimeout: cfg.SessionIdleTimeout, MaxAge: cfg.SessionMaxAge}
+	go sessions.RunCleanup(ctx, 10*time.Minute, log)
+
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: app.NewRouter(app.Deps{
 			Log:          log,
 			Checkers:     []health.Checker{db.Checker{Pool: pool}, valkey},
 			ReadyTimeout: cfg.ReadyTimeout,
+			Auth: &auth.Handlers{
+				IdP: &auth.IdentityProvider{
+					Issuer:       cfg.OIDCIssuer,
+					ClientID:     cfg.OIDCClientID,
+					ClientSecret: cfg.OIDCClientSecret,
+					RedirectURL:  cfg.PublicURL.String() + "/api/auth/callback",
+					HTTPClient:   idpClient,
+				},
+				Sessions:   sessions,
+				Users:      queries,
+				Flows:      valkey,
+				Cookies:    auth.NewCookies(cfg.PublicURL),
+				PublicURL:  cfg.PublicURL,
+				TrustProxy: cfg.TrustProxy,
+				Log:        log,
+			},
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,

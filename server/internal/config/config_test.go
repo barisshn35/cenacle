@@ -120,3 +120,64 @@ func TestLoadMissingSecretFile(t *testing.T) {
 		t.Fatalf("err = %v, want fs.ErrNotExist", err)
 	}
 }
+
+func TestLoadServe(t *testing.T) {
+	base := map[string]string{
+		"CENACLE_DATABASE_URL":       "postgres://u:p@localhost/chat",
+		"CENACLE_OIDC_CLIENT_SECRET": "secret",
+	}
+	cfg, err := LoadServe(env(base), files(nil))
+	if err != nil {
+		t.Fatalf("LoadServe: %v", err)
+	}
+	if cfg.PublicURL.String() != "http://localhost:5173" || cfg.OIDCIssuer != "http://localhost:8190" ||
+		cfg.OIDCClientID != "cenacle-chat" || cfg.SessionIdleTimeout != 7*24*time.Hour ||
+		cfg.SessionMaxAge != 30*24*time.Hour || cfg.OIDCBackchannelURL != nil {
+		t.Errorf("defaults = %+v", cfg)
+	}
+
+	// Migrations do not need the OIDC client.
+	if _, err := Load(env(map[string]string{"CENACLE_DATABASE_URL": base["CENACLE_DATABASE_URL"]}), files(nil)); err != nil {
+		t.Errorf("Load without OIDC settings: %v", err)
+	}
+
+	bad := map[string]string{
+		"CENACLE_ENV":                  "production",
+		"CENACLE_DATABASE_URL":         "postgres://db/chat",
+		"CENACLE_PUBLIC_URL":           "http://chat.example.com/app",
+		"CENACLE_OIDC_ISSUER":          "http://id.example.com",
+		"CENACLE_OIDC_BACKCHANNEL_URL": "idp:8190",
+		"CENACLE_TRUST_PROXY":          "yes",
+		"CENACLE_SESSION_IDLE_TIMEOUT": "48h",
+		"CENACLE_SESSION_MAX_AGE":      "24h",
+	}
+	_, err = LoadServe(env(bad), files(nil))
+	if err == nil {
+		t.Fatal("expected errors")
+	}
+	for _, want := range []string{
+		"CENACLE_PUBLIC_URL", "CENACLE_OIDC_ISSUER: must use https", "CENACLE_OIDC_BACKCHANNEL_URL",
+		"CENACLE_TRUST_PROXY", "CENACLE_OIDC_CLIENT_SECRET: required", "CENACLE_SESSION_IDLE_TIMEOUT",
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error lacks %q:\n%v", want, err)
+		}
+	}
+
+	prod := map[string]string{
+		"CENACLE_ENV":                  "production",
+		"CENACLE_DATABASE_URL":         "postgres://db/chat",
+		"CENACLE_PUBLIC_URL":           "https://chat.example.com/",
+		"CENACLE_OIDC_ISSUER":          "https://id.example.com",
+		"CENACLE_OIDC_BACKCHANNEL_URL": "http://idp:8190",
+		"CENACLE_OIDC_CLIENT_SECRET":   "secret",
+		"CENACLE_TRUST_PROXY":          "true",
+	}
+	cfg, err = LoadServe(env(prod), files(nil))
+	if err != nil {
+		t.Fatalf("production: %v", err)
+	}
+	if cfg.PublicURL.String() != "https://chat.example.com" || !cfg.TrustProxy || cfg.OIDCBackchannelURL.Host != "idp:8190" {
+		t.Errorf("production = %+v", cfg)
+	}
+}

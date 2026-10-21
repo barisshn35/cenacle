@@ -91,6 +91,13 @@ services:
       CENACLE_LOG_FORMAT: json
       CENACLE_DATABASE_URL: postgres://${CHAT_DB_USER:-cenacle_chat}:${CHAT_DB_PASSWORD}@postgres:5432/${CHAT_DB_NAME:-cenacle_chat}?sslmode=disable
       CENACLE_VALKEY_ADDR: valkey:6379
+      # Container smoke test of the server; signing in end to end needs the
+      # /api proxy of the Vite dev server or of the production stack.
+      CENACLE_OIDC_ISSUER: http://localhost:${IDP_APP_PORT:-18190}
+      CENACLE_OIDC_BACKCHANNEL_URL: http://idp:8190
+      CENACLE_OIDC_CLIENT_SECRET_FILE: /etc/cenacle/chat-client-secret.txt
+    volumes:
+      - ../../idp/dev:/etc/cenacle:ro
     depends_on:
       postgres:
         condition: service_healthy

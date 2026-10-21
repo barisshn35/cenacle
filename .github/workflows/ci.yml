@@ -36,10 +36,11 @@ jobs:
           cache-dependency-path: server/go.sum
       - run: make tools
       - run: make lint-go
-      - name: Generated code is up to date (sqlc)
+      - name: Generated code is up to date (sqlc, oapi-codegen)
         run: |
           cd server && ../.bin/sqlc generate
-          git diff --exit-code -- internal/store
+          (cd api && ../../.bin/oapi-codegen -config oapi-codegen.yaml openapi.yaml)
+          git diff --exit-code -- internal/store internal/api
 
   lint-js:
     name: lint / js
@@ -60,6 +61,20 @@ jobs:
     name: test / go
     needs: lint-go
     runs-on: ubuntu-24.04
+    # Sign-in and session tests run against a real PostgreSQL.
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24
+        env:
+          POSTGRES_USER: cenacle_chat
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: cenacle_chat_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U cenacle_chat -d cenacle_chat_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      CENACLE_TEST_DATABASE_URL: postgres://cenacle_chat:ci-only-password@127.0.0.1:5432/cenacle_chat_test?sslmode=disable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

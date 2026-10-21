@@ -7,12 +7,27 @@ package store
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
+	DeleteSession(ctx context.Context, id pgtype.UUID) error
+	// GetActiveSession returns the session of a token hash with its user, unless
+	// it passed its absolute expiry or was idle for longer than idle_timeout.
+	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
+	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
 	// ServerTime returns the database clock; used as a smoke test of the
 	// sqlc/pgx setup.
 	ServerTime(ctx context.Context) (time.Time, error)
+	// TouchSession records use of a session at most once per minute, which keeps
+	// writes low while the idle timeout stays accurate to the minute.
+	TouchSession(ctx context.Context, arg TouchSessionParams) error
+	// UpsertUserFromIdentity creates the user of an identity on first sign-in and
+	// refreshes the profile claims on every later one.
+	UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFromIdentityParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

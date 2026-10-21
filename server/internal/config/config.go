@@ -41,6 +41,26 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	// ReadyTimeout bounds each dependency check of /readyz.
 	ReadyTimeout time.Duration
+
+	// PublicURL is the origin users open the chat at, e.g. https://chat.example.com.
+	// The OIDC redirect URI and the session cookie derive from it.
+	PublicURL *url.URL
+	// TrustProxy takes the client address from X-Forwarded-For (set by Caddy).
+	TrustProxy bool
+
+	// OIDCIssuer is the public issuer URL of Cenacle ID.
+	OIDCIssuer string
+	// OIDCBackchannelURL optionally routes server-to-IdP requests (discovery,
+	// token, userinfo, JWKS) to an internal address such as http://idp:8190.
+	OIDCBackchannelURL *url.URL
+	// OIDCClientID and OIDCClientSecret identify the chat server at Cenacle ID.
+	OIDCClientID     string
+	OIDCClientSecret string
+
+	// SessionIdleTimeout ends sessions that were not used for this long.
+	SessionIdleTimeout time.Duration
+	// SessionMaxAge ends sessions this long after sign-in, used or not.
+	SessionMaxAge time.Duration
 }
 
 // LookupFunc matches os.LookupEnv; tests inject their own.
@@ -49,14 +69,28 @@ type LookupFunc func(key string) (string, bool)
 // ReadFileFunc matches os.ReadFile; tests inject their own.
 type ReadFileFunc func(name string) ([]byte, error)
 
-// FromEnv loads the configuration from the process environment.
-func FromEnv() (Config, error) {
+// FromEnv loads the configuration from the process environment. With serve
+// set, the settings only the HTTP server needs (public URL, OIDC client,
+// sessions) are validated too; migrations run without them.
+func FromEnv(serve bool) (Config, error) {
+	if serve {
+		return LoadServe(os.LookupEnv, os.ReadFile)
+	}
 	return Load(os.LookupEnv, os.ReadFile)
 }
 
-// Load builds a Config using the given lookup functions and validates it.
-// All problems are reported together.
+// Load builds a Config using the given lookup functions and validates the
+// settings shared by all commands. All problems are reported together.
 func Load(lookup LookupFunc, readFile ReadFileFunc) (Config, error) {
+	return load(lookup, readFile, false)
+}
+
+// LoadServe is Load plus validation of the settings of the HTTP server.
+func LoadServe(lookup LookupFunc, readFile ReadFileFunc) (Config, error) {
+	return load(lookup, readFile, true)
+}
+
+func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) {
 	l := loader{lookup: lookup, readFile: readFile}
 
 	cfg := Config{
@@ -70,6 +104,14 @@ func Load(lookup LookupFunc, readFile ReadFileFunc) (Config, error) {
 	cfg.LogLevel = l.level("CENACLE_LOG_LEVEL", slog.LevelInfo)
 	cfg.ShutdownTimeout = l.duration("CENACLE_SHUTDOWN_TIMEOUT", 15*time.Second)
 	cfg.ReadyTimeout = l.duration("CENACLE_READY_TIMEOUT", 2*time.Second)
+	cfg.PublicURL = l.origin("CENACLE_PUBLIC_URL", "http://localhost:5173", true)
+	cfg.TrustProxy = l.boolean("CENACLE_TRUST_PROXY", false)
+	cfg.OIDCIssuer = l.str("CENACLE_OIDC_ISSUER", "http://localhost:8190")
+	cfg.OIDCBackchannelURL = l.origin("CENACLE_OIDC_BACKCHANNEL_URL", "", false)
+	cfg.OIDCClientID = l.str("CENACLE_OIDC_CLIENT_ID", "cenacle-chat")
+	cfg.OIDCClientSecret = l.str("CENACLE_OIDC_CLIENT_SECRET", "")
+	cfg.SessionIdleTimeout = l.duration("CENACLE_SESSION_IDLE_TIMEOUT", 7*24*time.Hour)
+	cfg.SessionMaxAge = l.duration("CENACLE_SESSION_MAX_AGE", 30*24*time.Hour)
 
 	if cfg.LogFormat == "" {
 		cfg.LogFormat = "json"
@@ -79,6 +121,9 @@ func Load(lookup LookupFunc, readFile ReadFileFunc) (Config, error) {
 	}
 
 	l.validate(&cfg)
+	if serve {
+		l.validateServe(&cfg)
+	}
 	if len(l.errs) > 0 {
 		return Config{}, fmt.Errorf("invalid configuration: %w", errors.Join(l.errs...))
 	}
@@ -129,6 +174,39 @@ func (l *loader) duration(key string, def time.Duration) time.Duration {
 	return d
 }
 
+func (l *loader) boolean(key string, def bool) bool {
+	switch raw := l.str(key, ""); raw {
+	case "":
+		return def
+	case "true", "1":
+		return true
+	case "false", "0":
+		return false
+	default:
+		l.fail("%s: must be true or false, got %q", key, raw)
+		return def
+	}
+}
+
+// origin parses an absolute http(s) URL without path, query or fragment.
+// An empty optional value yields nil.
+func (l *loader) origin(key, def string, required bool) *url.URL {
+	raw := strings.TrimRight(l.str(key, def), "/")
+	if raw == "" {
+		if required {
+			l.fail("%s: required", key)
+		}
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" ||
+		u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		l.fail("%s: must be an http(s) origin such as https://chat.example.com, got %q", key, raw)
+		return nil
+	}
+	return u
+}
+
 func (l *loader) level(key string, def slog.Level) slog.Level {
 	raw := l.str(key, "")
 	if raw == "" {
@@ -167,5 +245,26 @@ func (l *loader) validate(cfg *Config) {
 
 	if _, _, err := net.SplitHostPort(cfg.ValkeyAddr); err != nil {
 		l.fail("CENACLE_VALKEY_ADDR: must be host:port, got %q", cfg.ValkeyAddr)
+	}
+}
+
+func (l *loader) validateServe(cfg *Config) {
+	if u, err := url.Parse(cfg.OIDCIssuer); err != nil || (u.Scheme != "http" && u.Scheme != "https") ||
+		u.Host == "" || u.RawQuery != "" || u.Fragment != "" {
+		l.fail("CENACLE_OIDC_ISSUER: must be an http(s) URL, got %q", cfg.OIDCIssuer)
+	} else if cfg.Env == "production" && u.Scheme != "https" {
+		l.fail("CENACLE_OIDC_ISSUER: must use https in production")
+	}
+	if cfg.OIDCClientID == "" {
+		l.fail("CENACLE_OIDC_CLIENT_ID: required")
+	}
+	if cfg.OIDCClientSecret == "" {
+		l.fail("CENACLE_OIDC_CLIENT_SECRET: required")
+	}
+	if cfg.Env == "production" && cfg.PublicURL != nil && cfg.PublicURL.Scheme != "https" {
+		l.fail("CENACLE_PUBLIC_URL: must use https in production")
+	}
+	if cfg.SessionIdleTimeout > cfg.SessionMaxAge {
+		l.fail("CENACLE_SESSION_IDLE_TIMEOUT: must not exceed CENACLE_SESSION_MAX_AGE")
 	}
 }
