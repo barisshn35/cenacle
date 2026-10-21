@@ -27,7 +27,9 @@ x-images:
 services:
   proxy:
     <<: *hardening
-    build: ./caddy
+    build:
+      context: ../..
+      dockerfile: deploy/compose/caddy/Dockerfile
     image: cenacle-proxy:${CENACLE_VERSION}
     read_only: true
     sysctls:

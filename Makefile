@@ -172,3 +172,4 @@ images: ## Build container images for the local architecture
 	docker build -f server/Dockerfile -t $(IMAGE_PREFIX)server:dev .
 	docker build -f idp/Dockerfile -t $(IMAGE_PREFIX)idp:dev .
 	docker build -f web/Dockerfile -t $(IMAGE_PREFIX)web:dev .
+	docker build -f deploy/compose/caddy/Dockerfile -t $(IMAGE_PREFIX)proxy:dev .
