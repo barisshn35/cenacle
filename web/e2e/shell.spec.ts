@@ -94,8 +94,8 @@ test('brand icons and manifest are served from our origin', async ({ page, reque
   const manifest = await (await request.get('/manifest.webmanifest')).json();
   expect(manifest).toMatchObject({
     name: 'Cenacle',
-    theme_color: '#14342B',
-    background_color: '#0C1A16',
+    theme_color: '#161616',
+    background_color: '#161616',
   });
   for (const href of [...icons, ...manifest.icons.map((i: { src: string }) => i.src)]) {
     const res = await request.get(href!);
