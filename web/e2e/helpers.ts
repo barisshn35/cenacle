@@ -83,6 +83,20 @@ export async function isCoarse(page: Page): Promise<boolean> {
 
 /** Fails on any target below the minimum; annotates fine targets below the 28 px goal. */
 export async function expectTargetSizes(page: Page, testInfo: TestInfo, scope?: string) {
+  // Measure final geometry: open/enter animations (e.g. a dialog's zoom-in)
+  // scale elements while they run.
+  await page
+    .locator(scope ?? 'body')
+    .first()
+    .evaluate((el) =>
+      Promise.all(
+        el
+          .getAnimations({ subtree: true })
+          // Infinite animations (skeleton pulse) never finish; they do not change size.
+          .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+          .map((a) => a.finished.catch(() => {})),
+      ),
+    );
   const coarse = await isCoarse(page);
   const min = coarse ? 44 : 24;
   const goal = coarse ? 44 : 28;
