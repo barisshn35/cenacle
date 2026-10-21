@@ -2,6 +2,17 @@
 # Cenacle web app: static build served by Caddy. Build from the repository root:
 #   docker build -f web/Dockerfile -t cenacle-web .
 
+# Caddy built from source with our patched Go toolchain (see deploy/caddy).
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS caddy
+WORKDIR /src
+COPY deploy/caddy/go.mod deploy/caddy/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY deploy/caddy/main.go ./
+ARG TARGETOS TARGETARCH
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags "-s -w" -o /out/caddy .
+
 FROM --platform=$BUILDPLATFORM node:24.22.0-alpine3.24 AS build
 RUN corepack enable
 WORKDIR /repo
@@ -15,15 +26,16 @@ COPY packages/ packages/
 COPY web/ web/
 RUN pnpm --filter @cenacle/web exec vite build
 
-FROM caddy:2.11.7-alpine
+FROM alpine:3.24.2
+RUN apk add --no-cache ca-certificates mailcap \
+ && adduser -D -H -u 10001 cenacle \
+ && mkdir -p /data /config /etc/caddy \
+ && chown cenacle:cenacle /data /config
+COPY --from=caddy /out/caddy /usr/bin/caddy
+ENV XDG_DATA_HOME=/data \
+    XDG_CONFIG_HOME=/config
 COPY web/deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/web/dist /srv
-# Unprivileged user; port 8080 needs no capabilities.
-# Port 8080 needs no capability; removing the binary's file capability lets the
-# container run with cap_drop ALL and no-new-privileges.
-RUN apk add --no-cache libcap && setcap -r /usr/bin/caddy && apk del libcap \
- && adduser -D -H -u 10001 cenacle \
- && chown -R cenacle:cenacle /data /config
 USER cenacle
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 CMD ["wget", "-qO-", "http://127.0.0.1:8080/healthz"]

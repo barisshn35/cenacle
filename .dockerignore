@@ -10,5 +10,10 @@
 **/playwright-report
 .bin
 server/bin
-deploy
 docs
+# Only the Caddy sources and the proxy config are needed from deploy/.
+deploy/*
+!deploy/caddy
+!deploy/compose
+deploy/compose/*
+!deploy/compose/caddy
