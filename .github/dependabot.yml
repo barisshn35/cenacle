@@ -14,9 +14,20 @@ updates:
     schedule: { interval: weekly }
     # Matches pnpm's minimum release age policy: no brand-new releases.
     cooldown: { default-days: 3 }
+    ignore:
+      # Types follow the Node runtime (.nvmrc, Node 24 LTS); upgrade together on purpose.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
   - package-ecosystem: docker
     directories: [/server, /idp, /web, /deploy/compose/caddy, /deploy/compose/ldap]
     schedule: { interval: weekly }
+    ignore:
+      # Go and Node lines are pinned with go.mod (toolchain) and .nvmrc and upgraded
+      # deliberately; base images only take patch updates automatically.
+      - dependency-name: golang
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: node
+        update-types: [version-update:semver-major, version-update:semver-minor]
