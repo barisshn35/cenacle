@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useId, useState, type KeyboardEvent, type RefObject } from 'react';
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type RefObject,
+} from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@cenacle/ui/lib/utils';
@@ -47,14 +54,21 @@ export function useCommandPicker({
     setQuery(next);
   };
 
+  // The caret goes after the inserted text right after it renders, before
+  // the next key press (a frame later, fast typing would land elsewhere).
+  const caret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (caret.current === null) return;
+    input.current?.focus();
+    input.current?.setSelectionRange(caret.current, caret.current);
+    caret.current = null;
+  });
+
   const pick = (trigger: string) => {
     const next = `/${trigger} `;
+    caret.current = next.length;
     onChange(next);
     setQuery(null);
-    requestAnimationFrame(() => {
-      input.current?.focus();
-      input.current?.setSelectionRange(next.length, next.length);
-    });
   };
 
   /** Handles the picker's keys; true when the key was used. */

@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useId, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type RefObject,
+} from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@cenacle/ui/lib/utils';
@@ -66,20 +73,25 @@ export function useMentionPicker({
     if (next?.query !== state?.query) setActive(0);
   };
 
+  // The caret goes after the inserted name right after it renders, before
+  // the next key press.
+  const caret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (caret.current === null) return;
+    input.current?.focus();
+    input.current?.setSelectionRange(caret.current, caret.current);
+    caret.current = null;
+  });
+
   const pick = (person: Mentioned) => {
     if (!state) return;
-    const el = input.current;
-    const caret = el?.selectionStart ?? value.length;
+    const end = input.current?.selectionStart ?? value.length;
     const inserted = `@${person.display_name} `;
-    const next = value.slice(0, state.start) + inserted + value.slice(caret);
+    const next = value.slice(0, state.start) + inserted + value.slice(end);
     if (!picked.current.some((p) => p.id === person.id)) picked.current.push(person);
+    caret.current = state.start + inserted.length;
     onChange(next);
     setState(null);
-    requestAnimationFrame(() => {
-      const pos = state.start + inserted.length;
-      el?.focus();
-      el?.setSelectionRange(pos, pos);
-    });
   };
 
   /** Handles the picker's keys; true when the key was used. */
