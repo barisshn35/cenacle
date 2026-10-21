@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import { expect, test } from '@playwright/test';
-import { trackExternalRequests } from './helpers';
+import { trackExternalRequests, mockSession } from './helpers';
+
+// The app needs a session; the chat server is not running in these tests.
+test.beforeEach(({ page }) => mockSession(page));
 
 test('no requests leave our origin (no CDN, fonts or telemetry)', async ({ page }) => {
   const external = trackExternalRequests(page);

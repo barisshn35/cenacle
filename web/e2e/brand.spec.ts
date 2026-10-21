@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import { expect, test } from '@playwright/test';
+import { mockSession } from './helpers';
+
+// The app needs a session; the chat server is not running in these tests.
+test.beforeEach(({ page }) => mockSession(page));
 
 for (const theme of ['light', 'dark'] as const) {
   test(`brand tokens meet their contrast thresholds (${theme})`, async ({ page }) => {

@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 import { expect, test } from '@playwright/test';
-import { VARIANTS, expectNoAxeViolations, expectTargetSizes, isCoarse } from './helpers';
+import {
+  VARIANTS,
+  expectNoAxeViolations,
+  expectTargetSizes,
+  isCoarse,
+  mockSession,
+} from './helpers';
+
+// The app needs a session; the chat server is not running in these tests.
+test.beforeEach(({ page }) => mockSession(page));
 
 test.describe('target size (WCAG 2.5.8 / project rule)', () => {
   test('pointer emulation matches the project', async ({ page }, testInfo) => {

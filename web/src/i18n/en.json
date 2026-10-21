@@ -58,10 +58,40 @@
     "composerPlaceholder": "Message #{{channel}}",
     "composerDisabled": "Sending messages is not available yet.",
     "notAvailable": "Not available yet",
-    "settings": "Settings",
-    "you": "You"
+    "settings": "Settings"
   },
   "notFound": {
     "home": "Go to Cenacle"
+  },
+  "auth": {
+    "loading": "Loading Cenacle…",
+    "title": "Sign in to Cenacle",
+    "subtitle": "Use your Cenacle ID account to continue.",
+    "continue": "Continue with Cenacle ID",
+    "help": "No account yet? Ask your administrator to create one.",
+    "signOut": "Sign out",
+    "signOutFailed": "Signing out did not work. Check your connection and try again.",
+    "errors": {
+      "cancelled": {
+        "title": "Sign-in was cancelled.",
+        "reason": "You left Cenacle ID before signing in.",
+        "action": "Continue when you are ready."
+      },
+      "expired": {
+        "title": "This sign-in has expired.",
+        "reason": "A sign-in works once and for 15 minutes.",
+        "action": "Start again with the button below."
+      },
+      "failed": {
+        "title": "Sign-in could not be completed.",
+        "reason": "The answer from Cenacle ID could not be verified.",
+        "action": "Try again. If it keeps happening, give your administrator the error code."
+      },
+      "unavailable": {
+        "title": "Cenacle ID can't be reached right now.",
+        "reason": "The sign-in service is starting up or unreachable.",
+        "action": "Try again in a moment."
+      }
+    }
   }
 }

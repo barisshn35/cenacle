@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 const port = Number(process.env.WEB_PORT ?? 5173);
+// The chat server, reached through this dev server so the app, its API and
+// the session cookie share one origin (as behind the production proxy).
+const api = process.env.CENACLE_DEV_API ?? 'http://127.0.0.1:8180';
+const proxy = { '/api': { target: api } };
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -11,11 +15,13 @@ export default defineConfig({
     host: '127.0.0.1',
     port,
     strictPort: true,
+    proxy,
   },
   preview: {
     host: '127.0.0.1',
     port: port + 1,
     strictPort: true,
+    proxy,
   },
   build: {
     target: 'es2023',

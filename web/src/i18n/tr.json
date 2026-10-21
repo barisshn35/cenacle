@@ -58,10 +58,40 @@
     "composerPlaceholder": "#{{channel}} kanalına mesaj yaz",
     "composerDisabled": "Mesaj gönderme henüz kullanılamıyor.",
     "notAvailable": "Henüz kullanılamıyor",
-    "settings": "Ayarlar",
-    "you": "Sen"
+    "settings": "Ayarlar"
   },
   "notFound": {
     "home": "Cenacle'a git"
+  },
+  "auth": {
+    "loading": "Cenacle yükleniyor…",
+    "title": "Cenacle'a giriş yap",
+    "subtitle": "Devam etmek için Cenacle ID hesabını kullan.",
+    "continue": "Cenacle ID ile devam et",
+    "help": "Hesabın yok mu? Yöneticinden bir hesap açmasını iste.",
+    "signOut": "Çıkış yap",
+    "signOutFailed": "Çıkış yapılamadı. Bağlantını kontrol edip tekrar dene.",
+    "errors": {
+      "cancelled": {
+        "title": "Giriş iptal edildi.",
+        "reason": "Giriş yapmadan Cenacle ID'den ayrıldın.",
+        "action": "Hazır olduğunda devam et."
+      },
+      "expired": {
+        "title": "Bu girişin süresi doldu.",
+        "reason": "Bir giriş bir kez ve 15 dakika boyunca geçerlidir.",
+        "action": "Aşağıdaki düğmeyle yeniden başla."
+      },
+      "failed": {
+        "title": "Giriş tamamlanamadı.",
+        "reason": "Cenacle ID'den gelen yanıt doğrulanamadı.",
+        "action": "Tekrar dene. Sorun sürerse hata kodunu yöneticine ilet."
+      },
+      "unavailable": {
+        "title": "Cenacle ID'ye şu an ulaşılamıyor.",
+        "reason": "Giriş hizmeti başlatılıyor veya erişilemiyor.",
+        "action": "Biraz sonra tekrar dene."
+      }
+    }
   }
 }

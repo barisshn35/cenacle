@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run --passWithNoTests",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e-stack": "playwright test -c playwright.stack.config.ts"
   },
   "dependencies": {
     "@cenacle/core": "workspace:*",

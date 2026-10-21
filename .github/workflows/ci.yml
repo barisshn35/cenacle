@@ -119,10 +119,10 @@ jobs:
       - run: pnpm build
 
   test-e2e:
-    name: test / e2e (target size, a11y, OIDC)
+    name: test / e2e (target size, a11y, OIDC, sign-in)
     needs: lint-js
     runs-on: ubuntu-24.04
-    # Cenacle ID end-to-end tests run the IdP against a real PostgreSQL.
+    # Cenacle ID and the full sign-in run against real PostgreSQL and Valkey.
     services:
       postgres:
         image: postgres:18.6-alpine3.24
@@ -134,10 +134,32 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U cenacle_idp -d cenacle_idp_test"
           --health-interval 5s --health-timeout 3s --health-retries 20
+      postgres-chat:
+        image: postgres:18.6-alpine3.24
+        env:
+          POSTGRES_USER: cenacle_chat
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: cenacle_chat_test
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U cenacle_chat -d cenacle_chat_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      valkey:
+        image: valkey/valkey:9.0.6-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       IDP_TEST_DATABASE_URL: postgres://cenacle_idp:ci-only-password@127.0.0.1:5432/cenacle_idp_test
+      CENACLE_TEST_DATABASE_URL: postgres://cenacle_chat:ci-only-password@127.0.0.1:5433/cenacle_chat_test?sslmode=disable
+      CENACLE_VALKEY_ADDR: 127.0.0.1:6379
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
       - run: corepack enable
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -147,6 +169,7 @@ jobs:
       - run: pnpm --filter @cenacle/web exec playwright install --with-deps chromium
       - run: pnpm --filter @cenacle/web test:e2e
       - run: pnpm --filter @cenacle/idp test:e2e
+      - run: pnpm --filter @cenacle/web test:e2e-stack
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

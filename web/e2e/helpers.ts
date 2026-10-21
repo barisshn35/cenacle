@@ -144,3 +144,38 @@ export function trackExternalRequests(page: Page): string[] {
   });
   return external;
 }
+
+/** A signed-in session as GET /api/session returns it. */
+export const SESSION = {
+  user: {
+    id: '01a15dab-33d6-722d-aa40-6f2370b89146',
+    email: 'deniz@example.com',
+    email_verified: true,
+    display_name: 'Deniz Kaya',
+  },
+  created_at: '2026-10-21T08:00:00Z',
+  expires_at: '2026-11-20T08:00:00Z',
+  idle_timeout_seconds: 604800,
+};
+
+/**
+ * Answers the session API in the browser, so app tests run without the chat
+ * server: signed in (default) or signed out (null).
+ */
+export async function mockSession(page: Page, session: typeof SESSION | null = SESSION) {
+  await page.route('**/api/session', (route) =>
+    session
+      ? route.fulfill({ json: session, headers: { 'cache-control': 'no-store' } })
+      : route.fulfill({
+          status: 401,
+          contentType: 'application/problem+json',
+          body: JSON.stringify({
+            type: 'about:blank',
+            title: 'Unauthorized',
+            status: 401,
+            code: 'unauthenticated',
+            request_id: 'REQ-TEST',
+          }),
+        }),
+  );
+}

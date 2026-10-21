@@ -3,6 +3,7 @@ import {
   ChevronDownIcon,
   HashIcon,
   LockIcon,
+  LogOutIcon,
   MegaphoneIcon,
   SearchIcon,
   SettingsIcon,
@@ -26,9 +27,12 @@ import {
 import { Button } from '@cenacle/ui/components/button';
 import { cn } from '@cenacle/ui/lib/utils';
 import { Logo } from '@cenacle/ui/brand';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
 import { categories, directMessages, workspaces, type ChannelKind } from '../../lib/sample-data';
 import { useLayout } from '../../stores/layout';
 import { PresenceIndicator } from './presence';
+import { useSession } from '../auth/session';
+import { initials, useSignOut } from '../auth/sign-out';
 
 const channelIcon: Record<ChannelKind, typeof HashIcon> = {
   public: HashIcon,
@@ -160,27 +164,50 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="flex items-center gap-2 px-1">
-          <span className="relative flex size-8 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
-            <span aria-hidden>YB</span>
-            <PresenceIndicator presence="online" className="absolute -right-1 -bottom-1" />
-          </span>
-          <div className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span className="truncate text-sm font-medium">{t('shell.you')}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {t('shell.presence.online')}
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('shell.settings')}
-            onClick={notAvailable}
-          >
-            <SettingsIcon strokeWidth={1.75} />
-          </Button>
-        </div>
+        <CurrentUser onSettings={notAvailable} />
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function CurrentUser({ onSettings }: { onSettings: () => void }) {
+  const { t } = useTranslation();
+  const { user } = useSession();
+  const signOut = useSignOut();
+  const name = user.display_name || user.email;
+
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
+        <span aria-hidden>{initials(name)}</span>
+        <PresenceIndicator presence="online" className="absolute -right-1 -bottom-1" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className="truncate text-sm font-medium" data-testid="current-user">
+          {name}
+        </span>
+        <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+      </div>
+      <Button variant="ghost" size="icon-sm" aria-label={t('shell.settings')} onClick={onSettings}>
+        <SettingsIcon strokeWidth={1.75} />
+      </Button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('auth.signOut')}
+              disabled={signOut.isPending}
+              aria-busy={signOut.isPending || undefined}
+              onClick={() => signOut.mutate()}
+            />
+          }
+        >
+          <LogOutIcon strokeWidth={1.75} />
+        </TooltipTrigger>
+        <TooltipContent side="top">{t('auth.signOut')}</TooltipContent>
+      </Tooltip>
+    </div>
   );
 }

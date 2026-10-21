@@ -145,6 +145,10 @@ test-js: node_modules
 test-e2e: node_modules ## Run Playwright tests (target size, a11y, no external requests)
 	pnpm --filter @cenacle/web test:e2e
 
+.PHONY: test-e2e-stack
+test-e2e-stack: node_modules ## Sign in end to end: Cenacle ID, chat server and web app (needs make up)
+	pnpm --filter @cenacle/web test:e2e-stack
+
 .PHONY: licenses
 licenses: licenses-go licenses-js ## Check dependency licenses against the policy
 
