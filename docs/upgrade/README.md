@@ -39,6 +39,16 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.6.0)
+
+- Chat migration `00007_workspaces` creates the default workspace ("Cenacle") and moves
+  every channel, category and user into it; the current administrator becomes its owner.
+  Reversible while only the default workspace exists (`migrate down` drops workspaces,
+  roles and invitations; channels of other workspaces would be lost).
+- `CENACLE_ADMIN_EMAIL` now names the instance administrator (creates workspaces, owns the
+  default one). Nothing to change.
+- Optional: `IDP_LOGIN_RATE_LIMIT` (default 10) for Cenacle ID in `.env.prod`.
+
 ### 0.5.0
 
 - Chat migration `00006_channel_and_message_management` adds edit and delete times to

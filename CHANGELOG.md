@@ -8,6 +8,32 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Workspaces: the rail lists them, `/w/<id>` opens one. Everything that existed moves to
+  the default workspace, which everyone joins.
+- Roles per workspace (owner, admin, member): owners and admins create channels, organize
+  categories and manage channels; owners manage the owner role; at least one owner stays.
+- Invitation links with validity and use limit; `/invite/<token>` joins a workspace.
+- Channel managers appoint other managers.
+- `IDP_LOGIN_RATE_LIMIT` sets Cenacle ID's sign-in attempts per address and minute.
+
+### Changed
+
+- `CENACLE_ADMIN_EMAIL` names the instance administrator, who creates workspaces and owns
+  the default workspace.
+- API: listing and creating within a workspace take `workspace_id`; the session reports
+  `create_workspaces` instead of `create_channels`.
+
+### Fixed
+
+- Live messages in the channels of a workspace one just joined arrive without a reconnect.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-060): reversible migration
+  `00007_workspaces`.
+
 ## [0.5.0] - 2026-10-21
 
 Editing and deleting messages, channel settings and archiving, categories, quick switcher.

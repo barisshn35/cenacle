@@ -29,13 +29,15 @@ Back up `secrets/` and `.env.prod` together with the databases
 Set these in `.env.prod` before the first start (they can be changed later; the server
 applies them at every start):
 
-| Setting                        | Default   | Meaning                                                                                                                                    |
-| ------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CENACLE_ADMIN_EMAIL`          | (none)    | The Cenacle ID account (verified e-mail address) that may create channels and post in the announcement channel. One account; roles follow. |
-| `CENACLE_ANNOUNCEMENT_CHANNEL` | `Central` | Created for everyone; nobody can leave it and only the administrator posts there. Empty: no announcement channel.                          |
-| `CENACLE_DEFAULT_CHANNELS`     | `General` | Comma-separated channels created for everyone. People can leave them and join again.                                                       |
+| Setting                        | Default   | Meaning                                                                                                                            |
+| ------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `CENACLE_ADMIN_EMAIL`          | (none)    | The Cenacle ID account (verified e-mail address) of the instance administrator: creates workspaces and owns the default workspace. |
+| `CENACLE_ANNOUNCEMENT_CHANNEL` | `Central` | Created for everyone; nobody can leave it and only the administrator posts there. Empty: no announcement channel.                  |
+| `CENACLE_DEFAULT_CHANNELS`     | `General` | Comma-separated channels created for everyone. People can leave them and join again.                                               |
 
-Everyone who signs in becomes a member of these channels, also later. Changing
+These channels belong to the default workspace. Everyone who signs in joins the default
+workspace and these channels, also later. Inside a workspace, owners and admins create
+channels and invite people with links; see the workspace menu in the sidebar. Changing
 `CENACLE_ADMIN_EMAIL` moves the administrator flag when the new account signs in; the old
 account loses it at the next start.
 
