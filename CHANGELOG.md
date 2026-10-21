@@ -8,6 +8,34 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-21
+
+First release with published container images.
+
+### Added
+
+- Container images on GHCR (`ghcr.io/barisshn35/cenacle-{server,idp,web,proxy}`) for
+  amd64 and arm64, with build provenance and an SBOM, published by CI for version tags
+  only after every check has passed.
+- `CENACLE_TLS_MODE` for the production proxy: Let's Encrypt (default), your own
+  certificate files, or Caddy's internal CA.
+- Installation and firewall guide (`docs/install`).
+
+### Fixed
+
+- The Go toolchain is pinned to 1.26.10, so CI no longer builds and scans with Go 1.26.0
+  (standard library vulnerabilities reported by govulncheck).
+- `deploy/compose/.env.prod.example` is now part of the repository.
+
+### Changed
+
+- Cenacle ID images build on the native platform (faster arm64 builds).
+- Dependabot proposes only patch updates for versions tied to the runtime (Node, Go).
+
+### Upgrade notes
+
+- No database migrations. Set `CENACLE_VERSION=0.1.1`; optionally add `CENACLE_TLS_MODE`.
+
 ## [0.1.0] - 2026-10-21
 
 First skeleton release. Nothing user-facing beyond a shell with placeholder data.
@@ -43,5 +71,6 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/barisshn35/cenacle/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/barisshn35/cenacle/releases/tag/v0.1.0

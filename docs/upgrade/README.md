@@ -39,6 +39,11 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.1.1
+
+No database migrations. Set `CENACLE_VERSION=0.1.1` and, if you do not use Let's Encrypt,
+`CENACLE_TLS_MODE` (see the [installation guide](../install/README.md)).
+
 ### 0.1.0
 
 Baseline release: one empty migration (`00001_init`) establishes the migration history.
