@@ -9,6 +9,8 @@ import { useConnection } from './connection';
 import { useSendMessage } from './send';
 
 const MAX_LENGTH = 4000;
+/** The text area grows up to this height (px), then scrolls. */
+const MAX_HEIGHT = 240;
 /** Workspaces arrive in v0.6; until then drafts belong to one implicit workspace. */
 const WORKSPACE = 'default';
 
@@ -84,12 +86,14 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
     return () => clearTimeout(timer);
   }, [body, channelId]);
 
-  // Grow with the text up to a limit.
+  // Grow with the text up to a limit; scroll only beyond it.
   useEffect(() => {
     const el = input.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
+    const height = Math.min(el.scrollHeight, MAX_HEIGHT);
+    el.style.height = `${height}px`;
+    el.style.overflowY = el.scrollHeight > MAX_HEIGHT ? 'auto' : 'hidden';
   }, [body]);
 
   const trimmed = body.trim();
@@ -115,7 +119,7 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
   return (
     <footer className="shrink-0 px-4 pb-4">
       <form
-        className="relative mx-auto max-w-3xl"
+        className="mx-auto max-w-3xl"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -124,27 +128,25 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
         <label htmlFor="composer" className="sr-only">
           {label}
         </label>
-        <textarea
-          id="composer"
-          ref={input}
-          rows={1}
-          value={body}
-          onChange={(e) => change(e.target.value)}
-          onKeyDown={onKeyDown}
-          aria-describedby="composer-hint"
-          aria-invalid={tooLong || undefined}
-          placeholder={label}
-          className="block min-h-11 w-full resize-none rounded-xl border border-input bg-card py-3 pr-14 pl-4 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-[15px]"
-        />
-        <Button
-          type="submit"
-          size="icon"
-          aria-label={t('chat.send')}
-          disabled={!canSend}
-          className="absolute right-2 bottom-1.5"
-        >
-          <SendHorizontalIcon strokeWidth={1.75} />
-        </Button>
+        {/* The frame holds the text and the send button side by side, so a
+            scrollbar of long text never runs under the button. */}
+        <div className="flex items-end gap-2 rounded-xl border border-input bg-card py-1.5 pr-1.5 pl-4 shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-aria-invalid:border-destructive">
+          <textarea
+            id="composer"
+            ref={input}
+            rows={1}
+            value={body}
+            onChange={(e) => change(e.target.value)}
+            onKeyDown={onKeyDown}
+            aria-describedby="composer-hint"
+            aria-invalid={tooLong || undefined}
+            placeholder={label}
+            className="block min-h-8 flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
+          />
+          <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
+            <SendHorizontalIcon strokeWidth={1.75} />
+          </Button>
+        </div>
         <div id="composer-hint" className="mt-1.5 flex justify-between gap-2">
           <ConnectionNotice />
           {body.length > MAX_LENGTH - 200 && (
