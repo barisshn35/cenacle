@@ -3,7 +3,7 @@
 #   docker build -f server/Dockerfile -t cenacle-server .
 
 # Cross-compile on the build host's native platform (fast multi-arch builds).
-FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine3.24 AS build
 WORKDIR /src
 COPY server/go.mod server/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
