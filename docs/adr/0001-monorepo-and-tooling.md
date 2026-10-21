@@ -44,12 +44,13 @@ record covers the tooling and the decisions made while implementing v0.1.
    is the working default in `LICENSE` and the SPDX headers. Switching (e.g. to AGPL-3.0)
    only changes those files, because every dependency already follows the policy below.
 9. **Allowed dependency licenses:** MIT, MIT-0, ISC, BSD-2/3-Clause, Apache-2.0, MPL-2.0,
-   0BSD, Unlicense. Enforced by `make licenses` (Go: go-licenses, JS: `scripts/check-licenses.mjs`).
+   0BSD, Unlicense, BlueOak-1.0.0 (OSI-approved permissive; added in v0.2 for `glob` and
+   related packages). Enforced by `make licenses` (Go: go-licenses, JS: `scripts/check-licenses.mjs`).
    Explicit exceptions:
    - **Fonts:** Geist and Geist Mono (SIL OFL-1.1), bundled from Fontsource. OFL permits
      bundling with any software; only those two packages are allowed.
    - **Development-only data/tooling licenses** (never shipped): CC-BY-4.0
-     (e.g. `caniuse-lite`), CC0-1.0, BlueOak-1.0.0, Python-2.0.
+     (e.g. `caniuse-lite`), CC0-1.0, Python-2.0.
    - **Separate processes are not linked code:** Caddy (Apache-2.0) and, from v0.12, Garage
      (AGPL-3.0) run as their own services and are reached over HTTP/S3.
 

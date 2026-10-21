@@ -8,32 +8,70 @@ import { z } from 'zod';
  * cookie domain always come from configuration and are never hard-coded, so
  * Cenacle ID can be installed under any domain.
  */
-const schema = z.object({
+const databaseSchema = z.object({
+  IDP_DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  IDP_DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+const serverSchema = databaseSchema.extend({
   IDP_ENV: z.enum(['development', 'production']).default('development'),
   IDP_HOST: z.string().min(1).default('127.0.0.1'),
   IDP_PORT: z.coerce.number().int().min(1).max(65535).default(8190),
   IDP_LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-  /** Public issuer URL, e.g. https://id.example.com. Used from v0.2 (OIDC). */
-  IDP_ISSUER: z.url({ protocol: /^https?$/ }).default('http://localhost:8190'),
+  /** Public issuer URL, e.g. https://id.example.com (no trailing slash). */
+  IDP_ISSUER: z
+    .url({ protocol: /^https?$/ })
+    .default('http://localhost:8190')
+    .refine((v) => !v.endsWith('/'), 'must not end with a slash'),
   /** Cookie domain for IdP sessions; empty means host-only cookies. */
   IDP_COOKIE_DOMAIN: z.string().default(''),
-  IDP_DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-  IDP_DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
+  /** Cookie signing keys, newest first, separated by newlines or commas. */
+  IDP_COOKIE_KEYS: z
+    .string()
+    .transform((v) =>
+      v
+        .split(/[\n,]/)
+        .map((k) => k.trim())
+        .filter(Boolean),
+    )
+    .refine((keys) => keys.length > 0, 'at least one key is required')
+    .refine((keys) => keys.every((k) => k.length >= 32), 'each key needs at least 32 characters'),
+  /** Base64 encoded 32-byte key that encrypts token signing keys at rest. */
+  IDP_KEY_ENCRYPTION_KEY: z
+    .string()
+    .transform((v) => Buffer.from(v.trim(), 'base64'))
+    .refine((b) => b.length === 32, 'must be 32 bytes, base64 encoded'),
+  /** JSON file with the registered OIDC clients. */
+  IDP_CLIENTS_FILE: z.string().min(1),
+  /** Trust X-Forwarded-* headers (set when running behind the Caddy proxy). */
+  IDP_TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   IDP_READY_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2000),
   IDP_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(100).max(120_000).default(15_000),
 });
 
-export type Config = {
+export interface DatabaseConfig {
+  url: string;
+  poolMax: number;
+}
+
+export interface Config {
   env: 'development' | 'production';
   host: string;
   port: number;
-  logLevel: z.infer<typeof schema>['IDP_LOG_LEVEL'];
+  logLevel: z.infer<typeof serverSchema>['IDP_LOG_LEVEL'];
   issuer: string;
   cookieDomain: string;
-  database: { url: string; poolMax: number };
+  cookieKeys: string[];
+  keyEncryptionKey: Buffer;
+  clientsFile: string;
+  trustProxy: boolean;
+  database: DatabaseConfig;
   readyTimeoutMs: number;
   shutdownTimeoutMs: number;
-};
+}
 
 export class ConfigError extends Error {
   constructor(readonly issues: string[]) {
@@ -45,11 +83,15 @@ export class ConfigError extends Error {
 type Env = Record<string, string | undefined>;
 type ReadFile = (path: string) => string;
 
-/** Resolves `<NAME>_FILE` indirections for the keys of the schema. */
-function resolveFiles(env: Env, readFile: ReadFile): { values: Env; issues: string[] } {
+/** Resolves `<NAME>_FILE` indirections for the given keys. */
+function resolveFiles(
+  keys: string[],
+  env: Env,
+  readFile: ReadFile,
+): { values: Env; issues: string[] } {
   const values: Env = {};
   const issues: string[] = [];
-  for (const key of Object.keys(schema.shape)) {
+  for (const key of keys) {
     const direct = env[key];
     const file = env[`${key}_FILE`];
     if (direct !== undefined && file !== undefined) {
@@ -67,11 +109,8 @@ function resolveFiles(env: Env, readFile: ReadFile): { values: Env; issues: stri
   return { values, issues };
 }
 
-export function loadConfig(
-  env: Env = process.env,
-  readFile: ReadFile = (p) => readFileSync(p, 'utf8'),
-): Config {
-  const { values, issues } = resolveFiles(env, readFile);
+function parse<S extends z.ZodObject>(schema: S, env: Env, readFile: ReadFile): z.infer<S> {
+  const { values, issues } = resolveFiles(Object.keys(schema.shape), env, readFile);
   const parsed = schema.safeParse(values);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
@@ -79,8 +118,23 @@ export function loadConfig(
     }
   }
   if (issues.length > 0 || !parsed.success) throw new ConfigError(issues);
+  return parsed.data;
+}
 
-  const c = parsed.data;
+const defaultReadFile: ReadFile = (p) => readFileSync(p, 'utf8');
+
+/** Database settings only: enough for maintenance commands such as migrations. */
+export function loadDatabaseConfig(
+  env: Env = process.env,
+  readFile: ReadFile = defaultReadFile,
+): DatabaseConfig {
+  const c = parse(databaseSchema, env, readFile);
+  return { url: c.IDP_DATABASE_URL, poolMax: c.IDP_DATABASE_POOL_MAX };
+}
+
+/** Full configuration of the identity server. */
+export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultReadFile): Config {
+  const c = parse(serverSchema, env, readFile);
   return {
     env: c.IDP_ENV,
     host: c.IDP_HOST,
@@ -88,6 +142,10 @@ export function loadConfig(
     logLevel: c.IDP_LOG_LEVEL,
     issuer: c.IDP_ISSUER,
     cookieDomain: c.IDP_COOKIE_DOMAIN,
+    cookieKeys: c.IDP_COOKIE_KEYS,
+    keyEncryptionKey: c.IDP_KEY_ENCRYPTION_KEY,
+    clientsFile: c.IDP_CLIENTS_FILE,
+    trustProxy: c.IDP_TRUST_PROXY,
     database: { url: c.IDP_DATABASE_URL, poolMax: c.IDP_DATABASE_POOL_MAX },
     readyTimeoutMs: c.IDP_READY_TIMEOUT_MS,
     shutdownTimeoutMs: c.IDP_SHUTDOWN_TIMEOUT_MS,

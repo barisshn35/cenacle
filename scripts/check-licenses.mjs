@@ -22,9 +22,11 @@ const PROD_ALLOWED = new Set([
   'MPL-2.0',
   '0BSD',
   'Unlicense',
+  // Blue Oak Model License: OSI-approved permissive license (used by glob, minimatch, ...).
+  'BlueOak-1.0.0',
 ]);
 
-const DEV_EXTRA = new Set(['CC-BY-4.0', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0']);
+const DEV_EXTRA = new Set(['CC-BY-4.0', 'CC0-1.0', 'Python-2.0']);
 
 const FONT_PACKAGES = new Set(['@fontsource-variable/geist', '@fontsource-variable/geist-mono']);
 

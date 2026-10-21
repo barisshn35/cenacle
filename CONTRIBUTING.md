@@ -52,7 +52,7 @@ make lint test licenses build
 ## Dependencies and licenses
 
 Only permissively licensed dependencies are accepted: MIT, BSD, ISC, Apache-2.0,
-MPL-2.0 (file-level), 0BSD, Unlicense. Commercial/closed, unclear-license and linked
+MPL-2.0 (file-level), 0BSD, Unlicense, BlueOak-1.0.0. Commercial/closed, unclear-license and linked
 GPL/AGPL libraries are not accepted. `make licenses` enforces this policy and CI fails
 on a violation. See `docs/adr/0001-monorepo-and-tooling.md` for the exact allow lists.
 
