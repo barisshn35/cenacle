@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogTitle } from '@cenacle/ui/components/dialog';
 import { cn } from '@cenacle/ui/lib/utils';
 import { ChannelIcon } from './channel-icon';
+import { useActiveWorkspace } from './active-workspace';
 import { directoryQuery, type Channel } from './data';
 import { useQuickSwitcher } from './quick-switcher-state';
 
@@ -24,7 +25,8 @@ export function QuickSwitcher() {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const listId = useId();
-  const directory = useQuery({ ...directoryQuery, enabled: open });
+  const { id: workspaceId } = useActiveWorkspace();
+  const directory = useQuery({ ...directoryQuery(workspaceId), enabled: open && !!workspaceId });
   const navigate = useNavigate();
 
   const results = useMemo(() => {

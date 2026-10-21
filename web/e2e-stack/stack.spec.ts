@@ -247,3 +247,40 @@ test('edits and deletions reach others live; Undo restores', async ({ browser })
   await author.getByRole('button', { name: 'Undo' }).click();
   await expect(reader.getByText(`son hali ${stamp}`)).toBeVisible();
 });
+
+test('a workspace by invitation: create, invite, join, talk', async ({ browser }) => {
+  test.setTimeout(90_000); // two sign-ins and a whole flow
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const admin = await open(EMAIL);
+  const member = await open(SECOND.email);
+  const name = `Ekip ${Date.now().toString(36)}`;
+
+  await admin.getByRole('button', { name: 'Add a workspace' }).click();
+  await admin.getByLabel('New workspace').fill(name);
+  await admin.getByRole('button', { name: 'Create workspace' }).click();
+  await expect(admin.getByRole('button', { name: `Workspace menu: ${name}` })).toBeVisible();
+  await admin.getByLabel('Message General').waitFor();
+
+  await admin.getByRole('button', { name: `Workspace menu: ${name}` }).click();
+  await admin.getByRole('menuitem', { name: 'Invite people' }).click();
+  await admin.getByRole('button', { name: 'Create link' }).click();
+  const link = await admin.getByLabel('Invitation link').inputValue();
+  await admin.keyboard.press('Escape');
+
+  // The other user does not have the workspace until they follow the link.
+  const rail = member.getByRole('navigation', { name: 'Workspaces' });
+  await expect(rail.getByRole('link', { name })).toHaveCount(0);
+  await member.goto(link);
+  await member.getByRole('button', { name: `Join ${name}` }).click();
+  await expect(rail.getByRole('link', { name })).toHaveAttribute('aria-current', 'page');
+  await member.getByLabel('Message General').fill('selam ekip');
+  await member.getByLabel('Message General').press('Enter');
+  await expect(admin.getByText('selam ekip')).toBeVisible();
+});

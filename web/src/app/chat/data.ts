@@ -24,12 +24,16 @@ export const channelsQuery = queryOptions({
   staleTime: 5 * 60_000,
 });
 
-/** Every channel, with membership (browsing). */
-export const directoryQuery = queryOptions({
-  queryKey: ['channels', 'directory'],
-  queryFn: () =>
-    apiFetch<{ channels: Channel[] }>('/api/channels/directory').then((r) => r.channels),
-});
+/** The channels of a workspace the user can see, with membership (browsing). */
+export const directoryQuery = (workspaceId: string | undefined) =>
+  queryOptions({
+    queryKey: ['channels', 'directory', workspaceId],
+    queryFn: () =>
+      apiFetch<{ channels: Channel[] }>(`/api/channels/directory?workspace_id=${workspaceId}`).then(
+        (r) => r.channels,
+      ),
+    enabled: !!workspaceId,
+  });
 
 const json = (body: unknown): RequestInit => ({
   method: 'POST',
@@ -59,13 +63,18 @@ export const setChannelCategory = (id: string, categoryId: string | null) =>
     method: 'PUT',
   });
 
-export const categoriesQuery = queryOptions({
-  queryKey: ['categories'],
-  queryFn: () => apiFetch<{ categories: Category[] }>('/api/categories').then((r) => r.categories),
-  staleTime: 5 * 60_000,
-});
-export const createCategory = (name: string) =>
-  apiFetch<Category>('/api/categories', json({ name }));
+export const categoriesQuery = (workspaceId: string | undefined) =>
+  queryOptions({
+    queryKey: ['categories', workspaceId],
+    queryFn: () =>
+      apiFetch<{ categories: Category[] }>(`/api/categories?workspace_id=${workspaceId}`).then(
+        (r) => r.categories,
+      ),
+    staleTime: 5 * 60_000,
+    enabled: !!workspaceId,
+  });
+export const createCategory = (workspaceId: string, name: string) =>
+  apiFetch<Category>('/api/categories', json({ workspace_id: workspaceId, name }));
 export const updateCategory = (id: string, update: { name?: string; position?: number }) =>
   apiFetch<Category>(`/api/categories/${id}`, { ...json(update), method: 'PATCH' });
 export const deleteCategory = (id: string) =>
@@ -86,15 +95,21 @@ export const membersQuery = (channelId: string) =>
       apiFetch<{ members: Member[] }>(`/api/channels/${channelId}/members`).then((r) => r.members),
   });
 
-export const peopleQuery = (q: string) =>
+export const peopleQuery = (workspaceId: string, q: string) =>
   queryOptions({
-    queryKey: ['people', q],
+    queryKey: ['people', workspaceId, q],
     queryFn: () =>
-      apiFetch<{ users: Person[] }>(`/api/users?q=${encodeURIComponent(q)}&limit=20`).then(
-        (r) => r.users,
-      ),
+      apiFetch<{ users: Person[] }>(
+        `/api/users?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}&limit=20`,
+      ).then((r) => r.users),
     enabled: q.trim() !== '',
     staleTime: 30_000,
+  });
+
+export const setChannelMemberRole = (channelId: string, userId: string, role: Member['role']) =>
+  apiFetch<Member>(`/api/channels/${channelId}/members/${userId}`, {
+    ...json({ role }),
+    method: 'PATCH',
   });
 
 /** Channel lists changed (created, joined, left): reload them. */

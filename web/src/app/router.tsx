@@ -17,6 +17,7 @@ import { SigninPage } from './auth/signin';
 import { sessionQuery, signinSearchFor, validateSigninSearch } from './auth/session';
 import { queryClient } from './query-client';
 import { ChannelIndex } from './chat/channel-index';
+import { InvitePage } from './chat/invite-page';
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -45,6 +46,18 @@ const indexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/',
   component: ChannelIndex,
+});
+
+const workspaceRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/w/$workspaceId',
+  component: ChannelIndex,
+});
+
+const inviteRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/invite/$token',
+  component: InvitePage,
 });
 
 const channelRoute = createRoute({
@@ -85,7 +98,7 @@ const galleryRoute = createRoute({
 
 export const router = createRouter({
   routeTree: rootRoute.addChildren([
-    appRoute.addChildren([indexRoute, channelRoute]),
+    appRoute.addChildren([indexRoute, workspaceRoute, inviteRoute, channelRoute]),
     signinRoute,
     galleryRoute,
   ]),

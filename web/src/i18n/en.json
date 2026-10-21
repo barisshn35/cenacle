@@ -97,7 +97,7 @@
     "offline": "You're offline. Messages you send are kept and can be sent again.",
     "charactersLeft_one": "{{count}} character left",
     "charactersLeft_other": "{{count}} characters left",
-    "noChannels": "There are no channels yet.",
+    "noChannels": "No channels to show yet.",
     "actions": "Message actions",
     "edit": "Edit",
     "editLabel": "Edit message",
@@ -106,7 +106,8 @@
     "edited": "(edited)",
     "deleted": "Message deleted.",
     "deleteFailed": "The message could not be deleted. Try again.",
-    "editFailed": "The change could not be saved. Try again."
+    "editFailed": "The change could not be saved. Try again.",
+    "noChannelsHint": "Open a channel from the list, or browse the channels of this workspace."
   },
   "channels": {
     "kinds": {
@@ -171,7 +172,8 @@
     "archiveTitle": "Archive {{channel}}?",
     "archiveDescription": "Members can still read it, but no one can post, and it leaves the sidebar.",
     "archiveImpact": "Its managers can unarchive it at any time; nothing is deleted.",
-    "archiveConfirm": "Archive channel"
+    "archiveConfirm": "Archive channel",
+    "managerToggle": "Channel manager: {{person}}"
   },
   "categories": {
     "manage": "Edit categories",
@@ -196,5 +198,66 @@
     "notJoined": "Not joined",
     "archived": "Archived",
     "empty": "No channel matches."
+  },
+  "workspaces": {
+    "menu": "Workspace menu: {{workspace}}",
+    "invitePeople": "Invite people",
+    "settings": "Workspace settings",
+    "members": "Members",
+    "leave": "Leave workspace",
+    "leaveTitle": "Leave {{workspace}}?",
+    "leaveDescription": "You leave all its channels too.",
+    "leaveImpact": "You can come back only with a new invitation.",
+    "leaveConfirm": "Leave workspace",
+    "lastOwner": "A workspace keeps at least one owner. Make someone else owner first.",
+    "settingsTitle": "{{workspace}}",
+    "settingsDescription": "Name and members. Owners and admins run the workspace's channels.",
+    "membersDescription": "The people in this workspace.",
+    "name": "Name",
+    "roleOf": "Role of {{person}}",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "removeNamed": "Remove {{person}} from the workspace",
+    "addTitle": "Add a workspace",
+    "addDescription": "Join a workspace with an invitation link, or create a new one.",
+    "joinWithLink": "Invitation link",
+    "linkPlaceholder": "Paste the link you received",
+    "open": "Open",
+    "newName": "New workspace",
+    "create": "Create workspace"
+  },
+  "invites": {
+    "title": "Join {{workspace}}",
+    "subtitle": "You were invited to this Cenacle workspace.",
+    "join": "Join {{workspace}}",
+    "notFoundTitle": "This invitation does not exist.",
+    "notFoundReason": "The link may be incomplete.",
+    "invalidTitle": "This invitation can no longer be used.",
+    "invalidReason": "It has expired, been used up or revoked.",
+    "askAgain": "Ask for a new invitation link.",
+    "dialogTitle": "Invite people to {{workspace}}",
+    "dialogDescription": "Anyone with the link and a Cenacle ID account can join while it is valid.",
+    "expiresIn": "Valid for",
+    "expiry": {
+      "24": "1 day",
+      "168": "7 days",
+      "720": "30 days"
+    },
+    "maxUses": "Can be used",
+    "unlimited": "Unlimited times",
+    "uses_one": "{{count}} time",
+    "uses_other": "{{count}} times",
+    "create": "Create link",
+    "link": "Invitation link",
+    "copy": "Copy",
+    "copied": "Link copied.",
+    "copyFailed": "Copying did not work; select the link and copy it.",
+    "linkHint": "The link is shown only now. Share it only with the people you invite.",
+    "active": "Active links",
+    "summary": "Until {{date}} · used {{uses}}",
+    "revoke": "Revoke"
   }
 }

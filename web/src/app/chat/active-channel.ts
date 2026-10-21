@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
+import { useLastWorkspace } from './active-workspace';
 import { channelsQuery, directoryQuery, type Channel } from './data';
 
 /**
@@ -12,9 +13,11 @@ export function useActiveChannel(): { id: string | undefined; channel: Channel |
   const { channelId } = useParams({ strict: false });
   const channels = useQuery(channelsQuery);
   const listed = channels.data?.find((c) => c.id === channelId);
+  const lastWorkspace = useLastWorkspace((s) => s.id) ?? undefined;
+  const directoryOptions = directoryQuery(lastWorkspace);
   const directory = useQuery({
-    ...directoryQuery,
-    enabled: channels.isSuccess && !!channelId && !listed,
+    ...directoryOptions,
+    enabled: directoryOptions.enabled !== false && channels.isSuccess && !!channelId && !listed,
   });
   const archived = directory.data?.find((c) => c.id === channelId && c.is_member && c.archived);
   return { id: channelId, channel: listed ?? archived };

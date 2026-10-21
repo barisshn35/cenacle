@@ -13,6 +13,7 @@ import { ArchivedNotice } from '../chat/channel-settings';
 import { Composer } from '../chat/composer';
 import { channelsQuery } from '../chat/data';
 import { NotMember } from '../chat/not-member';
+import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { MessageList } from '../chat/message-list';
 import { AppearanceControls } from './appearance-controls';
 
@@ -88,9 +89,29 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
         </>
       ) : id && channelsLoaded ? (
         <NotMember channelId={id} />
-      ) : (
+      ) : id ? (
         <div className="flex-1" />
+      ) : (
+        <NoChannel />
       )}
     </main>
+  );
+}
+
+/** A workspace without channels to open (new, or all left). */
+function NoChannel() {
+  const { t } = useTranslation();
+  const openSwitcher = useQuickSwitcher((s) => s.setOpen);
+  return (
+    <div
+      role="status"
+      className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+    >
+      <p className="font-display text-2xl font-medium">{t('chat.noChannels')}</p>
+      <p className="text-muted-foreground">{t('chat.noChannelsHint')}</p>
+      <Button variant="outline" onClick={() => openSwitcher(true)}>
+        {t('shell.jumpTo')}
+      </Button>
+    </div>
   );
 }

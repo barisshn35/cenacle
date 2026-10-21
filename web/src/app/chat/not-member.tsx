@@ -2,12 +2,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
+import { useActiveWorkspace } from './active-workspace';
 import { directoryQuery, joinChannel, reloadChannels } from './data';
 
 /** A channel the user is not a member of: offer to join, or say it is gone. */
 export function NotMember({ channelId }: { channelId: string }) {
   const { t } = useTranslation();
-  const directory = useQuery(directoryQuery);
+  const { id: workspaceId } = useActiveWorkspace();
+  const directory = useQuery(directoryQuery(workspaceId));
   const queryClient = useQueryClient();
   const join = useMutation({
     mutationFn: () => joinChannel(channelId),

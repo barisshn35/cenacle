@@ -4,6 +4,172 @@
  */
 
 export interface paths {
+  '/api/workspaces': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The user's workspaces, the default one first */
+    get: operations['listWorkspaces'];
+    put?: never;
+    /**
+     * Create a workspace (the instance administrator)
+     * @description The creator becomes its owner; a General channel for everyone is created.
+     */
+    post: operations['createWorkspace'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Rename a workspace (owners and admins) */
+    patch: operations['renameWorkspace'];
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/members': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Members of a workspace with their roles */
+    get: operations['listWorkspaceMembers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/members/{user_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Remove someone from a workspace (owners and admins), or leave it yourself
+     * @description They leave all its channels too. Nobody leaves the default workspace, and the
+     *     last owner cannot leave.
+     */
+    delete: operations['removeWorkspaceMember'];
+    options?: never;
+    head?: never;
+    /**
+     * Change someone's role
+     * @description Admins make members admins and back; only owners grant or take the owner
+     *     role. A workspace always keeps at least one owner.
+     */
+    patch: operations['setWorkspaceRole'];
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/invites': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Invitations that can still be used (owners and admins) */
+    get: operations['listInvites'];
+    put?: never;
+    /** Create an invitation link (owners and admins) */
+    post: operations['createInvite'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/invites/{invite_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        invite_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke an invitation (owners and admins) */
+    delete: operations['revokeInvite'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/invites/{token}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    /** What an invitation leads to */
+    get: operations['getInvite'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/invites/{token}/accept': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Join the workspace of an invitation */
+    post: operations['acceptInvite'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/login': {
     parameters: {
       query?: never;
@@ -131,7 +297,7 @@ export interface paths {
     get: operations['listChannels'];
     put?: never;
     /**
-     * Create a channel (administrator only)
+     * Create a channel (workspace owners and admins)
      * @description The creator becomes a member. A default channel has every user as a
      *     member, also users who sign in for the first time later.
      */
@@ -216,7 +382,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Put a channel in a category (administrator) */
+    /** Put a channel in a category (workspace owners and admins) */
     put: operations['setChannelCategory'];
     post?: never;
     delete?: never;
@@ -277,10 +443,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Channel categories, in order */
+    /** Channel categories of a workspace, in order */
     get: operations['listCategories'];
     put?: never;
-    /** Create a category (administrator) */
+    /** Create a category (workspace owners and admins) */
     post: operations['createCategory'];
     delete?: never;
     options?: never;
@@ -300,11 +466,11 @@ export interface paths {
     get?: never;
     put?: never;
     post?: never;
-    /** Delete a category (administrator); its channels stay, without category */
+    /** Delete a category (workspace owners and admins); its channels stay */
     delete: operations['deleteCategory'];
     options?: never;
     head?: never;
-    /** Rename or move a category (administrator) */
+    /** Rename or move a category (workspace owners and admins) */
     patch: operations['updateCategory'];
     trace?: never;
   };
@@ -352,7 +518,8 @@ export interface paths {
     delete: operations['removeChannelMember'];
     options?: never;
     head?: never;
-    patch?: never;
+    /** Make a member a channel manager, or back (channel managers) */
+    patch: operations['setChannelMemberRole'];
     trace?: never;
   };
   '/api/users': {
@@ -362,7 +529,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Find people by name or e-mail address */
+    /** Find members of a workspace by name or e-mail address */
     get: operations['searchUsers'];
     put?: never;
     post?: never;
@@ -379,7 +546,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Channels the user can see, with membership */
+    /** Channels of a workspace the user can see, with membership */
     get: operations['listChannelDirectory'];
     put?: never;
     post?: never;
@@ -508,9 +675,43 @@ export interface components {
       /** @description Seconds until the ticket expires. */
       expires_in: number;
     };
+    Workspace: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @description Everyone who signs in belongs to the default workspace. */
+      is_default: boolean;
+      /** @enum {string} */
+      role: 'owner' | 'admin' | 'member';
+    };
+    WorkspaceMember: {
+      user: components['schemas']['Person'];
+      /** @enum {string} */
+      role: 'owner' | 'admin' | 'member';
+    };
+    Invite: {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      max_uses: number | null;
+      uses: number;
+    };
+    InvitePreview: {
+      /** Format: uuid */
+      workspace_id: string;
+      workspace_name: string;
+      /** @description False when expired, used up or revoked. */
+      valid: boolean;
+      is_member: boolean;
+    };
     Channel: {
       /** Format: uuid */
       id: string;
+      /** Format: uuid */
+      workspace_id: string;
       name: string;
       topic: string;
       /**
@@ -558,6 +759,8 @@ export interface components {
       channels: components['schemas']['Channel'][];
     };
     NewChannel: {
+      /** Format: uuid */
+      workspace_id: string;
       /** @description Display name, unique regardless of case; surrounding spaces are removed. */
       name: string;
       topic?: string;
@@ -611,9 +814,12 @@ export interface components {
       messages: components['schemas']['Message'][];
       has_more: boolean;
     };
-    /** @description What the user may do (roles replace the single administrator later). */
+    /**
+     * @description What the user may do across the instance. Rights inside a workspace follow
+     *     the role there (see Workspace).
+     */
     Permissions: {
-      create_channels: boolean;
+      create_workspaces: boolean;
     };
     Logout: {
       /** @description Sign-out page of Cenacle ID; empty if it is not known. */
@@ -638,6 +844,315 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  listWorkspaces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workspaces with the user's role. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            workspaces: components['schemas']['Workspace'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  createWorkspace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workspace'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  renameWorkspace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Renamed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workspace'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listWorkspaceMembers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Owners first, then admins, then members. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            members: components['schemas']['WorkspaceMember'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  removeWorkspaceMember: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setWorkspaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          role: 'owner' | 'admin' | 'member';
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkspaceMember'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listInvites: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Invitations. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            invites: components['schemas']['Invite'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createInvite: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @default 168 */
+          expires_in_hours?: number;
+          max_uses?: number | null;
+        };
+      };
+    };
+    responses: {
+      /**
+       * @description Created. The token is shown only now; the link is
+       *     `<app>/invite/<token>`.
+       */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            invite: components['schemas']['Invite'];
+            token: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  revokeInvite: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        invite_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revoked. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getInvite: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The workspace and whether the invitation can be used. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InvitePreview'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  acceptInvite: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Member (also when already one). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workspace'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      410: components['responses']['Problem'];
+    };
+  };
   login: {
     parameters: {
       query?: {
@@ -998,7 +1513,9 @@ export interface operations {
   };
   listCategories: {
     parameters: {
-      query?: never;
+      query: {
+        workspace_id: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -1029,6 +1546,8 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
+          /** Format: uuid */
+          workspace_id: string;
           name: string;
         };
       };
@@ -1190,9 +1709,44 @@ export interface operations {
       404: components['responses']['Problem'];
     };
   };
+  setChannelMemberRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          role: 'member' | 'manager';
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Member'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
   searchUsers: {
     parameters: {
       query: {
+        workspace_id: string;
         q: string;
         limit?: number;
       };
@@ -1218,7 +1772,9 @@ export interface operations {
   };
   listChannelDirectory: {
     parameters: {
-      query?: never;
+      query: {
+        workspace_id: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;

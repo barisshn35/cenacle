@@ -16,6 +16,7 @@ import {
 import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
+import { useActiveWorkspace } from './active-workspace';
 import { createChannel, reloadChannels } from './data';
 
 /** Creating a channel (administrator only). */
@@ -38,6 +39,7 @@ export function CreateChannelDialog({
   const [topic, setTopic] = useState('');
   const [everyone, setEveryone] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
+  const { id: workspaceId } = useActiveWorkspace();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -59,7 +61,9 @@ export function CreateChannelDialog({
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (name.trim() === '') return;
+    if (!workspaceId) return;
     create.mutate({
+      workspace_id: workspaceId,
       name: name.trim(),
       topic: topic.trim(),
       kind: 'standard',

@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { RealtimeClient } from '@cenacle/core/realtime';
 import { useConnection } from './connection';
+import { reloadWorkspaces } from './workspaces';
 import { QuickSwitcher } from './quick-switcher';
 import { useQuickSwitcherShortcut } from './quick-switcher-state';
 import {
@@ -37,6 +38,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (ev.type === 'categories.changed') {
           void queryClient.invalidateQueries({ queryKey: ['categories'] });
           void reloadChannels(queryClient);
+        } else if (ev.type === 'workspace.members_changed') {
+          const { workspace_id } = ev.data as { workspace_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['workspace-members', workspace_id] });
+        } else if (ev.type.startsWith('workspace.')) {
+          void reloadWorkspaces(queryClient);
         } else if (ev.type === 'channel.members_changed') {
           const { channel_id } = ev.data as { channel_id: string };
           void queryClient.invalidateQueries({ queryKey: ['members', channel_id] });

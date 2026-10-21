@@ -20,7 +20,6 @@ import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
-import { useSession } from '../auth/session';
 import {
   archiveChannel,
   categoriesQuery,
@@ -30,6 +29,7 @@ import {
   updateChannel,
   type Channel,
 } from './data';
+import { isWorkspaceAdmin, workspacesQuery } from './workspaces';
 
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60';
@@ -45,7 +45,8 @@ export function ChannelSettingsDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const { permissions } = useSession();
+  const workspaces = useQuery(workspacesQuery);
+  const wsAdmin = isWorkspaceAdmin(workspaces.data?.find((w) => w.id === channel.workspace_id));
   const ids = {
     name: useId(),
     topic: useId(),
@@ -58,14 +59,15 @@ export function ChannelSettingsDialog({
   const [visibility, setVisibility] = useState(channel.visibility);
   const [category, setCategory] = useState(channel.category_id ?? '');
   const [confirmArchive, setConfirmArchive] = useState(false);
-  const categories = useQuery({ ...categoriesQuery, enabled: open && permissions.create_channels });
+  const categoriesOptions = categoriesQuery(channel.workspace_id);
+  const categories = useQuery({ ...categoriesOptions, enabled: open && wsAdmin });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const save = useMutation({
     mutationFn: async () => {
       await updateChannel(channel.id, { name: name.trim(), topic: topic.trim(), visibility });
-      if (permissions.create_channels && (category || null) !== (channel.category_id ?? null)) {
+      if (wsAdmin && (category || null) !== (channel.category_id ?? null)) {
         await setChannelCategory(channel.id, category || null);
       }
     },
@@ -151,7 +153,7 @@ export function ChannelSettingsDialog({
                   : t(`channels.visibility.${visibility}Hint`)}
               </p>
             </div>
-            {permissions.create_channels && (
+            {wsAdmin && (
               <div className="grid gap-2">
                 <Label htmlFor={ids.category}>{t('channels.category')}</Label>
                 <select

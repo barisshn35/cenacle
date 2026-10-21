@@ -3,19 +3,15 @@ import { create } from 'zustand';
 
 /** Client-only UI layout state. Server data lives in TanStack Query; the channel is in the URL. */
 interface LayoutState {
-  activeWorkspaceId: string;
   detailsOpen: boolean;
-  selectWorkspace: (id: string) => void;
   setDetailsOpen: (open: boolean) => void;
 }
 
 export const useLayout = create<LayoutState>()((set) => ({
-  activeWorkspaceId: 'w-default',
   // Details start open on wide screens and closed on phones.
   detailsOpen:
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? !window.matchMedia('(max-width: 767px)').matches
       : true,
-  selectWorkspace: (id) => set({ activeWorkspaceId: id }),
   setDetailsOpen: (open) => set({ detailsOpen: open }),
 }));

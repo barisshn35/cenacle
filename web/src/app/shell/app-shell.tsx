@@ -10,6 +10,7 @@ import {
 import { SidebarProvider } from '@cenacle/ui/components/sidebar';
 import { Sheet, SheetContent, SheetTitle } from '@cenacle/ui/components/sheet';
 import { useLayout } from '../../stores/layout';
+import { useRememberWorkspace } from '../chat/active-workspace';
 import { ChannelSidebar } from './channel-sidebar';
 import { ChannelView } from './channel-view';
 import { DetailsPanel } from './details-panel';
@@ -24,6 +25,7 @@ import { useTranslation } from 'react-i18next';
  */
 export function AppShell() {
   const isMobile = useIsMobile();
+  useRememberWorkspace();
   return (
     <SidebarProvider className="h-svh min-h-0 overflow-hidden">
       {isMobile ? <MobileShell /> : <DesktopShell />}

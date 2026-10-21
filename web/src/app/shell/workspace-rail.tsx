@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
 import { cn } from '@cenacle/ui/lib/utils';
-import { workspaces } from '../../lib/sample-data';
-import { useLayout } from '../../stores/layout';
+import { initials } from '../auth/sign-out';
+import { useActiveWorkspace } from '../chat/active-workspace';
+import { AddWorkspaceDialog } from '../chat/workspace-menu';
+import { workspacesQuery } from '../chat/workspaces';
 
 export function WorkspaceRail() {
   const { t } = useTranslation();
-  const active = useLayout((s) => s.activeWorkspaceId);
-  const select = useLayout((s) => s.selectWorkspace);
+  const workspaces = useQuery(workspacesQuery);
+  const { id: active } = useActiveWorkspace();
+  const [adding, setAdding] = useState(false);
 
   return (
     <nav
@@ -17,7 +23,7 @@ export function WorkspaceRail() {
       className="flex h-full w-[72px] shrink-0 flex-col items-center gap-2 border-r border-sidebar-border bg-rail py-3"
     >
       <ul className="flex flex-col items-center gap-2">
-        {workspaces.map((w) => {
+        {(workspaces.data ?? []).map((w) => {
           const isActive = w.id === active;
           return (
             <li key={w.id} className="relative flex w-full justify-center">
@@ -31,10 +37,11 @@ export function WorkspaceRail() {
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <button
-                      type="button"
+                    <Link
+                      to="/w/$workspaceId"
+                      params={{ workspaceId: w.id }}
                       aria-current={isActive ? 'page' : undefined}
-                      onClick={() => select(w.id)}
+                      aria-label={w.name}
                       className={cn(
                         'relative flex size-12 items-center justify-center rounded-2xl text-sm font-semibold transition-[border-radius,background-color] duration-(--duration-base) ease-(--ease-out) outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         isActive
@@ -44,20 +51,7 @@ export function WorkspaceRail() {
                     />
                   }
                 >
-                  <span aria-hidden>{w.initials}</span>
-                  <span className="sr-only">
-                    {w.mentions > 0
-                      ? `${w.name}, ${t('shell.mentions', { count: w.mentions })}`
-                      : w.name}
-                  </span>
-                  {w.mentions > 0 && (
-                    <span
-                      aria-hidden
-                      className="absolute -right-1 -bottom-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-rail bg-mention px-1 text-[11px] font-semibold text-mention-foreground tabular-nums"
-                    >
-                      {w.mentions}
-                    </span>
-                  )}
+                  <span aria-hidden>{initials(w.name)}</span>
                 </TooltipTrigger>
                 <TooltipContent side="right">{w.name}</TooltipContent>
               </Tooltip>
@@ -72,6 +66,7 @@ export function WorkspaceRail() {
             <button
               type="button"
               aria-label={t('shell.addWorkspace')}
+              onClick={() => setAdding(true)}
               className="flex size-12 items-center justify-center rounded-2xl border border-dashed border-sidebar-border text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             />
           }
@@ -80,6 +75,7 @@ export function WorkspaceRail() {
         </TooltipTrigger>
         <TooltipContent side="right">{t('shell.addWorkspace')}</TooltipContent>
       </Tooltip>
+      {adding && <AddWorkspaceDialog open onOpenChange={(o) => !o && setAdding(false)} />}
     </nav>
   );
 }

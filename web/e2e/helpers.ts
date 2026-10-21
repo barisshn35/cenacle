@@ -153,7 +153,7 @@ export const SESSION = {
     email_verified: true,
     display_name: 'Deniz Kaya',
   },
-  permissions: { create_channels: false },
+  permissions: { create_workspaces: false },
   created_at: '2026-10-21T08:00:00Z',
   expires_at: '2026-11-20T08:00:00Z',
   idle_timeout_seconds: 604800,
@@ -182,8 +182,11 @@ export async function mockSession(page: Page, session: typeof SESSION | null = S
   );
 }
 
+export const DEFAULT_WS = '01a15e50-0000-7000-8000-00000000aaaa';
+
 const channel = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
   id,
+  workspace_id: DEFAULT_WS,
   name,
   topic: '',
   kind: 'standard' as 'standard' | 'announcement',
@@ -275,7 +278,55 @@ export async function mockApi(
   page: Page,
   opts: { messages?: MockMessage[]; failSend?: number; admin?: boolean } = {},
 ): Promise<MockApi> {
-  await mockSession(page, { ...SESSION, permissions: { create_channels: opts.admin ?? false } });
+  await mockSession(page, {
+    ...SESSION,
+    permissions: { create_workspaces: opts.admin ?? false },
+  });
+  const workspaces = [
+    { id: DEFAULT_WS, name: 'Cenacle', is_default: true, role: opts.admin ? 'owner' : 'member' },
+  ];
+  await page.route('**/api/workspaces', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { workspaces } });
+    const { name } = route.request().postDataJSON() as { name: string };
+    const ws = {
+      id: `01a15e50-0000-7000-8000-0000000${String(workspaces.length).padStart(5, '0')}`,
+      name,
+      is_default: false,
+      role: 'owner',
+    };
+    workspaces.push(ws);
+    return route.fulfill({ status: 201, json: ws });
+  });
+  await page.route('**/api/workspaces/*/members', (route) =>
+    route.fulfill({
+      json: {
+        members: PEOPLE.map((p, i) => ({
+          user: p,
+          role: i === 0 ? (opts.admin ? 'owner' : 'member') : 'member',
+        })),
+      },
+    }),
+  );
+  const invites: {
+    id: string;
+    created_at: string;
+    expires_at: string;
+    max_uses: number | null;
+    uses: number;
+  }[] = [];
+  await page.route('**/api/workspaces/*/invites', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { invites } });
+    const { max_uses } = route.request().postDataJSON() as { max_uses: number | null };
+    const invite = {
+      id: `01a15e50-ab00-7000-8000-${String(invites.length).padStart(12, '0')}`,
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 7 * 86400_000).toISOString(),
+      max_uses,
+      uses: 0,
+    };
+    invites.push(invite);
+    return route.fulfill({ status: 201, json: { invite, token: `token${invites.length}` } });
+  });
   const api: MockApi & { socket?: import('@playwright/test').WebSocketRoute; seq: number } = {
     sent: [],
     seq: 1,
@@ -327,6 +378,7 @@ export async function mockApi(
     return route.fulfill({ status: 201, json: created });
   });
   const categories: { id: string; name: string; position: number }[] = [];
+  await page.route('**/api/categories?**', (route) => route.fulfill({ json: { categories } }));
   await page.route('**/api/categories', (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { categories } });
     const { name } = route.request().postDataJSON() as { name: string };
@@ -348,7 +400,7 @@ export async function mockApi(
     c.archived = !route.request().url().endsWith('/unarchive');
     return route.fulfill({ json: c });
   });
-  await page.route('**/api/channels/directory', (route) =>
+  await page.route('**/api/channels/directory?**', (route) =>
     route.fulfill({ json: { channels: all } }),
   );
   await page.route('**/api/channels/*/join', (route) => {

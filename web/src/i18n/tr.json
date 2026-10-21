@@ -97,7 +97,7 @@
     "offline": "Çevrimdışısın. Gönderdiğin mesajlar saklanır ve yeniden gönderilebilir.",
     "charactersLeft_one": "{{count}} karakter kaldı",
     "charactersLeft_other": "{{count}} karakter kaldı",
-    "noChannels": "Henüz kanal yok.",
+    "noChannels": "Henüz gösterilecek kanal yok.",
     "actions": "Mesaj işlemleri",
     "edit": "Düzenle",
     "editLabel": "Mesajı düzenle",
@@ -106,7 +106,8 @@
     "edited": "(düzenlendi)",
     "deleted": "Mesaj silindi.",
     "deleteFailed": "Mesaj silinemedi. Tekrar dene.",
-    "editFailed": "Değişiklik kaydedilemedi. Tekrar dene."
+    "editFailed": "Değişiklik kaydedilemedi. Tekrar dene.",
+    "noChannelsHint": "Listeden bir kanal aç ya da bu çalışma alanının kanallarına göz at."
   },
   "channels": {
     "kinds": {
@@ -171,7 +172,8 @@
     "archiveTitle": "{{channel}} arşivlensin mi?",
     "archiveDescription": "Üyeler okumaya devam edebilir ama kimse yazamaz ve kanal kenar çubuğundan kalkar.",
     "archiveImpact": "Yöneticileri istediği zaman arşivden çıkarabilir; hiçbir şey silinmez.",
-    "archiveConfirm": "Kanalı arşivle"
+    "archiveConfirm": "Kanalı arşivle",
+    "managerToggle": "Kanal yöneticisi: {{person}}"
   },
   "categories": {
     "manage": "Kategorileri düzenle",
@@ -196,5 +198,66 @@
     "notJoined": "Üye değilsin",
     "archived": "Arşivlendi",
     "empty": "Eşleşen kanal yok."
+  },
+  "workspaces": {
+    "menu": "Çalışma alanı menüsü: {{workspace}}",
+    "invitePeople": "Kişi davet et",
+    "settings": "Çalışma alanı ayarları",
+    "members": "Üyeler",
+    "leave": "Çalışma alanından ayrıl",
+    "leaveTitle": "{{workspace}} alanından ayrılınsın mı?",
+    "leaveDescription": "Tüm kanallarından da ayrılırsın.",
+    "leaveImpact": "Ancak yeni bir davetle geri dönebilirsin.",
+    "leaveConfirm": "Çalışma alanından ayrıl",
+    "lastOwner": "Bir çalışma alanının en az bir sahibi olmalı. Önce başka birini sahip yap.",
+    "settingsTitle": "{{workspace}}",
+    "settingsDescription": "Ad ve üyeler. Sahipler ve yöneticiler alanın kanallarını yönetir.",
+    "membersDescription": "Bu çalışma alanındaki kişiler.",
+    "name": "Ad",
+    "roleOf": "{{person}} rolü",
+    "roles": {
+      "owner": "Sahip",
+      "admin": "Yönetici",
+      "member": "Üye"
+    },
+    "removeNamed": "{{person}} kişisini çalışma alanından çıkar",
+    "addTitle": "Çalışma alanı ekle",
+    "addDescription": "Davet bağlantısıyla bir çalışma alanına katıl ya da yenisini oluştur.",
+    "joinWithLink": "Davet bağlantısı",
+    "linkPlaceholder": "Aldığın bağlantıyı yapıştır",
+    "open": "Aç",
+    "newName": "Yeni çalışma alanı",
+    "create": "Çalışma alanı oluştur"
+  },
+  "invites": {
+    "title": "{{workspace}} alanına katıl",
+    "subtitle": "Bu Cenacle çalışma alanına davet edildin.",
+    "join": "{{workspace}} alanına katıl",
+    "notFoundTitle": "Bu davet yok.",
+    "notFoundReason": "Bağlantı eksik olabilir.",
+    "invalidTitle": "Bu davet artık kullanılamaz.",
+    "invalidReason": "Süresi dolmuş, kullanım hakkı bitmiş ya da iptal edilmiş.",
+    "askAgain": "Yeni bir davet bağlantısı iste.",
+    "dialogTitle": "{{workspace}} alanına kişi davet et",
+    "dialogDescription": "Bağlantı geçerli olduğu sürece, Cenacle ID hesabı olan herkes katılabilir.",
+    "expiresIn": "Geçerlilik",
+    "expiry": {
+      "24": "1 gün",
+      "168": "7 gün",
+      "720": "30 gün"
+    },
+    "maxUses": "Kullanım sayısı",
+    "unlimited": "Sınırsız",
+    "uses_one": "{{count}} kez",
+    "uses_other": "{{count}} kez",
+    "create": "Bağlantı oluştur",
+    "link": "Davet bağlantısı",
+    "copy": "Kopyala",
+    "copied": "Bağlantı kopyalandı.",
+    "copyFailed": "Kopyalanamadı; bağlantıyı seçip kopyala.",
+    "linkHint": "Bağlantı yalnızca şimdi gösterilir. Yalnızca davet ettiğin kişilerle paylaş.",
+    "active": "Geçerli bağlantılar",
+    "summary": "{{date}} tarihine kadar · {{uses}} kez kullanıldı",
+    "revoke": "İptal et"
   }
 }

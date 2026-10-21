@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useDeferredValue, useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserMinusIcon, UserPlusIcon } from 'lucide-react';
+import { ShieldIcon, UserMinusIcon, UserPlusIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
@@ -25,6 +25,7 @@ import {
   membersQuery,
   peopleQuery,
   removeMember,
+  setChannelMemberRole,
   type Channel,
   type Person,
 } from './data';
@@ -71,6 +72,12 @@ export function MembersSection({ channel }: { channel: Channel }) {
   const [adding, setAdding] = useState(false);
   const canEdit = channel.can_manage && !channel.is_mandatory;
 
+  const appoint = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: 'member' | 'manager' }) =>
+      setChannelMemberRole(channel.id, userId, role),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members', channel.id] }),
+    onError: () => toast.error(t('channels.changeFailed')),
+  });
   const remove = useMutation({
     mutationFn: (person: Person) => removeMember(channel.id, person.id),
     onSuccess: (_, person) => {
@@ -124,6 +131,25 @@ export function MembersSection({ channel }: { channel: Channel }) {
                 person={m.user}
                 badge={m.role === 'manager' ? t('channels.manager') : undefined}
               />
+              {channel.can_manage && m.user.id !== user.id && (
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-pressed={m.role === 'manager'}
+                  aria-label={t('channels.managerToggle', {
+                    person: m.user.display_name || m.user.email,
+                  })}
+                  disabled={appoint.isPending}
+                  onClick={() =>
+                    appoint.mutate({
+                      userId: m.user.id,
+                      role: m.role === 'manager' ? 'member' : 'manager',
+                    })
+                  }
+                >
+                  <ShieldIcon strokeWidth={1.75} />
+                </Button>
+              )}
               {canEdit && m.user.id !== user.id && (
                 <Button
                   size="icon-sm"
@@ -168,7 +194,10 @@ function AddPeopleDialog({
   const id = useId();
   const [q, setQ] = useState('');
   const query = useDeferredValue(q.trim());
-  const people = useQuery({ ...peopleQuery(query), enabled: open && query !== '' });
+  const people = useQuery({
+    ...peopleQuery(channel.workspace_id, query),
+    enabled: open && query !== '',
+  });
   const queryClient = useQueryClient();
   const add = useMutation({
     mutationFn: (person: Person) => addMember(channel.id, person.id),

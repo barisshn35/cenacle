@@ -14,6 +14,7 @@ import {
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ChannelIcon } from './channel-icon';
+import { useActiveWorkspace } from './active-workspace';
 import { directoryQuery, joinChannel, reloadChannels, type Channel } from './data';
 
 /** Every channel, to open or join. */
@@ -25,7 +26,8 @@ export function ChannelDirectory({
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const directory = useQuery({ ...directoryQuery, enabled: open });
+  const { id: workspaceId } = useActiveWorkspace();
+  const directory = useQuery({ ...directoryQuery(workspaceId), enabled: open && !!workspaceId });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const go = (c: Channel) => {

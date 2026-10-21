@@ -54,6 +54,8 @@ export const idpEnv = {
   IDP_KEY_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   IDP_COOKIE_KEYS: 'e2e-stack-only-cookie-key-0123456789',
   IDP_CLIENTS_FILE: clientsFile,
+  // Every test signs in, some twice: more than the default 10 per minute.
+  IDP_LOGIN_RATE_LIMIT: '1000',
 };
 
 const serverBin = join(dir, 'cenacle-server');

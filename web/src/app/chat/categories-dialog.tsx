@@ -25,6 +25,7 @@ import {
   updateCategory,
   type Category,
 } from './data';
+import { useActiveWorkspace } from './active-workspace';
 
 /** The administrator's categories: add, rename, reorder (no dragging needed), delete. */
 export function CategoriesDialog({
@@ -38,16 +39,17 @@ export function CategoriesDialog({
   const newId = useId();
   const [name, setName] = useState('');
   const [removing, setRemoving] = useState<Category | null>(null);
-  const categories = useQuery(categoriesQuery);
+  const { id: workspaceId } = useActiveWorkspace();
+  const categories = useQuery(categoriesQuery(workspaceId));
   const queryClient = useQueryClient();
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['categories'] });
+    await queryClient.invalidateQueries({ queryKey: ['categories', workspaceId] });
     await reloadChannels(queryClient);
   };
   const failed = () => toast.error(t('channels.changeFailed'));
 
   const add = useMutation({
-    mutationFn: createCategory,
+    mutationFn: (name: string) => createCategory(workspaceId!, name),
     onSuccess: async () => {
       setName('');
       await refresh();

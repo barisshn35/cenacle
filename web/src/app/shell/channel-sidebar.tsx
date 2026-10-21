@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 import {
-  ChevronDownIcon,
   CompassIcon,
   FoldersIcon,
   LogOutIcon,
@@ -32,13 +31,13 @@ import {
 import { Button } from '@cenacle/ui/components/button';
 import { Logo } from '@cenacle/ui/brand';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
-import { workspaces } from '../../lib/sample-data';
-import { useLayout } from '../../stores/layout';
 import { PresenceIndicator } from './presence';
 import { useSession } from '../auth/session';
 import { initials, useSignOut } from '../auth/sign-out';
 import { categoriesQuery, channelsQuery, type Channel } from '../chat/data';
 import { CategoriesDialog } from '../chat/categories-dialog';
+import { useActiveWorkspace } from '../chat/active-workspace';
+import { WorkspaceMenu } from '../chat/workspace-menu';
 import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { useActiveChannel } from '../chat/active-channel';
 import { ChannelDirectory } from '../chat/channel-directory';
@@ -94,15 +93,15 @@ function ChannelListSkeleton() {
  */
 function ChannelsGroups() {
   const { t } = useTranslation();
-  const { permissions } = useSession();
+  const { id: workspaceId, admin } = useActiveWorkspace();
   const channels = useQuery(channelsQuery);
-  const categories = useQuery(categoriesQuery);
+  const categories = useQuery(categoriesQuery(workspaceId));
   const [dialog, setDialog] = useState<'create' | 'browse' | 'categories' | null>(null);
   const close = (open: boolean) => {
     if (!open) setDialog(null);
   };
 
-  const list = channels.data ?? [];
+  const list = (channels.data ?? []).filter((c) => c.workspace_id === workspaceId);
   const known = new Set(categories.data?.map((c) => c.id));
   const loose = list.filter((c) => !c.category_id || !known.has(c.category_id));
 
@@ -110,7 +109,7 @@ function ChannelsGroups() {
     <>
       <SidebarGroup>
         <SidebarGroupLabel>{t('shell.channels')}</SidebarGroupLabel>
-        {permissions.create_channels && (
+        {admin && (
           <Tooltip>
             <TooltipTrigger
               render={
@@ -137,7 +136,7 @@ function ChannelsGroups() {
                 <span>{t('channels.browse')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {permissions.create_channels && (
+            {admin && (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   className="text-muted-foreground"
@@ -172,8 +171,7 @@ function ChannelsGroups() {
 
 export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
-  const activeWorkspace = useLayout((s) => s.activeWorkspaceId);
-  const workspace = workspaces.find((w) => w.id === activeWorkspace) ?? workspaces[0]!;
+  const { workspace } = useActiveWorkspace();
   const notAvailable = () => toast(t('shell.notAvailable'));
   const openSwitcher = useQuickSwitcher((s) => s.setOpen);
 
@@ -190,14 +188,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
         <div className="flex items-center px-2 pt-1.5 pb-1">
           <Logo variant="lockup" size={24} />
         </div>
-        <Button
-          variant="ghost"
-          className="w-full justify-between px-2 text-[15px] font-semibold"
-          onClick={notAvailable}
-        >
-          <span className="truncate">{workspace.name}</span>
-          <ChevronDownIcon aria-hidden strokeWidth={1.75} />
-        </Button>
+        {workspace ? <WorkspaceMenu workspace={workspace} /> : <div className="h-8" aria-hidden />}
         <Button
           variant="outline"
           className="w-full justify-start gap-2 bg-background font-normal text-muted-foreground"
