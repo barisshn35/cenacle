@@ -39,6 +39,16 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.9.0)
+
+- Chat migration `00010_outbox_reactions_mentions` adds the event outbox, reactions,
+  mentions and message attachments, and lets messages with cards have no text. Reversible
+  (`migrate down` drops reactions, mentions and cards, and deletes messages without text).
+- `server migrate up` now also applies River's migrations (its `river_*` tables in the chat
+  database). `migrate down` does not remove them; drop them by hand if you go back further
+  than 0.9 (`river migrate-down` from River's CLI, or `DROP TABLE river_*`).
+- The `migrate` service in `prod.yml` runs before the server as before; nothing to change.
+
 ### 0.8.0
 
 - Cenacle ID migration `0002_mfa_and_audit` adds two-step verification and the account

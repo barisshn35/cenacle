@@ -8,6 +8,27 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Markdown in messages (bold, italics, links, lists, quotes, tables, code) with code
+  highlighting; raw HTML and remote images are not shown.
+- Mentions: type "@" to pick a member; mentioned people see the message highlighted and
+  a mention count on the channel.
+- Reactions with an emoji picker (emoji data served by Cenacle itself).
+- Message attachments (cards with title, link, text and fields) through the API.
+
+### Changed
+
+- Live events go through a transactional outbox: they are written with the change and
+  cannot be lost when Valkey is briefly unavailable.
+- Purging deleted messages and expired sessions runs as background jobs (River), once
+  across all instances.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-090): migration
+  `00010_outbox_reactions_mentions`; `migrate up` now also creates River's tables.
+
 ## [0.8.0] - 2026-10-21
 
 Two-step verification, signed-in devices with sign out everywhere, back-channel logout and audit logs.

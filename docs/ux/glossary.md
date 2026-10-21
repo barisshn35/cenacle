@@ -29,6 +29,8 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Conversation         | Direct / Group conversation     | Birebir / Grup konuşması              | `channels.kinds.direct`, `.group`         | Same people, same conversation            |
 | Status (presence)    | Online / Away / Do not disturb  | Çevrimiçi / Uzakta / Rahatsız etmeyin | `shell.presence.*`                        | Offline: Çevrimdışı; color and shape      |
 | New messages         | New messages                    | Yeni mesajlar                         | `chat.newMessages`                        | The line above the first unread message   |
+| Mention              | Mention                         | Bahsetme                              | `mentions.*`                              | "@Name"; a number badge on the channel    |
+| Reaction             | Reaction / Add reaction         | Tepki / Tepki ekle                    | `reactions.*`                             | One emoji; pressing again takes it back   |
 
 ## Rules
 

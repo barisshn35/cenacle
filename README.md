@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.8.** Sign in with Cenacle ID (with two-step verification) and chat
+> **Status: v0.9 in progress.** Sign in with Cenacle ID (with two-step verification) and chat
 > live in channels and direct conversations.
 > Direct messages, presence and unread counts follow (see the
 > [roadmap](#roadmap)).
@@ -129,7 +129,10 @@ flowchart LR
   ([ADR 0009](docs/adr/0009-direct-messages-unread-presence.md)). Users see and end their
   signed-in devices, Cenacle ID's sign-outs reach the chat server, and an audit log records
   security-relevant actions
-  ([ADR 0010](docs/adr/0010-two-step-verification-sessions-audit.md)).
+  ([ADR 0010](docs/adr/0010-two-step-verification-sessions-audit.md)). Messages carry
+  Markdown, mentions, reactions and cards; events go through a transactional outbox and
+  background work runs on River
+  ([ADR 0011](docs/adr/0011-rich-messages-and-outbox.md)).
 - **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify), `node-oidc-provider`, Argon2id
   passwords, two-step verification with an authenticator app and recovery codes.
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
