@@ -259,3 +259,24 @@ func TestEventsStayInTheirWorkspace(t *testing.T) {
 		t.Errorf("event = %s, want categories.changed", ev.Type)
 	}
 }
+
+func TestJoiningByInvitationDeliversItsChannels(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	ops := s.newWorkspace(admin, "Operasyon")
+	var dir struct{ Channels []channel }
+	s.call(http.MethodGet, "/api/channels/directory?workspace_id="+ops, admin, nil, &dir)
+	general := dir.Channels[0].ID
+
+	conn := s.connect(ayse, "")
+	read(t, conn) // hello
+	s.call(http.MethodPost, "/api/invites/"+s.invite(admin, ops, map[string]any{})+"/accept", ayse, nil, nil)
+	read(t, conn) // workspace.joined
+	read(t, conn) // workspace.members_changed
+	// Messages of the workspace's General reach the new member at once.
+	s.send(admin, general, "hoş geldin", "welcome-nonce-1")
+	if ev := read(t, conn); ev.Type != "message.created" {
+		t.Fatalf("event = %s, want message.created", ev.Type)
+	}
+}

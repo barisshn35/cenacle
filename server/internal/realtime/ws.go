@@ -219,6 +219,15 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		if !aud.allows(ev) {
 			return nil
 		}
+		if ev.Type == events.WorkspaceJoined {
+			// Joining a workspace joins its channels for everyone too: take the
+			// memberships from the database rather than guessing them.
+			fresh, err := h.audience(ctx, t.UserID)
+			if err != nil {
+				return err
+			}
+			aud = fresh
+		}
 		return send(frame{Op: "event", ID: ev.ID, Type: ev.Type, Data: ev.Data})
 	}
 	for _, ev := range backlog {
