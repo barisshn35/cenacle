@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.10.0)
+### 0.10.0
 
 - Chat migration `00011_bots_and_webhooks` adds bot accounts, bot tokens and incoming
   webhooks. Reversible (`migrate down` drops them; bot accounts that posted messages stay

@@ -8,6 +8,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-21
+
+Bots with scoped tokens, incoming webhooks and Jira.
+
 ### Added
 
 - Bots: workspace owners and admins create bots, give them tokens scoped to reading or
@@ -19,7 +23,7 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-0100): migration
+- See [docs/upgrade](docs/upgrade/README.md#0100): migration
   `00011_bots_and_webhooks`.
 
 ## [0.9.0] - 2026-10-21
@@ -324,7 +328,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/barisshn35/cenacle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/barisshn35/cenacle/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/barisshn35/cenacle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/barisshn35/cenacle/compare/v0.6.0...v0.7.0
