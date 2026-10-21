@@ -8,6 +8,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-21
+
+The chat signs users in with Cenacle ID and keeps its own sessions; the brand identity
+replaces the placeholder look.
+
 ### Added
 
 - Brand identity (Forest & Brass, Fraunces wordmark, "Upper room" icon): logo files,
@@ -40,7 +45,7 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-030): new `prod.yml`, reversible
+- See [docs/upgrade](docs/upgrade/README.md#030): new `prod.yml`, reversible
   migration `00002_users_sessions`.
 
 ## [0.2.0] - 2026-10-21
@@ -135,7 +140,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/barisshn35/cenacle/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/barisshn35/cenacle/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/barisshn35/cenacle/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/barisshn35/cenacle/releases/tag/v0.1.0

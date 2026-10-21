@@ -12,8 +12,8 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.3 in progress.** Cenacle ID is a working OpenID Provider, and the chat app
-> signs users in with it and keeps its own sessions. Messaging and real data follow (see
+> **Status: v0.3.** Cenacle ID is a working OpenID Provider, and the chat app signs
+> users in with it and keeps its own sessions. Messaging and real data follow (see
 > the [roadmap](#roadmap)).
 
 ## Highlights

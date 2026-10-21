@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.3.0)
+### 0.3.0
 
 - Use the new `prod.yml`: the chat server gets its public URL, Cenacle ID's issuer and the
   `chat_client_secret` secret (created by `gen-secrets.sh` since 0.2.0). No new secrets.
