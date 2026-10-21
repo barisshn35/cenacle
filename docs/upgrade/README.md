@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.13.0)
+### 0.13.0
 
 - No migration. The proxy image changes (load balancing across server instances): pull or
   rebuild it with the others.
