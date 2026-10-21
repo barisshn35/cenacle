@@ -8,6 +8,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-21
+
+Direct and group conversations, unread counts, presence and typing notices.
+
 ### Added
 
 - Direct and group conversations (up to 9 people): "Direct messages" in the sidebar, the
@@ -22,6 +26,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 - Workspace owners and admins do not see conversations of others (they see private
   channels as before). Channel names cannot start with `direct:` or `group:`.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#070): reversible migration
+  `00008_direct_messages_and_unread`.
 
 ## [0.6.0] - 2026-10-21
 
@@ -250,7 +259,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/barisshn35/cenacle/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/barisshn35/cenacle/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/barisshn35/cenacle/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/barisshn35/cenacle/compare/v0.3.0...v0.4.0
