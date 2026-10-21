@@ -1,0 +1,200 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Stages: lint -> test -> licenses -> build.
+# Third-party actions are pinned to commit SHAs (Dependabot keeps them fresh);
+# gitleaks and trivy run from their official, version-pinned images.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+  FORCE_COLOR: '1'
+
+jobs:
+  # ---------------------------------------------------------------- lint ---
+  lint-go:
+    name: lint / go
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - run: make tools
+      - run: make lint-go
+      - name: Generated code is up to date (sqlc)
+        run: |
+          cd server && ../.bin/sqlc generate
+          git diff --exit-code -- internal/store
+
+  lint-js:
+    name: lint / js
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+
+  # ---------------------------------------------------------------- test ---
+  test-go:
+    name: test / go
+    needs: lint-go
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - run: make test-go
+      - run: make vuln
+
+  test-js:
+    name: test / js (node ${{ matrix.node }})
+    needs: lint-js
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 24 LTS today; 26 becomes LTS on 2026-10-28.
+        node: ['24', '26']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+
+  test-e2e:
+    name: test / e2e (target size, a11y)
+    needs: lint-js
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cenacle/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @cenacle/web test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report
+            web/test-results
+          retention-days: 7
+
+  security:
+    name: test / security scans
+    needs: [lint-go, lint-js]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks scans the full history
+      - name: gitleaks
+        run: docker run --rm -v "$PWD:/repo:ro" "$GITLEAKS_IMAGE" git /repo --no-banner --redact --exit-code 1
+      - name: trivy (dependencies, secrets, Dockerfiles)
+        run: >
+          docker run --rm -v "$PWD:/src:ro" "$TRIVY_IMAGE" fs --quiet
+          --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed
+          --exit-code 1 /src
+
+  # ------------------------------------------------------------ licenses ---
+  licenses:
+    name: licenses
+    needs: [test-go, test-js]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Fails on any forbidden or unknown license (policy in docs/adr/0001).
+      - run: make licenses
+
+  # --------------------------------------------------------------- build ---
+  images:
+    name: build / image ${{ matrix.image }}
+    needs: [licenses, test-e2e, security]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: server
+            dockerfile: server/Dockerfile
+          - image: idp
+            dockerfile: idp/Dockerfile
+          - image: web
+            dockerfile: web/Dockerfile
+          - image: proxy
+            dockerfile: deploy/compose/caddy/Dockerfile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build amd64 + arm64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+      - name: Load amd64 image for scanning
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          load: true
+          tags: cenacle-${{ matrix.image }}:ci
+          cache-from: type=gha,scope=${{ matrix.image }}
+      - name: Image runs as non-root
+        run: |
+          user="$(docker inspect -f '{{.Config.User}}' cenacle-${{ matrix.image }}:ci)"
+          echo "user=$user"
+          case "$user" in ''|root|0|0:*) echo "image must not run as root"; exit 1;; esac
+      - name: trivy (image)
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE"
+          image --quiet --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+          cenacle-${{ matrix.image }}:ci
