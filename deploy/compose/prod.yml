@@ -87,20 +87,41 @@ services:
       migrate: { condition: service_completed_successfully }
       valkey: { condition: service_healthy }
 
+  idp-migrate:
+    <<: *hardening
+    restart: 'no'
+    image: &idp-image ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}idp:${CENACLE_VERSION}
+    command: [node, dist/cli.js, migrate, up]
+    read_only: true
+    environment:
+      IDP_DATABASE_URL_FILE: /run/secrets/idp_database_url
+    secrets: [idp_database_url]
+    networks: [data]
+    depends_on:
+      postgres: { condition: service_healthy }
+
   idp:
     <<: *hardening
-    image: ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}idp:${CENACLE_VERSION}
+    image: *idp-image
     read_only: true
     tmpfs: [/tmp]
     environment:
       IDP_ENV: production
       IDP_ISSUER: https://${CENACLE_ID_DOMAIN}
       IDP_COOKIE_DOMAIN: ${IDP_COOKIE_DOMAIN:-}
+      IDP_TRUST_PROXY: 'true'
       IDP_DATABASE_URL_FILE: /run/secrets/idp_database_url
-    secrets: [idp_database_url]
+      IDP_KEY_ENCRYPTION_KEY_FILE: /run/secrets/idp_key_encryption_key
+      IDP_COOKIE_KEYS_FILE: /run/secrets/idp_cookie_keys
+      IDP_CLIENTS_FILE: /etc/cenacle/clients.json
+      # Used inside clients.json (${CENACLE_DOMAIN}).
+      CENACLE_DOMAIN: ${CENACLE_DOMAIN}
+    secrets: [idp_database_url, idp_key_encryption_key, idp_cookie_keys, chat_client_secret]
+    volumes:
+      - ./idp/clients.json:/etc/cenacle/clients.json:ro
     networks: [edge, data]
     depends_on:
-      postgres: { condition: service_healthy }
+      idp-migrate: { condition: service_completed_successfully }
 
   postgres:
     <<: *hardening
@@ -170,3 +191,6 @@ secrets:
   valkey_password: { file: ./secrets/valkey_password }
   chat_database_url: { file: ./secrets/chat_database_url }
   idp_database_url: { file: ./secrets/idp_database_url }
+  idp_key_encryption_key: { file: ./secrets/idp_key_encryption_key }
+  idp_cookie_keys: { file: ./secrets/idp_cookie_keys }
+  chat_client_secret: { file: ./secrets/chat_client_secret }

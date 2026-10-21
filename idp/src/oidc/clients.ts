@@ -47,11 +47,26 @@ export interface ClientMetadata {
   cenacle_first_party: boolean;
 }
 
+/**
+ * Replaces ${NAME} with environment variables (e.g. ${CENACLE_DOMAIN}), so
+ * host names stay configuration. A missing variable is an error.
+ */
+export function interpolate(text: string, env: Record<string, string | undefined>): string {
+  return text.replace(/\$\{([A-Z][A-Z0-9_]*)\}/g, (_, name: string) => {
+    const value = env[name];
+    if (value === undefined || value === '') {
+      throw new Error(`clients file uses \${${name}}, which is not set`);
+    }
+    return value;
+  });
+}
+
 export function loadClients(
   file: string,
   readFile: (p: string) => string = (p) => readFileSync(p, 'utf8'),
+  env: Record<string, string | undefined> = process.env,
 ): ClientMetadata[] {
-  const parsed = fileSchema.parse(JSON.parse(readFile(file)));
+  const parsed = fileSchema.parse(JSON.parse(interpolate(readFile(file), env)));
   const ids = new Set<string>();
   return parsed.map((c) => {
     if (ids.has(c.client_id)) throw new Error(`duplicate client_id ${c.client_id}`);

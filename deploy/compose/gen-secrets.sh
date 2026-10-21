@@ -21,6 +21,12 @@ keep_or_write chat_db_password "$(rand)"
 keep_or_write idp_db_password "$(rand)"
 keep_or_write valkey_password "$(rand)"
 
+# Cenacle ID: key that encrypts token signing keys, cookie signing keys and the
+# chat server's OIDC client secret.
+keep_or_write idp_key_encryption_key "$(head -c 32 /dev/urandom | base64 | tr -d '\n')"
+keep_or_write idp_cookie_keys "$(rand)$(rand)"
+keep_or_write chat_client_secret "$(rand)$(rand)"
+
 keep_or_write chat_database_url \
   "postgres://cenacle_chat:$(cat secrets/chat_db_password)@postgres:5432/cenacle_chat?sslmode=disable"
 keep_or_write idp_database_url \

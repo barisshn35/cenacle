@@ -114,23 +114,39 @@ services:
       timeout: 3s
       retries: 10
 
-  idp:
-    <<: *restart
+  idp-migrate:
     profiles: [apps]
     build:
       context: ../..
       dockerfile: idp/Dockerfile
     image: cenacle-idp:dev
-    environment:
+    command: [node, dist/cli.js, migrate, up]
+    environment: &idp-env
       IDP_ENV: development
       IDP_HOST: 0.0.0.0
-      IDP_ISSUER: ${IDP_ISSUER:-http://localhost:8190}
+      IDP_ISSUER: http://localhost:${IDP_APP_PORT:-18190}
       IDP_DATABASE_URL: postgres://${IDP_DB_USER:-cenacle_idp}:${IDP_DB_PASSWORD}@postgres:5432/${IDP_DB_NAME:-cenacle_idp}
-    ports:
-      - 127.0.0.1:${IDP_APP_PORT:-18190}:8190
+      IDP_KEY_ENCRYPTION_KEY: ${IDP_KEY_ENCRYPTION_KEY}
+      IDP_COOKIE_KEYS: ${IDP_COOKIE_KEYS}
+      IDP_CLIENTS_FILE: /etc/cenacle/clients.json
+    volumes:
+      - ../../idp/dev:/etc/cenacle:ro
     depends_on:
       postgres:
         condition: service_healthy
+
+  idp:
+    <<: *restart
+    profiles: [apps]
+    image: cenacle-idp:dev
+    environment: *idp-env
+    volumes:
+      - ../../idp/dev:/etc/cenacle:ro
+    ports:
+      - 127.0.0.1:${IDP_APP_PORT:-18190}:8190
+    depends_on:
+      idp-migrate:
+        condition: service_completed_successfully
 
   web:
     <<: *restart
