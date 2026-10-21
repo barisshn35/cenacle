@@ -23,6 +23,8 @@ export async function migrate({ databaseUrl, direction, count, log }: MigrateOpt
     count: count ?? (direction === 'up' ? Infinity : 1),
     migrationsTable: 'idp_migrations',
     singleTransaction: true,
+    // Replicas that start together wait for the lock instead of failing.
+    advisoryLockMode: 'wait',
     checkOrder: true,
     log: log ?? (() => {}),
   });
