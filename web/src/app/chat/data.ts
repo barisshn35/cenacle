@@ -5,6 +5,7 @@ import {
   type InfiniteData,
   type QueryClient,
 } from '@tanstack/react-query';
+import i18next from 'i18next';
 import { apiFetch, type components } from '@cenacle/core/api';
 
 export type Channel = components['schemas']['Channel'];
@@ -17,12 +18,86 @@ export type Member = components['schemas']['Member'];
 export type Person = components['schemas']['Person'];
 export type Category = components['schemas']['Category'];
 
+export type PresenceStatus = 'online' | 'away' | 'dnd' | 'offline';
+
+/** Direct and group conversations, as opposed to channels. */
+export const isConversation = (c: Pick<Channel, 'kind'>) =>
+  c.kind === 'direct' || c.kind === 'group';
+
+/**
+ * A conversation is named after its other people (the server's name is a
+ * key), so every view can show `name`.
+ */
+function displayName(c: Channel): Channel {
+  if (!isConversation(c)) return c;
+  const names = c.participants.map((p) => p.display_name || p.email);
+  return { ...c, name: names.length ? names.join(', ') : i18next.t('dm.onlyYou') };
+}
+
 /** Channels the user is a member of (the sidebar). */
 export const channelsQuery = queryOptions({
   queryKey: ['channels'],
-  queryFn: () => apiFetch<{ channels: Channel[] }>('/api/channels').then((r) => r.channels),
+  queryFn: () =>
+    apiFetch<{ channels: Channel[] }>('/api/channels').then((r) => r.channels.map(displayName)),
   staleTime: 5 * 60_000,
 });
+
+/** Opens (or finds) the conversation with these people. */
+export const openConversation = (workspaceId: string, userIds: string[]) =>
+  apiFetch<Channel>(
+    `/api/workspaces/${workspaceId}/conversations`,
+    json({ user_ids: userIds }),
+  ).then(displayName);
+
+export const markRead = (channelId: string, messageId: string) =>
+  apiFetch<void>(`/api/channels/${channelId}/read`, json({ message_id: messageId }));
+export const sendTyping = (channelId: string) =>
+  apiFetch<void>(`/api/channels/${channelId}/typing`, { method: 'POST' });
+export const setPresence = (status: Exclude<PresenceStatus, 'offline'>) =>
+  apiFetch<void>('/api/presence', { ...json({ status }), method: 'PUT' });
+export const presenceQuery = (workspaceId: string | undefined) =>
+  queryOptions({
+    queryKey: ['presence', workspaceId],
+    queryFn: () =>
+      apiFetch<{ presence: components['schemas']['Presence'][] }>(
+        `/api/workspaces/${workspaceId}/presence`,
+      ).then((r) => r.presence),
+    enabled: !!workspaceId,
+    staleTime: Infinity,
+  });
+
+/** Changes the user's channel entry in the cache. */
+function patchChannel(
+  queryClient: QueryClient,
+  channelId: string,
+  patch: (c: Channel) => Channel,
+): void {
+  queryClient.setQueryData<Channel[]>(['channels'], (list) =>
+    list?.map((c) => (c.id === channelId ? patch(c) : c)),
+  );
+}
+
+/** The channel is read up to a message (here or on another device). */
+export function setReadLocally(queryClient: QueryClient, channelId: string, messageId: string) {
+  patchChannel(queryClient, channelId, (c) =>
+    c.last_read_id && c.last_read_id >= messageId
+      ? c
+      : { ...c, last_read_id: messageId, unread_count: 0 },
+  );
+}
+
+/** A message arrived: someone else's counts as unread (up to 100). */
+export function countIncoming(queryClient: QueryClient, message: Message, selfId: string) {
+  if (message.author.id === selfId) {
+    setReadLocally(queryClient, message.channel_id, message.id);
+    return;
+  }
+  patchChannel(queryClient, message.channel_id, (c) =>
+    c.last_read_id && c.last_read_id >= message.id
+      ? c
+      : { ...c, unread_count: Math.min(c.unread_count + 1, 100) },
+  );
+}
 
 /** The channels of a workspace the user can see, with membership (browsing). */
 export const directoryQuery = (workspaceId: string | undefined) =>

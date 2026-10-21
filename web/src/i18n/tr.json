@@ -47,7 +47,8 @@
     "notAvailable": "Henüz kullanılamıyor",
     "settings": "Ayarlar",
     "channels": "Kanallar",
-    "noTopic": "Henüz konu yok."
+    "noTopic": "Henüz konu yok.",
+    "workspaceUnread": "{{name}} (okunmamış mesajlar)"
   },
   "notFound": {
     "home": "Cenacle'a git"
@@ -107,13 +108,21 @@
     "deleted": "Mesaj silindi.",
     "deleteFailed": "Mesaj silinemedi. Tekrar dene.",
     "editFailed": "Değişiklik kaydedilemedi. Tekrar dene.",
-    "noChannelsHint": "Listeden bir kanal aç ya da bu çalışma alanının kanallarına göz at."
+    "noChannelsHint": "Listeden bir kanal aç ya da bu çalışma alanının kanallarına göz at.",
+    "newMessages": "Yeni mesajlar",
+    "typing": {
+      "one": "{{name}} yazıyor…",
+      "two": "{{first}} ve {{second}} yazıyor…",
+      "many": "Birkaç kişi yazıyor…"
+    }
   },
   "channels": {
     "kinds": {
       "standard": "Kanal",
       "announcement": "Duyuru kanalı",
-      "private": "Özel kanal"
+      "private": "Özel kanal",
+      "direct": "Birebir konuşma",
+      "group": "Grup konuşması"
     },
     "createTitle": "Kanal oluştur",
     "createDescription": "Kanallar, bir konu hakkında konuşulan yerlerdir.",
@@ -259,5 +268,28 @@
     "active": "Geçerli bağlantılar",
     "summary": "{{date}} tarihine kadar · {{uses}} kez kullanıldı",
     "revoke": "İptal et"
+  },
+  "dm": {
+    "title": "Doğrudan mesajlar",
+    "none": "Henüz konuşma yok.",
+    "newTitle": "Yeni konuşma",
+    "newDescription": "Birebir konuşma için bir kişi, grup için en fazla 8 kişi seçin. Aynı kişiler her zaman aynı konuşmada buluşur.",
+    "picked": "Konuşmadaki kişiler",
+    "pick": "{{person}} ekle",
+    "unpick": "{{person}} çıkar",
+    "full": "Bir konuşmada en fazla {{count}} kişi daha olabilir.",
+    "start": "Konuşmayı başlat",
+    "intro": "{{people}} ile konuşmanızın başlangıcı.",
+    "onlyYou": "Yalnızca siz",
+    "unread_one": "{{count}} okunmamış mesaj",
+    "unread_other": "{{count}} okunmamış mesaj",
+    "about": {
+      "direct": "Bu konuşmayı yalnızca ikiniz görürsünüz.",
+      "group": "Bu konuşmayı yalnızca içindeki kişiler görür. Kişileri sabittir; birini eklemek için yeni bir konuşma başlatın."
+    }
+  },
+  "presence": {
+    "change": "Durum: {{status}}. Durumu değiştir",
+    "failed": "Durumunuz değiştirilemedi."
   }
 }

@@ -9,7 +9,13 @@ import { Button } from '@cenacle/ui/components/button';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { MembersSection, VisibilitySetting } from '../chat/channel-members';
 import { ChannelSettingsDialog } from '../chat/channel-settings';
-import { joinChannel, leaveChannel, reloadChannels, type Channel } from '../chat/data';
+import {
+  isConversation,
+  joinChannel,
+  leaveChannel,
+  reloadChannels,
+  type Channel,
+} from '../chat/data';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
 
@@ -41,7 +47,17 @@ export function DetailsPanel() {
           <SettingsButton channel={channel} />
         </div>
       )}
-      {channel && (
+      {channel && isConversation(channel) && (
+        <div className="flex flex-col gap-3 p-4 text-sm">
+          <p className="text-muted-foreground">{t(`dm.about.${channel.kind}`)}</p>
+          {channel.kind === 'group' && (
+            <div>
+              <LeaveButton channel={channel} />
+            </div>
+          )}
+        </div>
+      )}
+      {channel && !isConversation(channel) && (
         <dl className="flex flex-col gap-4 p-4 text-sm">
           <div className="flex flex-col gap-1">
             <dt className="text-xs font-medium text-muted-foreground uppercase">

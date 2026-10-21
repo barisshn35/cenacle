@@ -47,7 +47,8 @@
     "notAvailable": "Not available yet",
     "settings": "Settings",
     "channels": "Channels",
-    "noTopic": "No topic yet."
+    "noTopic": "No topic yet.",
+    "workspaceUnread": "{{name}} (unread messages)"
   },
   "notFound": {
     "home": "Go to Cenacle"
@@ -107,13 +108,21 @@
     "deleted": "Message deleted.",
     "deleteFailed": "The message could not be deleted. Try again.",
     "editFailed": "The change could not be saved. Try again.",
-    "noChannelsHint": "Open a channel from the list, or browse the channels of this workspace."
+    "noChannelsHint": "Open a channel from the list, or browse the channels of this workspace.",
+    "newMessages": "New messages",
+    "typing": {
+      "one": "{{name}} is typing…",
+      "two": "{{first}} and {{second}} are typing…",
+      "many": "Several people are typing…"
+    }
   },
   "channels": {
     "kinds": {
       "standard": "Channel",
       "announcement": "Announcement channel",
-      "private": "Private channel"
+      "private": "Private channel",
+      "direct": "Direct conversation",
+      "group": "Group conversation"
     },
     "createTitle": "Create a channel",
     "createDescription": "Channels are where people talk about one topic.",
@@ -259,5 +268,28 @@
     "active": "Active links",
     "summary": "Until {{date}} · used {{uses}}",
     "revoke": "Revoke"
+  },
+  "dm": {
+    "title": "Direct messages",
+    "none": "No conversations yet.",
+    "newTitle": "New conversation",
+    "newDescription": "Pick one person for a direct conversation, or up to 8 for a group. The same people always meet in the same conversation.",
+    "picked": "People in the conversation",
+    "pick": "Add {{person}}",
+    "unpick": "Remove {{person}}",
+    "full": "A conversation has up to {{count}} other people.",
+    "start": "Start conversation",
+    "intro": "This is the start of your conversation with {{people}}.",
+    "onlyYou": "Only you",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages",
+    "about": {
+      "direct": "Only the two of you see this conversation.",
+      "group": "Only the people in this conversation see it. Its people are fixed; start a new conversation to add someone."
+    }
+  },
+  "presence": {
+    "change": "Status: {{status}}. Change status",
+    "failed": "Your status could not be changed."
   }
 }

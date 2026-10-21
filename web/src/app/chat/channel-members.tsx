@@ -30,7 +30,7 @@ import {
   type Person,
 } from './data';
 
-function PersonLine({ person, badge }: { person: Person; badge?: string }) {
+export function PersonLine({ person, badge }: { person: Person; badge?: string }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       <span

@@ -189,7 +189,7 @@ const channel = (id: string, name: string, extra: Record<string, unknown> = {}) 
   workspace_id: DEFAULT_WS,
   name,
   topic: '',
-  kind: 'standard' as 'standard' | 'announcement',
+  kind: 'standard' as 'standard' | 'announcement' | 'direct' | 'group',
   visibility: 'public' as 'public' | 'private',
   is_default: true,
   is_mandatory: false,
@@ -198,8 +198,22 @@ const channel = (id: string, name: string, extra: Record<string, unknown> = {}) 
   can_manage: false,
   archived: false,
   category_id: null as string | null,
+  unread_count: 0,
+  last_read_id: null as string | null,
+  participants: [] as { id: string; display_name: string; email: string }[],
   ...extra,
 });
+
+/** A direct conversation of the signed-in user with one of PEOPLE. */
+export function directWith(person: (typeof PEOPLE)[number], extra: Record<string, unknown> = {}) {
+  return channel(`01a15e50-dddd-7000-8000-${person.id.slice(-12)}`, `direct:${person.id}`, {
+    kind: 'direct',
+    visibility: 'private',
+    is_default: false,
+    participants: [person],
+    ...extra,
+  });
+}
 
 /** People of the fake server (the signed-in user first). */
 export const PEOPLE = [
@@ -219,6 +233,8 @@ export const PEOPLE = [
     email: 'mert@example.com',
   },
 ];
+
+export type MockChannel = ReturnType<typeof channel>;
 
 export const CENTRAL = channel('01a15e50-1111-7d7d-bbee-8e7809fd8ad2', 'Central', {
   topic: 'Announcements for everyone.',
@@ -264,8 +280,16 @@ export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): 
 export interface MockApi {
   /** Sends an event over the open WebSocket. */
   emit(type: string, data: unknown): void;
+  /** Sends a short-lived notice (typing, presence) over the open WebSocket. */
+  emitEphemeral(type: string, data: unknown): void;
   /** Bodies of POSTed messages. */
   sent: { body: string; nonce: string }[];
+  /** Read positions sent: channel id -> message id. */
+  reads: Map<string, string>;
+  /** Channels typing notices were sent for. */
+  typing: string[];
+  /** Statuses the user chose. */
+  statuses: string[];
 }
 
 /**
@@ -276,7 +300,15 @@ export interface MockApi {
  */
 export async function mockApi(
   page: Page,
-  opts: { messages?: MockMessage[]; failSend?: number; admin?: boolean } = {},
+  opts: {
+    messages?: MockMessage[];
+    failSend?: number;
+    admin?: boolean;
+    /** More channels the user is in (conversations), with changes to the defaults. */
+    channels?: MockChannel[];
+    general?: Partial<MockChannel>;
+    presence?: { user_id: string; status: string }[];
+  } = {},
 ): Promise<MockApi> {
   await mockSession(page, {
     ...SESSION,
@@ -329,16 +361,33 @@ export async function mockApi(
   });
   const api: MockApi & { socket?: import('@playwright/test').WebSocketRoute; seq: number } = {
     sent: [],
+    reads: new Map(),
+    typing: [],
+    statuses: [],
     seq: 1,
     emit(type, data) {
+      if (type === 'channel.read') {
+        // As the server would: a reload after this shows the channel read.
+        const { channel_id } = data as { channel_id: string };
+        const c = all.find((x) => x.id === channel_id);
+        if (c) c.unread_count = 0;
+      }
       this.seq++;
       this.socket?.send(JSON.stringify({ op: 'event', id: `${this.seq}-0`, type, data }));
+    },
+    emitEphemeral(type, data) {
+      this.socket?.send(JSON.stringify({ op: 'ephemeral', type, data }));
     },
   };
   let failures = opts.failSend ?? 0;
   // Membership as the fake server keeps it.
   const admin = opts.admin ?? false;
-  const all = [CENTRAL, GENERAL, RANDOM].map((c) => ({ ...c, can_manage: admin }));
+  const all: MockChannel[] = [
+    CENTRAL,
+    { ...GENERAL, ...opts.general },
+    RANDOM,
+    ...(opts.channels ?? []),
+  ].map((c) => ({ ...c, can_manage: admin && c.kind !== 'direct' && c.kind !== 'group' }));
   // channel id -> member ids (manager first)
   const members = new Map<string, { id: string; role: 'member' | 'manager' }[]>(
     all.map((c) => [c.id, [{ id: PEOPLE[0]!.id, role: 'member' }]]),
@@ -471,10 +520,11 @@ export async function mockApi(
     },
   );
   await page.route('**/api/channels/*/messages*', async (route) => {
+    const channelId = route.request().url().split('/api/channels/')[1]!.split('/')[0]!;
     if (route.request().method() === 'GET') {
-      const list = route.request().url().includes(GENERAL.id)
-        ? stored.filter((m) => !m.deleted).map(({ deleted: _, ...m }) => m)
-        : [];
+      const list = stored
+        .filter((m) => !m.deleted && m.channel_id === channelId)
+        .map(({ deleted: _, ...m }) => m);
       return route.fulfill({ json: { messages: list, has_more: false } });
     }
     if (failures > 0) {
@@ -486,10 +536,45 @@ export async function mockApi(
     const message = {
       ...mockMessage(1000 + api.sent.length, input.body, SESSION.user.display_name),
       author: { id: SESSION.user.id, display_name: SESSION.user.display_name },
+      channel_id: channelId,
       nonce: input.nonce,
     };
     stored.push({ ...message, deleted: false });
     return route.fulfill({ status: 201, json: message });
+  });
+  await page.route('**/api/workspaces/*/conversations', (route) => {
+    const { user_ids } = route.request().postDataJSON() as { user_ids: string[] };
+    const person = PEOPLE.find((p) => p.id === user_ids[0])!;
+    let c = all.find((x) => x.kind === 'direct' && x.participants[0]?.id === person.id);
+    const created = !c;
+    if (!c) {
+      c = directWith(person);
+      all.push(c);
+      members.set(c.id, [
+        { id: PEOPLE[0]!.id, role: 'member' },
+        { id: person.id, role: 'member' },
+      ]);
+    }
+    return route.fulfill({ status: created ? 201 : 200, json: c });
+  });
+  await page.route('**/api/workspaces/*/presence', (route) =>
+    route.fulfill({ json: { presence: opts.presence ?? [] } }),
+  );
+  await page.route('**/api/presence', (route) => {
+    api.statuses.push((route.request().postDataJSON() as { status: string }).status);
+    return route.fulfill({ status: 204 });
+  });
+  await page.route('**/api/channels/*/read', (route) => {
+    const c = channelOf(route.request().url());
+    const { message_id } = route.request().postDataJSON() as { message_id: string };
+    api.reads.set(c.id, message_id);
+    c.last_read_id = message_id;
+    c.unread_count = 0;
+    return route.fulfill({ status: 204 });
+  });
+  await page.route('**/api/channels/*/typing', (route) => {
+    api.typing.push(channelOf(route.request().url()).id);
+    return route.fulfill({ status: 204 });
   });
   await page.route('**/api/ws/ticket', (route) =>
     route.fulfill({ status: 201, json: { ticket: 'test-ticket', expires_in: 30 } }),

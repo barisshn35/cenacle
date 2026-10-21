@@ -6,6 +6,7 @@ import {
   PlusIcon,
   SearchIcon,
   SettingsIcon,
+  UsersIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -23,6 +24,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
@@ -31,10 +33,14 @@ import {
 import { Button } from '@cenacle/ui/components/button';
 import { Logo } from '@cenacle/ui/brand';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
-import { PresenceIndicator } from './presence';
+import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
 import { initials, useSignOut } from '../auth/sign-out';
-import { categoriesQuery, channelsQuery, type Channel } from '../chat/data';
+import { categoriesQuery, channelsQuery, isConversation, type Channel } from '../chat/data';
+import { NewConversationDialog } from '../chat/new-conversation-dialog';
+import { usePresence, useWorkspacePresence } from '../chat/presence-state';
+import { StatusMenu } from '../chat/status-menu';
+import { PresenceIndicator } from './presence';
 import { CategoriesDialog } from '../chat/categories-dialog';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { WorkspaceMenu } from '../chat/workspace-menu';
@@ -44,17 +50,34 @@ import { ChannelDirectory } from '../chat/channel-directory';
 import { ChannelIcon } from '../chat/channel-icon';
 import { CreateChannelDialog } from '../chat/create-channel-dialog';
 
+/** The icon of a conversation: the other person's presence, or a group icon. */
+function ConversationIcon({ channel }: { channel: Channel }) {
+  const other = channel.kind === 'direct' ? channel.participants[0]?.id : undefined;
+  const presence = usePresence(other);
+  return channel.kind === 'direct' ? (
+    <PresenceIndicator presence={presence} className="bg-transparent" />
+  ) : (
+    <UsersIcon aria-hidden strokeWidth={1.75} />
+  );
+}
+
 function ChannelList({ channels }: { channels: Channel[] }) {
+  const { t } = useTranslation();
   const { id: activeId } = useActiveChannel();
   const { isMobile, setOpenMobile } = useSidebar();
   return (
     <SidebarMenu>
       {channels.map((ch) => {
         const isActive = ch.id === activeId;
+        const unread = ch.unread_count > 0;
+        // Conversations are addressed to you: their count stands out like a
+        // mention; channels are only marked as having something new.
+        const counted = unread && isConversation(ch);
         return (
-          <SidebarMenuItem key={ch.id}>
+          <SidebarMenuItem key={ch.id} data-unread={unread || undefined}>
             <SidebarMenuButton
               isActive={isActive}
+              className={cn(unread && 'font-semibold text-unread', (unread || counted) && 'pr-8')}
               render={
                 <Link
                   to="/c/$channelId"
@@ -65,9 +88,28 @@ function ChannelList({ channels }: { channels: Channel[] }) {
                 />
               }
             >
-              <ChannelIcon channel={ch} labelled />
+              {isConversation(ch) ? (
+                <ConversationIcon channel={ch} />
+              ) : (
+                <ChannelIcon channel={ch} labelled />
+              )}
               <span>{ch.name}</span>
+              {unread && (
+                <span className="sr-only">{t('dm.unread', { count: ch.unread_count })}</span>
+              )}
             </SidebarMenuButton>
+            {counted ? (
+              <SidebarMenuBadge
+                aria-hidden
+                className="rounded-full bg-mention text-mention-foreground peer-data-active/menu-button:text-mention-foreground peer-hover/menu-button:text-mention-foreground"
+              >
+                {ch.unread_count > 99 ? '99+' : ch.unread_count}
+              </SidebarMenuBadge>
+            ) : unread ? (
+              <SidebarMenuBadge aria-hidden>
+                <span className="size-2 rounded-full bg-unread" />
+              </SidebarMenuBadge>
+            ) : null}
           </SidebarMenuItem>
         );
       })}
@@ -101,7 +143,9 @@ function ChannelsGroups() {
     if (!open) setDialog(null);
   };
 
-  const list = (channels.data ?? []).filter((c) => c.workspace_id === workspaceId);
+  const list = (channels.data ?? []).filter(
+    (c) => c.workspace_id === workspaceId && !isConversation(c),
+  );
   const known = new Set(categories.data?.map((c) => c.id));
   const loose = list.filter((c) => !c.category_id || !known.has(c.category_id));
 
@@ -169,6 +213,42 @@ function ChannelsGroups() {
   );
 }
 
+/** Direct and group conversations of the workspace, newest activity first. */
+function ConversationsGroup() {
+  const { t } = useTranslation();
+  const { id: workspaceId } = useActiveWorkspace();
+  const channels = useQuery(channelsQuery);
+  const [open, setOpen] = useState(false);
+  useWorkspacePresence(workspaceId);
+  const list = (channels.data ?? [])
+    .filter((c) => c.workspace_id === workspaceId && isConversation(c))
+    .sort((a, b) => b.unread_count - a.unread_count || a.name.localeCompare(b.name));
+  if (!workspaceId) return null;
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{t('dm.title')}</SidebarGroupLabel>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <SidebarGroupAction aria-label={t('dm.newTitle')} onClick={() => setOpen(true)} />
+          }
+        >
+          <PlusIcon strokeWidth={1.75} />
+        </TooltipTrigger>
+        <TooltipContent side="right">{t('dm.newTitle')}</TooltipContent>
+      </Tooltip>
+      <SidebarGroupContent>
+        {list.length > 0 ? (
+          <ChannelList channels={list} />
+        ) : (
+          <p className="px-2 py-1 text-xs text-muted-foreground">{t('dm.none')}</p>
+        )}
+      </SidebarGroupContent>
+      {open && <NewConversationDialog workspaceId={workspaceId} open onOpenChange={setOpen} />}
+    </SidebarGroup>
+  );
+}
+
 export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
   const { workspace } = useActiveWorkspace();
@@ -202,6 +282,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
 
       <SidebarContent>
         <ChannelsGroups />
+        <ConversationsGroup />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
@@ -219,10 +300,7 @@ function CurrentUser({ onSettings }: { onSettings: () => void }) {
 
   return (
     <div className="flex items-center gap-2 px-1">
-      <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
-        <span aria-hidden>{initials(name)}</span>
-        <PresenceIndicator presence="online" className="absolute -right-1 -bottom-1" />
-      </span>
+      <StatusMenu initials={initials(name)} />
       <div className="flex min-w-0 flex-1 flex-col leading-tight">
         <span className="truncate text-sm font-medium" data-testid="current-user">
           {name}

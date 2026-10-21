@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, type ReactNode } from 'react';
+import { useSession } from '../auth/session';
 import { useQueryClient } from '@tanstack/react-query';
 import { RealtimeClient } from '@cenacle/core/realtime';
 import { useConnection } from './connection';
 import { reloadWorkspaces } from './workspaces';
 import { QuickSwitcher } from './quick-switcher';
 import { useQuickSwitcherShortcut } from './quick-switcher-state';
+import { useLive } from './presence-state';
 import {
   addMessage,
+  countIncoming,
   reloadChannels,
   reloadMessages,
   removeMessage,
   replaceMessage,
+  setReadLocally,
   type Message,
+  type PresenceStatus,
 } from './data';
 import { usePending } from './pending';
 
@@ -22,15 +27,22 @@ import { usePending } from './pending';
  */
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const selfId = useSession().user.id;
 
   useEffect(() => {
+    const live = useLive.getState();
     const client = new RealtimeClient({
       onEvent(ev) {
         if (ev.type === 'message.created') {
           const message = ev.data as Message;
           addMessage(queryClient, message);
+          countIncoming(queryClient, message, selfId);
+          live.stopTyping(message.channel_id, message.author.id);
           // The sender's own pending copy is now confirmed.
           usePending.getState().remove(message.nonce);
+        } else if (ev.type === 'channel.read') {
+          const { channel_id, message_id } = ev.data as { channel_id: string; message_id: string };
+          setReadLocally(queryClient, channel_id, message_id);
         } else if (ev.type === 'message.updated') {
           replaceMessage(queryClient, ev.data as Message);
         } else if (ev.type === 'message.deleted') {
@@ -50,9 +62,19 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           void reloadChannels(queryClient);
         }
       },
+      onEphemeral(ev) {
+        if (ev.type === 'typing') {
+          const d = ev.data as { channel_id: string; user_id: string; display_name: string };
+          live.startTyping(d.channel_id, d.user_id, d.display_name);
+        } else if (ev.type === 'presence.changed') {
+          const d = ev.data as { user_id: string; status: PresenceStatus };
+          live.setPresence(d.user_id, d.status);
+        }
+      },
       onResync() {
         void reloadMessages(queryClient);
         void reloadChannels(queryClient);
+        void queryClient.invalidateQueries({ queryKey: ['presence'] });
       },
       onStatus(status) {
         useConnection.setState({ status });
@@ -62,8 +84,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       },
     });
     client.start();
-    return () => client.stop();
-  }, [queryClient]);
+    const expire = setInterval(() => live.expireTyping(), 1000);
+    return () => {
+      client.stop();
+      clearInterval(expire);
+    };
+  }, [queryClient, selfId]);
 
   useQuickSwitcherShortcut();
   return (

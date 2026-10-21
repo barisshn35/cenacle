@@ -9,6 +9,7 @@ import { cn } from '@cenacle/ui/lib/utils';
 import { initials } from '../auth/sign-out';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { AddWorkspaceDialog } from '../chat/workspace-menu';
+import { channelsQuery } from '../chat/data';
 import { workspacesQuery } from '../chat/workspaces';
 
 export function WorkspaceRail() {
@@ -16,6 +17,10 @@ export function WorkspaceRail() {
   const workspaces = useQuery(workspacesQuery);
   const { id: active } = useActiveWorkspace();
   const [adding, setAdding] = useState(false);
+  const channels = useQuery(channelsQuery);
+  const unread = new Set(
+    (channels.data ?? []).filter((c) => c.unread_count > 0).map((c) => c.workspace_id),
+  );
 
   return (
     <nav
@@ -25,13 +30,14 @@ export function WorkspaceRail() {
       <ul className="flex flex-col items-center gap-2">
         {(workspaces.data ?? []).map((w) => {
           const isActive = w.id === active;
+          const hasUnread = !isActive && unread.has(w.id);
           return (
             <li key={w.id} className="relative flex w-full justify-center">
               <span
                 aria-hidden
                 className={cn(
                   'absolute top-1/2 left-0 w-1 -translate-y-1/2 rounded-r-full bg-foreground transition-[height] duration-(--duration-base) ease-(--ease-out)',
-                  isActive ? 'h-8' : 'h-0',
+                  isActive ? 'h-8' : hasUnread ? 'h-2' : 'h-0',
                 )}
               />
               <Tooltip>
@@ -41,7 +47,7 @@ export function WorkspaceRail() {
                       to="/w/$workspaceId"
                       params={{ workspaceId: w.id }}
                       aria-current={isActive ? 'page' : undefined}
-                      aria-label={w.name}
+                      aria-label={hasUnread ? t('shell.workspaceUnread', { name: w.name }) : w.name}
                       className={cn(
                         'relative flex size-12 items-center justify-center rounded-2xl text-sm font-semibold transition-[border-radius,background-color] duration-(--duration-base) ease-(--ease-out) outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         isActive

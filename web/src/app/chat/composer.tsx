@@ -6,11 +6,15 @@ import { DraftStore } from '@cenacle/core/drafts';
 import { Button } from '@cenacle/ui/components/button';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useConnection } from './connection';
+import { sendTyping } from './data';
 import { useSendMessage } from './send';
+import { TypingIndicator } from './typing-indicator';
 
 const MAX_LENGTH = 4000;
 /** The text area grows up to this height (px), then scrolls. */
 const MAX_HEIGHT = 240;
+/** Typing notices go out at most this often (ms) while typing. */
+const TYPING_EVERY = 3_000;
 /** Workspaces arrive in v0.6; until then drafts belong to one implicit workspace. */
 const WORKSPACE = 'default';
 
@@ -46,9 +50,18 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
   const input = useRef<HTMLTextAreaElement>(null);
   // The latest text, for saving the draft when the composer goes away.
   const latest = useRef('');
+  const lastTyping = useRef(0);
   const change = (value: string) => {
     latest.current = value;
     setBody(value);
+  };
+  const typed = (value: string) => {
+    change(value);
+    const now = Date.now();
+    if (value.trim() !== '' && now - lastTyping.current >= TYPING_EVERY) {
+      lastTyping.current = now;
+      void sendTyping(channelId).catch(() => undefined);
+    }
   };
   const { send } = useSendMessage();
   const key = { workspaceId: WORKSPACE, channelId };
@@ -104,6 +117,7 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
     if (!canSend) return;
     send(channelId, trimmed);
     change('');
+    lastTyping.current = 0;
     void drafts.delete(key).catch(() => undefined);
   };
 
@@ -136,9 +150,11 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
             ref={input}
             rows={1}
             value={body}
-            onChange={(e) => change(e.target.value)}
+            onChange={(e) => typed(e.target.value)}
             onKeyDown={onKeyDown}
-            aria-describedby="composer-hint"
+            aria-describedby={
+              body.length > MAX_LENGTH - 200 ? 'composer-hint composer-count' : 'composer-hint'
+            }
             aria-invalid={tooLong || undefined}
             placeholder={label}
             className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
@@ -147,10 +163,16 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
             <SendHorizontalIcon strokeWidth={1.75} />
           </Button>
         </div>
-        <div id="composer-hint" className="mt-1.5 flex justify-between gap-2">
-          <ConnectionNotice />
+        <div className="mt-1.5 flex justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div id="composer-hint">
+              <ConnectionNotice />
+            </div>
+            <TypingIndicator channelId={channelId} />
+          </div>
           {body.length > MAX_LENGTH - 200 && (
             <p
+              id="composer-count"
               className={cn(
                 'px-1 text-xs tabular-nums',
                 tooLong ? 'text-destructive' : 'text-muted-foreground',

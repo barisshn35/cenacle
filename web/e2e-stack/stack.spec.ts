@@ -284,3 +284,45 @@ test('a workspace by invitation: create, invite, join, talk', async ({ browser }
   await member.getByLabel('Message General').press('Enter');
   await expect(admin.getByText('selam ekip')).toBeVisible();
 });
+
+test('a direct conversation: unread count, typing and presence', async ({ browser }) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const deniz = await open(EMAIL);
+  const mert = await open(SECOND.email);
+  const stamp = Date.now().toString(36);
+
+  // Deniz starts a conversation with Mert.
+  const nav = deniz.getByRole('navigation', { name: 'Channels' });
+  await nav.getByRole('button', { name: 'New conversation' }).click();
+  const dialog = deniz.getByRole('dialog', { name: 'New conversation' });
+  await dialog.getByLabel('Find people').fill('mert');
+  await dialog.getByRole('button', { name: `Add ${SECOND.name}` }).click();
+  await dialog.getByRole('button', { name: 'Start conversation' }).click();
+  await expect(deniz.getByRole('heading', { level: 1 })).toHaveText(SECOND.name);
+  // Mert is online: his presence shows on the conversation.
+  await expect(nav.getByRole('link', { name: new RegExp(SECOND.name) })).toContainText('Online');
+
+  const box = deniz.getByLabel(`Message ${SECOND.name}`);
+  await box.pressSequentially('Selam');
+  await box.fill(`Özel mesaj ${stamp}`);
+  await box.press('Enter');
+
+  // Mert sees the conversation with one unread message, opens it and reads it.
+  const mertNav = mert.getByRole('navigation', { name: 'Channels' });
+  const item = mertNav.getByRole('link', { name: /Deniz Kaya/ });
+  await expect(item).toContainText('1 unread message');
+  await item.click();
+  await expect(mert.getByText(`Özel mesaj ${stamp}`)).toBeVisible();
+  await expect(item).not.toContainText('unread');
+
+  // Typing reaches the other side.
+  await mert.getByLabel('Message Deniz Kaya').pressSequentially('Yazıyorum');
+  await expect(deniz.getByTestId('typing')).toHaveText('Mert Demir is typing…');
+});
