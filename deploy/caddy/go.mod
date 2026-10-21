@@ -2,6 +2,8 @@ module github.com/barisshn35/cenacle/deploy/caddy
 
 go 1.26.0
 
+toolchain go1.26.10
+
 require github.com/caddyserver/caddy/v2 v2.11.7
 
 require (
