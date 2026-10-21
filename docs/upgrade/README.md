@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.5.0)
+### 0.5.0
 
 - Chat migration `00006_channel_and_message_management` adds edit and delete times to
   messages, channel archiving and categories. Reversible (`migrate down` removes

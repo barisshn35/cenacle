@@ -8,6 +8,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-21
+
+Editing and deleting messages, channel settings and archiving, categories, quick switcher.
+
 ### Added
 
 - Edit your messages (marked as edited) and delete them with Undo; channel managers can
@@ -20,7 +24,7 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-050): reversible migration
+- See [docs/upgrade](docs/upgrade/README.md#050): reversible migration
   `00006_channel_and_message_management`.
 
 ## [0.4.0] - 2026-10-21
@@ -201,7 +205,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/barisshn35/cenacle/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/barisshn35/cenacle/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/barisshn35/cenacle/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/barisshn35/cenacle/compare/v0.1.1...v0.2.0
