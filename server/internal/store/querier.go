@@ -33,6 +33,8 @@ type Querier interface {
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
 	CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID) (int64, error)
 	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
+	// CountUnsentFiles counts a person's uploads that no message carries yet.
+	CountUnsentFiles(ctx context.Context, uploaderID pgtype.UUID) (int64, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
 	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)

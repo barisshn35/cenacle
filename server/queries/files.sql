@@ -3,6 +3,10 @@ INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, si
 VALUES (@workspace_id, @channel_id, @uploader_id, @name, @content_type, @size)
 RETURNING *;
 
+-- name: CountUnsentFiles :one
+-- CountUnsentFiles counts a person's uploads that no message carries yet.
+SELECT count(*) FROM files WHERE uploader_id = @uploader_id AND message_id IS NULL AND attached_at IS NULL;
+
 -- name: GetFile :one
 SELECT * FROM files WHERE id = @id;
 

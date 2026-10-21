@@ -40,6 +40,18 @@ func (q *Queries) AttachFiles(ctx context.Context, arg AttachFilesParams) (int64
 	return result.RowsAffected(), nil
 }
 
+const countUnsentFiles = `-- name: CountUnsentFiles :one
+SELECT count(*) FROM files WHERE uploader_id = $1 AND message_id IS NULL AND attached_at IS NULL
+`
+
+// CountUnsentFiles counts a person's uploads that no message carries yet.
+func (q *Queries) CountUnsentFiles(ctx context.Context, uploaderID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countUnsentFiles, uploaderID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createFile = `-- name: CreateFile :one
 INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, size)
 VALUES ($1, $2, $3, $4, $5, $6)

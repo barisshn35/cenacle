@@ -33,6 +33,7 @@ const (
 	CodeUploadIncomplete = "upload_incomplete"
 	CodeFileBlocked      = "file_blocked"
 	CodeFilesUnavailable = "files_unavailable"
+	CodeTooManyUploads   = "too_many_uploads"
 )
 
 const (
@@ -43,6 +44,9 @@ const (
 	// maxPreviewSize: larger images are kept without a preview.
 	maxPreviewSize = 40 << 20
 	filesPage      = 50
+	// MaxUnsentFiles bounds the uploads a person has not sent yet (they take
+	// space until sent or removed).
+	MaxUnsentFiles = 50
 )
 
 // errFilesUnavailable: a message names files that are not the sender's ready,
@@ -155,6 +159,16 @@ func (h *Handlers) CreateUpload(w http.ResponseWriter, r *http.Request, channelI
 		return
 	}
 	if !h.allowMessage(w, r, p.User) {
+		return
+	}
+	unsent, err := h.Queries.CountUnsentFiles(r.Context(), p.User.ID)
+	if err != nil {
+		h.unavailable(w, r, "count uploads", err)
+		return
+	}
+	if unsent >= MaxUnsentFiles {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeTooManyUploads,
+			Detail: "You have 50 files that are not sent yet; send or remove some first."})
 		return
 	}
 	f, err := h.Queries.CreateFile(r.Context(), store.CreateFileParams{

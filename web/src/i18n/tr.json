@@ -512,7 +512,8 @@
       "upload_incomplete": "Yükleme tamamlanmadı. Yeniden dene.",
       "network_error": "Bağlantı yok. Yeniden dene.",
       "files_disabled": "Bu sunucuda dosyalar ayarlanmamış.",
-      "rate_limited": "Çok hızlı. Birazdan yeniden dene."
+      "rate_limited": "Çok hızlı. Birazdan yeniden dene.",
+      "too_many_uploads": "Gönderilmemiş 50 dosyan var; önce bazılarını gönder ya da kaldır."
     }
   }
 }

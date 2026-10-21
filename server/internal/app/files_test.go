@@ -262,6 +262,17 @@ func TestFilesDisabledAndIncomplete(t *testing.T) {
 	if status, code := problemCode(t, s, http.MethodPost, "/api/files/"+u.File.ID+"/complete", ayse, nil); status != http.StatusConflict || code != "upload_incomplete" {
 		t.Errorf("complete before upload = %d %s", status, code)
 	}
+	// Unsent uploads are limited per person.
+	if _, err := s.pool.Exec(context.Background(), `INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, size)
+		SELECT c.workspace_id, c.id, u.id, 'x', 'text/plain', 1 FROM channels c, users u, generate_series(1, 49)
+		WHERE c.id = $1 AND u.auth_data = 'sub-a'`, general); err != nil {
+		t.Fatal(err)
+	}
+	if status, code := problemCode(t, s, http.MethodPost, "/api/channels/"+general+"/files", ayse,
+		map[string]any{"name": "b.txt", "size": 3}); status != http.StatusConflict || code != "too_many_uploads" {
+		t.Errorf("51st upload = %d %s", status, code)
+	}
+
 	// The form accepts exactly the announced size.
 	if status := postForm(t, u, []byte("too short")); status/100 == 2 {
 		t.Errorf("short upload = %d", status)
