@@ -143,7 +143,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 
 ### Self-hosted installation roadmap
 
-1. **v0.1:** production compose skeleton ([`deploy/compose/prod.yml`](deploy/compose/prod.yml)):
+1. **v0.1:** production compose skeleton ([`deploy/compose/prod.yml`](deploy/compose/prod.yml),
+   [installation and firewall guide](docs/install/README.md)):
    Caddy, chat server, Cenacle ID, web, PostgreSQL, Valkey; secrets via
    `deploy/compose/gen-secrets.sh`, host names from `.env.prod`.
 2. **v0.3–v0.12:** the stack becomes usable end to end; SMTP, LDAP and object storage stay
