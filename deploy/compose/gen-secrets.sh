@@ -32,4 +32,16 @@ keep_or_write chat_database_url \
 keep_or_write idp_database_url \
   "postgres://cenacle_idp:$(cat secrets/idp_db_password)@postgres:5432/cenacle_idp"
 
+# Garage (object store for files): its cluster secret, and the access key the
+# chat server uses (Garage's key ids are "GK" and 24 hex digits).
+hex() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+keep_or_write garage_rpc_secret "$(hex 32)"
+keep_or_write s3_access_key "GK$(hex 12)"
+keep_or_write s3_secret_key "$(hex 32)"
+# Garage reads its cluster secret and first key from the environment.
+printf 'GARAGE_RPC_SECRET=%s\nGARAGE_DEFAULT_ACCESS_KEY=%s\nGARAGE_DEFAULT_SECRET_KEY=%s\n' \
+  "$(cat secrets/garage_rpc_secret)" "$(cat secrets/s3_access_key)" "$(cat secrets/s3_secret_key)" \
+  > secrets/garage.env
+chmod 600 secrets/garage.env
+
 echo "secrets ready in $(pwd)/secrets (back them up together with the database)"

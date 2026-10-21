@@ -35,6 +35,16 @@
 			stream_close_delay 5m
 		}
 	}
+	# Uploads go from the browser straight to the object store, with a signed
+	# form the server issued (fixed key and size). Only those form posts to the
+	# bucket pass; every other S3 request stays inside.
+	@upload {
+		method POST
+		path /{$CENACLE_S3_BUCKET:cenacle-files} /{$CENACLE_S3_BUCKET:cenacle-files}/
+	}
+	handle @upload {
+		reverse_proxy garage:3900
+	}
 	handle {
 		reverse_proxy web:8080
 	}

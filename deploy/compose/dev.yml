@@ -77,6 +77,27 @@ services:
       timeout: 3s
       retries: 20
 
+  # S3-compatible object store for files (single node, one bucket and key).
+  garage:
+    <<: *restart
+    image: dxflrs/garage:v2.4.1
+    command: [/garage, server, --single-node, --default-bucket]
+    environment:
+      GARAGE_CONFIG_FILE: /etc/garage.toml
+      GARAGE_DEFAULT_ACCESS_KEY: ${GARAGE_ACCESS_KEY:?set GARAGE_ACCESS_KEY in .env}
+      GARAGE_DEFAULT_SECRET_KEY: ${GARAGE_SECRET_KEY:?set GARAGE_SECRET_KEY in .env}
+      GARAGE_DEFAULT_BUCKET: ${GARAGE_BUCKET:-cenacle-files}
+    ports:
+      - 127.0.0.1:${GARAGE_PORT:-13900}:3900
+    volumes:
+      - ./garage/dev.toml:/etc/garage.toml:ro
+      - garage-data:/var/lib/garage
+    healthcheck:
+      test: [CMD, /garage, status]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   # --- Application containers (profile "apps") ---------------------------
 
   migrate:
@@ -169,3 +190,4 @@ volumes:
   postgres-data:
   valkey-data:
   ldap-data:
+  garage-data:

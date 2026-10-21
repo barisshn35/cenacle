@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Garage (S3-compatible object store) for local development: one node, data in
+# the "garage-data" volume. The secrets below are development-only values.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "00000000000000000000000000000000000000000000000000000000000dec01"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[admin]
+api_bind_addr = "[::]:3903"

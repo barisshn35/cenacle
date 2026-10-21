@@ -39,6 +39,7 @@ services:
       CENACLE_ID_DOMAIN: ${CENACLE_ID_DOMAIN:?set CENACLE_ID_DOMAIN, e.g. id.example.com}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL for certificate notices}
       CENACLE_TLS_MODE: ${CENACLE_TLS_MODE:-acme}
+      CENACLE_S3_BUCKET: ${CENACLE_S3_BUCKET:-cenacle-files}
     ports:
       - 80:80
       - 443:443
@@ -49,8 +50,8 @@ services:
       # Own certificates for CENACLE_TLS_MODE=files (tls.crt, tls.key).
       - ./certs:/certs:ro
     tmpfs: [/tmp]
-    networks: [edge]
-    depends_on: [web, server, idp]
+    networks: [edge, files]
+    depends_on: [web, server, idp, garage]
 
   web:
     <<: *hardening
@@ -93,11 +94,22 @@ services:
       CENACLE_DEFAULT_CHANNELS: ${CENACLE_DEFAULT_CHANNELS-General}
       # Private networks bots may be reached in (slash commands, event deliveries).
       CENACLE_EGRESS_ALLOW: ${CENACLE_EGRESS_ALLOW:-}
-    secrets: [chat_database_url, valkey_password, chat_client_secret]
-    networks: [edge, data]
+      # Files: the bundled Garage (or set an S3 service of your own).
+      CENACLE_S3_ENDPOINT: ${CENACLE_S3_ENDPOINT:-http://garage:3900}
+      CENACLE_S3_REGION: ${CENACLE_S3_REGION:-garage}
+      CENACLE_S3_BUCKET: ${CENACLE_S3_BUCKET:-cenacle-files}
+      CENACLE_S3_UPLOAD_URL: ${CENACLE_S3_UPLOAD_URL:-}
+      CENACLE_S3_ACCESS_KEY_FILE: /run/secrets/s3_access_key
+      CENACLE_S3_SECRET_KEY_FILE: /run/secrets/s3_secret_key
+      CENACLE_FILES_MAX_SIZE_MB: ${CENACLE_FILES_MAX_SIZE_MB:-100}
+      # Optional virus scanning with a clamd (e.g. the "clamav" profile).
+      CENACLE_CLAMAV_ADDR: ${CENACLE_CLAMAV_ADDR:-}
+    secrets: [chat_database_url, valkey_password, chat_client_secret, s3_access_key, s3_secret_key]
+    networks: [edge, data, files]
     depends_on:
       migrate: { condition: service_completed_successfully }
       valkey: { condition: service_healthy }
+      garage: { condition: service_healthy }
 
   idp-migrate:
     <<: *hardening
@@ -185,8 +197,61 @@ services:
       timeout: 3s
       retries: 30
 
+  # Files. The data volume is given to Garage's non-root user first.
+  garage-volume:
+    image: valkey/valkey:9.0.6-alpine
+    restart: 'no'
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    user: '0:0'
+    entrypoint: [chown, -R, '10003:10003', /var/lib/garage]
+    volumes:
+      - garage-data:/var/lib/garage
+    network_mode: none
+
+  garage:
+    <<: *hardening
+    image: dxflrs/garage:v2.4.1
+    user: '10003:10003'
+    read_only: true
+    command: [/garage, server, --single-node, --default-bucket]
+    environment:
+      GARAGE_CONFIG_FILE: /etc/garage.toml
+      GARAGE_DEFAULT_BUCKET: ${CENACLE_S3_BUCKET:-cenacle-files}
+    # GARAGE_RPC_SECRET, GARAGE_DEFAULT_ACCESS_KEY and GARAGE_DEFAULT_SECRET_KEY
+    # (gen-secrets.sh).
+    env_file: [secrets/garage.env]
+    volumes:
+      - ./garage/prod.toml:/etc/garage.toml:ro
+      - garage-data:/var/lib/garage
+    networks: [files]
+    depends_on:
+      garage-volume: { condition: service_completed_successfully }
+    healthcheck:
+      test: [CMD, /garage, status]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  # Optional virus scanning: `--profile clamav` and CENACLE_CLAMAV_ADDR=clamav:3310.
+  # ClamAV (GPL) runs as its own service; it downloads signatures from the internet
+  # (for air-gapped installs, mirror them; see docs/install).
+  clamav:
+    <<: *hardening
+    profiles: [clamav]
+    image: clamav/clamav:1.5.4
+    # The entrypoint prepares its directories and drops to the clamav user.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    volumes:
+      - clamav-data:/var/lib/clamav
+    networks: [edge, files]
+
 networks:
   edge: {}
+  # Object store traffic: the proxy (uploads), the server and Garage.
+  files:
+    internal: true
   # No route to the outside world for the databases.
   data:
     internal: true
@@ -196,6 +261,8 @@ volumes:
   caddy-config:
   postgres-data:
   valkey-data:
+  garage-data:
+  clamav-data:
 
 secrets:
   postgres_password: { file: ./secrets/postgres_password }
@@ -207,3 +274,5 @@ secrets:
   idp_key_encryption_key: { file: ./secrets/idp_key_encryption_key }
   idp_cookie_keys: { file: ./secrets/idp_cookie_keys }
   chat_client_secret: { file: ./secrets/chat_client_secret }
+  s3_access_key: { file: ./secrets/s3_access_key }
+  s3_secret_key: { file: ./secrets/s3_secret_key }
