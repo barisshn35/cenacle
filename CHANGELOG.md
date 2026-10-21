@@ -8,6 +8,20 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Bots: workspace owners and admins create bots, give them tokens scoped to reading or
+  writing messages, and disable or enable them; bot messages carry a badge.
+- Incoming webhooks: a secret address posts into a channel as the bot (JSON text and
+  cards, or Jira events).
+- Jira: issues created, changed, deleted and comments become cards in a channel
+  ([guide](docs/integrations/README.md#jira)).
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0100): migration
+  `00011_bots_and_webhooks`.
+
 ## [0.9.0] - 2026-10-21
 
 Markdown, mentions, reactions and message cards; a transactional outbox for live events; background jobs on River.

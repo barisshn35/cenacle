@@ -39,6 +39,14 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.10.0)
+
+- Chat migration `00011_bots_and_webhooks` adds bot accounts, bot tokens and incoming
+  webhooks. Reversible (`migrate down` drops them; bot accounts that posted messages stay
+  as ordinary accounts).
+- Webhook addresses use `CENACLE_PUBLIC_URL`; systems that post to them (Jira Data Center,
+  monitoring) must reach that address.
+
 ### 0.9.0
 
 - Chat migration `00010_outbox_reactions_mentions` adds the event outbox, reactions,

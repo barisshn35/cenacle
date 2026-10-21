@@ -31,6 +31,8 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | New messages         | New messages                    | Yeni mesajlar                         | `chat.newMessages`                        | The line above the first unread message   |
 | Mention              | Mention                         | Bahsetme                              | `mentions.*`                              | "@Name"; a number badge on the channel    |
 | Reaction             | Reaction / Add reaction         | Tepki / Tepki ekle                    | `reactions.*`                             | One emoji; pressing again takes it back   |
+| Bot / Integrations   | Bot / Integrations              | Bot / Entegrasyonlar                  | `bots.*`                                  | Bots never sign in; a "Bot" badge         |
+| Incoming webhook     | Incoming webhook                | Gelen webhook                         | `bots.webhooks`                           | A secret address; shown once              |
 
 ## Rules
 
