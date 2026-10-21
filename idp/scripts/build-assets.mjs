@@ -17,9 +17,9 @@ const require = createRequire(join(root, 'package.json'));
 rmSync(join(root, 'public'), { recursive: true, force: true });
 mkdirSync(join(out, 'fonts'), { recursive: true });
 
-const geist = dirname(require.resolve('@fontsource-variable/geist/package.json'));
-for (const file of ['geist-latin-wght-normal.woff2', 'geist-latin-ext-wght-normal.woff2']) {
-  copyFileSync(join(geist, 'files', file), join(out, 'fonts', file));
+const inter = dirname(require.resolve('@fontsource-variable/inter/package.json'));
+for (const file of ['inter-latin-wght-normal.woff2', 'inter-latin-ext-wght-normal.woff2']) {
+  copyFileSync(join(inter, 'files', file), join(out, 'fonts', file));
 }
 const fraunces = dirname(require.resolve('@fontsource-variable/fraunces/package.json'));
 for (const file of ['fraunces-latin-full-normal.woff2', 'fraunces-latin-ext-full-normal.woff2']) {

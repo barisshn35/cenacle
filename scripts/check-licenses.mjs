@@ -32,6 +32,8 @@ const FONT_PACKAGES = new Set([
   '@fontsource-variable/geist',
   '@fontsource-variable/geist-mono',
   '@fontsource-variable/fraunces',
+  '@fontsource-variable/inter',
+  '@fontsource-variable/jetbrains-mono',
 ]);
 
 function listLicenses(prodOnly) {

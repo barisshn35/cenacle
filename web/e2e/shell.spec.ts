@@ -25,7 +25,7 @@ test('fonts are served locally', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('heading', { level: 1 }).waitFor();
   await page.evaluate(() => document.fonts.ready);
-  expect(await page.evaluate(() => document.fonts.check('16px "Geist Variable"'))).toBe(true);
+  expect(await page.evaluate(() => document.fonts.check('16px "Inter Variable"'))).toBe(true);
   for (const f of fonts) expect(new URL(f).hostname).toBe('127.0.0.1');
 });
 

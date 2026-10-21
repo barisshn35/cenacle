@@ -4,6 +4,10 @@
  * Fonts are bundled from npm (Fontsource, SIL OFL-1.1) and served by our own
  * origin. No CDN, no Google Fonts.
  */
+/* Defaults: Inter (text) and JetBrains Mono (code). Geist and Geist Mono stay in the
+   font library; a declared but unused face is never downloaded. */
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
 @import '@fontsource-variable/geist/wght.css';
 @import '@fontsource-variable/geist-mono/wght.css';
 

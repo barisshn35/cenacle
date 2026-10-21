@@ -47,7 +47,7 @@ record covers the tooling and the decisions made while implementing v0.1.
    0BSD, Unlicense, BlueOak-1.0.0 (OSI-approved permissive; added in v0.2 for `glob` and
    related packages). Enforced by `make licenses` (Go: go-licenses, JS: `scripts/check-licenses.mjs`).
    Explicit exceptions:
-   - **Fonts:** Geist, Geist Mono and Fraunces (SIL OFL-1.1, Fraunces since ADR 0003),
+   - **Fonts:** Inter, JetBrains Mono, Geist, Geist Mono and Fraunces (SIL OFL-1.1, Fraunces since ADR 0003, Inter and JetBrains Mono since ADR 0013),
      bundled from Fontsource. OFL permits bundling with any software; only these font
      packages are allowed.
    - **Development-only data/tooling licenses** (never shipped): CC-BY-4.0
