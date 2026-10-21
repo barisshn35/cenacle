@@ -502,7 +502,7 @@ func (h *Handlers) ListChannelMembers(w http.ResponseWriter, r *http.Request, ch
 	out := make([]api.Member, 0, len(rows))
 	for _, m := range rows {
 		out = append(out, api.Member{
-			User: api.Person{Id: uuid(m.ID), DisplayName: m.DisplayName, Email: m.Email},
+			User: personAPI(m.ID, m.DisplayName, m.Email, m.IsBot),
 			Role: api.MemberRole(m.Role),
 		})
 	}
@@ -572,7 +572,7 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 			map[string]any{"channel": c.Name, "user_id": uuid(u.ID).String(), "user": u.DisplayName})
 	}
 	httpx.WriteJSON(w, http.StatusOK, api.Member{
-		User: api.Person{Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email}, Role: api.MemberRole(role),
+		User: personAPI(u.ID, u.DisplayName, u.Email, u.IsBot), Role: api.MemberRole(role),
 	})
 }
 
@@ -636,7 +636,7 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 	}
 	out := make([]api.Person, 0, len(rows))
 	for _, u := range rows {
-		out = append(out, api.Person{Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email})
+		out = append(out, personAPI(u.ID, u.DisplayName, u.Email, u.IsBot))
 	}
 	httpx.WriteJSON(w, http.StatusOK, struct {
 		Users []api.Person `json:"users"`

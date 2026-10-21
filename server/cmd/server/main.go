@@ -182,6 +182,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Chat: &chat.Handlers{
 				Queries:           queries,
 				DB:                pool,
+				PublicURL:         cfg.PublicURL.String(),
 				Ephemeral:         ephemeral,
 				Audit:             auditLog,
 				Limiter:           valkey,

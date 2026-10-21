@@ -377,7 +377,7 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 				return err
 			}
 		}
-		msgs := []api.Message{messageAPI(edited, m.AuthorName)}
+		msgs := []api.Message{messageAPI(edited, m.AuthorName, m.AuthorIsBot)}
 		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
 			return err
 		}
@@ -444,7 +444,7 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 		if err != nil {
 			return err
 		}
-		msgs := []api.Message{messageAPI(restored, m.AuthorName)}
+		msgs := []api.Message{messageAPI(restored, m.AuthorName, m.AuthorIsBot)}
 		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
 			return err
 		}
@@ -453,7 +453,7 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 	})
 	if isNoRows(err) {
 		if !m.DeletedAt.Valid { // not deleted: nothing to do
-			httpx.WriteJSON(w, http.StatusOK, messageAPI(storeMessage(m), m.AuthorName))
+			httpx.WriteJSON(w, http.StatusOK, messageAPI(storeMessage(m), m.AuthorName, m.AuthorIsBot))
 			return
 		}
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,

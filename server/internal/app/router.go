@@ -64,6 +64,7 @@ func NewRouter(d Deps) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(auth.SameOrigin(a.PublicURL, a.Cookies))
 			r.Use(auth.Authenticate(a.Sessions, a.Cookies, a.TrustProxy, d.Log))
+			r.Use(auth.RestrictBots)
 			if d.Realtime != nil {
 				r.Get("/ws", d.Realtime.ServeWS)
 			}

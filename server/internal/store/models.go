@@ -22,6 +22,29 @@ type AuditEvent struct {
 	Detail      []byte      `json:"detail"`
 }
 
+type Bot struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	UserID      pgtype.UUID        `json:"user_id"`
+	Description string             `json:"description"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	DisabledAt  pgtype.Timestamptz `json:"disabled_at"`
+}
+
+type BotToken struct {
+	ID         pgtype.UUID        `json:"id"`
+	BotID      pgtype.UUID        `json:"bot_id"`
+	Name       string             `json:"name"`
+	TokenHash  []byte             `json:"token_hash"`
+	Scopes     []string           `json:"scopes"`
+	CreatedBy  pgtype.UUID        `json:"created_by"`
+	CreatedAt  time.Time          `json:"created_at"`
+	LastUsedAt pgtype.Timestamptz `json:"last_used_at"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
+	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
+}
+
 type Channel struct {
 	ID          pgtype.UUID        `json:"id"`
 	Name        string             `json:"name"`
@@ -58,6 +81,18 @@ type EventOutbox struct {
 	Type      string    `json:"type"`
 	Data      []byte    `json:"data"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type IncomingWebhook struct {
+	ID         pgtype.UUID        `json:"id"`
+	BotID      pgtype.UUID        `json:"bot_id"`
+	ChannelID  pgtype.UUID        `json:"channel_id"`
+	Kind       string             `json:"kind"`
+	Name       string             `json:"name"`
+	TokenHash  []byte             `json:"token_hash"`
+	CreatedBy  pgtype.UUID        `json:"created_by"`
+	CreatedAt  time.Time          `json:"created_at"`
+	LastUsedAt pgtype.Timestamptz `json:"last_used_at"`
 }
 
 type Message struct {
@@ -108,6 +143,7 @@ type User struct {
 	UpdatedAt     time.Time          `json:"updated_at"`
 	LastLoginAt   pgtype.Timestamptz `json:"last_login_at"`
 	IsAdmin       bool               `json:"is_admin"`
+	IsBot         bool               `json:"is_bot"`
 }
 
 type Workspace struct {

@@ -116,7 +116,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 		},
 		Chat: &chat.Handlers{
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
-			Audit:             auditLog,
+			Audit: auditLog, PublicURL: public.String(),
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},
 		Realtime: &realtime.Handler{

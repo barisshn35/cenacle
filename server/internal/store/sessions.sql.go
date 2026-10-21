@@ -178,7 +178,7 @@ func (q *Queries) DeleteUserSession(ctx context.Context, arg DeleteUserSessionPa
 }
 
 const getActiveSession = `-- name: GetActiveSession :one
-SELECT s.id, s.user_id, s.token_hash, s.created_at, s.last_seen_at, s.expires_at, s.user_agent, s.ip_address, s.idp_sid, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin
+SELECT s.id, s.user_id, s.token_hash, s.created_at, s.last_seen_at, s.expires_at, s.user_agent, s.ip_address, s.idp_sid, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1
@@ -221,6 +221,7 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 		&i.User.UpdatedAt,
 		&i.User.LastLoginAt,
 		&i.User.IsAdmin,
+		&i.User.IsBot,
 	)
 	return i, err
 }

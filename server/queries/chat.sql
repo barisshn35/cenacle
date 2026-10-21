@@ -47,7 +47,7 @@ SELECT coalesce((
 ), '')::text;
 
 -- name: ListMembers :many
-SELECT u.id, u.display_name, u.email, m.role, m.joined_at
+SELECT u.id, u.display_name, u.email, u.is_bot, m.role, m.joined_at
 FROM channel_members m
 JOIN users u ON u.id = m.user_id
 WHERE m.channel_id = @channel_id
@@ -113,6 +113,7 @@ INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, wm.user_id
 FROM channels c
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id
+JOIN users u ON u.id = wm.user_id AND NOT u.is_bot -- bots are added where they work
 WHERE c.id = @channel_id
 ON CONFLICT DO NOTHING;
 
@@ -144,7 +145,7 @@ SELECT * FROM messages WHERE author_id = @author_id AND nonce = @nonce;
 -- ListMessagesBefore returns up to row_limit messages of a channel older than
 -- the cursor (all when before is NULL), newest first, with their authors.
 -- Deleted messages are left out.
-SELECT m.*, u.display_name AS author_name
+SELECT m.*, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = @channel_id
@@ -154,7 +155,7 @@ ORDER BY m.id DESC
 LIMIT @row_limit;
 
 -- name: GetMessage :one
-SELECT m.*, u.display_name AS author_name
+SELECT m.*, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.id = @id AND m.channel_id = @channel_id;

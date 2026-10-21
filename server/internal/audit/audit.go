@@ -37,6 +37,14 @@ const (
 	ChannelMemberRemoved = "channel.member_removed"
 	ChannelRoleChanged   = "channel.role_changed"
 	MessageRemoved       = "message.removed_by_manager"
+
+	BotCreated      = "bot.created"
+	BotDisabled     = "bot.disabled"
+	BotEnabled      = "bot.enabled"
+	BotTokenCreated = "bot.token_created" //nolint:gosec // an event name, not a credential
+	BotTokenRevoked = "bot.token_revoked" //nolint:gosec // an event name, not a credential
+	WebhookCreated  = "bot.webhook_created"
+	WebhookDeleted  = "bot.webhook_deleted"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

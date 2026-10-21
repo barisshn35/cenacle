@@ -14,7 +14,7 @@ import (
 
 const addAllUsersToWorkspace = `-- name: AddAllUsersToWorkspace :execrows
 INSERT INTO workspace_members (workspace_id, user_id)
-SELECT $1, id FROM users
+SELECT $1, id FROM users WHERE NOT is_bot -- bots belong to their workspace only
 ON CONFLICT DO NOTHING
 `
 
@@ -309,7 +309,7 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([
 }
 
 const listWorkspaceMembers = `-- name: ListWorkspaceMembers :many
-SELECT u.id, u.display_name, u.email, wm.role, wm.joined_at
+SELECT u.id, u.display_name, u.email, u.is_bot, wm.role, wm.joined_at
 FROM workspace_members wm
 JOIN users u ON u.id = wm.user_id
 WHERE wm.workspace_id = $1
@@ -320,6 +320,7 @@ type ListWorkspaceMembersRow struct {
 	ID          pgtype.UUID `json:"id"`
 	DisplayName string      `json:"display_name"`
 	Email       string      `json:"email"`
+	IsBot       bool        `json:"is_bot"`
 	Role        string      `json:"role"`
 	JoinedAt    time.Time   `json:"joined_at"`
 }
@@ -337,6 +338,7 @@ func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.U
 			&i.ID,
 			&i.DisplayName,
 			&i.Email,
+			&i.IsBot,
 			&i.Role,
 			&i.JoinedAt,
 		); err != nil {

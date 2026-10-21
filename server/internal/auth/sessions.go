@@ -56,6 +56,8 @@ type Principal struct {
 	User    store.User
 	// IP is the client address of the request (for the audit log).
 	IP string
+	// Bot is set for requests with a bot token (Session is empty then).
+	Bot *BotPrincipal
 }
 
 // ClientInfo describes the client a session is used from.

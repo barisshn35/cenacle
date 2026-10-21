@@ -608,6 +608,303 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/bots:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [bots]
+      operationId: listBots
+      summary: The workspace's bots (owners and admins)
+      responses:
+        '200':
+          description: Bots.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bots]
+                properties:
+                  bots:
+                    type: array
+                    items: { $ref: '#/components/schemas/Bot' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [bots]
+      operationId: createBot
+      summary: Create a bot (owners and admins)
+      description: A bot is a member of the workspace that posts through tokens and webhooks; add it to channels like a person.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                description: { type: string, maxLength: 250 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bot' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [bots]
+      operationId: updateBot
+      summary: Rename, describe, disable or enable a bot
+      description: A disabled bot's tokens and webhooks stop working until it is enabled again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                description: { type: string, maxLength: 250 }
+                disabled: { type: boolean }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bot' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/tokens:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [bots]
+      operationId: listBotTokens
+      summary: The bot's tokens (not their secrets)
+      responses:
+        '200':
+          description: Tokens.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tokens]
+                properties:
+                  tokens:
+                    type: array
+                    items: { $ref: '#/components/schemas/BotToken' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [bots]
+      operationId: createBotToken
+      summary: Create a token (shown once)
+      description: |
+        The bot uses it as `Authorization: Bearer cnb_...`. Scopes: `messages:read` (list
+        its channels and their messages), `messages:write` (send, react).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                scopes:
+                  type: array
+                  minItems: 1
+                  items: { type: string, enum: ['messages:read', 'messages:write'] }
+                expires_in_days: { type: integer, minimum: 1, maximum: 3650 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, secret]
+                properties:
+                  token: { $ref: '#/components/schemas/BotToken' }
+                  secret: { type: string, description: Shown only now. }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/tokens/{token_id}:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: token_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [bots]
+      operationId: revokeBotToken
+      summary: Revoke a token
+      responses:
+        '204':
+          description: Revoked.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/webhooks:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [bots]
+      operationId: listWebhooks
+      summary: The bot's incoming webhooks
+      responses:
+        '200':
+          description: Webhooks.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [webhooks]
+                properties:
+                  webhooks:
+                    type: array
+                    items: { $ref: '#/components/schemas/Webhook' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [bots]
+      operationId: createWebhook
+      summary: Create an incoming webhook (URL shown once)
+      description: The bot joins the channel. `jira` reads Jira's issue and comment events.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, channel_id, kind]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                channel_id: { type: string, format: uuid }
+                kind: { type: string, enum: [generic, jira] }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [webhook, url]
+                properties:
+                  webhook: { $ref: '#/components/schemas/Webhook' }
+                  url: { type: string, description: The secret address; shown only now. }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/webhooks/{webhook_id}:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: webhook_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [bots]
+      operationId: deleteWebhook
+      summary: Delete a webhook (its URL stops working)
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/hooks/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [bots]
+      operationId: postWebhook
+      summary: Post into a channel through an incoming webhook
+      description: |
+        No session: the URL is the secret. A `generic` webhook takes
+        `{"text": "Markdown", "attachments": [...]}`; a `jira` webhook takes Jira's
+        webhook payloads (issue created, updated, deleted; comment created).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Posted (or ignored, for events that say nothing worth posting).
+        '400':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
   /api/ws/ticket:
     post:
       tags: [realtime]
@@ -1427,6 +1724,39 @@ components:
         detail:
           type: object
           additionalProperties: true
+    Bot:
+      type: object
+      required: [id, user_id, name, description, disabled, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        disabled: { type: boolean }
+        created_at: { type: string, format: date-time }
+    BotToken:
+      type: object
+      required: [id, name, scopes, created_at, last_used_at, expires_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        scopes:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+        last_used_at: { type: string, format: date-time, nullable: true }
+        expires_at: { type: string, format: date-time, nullable: true }
+    Webhook:
+      type: object
+      required: [id, name, kind, channel_id, channel_name, created_at, last_used_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        kind: { type: string, enum: [generic, jira] }
+        channel_id: { type: string, format: uuid }
+        channel_name: { type: string }
+        created_at: { type: string, format: date-time }
+        last_used_at: { type: string, format: date-time, nullable: true }
     WsTicket:
       type: object
       required: [ticket, expires_in]
@@ -1559,6 +1889,7 @@ components:
       type: object
       required: [id, display_name, email]
       properties:
+        is_bot: { type: boolean, description: A bot (shows a badge). }
         id: { type: string, format: uuid }
         display_name: { type: string }
         email: { type: string }
@@ -1604,6 +1935,7 @@ components:
       type: object
       required: [id, display_name]
       properties:
+        is_bot: { type: boolean, description: Sent by a bot. }
         id: { type: string, format: uuid }
         display_name: { type: string }
     Message:

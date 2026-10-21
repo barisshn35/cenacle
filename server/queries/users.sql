@@ -34,7 +34,7 @@ WHERE is_admin AND (@email::text = '' OR lower(email) <> lower(@email::text));
 -- name: SearchUsers :many
 -- SearchUsers finds members of a workspace by name or e-mail address
 -- (pattern: a LIKE pattern with % and _ escaped by the caller).
-SELECT u.id, u.display_name, u.email
+SELECT u.id, u.display_name, u.email, u.is_bot
 FROM users u
 JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = @workspace_id
 WHERE u.display_name ILIKE @pattern OR u.email ILIKE @pattern

@@ -17,6 +17,7 @@ INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, wm.user_id
 FROM channels c
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id
+JOIN users u ON u.id = wm.user_id AND NOT u.is_bot -- bots are added where they work
 WHERE c.id = $1
 ON CONFLICT DO NOTHING
 `
@@ -408,7 +409,7 @@ func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (s
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, u.display_name AS author_name
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.id = $1 AND m.channel_id = $2
@@ -431,6 +432,7 @@ type GetMessageRow struct {
 	DeletedBy   pgtype.UUID        `json:"deleted_by"`
 	Attachments []byte             `json:"attachments"`
 	AuthorName  string             `json:"author_name"`
+	AuthorIsBot bool               `json:"author_is_bot"`
 }
 
 func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error) {
@@ -448,6 +450,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMess
 		&i.DeletedBy,
 		&i.Attachments,
 		&i.AuthorName,
+		&i.AuthorIsBot,
 	)
 	return i, err
 }
@@ -731,7 +734,7 @@ func (q *Queries) ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([
 }
 
 const listMembers = `-- name: ListMembers :many
-SELECT u.id, u.display_name, u.email, m.role, m.joined_at
+SELECT u.id, u.display_name, u.email, u.is_bot, m.role, m.joined_at
 FROM channel_members m
 JOIN users u ON u.id = m.user_id
 WHERE m.channel_id = $1
@@ -742,6 +745,7 @@ type ListMembersRow struct {
 	ID          pgtype.UUID `json:"id"`
 	DisplayName string      `json:"display_name"`
 	Email       string      `json:"email"`
+	IsBot       bool        `json:"is_bot"`
 	Role        string      `json:"role"`
 	JoinedAt    time.Time   `json:"joined_at"`
 }
@@ -759,6 +763,7 @@ func (q *Queries) ListMembers(ctx context.Context, channelID pgtype.UUID) ([]Lis
 			&i.ID,
 			&i.DisplayName,
 			&i.Email,
+			&i.IsBot,
 			&i.Role,
 			&i.JoinedAt,
 		); err != nil {
@@ -773,7 +778,7 @@ func (q *Queries) ListMembers(ctx context.Context, channelID pgtype.UUID) ([]Lis
 }
 
 const listMessagesBefore = `-- name: ListMessagesBefore :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, u.display_name AS author_name
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = $1
@@ -801,6 +806,7 @@ type ListMessagesBeforeRow struct {
 	DeletedBy   pgtype.UUID        `json:"deleted_by"`
 	Attachments []byte             `json:"attachments"`
 	AuthorName  string             `json:"author_name"`
+	AuthorIsBot bool               `json:"author_is_bot"`
 }
 
 // ListMessagesBefore returns up to row_limit messages of a channel older than
@@ -827,6 +833,7 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.DeletedBy,
 			&i.Attachments,
 			&i.AuthorName,
+			&i.AuthorIsBot,
 		); err != nil {
 			return nil, err
 		}

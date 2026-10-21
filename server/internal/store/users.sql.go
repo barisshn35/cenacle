@@ -23,7 +23,7 @@ func (q *Queries) ClearAdminExcept(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin FROM users WHERE id = $1
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -40,6 +40,7 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.UpdatedAt,
 		&i.LastLoginAt,
 		&i.IsAdmin,
+		&i.IsBot,
 	)
 	return i, err
 }
@@ -57,7 +58,7 @@ func (q *Queries) RevokeAdminUnlessEmail(ctx context.Context, email string) erro
 }
 
 const searchUsers = `-- name: SearchUsers :many
-SELECT u.id, u.display_name, u.email
+SELECT u.id, u.display_name, u.email, u.is_bot
 FROM users u
 JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = $1
 WHERE u.display_name ILIKE $2 OR u.email ILIKE $2
@@ -75,6 +76,7 @@ type SearchUsersRow struct {
 	ID          pgtype.UUID `json:"id"`
 	DisplayName string      `json:"display_name"`
 	Email       string      `json:"email"`
+	IsBot       bool        `json:"is_bot"`
 }
 
 // SearchUsers finds members of a workspace by name or e-mail address
@@ -88,7 +90,12 @@ func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]Sea
 	var items []SearchUsersRow
 	for rows.Next() {
 		var i SearchUsersRow
-		if err := rows.Scan(&i.ID, &i.DisplayName, &i.Email); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayName,
+			&i.Email,
+			&i.IsBot,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -125,7 +132,7 @@ SET email          = EXCLUDED.email,
         WHEN (users.email, users.email_verified, users.display_name)
              IS DISTINCT FROM (EXCLUDED.email, EXCLUDED.email_verified, EXCLUDED.display_name)
         THEN now() ELSE users.updated_at END
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot
 `
 
 type UpsertUserFromIdentityParams struct {
@@ -158,6 +165,7 @@ func (q *Queries) UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFrom
 		&i.UpdatedAt,
 		&i.LastLoginAt,
 		&i.IsAdmin,
+		&i.IsBot,
 	)
 	return i, err
 }

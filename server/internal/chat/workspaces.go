@@ -155,8 +155,12 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 	httpx.WriteJSON(w, http.StatusOK, workspaceAPI(ws, role))
 }
 
-func personAPI(id pgtype.UUID, name, email string) api.Person {
-	return api.Person{Id: uuid(id), DisplayName: name, Email: email}
+func personAPI(id pgtype.UUID, name, email string, isBot ...bool) api.Person {
+	p := api.Person{Id: uuid(id), DisplayName: name, Email: email}
+	if len(isBot) > 0 && isBot[0] {
+		p.IsBot = &isBot[0]
+	}
+	return p
 }
 
 // ListWorkspaceMembers implements api.ServerInterface.
@@ -176,7 +180,7 @@ func (h *Handlers) ListWorkspaceMembers(w http.ResponseWriter, r *http.Request, 
 	out := make([]api.WorkspaceMember, 0, len(rows))
 	for _, m := range rows {
 		out = append(out, api.WorkspaceMember{
-			User: personAPI(m.ID, m.DisplayName, m.Email), Role: api.WorkspaceMemberRole(m.Role),
+			User: personAPI(m.ID, m.DisplayName, m.Email, m.IsBot), Role: api.WorkspaceMemberRole(m.Role),
 		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, struct {

@@ -176,6 +176,24 @@ func (e PresenceStatus) Valid() bool {
 	}
 }
 
+// Defines values for WebhookKind.
+const (
+	WebhookKindGeneric WebhookKind = "generic"
+	WebhookKindJira    WebhookKind = "jira"
+)
+
+// Valid indicates whether the value is a known member of the WebhookKind enum.
+func (e WebhookKind) Valid() bool {
+	switch e {
+	case WebhookKindGeneric:
+		return true
+	case WebhookKindJira:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WorkspaceRole.
 const (
 	WorkspaceRoleAdmin  WorkspaceRole = "admin"
@@ -212,6 +230,42 @@ func (e WorkspaceMemberRole) Valid() bool {
 	case WorkspaceMemberRoleMember:
 		return true
 	case WorkspaceMemberRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateBotTokenJSONBodyScopes.
+const (
+	MessagesRead  CreateBotTokenJSONBodyScopes = "messages:read"
+	MessagesWrite CreateBotTokenJSONBodyScopes = "messages:write"
+)
+
+// Valid indicates whether the value is a known member of the CreateBotTokenJSONBodyScopes enum.
+func (e CreateBotTokenJSONBodyScopes) Valid() bool {
+	switch e {
+	case MessagesRead:
+		return true
+	case MessagesWrite:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateWebhookJSONBodyKind.
+const (
+	CreateWebhookJSONBodyKindGeneric CreateWebhookJSONBodyKind = "generic"
+	CreateWebhookJSONBodyKindJira    CreateWebhookJSONBodyKind = "jira"
+)
+
+// Valid indicates whether the value is a known member of the CreateWebhookJSONBodyKind enum.
+func (e CreateWebhookJSONBodyKind) Valid() bool {
+	switch e {
+	case CreateWebhookJSONBodyKindGeneric:
+		return true
+	case CreateWebhookJSONBodyKindJira:
 		return true
 	default:
 		return false
@@ -320,6 +374,29 @@ type AuditEvent struct {
 type Author struct {
 	DisplayName string             `json:"display_name"`
 	Id          openapi_types.UUID `json:"id"`
+
+	// IsBot Sent by a bot.
+	IsBot *bool `json:"is_bot,omitempty"`
+}
+
+// Bot defines model for Bot.
+type Bot struct {
+	CreatedAt   time.Time          `json:"created_at"`
+	Description string             `json:"description"`
+	Disabled    bool               `json:"disabled"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+	UserId      openapi_types.UUID `json:"user_id"`
+}
+
+// BotToken defines model for BotToken.
+type BotToken struct {
+	CreatedAt  time.Time          `json:"created_at"`
+	ExpiresAt  *time.Time         `json:"expires_at"`
+	Id         openapi_types.UUID `json:"id"`
+	LastUsedAt *time.Time         `json:"last_used_at"`
+	Name       string             `json:"name"`
+	Scopes     []string           `json:"scopes"`
 }
 
 // Category defines model for Category.
@@ -508,6 +585,9 @@ type Person struct {
 	DisplayName string             `json:"display_name"`
 	Email       string             `json:"email"`
 	Id          openapi_types.UUID `json:"id"`
+
+	// IsBot A bot (shows a badge).
+	IsBot *bool `json:"is_bot,omitempty"`
 }
 
 // Presence defines model for Presence.
@@ -564,6 +644,20 @@ type User struct {
 	Id            openapi_types.UUID `json:"id"`
 }
 
+// Webhook defines model for Webhook.
+type Webhook struct {
+	ChannelId   openapi_types.UUID `json:"channel_id"`
+	ChannelName string             `json:"channel_name"`
+	CreatedAt   time.Time          `json:"created_at"`
+	Id          openapi_types.UUID `json:"id"`
+	Kind        WebhookKind        `json:"kind"`
+	LastUsedAt  *time.Time         `json:"last_used_at"`
+	Name        string             `json:"name"`
+}
+
+// WebhookKind defines model for Webhook.Kind.
+type WebhookKind string
+
 // Workspace defines model for Workspace.
 type Workspace struct {
 	Id openapi_types.UUID `json:"id"`
@@ -612,6 +706,33 @@ type LoginParams struct {
 	// ReturnTo Path inside the app to open after sign-in (default `/`).
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
 }
+
+// UpdateBotJSONBody defines parameters for UpdateBot.
+type UpdateBotJSONBody struct {
+	Description *string `json:"description,omitempty"`
+	Disabled    *bool   `json:"disabled,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
+// CreateBotTokenJSONBody defines parameters for CreateBotToken.
+type CreateBotTokenJSONBody struct {
+	ExpiresInDays *int                           `json:"expires_in_days,omitempty"`
+	Name          string                         `json:"name"`
+	Scopes        []CreateBotTokenJSONBodyScopes `json:"scopes"`
+}
+
+// CreateBotTokenJSONBodyScopes defines parameters for CreateBotToken.
+type CreateBotTokenJSONBodyScopes string
+
+// CreateWebhookJSONBody defines parameters for CreateWebhook.
+type CreateWebhookJSONBody struct {
+	ChannelId openapi_types.UUID        `json:"channel_id"`
+	Kind      CreateWebhookJSONBodyKind `json:"kind"`
+	Name      string                    `json:"name"`
+}
+
+// CreateWebhookJSONBodyKind defines parameters for CreateWebhook.
+type CreateWebhookJSONBodyKind string
 
 // ListCategoriesParams defines parameters for ListCategories.
 type ListCategoriesParams struct {
@@ -670,6 +791,9 @@ type MarkReadJSONBody struct {
 	MessageId openapi_types.UUID `json:"message_id"`
 }
 
+// PostWebhookJSONBody defines parameters for PostWebhook.
+type PostWebhookJSONBody map[string]interface{}
+
 // SetPresenceJSONBody defines parameters for SetPresence.
 type SetPresenceJSONBody struct {
 	Status SetPresenceJSONBodyStatus `json:"status"`
@@ -707,6 +831,12 @@ type ListWorkspaceAuditParams struct {
 	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// CreateBotJSONBody defines parameters for CreateBot.
+type CreateBotJSONBody struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+}
+
 // OpenConversationJSONBody defines parameters for OpenConversation.
 type OpenConversationJSONBody struct {
 	UserIds []openapi_types.UUID `json:"user_ids"`
@@ -728,6 +858,15 @@ type SetWorkspaceRoleJSONBodyRole string
 
 // BackchannelLogoutFormdataRequestBody defines body for BackchannelLogout for application/x-www-form-urlencoded ContentType.
 type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
+
+// UpdateBotJSONRequestBody defines body for UpdateBot for application/json ContentType.
+type UpdateBotJSONRequestBody UpdateBotJSONBody
+
+// CreateBotTokenJSONRequestBody defines body for CreateBotToken for application/json ContentType.
+type CreateBotTokenJSONRequestBody CreateBotTokenJSONBody
+
+// CreateWebhookJSONRequestBody defines body for CreateWebhook for application/json ContentType.
+type CreateWebhookJSONRequestBody CreateWebhookJSONBody
 
 // CreateCategoryJSONRequestBody defines body for CreateCategory for application/json ContentType.
 type CreateCategoryJSONRequestBody CreateCategoryJSONBody
@@ -759,6 +898,9 @@ type EditMessageJSONRequestBody EditMessageJSONBody
 // MarkReadJSONRequestBody defines body for MarkRead for application/json ContentType.
 type MarkReadJSONRequestBody MarkReadJSONBody
 
+// PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
+type PostWebhookJSONRequestBody PostWebhookJSONBody
+
 // SetPresenceJSONRequestBody defines body for SetPresence for application/json ContentType.
 type SetPresenceJSONRequestBody SetPresenceJSONBody
 
@@ -770,6 +912,9 @@ type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
 
 // RenameWorkspaceJSONRequestBody defines body for RenameWorkspace for application/json ContentType.
 type RenameWorkspaceJSONRequestBody RenameWorkspaceJSONBody
+
+// CreateBotJSONRequestBody defines body for CreateBot for application/json ContentType.
+type CreateBotJSONRequestBody CreateBotJSONBody
 
 // OpenConversationJSONRequestBody defines body for OpenConversation for application/json ContentType.
 type OpenConversationJSONRequestBody OpenConversationJSONBody
@@ -794,6 +939,27 @@ type ServerInterface interface {
 	// Logout End the current session
 	// (POST /api/auth/logout)
 	Logout(w http.ResponseWriter, r *http.Request)
+	// UpdateBot Rename, describe, disable or enable a bot
+	// (PATCH /api/bots/{bot_id})
+	UpdateBot(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// ListBotTokens The bot's tokens (not their secrets)
+	// (GET /api/bots/{bot_id}/tokens)
+	ListBotTokens(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// CreateBotToken Create a token (shown once)
+	// (POST /api/bots/{bot_id}/tokens)
+	CreateBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// RevokeBotToken Revoke a token
+	// (DELETE /api/bots/{bot_id}/tokens/{token_id})
+	RevokeBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, tokenId openapi_types.UUID)
+	// ListWebhooks The bot's incoming webhooks
+	// (GET /api/bots/{bot_id}/webhooks)
+	ListWebhooks(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// CreateWebhook Create an incoming webhook (URL shown once)
+	// (POST /api/bots/{bot_id}/webhooks)
+	CreateWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// DeleteWebhook Delete a webhook (its URL stops working)
+	// (DELETE /api/bots/{bot_id}/webhooks/{webhook_id})
+	DeleteWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, webhookId openapi_types.UUID)
 	// ListCategories Channel categories of a workspace, in order
 	// (GET /api/categories)
 	ListCategories(w http.ResponseWriter, r *http.Request, params ListCategoriesParams)
@@ -872,6 +1038,9 @@ type ServerInterface interface {
 	// UnarchiveChannel Restore an archived channel (channel managers)
 	// (POST /api/channels/{channel_id}/unarchive)
 	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// PostWebhook Post into a channel through an incoming webhook
+	// (POST /api/hooks/{token})
+	PostWebhook(w http.ResponseWriter, r *http.Request, token string)
 	// GetInvite What an invitation leads to
 	// (GET /api/invites/{token})
 	GetInvite(w http.ResponseWriter, r *http.Request, token string)
@@ -908,6 +1077,12 @@ type ServerInterface interface {
 	// ListWorkspaceAudit The workspace's audit log (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/audit)
 	ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListWorkspaceAuditParams)
+	// ListBots The workspace's bots (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/bots)
+	ListBots(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateBot Create a bot (owners and admins)
+	// (POST /api/workspaces/{workspace_id}/bots)
+	CreateBot(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// OpenConversation Open a direct or group conversation
 	// (POST /api/workspaces/{workspace_id}/conversations)
 	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -962,6 +1137,48 @@ func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request, params Logi
 // Logout End the current session
 // (POST /api/auth/logout)
 func (_ Unimplemented) Logout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateBot Rename, describe, disable or enable a bot
+// (PATCH /api/bots/{bot_id})
+func (_ Unimplemented) UpdateBot(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListBotTokens The bot's tokens (not their secrets)
+// (GET /api/bots/{bot_id}/tokens)
+func (_ Unimplemented) ListBotTokens(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateBotToken Create a token (shown once)
+// (POST /api/bots/{bot_id}/tokens)
+func (_ Unimplemented) CreateBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeBotToken Revoke a token
+// (DELETE /api/bots/{bot_id}/tokens/{token_id})
+func (_ Unimplemented) RevokeBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, tokenId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWebhooks The bot's incoming webhooks
+// (GET /api/bots/{bot_id}/webhooks)
+func (_ Unimplemented) ListWebhooks(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateWebhook Create an incoming webhook (URL shown once)
+// (POST /api/bots/{bot_id}/webhooks)
+func (_ Unimplemented) CreateWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteWebhook Delete a webhook (its URL stops working)
+// (DELETE /api/bots/{bot_id}/webhooks/{webhook_id})
+func (_ Unimplemented) DeleteWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, webhookId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1121,6 +1338,12 @@ func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// PostWebhook Post into a channel through an incoming webhook
+// (POST /api/hooks/{token})
+func (_ Unimplemented) PostWebhook(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetInvite What an invitation leads to
 // (GET /api/invites/{token})
 func (_ Unimplemented) GetInvite(w http.ResponseWriter, r *http.Request, token string) {
@@ -1190,6 +1413,18 @@ func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, w
 // ListWorkspaceAudit The workspace's audit log (owners and admins)
 // (GET /api/workspaces/{workspace_id}/audit)
 func (_ Unimplemented) ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListWorkspaceAuditParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListBots The workspace's bots (owners and admins)
+// (GET /api/workspaces/{workspace_id}/bots)
+func (_ Unimplemented) ListBots(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateBot Create a bot (owners and admins)
+// (POST /api/workspaces/{workspace_id}/bots)
+func (_ Unimplemented) CreateBot(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1393,6 +1628,206 @@ func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Logout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateBot operation middleware
+func (siw *ServerInterfaceWrapper) UpdateBot(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateBot(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBotTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListBotTokens(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBotTokens(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBotToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateBotToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBotToken(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeBotToken operation middleware
+func (siw *ServerInterfaceWrapper) RevokeBotToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "token_id" -------------
+	var tokenId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token_id", chi.URLParam(r, "token_id"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeBotToken(w, r, botId, tokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWebhooks operation middleware
+func (siw *ServerInterfaceWrapper) ListWebhooks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWebhooks(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateWebhook operation middleware
+func (siw *ServerInterfaceWrapper) CreateWebhook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateWebhook(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteWebhook operation middleware
+func (siw *ServerInterfaceWrapper) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "webhook_id" -------------
+	var webhookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "webhook_id", chi.URLParam(r, "webhook_id"), &webhookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "webhook_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteWebhook(w, r, botId, webhookId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2166,6 +2601,32 @@ func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// PostWebhook operation middleware
+func (siw *ServerInterfaceWrapper) PostWebhook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", chi.URLParam(r, "token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostWebhook(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetInvite operation middleware
 func (siw *ServerInterfaceWrapper) GetInvite(w http.ResponseWriter, r *http.Request) {
 
@@ -2459,6 +2920,58 @@ func (siw *ServerInterfaceWrapper) ListWorkspaceAudit(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListWorkspaceAudit(w, r, workspaceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBots operation middleware
+func (siw *ServerInterfaceWrapper) ListBots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBots(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBot operation middleware
+func (siw *ServerInterfaceWrapper) CreateBot(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBot(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2898,6 +3411,36 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/audit", wrapper.ListWorkspaceAudit)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/bots", wrapper.ListBots)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/bots", wrapper.CreateBot)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/bots/{bot_id}", wrapper.UpdateBot)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bots/{bot_id}/tokens", wrapper.ListBotTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/bots/{bot_id}/tokens", wrapper.CreateBotToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/bots/{bot_id}/tokens/{token_id}", wrapper.RevokeBotToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bots/{bot_id}/webhooks", wrapper.ListWebhooks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/bots/{bot_id}/webhooks", wrapper.CreateWebhook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/bots/{bot_id}/webhooks/{webhook_id}", wrapper.DeleteWebhook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/hooks/{token}", wrapper.PostWebhook)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/ws/ticket", wrapper.CreateWsTicket)

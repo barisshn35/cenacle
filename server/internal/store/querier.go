@@ -25,6 +25,9 @@ type Querier interface {
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
 	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
+	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
+	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)
+	CreateBotUser(ctx context.Context, arg CreateBotUserParams) (User, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (ChannelCategory, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
 	// CreateConversation creates a direct or group conversation, or returns the
@@ -35,6 +38,7 @@ type Querier interface {
 	// returns nothing (see GetMessageByNonce).
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	CreateWebhook(ctx context.Context, arg CreateWebhookParams) (IncomingWebhook, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
@@ -49,14 +53,20 @@ type Querier interface {
 	// DeleteSessionsBySubject ends every session of an identity (logout without sid).
 	DeleteSessionsBySubject(ctx context.Context, arg DeleteSessionsBySubjectParams) ([]pgtype.UUID, error)
 	DeleteUserSession(ctx context.Context, arg DeleteUserSessionParams) (int64, error)
+	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
 	EditMessage(ctx context.Context, arg EditMessageParams) (Message, error)
 	// EnsureChannel creates a configured channel or brings an existing one of that
 	// name to the configured kind and flags (and public: everyone is a member);
 	// the topic of an existing channel is kept.
 	EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error)
+	// GetActiveBotToken returns a usable token with its bot and the bot's user.
+	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
 	// GetActiveSession returns the session of a token hash with its user, unless
 	// it passed its absolute expiry or was idle for longer than idle_timeout.
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
+	// GetActiveWebhook returns a webhook of an enabled bot with the bot's user.
+	GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetActiveWebhookRow, error)
+	GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
 	GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error)
@@ -84,6 +94,8 @@ type Querier interface {
 	// ListAllChannels returns the public channels of a workspace and its private
 	// channels the user belongs to, with the user's role ('' when not a member).
 	ListAllChannels(ctx context.Context, arg ListAllChannelsParams) ([]ListAllChannelsRow, error)
+	ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotToken, error)
+	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
 	// ListConversationParticipants returns, for each direct or group conversation
 	// of a user, the other people in it.
@@ -109,6 +121,7 @@ type Querier interface {
 	// ListUserWorkspaces returns a user's workspaces with their role, the default
 	// workspace first.
 	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]ListUserWorkspacesRow, error)
+	ListWebhooks(ctx context.Context, botID pgtype.UUID) ([]ListWebhooksRow, error)
 	// ListWorkspaceAudit returns a workspace's events newest first, before a cursor.
 	ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAuditParams) ([]ListWorkspaceAuditRow, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
@@ -125,6 +138,7 @@ type Querier interface {
 	// RevokeAdminUnlessEmail removes the administrator flag from a user whose
 	// e-mail address is no longer the configured one ('' revokes it from all).
 	RevokeAdminUnlessEmail(ctx context.Context, email string) error
+	RevokeBotToken(ctx context.Context, arg RevokeBotTokenParams) (int64, error)
 	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
 	// SearchUsers finds members of a workspace by name or e-mail address
 	// (pattern: a LIKE pattern with % and _ escaped by the caller).
@@ -136,12 +150,17 @@ type Querier interface {
 	// WebSocket connections re-check their session with it).
 	SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error)
 	SetAdmin(ctx context.Context, arg SetAdminParams) error
+	SetBotDescription(ctx context.Context, arg SetBotDescriptionParams) error
+	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
 	SetChannelMemberRole(ctx context.Context, arg SetChannelMemberRoleParams) (int64, error)
 	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)
+	TouchBotToken(ctx context.Context, id pgtype.UUID) error
 	// TouchSession records use of a session at most once per minute, which keeps
 	// writes low while the idle timeout stays accurate to the minute.
 	TouchSession(ctx context.Context, arg TouchSessionParams) error
+	TouchWebhook(ctx context.Context, id pgtype.UUID) error
+	UpdateBot(ctx context.Context, arg UpdateBotParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (ChannelCategory, error)
 	UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error)
 	// UpsertUserFromIdentity creates the user of an identity on first sign-in and

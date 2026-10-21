@@ -41,7 +41,7 @@ WHERE c.id = m.channel_id AND c.workspace_id = @workspace_id AND m.user_id = @us
 DELETE FROM workspace_members WHERE workspace_id = @workspace_id AND user_id = @user_id;
 
 -- name: ListWorkspaceMembers :many
-SELECT u.id, u.display_name, u.email, wm.role, wm.joined_at
+SELECT u.id, u.display_name, u.email, u.is_bot, wm.role, wm.joined_at
 FROM workspace_members wm
 JOIN users u ON u.id = wm.user_id
 WHERE wm.workspace_id = @workspace_id
@@ -58,7 +58,7 @@ ON CONFLICT DO NOTHING;
 
 -- name: AddAllUsersToWorkspace :execrows
 INSERT INTO workspace_members (workspace_id, user_id)
-SELECT @workspace_id, id FROM users
+SELECT @workspace_id, id FROM users WHERE NOT is_bot -- bots belong to their workspace only
 ON CONFLICT DO NOTHING;
 
 -- name: CreateInvite :one

@@ -117,7 +117,13 @@ func Authenticate(s *Sessions, c Cookies, trustProxy bool, log *slog.Logger) fun
 				return
 			}
 			ip := ClientIP(r, trustProxy)
-			p, err := s.Authenticate(r.Context(), token, ClientInfo{UserAgent: r.UserAgent(), IP: ip})
+			var p Principal
+			var err error
+			if isBotToken(token) {
+				p, err = s.authenticateBot(r.Context(), token)
+			} else {
+				p, err = s.Authenticate(r.Context(), token, ClientInfo{UserAgent: r.UserAgent(), IP: ip})
+			}
 			switch {
 			case err == nil:
 				p.IP = ip
