@@ -91,6 +91,10 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 	if !ok {
 		return
 	}
+	// Commands post and call bots: they count like messages.
+	if !h.allowMessage(w, r, p.User) {
+		return
+	}
 	switch command {
 	case "remind":
 		h.remind(w, r, p.User, c, text, in.Timezone)
@@ -230,7 +234,9 @@ func (h *Handlers) remind(w http.ResponseWriter, r *http.Request, user store.Use
 		ephemeral(w, "The reminder text is too long.")
 		return
 	}
-	var sched store.ScheduledMessage
+	if !h.belowScheduledLimit(w, r, user) {
+		return
+	}
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		bot, err := h.systemBot(r.Context(), q, c.WorkspaceID)
 		if err != nil {
@@ -257,7 +263,7 @@ func (h *Handlers) remind(w http.ResponseWriter, r *http.Request, user store.Use
 				}
 			}
 		}
-		sched, err = q.CreateScheduledMessage(r.Context(), store.CreateScheduledMessageParams{
+		_, err = q.CreateScheduledMessage(r.Context(), store.CreateScheduledMessageParams{
 			Kind: "reminder", ChannelID: dm.ID, AuthorID: bot.ID, OwnerID: user.ID,
 			Body: "⏰ " + what, SendAt: when,
 		})
@@ -268,7 +274,6 @@ func (h *Handlers) remind(w http.ResponseWriter, r *http.Request, user store.Use
 		return
 	}
 	ephemeral(w, fmt.Sprintf("I will remind you %s: %s", when.In(loc).Format("Mon 2 Jan 15:04 (MST)"), what))
-	_ = sched
 }
 
 // commandRequest is what a bot's command server receives.

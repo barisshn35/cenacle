@@ -141,6 +141,17 @@ func (q *Queries) ClaimDueScheduled(ctx context.Context, rowLimit int32) ([]Sche
 	return items, nil
 }
 
+const countPendingScheduled = `-- name: CountPendingScheduled :one
+SELECT count(*) FROM scheduled_messages WHERE owner_id = $1 AND status = 'pending'
+`
+
+func (q *Queries) CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPendingScheduled, ownerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createScheduledMessage = `-- name: CreateScheduledMessage :one
 INSERT INTO scheduled_messages (kind, channel_id, author_id, owner_id, body, send_at)
 VALUES ($1, $2, $3, $4, $5, $6)

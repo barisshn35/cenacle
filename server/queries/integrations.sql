@@ -92,6 +92,9 @@ FROM scheduled_messages sm JOIN channels c ON c.id = sm.channel_id
 WHERE sm.owner_id = @owner_id AND sm.status = 'pending'
 ORDER BY sm.send_at;
 
+-- name: CountPendingScheduled :one
+SELECT count(*) FROM scheduled_messages WHERE owner_id = @owner_id AND status = 'pending';
+
 -- name: CancelScheduledMessage :execrows
 UPDATE scheduled_messages SET status = 'canceled'
 WHERE id = @id AND owner_id = @owner_id AND status = 'pending';

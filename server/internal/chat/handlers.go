@@ -140,6 +140,23 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 }
 
 // validBody trims surrounding blank lines and spaces and checks the length.
+// allowMessage counts a message (or command) of the user against the rate
+// limit; past it, it answers 429 and returns false.
+func (h *Handlers) allowMessage(w http.ResponseWriter, r *http.Request, user store.User) bool {
+	n, wait, err := h.Limiter.Hit(r.Context(), "cenacle:rl:messages:"+uuid(user.ID).String(), h.Window)
+	if err != nil {
+		h.unavailable(w, r, "rate limit", err)
+		return false
+	}
+	if n > h.MessagesPerWindow {
+		w.Header().Set("Retry-After", strconv.Itoa(int((wait+time.Second-1)/time.Second)))
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusTooManyRequests, Code: httpx.CodeRateLimited,
+			Detail: "Too many messages in a short time."})
+		return false
+	}
+	return true
+}
+
 // errNonceReused: the author used the nonce for another message.
 var errNonceReused = errors.New("nonce reused")
 
@@ -196,23 +213,14 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 
-	key := "cenacle:rl:messages:" + uuid(p.User.ID).String()
-	n, wait, err := h.Limiter.Hit(r.Context(), key, h.Window)
-	if err != nil {
-		h.unavailable(w, r, "rate limit", err)
-		return
-	}
-	if n > h.MessagesPerWindow {
-		w.Header().Set("Retry-After", strconv.Itoa(int((wait+time.Second-1)/time.Second)))
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusTooManyRequests, Code: httpx.CodeRateLimited,
-			Detail: "Too many messages in a short time."})
+	if !h.allowMessage(w, r, p.User) {
 		return
 	}
 
 	// The message, its mentions, the author's read position and the event are
 	// written together: the event cannot get lost (transactional outbox).
 	var out api.Message
-	err = h.inTx(r.Context(), func(q *store.Queries) error {
+	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
 		out, err = postMessage(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments)
 		return err

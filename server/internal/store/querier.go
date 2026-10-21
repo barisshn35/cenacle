@@ -28,6 +28,7 @@ type Querier interface {
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
+	CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID) (int64, error)
 	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)

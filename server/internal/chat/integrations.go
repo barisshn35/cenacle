@@ -32,6 +32,26 @@ var SubscribableEvents = []string{
 // MaxScheduleAhead bounds how far ahead a message can be scheduled.
 const MaxScheduleAhead = 365 * 24 * time.Hour
 
+// MaxPendingScheduled bounds what one person has scheduled (messages and reminders).
+const MaxPendingScheduled = 200
+
+// CodeTooManyScheduled: the person has scheduled as much as allowed.
+const CodeTooManyScheduled = "too_many_scheduled"
+
+func (h *Handlers) belowScheduledLimit(w http.ResponseWriter, r *http.Request, user store.User) bool {
+	n, err := h.Queries.CountPendingScheduled(r.Context(), user.ID)
+	if err != nil {
+		h.unavailable(w, r, "count scheduled", err)
+		return false
+	}
+	if n >= MaxPendingScheduled {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeTooManyScheduled,
+			Detail: "You have 200 messages and reminders waiting; cancel some first."})
+		return false
+	}
+	return true
+}
+
 func commandAPI(c store.SlashCommand) api.SlashCommand {
 	return api.SlashCommand{Id: uuid(c.ID), Trigger: c.Trigger, Url: c.Url, Description: c.Description,
 		Hint: c.Hint, CreatedAt: c.CreatedAt}
@@ -463,6 +483,9 @@ func (h *Handlers) ScheduleMessage(w http.ResponseWriter, r *http.Request, chann
 	}
 	if !canPost(c, role) {
 		forbidden(w, r, CodeReadOnlyChannel, "You cannot send messages in this channel.")
+		return
+	}
+	if !h.belowScheduledLimit(w, r, p.User) {
 		return
 	}
 	s, err := h.Queries.CreateScheduledMessage(r.Context(), store.CreateScheduledMessageParams{

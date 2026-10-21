@@ -493,3 +493,31 @@ func TestGitLabAndAlertmanagerWebhooks(t *testing.T) {
 		t.Errorf("alert card = %v", alertCard)
 	}
 }
+
+func TestCommandAndScheduleLimits(t *testing.T) {
+	s := newStack(t, newShared(t), options{perWindow: 2})
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	for i := range 3 {
+		_, res := s.run(ayse, general, "shrug", "")
+		if want := http.StatusOK; i == 2 {
+			want = http.StatusTooManyRequests
+			if res.StatusCode != want {
+				t.Errorf("command %d = %d", i, res.StatusCode)
+			}
+		} else if res.StatusCode != want {
+			t.Errorf("command %d = %d", i, res.StatusCode)
+		}
+	}
+
+	// At most 200 waiting messages and reminders per person.
+	if _, err := s.pool.Exec(context.Background(), `INSERT INTO scheduled_messages (kind, channel_id, author_id, owner_id, body, send_at)
+		SELECT 'message', $1, u.id, u.id, 'x', now() + interval '1 day' FROM users u, generate_series(1, 200)
+		WHERE u.auth_data = 'sub-a'`, general); err != nil {
+		t.Fatal(err)
+	}
+	if status, code := problemCode(t, s, http.MethodPost, "/api/channels/"+general+"/scheduled", ayse,
+		map[string]any{"body": "bir tane daha", "send_at": time.Now().Add(time.Hour)}); status != http.StatusConflict || code != "too_many_scheduled" {
+		t.Errorf("201st = %d %s", status, code)
+	}
+}
