@@ -1,0 +1,11 @@
+[
+  {
+    "client_id": "cenacle-chat",
+    "client_name": "Cenacle",
+    "client_secret_file": "chat-client-secret.txt",
+    "redirect_uris": ["http://localhost:8180/auth/callback"],
+    "post_logout_redirect_uris": ["http://localhost:5173/"],
+    "first_party": true,
+    "scope": "openid email profile"
+  }
+]

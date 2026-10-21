@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
+import { fileURLToPath } from 'node:url';
+import { UserStore } from './accounts/users.ts';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
 import { createPool, poolCheck } from './db.ts';
+import { KeyStore } from './keys/store.ts';
+import { pruneExpired } from './oidc/adapter.ts';
+import { clientOrigins, loadClients } from './oidc/clients.ts';
+import { createProvider } from './oidc/provider.ts';
+
+const ASSETS_DIR = fileURLToPath(new URL('../public/assets', import.meta.url));
+const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 
 async function main(): Promise<void> {
   let config;
@@ -20,17 +29,46 @@ async function main(): Promise<void> {
     // Idle client errors (e.g. database restart) are reported by /readyz.
   });
 
-  const app = buildApp({
+  const keys = new KeyStore(pool, config.keyEncryptionKey);
+  await keys.ensureActiveKey();
+  const signingKeys = await keys.loadSigningKeys(config.retiredKeyGraceSeconds);
+  const clients = loadClients(config.clientsFile);
+  const users = new UserStore(pool);
+  const formActionOrigins = clientOrigins(clients);
+
+  const provider = createProvider({
+    issuer: config.issuer,
+    pool,
+    users,
+    clients,
+    signingKeys,
+    cookieKeys: config.cookieKeys,
+    cookieDomain: config.cookieDomain,
+    trustProxy: config.trustProxy,
+    formActionOrigins,
+  });
+
+  const app = await buildApp({
     logger: {
       level: config.logLevel,
       base: { service: 'cenacle-idp' },
-      ...(config.env === 'development'
-        ? {}
-        : { redact: ['req.headers.authorization', 'req.headers.cookie'] }),
+      redact: ['req.headers.authorization', 'req.headers.cookie'],
     },
     checks: [poolCheck(pool)],
     readyTimeoutMs: config.readyTimeoutMs,
+    trustProxy: config.trustProxy,
+    assetsDir: ASSETS_DIR,
+    oidc: { provider, users, issuer: config.issuer, formActionOrigins },
   });
+
+  provider.on('server_error', (_ctx, err) => app.log.error({ err }, 'oidc server error'));
+
+  const prune = setInterval(() => {
+    pruneExpired(pool)
+      .then((n) => n > 0 && app.log.info({ removed: n }, 'expired oidc artifacts removed'))
+      .catch((err: unknown) => app.log.warn({ err }, 'pruning expired artifacts failed'));
+  }, PRUNE_INTERVAL_MS);
+  prune.unref();
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
@@ -42,6 +80,7 @@ async function main(): Promise<void> {
       process.exit(1);
     }, config.shutdownTimeoutMs);
     timer.unref();
+    clearInterval(prune);
     await app.close();
     await pool.end();
     app.log.info('shutdown complete');
@@ -50,7 +89,10 @@ async function main(): Promise<void> {
   process.once('SIGTERM', () => void shutdown('SIGTERM'));
 
   await app.listen({ host: config.host, port: config.port });
-  app.log.info({ issuer: config.issuer, env: config.env }, 'identity server ready');
+  app.log.info(
+    { issuer: config.issuer, env: config.env, clients: clients.map((c) => c.client_id) },
+    'identity server ready',
+  );
 }
 
 main().catch((err: unknown) => {

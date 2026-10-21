@@ -9,8 +9,11 @@ RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY idp/package.json idp/
+COPY packages/ui/package.json packages/ui/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter @cenacle/idp
+    pnpm install --frozen-lockfile --filter @cenacle/idp...
+# Design tokens for the sign-in pages come from @cenacle/ui.
+COPY packages/ui/src/styles/ packages/ui/src/styles/
 COPY idp/ idp/
 RUN pnpm --filter @cenacle/idp build \
  && pnpm --filter @cenacle/idp deploy --prod /out \
@@ -36,4 +39,5 @@ EXPOSE 8190
 USER node
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.IDP_PORT||8190)+'/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+# Maintenance commands: docker compose run --rm idp node dist/cli.js <migrate|keys|users> ...
 CMD ["node", "--enable-source-maps", "dist/server.js"]

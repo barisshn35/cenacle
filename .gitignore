@@ -35,3 +35,6 @@ deploy/compose/secrets/
 deploy/compose/.env.prod
 deploy/compose/certs/*
 !deploy/compose/certs/README.txt
+
+# Generated Cenacle ID assets
+/idp/public/

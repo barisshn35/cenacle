@@ -18,6 +18,7 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/test-results/**',
       '.bin/**',
+      'idp/public/**',
       'server/**',
     ],
   },
@@ -30,6 +31,11 @@ export default tseslint.config(
   {
     files: ['idp/**/*.ts', 'scripts/**/*.{js,mjs}'],
     languageOptions: { globals: globals.node },
+  },
+  {
+    // Plain scripts served to the browser by Cenacle ID.
+    files: ['idp/assets/**/*.js'],
+    languageOptions: { globals: globals.browser, sourceType: 'script' },
   },
   {
     files: ['web/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],

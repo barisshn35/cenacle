@@ -1,24 +1,61 @@
 // SPDX-License-Identifier: Apache-2.0
 import { randomBytes } from 'node:crypto';
 import Fastify, {
+  LogController,
   type FastifyError,
   type FastifyInstance,
   type FastifyServerOptions,
 } from 'fastify';
+import formbody from '@fastify/formbody';
+import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
+import type Provider from 'oidc-provider';
+import type { UserStore } from './accounts/users.ts';
+import { registerInteractions } from './oidc/interactions.ts';
 import { sendProblem } from './problem.ts';
 
 export const REQUEST_ID_HEADER = 'x-request-id';
 const VALID_REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
+
+/** Paths served by oidc-provider (default routes plus discovery). */
+const PROVIDER_PREFIXES = [
+  '/.well-known/',
+  '/auth',
+  '/token',
+  '/me',
+  '/jwks',
+  '/session/end',
+  '/request',
+];
+
+export function isProviderPath(path: string): boolean {
+  return PROVIDER_PREFIXES.some((p) =>
+    p.endsWith('/') ? path.startsWith(p) : path === p || path.startsWith(`${p}/`),
+  );
+}
 
 export interface ReadinessCheck {
   name: string;
   check: (signal: AbortSignal) => Promise<void>;
 }
 
+export interface OidcOptions {
+  provider: Provider;
+  users: UserStore;
+  issuer: string;
+  formActionOrigins: string[];
+  loginRateLimit?: number;
+}
+
 export interface AppOptions {
   logger?: FastifyServerOptions['logger'];
   checks?: ReadinessCheck[];
   readyTimeoutMs?: number;
+  /** Mounts the OpenID Provider and the sign-in pages. */
+  oidc?: OidcOptions;
+  /** Directory with the built page assets (served under /assets/). */
+  assetsDir?: string;
+  trustProxy?: boolean;
 }
 
 /** Request IDs share the format of the chat server: REQ-<base32>. */
@@ -29,27 +66,59 @@ export function newRequestId(): string {
   return `REQ-${out}`;
 }
 
-export function buildApp(opts: AppOptions = {}): FastifyInstance {
+function parseCookies(header: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of (header ?? '').split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0) {
+      const name = part.slice(0, i).trim();
+      try {
+        out[name] = decodeURIComponent(part.slice(i + 1).trim());
+      } catch {
+        // Ignore malformed cookie values.
+      }
+    }
+  }
+  return out;
+}
+
+export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> {
   const checks = opts.checks ?? [];
   const readyTimeoutMs = opts.readyTimeoutMs ?? 2000;
 
   const app = Fastify({
     logger: opts.logger ?? false,
+    trustProxy: opts.trustProxy ?? false,
     requestIdHeader: false,
-    requestIdLogLabel: 'request_id',
+    logController: new LogController({ requestIdLogLabel: 'request_id' }),
     genReqId: (req) => {
       const incoming = req.headers[REQUEST_ID_HEADER];
       return typeof incoming === 'string' && VALID_REQUEST_ID.test(incoming)
         ? incoming
         : newRequestId();
     },
-    disableRequestLogging: false,
   });
+
+  app.decorateRequest(
+    'cookieValue',
+    function (this: { headers: { cookie?: string } }, name: string) {
+      return parseCookies(this.headers.cookie)[name];
+    },
+  );
 
   app.addHook('onRequest', async (request, reply) => {
     reply.header(REQUEST_ID_HEADER, request.id);
     reply.header('x-content-type-options', 'nosniff');
     reply.header('referrer-policy', 'no-referrer');
+
+    // Hand OIDC endpoints to oidc-provider before Fastify parses the body.
+    if (opts.oidc && isProviderPath(request.url.split('?')[0]!)) {
+      request.raw.headers[REQUEST_ID_HEADER] = request.id;
+      reply.raw.setHeader(REQUEST_ID_HEADER, request.id);
+      reply.hijack();
+      await opts.oidc.provider.callback()(request.raw, reply.raw);
+      return reply;
+    }
   });
 
   app.setNotFoundHandler((request, reply) =>
@@ -104,6 +173,21 @@ export function buildApp(opts: AppOptions = {}): FastifyInstance {
       .header('cache-control', 'no-store')
       .send({ status: 'ok', checks: Object.fromEntries(results) });
   });
+
+  if (opts.assetsDir) {
+    await app.register(fastifyStatic, {
+      root: opts.assetsDir,
+      prefix: '/assets/',
+      index: false,
+      maxAge: '1h',
+    });
+  }
+
+  if (opts.oidc) {
+    await app.register(formbody, { bodyLimit: 16 * 1024 });
+    await app.register(rateLimit, { global: false });
+    await registerInteractions(app, opts.oidc);
+  }
 
   return app;
 }

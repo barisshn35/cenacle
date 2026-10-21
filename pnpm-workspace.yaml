@@ -4,6 +4,7 @@ packages:
   - packages/*
 saveExact: true
 allowBuilds:
+  '@parcel/watcher': false
   esbuild: true
 # Install native binaries (e.g. @node-rs/argon2) for every platform the
 # container images target, so a build on amd64 can produce arm64 images too.

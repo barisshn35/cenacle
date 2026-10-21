@@ -18,7 +18,7 @@ afterEach(async () => {
 
 describe('idp http', () => {
   it('GET /healthz returns 200 with a request id', async () => {
-    app = buildApp({ checks: [down] });
+    app = await buildApp({ checks: [down] });
     const res = await app.inject({ method: 'GET', url: '/healthz' });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ status: 'ok' });
@@ -26,14 +26,14 @@ describe('idp http', () => {
   });
 
   it('GET /readyz returns 200 when checks pass', async () => {
-    app = buildApp({ checks: [ok] });
+    app = await buildApp({ checks: [ok] });
     const res = await app.inject({ method: 'GET', url: '/readyz' });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ status: 'ok', checks: { postgres: 'ok' } });
   });
 
   it('GET /readyz returns 503 problem+json without leaking details', async () => {
-    app = buildApp({ checks: [down] });
+    app = await buildApp({ checks: [down] });
     const res = await app.inject({ method: 'GET', url: '/readyz' });
     expect(res.statusCode).toBe(503);
     expect(res.headers['content-type']).toMatch(/^application\/problem\+json(;|$)/);
@@ -43,7 +43,7 @@ describe('idp http', () => {
   });
 
   it('unknown routes return problem+json with the request id', async () => {
-    app = buildApp();
+    app = await buildApp();
     const res = await app.inject({
       method: 'GET',
       url: '/nope',
@@ -62,7 +62,7 @@ describe('idp http', () => {
   });
 
   it('replaces malformed incoming request ids', async () => {
-    app = buildApp();
+    app = await buildApp();
     const res = await app.inject({
       method: 'GET',
       url: '/healthz',
