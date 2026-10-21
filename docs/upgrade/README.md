@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.8.0)
+### 0.8.0
 
 - Cenacle ID migration `0002_mfa_and_audit` adds two-step verification and the account
   audit log; chat migration `00009_sessions_and_audit` adds the session's Cenacle ID `sid`

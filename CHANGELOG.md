@@ -8,6 +8,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-21
+
+Two-step verification, signed-in devices with sign out everywhere, back-channel logout and audit logs.
+
 ### Added
 
 - Two-step verification at Cenacle ID: an authenticator app code (TOTP) after the
@@ -26,7 +30,7 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-080): migrations
+- See [docs/upgrade](docs/upgrade/README.md#080): migrations
   `0002_mfa_and_audit` (Cenacle ID) and `00009_sessions_and_audit` (chat), and the
   `backchannel_logout_uri` of the chat client.
 
@@ -281,7 +285,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/barisshn35/cenacle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/barisshn35/cenacle/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/barisshn35/cenacle/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/barisshn35/cenacle/compare/v0.4.0...v0.5.0

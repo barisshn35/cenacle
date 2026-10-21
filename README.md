@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.8 in progress.** Sign in with Cenacle ID (with two-step verification) and chat
+> **Status: v0.8.** Sign in with Cenacle ID (with two-step verification) and chat
 > live in channels and direct conversations.
 > Direct messages, presence and unread counts follow (see the
 > [roadmap](#roadmap)).
