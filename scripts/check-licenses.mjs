@@ -28,7 +28,11 @@ const PROD_ALLOWED = new Set([
 
 const DEV_EXTRA = new Set(['CC-BY-4.0', 'CC0-1.0', 'Python-2.0']);
 
-const FONT_PACKAGES = new Set(['@fontsource-variable/geist', '@fontsource-variable/geist-mono']);
+const FONT_PACKAGES = new Set([
+  '@fontsource-variable/geist',
+  '@fontsource-variable/geist-mono',
+  '@fontsource-variable/fraunces',
+]);
 
 function listLicenses(prodOnly) {
   const args = ['licenses', 'list', '--json', '--recursive'];

@@ -6,6 +6,7 @@ import { ScrollArea } from '@cenacle/ui/components/scroll-area';
 import { Separator } from '@cenacle/ui/components/separator';
 import { SidebarTrigger } from '@cenacle/ui/components/sidebar';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
+import { Logo } from '@cenacle/ui/brand';
 import { findChannel, directMessages } from '../../lib/sample-data';
 import { useLayout } from '../../stores/layout';
 import { AppearanceControls } from './appearance-controls';
@@ -29,7 +30,12 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="channel-title">
       <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-3">
-        {mobile && <SidebarTrigger />}
+        {mobile && (
+          <>
+            <SidebarTrigger />
+            <Logo variant="icon" size={24} />
+          </>
+        )}
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {Icon && (
             <Icon
@@ -63,7 +69,9 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
           <div className="flex flex-col gap-1">
-            <p className="text-xl font-semibold">{t('shell.channelStart', { channel: name })}</p>
+            <p className="font-display text-2xl font-medium">
+              {t('shell.channelStart', { channel: name })}
+            </p>
             <p className="text-sm text-muted-foreground">{t('shell.messagesPlaceholder')}</p>
           </div>
           {/* Layout placeholders keep the final message geometry (no layout shift later). */}

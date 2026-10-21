@@ -25,6 +25,7 @@ import {
 } from '@cenacle/ui/components/sidebar';
 import { Button } from '@cenacle/ui/components/button';
 import { cn } from '@cenacle/ui/lib/utils';
+import { Logo } from '@cenacle/ui/brand';
 import { categories, directMessages, workspaces, type ChannelKind } from '../../lib/sample-data';
 import { useLayout } from '../../stores/layout';
 import { PresenceIndicator } from './presence';
@@ -73,6 +74,11 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       aria-label={t('shell.channelNav')}
     >
       <SidebarHeader className="gap-2 border-b border-sidebar-border">
+        {/* The lockup heads the channel list (desktop and the mobile drawer);
+            narrow layouts show the icon in the top bar instead. */}
+        <div className="flex items-center px-2 pt-1.5 pb-1">
+          <Logo variant="lockup" size={24} />
+        </div>
         <Button
           variant="ghost"
           className="w-full justify-between px-2 text-[15px] font-semibold"

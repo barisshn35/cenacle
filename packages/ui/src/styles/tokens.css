@@ -18,6 +18,10 @@
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
   --font-heading: var(--font-sans);
+  /* Brand headlines only (sign-in title, workspace welcome, empty states). */
+  --font-display: 'Fraunces Variable', Georgia, serif;
+  /* Same axes as the wordmark: medium weight, soft, no wonky letters. */
+  --font-display--font-variation-settings: 'SOFT' 50, 'WONK' 0;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -38,6 +42,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-accent-brand: var(--accent-brand);
+  --color-accent-brand-foreground: var(--accent-brand-foreground);
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-brass: var(--brand-brass);
+  --color-brand-brass-ink: var(--brand-brass-ink);
+  --color-brand-paper: var(--brand-paper);
+  --color-brand-night: var(--brand-night);
+  --color-brand-bone: var(--brand-bone);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -110,37 +122,51 @@
 
   --radius: 0.625rem;
 
-  /* --- Light theme (graphite) ----------------------------------------- */
+  /* --- Brand (Forest & Brass) -------------------------------------- */
+  /* Fixed brand colors; never used for status (online, warning, destructive). */
+  --brand-forest: #14342b;
+  --brand-brass: #c9a24b; /* logo bubble; accent on dark UI only */
+  --brand-brass-ink: #8f6b1f; /* accent on light UI (bright brass fails on light) */
+  --brand-paper: #faf7f0;
+  --brand-night: #0c1a16;
+  --brand-bone: #f3eee2;
+
+  /* --- Light theme: Paper and Forest --------------------------------- */
   color-scheme: light;
-  --background: oklch(0.995 0.001 260);
-  --foreground: oklch(0.2 0.008 260);
-  --card: oklch(1 0 0);
+  --background: var(--brand-paper);
+  --foreground: var(--brand-forest);
+  --card: #fffdf8;
   --card-foreground: var(--foreground);
-  --popover: oklch(1 0 0);
+  --popover: #fffdf8;
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.26 0.01 260);
-  --primary-foreground: oklch(0.985 0.002 260);
-  --secondary: oklch(0.96 0.003 260);
-  --secondary-foreground: oklch(0.26 0.01 260);
-  --muted: oklch(0.96 0.003 260);
-  --muted-foreground: oklch(0.5 0.01 260);
-  --accent: oklch(0.945 0.004 260);
-  --accent-foreground: oklch(0.22 0.01 260);
+  --accent-brand: var(--brand-brass-ink);
+  --accent-brand-foreground: #ffffff;
+  --primary: var(--accent-brand);
+  --primary-foreground: var(--accent-brand-foreground);
+  --secondary: #f1ece1;
+  --secondary-foreground: var(--foreground);
+  --muted: #f1ece1;
+  --muted-foreground: #56655f;
+  --accent: #eae4d7;
+  --accent-foreground: var(--foreground);
   --destructive: oklch(0.55 0.21 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.91 0.004 260);
-  --input: oklch(0.88 0.005 260);
-  --ring: oklch(0.55 0.12 255);
+  --border: #ddd5c5;
+  /* Form control outlines: >= 3:1 against the background (WCAG 1.4.11). */
+  --input: #82928a;
+  --ring: var(--accent-brand);
+  --logo-ink: var(--brand-forest);
+  --logo-accent: var(--brand-brass);
 
-  --sidebar: oklch(0.975 0.003 260);
-  --sidebar-foreground: oklch(0.28 0.01 260);
+  --sidebar: #f4efe4;
+  --sidebar-foreground: #24433a;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.93 0.005 260);
-  --sidebar-accent-foreground: oklch(0.2 0.01 260);
-  --sidebar-border: oklch(0.91 0.004 260);
+  --sidebar-accent: #e8e1d2;
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: #ddd5c5;
   --sidebar-ring: var(--ring);
-  --rail: oklch(0.945 0.004 260);
+  --rail: #ece6d8;
 
   --success: oklch(0.52 0.13 155);
   --success-foreground: oklch(0.99 0 0);
@@ -167,36 +193,41 @@
 }
 
 [data-theme='dark'] {
+  /* --- Dark theme: Night and Bone ------------------------------------ */
   color-scheme: dark;
-  --background: oklch(0.18 0.006 260);
-  --foreground: oklch(0.94 0.004 260);
-  --card: oklch(0.21 0.007 260);
+  --background: var(--brand-night);
+  --foreground: var(--brand-bone);
+  --card: #112420;
   --card-foreground: var(--foreground);
-  --popover: oklch(0.23 0.008 260);
+  --popover: #142a25;
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.92 0.005 260);
-  --primary-foreground: oklch(0.2 0.008 260);
-  --secondary: oklch(0.26 0.008 260);
-  --secondary-foreground: oklch(0.94 0.004 260);
-  --muted: oklch(0.25 0.008 260);
-  --muted-foreground: oklch(0.71 0.01 260);
-  --accent: oklch(0.27 0.009 260);
-  --accent-foreground: oklch(0.96 0.003 260);
+  --accent-brand: var(--brand-brass);
+  --accent-brand-foreground: var(--brand-night);
+  --primary: var(--accent-brand);
+  --primary-foreground: var(--accent-brand-foreground);
+  --secondary: #173029;
+  --secondary-foreground: var(--foreground);
+  --muted: #173029;
+  --muted-foreground: #a3b1aa;
+  --accent: #1c3730;
+  --accent-foreground: var(--foreground);
   --destructive: oklch(0.74 0.16 25);
   --destructive-foreground: oklch(0.18 0.02 25);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.68 0.12 255);
+  --border: #2a4139;
+  --input: #666d66;
+  --ring: var(--accent-brand);
+  --logo-ink: var(--brand-bone);
+  --logo-accent: var(--brand-brass);
 
-  --sidebar: oklch(0.2 0.007 260);
-  --sidebar-foreground: oklch(0.86 0.006 260);
+  --sidebar: #0f211c;
+  --sidebar-foreground: #d9ded6;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.27 0.009 260);
-  --sidebar-accent-foreground: oklch(0.97 0.003 260);
-  --sidebar-border: oklch(1 0 0 / 7%);
+  --sidebar-accent: #1b362f;
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: #213a33;
   --sidebar-ring: var(--ring);
-  --rail: oklch(0.155 0.006 260);
+  --rail: #08130f;
 
   --success: oklch(0.7 0.14 155);
   --success-foreground: oklch(0.18 0.03 155);
