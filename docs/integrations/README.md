@@ -39,7 +39,11 @@ are Markdown; `<@user-id>` mentions a member. Up to five cards can go with a mes
 ```
 
 Colors are `neutral`, `info`, `success`, `warning` and `danger`; say the meaning in the text
-too. To rotate a token, create the new one, switch the program over, then revoke the old.
+too.
+
+To rotate a token, choose **Rotate** next to it: a new token with the same name, scopes and
+lifetime is created, and the old one keeps working for the overlap you pick (up to a week,
+or none). Switch the program over within the overlap.
 
 ## Incoming webhooks
 
@@ -68,3 +72,145 @@ Cenacle posts a card per event: created and deleted issues, comments, and update
 change the status, assignee, priority or summary. Other events are accepted and ignored.
 Jira Cloud and Data Center send the same events; Data Center must be able to reach the
 Cenacle address.
+
+## GitLab
+
+1. In Cenacle: create a bot (e.g. "GitLab") → Incoming webhooks → **GitLab events**, pick
+   the channel, create, and copy the address.
+2. In GitLab: the project or group → **Settings → Webhooks → Add new webhook**. Paste the
+   address as the URL and choose _Push_, _Merge request_, _Pipeline_, _Issues_ and
+   _Comments_ events.
+
+Cards: pushes (up to five commits), merge requests (opened, merged, closed, approved),
+pipelines that succeed, fail or are cancelled, issues and comments. Other events are
+accepted and ignored.
+
+## Alertmanager
+
+1. In Cenacle: create a bot (e.g. "Alerts") → Incoming webhooks → **Alertmanager alerts**.
+2. In `alertmanager.yml`, add a receiver and route alerts to it:
+
+```yaml
+receivers:
+  - name: cenacle
+    webhook_configs:
+      - url: https://chat.example.com/api/hooks/cnh_…
+        send_resolved: true
+```
+
+Each notification becomes one card: FIRING or RESOLVED with the alert name, colored by
+`severity` (`critical` → danger, `warning` → warning, resolved → success), the summary or
+description, labels that differ between alerts, and a link to the generator.
+
+## Requests from Cenacle
+
+Slash commands and event subscriptions make Cenacle call a bot's server. Every request:
+
+- is a `POST` with a JSON body, `User-Agent: Cenacle` and `Content-Type: application/json`;
+- is signed: `X-Cenacle-Signature: t=<unix seconds>,v1=<hex>` where `<hex>` is
+  HMAC-SHA256 with the command's or subscription's secret (`cns_…`, shown once) over
+  `<t>.<raw body>`;
+- times out after 10 seconds; redirects are not followed; answers over 1 MiB are refused.
+
+Check the signature on the raw body before parsing it, in constant time, and reject
+timestamps older than five minutes:
+
+```js
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+function verify(secret, header, rawBody) {
+  const parts = Object.fromEntries(header.split(',').map((p) => p.split('=')));
+  const age = Math.abs(Date.now() / 1000 - Number(parts.t));
+  const expected = createHmac('sha256', secret).update(`${parts.t}.${rawBody}`).digest('hex');
+  return (
+    age < 300 &&
+    expected.length === parts.v1?.length &&
+    timingSafeEqual(Buffer.from(expected), Buffer.from(parts.v1))
+  );
+}
+```
+
+```python
+import hashlib, hmac, time
+
+def verify(secret: str, header: str, raw_body: bytes) -> bool:
+    parts = dict(p.split("=", 1) for p in header.split(","))
+    expected = hmac.new(secret.encode(), parts["t"].encode() + b"." + raw_body, hashlib.sha256).hexdigest()
+    return abs(time.time() - int(parts["t"])) < 300 and hmac.compare_digest(expected, parts.get("v1", ""))
+```
+
+**Network.** Cenacle only calls addresses on the internet over `https`. A bot inside your
+network (private, loopback or link-local addresses) must be allowed by the operator with
+`CENACLE_EGRESS_ALLOW` (comma-separated networks, e.g. `10.20.0.0/16`). This keeps a
+command or subscription address from being used to reach internal services.
+
+## Slash commands
+
+People type `/` in the composer to see the commands of the workspace. Built in:
+
+| Command   | What it does                                                                            |
+| --------- | --------------------------------------------------------------------------------------- |
+| `/remind` | `/remind me in 10m stand up`, `at 15:30 …`, `tomorrow …`, `10 dk sonra …`, `yarın 9:00` |
+| `/join`   | `/join ops`: join a public channel                                                      |
+| `/leave`  | leave the current channel                                                               |
+| `/topic`  | set the channel topic (its managers)                                                    |
+| `/me`     | `/me is deploying` posts _is deploying_                                                 |
+| `/shrug`  | adds ¯\\\_(ツ)\_/¯                                                                      |
+
+Reminders come from the **Cenacle** bot in a direct conversation at the time asked, in
+the time zone of the person's browser. Scheduled messages and reminders are listed (and
+cancelled) under **Send later** next to the send button. To send a message that starts with
+a slash, begin it with `//`.
+
+A bot adds its own command under Integrations → the bot → **Commands**: the command (e.g.
+`deploy`, unique in the workspace), the request address, a description and an argument
+hint. When someone runs `/deploy api prod`, Cenacle sends:
+
+```json
+{
+  "command": "/deploy",
+  "text": "api prod",
+  "user_id": "…",
+  "user_name": "Ayşe Yılmaz",
+  "channel_id": "…",
+  "channel_name": "ops",
+  "workspace_id": "…"
+}
+```
+
+Answer `200` with:
+
+```json
+{ "response_type": "ephemeral", "text": "Deploying **api** to prod…", "attachments": [] }
+```
+
+`ephemeral` (the default) is shown only to the person who ran the command;
+`in_channel` posts the text and cards in the channel as the bot. An empty body shows
+nothing. Any other status, a timeout or invalid JSON shows the person an error. For long
+work, answer at once and post the result later with a bot token.
+
+## Event subscriptions
+
+Under Integrations → the bot → **Events**, subscribe an address to events in the channels
+the bot is a member of: `message.created`, `message.updated`, `message.deleted`,
+`reaction.added`, `reaction.removed`. The bot's own messages and reactions are not sent to
+it.
+
+```json
+{
+  "id": "01a1…",
+  "type": "message.created",
+  "created_at": "2026-10-22T09:30:00Z",
+  "data": { "id": "…", "channel_id": "…", "body": "…", "author": { "id": "…" } }
+}
+```
+
+`data` is the message (for `message.deleted`: `id` and `channel_id`; for reactions:
+`channel_id`, `message_id`, `emoji`, `user_id`). Headers `X-Cenacle-Event` and
+`X-Cenacle-Delivery` repeat the type and the delivery id.
+
+Answer any `2xx` quickly. Otherwise Cenacle tries again after 30 s, 1 min, 2 min … up to an
+hour between attempts, eight attempts in all; then the delivery is marked failed. The
+**Deliveries** list of a subscription shows each delivery's state, last HTTP status and
+error, and can send any delivery again. Deliveries are kept for 14 days. A delivery can
+arrive more than once: use its id to ignore repeats.

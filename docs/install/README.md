@@ -29,11 +29,12 @@ Back up `secrets/` and `.env.prod` together with the databases
 Set these in `.env.prod` before the first start (they can be changed later; the server
 applies them at every start):
 
-| Setting                        | Default   | Meaning                                                                                                                            |
-| ------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `CENACLE_ADMIN_EMAIL`          | (none)    | The Cenacle ID account (verified e-mail address) of the instance administrator: creates workspaces and owns the default workspace. |
-| `CENACLE_ANNOUNCEMENT_CHANNEL` | `Central` | Created for everyone; nobody can leave it and only the administrator posts there. Empty: no announcement channel.                  |
-| `CENACLE_DEFAULT_CHANNELS`     | `General` | Comma-separated channels created for everyone. People can leave them and join again.                                               |
+| Setting                        | Default   | Meaning                                                                                                                               |
+| ------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `CENACLE_ADMIN_EMAIL`          | (none)    | The Cenacle ID account (verified e-mail address) of the instance administrator: creates workspaces and owns the default workspace.    |
+| `CENACLE_ANNOUNCEMENT_CHANNEL` | `Central` | Created for everyone; nobody can leave it and only the administrator posts there. Empty: no announcement channel.                     |
+| `CENACLE_DEFAULT_CHANNELS`     | `General` | Comma-separated channels created for everyone. People can leave them and join again.                                                  |
+| `CENACLE_EGRESS_ALLOW`         | (none)    | Comma-separated private networks bots may be reached in (slash commands, event deliveries); internal addresses are refused otherwise. |
 
 These channels belong to the default workspace. Everyone who signs in joins the default
 workspace and these channels, also later. Inside a workspace, owners and admins create

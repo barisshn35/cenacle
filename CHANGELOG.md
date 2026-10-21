@@ -8,6 +8,38 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Slash commands, event subscriptions, scheduled messages and reminders; GitLab and
+Alertmanager.
+
+### Added
+
+- Slash commands: type `/` for suggestions. Built-ins `/remind`, `/join`, `/leave`,
+  `/topic`, `/me` and `/shrug`; bots add their own, answered only to the caller or posted
+  in the channel. `//text` sends text that starts with a slash.
+- Send later: schedule a message from the composer (in an hour, tomorrow morning, next
+  Monday or any time) and cancel it until it goes out.
+- Reminders: `/remind me in 10m …`, `at 15:30 …`, `tomorrow …` (also Turkish: `10 dk
+sonra`, `yarın`) arrive as a direct message from Cenacle.
+- Event subscriptions: bots receive signed deliveries of messages and reactions in their
+  channels, with retries, a delivery log and sending again.
+- Bot token rotation with an overlap during which the old token keeps working.
+- GitLab and Alertmanager incoming webhooks.
+
+### Security
+
+- Requests to bots go through one client that refuses internal addresses (SSRF) unless
+  `CENACLE_EGRESS_ALLOW` lists them, never follows redirects and signs every request
+  (`X-Cenacle-Signature`).
+
+### Fixed
+
+- A message that arrived while a channel was first loading could be missing until reload.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0110): migration
+  `00012_commands_subscriptions_scheduling`, new setting `CENACLE_EGRESS_ALLOW`.
+
 ## [0.10.1] - 2026-10-21
 
 Security and reliability fixes from a review of 0.7 to 0.10.
