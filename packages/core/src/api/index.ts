@@ -3,9 +3,10 @@
 /**
  * Typed API client of the chat server. Types in ./schema.ts are generated
  * from the server's OpenAPI spec with `pnpm --filter @cenacle/core gen:api`
- * (spec-first, oapi-codegen on the server side). The spec arrives in v0.3.
+ * (spec-first, oapi-codegen on the server side).
  */
-export type { paths } from './schema';
+export type { components, paths } from './schema';
+export * from './client';
 
 /** RFC 9457 problem details returned by every Cenacle API error. */
 export interface Problem {
