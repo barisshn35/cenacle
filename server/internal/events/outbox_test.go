@@ -72,9 +72,17 @@ func TestRelayMovesOutboxEventsInOrderWithOneLeader(t *testing.T) {
 			t.Fatalf("event %d = %s %s, want n=%s", i, ev.Type, ev.Data, strconv.Itoa(i))
 		}
 	}
-	rows, err := q.ListOutboxEvents(context.Background(), 10)
-	if err != nil || len(rows) != 0 {
-		t.Errorf("outbox not emptied: %d rows, %v", len(rows), err)
+	// Relayed events leave the outbox right after they are appended.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		rows, err := q.ListOutboxEvents(context.Background(), 10)
+		if err == nil && len(rows) == 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("outbox not emptied: %d rows, %v", len(rows), err)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 
