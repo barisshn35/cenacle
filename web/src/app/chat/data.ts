@@ -82,7 +82,7 @@ export function setReadLocally(queryClient: QueryClient, channelId: string, mess
   patchChannel(queryClient, channelId, (c) =>
     c.last_read_id && c.last_read_id >= messageId
       ? c
-      : { ...c, last_read_id: messageId, unread_count: 0 },
+      : { ...c, last_read_id: messageId, unread_count: 0, mention_count: 0 },
   );
 }
 
@@ -95,7 +95,13 @@ export function countIncoming(queryClient: QueryClient, message: Message, selfId
   patchChannel(queryClient, message.channel_id, (c) =>
     c.last_read_id && c.last_read_id >= message.id
       ? c
-      : { ...c, unread_count: Math.min(c.unread_count + 1, 100) },
+      : {
+          ...c,
+          unread_count: Math.min(c.unread_count + 1, 100),
+          mention_count: message.mentions.some((p) => p.id === selfId)
+            ? Math.min(c.mention_count + 1, 100)
+            : c.mention_count,
+        },
   );
 }
 
@@ -237,20 +243,78 @@ export function reloadMessages(queryClient: QueryClient): Promise<void> {
 
 type MessageCache = InfiniteData<MessagePage, string | undefined>;
 
-/** Replaces a message (after an edit) wherever it is loaded. */
-export function replaceMessage(queryClient: QueryClient, message: Message): void {
-  queryClient.setQueryData<MessageCache>(['messages', message.channel_id], (data) =>
+/** Changes one loaded message. */
+function patchMessage(
+  queryClient: QueryClient,
+  channelId: string,
+  id: string,
+  patch: (m: Message) => Message,
+): void {
+  queryClient.setQueryData<MessageCache>(['messages', channelId], (data) =>
     data
       ? {
           ...data,
           pages: data.pages.map((p) => ({
             ...p,
-            messages: p.messages.map((m) => (m.id === message.id ? message : m)),
+            messages: p.messages.map((m) => (m.id === id ? patch(m) : m)),
           })),
         }
       : data,
   );
 }
+
+/**
+ * Replaces a message (after an edit) wherever it is loaded. Edits do not
+ * change reactions, and the event's reactions are the editor's view: the
+ * reader's are kept.
+ */
+export function replaceMessage(queryClient: QueryClient, message: Message): void {
+  patchMessage(queryClient, message.channel_id, message.id, (m) => ({
+    ...message,
+    reactions: m.reactions,
+  }));
+}
+
+export interface ReactionEvent {
+  channel_id: string;
+  message_id: string;
+  emoji: string;
+  user_id: string;
+}
+
+/** A reaction was added or taken back (by anyone, the reader included). */
+export function applyReaction(
+  queryClient: QueryClient,
+  ev: ReactionEvent,
+  added: boolean,
+  selfId: string,
+): void {
+  const mine = ev.user_id === selfId;
+  patchMessage(queryClient, ev.channel_id, ev.message_id, (m) => {
+    const existing = m.reactions.find((r) => r.emoji === ev.emoji);
+    if (added) {
+      if (existing?.me && mine) return m; // already counted (own optimistic update)
+      const reactions = existing
+        ? m.reactions.map((r) =>
+            r.emoji === ev.emoji ? { ...r, count: r.count + 1, me: r.me || mine } : r,
+          )
+        : [...m.reactions, { emoji: ev.emoji, count: 1, me: mine }];
+      return { ...m, reactions };
+    }
+    if (!existing || (mine && !existing.me)) return m;
+    const reactions = m.reactions
+      .map((r) =>
+        r.emoji === ev.emoji ? { ...r, count: r.count - 1, me: mine ? false : r.me } : r,
+      )
+      .filter((r) => r.count > 0);
+    return { ...m, reactions };
+  });
+}
+
+export const addReaction = (m: Pick<Message, 'id' | 'channel_id'>, emoji: string) =>
+  apiFetch<void>(`${messageUrl(m)}/reactions/${encodeURIComponent(emoji)}`, { method: 'PUT' });
+export const removeReaction = (m: Pick<Message, 'id' | 'channel_id'>, emoji: string) =>
+  apiFetch<void>(`${messageUrl(m)}/reactions/${encodeURIComponent(emoji)}`, { method: 'DELETE' });
 
 /** Removes a message (deleted) from the cache. */
 export function removeMessage(

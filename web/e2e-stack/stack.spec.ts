@@ -398,3 +398,38 @@ test('with two-step verification, signing in asks for a code', async ({ page }) 
   await expect(page.getByLabel('Message General')).toBeVisible();
   await expect(page.getByTestId('current-user')).toHaveText(THIRD.name);
 });
+
+test('Markdown, a mention and a reaction travel live', async ({ browser }) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const deniz = await open(EMAIL);
+  const mert = await open(SECOND.email);
+  const stamp = Date.now().toString(36);
+
+  const box = deniz.getByLabel('Message General');
+  await box.pressSequentially('**Önemli** @mer');
+  await deniz
+    .getByRole('listbox', { name: 'People to mention' })
+    .getByRole('option', { name: /Mert Demir/ })
+    .click();
+  await box.pressSequentially(`bakar mısın ${stamp}`);
+  await box.press('Enter');
+
+  const message = mert.getByTestId('message').filter({ hasText: stamp });
+  await expect(message.locator('strong')).toHaveText('Önemli');
+  await expect(message.getByTestId('mention')).toHaveText('@Mert Demir');
+  await expect(message).toHaveAttribute('data-mentions-me', 'true');
+
+  await message.hover();
+  await message.getByRole('button', { name: 'Add reaction' }).click();
+  await mert.getByPlaceholder('Search emoji').fill('thumbs up');
+  await mert.getByRole('gridcell', { name: 'Thumbs up', exact: true }).click();
+  const onDeniz = deniz.getByTestId('message').filter({ hasText: stamp });
+  await expect(onDeniz.getByRole('button', { name: /👍: 1 person\. Add/ })).toBeVisible();
+});

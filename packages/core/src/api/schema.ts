@@ -600,6 +600,32 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/messages/{message_id}/reactions/{emoji}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+        /** @description One emoji (URL-encoded). */
+        emoji: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * React to a message
+     * @description Members see `reaction.added`; reacting again changes nothing. A message has up to 50 kinds of reactions.
+     */
+    put: operations['addReaction'];
+    post?: never;
+    /** Take a reaction back */
+    delete: operations['removeReaction'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/messages/{message_id}': {
     parameters: {
       query?: never;
@@ -982,6 +1008,8 @@ export interface components {
       archived: boolean;
       /** @description Messages of others after the read position, counted up to 100. */
       unread_count: number;
+      /** @description Unread messages that mention the user, counted up to 100. */
+      mention_count: number;
       /** Format: uuid */
       last_read_id: string | null;
       /** @description The other people of a direct or group conversation (empty for channels). */
@@ -1048,8 +1076,16 @@ export interface components {
       /** Format: uuid */
       channel_id: string;
       author: components['schemas']['Author'];
-      /** @description Message text as typed (Markdown rendering arrives later). */
+      /**
+       * @description Markdown (CommonMark with GitHub tables, strikethrough and task lists); clients
+       *     render it without raw HTML. `<@user-id>` mentions a person.
+       */
       body: string;
+      /** @description The people the message mentions (members of the channel). */
+      mentions: components['schemas']['Author'][];
+      /** @description Reactions in the order they were first used; `me` is the reader's own. */
+      reactions: components['schemas']['Reaction'][];
+      attachments: components['schemas']['Attachment'][];
       /** @description The client's nonce, so the sender can match its pending message. */
       nonce: string;
       /** Format: date-time */
@@ -1064,8 +1100,35 @@ export interface components {
       position: number;
     };
     NewMessage: {
+      /** @description Markdown; may be empty when the message has attachments. */
       body: string;
       nonce: string;
+      attachments?: components['schemas']['Attachment'][];
+    };
+    Reaction: {
+      emoji: string;
+      count: number;
+      me: boolean;
+    };
+    /** @description A card under a message, e.g. from a bot (an issue, an alert). */
+    Attachment: {
+      title?: string;
+      /** @description An http(s) URL the title links to. */
+      title_link?: string;
+      /** @description Markdown. */
+      text?: string;
+      /**
+       * @description The stripe on the card's edge (meaning is never the color alone).
+       * @enum {string}
+       */
+      color?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+      fields?: {
+        title: string;
+        value: string;
+        /** @description Two short fields share a row. */
+        short?: boolean;
+      }[];
+      footer?: string;
     };
     MessagePage: {
       messages: components['schemas']['Message'][];
@@ -1969,6 +2032,59 @@ export interface operations {
         };
       };
       400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  addReaction: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+        /** @description One emoji (URL-encoded). */
+        emoji: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Added. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  removeReaction: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+        /** @description One emoji (URL-encoded). */
+        emoji: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];

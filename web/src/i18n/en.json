@@ -316,5 +316,23 @@
     "keepThisDevice": "Keep me signed in on this device",
     "endedOthers_one": "{{count}} device was signed out.",
     "endedOthers_other": "{{count}} devices were signed out."
+  },
+  "reactions": {
+    "label": "Reactions",
+    "add": "Add reaction",
+    "search": "Search emoji",
+    "loading": "Loading emoji…",
+    "none": "No emoji found.",
+    "chip_one": "{{emoji}}: {{count}} person. Add your reaction",
+    "chip_other": "{{emoji}}: {{count}} people. Add your reaction",
+    "chipMine_one": "{{emoji}}: {{count}} person, you. Take your reaction back",
+    "chipMine_other": "{{emoji}}: {{count}} people including you. Take your reaction back",
+    "failed": "The reaction could not be saved."
+  },
+  "mentions": {
+    "label": "People to mention",
+    "active": "{{name}}, {{n}} of {{count}}",
+    "unread_one": "{{count}} mention",
+    "unread_other": "{{count}} mentions"
   }
 }

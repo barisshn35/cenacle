@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-import { defineConfig } from 'vite';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -9,8 +11,34 @@ const port = Number(process.env.WEB_PORT ?? 15173);
 const api = process.env.CENACLE_DEV_API ?? 'http://127.0.0.1:8180';
 const proxy = { '/api': { target: api }, '/ws': { target: api, ws: true } };
 
+/**
+ * Serves the emoji picker's data (emojibase, MIT) from our own origin under
+ * /emoji/en/, in development and in the build: no CDN.
+ */
+function emojiData(): Plugin {
+  const require = createRequire(import.meta.url);
+  const files = ['data.json', 'messages.json'];
+  const read = (file: string) => readFileSync(require.resolve(`emojibase-data/en/${file}`));
+  return {
+    name: 'cenacle-emoji-data',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const file = files.find((f) => req.url === `/emoji/en/${f}`);
+        if (!file) return next();
+        res.setHeader('Content-Type', 'application/json');
+        res.end(read(file));
+      });
+    },
+    generateBundle() {
+      for (const file of files) {
+        this.emitFile({ type: 'asset', fileName: `emoji/en/${file}`, source: read(file) });
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), emojiData()],
   server: {
     host: '127.0.0.1',
     port,

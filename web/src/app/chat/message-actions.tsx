@@ -22,6 +22,8 @@ import {
   type Channel,
   type Message,
 } from './data';
+import { mentionsToText } from './markdown/mentions';
+import { useMentionPicker } from './mention-picker';
 import { useEditing, useMessagePermissions } from './message-state';
 
 /**
@@ -87,10 +89,19 @@ export function MessageActions({ message, channel }: { message: Message; channel
 /** Editing a message in place: Enter saves, Shift+Enter adds a line, Escape cancels. */
 export function MessageEditor({ message }: { message: Message }) {
   const { t } = useTranslation();
-  const [body, setBody] = useState(message.body);
+  // Mentions are edited as @Name and become <@id> again when saved.
+  const original = mentionsToText(message.body, message.mentions);
+  const [body, setBody] = useState(original);
   const stop = useEditing((s) => s.set);
   const queryClient = useQueryClient();
   const input = useRef<HTMLTextAreaElement>(null);
+  const mentions = useMentionPicker({
+    channelId: message.channel_id,
+    input,
+    value: body,
+    onChange: setBody,
+    initial: message.mentions,
+  });
 
   useEffect(() => {
     const el = input.current;
@@ -116,13 +127,14 @@ export function MessageEditor({ message }: { message: Message }) {
 
   const submit = () => {
     const text = body.trim();
-    if (text === '' || text === message.body) {
+    if (text === '' || text === original) {
       stop(null);
       return;
     }
-    save.mutate(text);
+    save.mutate(mentions.resolve(text).text);
   };
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentions.onKeyDown(e)) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       stop(null);
@@ -133,7 +145,8 @@ export function MessageEditor({ message }: { message: Message }) {
   };
 
   return (
-    <div className="grid gap-1.5 py-1">
+    <div className="relative grid gap-1.5 py-1">
+      {mentions.popup}
       <label htmlFor={`edit-${message.id}`} className="sr-only">
         {t('chat.editLabel')}
       </label>
@@ -143,8 +156,14 @@ export function MessageEditor({ message }: { message: Message }) {
         rows={1}
         value={body}
         maxLength={4000}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => {
+          setBody(e.target.value);
+          mentions.update();
+        }}
+        onSelect={mentions.update}
         onKeyDown={onKeyDown}
+        aria-autocomplete="list"
+        aria-controls={mentions.open ? mentions.listId : undefined}
         className="block w-full resize-none overflow-hidden rounded-lg border border-input bg-card px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-[15px]"
       />
       <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 import { QueryClient, type InfiniteData } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
-import { addMessage, flatten, reloadMessages, type Message, type MessagePage } from './data';
+import {
+  addMessage,
+  applyReaction,
+  flatten,
+  reloadMessages,
+  replaceMessage,
+  type Message,
+  type MessagePage,
+} from './data';
 
 const msg = (id: string): Message => ({
   id,
@@ -11,6 +19,9 @@ const msg = (id: string): Message => ({
   nonce: `n-${id}`,
   created_at: '2026-10-21T09:00:00Z',
   edited_at: null,
+  mentions: [],
+  reactions: [],
+  attachments: [],
 });
 
 const data = (...pages: string[][]): InfiniteData<MessagePage, string | undefined> => ({
@@ -44,5 +55,41 @@ describe('message cache', () => {
     const after = qc.getQueryData<InfiniteData<MessagePage>>(['messages', 'c1'])!;
     expect(after.pages).toHaveLength(1);
     expect(after.pageParams).toEqual([undefined]);
+  });
+});
+
+describe('reactions in the cache', () => {
+  const setup = () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['messages', 'c1'], data(['m1']));
+    const reactions = () => flatten(qc.getQueryData(['messages', 'c1']))[0]!.reactions;
+    return { qc, reactions };
+  };
+  const ev = (emoji: string, user: string) => ({
+    channel_id: 'c1',
+    message_id: 'm1',
+    emoji,
+    user_id: user,
+  });
+
+  it("counts reactions and knows the reader's own", () => {
+    const { qc, reactions } = setup();
+    applyReaction(qc, ev('👍', 'u2'), true, 'me');
+    applyReaction(qc, ev('👍', 'me'), true, 'me');
+    applyReaction(qc, ev('🎉', 'u2'), true, 'me');
+    expect(reactions()).toEqual([
+      { emoji: '👍', count: 2, me: true },
+      { emoji: '🎉', count: 1, me: false },
+    ]);
+    applyReaction(qc, ev('👍', 'me'), false, 'me');
+    applyReaction(qc, ev('🎉', 'u2'), false, 'me');
+    expect(reactions()).toEqual([{ emoji: '👍', count: 1, me: false }]);
+  });
+
+  it('keeps reactions when an edit replaces the message', () => {
+    const { qc, reactions } = setup();
+    applyReaction(qc, ev('👍', 'me'), true, 'me');
+    replaceMessage(qc, { ...msg('m1'), body: 'edited', reactions: [] });
+    expect(reactions()).toEqual([{ emoji: '👍', count: 1, me: true }]);
   });
 });

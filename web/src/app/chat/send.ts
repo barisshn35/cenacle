@@ -42,11 +42,12 @@ export function useSendMessage() {
   );
 
   const send = useCallback(
-    (channelId: string, body: string) => {
+    (channelId: string, body: string, mentions: PendingMessage['mentions'] = []) => {
       const pending: PendingMessage = {
         nonce: newNonce(),
         channelId,
         body,
+        mentions,
         status: 'sending',
         createdAt: Date.now(),
       };

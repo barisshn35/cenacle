@@ -72,7 +72,8 @@ function ChannelList({ channels }: { channels: Channel[] }) {
         const unread = ch.unread_count > 0;
         // Conversations are addressed to you: their count stands out like a
         // mention; channels are only marked as having something new.
-        const counted = unread && isConversation(ch);
+        const counted = unread && (isConversation(ch) || ch.mention_count > 0);
+        const count = isConversation(ch) ? ch.unread_count : ch.mention_count;
         return (
           <SidebarMenuItem key={ch.id} data-unread={unread || undefined}>
             <SidebarMenuButton
@@ -95,7 +96,10 @@ function ChannelList({ channels }: { channels: Channel[] }) {
               )}
               <span>{ch.name}</span>
               {unread && (
-                <span className="sr-only">{t('dm.unread', { count: ch.unread_count })}</span>
+                <span className="sr-only">
+                  {t('dm.unread', { count: ch.unread_count })}
+                  {ch.mention_count > 0 && `, ${t('mentions.unread', { count: ch.mention_count })}`}
+                </span>
               )}
             </SidebarMenuButton>
             {counted ? (
@@ -103,7 +107,7 @@ function ChannelList({ channels }: { channels: Channel[] }) {
                 aria-hidden
                 className="rounded-full bg-mention text-mention-foreground peer-data-active/menu-button:text-mention-foreground peer-hover/menu-button:text-mention-foreground"
               >
-                {ch.unread_count > 99 ? '99+' : ch.unread_count}
+                {count > 99 ? '99+' : count}
               </SidebarMenuBadge>
             ) : unread ? (
               <SidebarMenuBadge aria-hidden>

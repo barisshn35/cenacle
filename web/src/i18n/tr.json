@@ -316,5 +316,23 @@
     "keepThisDevice": "Bu cihazda oturumum açık kalsın",
     "endedOthers_one": "{{count}} cihazdan çıkış yapıldı.",
     "endedOthers_other": "{{count}} cihazdan çıkış yapıldı."
+  },
+  "reactions": {
+    "label": "Tepkiler",
+    "add": "Tepki ekle",
+    "search": "Emoji ara",
+    "loading": "Emojiler yükleniyor…",
+    "none": "Emoji bulunamadı.",
+    "chip_one": "{{emoji}}: {{count}} kişi. Tepkini ekle",
+    "chip_other": "{{emoji}}: {{count}} kişi. Tepkini ekle",
+    "chipMine_one": "{{emoji}}: {{count}} kişi, sen. Tepkini geri al",
+    "chipMine_other": "{{emoji}}: sen dahil {{count}} kişi. Tepkini geri al",
+    "failed": "Tepki kaydedilemedi."
+  },
+  "mentions": {
+    "label": "Bahsedilecek kişiler",
+    "active": "{{name}}, {{n}}/{{count}}",
+    "unread_one": "{{count}} bahsetme",
+    "unread_other": "{{count}} bahsetme"
   }
 }

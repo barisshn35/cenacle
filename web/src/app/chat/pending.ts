@@ -6,6 +6,8 @@ export interface PendingMessage {
   nonce: string;
   channelId: string;
   body: string;
+  /** People the body mentions (<@id>), to show their names meanwhile. */
+  mentions?: { id: string; display_name: string }[];
   status: 'sending' | 'failed';
   /** Seconds to wait when the server said "too fast". */
   retryAfter?: number;

@@ -10,6 +10,7 @@ import { useQuickSwitcherShortcut } from './quick-switcher-state';
 import { useLive } from './presence-state';
 import {
   addMessage,
+  applyReaction,
   countIncoming,
   reloadChannels,
   reloadMessages,
@@ -18,6 +19,7 @@ import {
   setReadLocally,
   type Message,
   type PresenceStatus,
+  type ReactionEvent,
 } from './data';
 import { usePending } from './pending';
 
@@ -40,6 +42,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           live.stopTyping(message.channel_id, message.author.id);
           // The sender's own pending copy is now confirmed.
           usePending.getState().remove(message.nonce);
+        } else if (ev.type === 'reaction.added' || ev.type === 'reaction.removed') {
+          applyReaction(
+            queryClient,
+            ev.data as ReactionEvent,
+            ev.type === 'reaction.added',
+            selfId,
+          );
         } else if (ev.type === 'channel.read') {
           const { channel_id, message_id } = ev.data as { channel_id: string; message_id: string };
           setReadLocally(queryClient, channel_id, message_id);

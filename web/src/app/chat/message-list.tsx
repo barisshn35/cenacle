@@ -19,7 +19,10 @@ import {
   type Channel,
   type Message,
 } from './data';
+import { Attachments } from './attachments';
+import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
+import { AddReactionButton, ReactionBar } from './reactions';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
 import { useSendMessage } from './send';
@@ -118,8 +121,10 @@ function MessageRow({
 }) {
   const { t } = useTranslation();
   const { message: m } = row;
+  const self = useSession().user.id;
   const at = new Date(m.created_at);
   const editing = useEditing((s) => s.id === m.id);
+  const mentionsMe = m.mentions.some((p) => p.id === self);
   return (
     <div>
       {row.day && (
@@ -152,7 +157,12 @@ function MessageRow({
           'group relative flex gap-3 px-4 hover:bg-muted/40 focus-within:bg-muted/40',
           row.first ? 'pt-3 pb-0.5' : 'py-0.5',
           editing && 'bg-muted/40',
+          // A message for the reader: tinted and marked at the edge (not by color alone:
+          // the mention chip in the text says it too).
+          mentionsMe &&
+            'border-l-3 border-l-mention bg-mention-bg/60 pl-[13px] hover:bg-mention-bg',
         )}
+        data-mentions-me={mentionsMe || undefined}
       >
         {row.first ? <Avatar name={m.author.display_name} /> : <span className="w-9 shrink-0" />}
         <div className="min-w-0 flex-1">
@@ -171,21 +181,29 @@ function MessageRow({
           {editing ? (
             <MessageEditor message={m} />
           ) : (
-            <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">
-              {m.body}
+            <>
+              {m.body && <MessageBody body={m.body} mentions={m.mentions} selfId={self} />}
               {m.edited_at && (
                 <span
-                  className="ml-1.5 text-xs text-muted-foreground"
+                  className="text-xs text-muted-foreground"
                   title={fmt.full.format(new Date(m.edited_at))}
                 >
                   {t('chat.edited')}
                 </span>
               )}
-            </p>
+              <Attachments items={m.attachments} selfId={self} />
+              <ReactionBar message={m} />
+            </>
           )}
         </div>
         {!editing && (
-          <div className="absolute top-0.5 right-3">
+          <div className="absolute top-0.5 right-3 flex gap-0.5">
+            {!channel.archived && (
+              <AddReactionButton
+                message={m}
+                className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
+              />
+            )}
             <MessageActions message={m} channel={channel} />
           </div>
         )}
@@ -214,14 +232,9 @@ function PendingRow({ p }: { p: PendingMessage }) {
           <span className="text-sm font-semibold">{name}</span>
           {!failed && <span className="text-xs text-muted-foreground">{t('chat.sending')}</span>}
         </header>
-        <p
-          className={cn(
-            'text-[15px] leading-relaxed break-words whitespace-pre-wrap',
-            !failed && 'text-muted-foreground',
-          )}
-        >
-          {p.body}
-        </p>
+        <div className={cn(!failed && 'text-muted-foreground')}>
+          <MessageBody body={p.body} mentions={p.mentions ?? []} selfId={user.id} />
+        </div>
         {failed ? (
           <div role="alert" className="mt-1 flex flex-wrap items-center gap-2 text-sm">
             <CircleAlertIcon aria-hidden className="size-4 text-destructive" strokeWidth={1.75} />

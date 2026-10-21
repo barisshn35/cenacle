@@ -230,6 +230,7 @@ const channel = (id: string, name: string, extra: Record<string, unknown> = {}) 
   archived: false,
   category_id: null as string | null,
   unread_count: 0,
+  mention_count: 0,
   last_read_id: null as string | null,
   participants: [] as { id: string; display_name: string; email: string }[],
   ...extra,
@@ -282,6 +283,9 @@ export const RANDOM = channel('01a15e50-3333-7d7d-bbee-8e7809fd8ad2', 'Random', 
 });
 
 export interface MockMessage {
+  mentions: { id: string; display_name: string }[];
+  reactions: { emoji: string; count: number; me: boolean }[];
+  attachments: Record<string, unknown>[];
   edited_at: string | null;
   id: string;
   channel_id: string;
@@ -304,6 +308,9 @@ export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): 
     nonce: `nonce-${n}`,
     created_at: new Date(Date.UTC(2026, 9, 21, 9, n)).toISOString(),
     edited_at: null as string | null,
+    mentions: [],
+    reactions: [],
+    attachments: [],
   };
 }
 
@@ -315,6 +322,8 @@ export interface MockApi {
   emitEphemeral(type: string, data: unknown): void;
   /** Bodies of POSTed messages. */
   sent: { body: string; nonce: string }[];
+  /** Reactions sent: "+👍" or "-👍" with the message id. */
+  reacted: string[];
   /** Read positions sent: channel id -> message id. */
   reads: Map<string, string>;
   /** Channels typing notices were sent for. */
@@ -397,6 +406,7 @@ export async function mockApi(
   const api: MockApi & { socket?: import('@playwright/test').WebSocketRoute; seq: number } = {
     sent: [],
     reads: new Map(),
+    reacted: [],
     typing: [],
     statuses: [],
     ended: [],
@@ -577,6 +587,11 @@ export async function mockApi(
       author: { id: SESSION.user.id, display_name: SESSION.user.display_name },
       channel_id: channelId,
       nonce: input.nonce,
+      // As the server does: <@id> of known people become mentions.
+      mentions: PEOPLE.filter((p) => input.body.includes(`<@${p.id}>`)).map((p) => ({
+        id: p.id,
+        display_name: p.display_name,
+      })),
     };
     stored.push({ ...message, deleted: false });
     return route.fulfill({ status: 201, json: message });
@@ -628,6 +643,12 @@ export async function mockApi(
     const id = route.request().url().split('/').pop()!;
     api.ended.push(id);
     devices = devices.filter((d) => d.id !== id);
+    return route.fulfill({ status: 204 });
+  });
+  await page.route(/\/messages\/[0-9a-f-]{36}\/reactions\/[^/]+$/, (route) => {
+    const req = route.request();
+    const [, id, emoji] = /messages\/([0-9a-f-]{36})\/reactions\/([^/]+)$/.exec(req.url())!;
+    api.reacted.push(`${req.method() === 'PUT' ? '+' : '-'}${decodeURIComponent(emoji!)} ${id}`);
     return route.fulfill({ status: 204 });
   });
   await page.route('**/api/ws/ticket', (route) =>

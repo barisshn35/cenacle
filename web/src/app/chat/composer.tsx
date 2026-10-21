@@ -7,6 +7,7 @@ import { Button } from '@cenacle/ui/components/button';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useConnection } from './connection';
 import { sendTyping } from './data';
+import { useMentionPicker } from './mention-picker';
 import { useSendMessage } from './send';
 import { TypingIndicator } from './typing-indicator';
 
@@ -65,6 +66,7 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
   };
   const { send } = useSendMessage();
   const key = { workspaceId: WORKSPACE, channelId };
+  const mentions = useMentionPicker({ channelId, input, value: body, onChange: change });
 
   // Load the channel's draft (the composer is keyed by channel).
   useEffect(() => {
@@ -115,13 +117,16 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
 
   const submit = () => {
     if (!canSend) return;
-    send(channelId, trimmed);
+    const { text, people } = mentions.resolve(trimmed);
+    send(channelId, text, people);
+    mentions.reset();
     change('');
     lastTyping.current = 0;
     void drafts.delete(key).catch(() => undefined);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentions.onKeyDown(e)) return;
     // Not while an input method (e.g. for CJK) is composing text.
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -144,13 +149,20 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
         </label>
         {/* The frame holds the text and the send button side by side, so a
             scrollbar of long text never runs under the button. */}
-        <div className="flex items-end gap-2 rounded-xl border border-input bg-card py-1.5 pr-1.5 pl-4 shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-aria-invalid:border-destructive">
+        <div className="relative flex items-end gap-2 rounded-xl border border-input bg-card py-1.5 pr-1.5 pl-4 shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-aria-invalid:border-destructive">
+          {mentions.popup}
           <textarea
             id="composer"
             ref={input}
             rows={1}
             value={body}
-            onChange={(e) => typed(e.target.value)}
+            onChange={(e) => {
+              typed(e.target.value);
+              mentions.update();
+            }}
+            onSelect={mentions.update}
+            aria-autocomplete="list"
+            aria-controls={mentions.open ? mentions.listId : undefined}
             onKeyDown={onKeyDown}
             aria-describedby={
               body.length > MAX_LENGTH - 200 ? 'composer-hint composer-count' : 'composer-hint'
