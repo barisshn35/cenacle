@@ -95,7 +95,7 @@ export default defineConfig({
     },
     {
       name: 'chat-server',
-      command: `go build -o ${serverBin} ./cmd/server && ${serverBin} migrate up && ${serverBin} serve`,
+      command: `go build -o ${serverBin} ./cmd/server && ${serverBin} migrate up && node ../web/e2e-stack/reset-chat-db.mjs && ${serverBin} serve`,
       cwd: '../server',
       env: serverEnv,
       url: `http://127.0.0.1:${SERVER_PORT}/healthz`,

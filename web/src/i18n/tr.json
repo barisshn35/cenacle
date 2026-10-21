@@ -102,7 +102,8 @@
   "channels": {
     "kinds": {
       "standard": "Kanal",
-      "announcement": "Duyuru kanalı"
+      "announcement": "Duyuru kanalı",
+      "private": "Özel kanal"
     },
     "createTitle": "Kanal oluştur",
     "createDescription": "Kanallar, bir konu hakkında konuşulan yerlerdir.",
@@ -125,6 +126,29 @@
     "mandatory": "Herkes bu kanalın üyesi.",
     "leave": "Kanaldan ayrıl",
     "left": "{{channel}} kanalından ayrıldın.",
-    "leaveFailed": "Ayrılamadın. Bağlantını kontrol edip tekrar dene."
+    "leaveFailed": "Ayrılamadın. Bağlantını kontrol edip tekrar dene.",
+    "visibility": {
+      "label": "Görünürlük",
+      "public": "Herkese açık",
+      "private": "Özel",
+      "publicHint": "Herkes bulup katılabilir.",
+      "privateHint": "Yalnızca üyeler görür; kişileri yöneticileri ekler."
+    },
+    "members": "Üyeler",
+    "membersCount_one": "{{count}} üye",
+    "membersCount_other": "{{count}} üye",
+    "manager": "Yönetici",
+    "addPeople": "Kişi ekle",
+    "addPeopleTo": "{{channel}} kanalına kişi ekle",
+    "addPeoplePrivate": "Bu özel kanalı yalnızca eklediğin kişiler görür.",
+    "addPeoplePublic": "Üye olurlar ve kanalı listelerinde görürler.",
+    "findPeople": "Ad veya e-posta ile kişi bul",
+    "add": "Ekle",
+    "addNamed": "{{person}} kişisini ekle",
+    "alreadyMember": "Üye",
+    "noPeople": "Kimse bulunamadı.",
+    "removeNamed": "{{person}} kişisini kanaldan çıkar",
+    "removed": "{{person}}, {{channel}} kanalından çıkarıldı.",
+    "changeFailed": "Değişiklik yapılamadı. Bağlantını kontrol edip tekrar dene."
   }
 }

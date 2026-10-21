@@ -142,6 +142,92 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Change visibility or topic (channel managers)
+     * @description Default channels cannot be private (400).
+     */
+    patch: operations['updateChannel'];
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/members': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** Members of a channel (members only) */
+    get: operations['listChannelMembers'];
+    put?: never;
+    /**
+     * Add someone to a channel (channel managers)
+     * @description The only way into a private channel. Managers are the channel's creator
+     *     and the administrator.
+     */
+    post: operations['addChannelMember'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/members/{user_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Remove someone from a channel (channel managers)
+     * @description Not from mandatory channels; to remove yourself, leave the channel.
+     */
+    delete: operations['removeChannelMember'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Find people by name or e-mail address */
+    get: operations['searchUsers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/directory': {
     parameters: {
       query?: never;
@@ -149,7 +235,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** All channels, with membership */
+    /** Channels the user can see, with membership */
     get: operations['listChannelDirectory'];
     put?: never;
     post?: never;
@@ -170,7 +256,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Join a channel */
+    /**
+     * Join a public channel
+     * @description Private channels are joined only when a manager adds you (404 otherwise).
+     */
     post: operations['joinChannel'];
     delete?: never;
     options?: never;
@@ -289,9 +378,32 @@ export interface components {
       is_default: boolean;
       /** @description Members cannot leave. */
       is_mandatory: boolean;
+      /**
+       * @description Private channels are visible to their members only.
+       * @enum {string}
+       */
+      visibility: 'public' | 'private';
       is_member: boolean;
       /** @description Whether this user can send messages here. */
       can_post: boolean;
+      /** @description Whether this user can add and remove people and change the channel. */
+      can_manage: boolean;
+    };
+    ChannelUpdate: {
+      /** @enum {string} */
+      visibility?: 'public' | 'private';
+      topic?: string;
+    };
+    Person: {
+      /** Format: uuid */
+      id: string;
+      display_name: string;
+      email: string;
+    };
+    Member: {
+      user: components['schemas']['Person'];
+      /** @enum {string} */
+      role: 'member' | 'manager';
     };
     ChannelList: {
       channels: components['schemas']['Channel'][];
@@ -305,6 +417,11 @@ export interface components {
        * @enum {string}
        */
       kind: 'standard' | 'announcement';
+      /**
+       * @default public
+       * @enum {string}
+       */
+      visibility: 'public' | 'private';
       /**
        * @description Make every user, now and later, a member.
        * @default false
@@ -523,6 +640,146 @@ export interface operations {
       409: components['responses']['Problem'];
     };
   };
+  updateChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChannelUpdate'];
+      };
+    };
+    responses: {
+      /** @description Updated. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Channel'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listChannelMembers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Managers first, then by name. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            members: components['schemas']['Member'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  addChannelMember: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          user_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Member (also when already a member). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Member'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  removeChannelMember: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Not a member any more. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  searchUsers: {
+    parameters: {
+      query: {
+        q: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Matching people, by name. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            users: components['schemas']['Person'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
   listChannelDirectory: {
     parameters: {
       query?: never;
@@ -532,7 +789,10 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Every channel; `is_member` tells which ones the user belongs to. */
+      /**
+       * @description Public channels and the private channels the user belongs to;
+       *     `is_member` tells which ones the user belongs to.
+       */
       200: {
         headers: {
           [name: string]: unknown;

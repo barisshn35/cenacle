@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
+import { MembersSection, VisibilitySetting } from '../chat/channel-members';
 import { joinChannel, leaveChannel, reloadChannels, type Channel } from '../chat/data';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
@@ -16,7 +17,10 @@ export function DetailsPanel() {
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
 
   return (
-    <aside aria-labelledby="details-title" className="flex h-full flex-col border-l bg-background">
+    <aside
+      aria-labelledby="details-title"
+      className="flex h-full flex-col overflow-y-auto border-l bg-background"
+    >
       <header className="flex min-h-12 items-center justify-between border-b px-3">
         <h2 id="details-title" className="text-sm font-semibold">
           {t('shell.details')}
@@ -38,6 +42,14 @@ export function DetailsPanel() {
             </dt>
             <dd>{channel.topic || t('shell.noTopic')}</dd>
           </div>
+          <div className="flex flex-col gap-1">
+            <dt className="text-xs font-medium text-muted-foreground uppercase">
+              {t('channels.visibility.label')}
+            </dt>
+            <dd>
+              <VisibilitySetting channel={channel} />
+            </dd>
+          </div>
           <div className="flex flex-col gap-2">
             <dt className="sr-only">{t('channels.membership')}</dt>
             <dd>
@@ -49,6 +61,11 @@ export function DetailsPanel() {
             </dd>
           </div>
         </dl>
+      )}
+      {channel && (
+        <div className="border-t p-4">
+          <MembersSection channel={channel} />
+        </div>
       )}
     </aside>
   );

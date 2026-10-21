@@ -21,6 +21,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           addMessage(queryClient, message);
           // The sender's own pending copy is now confirmed.
           usePending.getState().remove(message.nonce);
+        } else if (ev.type === 'channel.members_changed') {
+          const { channel_id } = ev.data as { channel_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['members', channel_id] });
         } else if (ev.type.startsWith('channel.')) {
           void reloadChannels(queryClient);
         }

@@ -27,10 +27,17 @@ export function CreateChannelDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const ids = { name: useId(), topic: useId(), everyone: useId(), error: useId() };
+  const ids = {
+    name: useId(),
+    topic: useId(),
+    everyone: useId(),
+    error: useId(),
+    visibility: useId(),
+  };
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('');
   const [everyone, setEveryone] = useState(false);
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -42,6 +49,7 @@ export function CreateChannelDialog({
       setName('');
       setTopic('');
       setEveryone(false);
+      setVisibility('public');
       void navigate({ to: '/c/$channelId', params: { channelId: channel.id } });
     },
   });
@@ -55,7 +63,8 @@ export function CreateChannelDialog({
       name: name.trim(),
       topic: topic.trim(),
       kind: 'standard',
-      is_default: everyone,
+      visibility,
+      is_default: visibility === 'public' && everyone,
     });
   };
 
@@ -90,11 +99,35 @@ export function CreateChannelDialog({
               onChange={(e) => setTopic(e.target.value)}
             />
           </div>
+          <fieldset className="grid gap-2">
+            <legend className="mb-2 text-sm font-medium">{t('channels.visibility.label')}</legend>
+            {(['public', 'private'] as const).map((v) => (
+              <div key={v} className="flex items-start gap-2">
+                <input
+                  id={`${ids.visibility}-${v}`}
+                  type="radio"
+                  name={ids.visibility}
+                  value={v}
+                  checked={visibility === v}
+                  onChange={() => setVisibility(v)}
+                  aria-describedby={`${ids.visibility}-${v}-hint`}
+                  className="size-6 shrink-0 accent-primary"
+                />
+                <div className="grid gap-0.5">
+                  <Label htmlFor={`${ids.visibility}-${v}`}>{t(`channels.visibility.${v}`)}</Label>
+                  <p id={`${ids.visibility}-${v}-hint`} className="text-xs text-muted-foreground">
+                    {t(`channels.visibility.${v}Hint`)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </fieldset>
           <div className="flex items-start gap-2">
             <input
               id={ids.everyone}
               type="checkbox"
-              checked={everyone}
+              checked={visibility === 'public' && everyone}
+              disabled={visibility === 'private'}
               onChange={(e) => setEveryone(e.target.checked)}
               className="size-6 shrink-0 accent-primary"
             />

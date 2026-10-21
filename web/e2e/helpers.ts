@@ -187,12 +187,33 @@ const channel = (id: string, name: string, extra: Record<string, unknown> = {}) 
   name,
   topic: '',
   kind: 'standard' as 'standard' | 'announcement',
+  visibility: 'public' as 'public' | 'private',
   is_default: true,
   is_mandatory: false,
   is_member: true,
   can_post: true,
+  can_manage: false,
   ...extra,
 });
+
+/** People of the fake server (the signed-in user first). */
+export const PEOPLE = [
+  {
+    id: '01a15dab-33d6-722d-aa40-6f2370b89146',
+    display_name: 'Deniz Kaya',
+    email: 'deniz@example.com',
+  },
+  {
+    id: '01a15e50-aaaa-7000-8000-000000000001',
+    display_name: 'Ayşe Yılmaz',
+    email: 'ayse@example.com',
+  },
+  {
+    id: '01a15e50-aaaa-7000-8000-000000000002',
+    display_name: 'Mert Kaya',
+    email: 'mert@example.com',
+  },
+];
 
 export const CENTRAL = channel('01a15e50-1111-7d7d-bbee-8e7809fd8ad2', 'Central', {
   topic: 'Announcements for everyone.',
@@ -261,7 +282,13 @@ export async function mockApi(
   };
   let failures = opts.failSend ?? 0;
   // Membership as the fake server keeps it.
-  const all = [CENTRAL, GENERAL, RANDOM].map((c) => ({ ...c }));
+  const admin = opts.admin ?? false;
+  const all = [CENTRAL, GENERAL, RANDOM].map((c) => ({ ...c, can_manage: admin }));
+  // channel id -> member ids (manager first)
+  const members = new Map<string, { id: string; role: 'member' | 'manager' }[]>(
+    all.map((c) => [c.id, [{ id: PEOPLE[0]!.id, role: 'member' }]]),
+  );
+  const channelOf = (url: string) => all.find((x) => url.includes(x.id))!;
   await page.route('**/api/channels', async (route) => {
     if (route.request().method() === 'GET') {
       return route.fulfill({ json: { channels: all.filter((c) => c.is_member) } });
@@ -270,6 +297,7 @@ export async function mockApi(
       name: string;
       topic?: string;
       is_default?: boolean;
+      visibility?: 'public' | 'private';
     };
     if (all.some((c) => c.name.toLowerCase() === input.name.toLowerCase())) {
       return route.fulfill({
@@ -287,20 +315,59 @@ export async function mockApi(
     const created = channel(id, input.name, {
       topic: input.topic ?? '',
       is_default: input.is_default ?? false,
+      visibility: input.visibility ?? 'public',
+      can_manage: true,
     });
     all.push(created);
+    members.set(id, [{ id: PEOPLE[0]!.id, role: 'manager' }]);
     return route.fulfill({ status: 201, json: created });
   });
   await page.route('**/api/channels/directory', (route) =>
     route.fulfill({ json: { channels: all } }),
   );
   await page.route('**/api/channels/*/join', (route) => {
-    const c = all.find((x) => route.request().url().includes(x.id))!;
+    const c = channelOf(route.request().url());
     c.is_member = true;
     return route.fulfill({ json: c });
   });
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}$/, (route) => {
+    const c = channelOf(route.request().url());
+    Object.assign(c, route.request().postDataJSON());
+    return route.fulfill({ json: c });
+  });
+  await page.route('**/api/channels/*/members**', (route) => {
+    const req = route.request();
+    const c = channelOf(req.url());
+    const list = members.get(c.id)!;
+    if (req.method() === 'POST') {
+      const { user_id } = req.postDataJSON() as { user_id: string };
+      if (!list.some((m) => m.id === user_id)) list.push({ id: user_id, role: 'member' });
+    } else if (req.method() === 'DELETE') {
+      const id = req.url().split('/').pop()!;
+      members.set(
+        c.id,
+        list.filter((m) => m.id !== id),
+      );
+      return route.fulfill({ status: 204 });
+    }
+    return route.fulfill({
+      json: {
+        members: members
+          .get(c.id)!
+          .map((m) => ({ user: PEOPLE.find((p) => p.id === m.id)!, role: m.role })),
+      },
+    });
+  });
+  await page.route('**/api/users?**', (route) => {
+    const q = new URL(route.request().url()).searchParams.get('q')!.toLowerCase();
+    return route.fulfill({
+      json: {
+        users: PEOPLE.filter((p) => `${p.display_name} ${p.email}`.toLowerCase().includes(q)),
+      },
+    });
+  });
   await page.route('**/api/channels/*/leave', (route) => {
-    const c = all.find((x) => route.request().url().includes(x.id))!;
+    const c = channelOf(route.request().url());
     c.is_member = false;
     return route.fulfill({ status: 204 });
   });

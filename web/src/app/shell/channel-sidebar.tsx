@@ -43,7 +43,6 @@ import { ChannelIcon } from '../chat/channel-icon';
 import { CreateChannelDialog } from '../chat/create-channel-dialog';
 
 function ChannelList() {
-  const { t } = useTranslation();
   const channels = useQuery(channelsQuery);
   const { id: activeId } = useActiveChannel();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -77,7 +76,7 @@ function ChannelList() {
                 />
               }
             >
-              <ChannelIcon kind={ch.kind} label={t(`channels.kinds.${ch.kind}`)} />
+              <ChannelIcon channel={ch} labelled />
               <span>{ch.name}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

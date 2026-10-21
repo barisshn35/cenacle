@@ -162,3 +162,50 @@ test.describe('channels', () => {
     await expect(page.getByRole('link', { name: 'Release notes' })).toBeVisible();
   });
 });
+
+test.describe('private channels', () => {
+  test.skip(({ isMobile }) => isMobile, 'sidebar actions are in the drawer on phones');
+
+  test('the administrator creates a private channel and adds people', async ({
+    page,
+  }, testInfo) => {
+    await mockApi(page, { admin: true });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Create a channel' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Create a channel' });
+    await dialog.getByLabel('Name').fill('Yönetim');
+    await dialog.getByLabel('Private').check();
+    await expect(dialog.getByLabel('Add everyone')).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Create channel' }).click();
+
+    await expect(page.getByRole('img', { name: 'Private channel' }).first()).toBeVisible();
+    const details = page.getByRole('complementary');
+    await expect(details.getByLabel('Visibility')).toHaveValue('private');
+    await expect(details.getByTestId('members')).toContainText('Manager');
+
+    await details.getByRole('button', { name: 'Add people' }).click();
+    const add = page.getByRole('dialog', { name: 'Add people to Yönetim' });
+    await add.getByLabel('Find people by name or e-mail').fill('ayşe');
+    await add.getByRole('button', { name: 'Add Ayşe Yılmaz' }).click();
+    await expect(add.getByText('Member', { exact: true })).toBeVisible();
+    await expectTargetSizes(page, testInfo, '[role="dialog"]');
+    await expectNoAxeViolations(page, '[role="dialog"]');
+    await page.keyboard.press('Escape');
+
+    await expect(details.getByTestId('members')).toContainText('Ayşe Yılmaz');
+    await details.getByRole('button', { name: 'Remove Ayşe Yılmaz from the channel' }).click();
+    await expect(details.getByTestId('members')).not.toContainText('Ayşe Yılmaz');
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(details.getByTestId('members')).toContainText('Ayşe Yılmaz');
+  });
+
+  test('members who do not manage the channel cannot add people or change it', async ({ page }) => {
+    await mockApi(page);
+    await page.goto(`/c/${GENERAL.id}`);
+    const details = page.getByRole('complementary');
+    await expect(details.getByTestId('members')).toContainText('Deniz Kaya');
+    await expect(details.getByRole('button', { name: 'Add people' })).toHaveCount(0);
+    await expect(details.getByLabel('Visibility')).toHaveCount(0);
+    await expect(details).toContainText('Everyone can find and join it.');
+  });
+});

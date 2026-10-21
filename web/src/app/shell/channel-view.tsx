@@ -35,8 +35,8 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {channel && (
             <ChannelIcon
-              kind={channel.kind}
-              label={t(`channels.kinds.${channel.kind}`)}
+              channel={channel}
+              labelled
               className="size-4 shrink-0 text-muted-foreground"
             />
           )}

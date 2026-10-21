@@ -102,7 +102,8 @@
   "channels": {
     "kinds": {
       "standard": "Channel",
-      "announcement": "Announcement channel"
+      "announcement": "Announcement channel",
+      "private": "Private channel"
     },
     "createTitle": "Create a channel",
     "createDescription": "Channels are where people talk about one topic.",
@@ -125,6 +126,29 @@
     "mandatory": "Everyone is a member of this channel.",
     "leave": "Leave channel",
     "left": "You left {{channel}}.",
-    "leaveFailed": "Leaving did not work. Check your connection and try again."
+    "leaveFailed": "Leaving did not work. Check your connection and try again.",
+    "visibility": {
+      "label": "Visibility",
+      "public": "Public",
+      "private": "Private",
+      "publicHint": "Everyone can find and join it.",
+      "privateHint": "Only members see it; its managers add people."
+    },
+    "members": "Members",
+    "membersCount_one": "{{count}} member",
+    "membersCount_other": "{{count}} members",
+    "manager": "Manager",
+    "addPeople": "Add people",
+    "addPeopleTo": "Add people to {{channel}}",
+    "addPeoplePrivate": "Only the people you add can see this private channel.",
+    "addPeoplePublic": "They become members and see the channel in their list.",
+    "findPeople": "Find people by name or e-mail",
+    "add": "Add",
+    "addNamed": "Add {{person}}",
+    "alreadyMember": "Member",
+    "noPeople": "No one found.",
+    "removeNamed": "Remove {{person}} from the channel",
+    "removed": "{{person}} was removed from {{channel}}.",
+    "changeFailed": "The change did not go through. Check your connection and try again."
   }
 }

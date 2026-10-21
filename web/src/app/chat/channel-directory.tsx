@@ -62,7 +62,11 @@ export function ChannelDirectory({
           <ul className="-mx-2 grid max-h-[60svh] gap-1 overflow-y-auto">
             {directory.data.map((c) => (
               <li key={c.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5">
-                <ChannelIcon kind={c.kind} className="size-4 shrink-0 text-muted-foreground" />
+                <ChannelIcon
+                  channel={c}
+                  labelled
+                  className="size-4 shrink-0 text-muted-foreground"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{c.name}</p>
                   {c.topic && <p className="truncate text-xs text-muted-foreground">{c.topic}</p>}

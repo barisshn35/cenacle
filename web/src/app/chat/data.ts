@@ -12,6 +12,9 @@ export type Message = components['schemas']['Message'];
 export type MessagePage = components['schemas']['MessagePage'];
 
 export type NewChannel = components['schemas']['NewChannel'];
+export type ChannelUpdate = components['schemas']['ChannelUpdate'];
+export type Member = components['schemas']['Member'];
+export type Person = components['schemas']['Person'];
 
 /** Channels the user is a member of (the sidebar). */
 export const channelsQuery = queryOptions({
@@ -38,6 +41,30 @@ export const joinChannel = (id: string) =>
   apiFetch<Channel>(`/api/channels/${id}/join`, { method: 'POST' });
 export const leaveChannel = (id: string) =>
   apiFetch<void>(`/api/channels/${id}/leave`, { method: 'POST' });
+export const updateChannel = (id: string, update: ChannelUpdate) =>
+  apiFetch<Channel>(`/api/channels/${id}`, { ...json(update), method: 'PATCH' });
+export const addMember = (channelId: string, userId: string) =>
+  apiFetch<Member>(`/api/channels/${channelId}/members`, json({ user_id: userId }));
+export const removeMember = (channelId: string, userId: string) =>
+  apiFetch<void>(`/api/channels/${channelId}/members/${userId}`, { method: 'DELETE' });
+
+export const membersQuery = (channelId: string) =>
+  queryOptions({
+    queryKey: ['members', channelId],
+    queryFn: () =>
+      apiFetch<{ members: Member[] }>(`/api/channels/${channelId}/members`).then((r) => r.members),
+  });
+
+export const peopleQuery = (q: string) =>
+  queryOptions({
+    queryKey: ['people', q],
+    queryFn: () =>
+      apiFetch<{ users: Person[] }>(`/api/users?q=${encodeURIComponent(q)}&limit=20`).then(
+        (r) => r.users,
+      ),
+    enabled: q.trim() !== '',
+    staleTime: 30_000,
+  });
 
 /** Channel lists changed (created, joined, left): reload them. */
 export function reloadChannels(queryClient: QueryClient): Promise<void> {

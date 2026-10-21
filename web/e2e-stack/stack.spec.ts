@@ -168,3 +168,46 @@ test('Central is for announcements; only the administrator creates channels', as
   await admin.getByLabel(`Message Release ${stamp}`).press('Enter');
   await expect(member.getByText('sürüm çıktı')).toBeVisible();
 });
+
+test('private channels: only their manager adds people', async ({ browser }) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const admin = await open(EMAIL);
+  const member = await open(SECOND.email);
+  const name = `Gizli ${Date.now().toString(36)}`;
+
+  await admin.getByRole('button', { name: 'Create a channel' }).click();
+  const dialog = admin.getByRole('dialog', { name: 'Create a channel' });
+  await dialog.getByLabel('Name').fill(name);
+  await dialog.getByLabel('Private').check();
+  await dialog.getByRole('button', { name: 'Create channel' }).click();
+  await expect(admin.getByRole('heading', { level: 1 })).toHaveText(name);
+  await admin.getByLabel(`Message ${name}`).fill('yalnızca üyeler okur');
+  await admin.getByLabel(`Message ${name}`).press('Enter');
+
+  // The other user cannot find it.
+  await member.getByRole('button', { name: 'Browse channels' }).click();
+  const directory = member.getByRole('dialog', { name: 'Channels' });
+  await expect(directory.getByText('General', { exact: true })).toBeVisible();
+  await expect(directory.getByText(name)).toHaveCount(0);
+  await member.keyboard.press('Escape');
+
+  // The manager adds them; the channel appears for them at once.
+  await admin.getByRole('complementary').getByRole('button', { name: 'Add people' }).click();
+  const add = admin.getByRole('dialog', { name: `Add people to ${name}` });
+  await add.getByLabel('Find people by name or e-mail').fill('mert@');
+  await add.getByRole('button', { name: `Add ${SECOND.name}` }).click();
+  await expect(add.getByText('Member', { exact: true })).toBeVisible();
+
+  await member.getByRole('link', { name }).click();
+  await expect(member.getByText('yalnızca üyeler okur')).toBeVisible();
+  await expect(
+    member.getByRole('complementary').getByRole('button', { name: 'Add people' }),
+  ).toHaveCount(0);
+});
