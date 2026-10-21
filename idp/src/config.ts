@@ -61,6 +61,8 @@ const serverSchema = keySchema.extend({
   /** Sign-in attempts per client address and minute (raise it for many users behind one NAT). */
   IDP_LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).max(100_000).default(10),
   IDP_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(100).max(120_000).default(15_000),
+  /** Port for Prometheus metrics on IDP_HOST (internal); 0: off. */
+  IDP_METRICS_PORT: z.coerce.number().int().min(0).max(65535).default(0),
 });
 
 export interface DatabaseConfig {
@@ -90,6 +92,7 @@ export interface Config {
   readyTimeoutMs: number;
   shutdownTimeoutMs: number;
   loginRateLimit: number;
+  metricsPort: number;
 }
 
 export class ConfigError extends Error {
@@ -183,5 +186,6 @@ export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultR
     readyTimeoutMs: c.IDP_READY_TIMEOUT_MS,
     shutdownTimeoutMs: c.IDP_SHUTDOWN_TIMEOUT_MS,
     loginRateLimit: c.IDP_LOGIN_RATE_LIMIT,
+    metricsPort: c.IDP_METRICS_PORT,
   };
 }

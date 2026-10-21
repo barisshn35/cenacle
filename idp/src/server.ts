@@ -6,6 +6,7 @@ import { UserStore } from './accounts/users.ts';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
 import { createPool, poolCheck } from './db.ts';
+import { instrument, oidcEvents, registerPool, serveMetrics } from './metrics.ts';
 import { KeyStore } from './keys/store.ts';
 import { pruneExpired } from './oidc/adapter.ts';
 import { clientOrigins, loadClients } from './oidc/clients.ts';
@@ -73,6 +74,18 @@ async function main(): Promise<void> {
   });
 
   provider.on('server_error', (_ctx, err) => app.log.error({ err }, 'oidc server error'));
+  provider.on('authorization.success', () =>
+    oidcEvents.inc({ event: 'authorization', result: 'success' }),
+  );
+  provider.on('authorization.error', () =>
+    oidcEvents.inc({ event: 'authorization', result: 'error' }),
+  );
+  provider.on('grant.success', () => oidcEvents.inc({ event: 'grant', result: 'success' }));
+  provider.on('grant.error', () => oidcEvents.inc({ event: 'grant', result: 'error' }));
+  instrument(app);
+  registerPool(pool);
+  const metrics =
+    config.metricsPort > 0 ? serveMetrics(config.host, config.metricsPort) : undefined;
   provider.on('backchannel.error', (_ctx, err, client) =>
     app.log.warn({ err, client: client.clientId }, 'back-channel logout failed'),
   );
@@ -95,6 +108,7 @@ async function main(): Promise<void> {
     }, config.shutdownTimeoutMs);
     timer.unref();
     clearInterval(prune);
+    metrics?.close();
     await app.close();
     await pool.end();
     app.log.info('shutdown complete');
