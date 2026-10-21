@@ -51,3 +51,65 @@ export const createWebhook = (
 ) => apiFetch<{ webhook: Webhook; url: string }>(`/api/bots/${botId}/webhooks`, json(input));
 export const deleteWebhook = (botId: string, webhookId: string) =>
   apiFetch<void>(`/api/bots/${botId}/webhooks/${webhookId}`, { method: 'DELETE' });
+
+/** Issues a new token with the old one's name and scopes; the old one keeps working for the overlap. */
+export const rotateBotToken = (botId: string, tokenId: string, overlapHours: number) =>
+  apiFetch<{ token: BotToken; secret: string }>(
+    `/api/bots/${botId}/tokens/${tokenId}/rotate`,
+    json({ overlap_hours: overlapHours }),
+  );
+
+export type SlashCommand = components['schemas']['SlashCommand'];
+export type Subscription = components['schemas']['Subscription'];
+export type Delivery = components['schemas']['Delivery'];
+export const SUBSCRIBABLE_EVENTS = [
+  'message.created',
+  'message.updated',
+  'message.deleted',
+  'reaction.added',
+  'reaction.removed',
+] as const;
+export type SubscribableEvent = (typeof SUBSCRIBABLE_EVENTS)[number];
+
+export const botCommandsQuery = (botId: string) =>
+  queryOptions({
+    queryKey: ['bot-commands', botId],
+    queryFn: () =>
+      apiFetch<{ commands: SlashCommand[] }>(`/api/bots/${botId}/commands`).then((r) => r.commands),
+  });
+export const createBotCommand = (
+  botId: string,
+  input: { trigger: string; url: string; description: string; hint: string },
+) =>
+  apiFetch<{ command: SlashCommand; secret: string }>(`/api/bots/${botId}/commands`, json(input));
+export const deleteBotCommand = (botId: string, commandId: string) =>
+  apiFetch<void>(`/api/bots/${botId}/commands/${commandId}`, { method: 'DELETE' });
+
+export const subscriptionsQuery = (botId: string) =>
+  queryOptions({
+    queryKey: ['subscriptions', botId],
+    queryFn: () =>
+      apiFetch<{ subscriptions: Subscription[] }>(`/api/bots/${botId}/subscriptions`).then(
+        (r) => r.subscriptions,
+      ),
+  });
+export const createSubscription = (
+  botId: string,
+  input: { url: string; events: SubscribableEvent[] },
+) =>
+  apiFetch<{ subscription: Subscription; secret: string }>(
+    `/api/bots/${botId}/subscriptions`,
+    json(input),
+  );
+export const deleteSubscription = (botId: string, subscriptionId: string) =>
+  apiFetch<void>(`/api/bots/${botId}/subscriptions/${subscriptionId}`, { method: 'DELETE' });
+export const deliveriesQuery = (botId: string, subscriptionId: string) =>
+  queryOptions({
+    queryKey: ['deliveries', botId, subscriptionId],
+    queryFn: () =>
+      apiFetch<{ deliveries: Delivery[]; has_more: boolean }>(
+        `/api/bots/${botId}/subscriptions/${subscriptionId}/deliveries`,
+      ),
+  });
+export const resendDelivery = (botId: string, deliveryId: string) =>
+  apiFetch<void>(`/api/bots/${botId}/deliveries/${deliveryId}/resend`, { method: 'POST' });

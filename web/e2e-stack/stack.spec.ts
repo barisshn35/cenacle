@@ -453,6 +453,7 @@ test('a Jira webhook posts issue cards as its bot', async ({ browser, request })
   await dialog.getByRole('button', { name: 'New bot' }).click();
   await dialog.getByLabel('Name').fill(`Jira ${stamp}`);
   await dialog.getByRole('button', { name: 'Create bot' }).click();
+  await dialog.getByRole('button', { name: 'Incoming webhooks' }).click();
   await dialog.getByLabel('Webhook name').fill('Issues');
   await dialog.getByLabel('Channel', { exact: true }).selectOption({ label: 'General' });
   await dialog.getByLabel('Sends').selectOption('jira');
@@ -480,4 +481,37 @@ test('a Jira webhook posts issue cards as its bot', async ({ browser, request })
   await expect(card).toContainText('Ayşe created this issue.');
   const message = mert.getByTestId('message').filter({ has: card });
   await expect(message.getByTestId('bot-badge')).toBeVisible();
+});
+
+test('slash commands, a reminder from Cenacle and a message sent later', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+  await signInAtIdP(page, SECOND.email);
+  const composer = page.getByLabel('Message General');
+  await composer.waitFor();
+  const stamp = Date.now().toString(36);
+
+  await composer.fill('/shr');
+  await page.getByRole('option', { name: /\/shrug/ }).click();
+  await composer.pressSequentially(`olur ${stamp}`);
+  await composer.press('Enter');
+  await expect(page.getByRole('log').getByText(`olur ${stamp} ¯\\_(ツ)_/¯`)).toBeVisible();
+
+  await composer.fill(`/remind me in 2 hours to check ${stamp}`);
+  await composer.press('Enter');
+  await expect(page.getByTestId('command-note')).toContainText(`check ${stamp}`);
+
+  await composer.fill(`Haftalık özet ${stamp}`);
+  await page.getByRole('button', { name: 'Send later' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Send later' });
+  await dialog.getByRole('button', { name: /Tomorrow morning/ }).click();
+  await page.getByRole('button', { name: 'Send later' }).click();
+  const items = dialog.getByTestId('scheduled');
+  await expect(items.filter({ hasText: `⏰ check ${stamp}` })).toContainText('Reminder');
+  await expect(items.filter({ hasText: `Haftalık özet ${stamp}` })).toContainText('#General');
+  await items
+    .filter({ hasText: `Haftalık özet ${stamp}` })
+    .getByRole('button', { name: /Cancel the message/ })
+    .click();
+  await expect(items.filter({ hasText: `Haftalık özet ${stamp}` })).toHaveCount(0);
 });

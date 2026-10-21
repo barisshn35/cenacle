@@ -1,13 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { SendHorizontalIcon } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ClockIcon, SendHorizontalIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ApiError } from '@cenacle/core/api';
 import { DraftStore } from '@cenacle/core/drafts';
 import { Button } from '@cenacle/ui/components/button';
 import { cn } from '@cenacle/ui/lib/utils';
+import { useActiveWorkspace } from './active-workspace';
+import { CommandNotes } from './command-notes';
+import { useCommandNotes } from './command-notes-state';
+import { useCommandPicker } from './command-picker';
+import { parseCommand, runCommand } from './commands';
 import { useConnection } from './connection';
-import { sendTyping } from './data';
+import { addMessage, sendTyping } from './data';
 import { useMentionPicker } from './mention-picker';
+import { SendLaterDialog } from './send-later';
 import { useSendMessage } from './send';
 import { TypingIndicator } from './typing-indicator';
 
@@ -65,8 +73,13 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
     }
   };
   const { send } = useSendMessage();
+  const queryClient = useQueryClient();
   const key = { workspaceId: WORKSPACE, channelId };
   const mentions = useMentionPicker({ channelId, input, value: body, onChange: change });
+  const workspaceId = useActiveWorkspace().id;
+  const commands = useCommandPicker({ workspaceId, input, onChange: change });
+  const addNote = useCommandNotes((s) => s.add);
+  const [later, setLater] = useState(false);
 
   // Load the channel's draft (the composer is keyed by channel).
   useEffect(() => {
@@ -115,17 +128,58 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
   const tooLong = body.length > MAX_LENGTH;
   const canSend = trimmed !== '' && !tooLong;
 
-  const submit = () => {
-    if (!canSend) return;
-    const { text, people } = mentions.resolve(trimmed);
-    send(channelId, text, people);
+  const clear = () => {
     mentions.reset();
     change('');
     lastTyping.current = 0;
     void drafts.delete(key).catch(() => undefined);
   };
 
+  /** Runs a slash command; its answer shows above the composer or in the channel. */
+  const run = (command: string, text: string) => {
+    clear();
+    commands.close();
+    void runCommand(channelId, command, text)
+      .then((r) => {
+        if (r.message) addMessage(queryClient, r.message);
+        if (r.response_type === 'ephemeral' && (r.text || r.attachments?.length)) {
+          addNote({ channelId, command, text: r.text ?? '', attachments: r.attachments ?? [] });
+        }
+      })
+      .catch((err: unknown) => {
+        const problem = err instanceof ApiError ? err.problem : undefined;
+        addNote({
+          channelId,
+          command,
+          text:
+            problem?.code === 'unknown_command'
+              ? t('commands.unknown', { command: `/${command}` })
+              : (problem?.detail ?? t('commands.failed')),
+          attachments: [],
+          error: true,
+        });
+        // Give the text back so nothing typed is lost.
+        if (problem?.code !== 'unknown_command') change(`/${command} ${text}`.trimEnd());
+      });
+  };
+
+  const submit = () => {
+    if (!canSend) return;
+    // "//text" sends "/text" as a message.
+    const command = trimmed.startsWith('//') ? null : parseCommand(trimmed);
+    if (command) {
+      run(command.command, mentions.resolve(command.text).text);
+      return;
+    }
+    const { text, people } = mentions.resolve(
+      trimmed.startsWith('//') ? trimmed.slice(1) : trimmed,
+    );
+    send(channelId, text, people);
+    clear();
+  };
+
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (commands.onKeyDown(e)) return;
     if (mentions.onKeyDown(e)) return;
     // Not while an input method (e.g. for CJK) is composing text.
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -137,6 +191,7 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
   const label = t('shell.composerPlaceholder', { channel: channelName });
   return (
     <footer className="shrink-0 px-4 pb-4">
+      <CommandNotes channelId={channelId} />
       <form
         className="mx-auto max-w-3xl"
         onSubmit={(e) => {
@@ -151,6 +206,7 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
             scrollbar of long text never runs under the button. */}
         <div className="relative flex items-end gap-2 rounded-xl border border-input bg-card py-1.5 pr-1.5 pl-4 shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-aria-invalid:border-destructive">
           {mentions.popup}
+          {commands.popup}
           <textarea
             id="composer"
             ref={input}
@@ -159,10 +215,16 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
             onChange={(e) => {
               typed(e.target.value);
               mentions.update();
+              commands.update();
             }}
-            onSelect={mentions.update}
+            onSelect={() => {
+              mentions.update();
+              commands.update();
+            }}
             aria-autocomplete="list"
-            aria-controls={mentions.open ? mentions.listId : undefined}
+            aria-controls={
+              commands.open ? commands.listId : mentions.open ? mentions.listId : undefined
+            }
             onKeyDown={onKeyDown}
             aria-describedby={
               body.length > MAX_LENGTH - 200 ? 'composer-hint composer-count' : 'composer-hint'
@@ -171,6 +233,15 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
             placeholder={label}
             className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
           />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label={t('scheduled.open')}
+            onClick={() => setLater(true)}
+          >
+            <ClockIcon strokeWidth={1.75} />
+          </Button>
           <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
             <SendHorizontalIcon strokeWidth={1.75} />
           </Button>
@@ -195,6 +266,20 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
           )}
         </div>
       </form>
+      <SendLaterDialog
+        open={later}
+        onOpenChange={(open) => {
+          setLater(open);
+          if (!open) requestAnimationFrame(() => input.current?.focus());
+        }}
+        channelId={channelId}
+        body={() =>
+          canSend && !(parseCommand(trimmed) && !trimmed.startsWith('//'))
+            ? mentions.resolve(trimmed.startsWith('//') ? trimmed.slice(1) : trimmed).text
+            : ''
+        }
+        onScheduled={clear}
+      />
     </footer>
   );
 }

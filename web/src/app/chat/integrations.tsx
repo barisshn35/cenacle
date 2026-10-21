@@ -7,6 +7,8 @@ import {
   CopyIcon,
   KeyRoundIcon,
   PlusIcon,
+  RadioTowerIcon,
+  SquareSlashIcon,
   WebhookIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -27,17 +29,30 @@ import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { BotBadge } from './bot-badge';
 import {
+  botCommandsQuery,
   botsQuery,
   botTokensQuery,
   createBot,
+  createBotCommand,
   createBotToken,
+  createSubscription,
   createWebhook,
+  deleteBotCommand,
+  deleteSubscription,
   deleteWebhook,
+  deliveriesQuery,
+  resendDelivery,
   revokeBotToken,
+  rotateBotToken,
+  SUBSCRIBABLE_EVENTS,
+  subscriptionsQuery,
   updateBot,
   webhooksQuery,
   type Bot,
   type BotScope,
+  type SlashCommand,
+  type SubscribableEvent,
+  type Subscription,
   type Webhook,
 } from './bots';
 import { directoryQuery, isConversation } from './data';
@@ -142,6 +157,8 @@ function Tokens({ bot }: { bot: Bot }) {
   const [days, setDays] = useState('365');
   const [secret, setSecret] = useState<string>();
   const [revoking, setRevoking] = useState<{ id: string; name: string }>();
+  const [rotating, setRotating] = useState<{ id: string; name: string }>();
+  const [overlap, setOverlap] = useState('24');
   const reload = () => queryClient.invalidateQueries({ queryKey: ['bot-tokens', bot.id] });
   const create = useMutation({
     mutationFn: () =>
@@ -187,6 +204,14 @@ function Tokens({ bot }: { bot: Bot }) {
                     ` · ${t('bots.expires', { date: new Date(tk.expires_at).toLocaleDateString() })}`}
                 </p>
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label={t('bots.rotateNamed', { token: tk.name })}
+                onClick={() => setRotating({ id: tk.id, name: tk.name })}
+              >
+                {t('bots.rotate')}
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -267,6 +292,35 @@ function Tokens({ bot }: { bot: Bot }) {
           toast(t('bots.revoked', { token: revoking!.name }));
         }}
       />
+      <ConfirmDialog
+        open={!!rotating}
+        onOpenChange={(open) => !open && setRotating(undefined)}
+        severity="s2"
+        title={t('bots.rotateTitle', { token: rotating?.name ?? '' })}
+        description={
+          <div className="grid gap-2">
+            <p>{t('bots.rotateDescription')}</p>
+            <Label htmlFor={`${id}-overlap`}>{t('bots.overlap')}</Label>
+            <select
+              id={`${id}-overlap`}
+              className={selectClass}
+              value={overlap}
+              onChange={(e) => setOverlap(e.target.value)}
+            >
+              <option value="0">{t('bots.overlapNone')}</option>
+              <option value="1">{t('bots.hours', { count: 1 })}</option>
+              <option value="24">{t('bots.hours', { count: 24 })}</option>
+              <option value="168">{t('bots.hours', { count: 168 })}</option>
+            </select>
+          </div>
+        }
+        confirmLabel={t('bots.rotate')}
+        onConfirm={async () => {
+          const { secret } = await rotateBotToken(bot.id, rotating!.id, Number(overlap));
+          setSecret(secret);
+          await reload();
+        }}
+      />
     </section>
   );
 }
@@ -331,7 +385,9 @@ function Webhooks({ bot, workspace }: { bot: Bot; workspace: Workspace }) {
       </ul>
       {url && (
         <Secret
-          label={kind === 'jira' ? t('bots.webhookCreatedJira') : t('bots.webhookCreated')}
+          label={
+            kind === 'generic' ? t('bots.webhookCreated') : t(`bots.webhookCreatedFor.${kind}`)
+          }
           value={url}
         />
       )}
@@ -369,8 +425,11 @@ function Webhooks({ bot, workspace }: { bot: Bot; workspace: Workspace }) {
           value={kind}
           onChange={(e) => setKind(e.target.value as Webhook['kind'])}
         >
-          <option value="generic">{t('bots.kind.generic')}</option>
-          <option value="jira">{t('bots.kind.jira')}</option>
+          {(['generic', 'jira', 'gitlab', 'alertmanager'] as const).map((k) => (
+            <option key={k} value={k}>
+              {t(`bots.kind.${k}`)}
+            </option>
+          ))}
         </select>
         {create.isError && <InlineError problem={problemOf(create.error)} />}
         <Button
@@ -399,6 +458,327 @@ function Webhooks({ bot, workspace }: { bot: Bot; workspace: Workspace }) {
   );
 }
 
+function Commands({ bot }: { bot: Bot }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const queryClient = useQueryClient();
+  const commands = useQuery(botCommandsQuery(bot.id));
+  const [trigger, setTrigger] = useState('');
+  const [url, setUrl] = useState('');
+  const [description, setDescription] = useState('');
+  const [hint, setHint] = useState('');
+  const [secret, setSecret] = useState<string>();
+  const [removing, setRemoving] = useState<SlashCommand>();
+  const reload = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['bot-commands', bot.id] });
+    await queryClient.invalidateQueries({ queryKey: ['commands'] });
+  };
+  const create = useMutation({
+    mutationFn: () =>
+      createBotCommand(bot.id, {
+        trigger: trigger.trim().replace(/^\//, '').toLowerCase(),
+        url: url.trim(),
+        description: description.trim(),
+        hint: hint.trim(),
+      }),
+    onSuccess: async ({ secret }) => {
+      setSecret(secret);
+      setTrigger('');
+      setUrl('');
+      setDescription('');
+      setHint('');
+      await reload();
+    },
+  });
+  return (
+    <section aria-labelledby={`${id}-title`} className="flex flex-col gap-2">
+      <h3 id={`${id}-title`} className="flex items-center gap-2 text-sm font-semibold">
+        <SquareSlashIcon aria-hidden strokeWidth={1.75} className="size-4" />
+        {t('bots.commands')}
+      </h3>
+      <p className="text-xs text-muted-foreground">{t('bots.commandsHint')}</p>
+      <ul className="flex flex-col divide-y rounded-lg border">
+        {(commands.data ?? []).length === 0 && (
+          <li className="px-3 py-2 text-sm text-muted-foreground">{t('bots.noCommands')}</li>
+        )}
+        {(commands.data ?? []).map((c) => (
+          <li
+            key={c.id}
+            data-testid="command"
+            className="flex items-center gap-2 px-3 py-2 text-sm"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-mono font-medium">/{c.trigger}</p>
+              <p className="truncate text-xs text-muted-foreground">{c.url}</p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive"
+              aria-label={t('bots.deleteCommandNamed', { command: `/${c.trigger}` })}
+              onClick={() => setRemoving(c)}
+            >
+              {t('glossary.delete')}
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {secret && <Secret label={t('bots.signingSecret')} value={secret} />}
+      <form
+        className="grid gap-2 rounded-lg border p-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (trigger.trim() && url.trim()) create.mutate();
+        }}
+      >
+        <Label htmlFor={`${id}-trigger`}>{t('bots.trigger')}</Label>
+        <Input
+          id={`${id}-trigger`}
+          value={trigger}
+          maxLength={33}
+          placeholder="/deploy"
+          autoCapitalize="none"
+          onChange={(e) => setTrigger(e.target.value)}
+        />
+        <Label htmlFor={`${id}-url`}>{t('bots.requestUrl')}</Label>
+        <Input
+          id={`${id}-url`}
+          type="url"
+          value={url}
+          maxLength={2000}
+          placeholder="https://"
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <Label htmlFor={`${id}-description`}>{t('bots.commandDescription')}</Label>
+        <Input
+          id={`${id}-description`}
+          value={description}
+          maxLength={200}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <Label htmlFor={`${id}-hint`}>{t('bots.commandHint')}</Label>
+        <Input
+          id={`${id}-hint`}
+          value={hint}
+          maxLength={100}
+          onChange={(e) => setHint(e.target.value)}
+        />
+        {create.isError && <InlineError problem={problemOf(create.error)} />}
+        <Button
+          type="submit"
+          className="justify-self-start"
+          disabled={!trigger.trim() || !url.trim() || create.isPending}
+        >
+          <PlusIcon aria-hidden strokeWidth={1.75} />
+          {t('bots.createCommand')}
+        </Button>
+      </form>
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(open) => !open && setRemoving(undefined)}
+        severity="s2"
+        title={t('bots.deleteCommandTitle', { command: `/${removing?.trigger ?? ''}` })}
+        description={<p>{t('bots.deleteCommandDescription')}</p>}
+        confirmLabel={t('bots.deleteCommand')}
+        onConfirm={async () => {
+          await deleteBotCommand(bot.id, removing!.id);
+          await reload();
+        }}
+      />
+    </section>
+  );
+}
+
+/** The delivery log of a subscription, newest first, with resending. */
+function Deliveries({ bot, subscription }: { bot: Bot; subscription: Subscription }) {
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const log = useQuery(deliveriesQuery(bot.id, subscription.id));
+  const resend = useMutation({
+    mutationFn: (deliveryId: string) => resendDelivery(bot.id, deliveryId),
+    onSuccess: async () => {
+      toast(t('bots.resent'));
+      await queryClient.invalidateQueries({ queryKey: ['deliveries', bot.id, subscription.id] });
+    },
+    onError: () => toast.error(t('bots.resendFailed')),
+  });
+  const time = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'short', timeStyle: 'medium' });
+  const items = log.data?.deliveries ?? [];
+  if (log.isPending) return <Skeleton className="h-9" />;
+  return (
+    <ul
+      className="flex max-h-72 flex-col divide-y overflow-y-auto rounded-lg border"
+      aria-label={t('bots.deliveries')}
+    >
+      {items.length === 0 && (
+        <li className="px-3 py-2 text-sm text-muted-foreground">{t('bots.noDeliveries')}</li>
+      )}
+      {items.map((d) => (
+        <li key={d.id} data-testid="delivery" className="flex items-center gap-2 px-3 py-2 text-sm">
+          <div className="min-w-0 flex-1">
+            <p className="truncate">
+              <span className="font-mono text-xs">{d.event_type}</span>{' '}
+              <span
+                className={
+                  d.status === 'failed'
+                    ? 'text-destructive'
+                    : d.status === 'succeeded'
+                      ? 'text-success'
+                      : 'text-muted-foreground'
+                }
+              >
+                {t(`bots.deliveryStatus.${d.status}`)}
+              </span>
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {time.format(new Date(d.created_at))}
+              {d.last_status != null && ` · HTTP ${d.last_status}`}
+              {d.attempts > 1 && ` · ${t('bots.attempts', { count: d.attempts })}`}
+              {d.status !== 'succeeded' && d.last_error && ` · ${d.last_error}`}
+            </p>
+          </div>
+          {d.status !== 'pending' && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={resend.isPending}
+              onClick={() => resend.mutate(d.id)}
+            >
+              {t('bots.resend')}
+            </Button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Events({ bot }: { bot: Bot }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const queryClient = useQueryClient();
+  const subs = useQuery(subscriptionsQuery(bot.id));
+  const [url, setUrl] = useState('');
+  const [events, setEvents] = useState<SubscribableEvent[]>(['message.created']);
+  const [secret, setSecret] = useState<string>();
+  const [open, setOpen] = useState<string>();
+  const [removing, setRemoving] = useState<Subscription>();
+  const reload = () => queryClient.invalidateQueries({ queryKey: ['subscriptions', bot.id] });
+  const create = useMutation({
+    mutationFn: () => createSubscription(bot.id, { url: url.trim(), events }),
+    onSuccess: async ({ secret }) => {
+      setSecret(secret);
+      setUrl('');
+      await reload();
+    },
+  });
+  const toggle = (event: SubscribableEvent, on: boolean) =>
+    setEvents((s) => (on ? [...s, event] : s.filter((x) => x !== event)));
+  return (
+    <section aria-labelledby={`${id}-title`} className="flex flex-col gap-2">
+      <h3 id={`${id}-title`} className="flex items-center gap-2 text-sm font-semibold">
+        <RadioTowerIcon aria-hidden strokeWidth={1.75} className="size-4" />
+        {t('bots.events')}
+      </h3>
+      <p className="text-xs text-muted-foreground">{t('bots.eventsHint')}</p>
+      <ul className="flex flex-col divide-y rounded-lg border">
+        {(subs.data ?? []).length === 0 && (
+          <li className="px-3 py-2 text-sm text-muted-foreground">{t('bots.noSubscriptions')}</li>
+        )}
+        {(subs.data ?? []).map((sub) => (
+          <li
+            key={sub.id}
+            data-testid="subscription"
+            className="flex flex-col gap-2 px-3 py-2 text-sm"
+          >
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{sub.url}</p>
+                <p className="truncate text-xs text-muted-foreground">{sub.events.join(', ')}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                aria-expanded={open === sub.id}
+                onClick={() => setOpen(open === sub.id ? undefined : sub.id)}
+              >
+                {t('bots.deliveries')}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive"
+                aria-label={t('bots.deleteSubscriptionNamed', { url: sub.url })}
+                onClick={() => setRemoving(sub)}
+              >
+                {t('glossary.delete')}
+              </Button>
+            </div>
+            {open === sub.id && <Deliveries bot={bot} subscription={sub} />}
+          </li>
+        ))}
+      </ul>
+      {secret && <Secret label={t('bots.signingSecret')} value={secret} />}
+      <form
+        className="grid gap-2 rounded-lg border p-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (url.trim() && events.length) create.mutate();
+        }}
+      >
+        <Label htmlFor={`${id}-url`}>{t('bots.deliveryUrl')}</Label>
+        <Input
+          id={`${id}-url`}
+          type="url"
+          value={url}
+          maxLength={2000}
+          placeholder="https://"
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <fieldset className="flex flex-wrap gap-x-4">
+          <legend className="mb-1 text-sm font-medium">{t('bots.eventTypes')}</legend>
+          {SUBSCRIBABLE_EVENTS.map((ev) => (
+            <label key={ev} data-target className="flex min-h-target items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={events.includes(ev)}
+                onChange={(e) => toggle(ev, e.target.checked)}
+                className="size-4 accent-primary"
+                data-target-exempt
+              />
+              {t(`bots.event.${ev.replace('.', '_')}`)}
+            </label>
+          ))}
+        </fieldset>
+        {create.isError && <InlineError problem={problemOf(create.error)} />}
+        <Button
+          type="submit"
+          className="justify-self-start"
+          disabled={!url.trim() || events.length === 0 || create.isPending}
+        >
+          <PlusIcon aria-hidden strokeWidth={1.75} />
+          {t('bots.subscribe')}
+        </Button>
+      </form>
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(o) => !o && setRemoving(undefined)}
+        severity="s2"
+        title={t('bots.deleteSubscriptionTitle')}
+        description={<p>{t('bots.deleteSubscriptionDescription', { url: removing?.url ?? '' })}</p>}
+        confirmLabel={t('bots.deleteSubscription')}
+        onConfirm={async () => {
+          await deleteSubscription(bot.id, removing!.id);
+          await reload();
+        }}
+      />
+    </section>
+  );
+}
+
+const SECTIONS = ['tokens', 'webhooks', 'commands', 'events'] as const;
+type Section = (typeof SECTIONS)[number];
+
 function BotDetails({
   bot,
   workspace,
@@ -411,6 +791,7 @@ function BotDetails({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [confirmDisable, setConfirmDisable] = useState(false);
+  const [section, setSection] = useState<Section>('tokens');
   const setDisabled = async (disabled: boolean) => {
     await updateBot(bot.id, { disabled });
     await queryClient.invalidateQueries({ queryKey: ['bots', workspace.id] });
@@ -443,8 +824,28 @@ function BotDetails({
       </div>
       {bot.disabled && <p className="text-sm text-muted-foreground">{t('bots.disabledNotice')}</p>}
       <p className="text-sm text-muted-foreground">{t('bots.addToChannels')}</p>
-      <Tokens bot={bot} />
-      <Webhooks bot={bot} workspace={workspace} />
+      <div
+        role="group"
+        aria-label={t('bots.sections')}
+        className="flex flex-wrap gap-1 rounded-lg bg-muted p-1"
+      >
+        {SECTIONS.map((sec) => (
+          <Button
+            key={sec}
+            size="sm"
+            variant={section === sec ? 'outline' : 'ghost'}
+            aria-pressed={section === sec}
+            className="flex-1"
+            onClick={() => setSection(sec)}
+          >
+            {t(`bots.${sec}`)}
+          </Button>
+        ))}
+      </div>
+      {section === 'tokens' && <Tokens bot={bot} />}
+      {section === 'webhooks' && <Webhooks bot={bot} workspace={workspace} />}
+      {section === 'commands' && <Commands bot={bot} />}
+      {section === 'events' && <Events bot={bot} />}
       <ConfirmDialog
         open={confirmDisable}
         onOpenChange={setConfirmDisable}
