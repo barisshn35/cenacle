@@ -4,7 +4,7 @@
 # via the net.ipv4.ip_unprivileged_port_start sysctl, so no capabilities are needed.
 
 # Caddy built from source with our patched Go toolchain (see deploy/caddy).
-FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS caddy
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine3.24 AS caddy
 WORKDIR /src
 COPY deploy/caddy/go.mod deploy/caddy/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
