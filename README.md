@@ -40,13 +40,13 @@ make up                     # postgres, valkey, openldap, mailpit (healthy)
 make migrate-up             # chat database migrations
 make dev-server             # chat backend   -> http://localhost:8180/readyz
 make dev-idp                # Cenacle ID     -> http://localhost:8190/healthz
-make dev-web                # web app        -> http://localhost:5173
+make dev-web                # web app        -> http://localhost:15173
 make dev-user EMAIL=you@example.com NAME="Your Name"   # asks for a password (15+ characters)
 ```
 
-Open the app at <http://localhost:5173> and sign in with that account. Use `localhost`, not
+Open the app at <http://localhost:15173> and sign in with that account. Use `localhost`, not
 `127.0.0.1`: the sign-in cookies are bound to the host name. Component gallery
-(development only): <http://localhost:5173/dev/gallery>.
+(development only): <http://localhost:15173/dev/gallery>.
 
 | Service         | Default port (localhost only) | Notes                                                                      |
 | --------------- | ----------------------------- | -------------------------------------------------------------------------- |
@@ -56,7 +56,7 @@ Open the app at <http://localhost:5173> and sign in with that account. Use `loca
 | Mailpit         | 11025 (SMTP), 18025 (UI)      | catches all outgoing mail                                                  |
 | Chat server     | 8180                          | `make dev-server`                                                          |
 | Cenacle ID      | 8190                          | `make dev-idp`                                                             |
-| Web app         | 5173                          | `make dev-web`                                                             |
+| Web app         | 15173                         | `make dev-web`                                                             |
 
 Ports are deliberately non-standard so Cenacle can run next to other stacks; change them
 in `.env`. To run the application containers too:

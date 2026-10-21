@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { defineConfig, devices } from '@playwright/test';
 
-const port = Number(process.env.WEB_PORT ?? 5173);
+const port = Number(process.env.WEB_PORT ?? 15173);
 const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({

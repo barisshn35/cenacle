@@ -3,8 +3,8 @@
     "client_id": "cenacle-chat",
     "client_name": "Cenacle",
     "client_secret_file": "chat-client-secret.txt",
-    "redirect_uris": ["http://localhost:5173/api/auth/callback"],
-    "post_logout_redirect_uris": ["http://localhost:5173/"],
+    "redirect_uris": ["http://localhost:15173/api/auth/callback"],
+    "post_logout_redirect_uris": ["http://localhost:15173/"],
     "first_party": true,
     "scope": "openid email profile"
   }

@@ -54,7 +54,7 @@ func TestCookieNames(t *testing.T) {
 	if ck.Name != "__Host-cenacle_signin" || !ck.Secure || ck.Path != "/" || ck.Domain != "" {
 		t.Errorf("flow cookie = %+v", ck)
 	}
-	if NewCookies(&url.URL{Scheme: "http", Host: "localhost:5173"}).SessionName() != "cenacle_session" {
+	if NewCookies(&url.URL{Scheme: "http", Host: "localhost:15173"}).SessionName() != "cenacle_session" {
 		t.Error("http cookie name")
 	}
 }

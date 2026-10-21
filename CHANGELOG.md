@@ -76,7 +76,7 @@ replaces the placeholder look.
   accent (`--accent-brand`) for primary buttons and focus rings; form control outlines
   reach 3:1. The Cenacle ID pages use the same brand.
 - The Vite dev server proxies `/api` to the chat server; the development OIDC client of
-  the chat now redirects to `http://localhost:5173/api/auth/callback`.
+  the chat now redirects to `http://localhost:15173/api/auth/callback`.
 
 ### Upgrade notes
 

@@ -80,5 +80,5 @@ issues its own opaque sessions; the IdP's tokens are not used after sign-in. Web
   most 15 minutes. Request limits for the chat API come with v0.13.
 - Signing out in the chat does not yet end other chat sessions of the user; "sign out
   everywhere" is part of session management (v0.8).
-- Development must use `http://localhost:5173` (the host name in `CENACLE_PUBLIC_URL`), not
+- Development must use `http://localhost:15173` (the host name in `CENACLE_PUBLIC_URL`), not
   `127.0.0.1`, because cookies are bound to host names.

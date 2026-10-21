@@ -130,7 +130,7 @@ func TestLoadServe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadServe: %v", err)
 	}
-	if cfg.PublicURL.String() != "http://localhost:5173" || cfg.OIDCIssuer != "http://localhost:8190" ||
+	if cfg.PublicURL.String() != "http://localhost:15173" || cfg.OIDCIssuer != "http://localhost:8190" ||
 		cfg.OIDCClientID != "cenacle-chat" || cfg.SessionIdleTimeout != 7*24*time.Hour ||
 		cfg.SessionMaxAge != 30*24*time.Hour || cfg.OIDCBackchannelURL != nil {
 		t.Errorf("defaults = %+v", cfg)
