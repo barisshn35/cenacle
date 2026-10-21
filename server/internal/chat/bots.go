@@ -21,6 +21,8 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/integrations/alertmanager"
+	"github.com/barisshn35/cenacle/server/internal/integrations/gitlab"
 	"github.com/barisshn35/cenacle/server/internal/integrations/jira"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
@@ -381,8 +383,8 @@ func (h *Handlers) CreateWebhook(w http.ResponseWriter, r *http.Request, botID o
 		return
 	}
 	name, problem := cleanName(in.Name)
-	if problem == "" && in.Kind != "generic" && in.Kind != "jira" {
-		problem = "kind must be generic or jira."
+	if problem == "" && !slices.Contains([]string{"generic", "jira", "gitlab", "alertmanager"}, in.Kind) {
+		problem = "kind must be generic, jira, gitlab or alertmanager."
 	}
 	if problem != "" {
 		badRequest(w, r, problem)
@@ -495,13 +497,16 @@ func (h *Handlers) PostWebhook(w http.ResponseWriter, r *http.Request, token str
 	var body string
 	var attachments *[]api.Attachment
 	switch hook.Kind {
-	case "jira":
-		card, ok, err := jira.Card(payload)
+	case "jira", "gitlab", "alertmanager":
+		format := map[string]func([]byte) (api.Attachment, bool, error){
+			"jira": jira.Card, "gitlab": gitlab.Card, "alertmanager": alertmanager.Card,
+		}[hook.Kind]
+		card, ok, err := format(payload)
 		if err != nil {
-			badRequest(w, r, "The body is not a Jira webhook event.")
+			badRequest(w, r, "The body is not a "+hook.Kind+" webhook event.")
 			return
 		}
-		if !ok { // nothing worth posting; Jira expects success
+		if !ok { // nothing worth posting; the sender expects success
 			w.WriteHeader(http.StatusOK)
 			return
 		}

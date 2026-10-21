@@ -20,6 +20,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
+	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/store"
@@ -45,6 +46,8 @@ type Handlers struct {
 	Ephemeral *events.Ephemeral
 	// Audit records security-relevant actions; optional.
 	Audit *audit.Log
+	// Egress sends requests to bots (slash commands); optional.
+	Egress *egress.Client
 	// PublicURL is the app's origin, for webhook addresses.
 	PublicURL string
 	Limiter   RateLimiter

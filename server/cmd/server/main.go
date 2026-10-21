@@ -37,6 +37,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/config"
 	"github.com/barisshn35/cenacle/server/internal/db"
+	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/health"
 	"github.com/barisshn35/cenacle/server/internal/jobs"
@@ -143,9 +144,16 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Announcement: cfg.AnnouncementChannel, Channels: cfg.DefaultChannels, AdminEmail: cfg.AdminEmail,
 	}, log)
 
+	// Requests to bots (slash commands, event deliveries) never reach private
+	// networks unless the operator allows them.
+	egressClient := egress.New(egress.Policy{
+		Allow: cfg.EgressAllow, AllowHTTP: cfg.EgressAllowHTTP, Timeout: 10 * time.Second, MaxResponse: 1 << 20,
+	})
+
 	// Background jobs; River's tables come with `migrate up`.
 	jobClient, err := jobs.NewClient(pool, jobs.Deps{
 		Purger: chat.Purger{Queries: queries}, Sessions: sessions, Log: log,
+		Integrations: &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Log: log},
 	})
 	if err != nil {
 		return err
@@ -182,6 +190,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Chat: &chat.Handlers{
 				Queries:           queries,
 				DB:                pool,
+				Egress:            egressClient,
 				PublicURL:         cfg.PublicURL.String(),
 				Ephemeral:         ephemeral,
 				Audit:             auditLog,

@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"net/url"
 	"strings"
 	"testing"
@@ -23,6 +24,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/cache"
 	"github.com/barisshn35/cenacle/server/internal/chat"
+	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
 	"github.com/barisshn35/cenacle/server/internal/store"
@@ -37,6 +39,8 @@ type stack struct {
 	sessions *auth.Sessions
 	hub      *realtime.Hub
 	client   *http.Client
+	// bg does the background integration work (tests run it by hand).
+	bg *chat.Background
 	// defaultWS is the default workspace, used by calls that name none.
 	defaultWS string
 }
@@ -107,6 +111,10 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	public, _ := url.Parse(srv.URL)
 	cookies := auth.NewCookies(public)
 	auditLog := &audit.Log{Queries: queries, Logger: log}
+	// Test receivers listen on loopback over http.
+	egressClient := egress.New(egress.Policy{
+		Allow: []netip.Prefix{netip.MustParsePrefix("127.0.0.0/8"), netip.MustParsePrefix("::1/128")}, AllowHTTP: true,
+	})
 	router = app.NewRouter(app.Deps{
 		Log: log,
 		Auth: &auth.Handlers{
@@ -116,7 +124,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 		},
 		Chat: &chat.Handlers{
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
-			Audit: auditLog, PublicURL: public.String(),
+			Audit: auditLog, PublicURL: public.String(), Egress: egressClient,
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},
 		Realtime: &realtime.Handler{
@@ -128,7 +136,8 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	// the client; a reused one would fail a POST with EOF.
 	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: o.httpTimeout > 0}}
 	t.Cleanup(client.CloseIdleConnections)
-	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub, client: client}
+	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub, client: client,
+		bg: &chat.Background{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log}}
 	if err := sh.pool.QueryRow(context.Background(), "SELECT id::text FROM workspaces WHERE is_default").Scan(&s.defaultWS); err != nil {
 		t.Fatal(err)
 	}

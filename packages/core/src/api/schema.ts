@@ -572,6 +572,250 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/commands': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Run a slash command in a channel
+     * @description Built-in commands: `/remind`, `/join`, `/leave`, `/topic`, `/shrug`, `/me`. Other
+     *     commands go to the bot that registered them, which answers either only to the
+     *     caller (`ephemeral`) or with a message in the channel (`in_channel`).
+     */
+    post: operations['runCommand'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/commands': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Slash commands available in a workspace (for suggestions) */
+    get: operations['listCommands'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/commands': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    /** A bot's slash commands */
+    get: operations['listBotCommands'];
+    put?: never;
+    /** Register a slash command (signing secret shown once) */
+    post: operations['createBotCommand'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/commands/{command_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        command_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a slash command */
+    delete: operations['deleteBotCommand'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/subscriptions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    /** A bot's event subscriptions */
+    get: operations['listSubscriptions'];
+    put?: never;
+    /**
+     * Subscribe a bot's address to events (signing secret shown once)
+     * @description Events of the channels the bot is a member of are posted, signed, with retries.
+     */
+    post: operations['createSubscription'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/subscriptions/{subscription_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        subscription_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a subscription (pending deliveries are dropped) */
+    delete: operations['deleteSubscription'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/subscriptions/{subscription_id}/deliveries': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        subscription_id: string;
+      };
+      cookie?: never;
+    };
+    /** The delivery log (14 days) */
+    get: operations['listDeliveries'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/deliveries/{delivery_id}/resend': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Send a delivery again */
+    post: operations['resendDelivery'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/tokens/{token_id}/rotate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        token_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Rotate a token with an overlap
+     * @description Creates a new token with the same name and scopes; the old one keeps working for `overlap_hours` (0 ends it at once).
+     */
+    post: operations['rotateBotToken'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/scheduled': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Send a message later */
+    post: operations['scheduleMessage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/scheduled': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Your scheduled messages and reminders that are still to come */
+    get: operations['listScheduled'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/scheduled/{scheduled_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scheduled_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Cancel a scheduled message or reminder */
+    delete: operations['cancelScheduled'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ws/ticket': {
     parameters: {
       query?: never;
@@ -1124,7 +1368,7 @@ export interface components {
       id: string;
       name: string;
       /** @enum {string} */
-      kind: 'generic' | 'jira';
+      kind: 'generic' | 'jira' | 'gitlab' | 'alertmanager';
       /** Format: uuid */
       channel_id: string;
       channel_name: string;
@@ -1132,6 +1376,71 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       last_used_at: string | null;
+    };
+    CommandResult: {
+      /**
+       * @description ephemeral is shown only to the caller; in_channel was posted as a message.
+       * @enum {string}
+       */
+      response_type: 'ephemeral' | 'in_channel' | 'none';
+      text?: string;
+      attachments?: components['schemas']['Attachment'][];
+      message?: components['schemas']['Message'];
+    };
+    CommandInfo: {
+      trigger: string;
+      description: string;
+      hint: string;
+      builtin: boolean;
+    };
+    SlashCommand: {
+      /** Format: uuid */
+      id: string;
+      trigger: string;
+      url: string;
+      description: string;
+      hint: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    Subscription: {
+      /** Format: uuid */
+      id: string;
+      url: string;
+      events: string[];
+      /** Format: date-time */
+      created_at: string;
+      disabled: boolean;
+    };
+    Delivery: {
+      /** Format: uuid */
+      id: string;
+      event_type: string;
+      /** @enum {string} */
+      status: 'pending' | 'succeeded' | 'failed';
+      attempts: number;
+      last_status: number | null;
+      last_error: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      delivered_at: string | null;
+      /** Format: date-time */
+      next_attempt_at: string;
+    };
+    ScheduledMessage: {
+      /** Format: uuid */
+      id: string;
+      /** @enum {string} */
+      kind: 'message' | 'reminder';
+      /** Format: uuid */
+      channel_id: string;
+      channel_name: string;
+      /** Format: uuid */
+      workspace_id: string;
+      body: string;
+      /** Format: date-time */
+      send_at: string;
     };
     WsTicket: {
       ticket: string;
@@ -2219,7 +2528,7 @@ export interface operations {
           /** Format: uuid */
           channel_id: string;
           /** @enum {string} */
-          kind: 'generic' | 'jira';
+          kind: 'generic' | 'jira' | 'gitlab' | 'alertmanager';
         };
       };
     };
@@ -2294,6 +2603,424 @@ export interface operations {
       400: components['responses']['Problem'];
       404: components['responses']['Problem'];
       429: components['responses']['Problem'];
+    };
+  };
+  runCommand: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Without the slash, e.g. "remind". */
+          command: string;
+          text?: string;
+          /** @description The caller's IANA time zone */
+          timezone?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The result. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CommandResult'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      502: components['responses']['Problem'];
+    };
+  };
+  listCommands: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Commands. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            commands: components['schemas']['CommandInfo'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listBotCommands: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Commands. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            commands: components['schemas']['SlashCommand'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createBotCommand: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          trigger: string;
+          url: string;
+          description?: string;
+          hint?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            command: components['schemas']['SlashCommand'];
+            secret: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  deleteBotCommand: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        command_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listSubscriptions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Subscriptions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            subscriptions: components['schemas']['Subscription'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createSubscription: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          url: string;
+          events: (
+            | 'message.created'
+            | 'message.updated'
+            | 'message.deleted'
+            | 'reaction.added'
+            | 'reaction.removed'
+          )[];
+        };
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            subscription: components['schemas']['Subscription'];
+            secret: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  deleteSubscription: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        subscription_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listDeliveries: {
+    parameters: {
+      query?: {
+        before?: string;
+      };
+      header?: never;
+      path: {
+        bot_id: string;
+        subscription_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deliveries, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            deliveries: components['schemas']['Delivery'][];
+            has_more: boolean;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  resendDelivery: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        delivery_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Queued. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  rotateBotToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        token_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          overlap_hours: number;
+        };
+      };
+    };
+    responses: {
+      /** @description The new token. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            token: components['schemas']['BotToken'];
+            secret: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  scheduleMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          body: string;
+          /** Format: date-time */
+          send_at: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Scheduled. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ScheduledMessage'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listScheduled: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Pending, soonest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            scheduled: components['schemas']['ScheduledMessage'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  cancelScheduled: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scheduled_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Canceled. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
     };
   };
   createWsTicket: {

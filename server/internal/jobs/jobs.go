@@ -29,6 +29,74 @@ type SessionCleaner interface {
 	DeleteExpired(ctx context.Context) (int64, error)
 }
 
+// Integrations is the integration work done in the background.
+type Integrations interface {
+	DeliverDue(ctx context.Context) (int, error)
+	SendDueScheduled(ctx context.Context) (int, error)
+	PruneDeliveries(ctx context.Context) (int64, error)
+}
+
+// DeliverEventsArgs sends due event deliveries to bots.
+type DeliverEventsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (DeliverEventsArgs) Kind() string { return "deliver_events" }
+
+// SendScheduledArgs posts due scheduled messages and reminders.
+type SendScheduledArgs struct{}
+
+// Kind implements river.JobArgs.
+func (SendScheduledArgs) Kind() string { return "send_scheduled_messages" }
+
+// PruneDeliveriesArgs removes old delivery records.
+type PruneDeliveriesArgs struct{}
+
+// Kind implements river.JobArgs.
+func (PruneDeliveriesArgs) Kind() string { return "prune_deliveries" }
+
+type deliverWorker struct {
+	river.WorkerDefaults[DeliverEventsArgs]
+	in Integrations
+}
+
+func (w *deliverWorker) Work(ctx context.Context, _ *river.Job[DeliverEventsArgs]) error {
+	// Keep going while some were due (failed ones wait for their retry time).
+	for {
+		n, err := w.in.DeliverDue(ctx)
+		if err != nil || n == 0 || ctx.Err() != nil {
+			return err
+		}
+	}
+}
+
+type scheduledWorker struct {
+	river.WorkerDefaults[SendScheduledArgs]
+	in Integrations
+}
+
+func (w *scheduledWorker) Work(ctx context.Context, _ *river.Job[SendScheduledArgs]) error {
+	for {
+		n, err := w.in.SendDueScheduled(ctx)
+		if err != nil || n == 0 || ctx.Err() != nil {
+			return err
+		}
+	}
+}
+
+type pruneDeliveriesWorker struct {
+	river.WorkerDefaults[PruneDeliveriesArgs]
+	in  Integrations
+	log *slog.Logger
+}
+
+func (w *pruneDeliveriesWorker) Work(ctx context.Context, _ *river.Job[PruneDeliveriesArgs]) error {
+	n, err := w.in.PruneDeliveries(ctx)
+	if n > 0 {
+		w.log.Info("old deliveries pruned", "count", n)
+	}
+	return err
+}
+
 // PurgeMessagesArgs is the periodic purge of deleted messages.
 type PurgeMessagesArgs struct{}
 
@@ -69,11 +137,19 @@ func (w *sessionsWorker) Work(ctx context.Context, _ *river.Job[CleanSessionsArg
 	return err
 }
 
+// How often due deliveries and scheduled messages are looked for.
+var (
+	DeliveryInterval  = 5 * time.Second
+	ScheduledInterval = 10 * time.Second
+)
+
 // Deps are what the jobs work on.
 type Deps struct {
 	Purger   Purger
 	Sessions SessionCleaner
-	Log      *slog.Logger
+	// Integrations is optional (tests of other parts leave it out).
+	Integrations Integrations
+	Log          *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -86,14 +162,24 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 			func() (river.JobArgs, *river.InsertOpts) { return args, nil },
 			&river.PeriodicJobOpts{RunOnStart: true})
 	}
+	jobs := []*river.PeriodicJob{
+		periodic(time.Minute, PurgeMessagesArgs{}),
+		periodic(10*time.Minute, CleanSessionsArgs{}),
+	}
+	if d.Integrations != nil {
+		river.AddWorker(workers, &deliverWorker{in: d.Integrations})
+		river.AddWorker(workers, &scheduledWorker{in: d.Integrations})
+		river.AddWorker(workers, &pruneDeliveriesWorker{in: d.Integrations, log: d.Log})
+		jobs = append(jobs,
+			periodic(DeliveryInterval, DeliverEventsArgs{}),
+			periodic(ScheduledInterval, SendScheduledArgs{}),
+			periodic(24*time.Hour, PruneDeliveriesArgs{}))
+	}
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
-		Queues: map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
-		PeriodicJobs: []*river.PeriodicJob{
-			periodic(time.Minute, PurgeMessagesArgs{}),
-			periodic(10*time.Minute, CleanSessionsArgs{}),
-		},
-		Workers: workers,
-		Logger:  d.Log,
+		Queues:       map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
+		PeriodicJobs: jobs,
+		Workers:      workers,
+		Logger:       d.Log,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("river client: %w", err)

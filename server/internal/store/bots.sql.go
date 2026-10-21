@@ -15,7 +15,7 @@ import (
 const createBot = `-- name: CreateBot :one
 INSERT INTO bots (id, workspace_id, user_id, description, created_by)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at
+RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system
 `
 
 type CreateBotParams struct {
@@ -43,6 +43,7 @@ func (q *Queries) CreateBot(ctx context.Context, arg CreateBotParams) (Bot, erro
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.DisabledAt,
+		&i.IsSystem,
 	)
 	return i, err
 }
@@ -117,6 +118,35 @@ func (q *Queries) CreateBotUser(ctx context.Context, arg CreateBotUserParams) (U
 	return i, err
 }
 
+const createSystemBot = `-- name: CreateSystemBot :one
+INSERT INTO bots (id, workspace_id, user_id, description, is_system)
+VALUES ($1, $2, $3, 'Reminders and notices from Cenacle', true)
+ON CONFLICT (workspace_id) WHERE is_system DO NOTHING
+RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system
+`
+
+type CreateSystemBotParams struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	UserID      pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) CreateSystemBot(ctx context.Context, arg CreateSystemBotParams) (Bot, error) {
+	row := q.db.QueryRow(ctx, createSystemBot, arg.ID, arg.WorkspaceID, arg.UserID)
+	var i Bot
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.UserID,
+		&i.Description,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.DisabledAt,
+		&i.IsSystem,
+	)
+	return i, err
+}
+
 const createWebhook = `-- name: CreateWebhook :one
 INSERT INTO incoming_webhooks (bot_id, channel_id, kind, name, token_hash, created_by)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -173,8 +203,39 @@ func (q *Queries) DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (i
 	return result.RowsAffected(), nil
 }
 
+const expireBotToken = `-- name: ExpireBotToken :one
+UPDATE bot_tokens SET expires_at = least(coalesce(expires_at, $1), $1)
+WHERE id = $2 AND bot_id = $3 AND revoked_at IS NULL
+RETURNING id, bot_id, name, token_hash, scopes, created_by, created_at, last_used_at, expires_at, revoked_at
+`
+
+type ExpireBotTokenParams struct {
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	ID        pgtype.UUID        `json:"id"`
+	BotID     pgtype.UUID        `json:"bot_id"`
+}
+
+// ExpireBotToken lets a token work until a time (rotation overlap).
+func (q *Queries) ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) (BotToken, error) {
+	row := q.db.QueryRow(ctx, expireBotToken, arg.ExpiresAt, arg.ID, arg.BotID)
+	var i BotToken
+	err := row.Scan(
+		&i.ID,
+		&i.BotID,
+		&i.Name,
+		&i.TokenHash,
+		&i.Scopes,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
 const getActiveBotToken = `-- name: GetActiveBotToken :one
-SELECT t.id, t.bot_id, t.name, t.token_hash, t.scopes, t.created_by, t.created_at, t.last_used_at, t.expires_at, t.revoked_at, b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot
+SELECT t.id, t.bot_id, t.name, t.token_hash, t.scopes, t.created_by, t.created_at, t.last_used_at, t.expires_at, t.revoked_at, b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot
 FROM bot_tokens t
 JOIN bots b ON b.id = t.bot_id
 JOIN users u ON u.id = b.user_id
@@ -210,6 +271,7 @@ func (q *Queries) GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetA
 		&i.Bot.CreatedBy,
 		&i.Bot.CreatedAt,
 		&i.Bot.DisabledAt,
+		&i.Bot.IsSystem,
 		&i.User.ID,
 		&i.User.AuthService,
 		&i.User.AuthData,
@@ -268,7 +330,7 @@ func (q *Queries) GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetAc
 }
 
 const getBot = `-- name: GetBot :one
-SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, u.display_name
+SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.display_name
 FROM bots b JOIN users u ON u.id = b.user_id
 WHERE b.id = $1
 `
@@ -289,7 +351,73 @@ func (q *Queries) GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
 		&i.Bot.CreatedBy,
 		&i.Bot.CreatedAt,
 		&i.Bot.DisabledAt,
+		&i.Bot.IsSystem,
 		&i.DisplayName,
+	)
+	return i, err
+}
+
+const getBotToken = `-- name: GetBotToken :one
+SELECT id, bot_id, name, token_hash, scopes, created_by, created_at, last_used_at, expires_at, revoked_at FROM bot_tokens WHERE id = $1 AND bot_id = $2 AND revoked_at IS NULL
+`
+
+type GetBotTokenParams struct {
+	ID    pgtype.UUID `json:"id"`
+	BotID pgtype.UUID `json:"bot_id"`
+}
+
+func (q *Queries) GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotToken, error) {
+	row := q.db.QueryRow(ctx, getBotToken, arg.ID, arg.BotID)
+	var i BotToken
+	err := row.Scan(
+		&i.ID,
+		&i.BotID,
+		&i.Name,
+		&i.TokenHash,
+		&i.Scopes,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
+const getSystemBot = `-- name: GetSystemBot :one
+SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot
+FROM bots b JOIN users u ON u.id = b.user_id
+WHERE b.workspace_id = $1 AND b.is_system
+`
+
+type GetSystemBotRow struct {
+	Bot  Bot  `json:"bot"`
+	User User `json:"user"`
+}
+
+func (q *Queries) GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error) {
+	row := q.db.QueryRow(ctx, getSystemBot, workspaceID)
+	var i GetSystemBotRow
+	err := row.Scan(
+		&i.Bot.ID,
+		&i.Bot.WorkspaceID,
+		&i.Bot.UserID,
+		&i.Bot.Description,
+		&i.Bot.CreatedBy,
+		&i.Bot.CreatedAt,
+		&i.Bot.DisabledAt,
+		&i.Bot.IsSystem,
+		&i.User.ID,
+		&i.User.AuthService,
+		&i.User.AuthData,
+		&i.User.Email,
+		&i.User.EmailVerified,
+		&i.User.DisplayName,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.User.LastLoginAt,
+		&i.User.IsAdmin,
+		&i.User.IsBot,
 	)
 	return i, err
 }
@@ -330,9 +458,9 @@ func (q *Queries) ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotTo
 }
 
 const listBots = `-- name: ListBots :many
-SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, u.display_name
+SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.display_name
 FROM bots b JOIN users u ON u.id = b.user_id
-WHERE b.workspace_id = $1
+WHERE b.workspace_id = $1 AND NOT b.is_system
 ORDER BY lower(u.display_name), b.id
 `
 
@@ -358,6 +486,7 @@ func (q *Queries) ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]List
 			&i.Bot.CreatedBy,
 			&i.Bot.CreatedAt,
 			&i.Bot.DisabledAt,
+			&i.Bot.IsSystem,
 			&i.DisplayName,
 		); err != nil {
 			return nil, err
@@ -456,7 +585,7 @@ func (q *Queries) SetBotDescription(ctx context.Context, arg SetBotDescriptionPa
 const setBotDisabled = `-- name: SetBotDisabled :one
 UPDATE bots SET disabled_at = CASE WHEN $1::boolean THEN coalesce(disabled_at, now()) END
 WHERE id = $2
-RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at
+RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system
 `
 
 type SetBotDisabledParams struct {
@@ -475,6 +604,7 @@ func (q *Queries) SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) 
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.DisabledAt,
+		&i.IsSystem,
 	)
 	return i, err
 }

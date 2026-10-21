@@ -13,12 +13,15 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/netip"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/barisshn35/cenacle/server/internal/egress"
 )
 
 // Config is the validated server configuration.
@@ -72,6 +75,12 @@ type Config struct {
 	AnnouncementChannel string
 	// DefaultChannels are created at startup with every user as a member.
 	DefaultChannels []string
+
+	// EgressAllow lists private networks bots' addresses may be in (Cenacle
+	// otherwise refuses loopback, private and link-local addresses).
+	EgressAllow []netip.Prefix
+	// EgressAllowHTTP permits plain http addresses for bots (development).
+	EgressAllowHTTP bool
 }
 
 // MaxChannelName is the longest channel name in characters.
@@ -128,6 +137,12 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.SessionMaxAge = l.duration("CENACLE_SESSION_MAX_AGE", 30*24*time.Hour)
 	cfg.AdminEmail = strings.TrimSpace(l.str("CENACLE_ADMIN_EMAIL", ""))
 	cfg.AnnouncementChannel = strings.TrimSpace(l.str("CENACLE_ANNOUNCEMENT_CHANNEL", "Central"))
+	if allow, err := egress.ParseAllow(l.str("CENACLE_EGRESS_ALLOW", "")); err != nil {
+		l.fail("CENACLE_EGRESS_ALLOW: %v", err)
+	} else {
+		cfg.EgressAllow = allow
+	}
+	cfg.EgressAllowHTTP = l.boolean("CENACLE_EGRESS_ALLOW_HTTP", false)
 	for _, name := range strings.Split(l.str("CENACLE_DEFAULT_CHANNELS", "General"), ",") {
 		if name = strings.TrimSpace(name); name != "" {
 			cfg.DefaultChannels = append(cfg.DefaultChannels, name)

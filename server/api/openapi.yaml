@@ -834,7 +834,7 @@ paths:
               properties:
                 name: { type: string, minLength: 1, maxLength: 80 }
                 channel_id: { type: string, format: uuid }
-                kind: { type: string, enum: [generic, jira] }
+                kind: { type: string, enum: [generic, jira, gitlab, alertmanager] }
       responses:
         '201':
           description: Created.
@@ -904,6 +904,428 @@ paths:
         '404':
           $ref: '#/components/responses/Problem'
         '429':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/commands:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [chat]
+      operationId: runCommand
+      summary: Run a slash command in a channel
+      description: |
+        Built-in commands: `/remind`, `/join`, `/leave`, `/topic`, `/shrug`, `/me`. Other
+        commands go to the bot that registered them, which answers either only to the
+        caller (`ephemeral`) or with a message in the channel (`in_channel`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [command]
+              properties:
+                command: { type: string, description: 'Without the slash, e.g. "remind".' }
+                text: { type: string, maxLength: 4000 }
+                timezone: { type: string, description: The caller's IANA time zone, for times in /remind. }
+      responses:
+        '200':
+          description: The result.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommandResult' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '502':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/commands:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [chat]
+      operationId: listCommands
+      summary: Slash commands available in a workspace (for suggestions)
+      responses:
+        '200':
+          description: Commands.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [commands]
+                properties:
+                  commands:
+                    type: array
+                    items: { $ref: '#/components/schemas/CommandInfo' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/commands:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [bots]
+      operationId: listBotCommands
+      summary: A bot's slash commands
+      responses:
+        '200':
+          description: Commands.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [commands]
+                properties:
+                  commands:
+                    type: array
+                    items: { $ref: '#/components/schemas/SlashCommand' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [bots]
+      operationId: createBotCommand
+      summary: Register a slash command (signing secret shown once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trigger, url]
+              properties:
+                trigger: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{0,31}$' }
+                url: { type: string, maxLength: 2000 }
+                description: { type: string, maxLength: 200 }
+                hint: { type: string, maxLength: 100 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [command, secret]
+                properties:
+                  command: { $ref: '#/components/schemas/SlashCommand' }
+                  secret: { type: string }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/commands/{command_id}:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: command_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [bots]
+      operationId: deleteBotCommand
+      summary: Remove a slash command
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/subscriptions:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [bots]
+      operationId: listSubscriptions
+      summary: A bot's event subscriptions
+      responses:
+        '200':
+          description: Subscriptions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [subscriptions]
+                properties:
+                  subscriptions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Subscription' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [bots]
+      operationId: createSubscription
+      summary: Subscribe a bot's address to events (signing secret shown once)
+      description: Events of the channels the bot is a member of are posted, signed, with retries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url: { type: string, maxLength: 2000 }
+                events:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    enum: [message.created, message.updated, message.deleted, reaction.added, reaction.removed]
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [subscription, secret]
+                properties:
+                  subscription: { $ref: '#/components/schemas/Subscription' }
+                  secret: { type: string }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/subscriptions/{subscription_id}:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: subscription_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [bots]
+      operationId: deleteSubscription
+      summary: Remove a subscription (pending deliveries are dropped)
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/subscriptions/{subscription_id}/deliveries:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: subscription_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [bots]
+      operationId: listDeliveries
+      summary: The delivery log (14 days)
+      parameters:
+        - name: before
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Deliveries, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deliveries, has_more]
+                properties:
+                  deliveries:
+                    type: array
+                    items: { $ref: '#/components/schemas/Delivery' }
+                  has_more: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/deliveries/{delivery_id}/resend:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: delivery_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [bots]
+      operationId: resendDelivery
+      summary: Send a delivery again
+      responses:
+        '204':
+          description: Queued.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/bots/{bot_id}/tokens/{token_id}/rotate:
+    parameters:
+      - name: bot_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: token_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [bots]
+      operationId: rotateBotToken
+      summary: Rotate a token with an overlap
+      description: Creates a new token with the same name and scopes; the old one keeps working for `overlap_hours` (0 ends it at once).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [overlap_hours]
+              properties:
+                overlap_hours: { type: integer, minimum: 0, maximum: 168 }
+      responses:
+        '201':
+          description: The new token.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, secret]
+                properties:
+                  token: { $ref: '#/components/schemas/BotToken' }
+                  secret: { type: string }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/scheduled:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [chat]
+      operationId: scheduleMessage
+      summary: Send a message later
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body, send_at]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 4000 }
+                send_at: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Scheduled.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScheduledMessage' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/scheduled:
+    get:
+      tags: [chat]
+      operationId: listScheduled
+      summary: Your scheduled messages and reminders that are still to come
+      responses:
+        '200':
+          description: Pending, soonest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scheduled]
+                properties:
+                  scheduled:
+                    type: array
+                    items: { $ref: '#/components/schemas/ScheduledMessage' }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/scheduled/{scheduled_id}:
+    parameters:
+      - name: scheduled_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [chat]
+      operationId: cancelScheduled
+      summary: Cancel a scheduled message or reminder
+      responses:
+        '204':
+          description: Canceled.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
           $ref: '#/components/responses/Problem'
   /api/ws/ticket:
     post:
@@ -1752,11 +2174,77 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
-        kind: { type: string, enum: [generic, jira] }
+        kind: { type: string, enum: [generic, jira, gitlab, alertmanager] }
         channel_id: { type: string, format: uuid }
         channel_name: { type: string }
         created_at: { type: string, format: date-time }
         last_used_at: { type: string, format: date-time, nullable: true }
+    CommandResult:
+      type: object
+      required: [response_type]
+      properties:
+        response_type:
+          type: string
+          enum: [ephemeral, in_channel, none]
+          description: ephemeral is shown only to the caller; in_channel was posted as a message.
+        text: { type: string }
+        attachments:
+          type: array
+          items: { $ref: '#/components/schemas/Attachment' }
+        message: { $ref: '#/components/schemas/Message' }
+    CommandInfo:
+      type: object
+      required: [trigger, description, hint, builtin]
+      properties:
+        trigger: { type: string }
+        description: { type: string }
+        hint: { type: string }
+        builtin: { type: boolean }
+    SlashCommand:
+      type: object
+      required: [id, trigger, url, description, hint, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        trigger: { type: string }
+        url: { type: string }
+        description: { type: string }
+        hint: { type: string }
+        created_at: { type: string, format: date-time }
+    Subscription:
+      type: object
+      required: [id, url, events, created_at, disabled]
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string }
+        events:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+        disabled: { type: boolean }
+    Delivery:
+      type: object
+      required: [id, event_type, status, attempts, last_status, last_error, created_at, delivered_at, next_attempt_at]
+      properties:
+        id: { type: string, format: uuid }
+        event_type: { type: string }
+        status: { type: string, enum: [pending, succeeded, failed] }
+        attempts: { type: integer }
+        last_status: { type: integer, nullable: true }
+        last_error: { type: string }
+        created_at: { type: string, format: date-time }
+        delivered_at: { type: string, format: date-time, nullable: true }
+        next_attempt_at: { type: string, format: date-time }
+    ScheduledMessage:
+      type: object
+      required: [id, kind, channel_id, channel_name, workspace_id, body, send_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [message, reminder] }
+        channel_id: { type: string, format: uuid }
+        channel_name: { type: string }
+        workspace_id: { type: string, format: uuid }
+        body: { type: string }
+        send_at: { type: string, format: date-time }
     WsTicket:
       type: object
       required: [ticket, expires_in]

@@ -11,7 +11,7 @@ RETURNING *;
 -- name: ListBots :many
 SELECT sqlc.embed(b), u.display_name
 FROM bots b JOIN users u ON u.id = b.user_id
-WHERE b.workspace_id = @workspace_id
+WHERE b.workspace_id = @workspace_id AND NOT b.is_system
 ORDER BY lower(u.display_name), b.id;
 
 -- name: GetBot :one
@@ -38,6 +38,15 @@ RETURNING *;
 
 -- name: ListBotTokens :many
 SELECT * FROM bot_tokens WHERE bot_id = @bot_id AND revoked_at IS NULL ORDER BY created_at DESC;
+
+-- name: ExpireBotToken :one
+-- ExpireBotToken lets a token work until a time (rotation overlap).
+UPDATE bot_tokens SET expires_at = least(coalesce(expires_at, @expires_at), @expires_at)
+WHERE id = @id AND bot_id = @bot_id AND revoked_at IS NULL
+RETURNING *;
+
+-- name: GetBotToken :one
+SELECT * FROM bot_tokens WHERE id = @id AND bot_id = @bot_id AND revoked_at IS NULL;
 
 -- name: RevokeBotToken :execrows
 UPDATE bot_tokens SET revoked_at = now()
@@ -81,3 +90,14 @@ WHERE w.token_hash = @token_hash AND b.disabled_at IS NULL;
 -- name: TouchWebhook :exec
 UPDATE incoming_webhooks SET last_used_at = now()
 WHERE id = @id AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute');
+
+-- name: GetSystemBot :one
+SELECT sqlc.embed(b), sqlc.embed(u)
+FROM bots b JOIN users u ON u.id = b.user_id
+WHERE b.workspace_id = @workspace_id AND b.is_system;
+
+-- name: CreateSystemBot :one
+INSERT INTO bots (id, workspace_id, user_id, description, is_system)
+VALUES (@id, @workspace_id, @user_id, 'Reminders and notices from Cenacle', true)
+ON CONFLICT (workspace_id) WHERE is_system DO NOTHING
+RETURNING *;

@@ -30,6 +30,7 @@ type Bot struct {
 	CreatedBy   pgtype.UUID        `json:"created_by"`
 	CreatedAt   time.Time          `json:"created_at"`
 	DisabledAt  pgtype.Timestamptz `json:"disabled_at"`
+	IsSystem    bool               `json:"is_system"`
 }
 
 type BotToken struct {
@@ -76,11 +77,36 @@ type ChannelMember struct {
 	LastReadID pgtype.UUID `json:"last_read_id"`
 }
 
+type EventDelivery struct {
+	ID             pgtype.UUID        `json:"id"`
+	SubscriptionID pgtype.UUID        `json:"subscription_id"`
+	EventType      string             `json:"event_type"`
+	Payload        []byte             `json:"payload"`
+	Status         string             `json:"status"`
+	Attempts       int32              `json:"attempts"`
+	NextAttemptAt  time.Time          `json:"next_attempt_at"`
+	LastStatus     pgtype.Int4        `json:"last_status"`
+	LastError      string             `json:"last_error"`
+	CreatedAt      time.Time          `json:"created_at"`
+	DeliveredAt    pgtype.Timestamptz `json:"delivered_at"`
+}
+
 type EventOutbox struct {
 	ID        int64     `json:"id"`
 	Type      string    `json:"type"`
 	Data      []byte    `json:"data"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type EventSubscription struct {
+	ID         pgtype.UUID        `json:"id"`
+	BotID      pgtype.UUID        `json:"bot_id"`
+	Url        string             `json:"url"`
+	Events     []string           `json:"events"`
+	Secret     string             `json:"secret"`
+	CreatedBy  pgtype.UUID        `json:"created_by"`
+	CreatedAt  time.Time          `json:"created_at"`
+	DisabledAt pgtype.Timestamptz `json:"disabled_at"`
 }
 
 type IncomingWebhook struct {
@@ -120,6 +146,20 @@ type MessageReaction struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+type ScheduledMessage struct {
+	ID        pgtype.UUID `json:"id"`
+	Kind      string      `json:"kind"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	AuthorID  pgtype.UUID `json:"author_id"`
+	OwnerID   pgtype.UUID `json:"owner_id"`
+	Body      string      `json:"body"`
+	SendAt    time.Time   `json:"send_at"`
+	Status    string      `json:"status"`
+	Error     string      `json:"error"`
+	MessageID pgtype.UUID `json:"message_id"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
 type Session struct {
 	ID         pgtype.UUID `json:"id"`
 	UserID     pgtype.UUID `json:"user_id"`
@@ -130,6 +170,19 @@ type Session struct {
 	UserAgent  string      `json:"user_agent"`
 	IpAddress  string      `json:"ip_address"`
 	IdpSid     string      `json:"idp_sid"`
+}
+
+type SlashCommand struct {
+	ID          pgtype.UUID `json:"id"`
+	BotID       pgtype.UUID `json:"bot_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Trigger     string      `json:"trigger"`
+	Url         string      `json:"url"`
+	Description string      `json:"description"`
+	Hint        string      `json:"hint"`
+	Secret      string      `json:"secret"`
+	CreatedBy   pgtype.UUID `json:"created_by"`
+	CreatedAt   time.Time   `json:"created_at"`
 }
 
 type User struct {

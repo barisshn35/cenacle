@@ -6,12 +6,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
+	guuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -193,7 +196,11 @@ var errRollback = errors.New("rollback")
 
 // inTx runs fn in a transaction with queries bound to it.
 func (h *Handlers) inTx(ctx context.Context, fn func(q *store.Queries) error) error {
-	tx, err := h.DB.Begin(ctx)
+	return inTx(ctx, h.DB, fn)
+}
+
+func inTx(ctx context.Context, db TxBeginner, fn func(q *store.Queries) error) error {
+	tx, err := db.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -216,5 +223,42 @@ func emit(ctx context.Context, q store.Querier, typ string, data any) error {
 	if err != nil {
 		return err
 	}
-	return q.InsertOutboxEvent(ctx, store.InsertOutboxEventParams{Type: typ, Data: raw})
+	if err := q.InsertOutboxEvent(ctx, store.InsertOutboxEventParams{Type: typ, Data: raw}); err != nil {
+		return err
+	}
+	return queueDeliveries(ctx, q, typ, raw)
+}
+
+// queueDeliveries records the event for the bots subscribed to it, in the
+// transaction of the change: a delivery exists exactly when the change does.
+func queueDeliveries(ctx context.Context, q store.Querier, typ string, raw []byte) error {
+	if !slices.Contains(SubscribableEvents, typ) {
+		return nil
+	}
+	var ref struct {
+		ChannelID string `json:"channel_id"`
+		UserID    string `json:"user_id"`
+		Author    *struct {
+			ID string `json:"id"`
+		} `json:"author"`
+	}
+	if err := json.Unmarshal(raw, &ref); err != nil {
+		return err
+	}
+	channel, err := guuid.Parse(ref.ChannelID)
+	if err != nil {
+		return fmt.Errorf("event %s without channel: %w", typ, err)
+	}
+	actor := ref.UserID
+	if ref.Author != nil {
+		actor = ref.Author.ID
+	}
+	var actorID pgtype.UUID
+	if id, err := guuid.Parse(actor); err == nil {
+		actorID = pgUUID(id)
+	}
+	_, err = q.QueueDeliveries(ctx, store.QueueDeliveriesParams{
+		EventType: typ, Payload: raw, ChannelID: pgUUID(channel), ActorID: actorID,
+	})
+	return err
 }

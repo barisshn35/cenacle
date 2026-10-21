@@ -101,6 +101,48 @@ func (e ChannelUpdateVisibility) Valid() bool {
 	}
 }
 
+// Defines values for CommandResultResponseType.
+const (
+	Ephemeral CommandResultResponseType = "ephemeral"
+	InChannel CommandResultResponseType = "in_channel"
+	None      CommandResultResponseType = "none"
+)
+
+// Valid indicates whether the value is a known member of the CommandResultResponseType enum.
+func (e CommandResultResponseType) Valid() bool {
+	switch e {
+	case Ephemeral:
+		return true
+	case InChannel:
+		return true
+	case None:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeliveryStatus.
+const (
+	Failed    DeliveryStatus = "failed"
+	Pending   DeliveryStatus = "pending"
+	Succeeded DeliveryStatus = "succeeded"
+)
+
+// Valid indicates whether the value is a known member of the DeliveryStatus enum.
+func (e DeliveryStatus) Valid() bool {
+	switch e {
+	case Failed:
+		return true
+	case Pending:
+		return true
+	case Succeeded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MemberRole.
 const (
 	MemberRoleManager MemberRole = "manager"
@@ -176,16 +218,40 @@ func (e PresenceStatus) Valid() bool {
 	}
 }
 
+// Defines values for ScheduledMessageKind.
+const (
+	ScheduledMessageKindMessage  ScheduledMessageKind = "message"
+	ScheduledMessageKindReminder ScheduledMessageKind = "reminder"
+)
+
+// Valid indicates whether the value is a known member of the ScheduledMessageKind enum.
+func (e ScheduledMessageKind) Valid() bool {
+	switch e {
+	case ScheduledMessageKindMessage:
+		return true
+	case ScheduledMessageKindReminder:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WebhookKind.
 const (
-	WebhookKindGeneric WebhookKind = "generic"
-	WebhookKindJira    WebhookKind = "jira"
+	WebhookKindAlertmanager WebhookKind = "alertmanager"
+	WebhookKindGeneric      WebhookKind = "generic"
+	WebhookKindGitlab       WebhookKind = "gitlab"
+	WebhookKindJira         WebhookKind = "jira"
 )
 
 // Valid indicates whether the value is a known member of the WebhookKind enum.
 func (e WebhookKind) Valid() bool {
 	switch e {
+	case WebhookKindAlertmanager:
+		return true
 	case WebhookKindGeneric:
+		return true
+	case WebhookKindGitlab:
 		return true
 	case WebhookKindJira:
 		return true
@@ -236,6 +302,33 @@ func (e WorkspaceMemberRole) Valid() bool {
 	}
 }
 
+// Defines values for CreateSubscriptionJSONBodyEvents.
+const (
+	MessageCreated  CreateSubscriptionJSONBodyEvents = "message.created"
+	MessageDeleted  CreateSubscriptionJSONBodyEvents = "message.deleted"
+	MessageUpdated  CreateSubscriptionJSONBodyEvents = "message.updated"
+	ReactionAdded   CreateSubscriptionJSONBodyEvents = "reaction.added"
+	ReactionRemoved CreateSubscriptionJSONBodyEvents = "reaction.removed"
+)
+
+// Valid indicates whether the value is a known member of the CreateSubscriptionJSONBodyEvents enum.
+func (e CreateSubscriptionJSONBodyEvents) Valid() bool {
+	switch e {
+	case MessageCreated:
+		return true
+	case MessageDeleted:
+		return true
+	case MessageUpdated:
+		return true
+	case ReactionAdded:
+		return true
+	case ReactionRemoved:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CreateBotTokenJSONBodyScopes.
 const (
 	MessagesRead  CreateBotTokenJSONBodyScopes = "messages:read"
@@ -256,14 +349,20 @@ func (e CreateBotTokenJSONBodyScopes) Valid() bool {
 
 // Defines values for CreateWebhookJSONBodyKind.
 const (
-	CreateWebhookJSONBodyKindGeneric CreateWebhookJSONBodyKind = "generic"
-	CreateWebhookJSONBodyKindJira    CreateWebhookJSONBodyKind = "jira"
+	CreateWebhookJSONBodyKindAlertmanager CreateWebhookJSONBodyKind = "alertmanager"
+	CreateWebhookJSONBodyKindGeneric      CreateWebhookJSONBodyKind = "generic"
+	CreateWebhookJSONBodyKindGitlab       CreateWebhookJSONBodyKind = "gitlab"
+	CreateWebhookJSONBodyKindJira         CreateWebhookJSONBodyKind = "jira"
 )
 
 // Valid indicates whether the value is a known member of the CreateWebhookJSONBodyKind enum.
 func (e CreateWebhookJSONBodyKind) Valid() bool {
 	switch e {
+	case CreateWebhookJSONBodyKindAlertmanager:
+		return true
 	case CreateWebhookJSONBodyKindGeneric:
+		return true
+	case CreateWebhookJSONBodyKindGitlab:
 		return true
 	case CreateWebhookJSONBodyKindJira:
 		return true
@@ -469,6 +568,43 @@ type ChannelUpdate struct {
 // ChannelUpdateVisibility defines model for ChannelUpdate.Visibility.
 type ChannelUpdateVisibility string
 
+// CommandInfo defines model for CommandInfo.
+type CommandInfo struct {
+	Builtin     bool   `json:"builtin"`
+	Description string `json:"description"`
+	Hint        string `json:"hint"`
+	Trigger     string `json:"trigger"`
+}
+
+// CommandResult defines model for CommandResult.
+type CommandResult struct {
+	Attachments *[]Attachment `json:"attachments,omitempty"`
+	Message     *Message      `json:"message,omitempty"`
+
+	// ResponseType ephemeral is shown only to the caller; in_channel was posted as a message.
+	ResponseType CommandResultResponseType `json:"response_type"`
+	Text         *string                   `json:"text,omitempty"`
+}
+
+// CommandResultResponseType ephemeral is shown only to the caller; in_channel was posted as a message.
+type CommandResultResponseType string
+
+// Delivery defines model for Delivery.
+type Delivery struct {
+	Attempts      int                `json:"attempts"`
+	CreatedAt     time.Time          `json:"created_at"`
+	DeliveredAt   *time.Time         `json:"delivered_at"`
+	EventType     string             `json:"event_type"`
+	Id            openapi_types.UUID `json:"id"`
+	LastError     string             `json:"last_error"`
+	LastStatus    *int               `json:"last_status"`
+	NextAttemptAt time.Time          `json:"next_attempt_at"`
+	Status        DeliveryStatus     `json:"status"`
+}
+
+// DeliveryStatus defines model for Delivery.Status.
+type DeliveryStatus string
+
 // DeviceSession defines model for DeviceSession.
 type DeviceSession struct {
 	CreatedAt time.Time `json:"created_at"`
@@ -618,6 +754,20 @@ type Reaction struct {
 	Me    bool   `json:"me"`
 }
 
+// ScheduledMessage defines model for ScheduledMessage.
+type ScheduledMessage struct {
+	Body        string               `json:"body"`
+	ChannelId   openapi_types.UUID   `json:"channel_id"`
+	ChannelName string               `json:"channel_name"`
+	Id          openapi_types.UUID   `json:"id"`
+	Kind        ScheduledMessageKind `json:"kind"`
+	SendAt      time.Time            `json:"send_at"`
+	WorkspaceId openapi_types.UUID   `json:"workspace_id"`
+}
+
+// ScheduledMessageKind defines model for ScheduledMessage.Kind.
+type ScheduledMessageKind string
+
 // Session defines model for Session.
 type Session struct {
 	// AccountUrl Cenacle ID's account page (two-step verification), returning here.
@@ -634,6 +784,25 @@ type Session struct {
 	// the role there (see Workspace).
 	Permissions Permissions `json:"permissions"`
 	User        User        `json:"user"`
+}
+
+// SlashCommand defines model for SlashCommand.
+type SlashCommand struct {
+	CreatedAt   time.Time          `json:"created_at"`
+	Description string             `json:"description"`
+	Hint        string             `json:"hint"`
+	Id          openapi_types.UUID `json:"id"`
+	Trigger     string             `json:"trigger"`
+	Url         string             `json:"url"`
+}
+
+// Subscription defines model for Subscription.
+type Subscription struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Disabled  bool               `json:"disabled"`
+	Events    []string           `json:"events"`
+	Id        openapi_types.UUID `json:"id"`
+	Url       string             `json:"url"`
 }
 
 // User defines model for User.
@@ -714,6 +883,28 @@ type UpdateBotJSONBody struct {
 	Name        *string `json:"name,omitempty"`
 }
 
+// CreateBotCommandJSONBody defines parameters for CreateBotCommand.
+type CreateBotCommandJSONBody struct {
+	Description *string `json:"description,omitempty"`
+	Hint        *string `json:"hint,omitempty"`
+	Trigger     string  `json:"trigger"`
+	Url         string  `json:"url"`
+}
+
+// CreateSubscriptionJSONBody defines parameters for CreateSubscription.
+type CreateSubscriptionJSONBody struct {
+	Events []CreateSubscriptionJSONBodyEvents `json:"events"`
+	Url    string                             `json:"url"`
+}
+
+// CreateSubscriptionJSONBodyEvents defines parameters for CreateSubscription.
+type CreateSubscriptionJSONBodyEvents string
+
+// ListDeliveriesParams defines parameters for ListDeliveries.
+type ListDeliveriesParams struct {
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+}
+
 // CreateBotTokenJSONBody defines parameters for CreateBotToken.
 type CreateBotTokenJSONBody struct {
 	ExpiresInDays *int                           `json:"expires_in_days,omitempty"`
@@ -723,6 +914,11 @@ type CreateBotTokenJSONBody struct {
 
 // CreateBotTokenJSONBodyScopes defines parameters for CreateBotToken.
 type CreateBotTokenJSONBodyScopes string
+
+// RotateBotTokenJSONBody defines parameters for RotateBotToken.
+type RotateBotTokenJSONBody struct {
+	OverlapHours int `json:"overlap_hours"`
+}
 
 // CreateWebhookJSONBody defines parameters for CreateWebhook.
 type CreateWebhookJSONBody struct {
@@ -762,6 +958,16 @@ type SetChannelCategoryJSONBody struct {
 	CategoryId *openapi_types.UUID `json:"category_id,omitempty"`
 }
 
+// RunCommandJSONBody defines parameters for RunCommand.
+type RunCommandJSONBody struct {
+	// Command Without the slash, e.g. "remind".
+	Command string  `json:"command"`
+	Text    *string `json:"text,omitempty"`
+
+	// Timezone The caller's IANA time zone
+	Timezone *string `json:"timezone,omitempty"`
+}
+
 // AddChannelMemberJSONBody defines parameters for AddChannelMember.
 type AddChannelMemberJSONBody struct {
 	UserId openapi_types.UUID `json:"user_id"`
@@ -789,6 +995,12 @@ type EditMessageJSONBody struct {
 // MarkReadJSONBody defines parameters for MarkRead.
 type MarkReadJSONBody struct {
 	MessageId openapi_types.UUID `json:"message_id"`
+}
+
+// ScheduleMessageJSONBody defines parameters for ScheduleMessage.
+type ScheduleMessageJSONBody struct {
+	Body   string    `json:"body"`
+	SendAt time.Time `json:"send_at"`
 }
 
 // PostWebhookJSONBody defines parameters for PostWebhook.
@@ -862,8 +1074,17 @@ type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
 // UpdateBotJSONRequestBody defines body for UpdateBot for application/json ContentType.
 type UpdateBotJSONRequestBody UpdateBotJSONBody
 
+// CreateBotCommandJSONRequestBody defines body for CreateBotCommand for application/json ContentType.
+type CreateBotCommandJSONRequestBody CreateBotCommandJSONBody
+
+// CreateSubscriptionJSONRequestBody defines body for CreateSubscription for application/json ContentType.
+type CreateSubscriptionJSONRequestBody CreateSubscriptionJSONBody
+
 // CreateBotTokenJSONRequestBody defines body for CreateBotToken for application/json ContentType.
 type CreateBotTokenJSONRequestBody CreateBotTokenJSONBody
+
+// RotateBotTokenJSONRequestBody defines body for RotateBotToken for application/json ContentType.
+type RotateBotTokenJSONRequestBody RotateBotTokenJSONBody
 
 // CreateWebhookJSONRequestBody defines body for CreateWebhook for application/json ContentType.
 type CreateWebhookJSONRequestBody CreateWebhookJSONBody
@@ -883,6 +1104,9 @@ type UpdateChannelJSONRequestBody = ChannelUpdate
 // SetChannelCategoryJSONRequestBody defines body for SetChannelCategory for application/json ContentType.
 type SetChannelCategoryJSONRequestBody SetChannelCategoryJSONBody
 
+// RunCommandJSONRequestBody defines body for RunCommand for application/json ContentType.
+type RunCommandJSONRequestBody RunCommandJSONBody
+
 // AddChannelMemberJSONRequestBody defines body for AddChannelMember for application/json ContentType.
 type AddChannelMemberJSONRequestBody AddChannelMemberJSONBody
 
@@ -897,6 +1121,9 @@ type EditMessageJSONRequestBody EditMessageJSONBody
 
 // MarkReadJSONRequestBody defines body for MarkRead for application/json ContentType.
 type MarkReadJSONRequestBody MarkReadJSONBody
+
+// ScheduleMessageJSONRequestBody defines body for ScheduleMessage for application/json ContentType.
+type ScheduleMessageJSONRequestBody ScheduleMessageJSONBody
 
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
@@ -942,6 +1169,30 @@ type ServerInterface interface {
 	// UpdateBot Rename, describe, disable or enable a bot
 	// (PATCH /api/bots/{bot_id})
 	UpdateBot(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// ListBotCommands A bot's slash commands
+	// (GET /api/bots/{bot_id}/commands)
+	ListBotCommands(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// CreateBotCommand Register a slash command (signing secret shown once)
+	// (POST /api/bots/{bot_id}/commands)
+	CreateBotCommand(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// DeleteBotCommand Remove a slash command
+	// (DELETE /api/bots/{bot_id}/commands/{command_id})
+	DeleteBotCommand(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, commandId openapi_types.UUID)
+	// ResendDelivery Send a delivery again
+	// (POST /api/bots/{bot_id}/deliveries/{delivery_id}/resend)
+	ResendDelivery(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, deliveryId openapi_types.UUID)
+	// ListSubscriptions A bot's event subscriptions
+	// (GET /api/bots/{bot_id}/subscriptions)
+	ListSubscriptions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// CreateSubscription Subscribe a bot's address to events (signing secret shown once)
+	// (POST /api/bots/{bot_id}/subscriptions)
+	CreateSubscription(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// DeleteSubscription Remove a subscription (pending deliveries are dropped)
+	// (DELETE /api/bots/{bot_id}/subscriptions/{subscription_id})
+	DeleteSubscription(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, subscriptionId openapi_types.UUID)
+	// ListDeliveries The delivery log (14 days)
+	// (GET /api/bots/{bot_id}/subscriptions/{subscription_id}/deliveries)
+	ListDeliveries(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, subscriptionId openapi_types.UUID, params ListDeliveriesParams)
 	// ListBotTokens The bot's tokens (not their secrets)
 	// (GET /api/bots/{bot_id}/tokens)
 	ListBotTokens(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
@@ -951,6 +1202,9 @@ type ServerInterface interface {
 	// RevokeBotToken Revoke a token
 	// (DELETE /api/bots/{bot_id}/tokens/{token_id})
 	RevokeBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, tokenId openapi_types.UUID)
+	// RotateBotToken Rotate a token with an overlap
+	// (POST /api/bots/{bot_id}/tokens/{token_id}/rotate)
+	RotateBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, tokenId openapi_types.UUID)
 	// ListWebhooks The bot's incoming webhooks
 	// (GET /api/bots/{bot_id}/webhooks)
 	ListWebhooks(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
@@ -990,6 +1244,9 @@ type ServerInterface interface {
 	// SetChannelCategory Put a channel in a category (workspace owners and admins)
 	// (PUT /api/channels/{channel_id}/category)
 	SetChannelCategory(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// RunCommand Run a slash command in a channel
+	// (POST /api/channels/{channel_id}/commands)
+	RunCommand(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// JoinChannel Join a public channel
 	// (POST /api/channels/{channel_id}/join)
 	JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -1032,6 +1289,9 @@ type ServerInterface interface {
 	// MarkRead Mark a channel read up to a message
 	// (POST /api/channels/{channel_id}/read)
 	MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ScheduleMessage Send a message later
+	// (POST /api/channels/{channel_id}/scheduled)
+	ScheduleMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// SendTyping Tell the channel you are typing (every few seconds while typing)
 	// (POST /api/channels/{channel_id}/typing)
 	SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -1050,6 +1310,12 @@ type ServerInterface interface {
 	// SetPresence Set your own status
 	// (PUT /api/presence)
 	SetPresence(w http.ResponseWriter, r *http.Request)
+	// ListScheduled Your scheduled messages and reminders that are still to come
+	// (GET /api/scheduled)
+	ListScheduled(w http.ResponseWriter, r *http.Request)
+	// CancelScheduled Cancel a scheduled message or reminder
+	// (DELETE /api/scheduled/{scheduled_id})
+	CancelScheduled(w http.ResponseWriter, r *http.Request, scheduledId openapi_types.UUID)
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -1083,6 +1349,9 @@ type ServerInterface interface {
 	// CreateBot Create a bot (owners and admins)
 	// (POST /api/workspaces/{workspace_id}/bots)
 	CreateBot(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListCommands Slash commands available in a workspace (for suggestions)
+	// (GET /api/workspaces/{workspace_id}/commands)
+	ListCommands(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// OpenConversation Open a direct or group conversation
 	// (POST /api/workspaces/{workspace_id}/conversations)
 	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -1146,6 +1415,54 @@ func (_ Unimplemented) UpdateBot(w http.ResponseWriter, r *http.Request, botId o
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListBotCommands A bot's slash commands
+// (GET /api/bots/{bot_id}/commands)
+func (_ Unimplemented) ListBotCommands(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateBotCommand Register a slash command (signing secret shown once)
+// (POST /api/bots/{bot_id}/commands)
+func (_ Unimplemented) CreateBotCommand(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteBotCommand Remove a slash command
+// (DELETE /api/bots/{bot_id}/commands/{command_id})
+func (_ Unimplemented) DeleteBotCommand(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, commandId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ResendDelivery Send a delivery again
+// (POST /api/bots/{bot_id}/deliveries/{delivery_id}/resend)
+func (_ Unimplemented) ResendDelivery(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, deliveryId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSubscriptions A bot's event subscriptions
+// (GET /api/bots/{bot_id}/subscriptions)
+func (_ Unimplemented) ListSubscriptions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateSubscription Subscribe a bot's address to events (signing secret shown once)
+// (POST /api/bots/{bot_id}/subscriptions)
+func (_ Unimplemented) CreateSubscription(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSubscription Remove a subscription (pending deliveries are dropped)
+// (DELETE /api/bots/{bot_id}/subscriptions/{subscription_id})
+func (_ Unimplemented) DeleteSubscription(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, subscriptionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListDeliveries The delivery log (14 days)
+// (GET /api/bots/{bot_id}/subscriptions/{subscription_id}/deliveries)
+func (_ Unimplemented) ListDeliveries(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, subscriptionId openapi_types.UUID, params ListDeliveriesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListBotTokens The bot's tokens (not their secrets)
 // (GET /api/bots/{bot_id}/tokens)
 func (_ Unimplemented) ListBotTokens(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
@@ -1161,6 +1478,12 @@ func (_ Unimplemented) CreateBotToken(w http.ResponseWriter, r *http.Request, bo
 // RevokeBotToken Revoke a token
 // (DELETE /api/bots/{bot_id}/tokens/{token_id})
 func (_ Unimplemented) RevokeBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, tokenId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RotateBotToken Rotate a token with an overlap
+// (POST /api/bots/{bot_id}/tokens/{token_id}/rotate)
+func (_ Unimplemented) RotateBotToken(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, tokenId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1239,6 +1562,12 @@ func (_ Unimplemented) ArchiveChannel(w http.ResponseWriter, r *http.Request, ch
 // SetChannelCategory Put a channel in a category (workspace owners and admins)
 // (PUT /api/channels/{channel_id}/category)
 func (_ Unimplemented) SetChannelCategory(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RunCommand Run a slash command in a channel
+// (POST /api/channels/{channel_id}/commands)
+func (_ Unimplemented) RunCommand(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1326,6 +1655,12 @@ func (_ Unimplemented) MarkRead(w http.ResponseWriter, r *http.Request, channelI
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ScheduleMessage Send a message later
+// (POST /api/channels/{channel_id}/scheduled)
+func (_ Unimplemented) ScheduleMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SendTyping Tell the channel you are typing (every few seconds while typing)
 // (POST /api/channels/{channel_id}/typing)
 func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -1359,6 +1694,18 @@ func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, toke
 // SetPresence Set your own status
 // (PUT /api/presence)
 func (_ Unimplemented) SetPresence(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListScheduled Your scheduled messages and reminders that are still to come
+// (GET /api/scheduled)
+func (_ Unimplemented) ListScheduled(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CancelScheduled Cancel a scheduled message or reminder
+// (DELETE /api/scheduled/{scheduled_id})
+func (_ Unimplemented) CancelScheduled(w http.ResponseWriter, r *http.Request, scheduledId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1425,6 +1772,12 @@ func (_ Unimplemented) ListBots(w http.ResponseWriter, r *http.Request, workspac
 // CreateBot Create a bot (owners and admins)
 // (POST /api/workspaces/{workspace_id}/bots)
 func (_ Unimplemented) CreateBot(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListCommands Slash commands available in a workspace (for suggestions)
+// (GET /api/workspaces/{workspace_id}/commands)
+func (_ Unimplemented) ListCommands(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1663,6 +2016,266 @@ func (siw *ServerInterfaceWrapper) UpdateBot(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ListBotCommands operation middleware
+func (siw *ServerInterfaceWrapper) ListBotCommands(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBotCommands(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBotCommand operation middleware
+func (siw *ServerInterfaceWrapper) CreateBotCommand(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBotCommand(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteBotCommand operation middleware
+func (siw *ServerInterfaceWrapper) DeleteBotCommand(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "command_id" -------------
+	var commandId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "command_id", chi.URLParam(r, "command_id"), &commandId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "command_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteBotCommand(w, r, botId, commandId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResendDelivery operation middleware
+func (siw *ServerInterfaceWrapper) ResendDelivery(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "delivery_id" -------------
+	var deliveryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "delivery_id", chi.URLParam(r, "delivery_id"), &deliveryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "delivery_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResendDelivery(w, r, botId, deliveryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSubscriptions operation middleware
+func (siw *ServerInterfaceWrapper) ListSubscriptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSubscriptions(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateSubscription operation middleware
+func (siw *ServerInterfaceWrapper) CreateSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateSubscription(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSubscription operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSubscription(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscription_id" -------------
+	var subscriptionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscription_id", chi.URLParam(r, "subscription_id"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscription_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSubscription(w, r, botId, subscriptionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListDeliveries operation middleware
+func (siw *ServerInterfaceWrapper) ListDeliveries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "subscription_id" -------------
+	var subscriptionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subscription_id", chi.URLParam(r, "subscription_id"), &subscriptionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subscription_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListDeliveriesParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListDeliveries(w, r, botId, subscriptionId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListBotTokens operation middleware
 func (siw *ServerInterfaceWrapper) ListBotTokens(w http.ResponseWriter, r *http.Request) {
 
@@ -1741,6 +2354,41 @@ func (siw *ServerInterfaceWrapper) RevokeBotToken(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeBotToken(w, r, botId, tokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RotateBotToken operation middleware
+func (siw *ServerInterfaceWrapper) RotateBotToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "token_id" -------------
+	var tokenId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token_id", chi.URLParam(r, "token_id"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RotateBotToken(w, r, botId, tokenId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2066,6 +2714,32 @@ func (siw *ServerInterfaceWrapper) SetChannelCategory(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetChannelCategory(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunCommand operation middleware
+func (siw *ServerInterfaceWrapper) RunCommand(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunCommand(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2549,6 +3223,32 @@ func (siw *ServerInterfaceWrapper) MarkRead(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// ScheduleMessage operation middleware
+func (siw *ServerInterfaceWrapper) ScheduleMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ScheduleMessage(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SendTyping operation middleware
 func (siw *ServerInterfaceWrapper) SendTyping(w http.ResponseWriter, r *http.Request) {
 
@@ -2684,6 +3384,46 @@ func (siw *ServerInterfaceWrapper) SetPresence(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetPresence(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListScheduled operation middleware
+func (siw *ServerInterfaceWrapper) ListScheduled(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListScheduled(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelScheduled operation middleware
+func (siw *ServerInterfaceWrapper) CancelScheduled(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "scheduled_id" -------------
+	var scheduledId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "scheduled_id", chi.URLParam(r, "scheduled_id"), &scheduledId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scheduled_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelScheduled(w, r, scheduledId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2972,6 +3712,32 @@ func (siw *ServerInterfaceWrapper) CreateBot(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateBot(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCommands operation middleware
+func (siw *ServerInterfaceWrapper) ListCommands(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCommands(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3441,6 +4207,48 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/hooks/{token}", wrapper.PostWebhook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/commands", wrapper.RunCommand)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/commands", wrapper.ListCommands)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bots/{bot_id}/commands", wrapper.ListBotCommands)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/bots/{bot_id}/commands", wrapper.CreateBotCommand)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/bots/{bot_id}/commands/{command_id}", wrapper.DeleteBotCommand)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bots/{bot_id}/subscriptions", wrapper.ListSubscriptions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/bots/{bot_id}/subscriptions", wrapper.CreateSubscription)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/bots/{bot_id}/subscriptions/{subscription_id}", wrapper.DeleteSubscription)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bots/{bot_id}/subscriptions/{subscription_id}/deliveries", wrapper.ListDeliveries)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/bots/{bot_id}/deliveries/{delivery_id}/resend", wrapper.ResendDelivery)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/bots/{bot_id}/tokens/{token_id}/rotate", wrapper.RotateBotToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/scheduled", wrapper.ScheduleMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/scheduled", wrapper.ListScheduled)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/scheduled/{scheduled_id}", wrapper.CancelScheduled)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/ws/ticket", wrapper.CreateWsTicket)

@@ -20,6 +20,11 @@ type Querier interface {
 	AddMentions(ctx context.Context, arg AddMentionsParams) error
 	AddReaction(ctx context.Context, arg AddReactionParams) (int64, error)
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
+	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
+	// ClaimDueDeliveries takes due deliveries for one attempt; concurrent workers skip
+	// each other's rows. The attempt is counted up front so a crash does not retry forever.
+	ClaimDueDeliveries(ctx context.Context, rowLimit int32) ([]ClaimDueDeliveriesRow, error)
+	ClaimDueScheduled(ctx context.Context, rowLimit int32) ([]ScheduledMessage, error)
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
@@ -37,7 +42,11 @@ type Querier interface {
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
+	CreateScheduledMessage(ctx context.Context, arg CreateScheduledMessageParams) (ScheduledMessage, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	CreateSlashCommand(ctx context.Context, arg CreateSlashCommandParams) (SlashCommand, error)
+	CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (EventSubscription, error)
+	CreateSystemBot(ctx context.Context, arg CreateSystemBotParams) (Bot, error)
 	CreateWebhook(ctx context.Context, arg CreateWebhookParams) (IncomingWebhook, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
@@ -54,6 +63,8 @@ type Querier interface {
 	DeleteSessionsByIdpSid(ctx context.Context, arg DeleteSessionsByIdpSidParams) ([]pgtype.UUID, error)
 	// DeleteSessionsBySubject ends every session of an identity (logout without sid).
 	DeleteSessionsBySubject(ctx context.Context, arg DeleteSessionsBySubjectParams) ([]pgtype.UUID, error)
+	DeleteSlashCommand(ctx context.Context, arg DeleteSlashCommandParams) (int64, error)
+	DeleteSubscription(ctx context.Context, arg DeleteSubscriptionParams) (int64, error)
 	DeleteUserSession(ctx context.Context, arg DeleteUserSessionParams) (int64, error)
 	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
 	EditMessage(ctx context.Context, arg EditMessageParams) (Message, error)
@@ -61,6 +72,10 @@ type Querier interface {
 	// name to the configured kind and flags (and public: everyone is a member);
 	// the topic of an existing channel is kept.
 	EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error)
+	// ExpireBotToken lets a token work until a time (rotation overlap).
+	ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) (BotToken, error)
+	FinishDelivery(ctx context.Context, arg FinishDeliveryParams) error
+	FinishScheduled(ctx context.Context, arg FinishScheduledParams) error
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
 	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
 	// GetActiveSession returns the session of a token hash with its user, unless
@@ -69,6 +84,7 @@ type Querier interface {
 	// GetActiveWebhook returns a webhook of an enabled bot with the bot's user.
 	GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetActiveWebhookRow, error)
 	GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
+	GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotToken, error)
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
 	GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error)
@@ -78,8 +94,10 @@ type Querier interface {
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
 	GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error)
 	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
+	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
 	GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error)
+	GetWorkspaceCommand(ctx context.Context, arg GetWorkspaceCommandParams) (GetWorkspaceCommandRow, error)
 	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
 	GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRoleParams) (string, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
@@ -96,12 +114,14 @@ type Querier interface {
 	// ListAllChannels returns the public channels of a workspace and its private
 	// channels the user belongs to, with the user's role ('' when not a member).
 	ListAllChannels(ctx context.Context, arg ListAllChannelsParams) ([]ListAllChannelsRow, error)
+	ListBotCommands(ctx context.Context, botID pgtype.UUID) ([]SlashCommand, error)
 	ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotToken, error)
 	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
 	// ListConversationParticipants returns, for each direct or group conversation
 	// of a user, the other people in it.
 	ListConversationParticipants(ctx context.Context, userID pgtype.UUID) ([]ListConversationParticipantsRow, error)
+	ListDeliveries(ctx context.Context, arg ListDeliveriesParams) ([]EventDelivery, error)
 	// ListInvites returns the invitations of a workspace that can still be used.
 	ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceInvite, error)
 	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelIDsRow, error)
@@ -118,6 +138,8 @@ type Querier interface {
 	// ListReactions sums up the reactions of messages: count and whether the user
 	// reacted, in the order the emoji were first used.
 	ListReactions(ctx context.Context, arg ListReactionsParams) ([]ListReactionsRow, error)
+	ListScheduledMessages(ctx context.Context, ownerID pgtype.UUID) ([]ListScheduledMessagesRow, error)
+	ListSubscriptions(ctx context.Context, botID pgtype.UUID) ([]EventSubscription, error)
 	// ListUserSessions returns a user's usable sessions, most recently used first.
 	ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error)
 	// ListUserWorkspaces returns a user's workspaces with their role, the default
@@ -126,15 +148,22 @@ type Querier interface {
 	ListWebhooks(ctx context.Context, botID pgtype.UUID) ([]ListWebhooksRow, error)
 	// ListWorkspaceAudit returns a workspace's events newest first, before a cursor.
 	ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAuditParams) ([]ListWorkspaceAuditRow, error)
+	// ListWorkspaceCommands returns the custom commands of a workspace whose bot is enabled.
+	ListWorkspaceCommands(ctx context.Context, workspaceID pgtype.UUID) ([]SlashCommand, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
 	// MarkRead moves a member's read position forward (never back).
 	MarkRead(ctx context.Context, arg MarkReadParams) (int64, error)
+	PruneDeliveries(ctx context.Context) (int64, error)
 	// PurgeDeletedMessages removes messages that can no longer be restored.
 	PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error)
+	// QueueDeliveries records an event for every enabled subscription of a bot that is a
+	// member of the event's channel and wants this event, except the bot's own messages.
+	QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error)
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
 	RemoveReaction(ctx context.Context, arg RemoveReactionParams) (int64, error)
 	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) (int64, error)
 	RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error)
+	ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (EventDelivery, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.
 	RestoreMessage(ctx context.Context, arg RestoreMessageParams) (Message, error)
 	// RevokeAdminUnlessEmail removes the administrator flag from a user whose
