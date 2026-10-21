@@ -43,6 +43,13 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 - Chat migration `00003_channels_messages` adds `channels` (with `#general`) and
   `messages`. It is reversible (`migrate down` drops both tables and all messages).
+- Chat migration `00004_channel_membership` adds channel membership (every existing user
+  joins the default channels), the announcement and default flags and the administrator
+  flag; `general` becomes `General`. Reversible.
+- New settings in `.env.prod` (see [installation](../install/README.md#administrator-and-default-channels)):
+  `CENACLE_ADMIN_EMAIL` (without it nobody can create channels),
+  `CENACLE_ANNOUNCEMENT_CHANNEL` (default `Central`), `CENACLE_DEFAULT_CHANNELS` (default
+  `General`). Use the new `prod.yml`, which passes them to the server.
 - WebSocket connections go through Caddy's `/ws` route, which the stack has had since
   0.1.0; nothing to change in `prod.yml`.
 - Valkey now carries the live event stream (`cenacle:events`). It is not needed for

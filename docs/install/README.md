@@ -16,7 +16,7 @@ skeleton; sign-in and messaging arrive in later releases.
 ```sh
 git clone https://github.com/barisshn35/cenacle.git && cd cenacle/deploy/compose
 ./gen-secrets.sh                      # random passwords into ./secrets (kept on re-run)
-cp .env.prod.example .env.prod        # set CENACLE_DOMAIN, CENACLE_ID_DOMAIN, ACME_EMAIL, version
+cp .env.prod.example .env.prod        # set domains, ACME_EMAIL, version, administrator, channels
 docker compose -f prod.yml --env-file .env.prod up -d
 docker compose -f prod.yml --env-file .env.prod ps     # every service healthy
 ```
@@ -24,10 +24,26 @@ docker compose -f prod.yml --env-file .env.prod ps     # every service healthy
 Back up `secrets/` and `.env.prod` together with the databases
 ([backup guide](../backup/README.md)).
 
+### Administrator and default channels
+
+Set these in `.env.prod` before the first start (they can be changed later; the server
+applies them at every start):
+
+| Setting                        | Default   | Meaning                                                                                                                                    |
+| ------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CENACLE_ADMIN_EMAIL`          | (none)    | The Cenacle ID account (verified e-mail address) that may create channels and post in the announcement channel. One account; roles follow. |
+| `CENACLE_ANNOUNCEMENT_CHANNEL` | `Central` | Created for everyone; nobody can leave it and only the administrator posts there. Empty: no announcement channel.                          |
+| `CENACLE_DEFAULT_CHANNELS`     | `General` | Comma-separated channels created for everyone. People can leave them and join again.                                                       |
+
+Everyone who signs in becomes a member of these channels, also later. Changing
+`CENACLE_ADMIN_EMAIL` moves the administrator flag when the new account signs in; the old
+account loses it at the next start.
+
 ### First account and Cenacle ID operations
 
 Cenacle ID has no self-registration yet. Create accounts with its CLI (the password is
-read from stdin, never from the command line):
+read from stdin, never from the command line); create the administrator's account with the
+address in `CENACLE_ADMIN_EMAIL` and `--verified`:
 
 ```sh
 docker compose -f prod.yml --env-file .env.prod run --rm -T idp \

@@ -19,16 +19,25 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   tab visibility).
 - Web: channels in the URL, virtualized timeline with grouped messages and day separators,
   optimistic sending with retry, drafts per channel, connection notices.
+- Channel membership: browse all channels, join and leave (with undo); messages and live
+  events reach members only.
+- Channels for everyone from the installation: `CENACLE_ANNOUNCEMENT_CHANNEL` (default
+  `Central`: mandatory, only the administrator posts) and `CENACLE_DEFAULT_CHANNELS`
+  (default `General`).
+- One administrator until roles arrive: the verified account of `CENACLE_ADMIN_EMAIL`
+  creates channels (optionally for everyone) and posts in announcement channels.
 
 ### Changed
 
 - The sample channels, categories and direct messages of the shell are gone; the sidebar
   lists the real channels.
+- Channel names are display names ("Central", "Release notes"), unique regardless of case,
+  shown without "#".
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-040): reversible migration
-  `00003_channels_messages`.
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-040): reversible migrations
+  `00003_channels_messages` and `00004_channel_membership`; set `CENACLE_ADMIN_EMAIL`.
 
 ## [0.3.0] - 2026-10-21
 

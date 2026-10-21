@@ -117,7 +117,9 @@ flowchart LR
   9457 problem details for every error. Signs users in with Cenacle ID and keeps its own
   sessions ([ADR 0004](docs/adr/0004-chat-sign-in-and-sessions.md)). Live events go over
   WebSocket from a Valkey stream shared by all instances
-  ([ADR 0005](docs/adr/0005-live-chat.md)).
+  ([ADR 0005](docs/adr/0005-live-chat.md)). Channels everyone belongs to are set at
+  installation; one administrator creates channels until roles arrive
+  ([ADR 0006](docs/adr/0006-channel-membership.md)).
 - **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify); `node-oidc-provider` from v0.2.
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
