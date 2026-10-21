@@ -39,6 +39,18 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.12.0)
+
+- Run `./gen-secrets.sh` again before upgrading: it keeps every existing secret and adds the
+  object store's (`s3_access_key`, `s3_secret_key`, `garage_rpc_secret`, `garage.env`).
+- New services: `garage` (files) and its one-shot `garage-volume`; optional `clamav`
+  (`--profile clamav`). The proxy image changes (uploads to `/cenacle-files/`): pull or
+  rebuild it with the others.
+- Chat migration `00013_files` adds files and lets messages consist of files only.
+  Reversible (`migrate down` drops file records and messages that had only files; the
+  bucket's objects stay until removed).
+- Back up the bucket from now on ([backup guide](../backup/README.md#object-store-files)).
+
 ### 0.11.0
 
 - Chat migration `00012_commands_subscriptions_scheduling` adds slash commands, event

@@ -50,8 +50,30 @@ Point-in-time recovery with **pgBackRest** or **WAL-G** (base backups plus WAL a
 an S3-compatible bucket) will be documented and shipped as an optional compose profile and
 Helm values in v0.13.
 
-## Object store (v0.12)
+## Object store (files)
 
-Uploaded files live in an S3-compatible bucket behind an abstraction. Back up the bucket
-with the store's own tooling (e.g. Garage bucket snapshots or `rclone sync` to a second
-location) at the same frequency as the database, since messages reference file keys.
+Uploaded files live in an S3-compatible bucket (`cenacle-files`): `files/<id>` holds each
+file and `thumbs/<id>` its image preview. The database says which files exist; the bucket
+holds the bytes. Back both up at the same time, database first: a file missing from the
+bucket shows as "The file is gone", while bytes without a database row are removed by the
+server's hourly clean-up.
+
+With the bundled Garage, copy the bucket over S3 with any S3 tool, for example `rclone`
+(MIT) with the key from `secrets/s3_access_key` and `secrets/s3_secret_key`:
+
+```sh
+# ~/.config/rclone/rclone.conf
+# [cenacle]
+# type = s3
+# provider = Other
+# endpoint = http://<garage address>:3900   (on the "files" network, or published for the job)
+# region = garage
+# access_key_id = …
+# secret_access_key = …
+rclone sync cenacle:cenacle-files /backup/cenacle-files-$(date +%Y%m%d)
+```
+
+Restore copies the objects back (`rclone sync /backup/… cenacle:cenacle-files`). Garage
+also keeps snapshots of its own metadata every six hours (`metadata_auto_snapshot_interval`).
+The `garage-data` volume can be backed up as a whole while Garage is stopped. With your own
+S3 service, use its versioning or replication instead.

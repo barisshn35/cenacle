@@ -45,6 +45,31 @@ To rotate a token, choose **Rotate** next to it: a new token with the same name,
 lifetime is created, and the old one keeps working for the overlap you pick (up to a week,
 or none). Switch the program over within the overlap.
 
+### Files
+
+A token with `messages:write` can send files, in three steps:
+
+```sh
+# 1. Announce the file: you get a form for exactly this size.
+curl -s -X POST https://chat.example.com/api/channels/<channel-id>/files \
+  -H "Authorization: Bearer $CENACLE_BOT_TOKEN" -H "Content-Type: application/json" \
+  -d '{"name": "report.pdf", "size": 48213, "content_type": "application/pdf"}' > upload.json
+# 2. Post the file with the form's fields (the file last).
+curl -s -X POST "$(jq -r .upload.url upload.json)" \
+  $(jq -r '.upload.fields | to_entries[] | "-F \(.key)=\(.value)"' upload.json) \
+  -F file=@report.pdf
+# 3. Let Cenacle check it, then send it with a message.
+curl -s -X POST https://chat.example.com/api/files/$(jq -r .file.id upload.json)/complete \
+  -H "Authorization: Bearer $CENACLE_BOT_TOKEN"
+curl -s -X POST https://chat.example.com/api/channels/<channel-id>/messages \
+  -H "Authorization: Bearer $CENACLE_BOT_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"body\": \"Weekly report\", \"nonce\": \"report-42\", \"file_ids\": [\"$(jq -r .file.id upload.json)\"]}"
+```
+
+A relative upload URL (`/cenacle-files/`) is on the chat server's address. Files not sent
+with a message within a day are removed. With `messages:read`, a bot can read the files of
+its channels (`GET /api/files/<id>/content`).
+
 ## Incoming webhooks
 
 A webhook is a secret address that posts into one channel as its bot, for systems that can

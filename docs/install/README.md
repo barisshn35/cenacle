@@ -42,6 +42,28 @@ channels and invite people with links; see the workspace menu in the sidebar. Ch
 `CENACLE_ADMIN_EMAIL` moves the administrator flag when the new account signs in; the old
 account loses it at the next start.
 
+### Files
+
+Files are stored in the bundled Garage (an S3-compatible object store; AGPL-3.0, run as its
+own service and reached only over S3). Browsers upload straight to it through Caddy, with a
+form the server signs for one file of an exact size; downloads go through the server, which
+checks access first. Settings (in `.env.prod`):
+
+| Setting                     | Default                      | Meaning                                                                                                                                 |
+| --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `CENACLE_FILES_MAX_SIZE_MB` | `100`                        | The largest file.                                                                                                                       |
+| `CENACLE_S3_ENDPOINT`       | `http://garage:3900`         | Another S3 service instead of Garage (then also `CENACLE_S3_UPLOAD_URL` and the keys).                                                  |
+| `CENACLE_S3_BUCKET`         | `cenacle-files`              | The bucket; Caddy passes uploads to `/<bucket>/` on the chat domain.                                                                    |
+| `CENACLE_S3_UPLOAD_URL`     | `https://<domain>/<bucket>/` | Where browsers post uploads. For an external S3 service, its bucket URL; allow `POST` from the app's origin in the bucket's CORS rules. |
+| `CENACLE_CLAMAV_ADDR`       | (none)                       | A clamd to scan every file, e.g. `clamav:3310` with `--profile clamav`. Rejected files are deleted.                                     |
+
+Without `CENACLE_S3_ENDPOINT` files are off and the app hides the attach button.
+
+Virus scanning: start the stack with `--profile clamav` and set
+`CENACLE_CLAMAV_ADDR=clamav:3310`. ClamAV (GPL-2.0) runs as its own container, downloads
+virus signatures on start and keeps them current; in air-gapped networks, point it at a
+local signature mirror. Its `StreamMaxLength` must be at least `CENACLE_FILES_MAX_SIZE_MB`.
+
 ### First account and Cenacle ID operations
 
 Cenacle ID has no self-registration yet. Create accounts with its CLI (the password is
@@ -94,6 +116,7 @@ container are only reachable through Caddy.
 | Let's Encrypt (443/tcp)                      | certificate issuance and renewal                        |
 | Container registry, e.g. `ghcr.io` (443/tcp) | installing and upgrading images (not needed air-gapped) |
 | SMTP relay (587 or 465/tcp)                  | e-mail features (v0.8+)                                 |
+| ClamAV signature mirror (443/tcp)            | only with the optional virus scanner (`clamav` profile) |
 | LDAP / Active Directory (389 or 636/tcp)     | directory sign-in (v0.14)                               |
 
 ### Things to know

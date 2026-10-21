@@ -8,6 +8,30 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Files: uploads, previews, a viewer and the channel's files.
+
+### Added
+
+- Attach files to messages (button, drag and drop, paste), up to ten per message and
+  100 MB each by default, with upload progress, removal and retry; a message can be files
+  only.
+- Image previews (with EXIF orientation) and a viewer with keyboard navigation; other files
+  as cards with a download link; the channel's files in its details panel.
+- Bundled Garage object store in the compose stack; any S3 service can be used instead.
+- Optional virus scanning with ClamAV (`--profile clamav`, `CENACLE_CLAMAV_ADDR`).
+- Bots can upload and read files.
+
+### Security
+
+- Uploads go straight to the object store with a per-file signed form (exact key and
+  size); downloads are checked by the server and served sandboxed, never as pages of the
+  app; images are recognized by their content.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0120): run `gen-secrets.sh` again,
+  new `garage` service, migration `00013_files`.
+
 ## [0.11.0] - 2026-10-22
 
 Slash commands, event subscriptions, scheduled messages and reminders; GitLab and
