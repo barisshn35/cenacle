@@ -33,15 +33,16 @@ record covers the tooling and the decisions made while implementing v0.1.
    Upgrade when both are supported.
 6. **Go tools are pinned binaries** in `./.bin` (`make tools`): sqlc (needs cgo, so not a
    `go tool` dependency), golangci-lint v2, go-licenses, govulncheck.
-7. **GitHub instead of GitLab.** The kickoff mentioned GitLab CI and a
-   `git.calaixo.com` module path; the repository lives on GitHub, so CI is GitHub Actions
+7. **GitHub instead of GitLab (deliberate).** The kickoff mentioned GitLab CI and a
+   `git.calaixo.com` module path; the project deliberately lives on GitHub, so CI is GitHub Actions
    and the Go module path is `github.com/barisshn35/cenacle/server`. Third-party actions
    are pinned to commit SHAs; gitleaks and trivy run from version-pinned images.
 
 ### License policy
 
-8. **Project license: Apache-2.0** (default until decided; switching to AGPL-3.0 only
-   changes `LICENSE` and the SPDX headers, because dependencies follow the policy below).
+8. **Project license: open, decided last (before the first public release).** Apache-2.0
+   is the working default in `LICENSE` and the SPDX headers. Switching (e.g. to AGPL-3.0)
+   only changes those files, because every dependency already follows the policy below.
 9. **Allowed dependency licenses:** MIT, MIT-0, ISC, BSD-2/3-Clause, Apache-2.0, MPL-2.0,
    0BSD, Unlicense. Enforced by `make licenses` (Go: go-licenses, JS: `scripts/check-licenses.mjs`).
    Explicit exceptions:
@@ -85,12 +86,15 @@ record covers the tooling and the decisions made while implementing v0.1.
 18. **TanStack Router, code-based.** The `/dev/gallery` route exists in the route tree for
     type safety, but its component, texts and lazy chunk are compiled out of production
     builds (`import.meta.env.DEV`), where the route answers "not found".
-19. **No Storybook in v0.1.** The development-only gallery is enough for the target size and
-    axe tests and avoids a second build toolchain. The UX plan mentions Storybook; it can be
-    added later without changing components.
+19. **Component gallery as a dev-only route, no Storybook.** The UX plan mentions Storybook;
+    the gallery route is kept because it is the more stable and lighter option: one build
+    toolchain (Vite), no second dependency tree to maintain, and the target size and axe
+    tests measure components inside the real app providers (theme, density, i18n, router).
+    Nothing of it ships in production builds.
 20. **ConfirmDialog states "This cannot be undone." only when `irreversible` is set.**
     The UX plan allows admin restore within the retention period for some S3 actions
-    (e.g. permanent channel delete), so S3 alone must not imply irreversibility.
+    (e.g. permanent channel delete), so S3 alone must not imply irreversibility. This keeps
+    the plan's rule that confirmation texts state reversibility truthfully.
 
 ### Testing
 
@@ -126,5 +130,6 @@ record covers the tooling and the decisions made while implementing v0.1.
 - Contributors need Go, Node 24 and Docker; `make tools` and Corepack install the rest.
 - Every dependency and image is pinned; Dependabot proposes updates (npm with a cool-down,
   matching pnpm's release-age policy).
-- Revisit: TypeScript 7 / ESLint 10 support, Storybook, upstream Caddy releases (switch
+- Revisit: project license (before the first public release), TypeScript 7 / ESLint 10
+  support, upstream Caddy releases (switch
   back to the official image when it is current), Node 26 LTS after 2026-10-28.
