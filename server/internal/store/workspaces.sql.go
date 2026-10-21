@@ -195,19 +195,33 @@ func (q *Queries) GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRolePara
 	return column_1, err
 }
 
-const joinDefaultWorkspace = `-- name: JoinDefaultWorkspace :execrows
+const joinDefaultWorkspace = `-- name: JoinDefaultWorkspace :many
 INSERT INTO workspace_members (workspace_id, user_id)
 SELECT id, $1 FROM workspaces WHERE is_default
 ON CONFLICT DO NOTHING
+RETURNING workspace_id
 `
 
-// JoinDefaultWorkspace makes a user a member of the default workspace.
-func (q *Queries) JoinDefaultWorkspace(ctx context.Context, userID pgtype.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, joinDefaultWorkspace, userID)
+// JoinDefaultWorkspace makes a user a member of the default workspace; it
+// returns the workspace when the user was not a member yet.
+func (q *Queries) JoinDefaultWorkspace(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, joinDefaultWorkspace, userID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected(), nil
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var workspace_id pgtype.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const leaveWorkspaceChannels = `-- name: LeaveWorkspaceChannels :execrows

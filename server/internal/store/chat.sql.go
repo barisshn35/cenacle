@@ -490,23 +490,36 @@ func (q *Queries) GetMessageByNonce(ctx context.Context, arg GetMessageByNoncePa
 	return i, err
 }
 
-const joinDefaultChannels = `-- name: JoinDefaultChannels :execrows
+const joinDefaultChannels = `-- name: JoinDefaultChannels :many
 INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, $1
 FROM channels c
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = $1
 WHERE c.is_default
 ON CONFLICT DO NOTHING
+RETURNING channel_id
 `
 
 // JoinDefaultChannels makes a user a member of every default channel of the
-// workspaces they belong to.
-func (q *Queries) JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, joinDefaultChannels, userID)
+// workspaces they belong to and returns the channels they newly joined.
+func (q *Queries) JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, joinDefaultChannels, userID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected(), nil
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var channel_id pgtype.UUID
+		if err := rows.Scan(&channel_id); err != nil {
+			return nil, err
+		}
+		items = append(items, channel_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAllChannels = `-- name: ListAllChannels :many

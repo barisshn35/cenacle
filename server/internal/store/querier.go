@@ -120,10 +120,11 @@ type Querier interface {
 	// delivered when the transaction commits).
 	InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventParams) error
 	// JoinDefaultChannels makes a user a member of every default channel of the
-	// workspaces they belong to.
-	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (int64, error)
-	// JoinDefaultWorkspace makes a user a member of the default workspace.
-	JoinDefaultWorkspace(ctx context.Context, userID pgtype.UUID) (int64, error)
+	// workspaces they belong to and returns the channels they newly joined.
+	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
+	// JoinDefaultWorkspace makes a user a member of the default workspace; it
+	// returns the workspace when the user was not a member yet.
+	JoinDefaultWorkspace(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
 	// LeaveWorkspaceChannels takes a user out of every channel of a workspace.
 	LeaveWorkspaceChannels(ctx context.Context, arg LeaveWorkspaceChannelsParams) (int64, error)
 	// ListAllChannels returns the public channels of a workspace and its private

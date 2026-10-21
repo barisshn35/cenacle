@@ -522,9 +522,13 @@ func (h *Handlers) AcceptInvite(w http.ResponseWriter, r *http.Request, token st
 			h.unavailable(w, r, "join workspace", err)
 			return
 		}
-		if _, err := h.Queries.JoinDefaultChannels(ctx, p.User.ID); err != nil {
+		joined, err := h.Queries.JoinDefaultChannels(ctx, p.User.ID)
+		if err != nil {
 			h.unavailable(w, r, "join default channels", err)
 			return
+		}
+		for _, c := range joined {
+			h.publish(ctx, events.ChannelMembersChanged, ChannelEvent{ChannelID: uuid(c).String()})
 		}
 		role = WorkspaceMember
 		h.publish(ctx, events.WorkspaceJoined, WorkspaceEvent{WorkspaceID: uuid(wsID).String(), UserID: uuid(p.User.ID).String()})

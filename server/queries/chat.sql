@@ -117,15 +117,16 @@ JOIN users u ON u.id = wm.user_id AND NOT u.is_bot -- bots are added where they 
 WHERE c.id = @channel_id
 ON CONFLICT DO NOTHING;
 
--- name: JoinDefaultChannels :execrows
+-- name: JoinDefaultChannels :many
 -- JoinDefaultChannels makes a user a member of every default channel of the
--- workspaces they belong to.
+-- workspaces they belong to and returns the channels they newly joined.
 INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, @user_id
 FROM channels c
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id
 WHERE c.is_default
-ON CONFLICT DO NOTHING;
+ON CONFLICT DO NOTHING
+RETURNING channel_id;
 
 -- name: SetChannelMemberRole :execrows
 UPDATE channel_members SET role = @role WHERE channel_id = @channel_id AND user_id = @user_id;

@@ -50,11 +50,13 @@ ORDER BY CASE wm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, lower(
 -- name: CountWorkspaceOwners :one
 SELECT count(*) FROM workspace_members WHERE workspace_id = @workspace_id AND role = 'owner';
 
--- name: JoinDefaultWorkspace :execrows
--- JoinDefaultWorkspace makes a user a member of the default workspace.
+-- name: JoinDefaultWorkspace :many
+-- JoinDefaultWorkspace makes a user a member of the default workspace; it
+-- returns the workspace when the user was not a member yet.
 INSERT INTO workspace_members (workspace_id, user_id)
 SELECT id, @user_id FROM workspaces WHERE is_default
-ON CONFLICT DO NOTHING;
+ON CONFLICT DO NOTHING
+RETURNING workspace_id;
 
 -- name: AddAllUsersToWorkspace :execrows
 INSERT INTO workspace_members (workspace_id, user_id)
