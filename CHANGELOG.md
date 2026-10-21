@@ -8,6 +8,21 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Brand identity (Forest & Brass, Fraunces wordmark, "Upper room" icon): logo files,
+  theme-aware favicon, app icons and web manifest; `make brand` renders the PNG/ICO icons.
+- `Logo` and `AppIcon` components in `@cenacle/ui/brand`; brand section in the component
+  gallery; brand guide in `docs/brand`.
+- Fraunces display font (self-hosted) for brand headlines.
+- Token contrast check (`scripts/check-contrast.mjs`) in `pnpm lint` and CI.
+
+### Changed
+
+- Light theme on Paper with Forest text, dark theme on Night with Bone text; brass
+  accent (`--accent-brand`) for primary buttons and focus rings; form control outlines
+  reach 3:1. The Cenacle ID pages use the same brand.
+
 ## [0.2.0] - 2026-10-21
 
 Cenacle ID becomes an OpenID Provider. The chat server signs in with it from v0.3.

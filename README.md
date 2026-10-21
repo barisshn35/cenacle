@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="web/public/brand/cenacle-lockup-dark.svg" />
+    <img src="web/public/brand/cenacle-lockup-light.svg" alt="Cenacle" width="320" />
+  </picture>
+</p>
+
 # Cenacle
 
 Cenacle is an open-source, fully self-hosted team chat (in the spirit of Discord and

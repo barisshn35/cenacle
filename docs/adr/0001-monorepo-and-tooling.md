@@ -47,8 +47,9 @@ record covers the tooling and the decisions made while implementing v0.1.
    0BSD, Unlicense, BlueOak-1.0.0 (OSI-approved permissive; added in v0.2 for `glob` and
    related packages). Enforced by `make licenses` (Go: go-licenses, JS: `scripts/check-licenses.mjs`).
    Explicit exceptions:
-   - **Fonts:** Geist and Geist Mono (SIL OFL-1.1), bundled from Fontsource. OFL permits
-     bundling with any software; only those two packages are allowed.
+   - **Fonts:** Geist, Geist Mono and Fraunces (SIL OFL-1.1, Fraunces since ADR 0003),
+     bundled from Fontsource. OFL permits bundling with any software; only these font
+     packages are allowed.
    - **Development-only data/tooling licenses** (never shipped): CC-BY-4.0
      (e.g. `caniuse-lite`), CC0-1.0, Python-2.0.
    - **Separate processes are not linked code:** Caddy (Apache-2.0) and, from v0.12, Garage
