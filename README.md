@@ -12,7 +12,8 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.7.** Sign in with Cenacle ID and chat live in channels and direct conversations.
+> **Status: v0.8 in progress.** Sign in with Cenacle ID (with two-step verification) and chat
+> live in channels and direct conversations.
 > Direct messages, presence and unread counts follow (see the
 > [roadmap](#roadmap)).
 
@@ -125,8 +126,12 @@ flowchart LR
   admins and members, and people join with invitation links
   ([ADR 0008](docs/adr/0008-workspaces-and-roles.md)). Direct and group conversations,
   unread counts, presence and typing notices complete the live chat
-  ([ADR 0009](docs/adr/0009-direct-messages-unread-presence.md)).
-- **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify); `node-oidc-provider` from v0.2.
+  ([ADR 0009](docs/adr/0009-direct-messages-unread-presence.md)). Users see and end their
+  signed-in devices, Cenacle ID's sign-outs reach the chat server, and an audit log records
+  security-relevant actions
+  ([ADR 0010](docs/adr/0010-two-step-verification-sessions-audit.md)).
+- **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify), `node-oidc-provider`, Argon2id
+  passwords, two-step verification with an authenticator app and recovery codes.
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
   types, local storage (drafts in IndexedDB).

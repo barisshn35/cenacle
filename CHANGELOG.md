@@ -8,6 +8,28 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Two-step verification at Cenacle ID: an authenticator app code (TOTP) after the
+  password, one-time recovery codes, and an account page (`/account`) to turn it on and off
+  and see recent activity.
+- Settings in the app: signed-in devices, signing one out, and "Sign out everywhere"
+  (optionally keeping this device); open apps of ended sessions sign out at once.
+- Back-channel logout: signing out at Cenacle ID ends the chat sessions of that sign-in.
+- Audit logs: account events at Cenacle ID; role changes, removals, invitations, channel
+  changes and moderation per workspace (`GET /api/workspaces/{id}/audit`).
+
+### Fixed
+
+- A session that ended while the app was open (signed out elsewhere, expired) could loop
+  between the app and the sign-in page instead of showing the sign-in page.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-080): migrations
+  `0002_mfa_and_audit` (Cenacle ID) and `00009_sessions_and_audit` (chat), and the
+  `backchannel_logout_uri` of the chat client.
+
 ## [0.7.0] - 2026-10-21
 
 Direct and group conversations, unread counts, presence and typing notices.

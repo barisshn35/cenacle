@@ -39,6 +39,20 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.8.0)
+
+- Cenacle ID migration `0002_mfa_and_audit` adds two-step verification and the account
+  audit log; chat migration `00009_sessions_and_audit` adds the session's Cenacle ID `sid`
+  and the workspace audit log. Both are reversible (`migrate down` drops the second
+  factors, recovery codes and audit logs).
+- Add the back-channel address to the chat client in `deploy/compose/idp/clients.json`
+  (the file in the repository has it):
+  `"backchannel_logout_uri": "http://server:8180/api/auth/backchannel-logout"`. Sessions
+  created before the upgrade carry no `sid`; they end with Cenacle ID logouts only by
+  their idle and absolute timeouts.
+- Users find two-step verification in the app under Settings → Open Cenacle ID, or at
+  `https://<id-domain>/account`.
+
 ### 0.7.0
 
 - Chat migration `00008_direct_messages_and_unread` allows direct and group conversations

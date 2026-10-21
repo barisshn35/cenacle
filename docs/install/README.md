@@ -64,7 +64,11 @@ docker compose -f prod.yml --env-file .env.prod run --rm idp node dist/cli.js ke
 ```
 
 Registered applications are listed in `deploy/compose/idp/clients.json`; host names use
-`${CENACLE_DOMAIN}` from `.env.prod`.
+`${CENACLE_DOMAIN}` from `.env.prod`. `backchannel_logout_uri` is where Cenacle ID tells the
+chat server that a sign-in ended (an internal address of the compose network).
+
+Users turn on two-step verification (an authenticator app plus recovery codes) at
+`https://<id-domain>/account`; the app links there from Settings.
 
 ## Firewall
 
