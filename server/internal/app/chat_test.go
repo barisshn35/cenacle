@@ -111,7 +111,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 		Auth: &auth.Handlers{
 			IdP:      &auth.IdentityProvider{Issuer: "http://127.0.0.1:1", HTTPClient: http.DefaultClient},
 			Sessions: sessions, Users: queries, Flows: sh.valkey, Cookies: cookies, PublicURL: public,
-			Audit: auditLog, Log: log,
+			Audit: auditLog, Ephemeral: ephemeral, Log: log,
 		},
 		Chat: &chat.Handlers{
 			Queries: queries, Events: eventLog, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,

@@ -17,6 +17,7 @@ import (
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/audit"
+	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
@@ -29,6 +30,19 @@ func (h *Handlers) accountURL() string {
 func (h *Handlers) unavailable(w http.ResponseWriter, r *http.Request, msg string, err error) {
 	h.Log.ErrorContext(r.Context(), msg, "error", err, "request_id", httpx.RequestIDFrom(r.Context()))
 	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable})
+}
+
+// sessionsEnded makes the user's open connections check their session now
+// instead of at the next periodic check.
+func (h *Handlers) sessionsEnded(ctx context.Context, user pgtype.UUID) {
+	if h.Ephemeral == nil {
+		return
+	}
+	if err := h.Ephemeral.Publish(ctx, events.SessionsEnded, map[string]string{
+		"user_id": openapi_types.UUID(user.Bytes).String(),
+	}); err != nil {
+		h.Log.WarnContext(ctx, "publish sessions ended", "error", err)
+	}
 }
 
 // ListSessions implements api.ServerInterface.
@@ -77,6 +91,7 @@ func (h *Handlers) EndSession(w http.ResponseWriter, r *http.Request, sessionID 
 	h.Audit.Record(r.Context(), audit.Event{
 		Actor: p.User.ID, Action: audit.SessionEnded, TargetType: "session", TargetID: sessionID.String(), IP: p.IP,
 	})
+	h.sessionsEnded(r.Context(), p.User.ID)
 	if id == p.Session.ID {
 		h.Cookies.clearSession(w)
 	}
@@ -112,6 +127,7 @@ func (h *Handlers) EndAllSessions(w http.ResponseWriter, r *http.Request) {
 		Actor: p.User.ID, Action: audit.SessionsEndedAll, IP: p.IP,
 		Detail: map[string]any{"ended": n, "kept_current": *in.KeepCurrent},
 	})
+	h.sessionsEnded(r.Context(), p.User.ID)
 	if !*in.KeepCurrent {
 		h.Cookies.clearSession(w)
 	}
@@ -187,6 +203,7 @@ func (h *Handlers) BackchannelLogout(w http.ResponseWriter, r *http.Request) {
 			Actor: ended[0], Action: audit.SessionsEndedByID,
 			Detail: map[string]any{"ended": len(ended), "sid": claims.SID != ""},
 		})
+		h.sessionsEnded(r.Context(), ended[0]) // one identity, one user
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)

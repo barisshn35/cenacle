@@ -64,7 +64,7 @@ func (a *audience) allows(ev events.Event) bool {
 		return true
 	case events.Typing: // others typing in the user's channels
 		return d.UserID != a.user && a.inChannel(d.ChannelID)
-	case events.ChannelRead: // the user's read position, for their other devices
+	case events.ChannelRead, events.SessionsEnded: // about the user only
 		return d.UserID == a.user
 	case events.PresenceChanged:
 		for _, ws := range d.WorkspaceIDs {

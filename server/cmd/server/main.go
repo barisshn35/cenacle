@@ -165,6 +165,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				TrustProxy: cfg.TrustProxy,
 				AdminEmail: cfg.AdminEmail,
 				Audit:      auditLog,
+				Ephemeral:  ephemeral,
 				Log:        log,
 			},
 			Chat: &chat.Handlers{

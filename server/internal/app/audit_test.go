@@ -4,7 +4,11 @@ package app_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/barisshn35/cenacle/server/internal/realtime"
 )
 
 type auditEvent struct {
@@ -75,5 +79,34 @@ func TestAuditLogRecordsSecurityRelevantActions(t *testing.T) {
 	}
 	if status, _ := problemCode(t, s, http.MethodGet, "/api/workspaces/"+ops+"/audit", s.user("sub-z", "Zeynep"), nil); status != http.StatusNotFound {
 		t.Errorf("outsider reading the audit log = %d", status)
+	}
+}
+
+func TestEndingSessionsClosesTheirConnectionsAtOnce(t *testing.T) {
+	// Periodic checks are far away: closing must come from the notice.
+	s := newStack(t, newShared(t), options{settings: realtime.Settings{
+		Heartbeat: time.Minute, SessionCheck: time.Hour, QueueSize: 64, MaxBacklog: 50,
+	}})
+	laptop := s.user("sub-a", "Ayşe")
+	phone := s.userWithEmail("sub-a", "Ayşe", "sub-a@example.com") // a second session
+	laptopConn := s.connect(laptop, "")
+	read(t, laptopConn)
+	phoneConn := s.connect(phone, "")
+	read(t, phoneConn)
+
+	if res := s.call(http.MethodPost, "/api/sessions/end-all", laptop, map[string]bool{"keep_current": true}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("end others = %d", res.StatusCode)
+	}
+	start := time.Now()
+	if code := closeStatus(t, phoneConn); code != realtime.CloseSessionEnded {
+		t.Errorf("phone closed with %d, want %d", code, realtime.CloseSessionEnded)
+	}
+	if time.Since(start) > 3*time.Second {
+		t.Errorf("closing took %s", time.Since(start))
+	}
+	// The laptop stays connected: a message still arrives.
+	sent, _ := s.send(laptop, s.general(laptop), "hâlâ buradayım", "still-here-1")
+	if ev := read(t, laptopConn); ev.Type != "message.created" || !strings.Contains(string(ev.Data), sent.ID) {
+		t.Errorf("laptop event = %+v", ev)
 	}
 }

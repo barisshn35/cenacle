@@ -20,6 +20,7 @@ import (
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/audit"
+	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
@@ -68,7 +69,9 @@ type Handlers struct {
 	AdminEmail string
 	// Audit records ended sessions; optional.
 	Audit *audit.Log
-	Log   *slog.Logger
+	// Ephemeral tells open connections that sessions ended; optional.
+	Ephemeral *events.Ephemeral
+	Log       *slog.Logger
 }
 
 func randomString() string {

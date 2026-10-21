@@ -15,6 +15,9 @@ import (
 const (
 	Typing          = "typing"
 	PresenceChanged = "presence.changed"
+	// SessionsEnded tells the connections of a user that some of their
+	// sessions ended (signed out elsewhere); each checks its own at once.
+	SessionsEnded = "sessions.ended"
 )
 
 // Ephemeral publishes and receives short-lived events. An event without an

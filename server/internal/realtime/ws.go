@@ -225,6 +225,13 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			if !aud.allows(ev) {
 				return nil
 			}
+			if ev.Type == events.SessionsEnded {
+				if active, err := h.Sessions.SessionActive(ctx, t.SessionID); err == nil && !active {
+					_ = conn.Close(CloseSessionEnded, "session ended")
+					return errSessionEnded
+				}
+				return nil
+			}
 			return send(frame{Op: "ephemeral", Type: ev.Type, Data: ev.Data})
 		}
 		id, err := events.ParseID(ev.ID)
@@ -308,6 +315,8 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+var errSessionEnded = errors.New("session ended")
 
 func (h *Handler) audience(ctx context.Context, userID pgtype.UUID) (*audience, error) {
 	chs, err := h.Members.ListMemberChannelIDs(ctx, userID)
