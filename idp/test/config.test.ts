@@ -79,9 +79,15 @@ describe('loadConfig', () => {
   });
 
   it('requires the server secrets', () => {
-    expect(() => loadConfig({ IDP_DATABASE_URL: DB })).toThrow(
-      /IDP_COOKIE_KEYS[\s\S]*IDP_KEY_ENCRYPTION_KEY[\s\S]*IDP_CLIENTS_FILE/,
-    );
+    expect(() => loadConfig({ IDP_DATABASE_URL: DB })).toThrow(ConfigError);
+    try {
+      loadConfig({ IDP_DATABASE_URL: DB });
+    } catch (err) {
+      const keys = (err as ConfigError).issues.map((i) => i.split(':')[0]);
+      expect(keys).toEqual(
+        expect.arrayContaining(['IDP_COOKIE_KEYS', 'IDP_KEY_ENCRYPTION_KEY', 'IDP_CLIENTS_FILE']),
+      );
+    }
   });
 });
 

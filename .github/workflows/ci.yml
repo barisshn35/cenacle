@@ -73,6 +73,20 @@ jobs:
     name: test / js (node ${{ matrix.node }})
     needs: lint-js
     runs-on: ubuntu-24.04
+    # Integration tests of Cenacle ID run against a real PostgreSQL.
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24
+        env:
+          POSTGRES_USER: cenacle_idp
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: cenacle_idp_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U cenacle_idp -d cenacle_idp_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      IDP_TEST_DATABASE_URL: postgres://cenacle_idp:ci-only-password@127.0.0.1:5432/cenacle_idp_test
     strategy:
       fail-fast: false
       matrix:

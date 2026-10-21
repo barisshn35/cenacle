@@ -13,7 +13,21 @@ const databaseSchema = z.object({
   IDP_DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
 });
 
-const serverSchema = databaseSchema.extend({
+const keySchema = databaseSchema.extend({
+  /** Base64 encoded 32-byte key that encrypts token signing keys at rest. */
+  IDP_KEY_ENCRYPTION_KEY: z
+    .string()
+    .transform((v) => Buffer.from(v.trim(), 'base64'))
+    .refine((b) => b.length === 32, 'must be 32 bytes, base64 encoded'),
+  /** How long a rotated-out signing key stays published, in seconds (default 7 days). */
+  IDP_KEY_RETIRED_GRACE_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(3600)
+    .default(7 * 24 * 3600),
+});
+
+const serverSchema = keySchema.extend({
   IDP_ENV: z.enum(['development', 'production']).default('development'),
   IDP_HOST: z.string().min(1).default('127.0.0.1'),
   IDP_PORT: z.coerce.number().int().min(1).max(65535).default(8190),
@@ -36,11 +50,6 @@ const serverSchema = databaseSchema.extend({
     )
     .refine((keys) => keys.length > 0, 'at least one key is required')
     .refine((keys) => keys.every((k) => k.length >= 32), 'each key needs at least 32 characters'),
-  /** Base64 encoded 32-byte key that encrypts token signing keys at rest. */
-  IDP_KEY_ENCRYPTION_KEY: z
-    .string()
-    .transform((v) => Buffer.from(v.trim(), 'base64'))
-    .refine((b) => b.length === 32, 'must be 32 bytes, base64 encoded'),
   /** JSON file with the registered OIDC clients. */
   IDP_CLIENTS_FILE: z.string().min(1),
   /** Trust X-Forwarded-* headers (set when running behind the Caddy proxy). */
@@ -57,6 +66,12 @@ export interface DatabaseConfig {
   poolMax: number;
 }
 
+export interface KeyConfig {
+  database: DatabaseConfig;
+  keyEncryptionKey: Buffer;
+  retiredKeyGraceSeconds: number;
+}
+
 export interface Config {
   env: 'development' | 'production';
   host: string;
@@ -66,6 +81,7 @@ export interface Config {
   cookieDomain: string;
   cookieKeys: string[];
   keyEncryptionKey: Buffer;
+  retiredKeyGraceSeconds: number;
   clientsFile: string;
   trustProxy: boolean;
   database: DatabaseConfig;
@@ -132,6 +148,19 @@ export function loadDatabaseConfig(
   return { url: c.IDP_DATABASE_URL, poolMax: c.IDP_DATABASE_POOL_MAX };
 }
 
+/** Database and signing key settings: enough for key maintenance commands. */
+export function loadKeyConfig(
+  env: Env = process.env,
+  readFile: ReadFile = defaultReadFile,
+): KeyConfig {
+  const c = parse(keySchema, env, readFile);
+  return {
+    database: { url: c.IDP_DATABASE_URL, poolMax: c.IDP_DATABASE_POOL_MAX },
+    keyEncryptionKey: c.IDP_KEY_ENCRYPTION_KEY,
+    retiredKeyGraceSeconds: c.IDP_KEY_RETIRED_GRACE_SECONDS,
+  };
+}
+
 /** Full configuration of the identity server. */
 export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultReadFile): Config {
   const c = parse(serverSchema, env, readFile);
@@ -144,6 +173,7 @@ export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultR
     cookieDomain: c.IDP_COOKIE_DOMAIN,
     cookieKeys: c.IDP_COOKIE_KEYS,
     keyEncryptionKey: c.IDP_KEY_ENCRYPTION_KEY,
+    retiredKeyGraceSeconds: c.IDP_KEY_RETIRED_GRACE_SECONDS,
     clientsFile: c.IDP_CLIENTS_FILE,
     trustProxy: c.IDP_TRUST_PROXY,
     database: { url: c.IDP_DATABASE_URL, poolMax: c.IDP_DATABASE_POOL_MAX },
