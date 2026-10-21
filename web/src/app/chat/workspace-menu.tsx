@@ -9,6 +9,7 @@ import {
   SettingsIcon,
   UserMinusIcon,
   UserPlusIcon,
+  BotIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { useSession } from '../auth/session';
+import { IntegrationsDialog } from './integrations';
 import { initials } from '../auth/sign-out';
 import { useLastWorkspace } from './active-workspace';
 import {
@@ -58,7 +60,9 @@ const selectClass =
 /** The workspace name in the sidebar header opens this menu. */
 export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation();
-  const [dialog, setDialog] = useState<'settings' | 'invite' | 'leave' | null>(null);
+  const [dialog, setDialog] = useState<'settings' | 'invite' | 'integrations' | 'leave' | null>(
+    null,
+  );
   const admin = isWorkspaceAdmin(workspace);
   const { user } = useSession();
   const queryClient = useQueryClient();
@@ -93,6 +97,12 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
             <SettingsIcon strokeWidth={1.75} />
             {admin ? t('workspaces.settings') : t('workspaces.members')}
           </DropdownMenuItem>
+          {admin && (
+            <DropdownMenuItem onClick={() => setDialog('integrations')}>
+              <BotIcon strokeWidth={1.75} />
+              {t('bots.title')}
+            </DropdownMenuItem>
+          )}
           {!workspace.is_default && (
             <>
               <DropdownMenuSeparator />
@@ -108,6 +118,9 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
         <WorkspaceSettingsDialog workspace={workspace} open onOpenChange={close} />
       )}
       {dialog === 'invite' && <InviteDialog workspace={workspace} open onOpenChange={close} />}
+      {dialog === 'integrations' && (
+        <IntegrationsDialog workspace={workspace} open onOpenChange={close} />
+      )}
       <ConfirmDialog
         open={dialog === 'leave'}
         onOpenChange={close}

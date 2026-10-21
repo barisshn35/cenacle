@@ -19,6 +19,7 @@ import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { useSession } from '../auth/session';
+import { BotBadge } from './bot-badge';
 import { initials } from '../auth/sign-out';
 import {
   addMember,
@@ -42,6 +43,11 @@ export function PersonLine({ person, badge }: { person: Person; badge?: string }
       <div className="min-w-0 flex-1 leading-tight">
         <p className="truncate text-sm">
           {person.display_name || person.email}
+          {person.is_bot && (
+            <span className="ml-2 align-middle">
+              <BotBadge />
+            </span>
+          )}
           {badge && <span className="ml-2 text-xs text-muted-foreground">{badge}</span>}
         </p>
         <p className="truncate text-xs text-muted-foreground">{person.email}</p>

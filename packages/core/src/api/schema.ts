@@ -416,6 +416,162 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/bots': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The workspace's bots (owners and admins) */
+    get: operations['listBots'];
+    put?: never;
+    /**
+     * Create a bot (owners and admins)
+     * @description A bot is a member of the workspace that posts through tokens and webhooks; add it to channels like a person.
+     */
+    post: operations['createBot'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Rename, describe, disable or enable a bot
+     * @description A disabled bot's tokens and webhooks stop working until it is enabled again.
+     */
+    patch: operations['updateBot'];
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/tokens': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    /** The bot's tokens (not their secrets) */
+    get: operations['listBotTokens'];
+    put?: never;
+    /**
+     * Create a token (shown once)
+     * @description The bot uses it as `Authorization: Bearer cnb_...`. Scopes: `messages:read` (list
+     *     its channels and their messages), `messages:write` (send, react).
+     */
+    post: operations['createBotToken'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/tokens/{token_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        token_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke a token */
+    delete: operations['revokeBotToken'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/webhooks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    /** The bot's incoming webhooks */
+    get: operations['listWebhooks'];
+    put?: never;
+    /**
+     * Create an incoming webhook (URL shown once)
+     * @description The bot joins the channel. `jira` reads Jira's issue and comment events.
+     */
+    post: operations['createWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/bots/{bot_id}/webhooks/{webhook_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        webhook_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete a webhook (its URL stops working) */
+    delete: operations['deleteWebhook'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/hooks/{token}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post into a channel through an incoming webhook
+     * @description No session: the URL is the secret. A `generic` webhook takes
+     *     `{"text": "Markdown", "attachments": [...]}`; a `jira` webhook takes Jira's
+     *     webhook payloads (issue created, updated, deleted; comment created).
+     */
+    post: operations['postWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ws/ticket': {
     parameters: {
       query?: never;
@@ -940,6 +1096,43 @@ export interface components {
         [key: string]: unknown;
       };
     };
+    Bot: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      user_id: string;
+      name: string;
+      description: string;
+      disabled: boolean;
+      /** Format: date-time */
+      created_at: string;
+    };
+    BotToken: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      scopes: string[];
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      last_used_at: string | null;
+      /** Format: date-time */
+      expires_at: string | null;
+    };
+    Webhook: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @enum {string} */
+      kind: 'generic' | 'jira';
+      /** Format: uuid */
+      channel_id: string;
+      channel_name: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      last_used_at: string | null;
+    };
     WsTicket: {
       ticket: string;
       /** @description Seconds until the ticket expires. */
@@ -1030,6 +1223,8 @@ export interface components {
       status: 'online' | 'away' | 'dnd';
     };
     Person: {
+      /** @description A bot (shows a badge). */
+      is_bot?: boolean;
       /** Format: uuid */
       id: string;
       display_name: string;
@@ -1066,6 +1261,8 @@ export interface components {
       is_default: boolean;
     };
     Author: {
+      /** @description Sent by a bot. */
+      is_bot?: boolean;
       /** Format: uuid */
       id: string;
       display_name: string;
@@ -1794,6 +1991,309 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  listBots: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Bots. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            bots: components['schemas']['Bot'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createBot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+          description?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Bot'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateBot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name?: string;
+          description?: string;
+          disabled?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Updated. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Bot'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listBotTokens: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Tokens. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            tokens: components['schemas']['BotToken'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createBotToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+          scopes: ('messages:read' | 'messages:write')[];
+          expires_in_days?: number;
+        };
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            token: components['schemas']['BotToken'];
+            /** @description Shown only now. */
+            secret: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  revokeBotToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        token_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revoked. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listWebhooks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Webhooks. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            webhooks: components['schemas']['Webhook'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+          /** Format: uuid */
+          channel_id: string;
+          /** @enum {string} */
+          kind: 'generic' | 'jira';
+        };
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            webhook: components['schemas']['Webhook'];
+            /** @description The secret address; shown only now. */
+            url: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  deleteWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+        webhook_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  postWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Posted (or ignored, for events that say nothing worth posting). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      429: components['responses']['Problem'];
     };
   };
   createWsTicket: {

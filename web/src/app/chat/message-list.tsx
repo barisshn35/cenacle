@@ -20,6 +20,7 @@ import {
   type Message,
 } from './data';
 import { Attachments } from './attachments';
+import { BotBadge } from './bot-badge';
 import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
 import { AddReactionButton, ReactionBar } from './reactions';
@@ -170,6 +171,7 @@ function MessageRow({
             <span id={`m-${m.id}-author`} className="text-sm font-semibold">
               {m.author.display_name}
             </span>
+            {m.author.is_bot && <BotBadge />}
             <time
               dateTime={m.created_at}
               title={fmt.full.format(at)}

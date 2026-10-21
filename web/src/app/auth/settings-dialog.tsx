@@ -178,6 +178,7 @@ export function SettingsDialog({
             <p>{t('settings.endAllImpact', { count: others })}</p>
             <label
               htmlFor={keepId}
+              data-target
               className="flex min-h-target cursor-pointer items-center gap-2 text-sm"
             >
               <input
@@ -186,6 +187,8 @@ export function SettingsDialog({
                 checked={keepCurrent}
                 onChange={(e) => setKeepCurrent(e.target.checked)}
                 className="size-4 accent-primary"
+                // The whole label is the target (at least 24 px).
+                data-target-exempt
               />
               {t('settings.keepThisDevice')}
             </label>

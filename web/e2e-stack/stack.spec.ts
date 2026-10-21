@@ -433,3 +433,51 @@ test('Markdown, a mention and a reaction travel live', async ({ browser }) => {
   const onDeniz = deniz.getByTestId('message').filter({ hasText: stamp });
   await expect(onDeniz.getByRole('button', { name: /👍: 1 person\. Add/ })).toBeVisible();
 });
+
+test('a Jira webhook posts issue cards as its bot', async ({ browser, request }) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const deniz = await open(EMAIL); // the administrator
+  const mert = await open(SECOND.email);
+  const stamp = Date.now().toString(36);
+
+  await deniz.getByRole('button', { name: /Workspace menu/ }).click();
+  await deniz.getByRole('menuitem', { name: 'Integrations' }).click();
+  const dialog = deniz.getByRole('dialog', { name: 'Integrations' });
+  await dialog.getByRole('button', { name: 'New bot' }).click();
+  await dialog.getByLabel('Name').fill(`Jira ${stamp}`);
+  await dialog.getByRole('button', { name: 'Create bot' }).click();
+  await dialog.getByLabel('Webhook name').fill('Issues');
+  await dialog.getByLabel('Channel', { exact: true }).selectOption({ label: 'General' });
+  await dialog.getByLabel('Sends').selectOption('jira');
+  await dialog.getByRole('button', { name: 'Create webhook' }).click();
+  const url = (await dialog.getByTestId('secret').textContent())!.trim();
+
+  const res = await request.post(url, {
+    data: {
+      webhookEvent: 'jira:issue_created',
+      user: { displayName: 'Ayşe' },
+      issue: {
+        key: 'CEN-42',
+        self: 'https://acme.atlassian.net/rest/api/2/issue/10042',
+        fields: { summary: `Giriş sayfası ${stamp}`, status: { name: 'To Do' } },
+      },
+    },
+  });
+  expect(res.status()).toBe(200);
+
+  const card = mert.getByTestId('attachment').filter({ hasText: stamp });
+  await expect(card.getByRole('link', { name: `CEN-42: Giriş sayfası ${stamp}` })).toHaveAttribute(
+    'href',
+    'https://acme.atlassian.net/browse/CEN-42',
+  );
+  await expect(card).toContainText('Ayşe created this issue.');
+  const message = mert.getByTestId('message').filter({ has: card });
+  await expect(message.getByTestId('bot-badge')).toBeVisible();
+});
