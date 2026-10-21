@@ -35,6 +35,7 @@ type stack struct {
 	pool     *pgxpool.Pool
 	sessions *auth.Sessions
 	hub      *realtime.Hub
+	client   *http.Client
 }
 
 type shared struct {
@@ -107,7 +108,11 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			Settings: o.settings, Log: log,
 		},
 	})
-	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub}
+	// With short server timeouts, idle keep-alive connections are closed under
+	// the client; a reused one would fail a POST with EOF.
+	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: o.httpTimeout > 0}}
+	t.Cleanup(client.CloseIdleConnections)
+	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub, client: client}
 	// Wait until the hub follows the log, so no event published by a test is missed.
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -150,7 +155,7 @@ func (s *stack) call(method, path, token string, body any, out any) *http.Respon
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := http.DefaultClient.Do(req)
+	res, err := s.client.Do(req)
 	if err != nil {
 		s.t.Fatal(err)
 	}
