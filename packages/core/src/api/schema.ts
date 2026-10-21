@@ -87,6 +87,87 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/ws/ticket': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Ticket for opening the WebSocket
+     * @description Returns a single-use ticket valid for 30 seconds. Open
+     *     `/ws?ticket=<ticket>[&last_event_id=<id>]` with it: browsers cannot send
+     *     an Authorization header on WebSocket connections, and a ticket keeps the
+     *     session token out of URLs and logs.
+     *
+     *     WebSocket protocol (JSON text frames, server to client):
+     *     - `{"op":"hello","last_event_id":"<id>","heartbeat_ms":25000}` after connecting;
+     *     - `{"op":"event","id":"<id>","type":"message.created","data":{...}}` for each event,
+     *       in order, starting after `last_event_id` when it was given;
+     *     - `{"op":"resync"}` when the events since `last_event_id` are no longer
+     *       available: reload the data and continue from the id in `hello`.
+     *
+     *     Close codes: 4001 invalid ticket, 4003 session ended, 4008 the client
+     *     did not keep up (reconnect and resume).
+     */
+    post: operations['createWsTicket'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Channels the user can read */
+    get: operations['listChannels'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * Messages of a channel, newest page first
+     * @description Cursor pagination: without `before` the newest messages; with `before`
+     *     (a message id) the messages older than it. Each page is in chronological
+     *     order; `has_more` says whether older messages exist.
+     */
+    get: operations['listMessages'];
+    put?: never;
+    /**
+     * Send a message
+     * @description `nonce` is chosen by the client for each message. Sending the same nonce
+     *     again (a retry after a lost response) returns the existing message
+     *     instead of creating a second one. Everyone in the channel receives a
+     *     `message.created` event.
+     */
+    post: operations['createMessage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -119,6 +200,43 @@ export interface components {
       expires_at: string;
       /** @description The session also ends after this long without use. */
       idle_timeout_seconds: number;
+    };
+    WsTicket: {
+      ticket: string;
+      /** @description Seconds until the ticket expires. */
+      expires_in: number;
+    };
+    Channel: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      topic: string;
+    };
+    Author: {
+      /** Format: uuid */
+      id: string;
+      display_name: string;
+    };
+    Message: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      channel_id: string;
+      author: components['schemas']['Author'];
+      /** @description Message text as typed (Markdown rendering arrives later). */
+      body: string;
+      /** @description The client's nonce, so the sender can match its pending message. */
+      nonce: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    NewMessage: {
+      body: string;
+      nonce: string;
+    };
+    MessagePage: {
+      messages: components['schemas']['Message'][];
+      has_more: boolean;
     };
     Logout: {
       /** @description Sign-out page of Cenacle ID; empty if it is not known. */
@@ -229,6 +347,109 @@ export interface operations {
         };
       };
       401: components['responses']['Problem'];
+    };
+  };
+  createWsTicket: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Ticket created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WsTicket'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  listChannels: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Channels, ordered by name. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            channels: components['schemas']['Channel'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  listMessages: {
+    parameters: {
+      query?: {
+        before?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A page of messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MessagePage'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewMessage'];
+      };
+    };
+    responses: {
+      /** @description Created (or already created with this nonce). */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      429: components['responses']['Problem'];
     };
   };
 }

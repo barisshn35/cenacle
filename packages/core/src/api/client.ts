@@ -9,11 +9,14 @@ export type Logout = components['schemas']['Logout'];
 /** A failed API call. `problem` is the server's RFC 9457 body, or a synthesized one. */
 export class ApiError extends Error {
   readonly problem: Problem;
+  /** Seconds to wait before trying again (Retry-After), if the server said. */
+  readonly retryAfter: number | undefined;
 
-  constructor(problem: Problem) {
+  constructor(problem: Problem, retryAfter?: number) {
     super(`${problem.status} ${problem.code}`);
     this.name = 'ApiError';
     this.problem = problem;
+    this.retryAfter = retryAfter;
   }
 
   get status(): number {
@@ -50,6 +53,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   }
   const body: unknown = await res.json().catch(() => undefined);
   if (!res.ok) {
+    const retryAfter = Number(res.headers.get('Retry-After'));
     throw new ApiError(
       isProblem(body)
         ? body
@@ -59,6 +63,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
             status: res.status,
             code: `http_${res.status}`,
           },
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
     );
   }
   return body as T;

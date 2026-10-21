@@ -58,6 +58,23 @@ describe('apiFetch', () => {
     expect(isUnauthenticated(net)).toBe(false);
   });
 
+  it('passes on Retry-After', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ type: 'about:blank', title: '', status: 429, code: 'rate_limited' }),
+          {
+            status: 429,
+            headers: { 'content-type': 'application/problem+json', 'retry-after': '7' },
+          },
+        ),
+      ),
+    );
+    const err = (await apiFetch('/api/x').catch((e: unknown) => e)) as ApiError;
+    expect(err.retryAfter).toBe(7);
+  });
+
   it('logs out with POST', async () => {
     const fetchMock = respond(200, { end_session_url: '' });
     vi.stubGlobal('fetch', fetchMock);
