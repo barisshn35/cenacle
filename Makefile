@@ -167,6 +167,10 @@ build-go:
 build-js: node_modules
 	pnpm build
 
+.PHONY: brand
+brand: node_modules ## Render raster brand assets (PNG icons, favicon.ico) from the SVGs
+	node scripts/build-brand-assets.mjs
+
 .PHONY: images
 images: ## Build container images for the local architecture
 	docker build -f server/Dockerfile -t $(IMAGE_PREFIX)server:dev .

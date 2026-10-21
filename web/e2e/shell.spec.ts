@@ -71,3 +71,50 @@ test('unknown route shows a not-found state', async ({ page }) => {
   await page.goto('/does-not-exist');
   await expect(page.getByRole('status')).toContainText("This page doesn't exist.");
 });
+
+test('brand icons and manifest are served from our origin', async ({ page, request }) => {
+  await page.goto('/');
+  const icons = await page
+    .locator('link[rel="icon"], link[rel="apple-touch-icon"]')
+    .evaluateAll((links) => links.map((l) => (l as HTMLLinkElement).getAttribute('href')));
+  expect(icons).toEqual(
+    expect.arrayContaining([
+      '/favicon.ico',
+      '/favicon.svg',
+      '/favicon-dark.svg',
+      '/apple-touch-icon.png',
+    ]),
+  );
+  const manifest = await (await request.get('/manifest.webmanifest')).json();
+  expect(manifest).toMatchObject({
+    name: 'Cenacle',
+    theme_color: '#14342B',
+    background_color: '#0C1A16',
+  });
+  for (const href of [...icons, ...manifest.icons.map((i: { src: string }) => i.src)]) {
+    const res = await request.get(href!);
+    expect(res.status(), href!).toBe(200);
+  }
+});
+
+test('the favicon follows the system theme', async ({ page }) => {
+  // Samples the arch stroke of /favicon.svg drawn at 64 px.
+  const archColor = async () =>
+    page.evaluate(async () => {
+      const img = new Image(64, 64);
+      img.src = `/favicon.svg?t=${Math.random()}`;
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 64;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, 64, 64);
+      // Left leg of the arch: x = 10, y = 32 in the 2.25..45.75 viewBox.
+      const [r, g, b] = ctx.getImageData(11, 43, 1, 1).data;
+      return [r, g, b];
+    });
+  await page.goto('/');
+  await page.emulateMedia({ colorScheme: 'light' });
+  expect(await archColor()).toEqual([0x14, 0x34, 0x2b]); // Forest
+  await page.emulateMedia({ colorScheme: 'dark' });
+  expect(await archColor()).toEqual([0xf3, 0xee, 0xe2]); // Bone
+});
