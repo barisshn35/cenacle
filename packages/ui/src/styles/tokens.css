@@ -195,39 +195,40 @@
 [data-theme='dark'] {
   /* --- Dark theme: Night and Bone ------------------------------------ */
   color-scheme: dark;
-  --background: var(--brand-night);
+  /* Soft, neutral blacks (no green cast); text and accents stay Bone and Brass. */
+  --background: #161616;
   --foreground: var(--brand-bone);
-  --card: #112420;
+  --card: #1c1c1c;
   --card-foreground: var(--foreground);
-  --popover: #142a25;
+  --popover: #212121;
   --popover-foreground: var(--foreground);
   --accent-brand: var(--brand-brass);
-  --accent-brand-foreground: var(--brand-night);
+  --accent-brand-foreground: #161616;
   --primary: var(--accent-brand);
   --primary-foreground: var(--accent-brand-foreground);
-  --secondary: #173029;
+  --secondary: #262626;
   --secondary-foreground: var(--foreground);
-  --muted: #173029;
-  --muted-foreground: #a3b1aa;
-  --accent: #1c3730;
+  --muted: #262626;
+  --muted-foreground: #a9a9a9;
+  --accent: #2c2c2c;
   --accent-foreground: var(--foreground);
   --destructive: oklch(0.74 0.16 25);
   --destructive-foreground: oklch(0.18 0.02 25);
-  --border: #2a4139;
-  --input: #666d66;
+  --border: #333333;
+  --input: #6b6b6b;
   --ring: var(--accent-brand);
   --logo-ink: var(--brand-bone);
   --logo-accent: var(--brand-brass);
 
-  --sidebar: #0f211c;
-  --sidebar-foreground: #d9ded6;
+  --sidebar: #121212;
+  --sidebar-foreground: #dcdcdc;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #1b362f;
+  --sidebar-accent: #282828;
   --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: #213a33;
+  --sidebar-border: #2a2a2a;
   --sidebar-ring: var(--ring);
-  --rail: #08130f;
+  --rail: #0c0c0c;
 
   --success: oklch(0.7 0.14 155);
   --success-foreground: oklch(0.18 0.03 155);
