@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Public entry point. Host names come from the environment (.env.prod), never
+# from code: CENACLE_DOMAIN (chat) and CENACLE_ID_DOMAIN (Cenacle ID).
+{
+	email {$ACME_EMAIL}
+	admin off
+}
+
+{$CENACLE_DOMAIN} {
+	encode zstd gzip
+
+	# API and WebSocket go to the chat server; everything else is the SPA.
+	handle /api/* {
+		reverse_proxy server:8180
+	}
+	handle /ws* {
+		# WebSockets have no proxy idle timeout; the server pings every 25 s
+		# (v0.4). Keep upgraded streams open across config reloads.
+		reverse_proxy server:8180 {
+			stream_close_delay 5m
+		}
+	}
+	handle {
+		reverse_proxy web:8080
+	}
+}
+
+{$CENACLE_ID_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy idp:8190
+}

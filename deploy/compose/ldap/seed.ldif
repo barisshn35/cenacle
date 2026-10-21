@@ -1,0 +1,77 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Test-only directory data. Passwords (development only): <uid>-dev-password,
+# e.g. alice / alice-dev-password. Groups map to Cenacle roles in v0.14.
+
+dn: dc=cenacle,dc=test
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: Cenacle Test
+dc: cenacle
+
+dn: ou=people,dc=cenacle,dc=test
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=cenacle,dc=test
+objectClass: organizationalUnit
+ou: groups
+
+dn: uid=alice,ou=people,dc=cenacle,dc=test
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: alice
+cn: Alice Admin
+givenName: Alice
+sn: Admin
+displayName: Alice Admin
+mail: alice@cenacle.test
+uidNumber: 10001
+gidNumber: 10000
+homeDirectory: /home/alice
+userPassword: {SSHA}mknPgOciFiRtQh1+ICc5B/j5kJhyFbskgQTp6Q==
+
+dn: uid=bob,ou=people,dc=cenacle,dc=test
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: bob
+cn: Bob Engineer
+givenName: Bob
+sn: Engineer
+displayName: Bob Engineer
+mail: bob@cenacle.test
+uidNumber: 10002
+gidNumber: 10000
+homeDirectory: /home/bob
+userPassword: {SSHA}zucq3+77/4qXHu9HtBaKdisaxQt+veDXLOKQzg==
+
+dn: uid=carol,ou=people,dc=cenacle,dc=test
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: carol
+cn: Carol Designer
+givenName: Carol
+sn: Designer
+displayName: Carol Designer
+mail: carol@cenacle.test
+uidNumber: 10003
+gidNumber: 10000
+homeDirectory: /home/carol
+userPassword: {SSHA}aaCDggxL25NJyWx6yhd1zS1Xt30gkffzxjkwFg==
+
+dn: cn=cenacle-admins,ou=groups,dc=cenacle,dc=test
+objectClass: groupOfNames
+cn: cenacle-admins
+member: uid=alice,ou=people,dc=cenacle,dc=test
+
+dn: cn=engineering,ou=groups,dc=cenacle,dc=test
+objectClass: groupOfNames
+cn: engineering
+member: uid=alice,ou=people,dc=cenacle,dc=test
+member: uid=bob,ou=people,dc=cenacle,dc=test
+
+dn: cn=design,ou=groups,dc=cenacle,dc=test
+objectClass: groupOfNames
+cn: design
+member: uid=carol,ou=people,dc=cenacle,dc=test

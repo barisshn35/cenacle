@@ -1,0 +1,167 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Production stack (skeleton, v0.1). Single host, automatic TLS via Caddy.
+#
+#   cd deploy/compose
+#   ./gen-secrets.sh                   # random passwords into ./secrets
+#   cp .env.prod.example .env.prod     # set domains, e-mail, version
+#   docker compose -f prod.yml --env-file .env.prod up -d
+#
+# Everything runs as non-root, with dropped capabilities and read-only root
+# file systems where possible. Databases are only on the internal network.
+# Images can be pre-pulled for air-gapped installs (docker save / load).
+
+name: cenacle
+
+x-hardening: &hardening
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  logging:
+    driver: local
+    options: { max-size: 20m, max-file: '5' }
+
+x-images:
+  server: &server-image ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}server:${CENACLE_VERSION:?set CENACLE_VERSION}
+
+services:
+  proxy:
+    <<: *hardening
+    build: ./caddy
+    image: cenacle-proxy:${CENACLE_VERSION}
+    read_only: true
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 80
+    environment:
+      CENACLE_DOMAIN: ${CENACLE_DOMAIN:?set CENACLE_DOMAIN, e.g. chat.example.com}
+      CENACLE_ID_DOMAIN: ${CENACLE_ID_DOMAIN:?set CENACLE_ID_DOMAIN, e.g. id.example.com}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL for certificate notices}
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    tmpfs: [/tmp]
+    networks: [edge]
+    depends_on: [web, server, idp]
+
+  web:
+    <<: *hardening
+    image: ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}web:${CENACLE_VERSION}
+    read_only: true
+    tmpfs: [/tmp, /data, /config]
+    networks: [edge]
+
+  migrate:
+    <<: *hardening
+    restart: 'no'
+    image: *server-image
+    command: [migrate, up]
+    read_only: true
+    environment: &server-env
+      CENACLE_ENV: production
+      CENACLE_DATABASE_URL_FILE: /run/secrets/chat_database_url
+      CENACLE_VALKEY_ADDR: valkey:6379
+      CENACLE_VALKEY_PASSWORD_FILE: /run/secrets/valkey_password
+    secrets: &server-secrets [chat_database_url, valkey_password]
+    networks: [data]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  server:
+    <<: *hardening
+    image: *server-image
+    command: [serve]
+    read_only: true
+    environment: *server-env
+    secrets: *server-secrets
+    networks: [edge, data]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      valkey: { condition: service_healthy }
+
+  idp:
+    <<: *hardening
+    image: ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}idp:${CENACLE_VERSION}
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      IDP_ENV: production
+      IDP_ISSUER: https://${CENACLE_ID_DOMAIN}
+      IDP_COOKIE_DOMAIN: ${IDP_COOKIE_DOMAIN:-}
+      IDP_DATABASE_URL_FILE: /run/secrets/idp_database_url
+    secrets: [idp_database_url]
+    networks: [edge, data]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  postgres:
+    <<: *hardening
+    image: postgres:18.6-alpine3.24
+    # The entrypoint drops to the postgres user; it needs these capabilities to do so.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      CHAT_DB_NAME: cenacle_chat
+      CHAT_DB_USER: cenacle_chat
+      CHAT_DB_PASSWORD_FILE: /run/secrets/chat_db_password
+      IDP_DB_NAME: cenacle_idp
+      IDP_DB_USER: cenacle_idp
+      IDP_DB_PASSWORD_FILE: /run/secrets/idp_db_password
+    secrets: [postgres_password, chat_db_password, idp_db_password]
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/01-databases.sh:/docker-entrypoint-initdb.d/01-databases.sh:ro
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  valkey:
+    <<: *hardening
+    image: valkey/valkey:9.0.6-alpine
+    user: '999:1000'
+    read_only: true
+    command:
+      - sh
+      - -c
+      - exec valkey-server --requirepass "$$(cat /run/secrets/valkey_password)" --save 60 1 --appendonly yes
+    secrets: [valkey_password]
+    volumes:
+      - valkey-data:/data
+    networks: [data]
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'valkey-cli -a "$$(cat /run/secrets/valkey_password)" --no-auth-warning ping | grep -q PONG',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+networks:
+  edge: {}
+  # No route to the outside world for the databases.
+  data:
+    internal: true
+
+volumes:
+  caddy-data:
+  caddy-config:
+  postgres-data:
+  valkey-data:
+
+secrets:
+  postgres_password: { file: ./secrets/postgres_password }
+  chat_db_password: { file: ./secrets/chat_db_password }
+  idp_db_password: { file: ./secrets/idp_db_password }
+  valkey_password: { file: ./secrets/valkey_password }
+  chat_database_url: { file: ./secrets/chat_database_url }
+  idp_database_url: { file: ./secrets/idp_database_url }

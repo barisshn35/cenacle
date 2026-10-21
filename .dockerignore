@@ -1,0 +1,16 @@
+# Build context is the repository root; keep it small and secret-free.
+.git
+_kickoff
+CLAUDE.md
+.env
+.env.*
+!.env.example
+**/node_modules
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+.bin
+server/bin
+deploy
+docs
