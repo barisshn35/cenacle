@@ -11,15 +11,24 @@ import (
 )
 
 type Channel struct {
-	ID          pgtype.UUID `json:"id"`
-	Name        string      `json:"name"`
-	Topic       string      `json:"topic"`
-	CreatedAt   time.Time   `json:"created_at"`
-	Kind        string      `json:"kind"`
-	IsDefault   bool        `json:"is_default"`
-	IsMandatory bool        `json:"is_mandatory"`
-	CreatedBy   pgtype.UUID `json:"created_by"`
-	Visibility  string      `json:"visibility"`
+	ID          pgtype.UUID        `json:"id"`
+	Name        string             `json:"name"`
+	Topic       string             `json:"topic"`
+	CreatedAt   time.Time          `json:"created_at"`
+	Kind        string             `json:"kind"`
+	IsDefault   bool               `json:"is_default"`
+	IsMandatory bool               `json:"is_mandatory"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	Visibility  string             `json:"visibility"`
+	ArchivedAt  pgtype.Timestamptz `json:"archived_at"`
+	CategoryID  pgtype.UUID        `json:"category_id"`
+}
+
+type ChannelCategory struct {
+	ID        pgtype.UUID `json:"id"`
+	Name      string      `json:"name"`
+	Position  int32       `json:"position"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type ChannelMember struct {
@@ -30,12 +39,15 @@ type ChannelMember struct {
 }
 
 type Message struct {
-	ID        pgtype.UUID `json:"id"`
-	ChannelID pgtype.UUID `json:"channel_id"`
-	AuthorID  pgtype.UUID `json:"author_id"`
-	Body      string      `json:"body"`
-	Nonce     string      `json:"nonce"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID        pgtype.UUID        `json:"id"`
+	ChannelID pgtype.UUID        `json:"channel_id"`
+	AuthorID  pgtype.UUID        `json:"author_id"`
+	Body      string             `json:"body"`
+	Nonce     string             `json:"nonce"`
+	CreatedAt time.Time          `json:"created_at"`
+	EditedAt  pgtype.Timestamptz `json:"edited_at"`
+	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy pgtype.UUID        `json:"deleted_by"`
 }
 
 type Session struct {

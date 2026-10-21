@@ -128,14 +128,25 @@ type Author struct {
 	Id          openapi_types.UUID `json:"id"`
 }
 
+// Category defines model for Category.
+type Category struct {
+	Id       openapi_types.UUID `json:"id"`
+	Name     string             `json:"name"`
+	Position int                `json:"position"`
+}
+
 // Channel defines model for Channel.
 type Channel struct {
+	// Archived Archived channels are read-only.
+	Archived bool `json:"archived"`
+
 	// CanManage Whether this user can add and remove people and change the channel.
 	CanManage bool `json:"can_manage"`
 
 	// CanPost Whether this user can send messages here.
-	CanPost bool               `json:"can_post"`
-	Id      openapi_types.UUID `json:"id"`
+	CanPost    bool                `json:"can_post"`
+	CategoryId *openapi_types.UUID `json:"category_id"`
+	Id         openapi_types.UUID  `json:"id"`
 
 	// IsDefault Every user is a member.
 	IsDefault bool `json:"is_default"`
@@ -166,6 +177,7 @@ type ChannelList struct {
 
 // ChannelUpdate defines model for ChannelUpdate.
 type ChannelUpdate struct {
+	Name       *string                  `json:"name,omitempty"`
 	Topic      *string                  `json:"topic,omitempty"`
 	Visibility *ChannelUpdateVisibility `json:"visibility,omitempty"`
 }
@@ -196,6 +208,7 @@ type Message struct {
 	Body      string             `json:"body"`
 	ChannelId openapi_types.UUID `json:"channel_id"`
 	CreatedAt time.Time          `json:"created_at"`
+	EditedAt  *time.Time         `json:"edited_at"`
 	Id        openapi_types.UUID `json:"id"`
 
 	// Nonce The client's nonce, so the sender can match its pending message.
@@ -301,6 +314,23 @@ type LoginParams struct {
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
 }
 
+// CreateCategoryJSONBody defines parameters for CreateCategory.
+type CreateCategoryJSONBody struct {
+	Name string `json:"name"`
+}
+
+// UpdateCategoryJSONBody defines parameters for UpdateCategory.
+type UpdateCategoryJSONBody struct {
+	Name     *string `json:"name,omitempty"`
+	Position *int    `json:"position,omitempty"`
+}
+
+// SetChannelCategoryJSONBody defines parameters for SetChannelCategory.
+type SetChannelCategoryJSONBody struct {
+	// CategoryId null takes the channel out of its category.
+	CategoryId *openapi_types.UUID `json:"category_id,omitempty"`
+}
+
 // AddChannelMemberJSONBody defines parameters for AddChannelMember.
 type AddChannelMemberJSONBody struct {
 	UserId openapi_types.UUID `json:"user_id"`
@@ -312,11 +342,22 @@ type ListMessagesParams struct {
 	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// EditMessageJSONBody defines parameters for EditMessage.
+type EditMessageJSONBody struct {
+	Body string `json:"body"`
+}
+
 // SearchUsersParams defines parameters for SearchUsers.
 type SearchUsersParams struct {
 	Q     string `form:"q" json:"q"`
 	Limit *int   `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// CreateCategoryJSONRequestBody defines body for CreateCategory for application/json ContentType.
+type CreateCategoryJSONRequestBody CreateCategoryJSONBody
+
+// UpdateCategoryJSONRequestBody defines body for UpdateCategory for application/json ContentType.
+type UpdateCategoryJSONRequestBody UpdateCategoryJSONBody
 
 // CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
 type CreateChannelJSONRequestBody = NewChannel
@@ -324,11 +365,17 @@ type CreateChannelJSONRequestBody = NewChannel
 // UpdateChannelJSONRequestBody defines body for UpdateChannel for application/json ContentType.
 type UpdateChannelJSONRequestBody = ChannelUpdate
 
+// SetChannelCategoryJSONRequestBody defines body for SetChannelCategory for application/json ContentType.
+type SetChannelCategoryJSONRequestBody SetChannelCategoryJSONBody
+
 // AddChannelMemberJSONRequestBody defines body for AddChannelMember for application/json ContentType.
 type AddChannelMemberJSONRequestBody AddChannelMemberJSONBody
 
 // CreateMessageJSONRequestBody defines body for CreateMessage for application/json ContentType.
 type CreateMessageJSONRequestBody = NewMessage
+
+// EditMessageJSONRequestBody defines body for EditMessage for application/json ContentType.
+type EditMessageJSONRequestBody EditMessageJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -341,6 +388,18 @@ type ServerInterface interface {
 	// Logout End the current session
 	// (POST /api/auth/logout)
 	Logout(w http.ResponseWriter, r *http.Request)
+	// ListCategories Channel categories, in order
+	// (GET /api/categories)
+	ListCategories(w http.ResponseWriter, r *http.Request)
+	// CreateCategory Create a category (administrator)
+	// (POST /api/categories)
+	CreateCategory(w http.ResponseWriter, r *http.Request)
+	// DeleteCategory Delete a category (administrator); its channels stay, without category
+	// (DELETE /api/categories/{category_id})
+	DeleteCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID)
+	// UpdateCategory Rename or move a category (administrator)
+	// (PATCH /api/categories/{category_id})
+	UpdateCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID)
 	// ListChannels Channels the user is a member of
 	// (GET /api/channels)
 	ListChannels(w http.ResponseWriter, r *http.Request)
@@ -350,9 +409,15 @@ type ServerInterface interface {
 	// ListChannelDirectory Channels the user can see, with membership
 	// (GET /api/channels/directory)
 	ListChannelDirectory(w http.ResponseWriter, r *http.Request)
-	// UpdateChannel Change visibility or topic (channel managers)
+	// UpdateChannel Rename, change visibility or topic (channel managers)
 	// (PATCH /api/channels/{channel_id})
 	UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ArchiveChannel Archive a channel (channel managers)
+	// (POST /api/channels/{channel_id}/archive)
+	ArchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// SetChannelCategory Put a channel in a category (administrator)
+	// (PUT /api/channels/{channel_id}/category)
+	SetChannelCategory(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// JoinChannel Join a public channel
 	// (POST /api/channels/{channel_id}/join)
 	JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -374,6 +439,18 @@ type ServerInterface interface {
 	// CreateMessage Send a message
 	// (POST /api/channels/{channel_id}/messages)
 	CreateMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// DeleteMessage Delete a message (its author, or a channel manager)
+	// (DELETE /api/channels/{channel_id}/messages/{message_id})
+	DeleteMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// EditMessage Edit your own message
+	// (PATCH /api/channels/{channel_id}/messages/{message_id})
+	EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// RestoreMessage Undo deleting a message (whoever may delete it)
+	// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
+	RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// UnarchiveChannel Restore an archived channel (channel managers)
+	// (POST /api/channels/{channel_id}/unarchive)
+	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -407,6 +484,30 @@ func (_ Unimplemented) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListCategories Channel categories, in order
+// (GET /api/categories)
+func (_ Unimplemented) ListCategories(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateCategory Create a category (administrator)
+// (POST /api/categories)
+func (_ Unimplemented) CreateCategory(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteCategory Delete a category (administrator); its channels stay, without category
+// (DELETE /api/categories/{category_id})
+func (_ Unimplemented) DeleteCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateCategory Rename or move a category (administrator)
+// (PATCH /api/categories/{category_id})
+func (_ Unimplemented) UpdateCategory(w http.ResponseWriter, r *http.Request, categoryId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListChannels Channels the user is a member of
 // (GET /api/channels)
 func (_ Unimplemented) ListChannels(w http.ResponseWriter, r *http.Request) {
@@ -425,9 +526,21 @@ func (_ Unimplemented) ListChannelDirectory(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// UpdateChannel Change visibility or topic (channel managers)
+// UpdateChannel Rename, change visibility or topic (channel managers)
 // (PATCH /api/channels/{channel_id})
 func (_ Unimplemented) UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ArchiveChannel Archive a channel (channel managers)
+// (POST /api/channels/{channel_id}/archive)
+func (_ Unimplemented) ArchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetChannelCategory Put a channel in a category (administrator)
+// (PUT /api/channels/{channel_id}/category)
+func (_ Unimplemented) SetChannelCategory(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -470,6 +583,30 @@ func (_ Unimplemented) ListMessages(w http.ResponseWriter, r *http.Request, chan
 // CreateMessage Send a message
 // (POST /api/channels/{channel_id}/messages)
 func (_ Unimplemented) CreateMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteMessage Delete a message (its author, or a channel manager)
+// (DELETE /api/channels/{channel_id}/messages/{message_id})
+func (_ Unimplemented) DeleteMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// EditMessage Edit your own message
+// (PATCH /api/channels/{channel_id}/messages/{message_id})
+func (_ Unimplemented) EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RestoreMessage Undo deleting a message (whoever may delete it)
+// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
+func (_ Unimplemented) RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UnarchiveChannel Restore an archived channel (channel managers)
+// (POST /api/channels/{channel_id}/unarchive)
+func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -632,6 +769,86 @@ func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
+// ListCategories operation middleware
+func (siw *ServerInterfaceWrapper) ListCategories(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCategories(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCategory operation middleware
+func (siw *ServerInterfaceWrapper) CreateCategory(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCategory(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteCategory operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCategory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "category_id" -------------
+	var categoryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "category_id", chi.URLParam(r, "category_id"), &categoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "category_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCategory(w, r, categoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCategory operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCategory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "category_id" -------------
+	var categoryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "category_id", chi.URLParam(r, "category_id"), &categoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "category_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCategory(w, r, categoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListChannels operation middleware
 func (siw *ServerInterfaceWrapper) ListChannels(w http.ResponseWriter, r *http.Request) {
 
@@ -691,6 +908,58 @@ func (siw *ServerInterfaceWrapper) UpdateChannel(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ArchiveChannel operation middleware
+func (siw *ServerInterfaceWrapper) ArchiveChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchiveChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetChannelCategory operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelCategory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelCategory(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -920,6 +1189,137 @@ func (siw *ServerInterfaceWrapper) CreateMessage(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteMessage operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EditMessage operation middleware
+func (siw *ServerInterfaceWrapper) EditMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EditMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RestoreMessage operation middleware
+func (siw *ServerInterfaceWrapper) RestoreMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RestoreMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnarchiveChannel operation middleware
+func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnarchiveChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
 
@@ -1130,6 +1530,36 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}", wrapper.UpdateChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/archive", wrapper.ArchiveChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/unarchive", wrapper.UnarchiveChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/category", wrapper.SetChannelCategory)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.DeleteMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.EditMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/restore", wrapper.RestoreMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/categories", wrapper.ListCategories)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/categories", wrapper.CreateCategory)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/categories/{category_id}", wrapper.DeleteCategory)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/categories/{category_id}", wrapper.UpdateCategory)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/members", wrapper.ListChannelMembers)

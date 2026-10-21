@@ -30,8 +30,10 @@ func (a *audience) allows(ev events.Event) bool {
 		return false
 	}
 	switch ev.Type {
-	case events.MessageCreated:
+	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted:
 		return a.channels[d.ChannelID]
+	case events.CategoriesChanged:
+		return true
 	case events.ChannelCreated: // default channels: everyone is a member
 		a.channels[d.Channel.ID] = true
 		return true

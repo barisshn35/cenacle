@@ -40,6 +40,9 @@ type Handlers struct {
 	Limiter RateLimiter
 	Cookies auth.Cookies
 	Log     *slog.Logger
+	// Configured lists the channels of the installation settings, which keep
+	// their names.
+	Configured []string
 	// MessagesPerWindow and Window limit how fast one user can send.
 	MessagesPerWindow int64
 	Window            time.Duration
@@ -111,10 +114,10 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 	page := api.MessagePage{HasMore: hasMore, Messages: make([]api.Message, len(rows))}
 	for i, m := range rows {
 		// Rows come newest first; pages are chronological.
-		page.Messages[len(rows)-1-i] = api.Message{
-			Id: uuid(m.ID), ChannelId: uuid(m.ChannelID), Body: m.Body, Nonce: m.Nonce, CreatedAt: m.CreatedAt,
-			Author: api.Author{Id: uuid(m.AuthorID), DisplayName: m.AuthorName},
-		}
+		page.Messages[len(rows)-1-i] = messageAPI(store.Message{
+			ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
+			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt,
+		}, m.AuthorName)
 	}
 	httpx.WriteJSON(w, http.StatusOK, page)
 }
@@ -155,9 +158,12 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	if !ok {
 		return
 	}
+	if c.ArchivedAt.Valid {
+		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
+		return
+	}
 	if !canPost(c, p.User) {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusForbidden, Code: CodeReadOnlyChannel,
-			Detail: "Only the administrator can send messages in this channel."})
+		forbidden(w, r, CodeReadOnlyChannel, "Only the administrator can send messages in this channel.")
 		return
 	}
 
@@ -187,12 +193,22 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		h.unavailable(w, r, "create message", err)
 		return
 	}
-	out := api.Message{
-		Id: uuid(msg.ID), ChannelId: uuid(msg.ChannelID), Body: msg.Body, Nonce: msg.Nonce, CreatedAt: msg.CreatedAt,
-		Author: api.Author{Id: uuid(p.User.ID), DisplayName: p.User.DisplayName},
-	}
+	out := messageAPI(msg, p.User.DisplayName)
 	// The message is stored; if the event cannot be appended, clients still
 	// see it when they load the channel (a transactional outbox follows in v0.9).
 	h.publish(r.Context(), events.MessageCreated, out)
 	httpx.WriteJSON(w, http.StatusCreated, out)
+}
+
+// messageAPI describes a stored message with its author's name.
+func messageAPI(m store.Message, authorName string) api.Message {
+	out := api.Message{
+		Id: uuid(m.ID), ChannelId: uuid(m.ChannelID), Body: m.Body, Nonce: m.Nonce, CreatedAt: m.CreatedAt,
+		Author: api.Author{Id: uuid(m.AuthorID), DisplayName: authorName},
+	}
+	if m.EditedAt.Valid {
+		t := m.EditedAt.Time
+		out.EditedAt = &t
+	}
+	return out
 }

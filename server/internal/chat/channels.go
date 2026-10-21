@@ -38,6 +38,8 @@ const (
 	CodeReadOnlyChannel  = "read_only_channel"
 	CodeChannelMandatory = "channel_mandatory"
 	CodeNameTaken        = "channel_name_taken"
+	CodeChannelArchived  = "channel_archived"
+	CodeConfiguredName   = "channel_configured"
 )
 
 // Limits of channel fields (characters).
@@ -57,7 +59,7 @@ const (
 // canPost: everyone in standard channels, only the administrator in
 // announcement channels.
 func canPost(c store.Channel, user store.User) bool {
-	return c.Kind != KindAnnouncement || user.IsAdmin
+	return !c.ArchivedAt.Valid && (c.Kind != KindAnnouncement || user.IsAdmin)
 }
 
 // canManage: the channel's managers and the administrator.
@@ -69,13 +71,19 @@ func canManage(role string, user store.User) bool {
 // a member).
 func toAPI(c store.Channel, role string, user store.User) api.Channel {
 	member := role != ""
-	return api.Channel{
+	out := api.Channel{
 		Id: uuid(c.ID), Name: c.Name, Topic: c.Topic, Kind: api.ChannelKind(c.Kind),
 		Visibility: api.ChannelVisibility(c.Visibility),
 		IsDefault:  c.IsDefault, IsMandatory: c.IsMandatory, IsMember: member,
 		CanPost:   member && canPost(c, user),
 		CanManage: canManage(role, user),
+		Archived:  c.ArchivedAt.Valid,
 	}
+	if c.CategoryID.Valid {
+		id := uuid(c.CategoryID)
+		out.CategoryId = &id
+	}
+	return out
 }
 
 func writeChannels(w http.ResponseWriter, list []api.Channel) {
@@ -346,12 +354,20 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can change it.")
 		return
 	}
-	visibility, topic, problem := c.Visibility, c.Topic, ""
+	name, visibility, topic, problem := c.Name, c.Visibility, c.Topic, ""
+	if in.Name != nil {
+		name, problem = cleanName(*in.Name)
+	}
 	if in.Visibility != nil {
 		visibility = string(*in.Visibility)
 	}
-	if in.Topic != nil {
+	if problem == "" && in.Topic != nil {
 		topic, problem = cleanTopic(*in.Topic)
+	}
+	if name != c.Name && h.configured(c.Name) {
+		// The server would create the configured name again at the next start.
+		forbidden(w, r, CodeConfiguredName, "This channel is named in the installation settings.")
+		return
 	}
 	switch {
 	case problem != "":
@@ -364,7 +380,14 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 		badRequest(w, r, problem)
 		return
 	}
-	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{ID: c.ID, Visibility: visibility, Topic: topic})
+	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
+		ID: c.ID, Name: name, Visibility: visibility, Topic: topic, CategoryID: c.CategoryID,
+	})
+	if isUniqueViolation(err) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
+			Detail: "A channel with this name exists."})
+		return
+	}
 	if err != nil {
 		h.unavailable(w, r, "update channel", err)
 		return

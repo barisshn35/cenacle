@@ -4,6 +4,7 @@
 SELECT sqlc.embed(c), m.role
 FROM channels c
 JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id
+WHERE c.archived_at IS NULL
 ORDER BY c.is_mandatory DESC, lower(c.name);
 
 -- name: ListAllChannels :many
@@ -35,8 +36,34 @@ WHERE m.channel_id = @channel_id
 ORDER BY m.role = 'manager' DESC, lower(u.display_name), u.id;
 
 -- name: UpdateChannel :one
-UPDATE channels SET visibility = @visibility, topic = @topic WHERE id = @id
+UPDATE channels
+SET name = @name, visibility = @visibility, topic = @topic, category_id = sqlc.narg(category_id)
+WHERE id = @id
 RETURNING *;
+
+-- name: SetChannelArchived :one
+UPDATE channels
+SET archived_at = CASE WHEN @archived::boolean THEN coalesce(archived_at, now()) END
+WHERE id = @id
+RETURNING *;
+
+-- name: ListCategories :many
+SELECT * FROM channel_categories ORDER BY position, lower(name);
+
+-- name: GetCategory :one
+SELECT * FROM channel_categories WHERE id = @id;
+
+-- name: CreateCategory :one
+INSERT INTO channel_categories (name, position)
+VALUES (@name, coalesce((SELECT max(position) + 1 FROM channel_categories), 0))
+RETURNING *;
+
+-- name: UpdateCategory :one
+UPDATE channel_categories SET name = @name, position = @position WHERE id = @id
+RETURNING *;
+
+-- name: DeleteCategory :execrows
+DELETE FROM channel_categories WHERE id = @id;
 
 -- name: CreateChannel :one
 INSERT INTO channels (name, topic, kind, is_default, visibility, created_by)
@@ -87,10 +114,38 @@ SELECT * FROM messages WHERE author_id = @author_id AND nonce = @nonce;
 -- name: ListMessagesBefore :many
 -- ListMessagesBefore returns up to row_limit messages of a channel older than
 -- the cursor (all when before is NULL), newest first, with their authors.
+-- Deleted messages are left out.
 SELECT m.*, u.display_name AS author_name
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = @channel_id
+  AND m.deleted_at IS NULL
   AND (sqlc.narg(before)::uuid IS NULL OR m.id < sqlc.narg(before)::uuid)
 ORDER BY m.id DESC
 LIMIT @row_limit;
+
+-- name: GetMessage :one
+SELECT m.*, u.display_name AS author_name
+FROM messages m
+JOIN users u ON u.id = m.author_id
+WHERE m.id = @id AND m.channel_id = @channel_id;
+
+-- name: EditMessage :one
+UPDATE messages SET body = @body, edited_at = now()
+WHERE id = @id AND deleted_at IS NULL
+RETURNING *;
+
+-- name: DeleteMessage :one
+UPDATE messages SET deleted_at = now(), deleted_by = @deleted_by
+WHERE id = @id AND deleted_at IS NULL
+RETURNING *;
+
+-- name: RestoreMessage :one
+-- RestoreMessage brings back a message deleted less than restore_window ago.
+UPDATE messages SET deleted_at = NULL, deleted_by = NULL
+WHERE id = @id AND deleted_at > now() - sqlc.arg(restore_window)::interval
+RETURNING *;
+
+-- name: PurgeDeletedMessages :execrows
+-- PurgeDeletedMessages removes messages that can no longer be restored.
+DELETE FROM messages WHERE deleted_at <= now() - sqlc.arg(restore_window)::interval;

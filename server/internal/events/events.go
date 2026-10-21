@@ -30,9 +30,13 @@ type Event struct {
 // Event types.
 const (
 	MessageCreated = "message.created"
-	ChannelCreated = "channel.created"
-	ChannelJoined  = "channel.joined"
-	ChannelLeft    = "channel.left"
+	MessageUpdated = "message.updated"
+	MessageDeleted = "message.deleted"
+	// CategoriesChanged goes to everyone: categories organize every sidebar.
+	CategoriesChanged = "categories.changed"
+	ChannelCreated    = "channel.created"
+	ChannelJoined     = "channel.joined"
+	ChannelLeft       = "channel.left"
 	// ChannelUpdated and ChannelMembersChanged go to the channel's members.
 	ChannelUpdated        = "channel.updated"
 	ChannelMembersChanged = "channel.members_changed"

@@ -130,6 +130,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	hub := &realtime.Hub{Log: eventLog, Logger: log}
 	go hub.Run(ctx)
 	cookies := auth.NewCookies(cfg.PublicURL)
+	go chat.RunPurge(ctx, queries, time.Minute, log)
 	go chat.RunEnsureDefaults(ctx, queries, chat.Defaults{
 		Announcement: cfg.AnnouncementChannel, Channels: cfg.DefaultChannels, AdminEmail: cfg.AdminEmail,
 	}, log)
@@ -163,6 +164,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				Limiter:           valkey,
 				Cookies:           cookies,
 				Log:               log,
+				Configured:        append([]string{cfg.AnnouncementChannel}, cfg.DefaultChannels...),
 				MessagesPerWindow: 20,
 				Window:            10 * time.Second,
 			},

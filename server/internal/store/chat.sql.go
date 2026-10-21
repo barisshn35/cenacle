@@ -46,10 +46,28 @@ func (q *Queries) AddMember(ctx context.Context, arg AddMemberParams) (int64, er
 	return result.RowsAffected(), nil
 }
 
+const createCategory = `-- name: CreateCategory :one
+INSERT INTO channel_categories (name, position)
+VALUES ($1, coalesce((SELECT max(position) + 1 FROM channel_categories), 0))
+RETURNING id, name, position, created_at
+`
+
+func (q *Queries) CreateCategory(ctx context.Context, name string) (ChannelCategory, error) {
+	row := q.db.QueryRow(ctx, createCategory, name)
+	var i ChannelCategory
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Position,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createChannel = `-- name: CreateChannel :one
 INSERT INTO channels (name, topic, kind, is_default, visibility, created_by)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id
 `
 
 type CreateChannelParams struct {
@@ -81,6 +99,8 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 		&i.IsMandatory,
 		&i.CreatedBy,
 		&i.Visibility,
+		&i.ArchivedAt,
+		&i.CategoryID,
 	)
 	return i, err
 }
@@ -89,7 +109,7 @@ const createMessage = `-- name: CreateMessage :one
 INSERT INTO messages (channel_id, author_id, body, nonce)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
-RETURNING id, channel_id, author_id, body, nonce, created_at
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by
 `
 
 type CreateMessageParams struct {
@@ -116,6 +136,77 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.Body,
 		&i.Nonce,
 		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
+	)
+	return i, err
+}
+
+const deleteCategory = `-- name: DeleteCategory :execrows
+DELETE FROM channel_categories WHERE id = $1
+`
+
+func (q *Queries) DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteCategory, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteMessage = `-- name: DeleteMessage :one
+UPDATE messages SET deleted_at = now(), deleted_by = $1
+WHERE id = $2 AND deleted_at IS NULL
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by
+`
+
+type DeleteMessageParams struct {
+	DeletedBy pgtype.UUID `json:"deleted_by"`
+	ID        pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error) {
+	row := q.db.QueryRow(ctx, deleteMessage, arg.DeletedBy, arg.ID)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.AuthorID,
+		&i.Body,
+		&i.Nonce,
+		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
+	)
+	return i, err
+}
+
+const editMessage = `-- name: EditMessage :one
+UPDATE messages SET body = $1, edited_at = now()
+WHERE id = $2 AND deleted_at IS NULL
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by
+`
+
+type EditMessageParams struct {
+	Body string      `json:"body"`
+	ID   pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) EditMessage(ctx context.Context, arg EditMessageParams) (Message, error) {
+	row := q.db.QueryRow(ctx, editMessage, arg.Body, arg.ID)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.AuthorID,
+		&i.Body,
+		&i.Nonce,
+		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
 	)
 	return i, err
 }
@@ -126,7 +217,7 @@ VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT ((lower(name))) DO UPDATE
 SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory,
     visibility = 'public'
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id
 `
 
 type EnsureChannelParams struct {
@@ -159,12 +250,30 @@ func (q *Queries) EnsureChannel(ctx context.Context, arg EnsureChannelParams) (C
 		&i.IsMandatory,
 		&i.CreatedBy,
 		&i.Visibility,
+		&i.ArchivedAt,
+		&i.CategoryID,
+	)
+	return i, err
+}
+
+const getCategory = `-- name: GetCategory :one
+SELECT id, name, position, created_at FROM channel_categories WHERE id = $1
+`
+
+func (q *Queries) GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error) {
+	row := q.db.QueryRow(ctx, getCategory, id)
+	var i ChannelCategory
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Position,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getChannel = `-- name: GetChannel :one
-SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility FROM channels WHERE id = $1
+SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id FROM channels WHERE id = $1
 `
 
 func (q *Queries) GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error) {
@@ -180,6 +289,8 @@ func (q *Queries) GetChannel(ctx context.Context, id pgtype.UUID) (Channel, erro
 		&i.IsMandatory,
 		&i.CreatedBy,
 		&i.Visibility,
+		&i.ArchivedAt,
+		&i.CategoryID,
 	)
 	return i, err
 }
@@ -203,8 +314,51 @@ func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (s
 	return column_1, err
 }
 
+const getMessage = `-- name: GetMessage :one
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, u.display_name AS author_name
+FROM messages m
+JOIN users u ON u.id = m.author_id
+WHERE m.id = $1 AND m.channel_id = $2
+`
+
+type GetMessageParams struct {
+	ID        pgtype.UUID `json:"id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+}
+
+type GetMessageRow struct {
+	ID         pgtype.UUID        `json:"id"`
+	ChannelID  pgtype.UUID        `json:"channel_id"`
+	AuthorID   pgtype.UUID        `json:"author_id"`
+	Body       string             `json:"body"`
+	Nonce      string             `json:"nonce"`
+	CreatedAt  time.Time          `json:"created_at"`
+	EditedAt   pgtype.Timestamptz `json:"edited_at"`
+	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy  pgtype.UUID        `json:"deleted_by"`
+	AuthorName string             `json:"author_name"`
+}
+
+func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error) {
+	row := q.db.QueryRow(ctx, getMessage, arg.ID, arg.ChannelID)
+	var i GetMessageRow
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.AuthorID,
+		&i.Body,
+		&i.Nonce,
+		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
+		&i.AuthorName,
+	)
+	return i, err
+}
+
 const getMessageByNonce = `-- name: GetMessageByNonce :one
-SELECT id, channel_id, author_id, body, nonce, created_at FROM messages WHERE author_id = $1 AND nonce = $2
+SELECT id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by FROM messages WHERE author_id = $1 AND nonce = $2
 `
 
 type GetMessageByNonceParams struct {
@@ -222,6 +376,9 @@ func (q *Queries) GetMessageByNonce(ctx context.Context, arg GetMessageByNoncePa
 		&i.Body,
 		&i.Nonce,
 		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
 	)
 	return i, err
 }
@@ -242,7 +399,7 @@ func (q *Queries) JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (
 }
 
 const listAllChannels = `-- name: ListAllChannels :many
-SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, coalesce(m.role, '')::text AS role
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, coalesce(m.role, '')::text AS role
 FROM channels c
 LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
 WHERE c.visibility = 'public' OR m.user_id IS NOT NULL
@@ -275,7 +432,38 @@ func (q *Queries) ListAllChannels(ctx context.Context, userID pgtype.UUID) ([]Li
 			&i.Channel.IsMandatory,
 			&i.Channel.CreatedBy,
 			&i.Channel.Visibility,
+			&i.Channel.ArchivedAt,
+			&i.Channel.CategoryID,
 			&i.Role,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCategories = `-- name: ListCategories :many
+SELECT id, name, position, created_at FROM channel_categories ORDER BY position, lower(name)
+`
+
+func (q *Queries) ListCategories(ctx context.Context) ([]ChannelCategory, error) {
+	rows, err := q.db.Query(ctx, listCategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChannelCategory
+	for rows.Next() {
+		var i ChannelCategory
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Position,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -312,9 +500,10 @@ func (q *Queries) ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) 
 }
 
 const listMemberChannels = `-- name: ListMemberChannels :many
-SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, m.role
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, m.role
 FROM channels c
 JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
+WHERE c.archived_at IS NULL
 ORDER BY c.is_mandatory DESC, lower(c.name)
 `
 
@@ -344,6 +533,8 @@ func (q *Queries) ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([
 			&i.Channel.IsMandatory,
 			&i.Channel.CreatedBy,
 			&i.Channel.Visibility,
+			&i.Channel.ArchivedAt,
+			&i.Channel.CategoryID,
 			&i.Role,
 		); err != nil {
 			return nil, err
@@ -399,10 +590,11 @@ func (q *Queries) ListMembers(ctx context.Context, channelID pgtype.UUID) ([]Lis
 }
 
 const listMessagesBefore = `-- name: ListMessagesBefore :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, u.display_name AS author_name
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, u.display_name AS author_name
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = $1
+  AND m.deleted_at IS NULL
   AND ($2::uuid IS NULL OR m.id < $2::uuid)
 ORDER BY m.id DESC
 LIMIT $3
@@ -415,17 +607,21 @@ type ListMessagesBeforeParams struct {
 }
 
 type ListMessagesBeforeRow struct {
-	ID         pgtype.UUID `json:"id"`
-	ChannelID  pgtype.UUID `json:"channel_id"`
-	AuthorID   pgtype.UUID `json:"author_id"`
-	Body       string      `json:"body"`
-	Nonce      string      `json:"nonce"`
-	CreatedAt  time.Time   `json:"created_at"`
-	AuthorName string      `json:"author_name"`
+	ID         pgtype.UUID        `json:"id"`
+	ChannelID  pgtype.UUID        `json:"channel_id"`
+	AuthorID   pgtype.UUID        `json:"author_id"`
+	Body       string             `json:"body"`
+	Nonce      string             `json:"nonce"`
+	CreatedAt  time.Time          `json:"created_at"`
+	EditedAt   pgtype.Timestamptz `json:"edited_at"`
+	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy  pgtype.UUID        `json:"deleted_by"`
+	AuthorName string             `json:"author_name"`
 }
 
 // ListMessagesBefore returns up to row_limit messages of a channel older than
 // the cursor (all when before is NULL), newest first, with their authors.
+// Deleted messages are left out.
 func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error) {
 	rows, err := q.db.Query(ctx, listMessagesBefore, arg.ChannelID, arg.Before, arg.RowLimit)
 	if err != nil {
@@ -442,6 +638,9 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.Body,
 			&i.Nonce,
 			&i.CreatedAt,
+			&i.EditedAt,
+			&i.DeletedAt,
+			&i.DeletedBy,
 			&i.AuthorName,
 		); err != nil {
 			return nil, err
@@ -452,6 +651,19 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 		return nil, err
 	}
 	return items, nil
+}
+
+const purgeDeletedMessages = `-- name: PurgeDeletedMessages :execrows
+DELETE FROM messages WHERE deleted_at <= now() - $1::interval
+`
+
+// PurgeDeletedMessages removes messages that can no longer be restored.
+func (q *Queries) PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeDeletedMessages, restoreWindow)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const removeMember = `-- name: RemoveMember :execrows
@@ -471,19 +683,49 @@ func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) (int
 	return result.RowsAffected(), nil
 }
 
-const updateChannel = `-- name: UpdateChannel :one
-UPDATE channels SET visibility = $1, topic = $2 WHERE id = $3
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility
+const restoreMessage = `-- name: RestoreMessage :one
+UPDATE messages SET deleted_at = NULL, deleted_by = NULL
+WHERE id = $1 AND deleted_at > now() - $2::interval
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by
 `
 
-type UpdateChannelParams struct {
-	Visibility string      `json:"visibility"`
-	Topic      string      `json:"topic"`
-	ID         pgtype.UUID `json:"id"`
+type RestoreMessageParams struct {
+	ID            pgtype.UUID     `json:"id"`
+	RestoreWindow pgtype.Interval `json:"restore_window"`
 }
 
-func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error) {
-	row := q.db.QueryRow(ctx, updateChannel, arg.Visibility, arg.Topic, arg.ID)
+// RestoreMessage brings back a message deleted less than restore_window ago.
+func (q *Queries) RestoreMessage(ctx context.Context, arg RestoreMessageParams) (Message, error) {
+	row := q.db.QueryRow(ctx, restoreMessage, arg.ID, arg.RestoreWindow)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.AuthorID,
+		&i.Body,
+		&i.Nonce,
+		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
+	)
+	return i, err
+}
+
+const setChannelArchived = `-- name: SetChannelArchived :one
+UPDATE channels
+SET archived_at = CASE WHEN $1::boolean THEN coalesce(archived_at, now()) END
+WHERE id = $2
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id
+`
+
+type SetChannelArchivedParams struct {
+	Archived bool        `json:"archived"`
+	ID       pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, setChannelArchived, arg.Archived, arg.ID)
 	var i Channel
 	err := row.Scan(
 		&i.ID,
@@ -495,6 +737,71 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (C
 		&i.IsMandatory,
 		&i.CreatedBy,
 		&i.Visibility,
+		&i.ArchivedAt,
+		&i.CategoryID,
+	)
+	return i, err
+}
+
+const updateCategory = `-- name: UpdateCategory :one
+UPDATE channel_categories SET name = $1, position = $2 WHERE id = $3
+RETURNING id, name, position, created_at
+`
+
+type UpdateCategoryParams struct {
+	Name     string      `json:"name"`
+	Position int32       `json:"position"`
+	ID       pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (ChannelCategory, error) {
+	row := q.db.QueryRow(ctx, updateCategory, arg.Name, arg.Position, arg.ID)
+	var i ChannelCategory
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Position,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateChannel = `-- name: UpdateChannel :one
+UPDATE channels
+SET name = $1, visibility = $2, topic = $3, category_id = $4
+WHERE id = $5
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id
+`
+
+type UpdateChannelParams struct {
+	Name       string      `json:"name"`
+	Visibility string      `json:"visibility"`
+	Topic      string      `json:"topic"`
+	CategoryID pgtype.UUID `json:"category_id"`
+	ID         pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, updateChannel,
+		arg.Name,
+		arg.Visibility,
+		arg.Topic,
+		arg.CategoryID,
+		arg.ID,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Topic,
+		&i.CreatedAt,
+		&i.Kind,
+		&i.IsDefault,
+		&i.IsMandatory,
+		&i.CreatedBy,
+		&i.Visibility,
+		&i.ArchivedAt,
+		&i.CategoryID,
 	)
 	return i, err
 }
