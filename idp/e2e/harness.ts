@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Starts Cenacle ID in-process against the integration test database, with a
+// registered first-party client whose redirect URI points at a local callback
+// server, so tests can drive the whole authorization code flow.
+
+import { randomBytes } from 'node:crypto';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { fileURLToPath } from 'node:url';
+import type { FastifyInstance } from 'fastify';
+import pg from 'pg';
+import { UserStore } from '../src/accounts/users.ts';
+import { buildApp } from '../src/app.ts';
+import { migrate } from '../src/db/migrate.ts';
+import { KeyStore } from '../src/keys/store.ts';
+import type { ClientMetadata } from '../src/oidc/clients.ts';
+import { createProvider } from '../src/oidc/provider.ts';
+
+export const DATABASE_URL = process.env.IDP_TEST_DATABASE_URL;
+export const CLIENT_ID = 'cenacle-test';
+export const CLIENT_SECRET = randomBytes(32).toString('base64url');
+export const PASSWORD = 'correct horse battery staple';
+export const EMAIL = 'ayse@example.com';
+
+const ASSETS_DIR = fileURLToPath(new URL('../public/assets', import.meta.url));
+
+async function freePort(): Promise<number> {
+  const s = createServer();
+  await new Promise<void>((r) => s.listen(0, '127.0.0.1', r));
+  const { port } = s.address() as AddressInfo;
+  await new Promise<void>((r) => s.close(() => r()));
+  return port;
+}
+
+export interface Harness {
+  issuer: string;
+  callbackUrl: string;
+  postLogoutUrl: string;
+  pool: pg.Pool;
+  keys: KeyStore;
+  /** Query strings received by the client callback, newest last. */
+  callbacks: URLSearchParams[];
+  /** Restarts the IdP (e.g. after a key rotation). */
+  restart(): Promise<void>;
+  close(): Promise<void>;
+}
+
+export async function startHarness(opts: { loginRateLimit?: number } = {}): Promise<Harness> {
+  if (!DATABASE_URL) throw new Error('IDP_TEST_DATABASE_URL is not set');
+  await migrate({ databaseUrl: DATABASE_URL, direction: 'up' });
+  const pool = new pg.Pool({ connectionString: DATABASE_URL, max: 4 });
+  await pool.query('TRUNCATE users, oidc_payloads, signing_keys');
+
+  const users = new UserStore(pool);
+  await users.create({
+    email: EMAIL,
+    displayName: 'Ayşe Yılmaz',
+    password: PASSWORD,
+    emailVerified: true,
+  });
+  const keys = new KeyStore(pool, randomBytes(32));
+  await keys.ensureActiveKey();
+
+  const callbacks: URLSearchParams[] = [];
+  const rp: Server = createServer((req, res) => {
+    callbacks.push(new URL(req.url ?? '/', 'http://127.0.0.1').searchParams);
+    res.writeHead(200, { 'content-type': 'text/plain' }).end('client callback');
+  });
+  await new Promise<void>((r) => rp.listen(0, '127.0.0.1', r));
+  const rpOrigin = `http://127.0.0.1:${(rp.address() as AddressInfo).port}`;
+  const callbackUrl = `${rpOrigin}/cb`;
+  const postLogoutUrl = `${rpOrigin}/signed-out`;
+
+  const port = await freePort();
+  const issuer = `http://127.0.0.1:${port}`;
+  const client: ClientMetadata = {
+    client_id: CLIENT_ID,
+    client_name: 'Cenacle Test',
+    client_secret: CLIENT_SECRET,
+    redirect_uris: [callbackUrl],
+    post_logout_redirect_uris: [postLogoutUrl],
+    grant_types: ['authorization_code'],
+    response_types: ['code'],
+    token_endpoint_auth_method: 'client_secret_basic',
+    scope: 'openid email profile',
+    cenacle_first_party: true,
+  };
+
+  let app: FastifyInstance | undefined;
+  const start = async () => {
+    const provider = createProvider({
+      issuer,
+      pool,
+      users,
+      clients: [client],
+      signingKeys: await keys.loadSigningKeys(3600),
+      cookieKeys: ['e2e-cookie-key-0123456789abcdefghij'],
+      cookieDomain: '',
+      trustProxy: false,
+      formActionOrigins: [rpOrigin],
+    });
+    app = await buildApp({
+      assetsDir: ASSETS_DIR,
+      oidc: {
+        provider,
+        users,
+        issuer,
+        formActionOrigins: [rpOrigin],
+        loginRateLimit: opts.loginRateLimit,
+      },
+    });
+    await app.listen({ host: '127.0.0.1', port });
+  };
+  await start();
+
+  return {
+    issuer,
+    callbackUrl,
+    postLogoutUrl,
+    pool,
+    keys,
+    callbacks,
+    async restart() {
+      await app?.close();
+      await start();
+    },
+    async close() {
+      await app?.close();
+      await new Promise<void>((r) => rp.close(() => r()));
+      await pool.end();
+    },
+  };
+}
