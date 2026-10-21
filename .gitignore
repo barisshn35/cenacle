@@ -27,3 +27,7 @@ blob-report/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# Production secrets and settings (deploy/compose)
+deploy/compose/secrets/
+deploy/compose/.env.prod

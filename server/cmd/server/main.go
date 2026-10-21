@@ -9,6 +9,7 @@
 //	server migrate down     roll back the latest migration
 //	server migrate status   list migrations and their state
 //	server version          print the build version
+//	server healthcheck      probe /healthz (for container health checks)
 package main
 
 import (
@@ -21,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -48,6 +50,7 @@ commands:
   migrate up       apply all pending migrations
   migrate down     roll back the latest migration
   migrate status   list migrations and their state
+  healthcheck      probe /healthz of the local server
   version          print the build version`
 
 func main() {
@@ -65,6 +68,10 @@ func run(args []string) error {
 	case "version":
 		fmt.Println(version)
 		return nil
+	case "healthcheck":
+		// Distroless images have no curl; the binary probes itself.
+		// Only CENACLE_HTTP_ADDR is read, so a broken config cannot hide liveness.
+		return healthcheck(os.Getenv("CENACLE_HTTP_ADDR"))
 	case "serve", "migrate":
 	default:
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
@@ -212,4 +219,28 @@ func logResults(log *slog.Logger, results []*goose.MigrationResult) {
 		log.Info("migration applied", "version", r.Source.Version, "file", r.Source.Path,
 			"direction", r.Direction, "duration", r.Duration, "error", r.Error)
 	}
+}
+
+func healthcheck(addr string) error {
+	if addr == "" {
+		addr = ":8180"
+	}
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return fmt.Errorf("CENACLE_HTTP_ADDR: %w", err)
+	}
+	if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+		return fmt.Errorf("CENACLE_HTTP_ADDR: invalid port %q", port)
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	// Fixed loopback host and a validated numeric port: no request forgery possible.
+	res, err := client.Get("http://" + net.JoinHostPort("127.0.0.1", port) + "/healthz") //nolint:gosec,noctx // see above
+	if err != nil {
+		return err
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("healthz returned %d", res.StatusCode)
+	}
+	return nil
 }
