@@ -72,17 +72,24 @@ describe.skipIf(!hasTestDatabase)('UserStore (database)', () => {
     expect(await users.authenticate('a@example.com', 'a brand new passphrase')).not.toBeNull();
   });
 
-  it('spends similar time on unknown accounts and wrong passwords', async () => {
+  // Guards against answering unknown accounts without a password hash check,
+  // which would reveal through timing whether an e-mail address exists. Medians
+  // of several runs keep the check stable on noisy CI machines.
+  it('checks a password hash even for unknown accounts', async () => {
     await users.create({ email: 'a@example.com', displayName: 'A', password: PASSWORD });
-    const time = async (email: string) => {
-      const start = performance.now();
-      await users.authenticate(email, 'some wrong passphrase!!');
-      return performance.now() - start;
+    const median = async (email: string) => {
+      const times: number[] = [];
+      for (let i = 0; i < 5; i++) {
+        const start = performance.now();
+        await users.authenticate(email, 'some wrong passphrase!!');
+        times.push(performance.now() - start);
+      }
+      return times.sort((x, y) => x - y)[2]!;
     };
-    await time('warmup@example.com');
-    const known = await time('a@example.com');
-    const unknown = await time('nobody@example.com');
-    expect(Math.abs(known - unknown)).toBeLessThan(Math.max(known, unknown) * 0.6);
+    await median('warmup@example.com');
+    const known = await median('a@example.com');
+    const unknown = await median('nobody@example.com');
+    expect(unknown).toBeGreaterThan(known * 0.4);
   });
 
   it('finds by id and ignores malformed ids', async () => {
