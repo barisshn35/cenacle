@@ -83,7 +83,7 @@ export default defineConfig({
     {
       name: 'cenacle-id',
       command:
-        'node scripts/build-assets.mjs && pnpm exec tsx src/cli.ts migrate up && pnpm exec tsx src/server.ts',
+        'node scripts/build-assets.mjs && pnpm exec tsx src/cli.ts migrate up && node ../web/e2e-stack/reset-idp-db.mjs && pnpm exec tsx src/server.ts',
       cwd: '../idp',
       env: idpEnv,
       url: `${IDP_URL}/healthz`,
