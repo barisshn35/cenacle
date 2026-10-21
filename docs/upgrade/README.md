@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.4.0)
+### 0.4.0
 
 - Chat migration `00003_channels_messages` adds `channels` (with `#general`) and
   `messages`. It is reversible (`migrate down` drops both tables and all messages).

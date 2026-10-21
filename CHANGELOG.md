@@ -8,9 +8,14 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-21
+
+Live chat in channels: messages over WebSocket, channel membership, channels for everyone
+set at installation, public and private channels.
+
 ### Added
 
-- Live chat: channels (a `#general` channel is created), messages with cursor pagination,
+- Live chat: channels (a General channel is created), messages with cursor pagination,
   idempotent sending with a client nonce and a per-user rate limit.
 - Live events over WebSocket: single-use tickets, a Valkey stream shared by all server
   instances, resuming after the last event, resync when events were missed, bounded queues,
@@ -36,10 +41,16 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   lists the real channels.
 - Channel names are display names ("Central", "Release notes"), unique regardless of case,
   shown without "#".
+- The web development server listens on port 15173 (5173 clashes with other projects).
+
+### Fixed
+
+- The composer no longer shows a scrollbar for a single line, and its send button no
+  longer covers the scrollbar of long text.
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-040): reversible migrations
+- See [docs/upgrade](docs/upgrade/README.md#040): reversible migrations
   `00003_channels_messages`, `00004_channel_membership` and `00005_private_channels`; set
   `CENACLE_ADMIN_EMAIL`.
 
@@ -175,7 +186,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/barisshn35/cenacle/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/barisshn35/cenacle/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/barisshn35/cenacle/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/barisshn35/cenacle/compare/v0.1.0...v0.1.1
