@@ -17,6 +17,8 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Cancel          | Cancel              | Vazgeç                         | `glossary.cancel`, `ui:confirm.cancel`   | The safe choice in every dialog           |
 | Undo            | Undo                | Geri al                        | `glossary.undo`, `ui:undo.action`        |                                           |
 | Identity server | Cenacle ID          | Cenacle ID                     | —                                        | Product name of the IdP in the UI         |
+| Sign in         | Sign in / Sign out  | Giriş yap / Çıkış yap          | `auth.signOut`                           | Never "log in" / "oturum aç"              |
+| Session         | Session             | Oturum                         | —                                        | "Your session has ended"                  |
 
 ## Rules
 

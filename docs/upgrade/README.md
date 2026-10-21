@@ -39,6 +39,15 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.3.0)
+
+- Use the new `prod.yml`: the chat server gets its public URL, Cenacle ID's issuer and the
+  `chat_client_secret` secret (created by `gen-secrets.sh` since 0.2.0). No new secrets.
+- Chat migration `00002_users_sessions` adds `users` and `sessions`. It is reversible
+  (`migrate down` drops both tables, signing everyone out).
+- Optional settings: `CENACLE_SESSION_IDLE_TIMEOUT` (default `168h`) and
+  `CENACLE_SESSION_MAX_AGE` (default `720h`).
+
 ### 0.2.0
 
 - New Cenacle ID secrets: run `./gen-secrets.sh` again (existing secrets are kept, new ones

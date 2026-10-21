@@ -16,12 +16,32 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   gallery; brand guide in `docs/brand`.
 - Fraunces display font (self-hosted) for brand headlines.
 - Token contrast check (`scripts/check-contrast.mjs`) in `pnpm lint` and CI.
+- Sign-in to the chat with Cenacle ID: authorization code flow with PKCE, nonce and issuer
+  checks, sign-in state bound to the browser and usable once. Users are created on first
+  sign-in and keyed by the IdP subject.
+- Chat sessions: opaque tokens stored as hashes, idle timeout (7 days) and maximum age
+  (30 days), `HttpOnly` `SameSite=Lax` cookie (`__Host-` over https) or bearer token;
+  same-origin check for state-changing cookie requests. `GET /api/session`,
+  `POST /api/auth/logout` (also ends single sign-on via the Cenacle ID sign-out page).
+- Spec-first chat API: `server/api/openapi.yaml`, Go server interface (oapi-codegen) and
+  TypeScript types and client in `@cenacle/core`.
+- Web: sign-in page with explained outcomes, session-required app routes that return to the
+  same place after sign-in, signed-in user and sign-out in the sidebar.
+- `make dev-user` creates a development account; `make test-e2e-stack` signs in end to end
+  with Cenacle ID, chat server and web app running (also in CI).
 
 ### Changed
 
 - Light theme on Paper with Forest text, dark theme on Night with Bone text; brass
   accent (`--accent-brand`) for primary buttons and focus rings; form control outlines
   reach 3:1. The Cenacle ID pages use the same brand.
+- The Vite dev server proxies `/api` to the chat server; the development OIDC client of
+  the chat now redirects to `http://localhost:5173/api/auth/callback`.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-030): new `prod.yml`, reversible
+  migration `00002_users_sessions`.
 
 ## [0.2.0] - 2026-10-21
 

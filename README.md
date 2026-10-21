@@ -12,9 +12,9 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.2.** Cenacle ID is a working OpenID Provider (sign-in, tokens, key
-> rotation). The chat server signs in with it in v0.3; messaging and real data follow
-> (see the [roadmap](#roadmap)).
+> **Status: v0.3 in progress.** Cenacle ID is a working OpenID Provider, and the chat app
+> signs users in with it and keeps its own sessions. Messaging and real data follow (see
+> the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -34,16 +34,19 @@ Requirements: Go 1.26, Node.js 24 (`.nvmrc`), pnpm via Corepack, Docker with Com
 ```sh
 corepack enable
 pnpm install
-make tools                  # pinned sqlc, golangci-lint, go-licenses, govulncheck
+make tools                  # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck
 cp .env.example .env
 make up                     # postgres, valkey, openldap, mailpit (healthy)
 make migrate-up             # chat database migrations
 make dev-server             # chat backend   -> http://localhost:8180/readyz
 make dev-idp                # Cenacle ID     -> http://localhost:8190/healthz
 make dev-web                # web app        -> http://localhost:5173
+make dev-user EMAIL=you@example.com NAME="Your Name"   # asks for a password (15+ characters)
 ```
 
-Component gallery (development only): <http://localhost:5173/dev/gallery>.
+Open the app at <http://localhost:5173> and sign in with that account. Use `localhost`, not
+`127.0.0.1`: the sign-in cookies are bound to the host name. Component gallery
+(development only): <http://localhost:5173/dev/gallery>.
 
 | Service         | Default port (localhost only) | Notes                                                                      |
 | --------------- | ----------------------------- | -------------------------------------------------------------------------- |
@@ -66,8 +69,10 @@ in `.env`. To run the application containers too:
 | `up` / `down` / `ps`                 | Start, stop and inspect the dev infrastructure  |
 | `dev-server` / `dev-idp` / `dev-web` | Run a component locally                         |
 | `migrate-up` / `migrate-down`        | Apply / roll back chat database migrations      |
-| `gen`                                | Generate code (sqlc, OpenAPI types)             |
+| `gen`                                | Generate code (sqlc, OpenAPI server and client) |
+| `dev-user`                           | Create a Cenacle ID account for development     |
 | `lint` / `test` / `test-e2e`         | Linters + type checks / unit tests / Playwright |
+| `test-e2e-stack`                     | Sign in end to end with all components running  |
 | `licenses` / `vuln`                  | License policy check / Go vulnerability scan    |
 | `build` / `images`                   | Build all components / container images         |
 
@@ -108,7 +113,9 @@ flowchart LR
 ```
 
 - **Chat server (`/server`):** Go, chi, pgx + sqlc, goose migrations embedded in the binary,
-  RFC 9457 problem details for every error.
+  spec-first API ([`server/api/openapi.yaml`](server/api/openapi.yaml), oapi-codegen), RFC
+  9457 problem details for every error. Signs users in with Cenacle ID and keeps its own
+  sessions ([ADR 0004](docs/adr/0004-chat-sign-in-and-sessions.md)).
 - **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify); `node-oidc-provider` from v0.2.
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
@@ -132,8 +139,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | Version  | Scope                                                                                 |
 | -------- | ------------------------------------------------------------------------------------- |
 | v0.1     | Skeleton: services, design system foundations, infrastructure, CI                     |
-| **v0.2** | **Cenacle ID core (OIDC provider)**                                                   |
-| v0.3     | OIDC sign-in in chat, sessions                                                        |
+| v0.2     | Cenacle ID core (OIDC provider)                                                       |
+| **v0.3** | **OIDC sign-in in chat, sessions**                                                    |
 | v0.4     | Live chat, WebSocket tickets                                                          |
 | v0.5     | Channels, categories, cursor pagination                                               |
 | v0.6     | Workspaces, roles, private and announcement channels                                  |

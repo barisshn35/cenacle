@@ -102,6 +102,11 @@ dev-web: node_modules ## Run the web app (Vite dev server)
 
 # --- Database ------------------------------------------------------------------
 
+.PHONY: dev-user
+dev-user: node_modules ## Create a Cenacle ID account: make dev-user EMAIL=you@example.com NAME="Your Name"
+	@test -n "$(EMAIL)" -a -n "$(NAME)" || { echo 'usage: make dev-user EMAIL=you@example.com NAME="Your Name"'; exit 2; }
+	pnpm --filter @cenacle/idp cli users create --email "$(EMAIL)" --name "$(NAME)" --verified
+
 .PHONY: migrate-up
 migrate-up: ## Apply chat database migrations
 	cd $(SERVER_DIR) && go run ./cmd/server migrate up
