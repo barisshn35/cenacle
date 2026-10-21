@@ -11,7 +11,9 @@ import { ApiError } from '@cenacle/core/api';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
 import { initials } from '../auth/sign-out';
-import { flatten, messagesQuery, type Message } from './data';
+import { flatten, messagesQuery, type Channel, type Message } from './data';
+import { MessageActions, MessageEditor } from './message-actions';
+import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
 import { useSendMessage } from './send';
 
@@ -75,12 +77,16 @@ function Avatar({ name }: { name: string }) {
 function MessageRow({
   row,
   fmt,
+  channel,
 }: {
   row: Extract<Row, { kind: 'message' }>;
   fmt: ReturnType<typeof useFormatters>;
+  channel: Channel;
 }) {
+  const { t } = useTranslation();
   const { message: m } = row;
   const at = new Date(m.created_at);
+  const editing = useEditing((s) => s.id === m.id);
   return (
     <div>
       {row.day && (
@@ -98,8 +104,9 @@ function MessageRow({
         aria-labelledby={`m-${m.id}-author`}
         data-testid="message"
         className={cn(
-          'group flex gap-3 px-4 hover:bg-muted/40',
+          'group relative flex gap-3 px-4 hover:bg-muted/40 focus-within:bg-muted/40',
           row.first ? 'pt-3 pb-0.5' : 'py-0.5',
+          editing && 'bg-muted/40',
         )}
       >
         {row.first ? <Avatar name={m.author.display_name} /> : <span className="w-9 shrink-0" />}
@@ -116,8 +123,27 @@ function MessageRow({
               {fmt.time.format(at)}
             </time>
           </header>
-          <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{m.body}</p>
+          {editing ? (
+            <MessageEditor message={m} />
+          ) : (
+            <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">
+              {m.body}
+              {m.edited_at && (
+                <span
+                  className="ml-1.5 text-xs text-muted-foreground"
+                  title={fmt.full.format(new Date(m.edited_at))}
+                >
+                  {t('chat.edited')}
+                </span>
+              )}
+            </p>
+          )}
         </div>
+        {!editing && (
+          <div className="absolute top-0.5 right-3">
+            <MessageActions message={m} channel={channel} />
+          </div>
+        )}
       </article>
     </div>
   );
@@ -187,13 +213,8 @@ function Loading() {
 }
 
 /** The timeline of a channel: newest at the bottom, older pages load on scroll up. */
-export function MessageList({
-  channelId,
-  channelName,
-}: {
-  channelId: string;
-  channelName: string;
-}) {
+export function MessageList({ channel }: { channel: Channel }) {
+  const { id: channelId, name: channelName } = channel;
   const { t } = useTranslation();
   const fmt = useFormatters();
   const query = useInfiniteQuery(messagesQuery(channelId));
@@ -263,7 +284,7 @@ export function MessageList({
         }}
         itemContent={(_, row) =>
           row.kind === 'message' ? (
-            <MessageRow row={row} fmt={fmt} />
+            <MessageRow row={row} fmt={fmt} channel={channel} />
           ) : (
             <PendingRow p={row.pending} />
           )

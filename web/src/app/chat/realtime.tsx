@@ -3,7 +3,16 @@ import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { RealtimeClient } from '@cenacle/core/realtime';
 import { useConnection } from './connection';
-import { addMessage, reloadChannels, reloadMessages, type Message } from './data';
+import { QuickSwitcher } from './quick-switcher';
+import { useQuickSwitcherShortcut } from './quick-switcher-state';
+import {
+  addMessage,
+  reloadChannels,
+  reloadMessages,
+  removeMessage,
+  replaceMessage,
+  type Message,
+} from './data';
 import { usePending } from './pending';
 
 /**
@@ -21,6 +30,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           addMessage(queryClient, message);
           // The sender's own pending copy is now confirmed.
           usePending.getState().remove(message.nonce);
+        } else if (ev.type === 'message.updated') {
+          replaceMessage(queryClient, ev.data as Message);
+        } else if (ev.type === 'message.deleted') {
+          removeMessage(queryClient, ev.data as Pick<Message, 'id' | 'channel_id'>);
+        } else if (ev.type === 'categories.changed') {
+          void queryClient.invalidateQueries({ queryKey: ['categories'] });
+          void reloadChannels(queryClient);
         } else if (ev.type === 'channel.members_changed') {
           const { channel_id } = ev.data as { channel_id: string };
           void queryClient.invalidateQueries({ queryKey: ['members', channel_id] });
@@ -43,5 +59,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     return () => client.stop();
   }, [queryClient]);
 
-  return children;
+  useQuickSwitcherShortcut();
+  return (
+    <>
+      {children}
+      <QuickSwitcher />
+    </>
+  );
 }

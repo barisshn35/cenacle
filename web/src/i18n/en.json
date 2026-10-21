@@ -97,7 +97,16 @@
     "offline": "You're offline. Messages you send are kept and can be sent again.",
     "charactersLeft_one": "{{count}} character left",
     "charactersLeft_other": "{{count}} characters left",
-    "noChannels": "There are no channels yet."
+    "noChannels": "There are no channels yet.",
+    "actions": "Message actions",
+    "edit": "Edit",
+    "editLabel": "Edit message",
+    "editHint": "Enter saves, Escape cancels.",
+    "save": "Save",
+    "edited": "(edited)",
+    "deleted": "Message deleted.",
+    "deleteFailed": "The message could not be deleted. Try again.",
+    "editFailed": "The change could not be saved. Try again."
   },
   "channels": {
     "kinds": {
@@ -149,6 +158,43 @@
     "noPeople": "No one found.",
     "removeNamed": "Remove {{person}} from the channel",
     "removed": "{{person}} was removed from {{channel}}.",
-    "changeFailed": "The change did not go through. Check your connection and try again."
+    "changeFailed": "The change did not go through. Check your connection and try again.",
+    "settings": "Channel settings",
+    "settingsTitle": "Settings of {{channel}}",
+    "settingsDescription": "Name, topic and who can find the channel.",
+    "category": "Category",
+    "noCategory": "No category",
+    "defaultStaysPublic": "Everyone is a member of this channel, so it stays public.",
+    "configuredName": "This channel's name is set in the installation settings.",
+    "archived": "{{channel}} archived.",
+    "archivedNotice": "This channel is archived. You can read it, but no one can post.",
+    "archiveTitle": "Archive {{channel}}?",
+    "archiveDescription": "Members can still read it, but no one can post, and it leaves the sidebar.",
+    "archiveImpact": "Its managers can unarchive it at any time; nothing is deleted.",
+    "archiveConfirm": "Archive channel"
+  },
+  "categories": {
+    "manage": "Edit categories",
+    "title": "Categories",
+    "description": "Categories group channels in everyone's sidebar. Channels without a category stay under Channels.",
+    "nameOf": "Name of {{category}}",
+    "moveUp": "Move {{category}} up",
+    "moveDown": "Move {{category}} down",
+    "deleteNamed": "Delete {{category}}",
+    "none": "No categories yet.",
+    "new": "New category",
+    "add": "Add",
+    "nameTaken": "A category with this name exists.",
+    "deleteTitle": "Delete the category {{category}}?",
+    "deleteDescription": "Its channels stay and move under Channels.",
+    "deleteConfirm": "Delete category"
+  },
+  "switcher": {
+    "title": "Jump to a channel",
+    "placeholder": "Type a channel name…",
+    "results": "Channels",
+    "notJoined": "Not joined",
+    "archived": "Archived",
+    "empty": "No channel matches."
   }
 }

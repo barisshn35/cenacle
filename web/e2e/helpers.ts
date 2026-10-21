@@ -193,6 +193,8 @@ const channel = (id: string, name: string, extra: Record<string, unknown> = {}) 
   is_member: true,
   can_post: true,
   can_manage: false,
+  archived: false,
+  category_id: null as string | null,
   ...extra,
 });
 
@@ -230,6 +232,7 @@ export const RANDOM = channel('01a15e50-3333-7d7d-bbee-8e7809fd8ad2', 'Random', 
 });
 
 export interface MockMessage {
+  edited_at: string | null;
   id: string;
   channel_id: string;
   author: { id: string; display_name: string };
@@ -250,6 +253,7 @@ export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): 
     body,
     nonce: `nonce-${n}`,
     created_at: new Date(Date.UTC(2026, 9, 21, 9, n)).toISOString(),
+    edited_at: null as string | null,
   };
 }
 
@@ -291,7 +295,7 @@ export async function mockApi(
   const channelOf = (url: string) => all.find((x) => url.includes(x.id))!;
   await page.route('**/api/channels', async (route) => {
     if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { channels: all.filter((c) => c.is_member) } });
+      return route.fulfill({ json: { channels: all.filter((c) => c.is_member && !c.archived) } });
     }
     const input = route.request().postDataJSON() as {
       name: string;
@@ -321,6 +325,28 @@ export async function mockApi(
     all.push(created);
     members.set(id, [{ id: PEOPLE[0]!.id, role: 'manager' }]);
     return route.fulfill({ status: 201, json: created });
+  });
+  const categories: { id: string; name: string; position: number }[] = [];
+  await page.route('**/api/categories', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { categories } });
+    const { name } = route.request().postDataJSON() as { name: string };
+    const c = {
+      id: `01a15e50-cccc-7000-8000-${String(categories.length).padStart(12, '0')}`,
+      name,
+      position: categories.length,
+    };
+    categories.push(c);
+    return route.fulfill({ status: 201, json: c });
+  });
+  await page.route('**/api/channels/*/category', (route) => {
+    const c = channelOf(route.request().url());
+    c.category_id = (route.request().postDataJSON() as { category_id: string | null }).category_id;
+    return route.fulfill({ json: c });
+  });
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/(un)?archive$/, (route) => {
+    const c = channelOf(route.request().url());
+    c.archived = !route.request().url().endsWith('/unarchive');
+    return route.fulfill({ json: c });
   });
   await page.route('**/api/channels/directory', (route) =>
     route.fulfill({ json: { channels: all } }),
@@ -371,9 +397,33 @@ export async function mockApi(
     c.is_member = false;
     return route.fulfill({ status: 204 });
   });
+  // Messages of General, as stored; deleted ones keep a flag for restoring.
+  const stored = (opts.messages ?? []).map((m) => ({ ...m, deleted: false }));
+  await page.route(
+    /\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}(\/restore)?$/,
+    (route) => {
+      const req = route.request();
+      const id = req.url().split('/messages/')[1]!.split('/')[0]!;
+      const m = stored.find((x) => x.id === id)!;
+      if (req.method() === 'PATCH') {
+        m.body = (req.postDataJSON() as { body: string }).body;
+        m.edited_at = new Date().toISOString();
+      } else if (req.method() === 'DELETE') {
+        m.deleted = true;
+        return route.fulfill({ status: 204 });
+      } else {
+        m.deleted = false;
+      }
+      const { deleted: _, ...out } = m;
+      return route.fulfill({ json: out });
+    },
+  );
   await page.route('**/api/channels/*/messages*', async (route) => {
     if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { messages: opts.messages ?? [], has_more: false } });
+      const list = route.request().url().includes(GENERAL.id)
+        ? stored.filter((m) => !m.deleted).map(({ deleted: _, ...m }) => m)
+        : [];
+      return route.fulfill({ json: { messages: list, has_more: false } });
     }
     if (failures > 0) {
       failures--;
@@ -386,6 +436,7 @@ export async function mockApi(
       author: { id: SESSION.user.id, display_name: SESSION.user.display_name },
       nonce: input.nonce,
     };
+    stored.push({ ...message, deleted: false });
     return route.fulfill({ status: 201, json: message });
   });
   await page.route('**/api/ws/ticket', (route) =>

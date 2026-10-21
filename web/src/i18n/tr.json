@@ -97,7 +97,16 @@
     "offline": "Çevrimdışısın. Gönderdiğin mesajlar saklanır ve yeniden gönderilebilir.",
     "charactersLeft_one": "{{count}} karakter kaldı",
     "charactersLeft_other": "{{count}} karakter kaldı",
-    "noChannels": "Henüz kanal yok."
+    "noChannels": "Henüz kanal yok.",
+    "actions": "Mesaj işlemleri",
+    "edit": "Düzenle",
+    "editLabel": "Mesajı düzenle",
+    "editHint": "Enter kaydeder, Escape vazgeçer.",
+    "save": "Kaydet",
+    "edited": "(düzenlendi)",
+    "deleted": "Mesaj silindi.",
+    "deleteFailed": "Mesaj silinemedi. Tekrar dene.",
+    "editFailed": "Değişiklik kaydedilemedi. Tekrar dene."
   },
   "channels": {
     "kinds": {
@@ -149,6 +158,43 @@
     "noPeople": "Kimse bulunamadı.",
     "removeNamed": "{{person}} kişisini kanaldan çıkar",
     "removed": "{{person}}, {{channel}} kanalından çıkarıldı.",
-    "changeFailed": "Değişiklik yapılamadı. Bağlantını kontrol edip tekrar dene."
+    "changeFailed": "Değişiklik yapılamadı. Bağlantını kontrol edip tekrar dene.",
+    "settings": "Kanal ayarları",
+    "settingsTitle": "{{channel}} ayarları",
+    "settingsDescription": "Ad, konu ve kanalı kimlerin bulabileceği.",
+    "category": "Kategori",
+    "noCategory": "Kategori yok",
+    "defaultStaysPublic": "Herkes bu kanalın üyesi, bu yüzden herkese açık kalır.",
+    "configuredName": "Bu kanalın adı kurulum ayarlarında belirlenir.",
+    "archived": "{{channel}} arşivlendi.",
+    "archivedNotice": "Bu kanal arşivlendi. Okuyabilirsin ama kimse mesaj yazamaz.",
+    "archiveTitle": "{{channel}} arşivlensin mi?",
+    "archiveDescription": "Üyeler okumaya devam edebilir ama kimse yazamaz ve kanal kenar çubuğundan kalkar.",
+    "archiveImpact": "Yöneticileri istediği zaman arşivden çıkarabilir; hiçbir şey silinmez.",
+    "archiveConfirm": "Kanalı arşivle"
+  },
+  "categories": {
+    "manage": "Kategorileri düzenle",
+    "title": "Kategoriler",
+    "description": "Kategoriler herkesin kenar çubuğunda kanalları gruplar. Kategorisi olmayan kanallar Kanallar altında kalır.",
+    "nameOf": "{{category}} adı",
+    "moveUp": "{{category}} yukarı taşı",
+    "moveDown": "{{category}} aşağı taşı",
+    "deleteNamed": "{{category}} sil",
+    "none": "Henüz kategori yok.",
+    "new": "Yeni kategori",
+    "add": "Ekle",
+    "nameTaken": "Bu adda bir kategori var.",
+    "deleteTitle": "{{category}} kategorisi silinsin mi?",
+    "deleteDescription": "Kanalları kalır ve Kanallar altına geçer.",
+    "deleteConfirm": "Kategoriyi sil"
+  },
+  "switcher": {
+    "title": "Kanala git",
+    "placeholder": "Kanal adı yaz…",
+    "results": "Kanallar",
+    "notJoined": "Üye değilsin",
+    "archived": "Arşivlendi",
+    "empty": "Eşleşen kanal yok."
   }
 }

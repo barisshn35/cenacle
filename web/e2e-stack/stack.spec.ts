@@ -211,3 +211,39 @@ test('private channels: only their manager adds people', async ({ browser }) => 
     member.getByRole('complementary').getByRole('button', { name: 'Add people' }),
   ).toHaveCount(0);
 });
+
+test('edits and deletions reach others live; Undo restores', async ({ browser }) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const author = await open(SECOND.email);
+  const reader = await open(EMAIL);
+  const stamp = Date.now().toString(36);
+
+  await author.getByLabel('Message General').fill(`taslak ${stamp}`);
+  await author.getByLabel('Message General').press('Enter');
+  await expect(reader.getByText(`taslak ${stamp}`)).toBeVisible();
+
+  const mine = author.getByTestId('message').filter({ hasText: `taslak ${stamp}` });
+  await mine.hover();
+  await mine.getByRole('button', { name: 'Message actions' }).click();
+  await author.getByRole('menuitem', { name: 'Edit' }).click();
+  await author.getByLabel('Edit message').fill(`son hali ${stamp}`);
+  await author.getByLabel('Edit message').press('Enter');
+  await expect(
+    reader.getByTestId('message').filter({ hasText: `son hali ${stamp}` }),
+  ).toContainText('(edited)');
+
+  const edited = author.getByTestId('message').filter({ hasText: `son hali ${stamp}` });
+  await edited.hover();
+  await edited.getByRole('button', { name: 'Message actions' }).click();
+  await author.getByRole('menuitem', { name: 'Delete' }).click();
+  await expect(reader.getByText(`son hali ${stamp}`)).toHaveCount(0);
+  await author.getByRole('button', { name: 'Undo' }).click();
+  await expect(reader.getByText(`son hali ${stamp}`)).toBeVisible();
+});

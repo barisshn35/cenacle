@@ -2,6 +2,7 @@
 import {
   ChevronDownIcon,
   CompassIcon,
+  FoldersIcon,
   LogOutIcon,
   PlusIcon,
   SearchIcon,
@@ -36,31 +37,20 @@ import { useLayout } from '../../stores/layout';
 import { PresenceIndicator } from './presence';
 import { useSession } from '../auth/session';
 import { initials, useSignOut } from '../auth/sign-out';
-import { channelsQuery } from '../chat/data';
+import { categoriesQuery, channelsQuery, type Channel } from '../chat/data';
+import { CategoriesDialog } from '../chat/categories-dialog';
+import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { useActiveChannel } from '../chat/active-channel';
 import { ChannelDirectory } from '../chat/channel-directory';
 import { ChannelIcon } from '../chat/channel-icon';
 import { CreateChannelDialog } from '../chat/create-channel-dialog';
 
-function ChannelList() {
-  const channels = useQuery(channelsQuery);
+function ChannelList({ channels }: { channels: Channel[] }) {
   const { id: activeId } = useActiveChannel();
   const { isMobile, setOpenMobile } = useSidebar();
-
-  if (channels.isPending) {
-    return (
-      <SidebarMenu>
-        {[0, 1, 2].map((i) => (
-          <SidebarMenuItem key={i}>
-            <SidebarMenuSkeleton showIcon />
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    );
-  }
   return (
     <SidebarMenu>
-      {(channels.data ?? []).map((ch) => {
+      {channels.map((ch) => {
         const isActive = ch.id === activeId;
         return (
           <SidebarMenuItem key={ch.id}>
@@ -86,43 +76,97 @@ function ChannelList() {
   );
 }
 
-function ChannelsGroup() {
+function ChannelListSkeleton() {
+  return (
+    <SidebarMenu>
+      {[0, 1, 2].map((i) => (
+        <SidebarMenuItem key={i}>
+          <SidebarMenuSkeleton showIcon />
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+}
+
+/**
+ * Channels grouped by the administrator's categories, in their order; channels
+ * without a category come first, under "Channels", with the channel actions.
+ */
+function ChannelsGroups() {
   const { t } = useTranslation();
   const { permissions } = useSession();
-  const [creating, setCreating] = useState(false);
-  const [browsing, setBrowsing] = useState(false);
+  const channels = useQuery(channelsQuery);
+  const categories = useQuery(categoriesQuery);
+  const [dialog, setDialog] = useState<'create' | 'browse' | 'categories' | null>(null);
+  const close = (open: boolean) => {
+    if (!open) setDialog(null);
+  };
+
+  const list = channels.data ?? [];
+  const known = new Set(categories.data?.map((c) => c.id));
+  const loose = list.filter((c) => !c.category_id || !known.has(c.category_id));
+
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{t('shell.channels')}</SidebarGroupLabel>
-      {permissions.create_channels && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <SidebarGroupAction
-                aria-label={t('channels.createTitle')}
-                onClick={() => setCreating(true)}
-              />
-            }
-          >
-            <PlusIcon strokeWidth={1.75} />
-          </TooltipTrigger>
-          <TooltipContent side="right">{t('channels.createTitle')}</TooltipContent>
-        </Tooltip>
-      )}
-      <SidebarGroupContent>
-        <ChannelList />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton className="text-muted-foreground" onClick={() => setBrowsing(true)}>
-              <CompassIcon aria-hidden strokeWidth={1.75} />
-              <span>{t('channels.browse')}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroupContent>
-      <CreateChannelDialog open={creating} onOpenChange={setCreating} />
-      <ChannelDirectory open={browsing} onOpenChange={setBrowsing} />
-    </SidebarGroup>
+    <>
+      <SidebarGroup>
+        <SidebarGroupLabel>{t('shell.channels')}</SidebarGroupLabel>
+        {permissions.create_channels && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <SidebarGroupAction
+                  aria-label={t('channels.createTitle')}
+                  onClick={() => setDialog('create')}
+                />
+              }
+            >
+              <PlusIcon strokeWidth={1.75} />
+            </TooltipTrigger>
+            <TooltipContent side="right">{t('channels.createTitle')}</TooltipContent>
+          </Tooltip>
+        )}
+        <SidebarGroupContent>
+          {channels.isPending ? <ChannelListSkeleton /> : <ChannelList channels={loose} />}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-muted-foreground"
+                onClick={() => setDialog('browse')}
+              >
+                <CompassIcon aria-hidden strokeWidth={1.75} />
+                <span>{t('channels.browse')}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {permissions.create_channels && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  className="text-muted-foreground"
+                  onClick={() => setDialog('categories')}
+                >
+                  <FoldersIcon aria-hidden strokeWidth={1.75} />
+                  <span>{t('categories.manage')}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      {categories.data?.map((cat) => {
+        const inCategory = list.filter((c) => c.category_id === cat.id);
+        if (inCategory.length === 0) return null;
+        return (
+          <SidebarGroup key={cat.id}>
+            <SidebarGroupLabel>{cat.name}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <ChannelList channels={inCategory} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        );
+      })}
+      <CreateChannelDialog open={dialog === 'create'} onOpenChange={close} />
+      <ChannelDirectory open={dialog === 'browse'} onOpenChange={close} />
+      {dialog === 'categories' && <CategoriesDialog open onOpenChange={close} />}
+    </>
   );
 }
 
@@ -131,6 +175,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
   const activeWorkspace = useLayout((s) => s.activeWorkspaceId);
   const workspace = workspaces.find((w) => w.id === activeWorkspace) ?? workspaces[0]!;
   const notAvailable = () => toast(t('shell.notAvailable'));
+  const openSwitcher = useQuickSwitcher((s) => s.setOpen);
 
   return (
     <Sidebar
@@ -156,7 +201,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
         <Button
           variant="outline"
           className="w-full justify-start gap-2 bg-background font-normal text-muted-foreground"
-          onClick={notAvailable}
+          onClick={() => openSwitcher(true)}
         >
           <SearchIcon aria-hidden strokeWidth={1.75} />
           <span className="flex-1 text-left">{t('shell.jumpTo')}</span>
@@ -165,7 +210,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       </SidebarHeader>
 
       <SidebarContent>
-        <ChannelsGroup />
+        <ChannelsGroups />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">

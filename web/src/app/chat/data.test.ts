@@ -10,6 +10,7 @@ const msg = (id: string): Message => ({
   body: id,
   nonce: `n-${id}`,
   created_at: '2026-10-21T09:00:00Z',
+  edited_at: null,
 });
 
 const data = (...pages: string[][]): InfiniteData<MessagePage, string | undefined> => ({

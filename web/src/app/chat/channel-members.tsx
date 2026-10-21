@@ -24,9 +24,7 @@ import {
   addMember,
   membersQuery,
   peopleQuery,
-  reloadChannels,
   removeMember,
-  updateChannel,
   type Channel,
   type Person,
 } from './data';
@@ -51,46 +49,16 @@ function PersonLine({ person, badge }: { person: Person; badge?: string }) {
   );
 }
 
-/** Public or private, for the channel's managers (channels for everyone stay public). */
+/** Public or private, with what that means. Managers change it in the channel settings. */
 export function VisibilitySetting({ channel }: { channel: Channel }) {
   const { t } = useTranslation();
-  const id = useId();
-  const queryClient = useQueryClient();
-  const update = useMutation({
-    mutationFn: (visibility: Channel['visibility']) => updateChannel(channel.id, { visibility }),
-    onSuccess: () => reloadChannels(queryClient),
-    onError: () => toast.error(t('channels.changeFailed')),
-  });
-  const label = t(`channels.visibility.${channel.visibility}`);
-  if (!channel.can_manage || channel.is_default) {
-    return (
-      <p>
-        {label}
-        <span className="block text-xs text-muted-foreground">
-          {t(`channels.visibility.${channel.visibility}Hint`)}
-        </span>
-      </p>
-    );
-  }
   return (
-    <div className="grid gap-1">
-      <label htmlFor={id} className="sr-only">
-        {t('channels.visibility.label')}
-      </label>
-      <select
-        id={id}
-        value={channel.visibility}
-        disabled={update.isPending}
-        onChange={(e) => update.mutate(e.target.value as Channel['visibility'])}
-        className="min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <option value="public">{t('channels.visibility.public')}</option>
-        <option value="private">{t('channels.visibility.private')}</option>
-      </select>
-      <span className="text-xs text-muted-foreground">
+    <p>
+      {t(`channels.visibility.${channel.visibility}`)}
+      <span className="block text-xs text-muted-foreground">
         {t(`channels.visibility.${channel.visibility}Hint`)}
       </span>
-    </div>
+    </p>
   );
 }
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import { LogOutIcon, XIcon } from 'lucide-react';
+import { LogOutIcon, SettingsIcon, XIcon } from 'lucide-react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -7,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { MembersSection, VisibilitySetting } from '../chat/channel-members';
+import { ChannelSettingsDialog } from '../chat/channel-settings';
 import { joinChannel, leaveChannel, reloadChannels, type Channel } from '../chat/data';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
@@ -34,6 +36,11 @@ export function DetailsPanel() {
           <XIcon strokeWidth={1.75} />
         </Button>
       </header>
+      {channel?.can_manage && (
+        <div className="px-4 pt-4">
+          <SettingsButton channel={channel} />
+        </div>
+      )}
       {channel && (
         <dl className="flex flex-col gap-4 p-4 text-sm">
           <div className="flex flex-col gap-1">
@@ -97,5 +104,20 @@ function LeaveButton({ channel }: { channel: Channel }) {
       <LogOutIcon aria-hidden strokeWidth={1.75} />
       {t('channels.leave')}
     </Button>
+  );
+}
+
+function SettingsButton({ channel }: { channel: Channel }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="outline" size="sm" className="w-full" onClick={() => setOpen(true)}>
+        <SettingsIcon aria-hidden strokeWidth={1.75} />
+        {t('channels.settings')}
+      </Button>
+      {/* Mounted while open, so the form starts from the current values. */}
+      {open && <ChannelSettingsDialog channel={channel} open onOpenChange={setOpen} />}
+    </>
   );
 }

@@ -9,6 +9,7 @@ import { Logo } from '@cenacle/ui/brand';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
 import { ChannelIcon } from '../chat/channel-icon';
+import { ArchivedNotice } from '../chat/channel-settings';
 import { Composer } from '../chat/composer';
 import { channelsQuery } from '../chat/data';
 import { NotMember } from '../chat/not-member';
@@ -69,8 +70,10 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
 
       {id && channel ? (
         <>
-          <MessageList key={`log-${id}`} channelId={id} channelName={name} />
-          {channel.can_post ? (
+          <MessageList key={`log-${id}`} channel={channel} />
+          {channel.archived ? (
+            <ArchivedNotice channel={channel} />
+          ) : channel.can_post ? (
             <Composer key={`composer-${id}`} channelId={id} channelName={name} />
           ) : (
             <footer className="shrink-0 px-4 pb-4">

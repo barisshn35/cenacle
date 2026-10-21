@@ -180,7 +180,7 @@ test.describe('private channels', () => {
 
     await expect(page.getByRole('img', { name: 'Private channel' }).first()).toBeVisible();
     const details = page.getByRole('complementary');
-    await expect(details.getByLabel('Visibility')).toHaveValue('private');
+    await expect(details).toContainText('Only members see it');
     await expect(details.getByTestId('members')).toContainText('Manager');
 
     await details.getByRole('button', { name: 'Add people' }).click();

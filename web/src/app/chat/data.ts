@@ -15,6 +15,7 @@ export type NewChannel = components['schemas']['NewChannel'];
 export type ChannelUpdate = components['schemas']['ChannelUpdate'];
 export type Member = components['schemas']['Member'];
 export type Person = components['schemas']['Person'];
+export type Category = components['schemas']['Category'];
 
 /** Channels the user is a member of (the sidebar). */
 export const channelsQuery = queryOptions({
@@ -47,6 +48,36 @@ export const addMember = (channelId: string, userId: string) =>
   apiFetch<Member>(`/api/channels/${channelId}/members`, json({ user_id: userId }));
 export const removeMember = (channelId: string, userId: string) =>
   apiFetch<void>(`/api/channels/${channelId}/members/${userId}`, { method: 'DELETE' });
+
+export const archiveChannel = (id: string) =>
+  apiFetch<Channel>(`/api/channels/${id}/archive`, { method: 'POST' });
+export const unarchiveChannel = (id: string) =>
+  apiFetch<Channel>(`/api/channels/${id}/unarchive`, { method: 'POST' });
+export const setChannelCategory = (id: string, categoryId: string | null) =>
+  apiFetch<Channel>(`/api/channels/${id}/category`, {
+    ...json({ category_id: categoryId }),
+    method: 'PUT',
+  });
+
+export const categoriesQuery = queryOptions({
+  queryKey: ['categories'],
+  queryFn: () => apiFetch<{ categories: Category[] }>('/api/categories').then((r) => r.categories),
+  staleTime: 5 * 60_000,
+});
+export const createCategory = (name: string) =>
+  apiFetch<Category>('/api/categories', json({ name }));
+export const updateCategory = (id: string, update: { name?: string; position?: number }) =>
+  apiFetch<Category>(`/api/categories/${id}`, { ...json(update), method: 'PATCH' });
+export const deleteCategory = (id: string) =>
+  apiFetch<void>(`/api/categories/${id}`, { method: 'DELETE' });
+
+const messageUrl = (m: Pick<Message, 'id' | 'channel_id'>) =>
+  `/api/channels/${m.channel_id}/messages/${m.id}`;
+export const editMessage = (m: Message, body: string) =>
+  apiFetch<Message>(messageUrl(m), { ...json({ body }), method: 'PATCH' });
+export const deleteMessage = (m: Message) => apiFetch<void>(messageUrl(m), { method: 'DELETE' });
+export const restoreMessage = (m: Message) =>
+  apiFetch<Message>(`${messageUrl(m)}/restore`, { method: 'POST' });
 
 export const membersQuery = (channelId: string) =>
   queryOptions({
@@ -112,6 +143,41 @@ export function reloadMessages(queryClient: QueryClient): Promise<void> {
     (data) => data && { pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1) },
   );
   return queryClient.invalidateQueries({ queryKey: ['messages'] });
+}
+
+type MessageCache = InfiniteData<MessagePage, string | undefined>;
+
+/** Replaces a message (after an edit) wherever it is loaded. */
+export function replaceMessage(queryClient: QueryClient, message: Message): void {
+  queryClient.setQueryData<MessageCache>(['messages', message.channel_id], (data) =>
+    data
+      ? {
+          ...data,
+          pages: data.pages.map((p) => ({
+            ...p,
+            messages: p.messages.map((m) => (m.id === message.id ? message : m)),
+          })),
+        }
+      : data,
+  );
+}
+
+/** Removes a message (deleted) from the cache. */
+export function removeMessage(
+  queryClient: QueryClient,
+  ref: Pick<Message, 'id' | 'channel_id'>,
+): void {
+  queryClient.setQueryData<MessageCache>(['messages', ref.channel_id], (data) =>
+    data
+      ? {
+          ...data,
+          pages: data.pages.map((p) => ({
+            ...p,
+            messages: p.messages.filter((m) => m.id !== ref.id),
+          })),
+        }
+      : data,
+  );
 }
 
 /** Adds a message to the newest page unless it is there already. */
