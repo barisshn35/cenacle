@@ -141,7 +141,7 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
             aria-describedby="composer-hint"
             aria-invalid={tooLong || undefined}
             placeholder={label}
-            className="block min-h-8 flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
+            className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
           />
           <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
             <SendHorizontalIcon strokeWidth={1.75} />
