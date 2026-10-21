@@ -41,6 +41,7 @@ import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { useDensity, useTheme } from '@cenacle/ui/theme';
+import { BrandSection } from './brand-section';
 import i18next from 'i18next';
 import galleryEn from './i18n/en.json';
 import galleryTr from './i18n/tr.json';
@@ -408,6 +409,9 @@ export function Gallery() {
           <p className="text-sm text-muted-foreground">{t('gallery.subtitle')}</p>
           <VariantSwitcher />
         </header>
+        <Section id="brand" title={t('gallery.sections.brand')}>
+          <BrandSection />
+        </Section>
         <Section id="buttons" title={t('gallery.sections.buttons')}>
           <ButtonsSection />
         </Section>

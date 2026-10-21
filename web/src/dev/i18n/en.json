@@ -13,7 +13,17 @@
       "resizable": "Resizable panels",
       "toasts": "Toasts",
       "confirm": "Confirm dialogs",
-      "errors": "Error states"
+      "errors": "Error states",
+      "brand": "Brand",
+      "brandLogo": "Logo component (current theme)",
+      "brandFiles": "Logo files on Paper and Night",
+      "brandFavicons": "Favicons",
+      "brandOneColor": "Single-color versions",
+      "brandAppIcon": "App icons",
+      "brandTokens": "Brand tokens and contrast (current theme)",
+      "brandLight": "Light",
+      "brandDark": "Dark",
+      "brandRatio": "{{ratio}}:1 (needs {{min}}:1)"
     },
     "samples": {
       "save": "Save changes",

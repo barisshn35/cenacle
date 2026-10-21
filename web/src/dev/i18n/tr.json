@@ -13,7 +13,17 @@
       "resizable": "Yeniden boyutlandırılabilir paneller",
       "toasts": "Bildirimler",
       "confirm": "Onay pencereleri",
-      "errors": "Hata durumları"
+      "errors": "Hata durumları",
+      "brand": "Marka",
+      "brandLogo": "Logo bileşeni (geçerli tema)",
+      "brandFiles": "Paper ve Night üzerinde logo dosyaları",
+      "brandFavicons": "Favicon'lar",
+      "brandOneColor": "Tek renkli sürümler",
+      "brandAppIcon": "Uygulama ikonları",
+      "brandTokens": "Marka token'ları ve kontrast (geçerli tema)",
+      "brandLight": "Açık",
+      "brandDark": "Koyu",
+      "brandRatio": "{{ratio}}:1 (gereken {{min}}:1)"
     },
     "samples": {
       "save": "Değişiklikleri kaydet",
