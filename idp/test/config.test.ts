@@ -25,7 +25,9 @@ describe('loadConfig', () => {
     expect(c.trustProxy).toBe(false);
     expect(c.loginRateLimit).toBe(10);
     expect(loadConfig({ ...base, IDP_LOGIN_RATE_LIMIT: '600' }).loginRateLimit).toBe(600);
-    expect(() => loadConfig({ ...base, IDP_LOGIN_RATE_LIMIT: '0' })).toThrow(/IDP_LOGIN_RATE_LIMIT/);
+    expect(() => loadConfig({ ...base, IDP_LOGIN_RATE_LIMIT: '0' })).toThrow(
+      /IDP_LOGIN_RATE_LIMIT/,
+    );
   });
 
   it('reads *_FILE secrets and splits cookie keys', () => {
