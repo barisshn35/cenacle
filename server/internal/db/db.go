@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
 // Open creates a connection pool. Connections are established lazily, so
@@ -18,6 +21,9 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("parse database url: %w", err)
 	}
 	cfg.ConnConfig.RuntimeParams["application_name"] = "cenacle-server"
+	if telemetry.TracingEnabled() {
+		cfg.ConnConfig.Tracer = otelpgx.NewTracer()
+	}
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("create pool: %w", err)

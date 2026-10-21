@@ -18,6 +18,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/integrations/signing"
 	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
 // Delivery headers sent with every event.
@@ -119,6 +120,14 @@ func (b *Background) deliver(ctx context.Context, d store.ClaimDueDeliveriesRow)
 			finish.Status = "failed"
 		}
 	}
+	result := "succeeded"
+	if problem != "" {
+		result = "retry"
+		if finish.Status == "failed" {
+			result = "failed"
+		}
+	}
+	telemetry.Deliveries.WithLabelValues(result).Inc()
 	// Finish even when the job's context ended, so the lease does not linger.
 	return b.Queries.FinishDelivery(context.WithoutCancel(ctx), finish)
 }

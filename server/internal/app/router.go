@@ -16,6 +16,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/health"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
+	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
 // Deps are the dependencies of the HTTP layer.
@@ -49,6 +50,7 @@ type (
 func NewRouter(d Deps) http.Handler {
 	r := chi.NewRouter()
 	r.Use(httpx.RequestID)
+	r.Use(telemetry.Middleware)
 	r.Use(httpx.AccessLog(d.Log))
 	r.Use(httpx.Recoverer(d.Log))
 	r.Use(httpx.SecurityHeaders)

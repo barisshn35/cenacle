@@ -22,6 +22,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
 // Close codes of the protocol (4000-4999 are for applications).
@@ -171,6 +172,8 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return // Accept has answered the request
 	}
 	defer func() { _ = conn.CloseNow() }()
+	telemetry.WSConnections.Inc()
+	defer telemetry.WSConnections.Dec()
 	ctx := r.Context()
 	log := h.Log.With("request_id", httpx.RequestIDFrom(ctx))
 

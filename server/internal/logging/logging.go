@@ -6,6 +6,8 @@ package logging
 import (
 	"io"
 	"log/slog"
+
+	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
 // New returns a slog.Logger writing to w in the given format ("json" or "text").
@@ -17,5 +19,5 @@ func New(w io.Writer, format string, level slog.Level) *slog.Logger {
 	} else {
 		h = slog.NewJSONHandler(w, opts)
 	}
-	return slog.New(h).With("service", "cenacle-server")
+	return slog.New(telemetry.LogHandler{Handler: h}).With("service", "cenacle-server")
 }

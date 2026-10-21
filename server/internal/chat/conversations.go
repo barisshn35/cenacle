@@ -228,3 +228,7 @@ func (h *Handlers) SendTyping(w http.ResponseWriter, r *http.Request, channelID 
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// ConversationKey is the kind and name of the conversation of these people
+// (user ids), for tools that create conversations (import).
+func ConversationKey(ids []string) (kind, key string) { return conversationKey(ids) }

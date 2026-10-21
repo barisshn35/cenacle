@@ -28,6 +28,9 @@ type Querier interface {
 	// each other's rows. The attempt is counted up front so a crash does not retry forever.
 	ClaimDueDeliveries(ctx context.Context, rowLimit int32) ([]ClaimDueDeliveriesRow, error)
 	ClaimDueScheduled(ctx context.Context, rowLimit int32) ([]ScheduledMessage, error)
+	// ClaimImportedUser gives an imported person's account to the identity that
+	// signs in with their verified address for the first time.
+	ClaimImportedUser(ctx context.Context, arg ClaimImportedUserParams) (User, error)
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
@@ -45,6 +48,9 @@ type Querier interface {
 	// existing one with the same key (name).
 	CreateConversation(ctx context.Context, arg CreateConversationParams) (Channel, error)
 	CreateFile(ctx context.Context, arg CreateFileParams) (File, error)
+	// CreateImportedUser creates (or renames) a person from an export. They sign
+	// in later with Cenacle ID under the same verified address (ClaimImportedUser).
+	CreateImportedUser(ctx context.Context, arg CreateImportedUserParams) (User, error)
 	CreateInvite(ctx context.Context, arg CreateInviteParams) (WorkspaceInvite, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
@@ -83,6 +89,10 @@ type Querier interface {
 	EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error)
 	// ExpireBotToken lets a token work until a time (rotation overlap).
 	ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) (BotToken, error)
+	// FindUserByEmail finds the account of an address (a person who signed in
+	// already wins over an earlier import).
+	FindUserByEmail(ctx context.Context, email string) (User, error)
+	FindWorkspaceByName(ctx context.Context, name string) (Workspace, error)
 	FinishDelivery(ctx context.Context, arg FinishDeliveryParams) error
 	FinishScheduled(ctx context.Context, arg FinishScheduledParams) error
 	// FinishUpload records what the server found out about an uploaded file.
@@ -104,6 +114,7 @@ type Querier interface {
 	// GetFileForReader returns a file with the message it belongs to (deleted
 	// messages hide their files).
 	GetFileForReader(ctx context.Context, id pgtype.UUID) (GetFileForReaderRow, error)
+	GetInstanceAdmin(ctx context.Context) (User, error)
 	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
@@ -115,10 +126,17 @@ type Querier interface {
 	GetWorkspaceCommand(ctx context.Context, arg GetWorkspaceCommandParams) (GetWorkspaceCommandRow, error)
 	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
 	GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRoleParams) (string, error)
+	// ImportMessage stores a message from an export with its original time (its
+	// id is made from that time, shift = created_at - now(), so it sorts into the
+	// history); importing the
+	// same message again does nothing.
+	ImportMessage(ctx context.Context, arg ImportMessageParams) (int64, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	// InsertOutboxEvent records an event and wakes the relay (notifications are
 	// delivered when the transaction commits).
 	InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventParams) error
+	// InstanceCounts summarizes the installation (support bundle, status).
+	InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
 	// JoinDefaultChannels makes a user a member of every default channel of the
 	// workspaces they belong to and returns the channels they newly joined.
 	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
@@ -174,6 +192,8 @@ type Querier interface {
 	// ListWorkspaceCommands returns the custom commands of a workspace whose bot is enabled.
 	ListWorkspaceCommands(ctx context.Context, workspaceID pgtype.UUID) ([]SlashCommand, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
+	// MarkChannelReadForAll makes the history of an imported channel read.
+	MarkChannelReadForAll(ctx context.Context, channelID pgtype.UUID) error
 	// MarkRead moves a member's read position forward (never back).
 	MarkRead(ctx context.Context, arg MarkReadParams) (int64, error)
 	PruneDeliveries(ctx context.Context) (int64, error)
@@ -208,6 +228,7 @@ type Querier interface {
 	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
 	SetChannelMemberRole(ctx context.Context, arg SetChannelMemberRoleParams) (int64, error)
+	SetWorkspaceMemberRole(ctx context.Context, arg SetWorkspaceMemberRoleParams) error
 	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)
 	TouchBotToken(ctx context.Context, id pgtype.UUID) error
 	// TouchSession records use of a session at most once per minute, which keeps
@@ -222,6 +243,7 @@ type Querier interface {
 	UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFromIdentityParams) (User, error)
 	// UseInvite counts one use of a valid invitation; no row when it is not valid.
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
+	UserExists(ctx context.Context, arg UserExistsParams) (bool, error)
 }
 
 var _ Querier = (*Queries)(nil)

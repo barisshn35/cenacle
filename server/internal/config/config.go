@@ -47,6 +47,12 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	// ReadyTimeout bounds each dependency check of /readyz.
 	ReadyTimeout time.Duration
+	// DrainDelay is how long /readyz fails before shutting down, so a load
+	// balancer stops sending requests first (rolling upgrades).
+	DrainDelay time.Duration
+	// MetricsAddr serves Prometheus metrics (/metrics) on an internal address;
+	// empty: off.
+	MetricsAddr string
 
 	// PublicURL is the origin users open the chat at, e.g. https://chat.example.com.
 	// The OIDC redirect URI and the session cookie derive from it.
@@ -142,6 +148,8 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.LogLevel = l.level("CENACLE_LOG_LEVEL", slog.LevelInfo)
 	cfg.ShutdownTimeout = l.duration("CENACLE_SHUTDOWN_TIMEOUT", 15*time.Second)
 	cfg.ReadyTimeout = l.duration("CENACLE_READY_TIMEOUT", 2*time.Second)
+	cfg.DrainDelay = l.duration("CENACLE_DRAIN_DELAY", 0)
+	cfg.MetricsAddr = strings.TrimSpace(l.str("CENACLE_METRICS_ADDR", ""))
 	cfg.PublicURL = l.origin("CENACLE_PUBLIC_URL", "http://localhost:15173", true)
 	cfg.TrustProxy = l.boolean("CENACLE_TRUST_PROXY", false)
 	cfg.OIDCIssuer = l.str("CENACLE_OIDC_ISSUER", "http://localhost:8190")

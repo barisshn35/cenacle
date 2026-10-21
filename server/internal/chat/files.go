@@ -24,6 +24,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/preview"
 	"github.com/barisshn35/cenacle/server/internal/storage"
 	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
 // Problem codes of files.
@@ -44,6 +45,8 @@ const (
 	// maxPreviewSize: larger images are kept without a preview.
 	maxPreviewSize = 40 << 20
 	filesPage      = 50
+	// fileWriteTimeout bounds sending one file (a slow client and a large file).
+	fileWriteTimeout = time.Hour
 	// MaxUnsentFiles bounds the uploads a person has not sent yet (they take
 	// space until sent or removed).
 	MaxUnsentFiles = 50
@@ -245,6 +248,10 @@ func (h *Handlers) CompleteUpload(w http.ResponseWriter, r *http.Request, fileID
 		h.unavailable(w, r, "finish upload", err)
 		return
 	}
+	telemetry.Uploads.WithLabelValues(updated.Status).Inc()
+	if updated.Status == "ready" {
+		telemetry.UploadBytes.Add(float64(updated.Size))
+	}
 	if updated.Status == "blocked" {
 		h.Log.WarnContext(r.Context(), "upload blocked by the virus scanner", "file", uuid(f.ID).String(),
 			"user", uuid(p.User.ID).String())
@@ -411,6 +418,8 @@ func (h *Handlers) serveObject(w http.ResponseWriter, r *http.Request, key, name
 	hd.Set("Cross-Origin-Resource-Policy", "same-origin")
 	// Files never change; caches keep them for the signed-in user only.
 	hd.Set("Cache-Control", "private, max-age=86400, immutable")
+	// Large files take longer than the server's usual write timeout.
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(fileWriteTimeout))
 	http.ServeContent(w, r, "", modified, obj)
 }
 

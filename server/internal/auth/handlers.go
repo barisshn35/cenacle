@@ -17,6 +17,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	guuid "github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/oauth2"
 
@@ -239,6 +240,22 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 		return signedIn{}, err
 	}
 
+	// A person imported from another chat (by e-mail address) gets their
+	// history when they first sign in with that verified address.
+	if info.EmailVerified && info.Email != "" {
+		exists, err := h.Users.UserExists(ctx, store.UserExistsParams{AuthService: AuthService, AuthData: idToken.Subject})
+		if err != nil {
+			return signedIn{}, errUnavailable{err}
+		}
+		if !exists {
+			_, err := h.Users.ClaimImportedUser(ctx, store.ClaimImportedUserParams{
+				AuthService: AuthService, AuthData: idToken.Subject, DisplayName: profile.Name, Email: info.Email,
+			})
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return signedIn{}, errUnavailable{err}
+			}
+		}
+	}
 	user, err := h.Users.UpsertUserFromIdentity(ctx, store.UpsertUserFromIdentityParams{
 		AuthService:   AuthService,
 		AuthData:      idToken.Subject,

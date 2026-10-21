@@ -169,3 +169,19 @@ func (q *Queries) UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFrom
 	)
 	return i, err
 }
+
+const userExists = `-- name: UserExists :one
+SELECT EXISTS (SELECT 1 FROM users WHERE auth_service = $1 AND auth_data = $2)
+`
+
+type UserExistsParams struct {
+	AuthService string `json:"auth_service"`
+	AuthData    string `json:"auth_data"`
+}
+
+func (q *Queries) UserExists(ctx context.Context, arg UserExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, userExists, arg.AuthService, arg.AuthData)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}

@@ -25,6 +25,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
 // Limits of message bodies (characters) and pages.
@@ -281,6 +282,7 @@ func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author 
 	if err != nil {
 		return api.Message{}, err
 	}
+	telemetry.Messages.Inc()
 	if len(files) > 0 {
 		n, err := q.AttachFiles(ctx, store.AttachFilesParams{
 			MessageID: msg.ID, Ids: files, UploaderID: author.ID, ChannelID: c.ID,

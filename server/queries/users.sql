@@ -40,3 +40,6 @@ JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = @workspace_
 WHERE u.display_name ILIKE @pattern OR u.email ILIKE @pattern
 ORDER BY lower(u.display_name), u.id
 LIMIT @row_limit;
+
+-- name: UserExists :one
+SELECT EXISTS (SELECT 1 FROM users WHERE auth_service = @auth_service AND auth_data = @auth_data);
