@@ -39,6 +39,15 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.2.0
+
+- New Cenacle ID secrets: run `./gen-secrets.sh` again (existing secrets are kept, new ones
+  are added) and use the new `prod.yml`, which adds the `idp-migrate` step and mounts
+  `idp/clients.json`.
+- The IdP database gets its first migration (`idp_migrations` table); it runs automatically.
+- Create the first account with `cenacle-idp users create` (see the
+  [installation guide](../install/README.md)).
+
 ### 0.1.1
 
 No database migrations. Set `CENACLE_VERSION=0.1.1` and, if you do not use Let's Encrypt,

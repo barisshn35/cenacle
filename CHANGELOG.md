@@ -8,6 +8,35 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-21
+
+Cenacle ID becomes an OpenID Provider. The chat server signs in with it from v0.3.
+
+### Added
+
+- OpenID Provider (oidc-provider 9) with an RFC 9700 profile: authorization code with
+  PKCE (S256) for every client, exact redirect URIs, `client_secret_basic`, short-lived
+  codes and tokens, RP-initiated logout, userinfo, revocation.
+- Accounts with Argon2id passwords (NIST SP 800-63B-4 policy) and a CLI:
+  `cenacle-idp users create|set-password|disable|enable`.
+- Token signing keys (RS256) encrypted at rest, rotation with a grace period:
+  `cenacle-idp keys list|rotate|prune`.
+- Database migrations for Cenacle ID: `cenacle-idp migrate up|down`.
+- Sign-in, error and logout pages in English and Turkish on the Cenacle design tokens,
+  strict CSP, no third-party requests; one message for unknown accounts and wrong
+  passwords, rate limiting, cross-site post protection.
+- Registered clients from a JSON file with `${VARIABLE}` placeholders and secret files.
+- End-to-end OIDC tests in a real browser and integration tests on PostgreSQL in CI.
+
+### Changed
+
+- `@cenacle/ui` exposes `tokens.css` (framework-free design tokens).
+- `BlueOak-1.0.0` is an allowed dependency license.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#020): new secrets and the `idp-migrate` step.
+
 ## [0.1.1] - 2026-10-21
 
 First release with published container images.
@@ -71,6 +100,7 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/barisshn35/cenacle/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/barisshn35/cenacle/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/barisshn35/cenacle/releases/tag/v0.1.0

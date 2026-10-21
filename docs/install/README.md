@@ -24,6 +24,30 @@ docker compose -f prod.yml --env-file .env.prod ps     # every service healthy
 Back up `secrets/` and `.env.prod` together with the databases
 ([backup guide](../backup/README.md)).
 
+### First account and Cenacle ID operations
+
+Cenacle ID has no self-registration yet. Create accounts with its CLI (the password is
+read from stdin, never from the command line):
+
+```sh
+docker compose -f prod.yml --env-file .env.prod run --rm -T idp \
+  node dist/cli.js users create --email you@example.com --name "Your Name" --verified
+docker compose -f prod.yml --env-file .env.prod run --rm -T idp \
+  node dist/cli.js users set-password --email you@example.com
+```
+
+Token signing keys are created on first start. Rotate them periodically; the previous key
+stays published for the grace period (default 7 days) so issued tokens keep verifying:
+
+```sh
+docker compose -f prod.yml --env-file .env.prod run --rm idp node dist/cli.js keys rotate
+docker compose -f prod.yml --env-file .env.prod restart idp
+docker compose -f prod.yml --env-file .env.prod run --rm idp node dist/cli.js keys prune
+```
+
+Registered applications are listed in `deploy/compose/idp/clients.json`; host names use
+`${CENACLE_DOMAIN}` from `.env.prod`.
+
 ## Firewall
 
 ### Inbound

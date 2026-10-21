@@ -5,21 +5,23 @@ Cenacle: a backup that has never been restored is not a backup.
 
 ## What to back up
 
-| Data                         | Where                                   | Needed for                                   |
-| ---------------------------- | --------------------------------------- | -------------------------------------------- |
-| Chat database `cenacle_chat` | PostgreSQL                              | messages, channels, workspaces, sessions     |
-| IdP database `cenacle_idp`   | PostgreSQL                              | accounts, MFA, clients, consents             |
-| Secrets                      | `deploy/compose/secrets/`               | database passwords and URLs, Valkey password |
-| Settings                     | `deploy/compose/.env.prod`              | domains, version                             |
-| IdP signing keys (v0.2+)     | IdP database / key store                | validating issued tokens across restores     |
-| Object store (v0.12+)        | S3-compatible store (Garage by default) | uploaded files                               |
-| TLS state                    | `caddy-data` volume                     | optional; Caddy re-issues certificates       |
+| Data                         | Where                                                         | Needed for                                   |
+| ---------------------------- | ------------------------------------------------------------- | -------------------------------------------- |
+| Chat database `cenacle_chat` | PostgreSQL                                                    | messages, channels, workspaces, sessions     |
+| IdP database `cenacle_idp`   | PostgreSQL                                                    | accounts, MFA, clients, consents             |
+| Secrets                      | `deploy/compose/secrets/`                                     | database passwords and URLs, Valkey password |
+| Settings                     | `deploy/compose/.env.prod`                                    | domains, version                             |
+| IdP signing keys             | IdP database, encrypted with `secrets/idp_key_encryption_key` | validating issued tokens across restores     |
+| Object store (v0.12+)        | S3-compatible store (Garage by default)                       | uploaded files                               |
+| TLS state                    | `caddy-data` volume                                           | optional; Caddy re-issues certificates       |
 
 Valkey holds only ephemeral data (presence, typing, short-lived tickets, caches) and does
 not need a backup.
 
-Keep secrets, IdP signing keys and database backups **together and encrypted**: a database
-restored without its signing keys invalidates all existing sessions and tokens.
+Keep secrets and database backups **together and encrypted**. Token signing keys are stored
+in the IdP database, encrypted with `secrets/idp_key_encryption_key`: a database restored
+without that key cannot use its signing keys (Cenacle ID would need new keys, which
+invalidates every issued token and session).
 
 ## Small installations: logical dumps
 

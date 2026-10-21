@@ -5,9 +5,9 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.1 (skeleton).** The repository contains the service skeletons, design
-> system foundations, local infrastructure, CI and documentation. Sign-in, messaging and
-> real data arrive in the next releases (see the [roadmap](#roadmap)).
+> **Status: v0.2.** Cenacle ID is a working OpenID Provider (sign-in, tokens, key
+> rotation). The chat server signs in with it in v0.3; messaging and real data follow
+> (see the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -124,8 +124,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 
 | Version  | Scope                                                                                 |
 | -------- | ------------------------------------------------------------------------------------- |
-| **v0.1** | **Skeleton: services, design system foundations, infrastructure, CI**                 |
-| v0.2     | Cenacle ID core (OIDC provider)                                                       |
+| v0.1     | Skeleton: services, design system foundations, infrastructure, CI                     |
+| **v0.2** | **Cenacle ID core (OIDC provider)**                                                   |
 | v0.3     | OIDC sign-in in chat, sessions                                                        |
 | v0.4     | Live chat, WebSocket tickets                                                          |
 | v0.5     | Channels, categories, cursor pagination                                               |
