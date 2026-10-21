@@ -30,6 +30,9 @@ type Event struct {
 // Event types.
 const (
 	MessageCreated = "message.created"
+	ChannelCreated = "channel.created"
+	ChannelJoined  = "channel.joined"
+	ChannelLeft    = "channel.left"
 )
 
 // ID is a parsed stream id.

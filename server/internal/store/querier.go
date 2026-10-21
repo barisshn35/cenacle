@@ -12,28 +12,51 @@ import (
 )
 
 type Querier interface {
+	// AddAllUsers makes every user a member of a channel.
+	AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error)
+	AddMember(ctx context.Context, arg AddMemberParams) (int64, error)
+	// ClearAdminExcept removes the administrator flag from everyone but one user,
+	// so that it can move to that user (there is at most one administrator).
+	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
+	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
+	// EnsureChannel creates a configured channel or brings an existing one of that
+	// name to the configured kind and flags; the topic of an existing channel is kept.
+	EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error)
 	// GetActiveSession returns the session of a token hash with its user, unless
 	// it passed its absolute expiry or was idle for longer than idle_timeout.
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
 	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
-	ListChannels(ctx context.Context) ([]Channel, error)
+	IsMember(ctx context.Context, arg IsMemberParams) (bool, error)
+	// JoinDefaultChannels makes a user a member of every default channel.
+	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (int64, error)
+	// ListAllChannels returns every channel with whether the user is a member.
+	ListAllChannels(ctx context.Context, userID pgtype.UUID) ([]ListAllChannelsRow, error)
+	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
+	// ListMemberChannels returns the channels a user belongs to: mandatory ones
+	// first, then by name.
+	ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([]Channel, error)
 	// ListMessagesBefore returns up to row_limit messages of a channel older than
 	// the cursor (all when before is NULL), newest first, with their authors.
 	ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error)
+	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
+	// RevokeAdminUnlessEmail removes the administrator flag from a user whose
+	// e-mail address is no longer the configured one ('' revokes it from all).
+	RevokeAdminUnlessEmail(ctx context.Context, email string) error
 	// ServerTime returns the database clock; used as a smoke test of the
 	// sqlc/pgx setup.
 	ServerTime(ctx context.Context) (time.Time, error)
 	// SessionIsActive checks a session without recording use (long-lived
 	// WebSocket connections re-check their session with it).
 	SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error)
+	SetAdmin(ctx context.Context, arg SetAdminParams) error
 	// TouchSession records use of a session at most once per minute, which keeps
 	// writes low while the idle timeout stays accurate to the minute.
 	TouchSession(ctx context.Context, arg TouchSessionParams) error

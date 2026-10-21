@@ -63,6 +63,8 @@ type Handlers struct {
 	PublicURL *url.URL
 	// TrustProxy takes the client address from X-Forwarded-For.
 	TrustProxy bool
+	// AdminEmail is the verified address of the administrator ("" for none).
+	AdminEmail string
 	Log        *slog.Logger
 }
 
@@ -230,11 +232,33 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 	if err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
+	if err := h.applyRoles(ctx, user); err != nil {
+		return signedIn{}, errUnavailable{err}
+	}
 	sessionToken, session, err := h.Sessions.Create(ctx, user.ID, client)
 	if err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
 	return signedIn{token: sessionToken, session: session}, nil
+}
+
+// applyRoles makes a signed-in user a member of the default channels and
+// gives or takes the administrator flag according to the configured address
+// (only a verified address counts; there is at most one administrator).
+func (h *Handlers) applyRoles(ctx context.Context, user store.User) error {
+	if _, err := h.Users.JoinDefaultChannels(ctx, user.ID); err != nil {
+		return err
+	}
+	admin := h.AdminEmail != "" && user.EmailVerified && strings.EqualFold(user.Email, h.AdminEmail)
+	if admin == user.IsAdmin {
+		return nil
+	}
+	if admin {
+		if err := h.Users.ClearAdminExcept(ctx, user.ID); err != nil {
+			return err
+		}
+	}
+	return h.Users.SetAdmin(ctx, store.SetAdminParams{ID: user.ID, IsAdmin: admin})
 }
 
 // Logout implements api.ServerInterface. It succeeds without a session too,
@@ -267,6 +291,7 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
 			EmailVerified: p.User.EmailVerified,
 			DisplayName:   p.User.DisplayName,
 		},
+		Permissions:        api.Permissions{CreateChannels: p.User.IsAdmin},
 		CreatedAt:          p.Session.CreatedAt,
 		ExpiresAt:          p.Session.ExpiresAt,
 		IdleTimeoutSeconds: int(h.Sessions.IdleTimeout / time.Second),

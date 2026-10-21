@@ -126,20 +126,93 @@ paths:
     get:
       tags: [chat]
       operationId: listChannels
-      summary: Channels the user can read
+      summary: Channels the user is a member of
       responses:
         '200':
-          description: Channels, ordered by name.
+          description: Mandatory channels first, then by name.
           content:
             application/json:
-              schema:
-                type: object
-                required: [channels]
-                properties:
-                  channels:
-                    type: array
-                    items: { $ref: '#/components/schemas/Channel' }
+              schema: { $ref: '#/components/schemas/ChannelList' }
         '401':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [chat]
+      operationId: createChannel
+      summary: Create a channel (administrator only)
+      description: |
+        The creator becomes a member. A default channel has every user as a
+        member, also users who sign in for the first time later.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewChannel' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Channel' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/channels/directory:
+    get:
+      tags: [chat]
+      operationId: listChannelDirectory
+      summary: All channels, with membership
+      responses:
+        '200':
+          description: Every channel; `is_member` tells which ones the user belongs to.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelList' }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/join:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [chat]
+      operationId: joinChannel
+      summary: Join a channel
+      responses:
+        '200':
+          description: Member (also when already a member).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Channel' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/leave:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [chat]
+      operationId: leaveChannel
+      summary: Leave a channel
+      description: Mandatory channels cannot be left (403, code `channel_mandatory`).
+      responses:
+        '204':
+          description: Not a member any more.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
           $ref: '#/components/responses/Problem'
   /api/channels/{channel_id}/messages:
     parameters:
@@ -152,6 +225,8 @@ paths:
       operationId: listMessages
       summary: Messages of a channel, newest page first
       description: |
+        Members only (403, code `not_a_member`).
+
         Cursor pagination: without `before` the newest messages; with `before`
         (a message id) the messages older than it. Each page is in chronological
         order; `has_more` says whether older messages exist.
@@ -177,6 +252,9 @@ paths:
       operationId: createMessage
       summary: Send a message
       description: |
+        Members only. In announcement channels only the administrator can
+        send (403, code `read_only_channel`).
+
         `nonce` is chosen by the client for each message. Sending the same nonce
         again (a retry after a lost response) returns the existing message
         instead of creating a second one. Everyone in the channel receives a
@@ -245,9 +323,10 @@ components:
         display_name: { type: string }
     Session:
       type: object
-      required: [user, created_at, expires_at, idle_timeout_seconds]
+      required: [user, permissions, created_at, expires_at, idle_timeout_seconds]
       properties:
         user: { $ref: '#/components/schemas/User' }
+        permissions: { $ref: '#/components/schemas/Permissions' }
         created_at: { type: string, format: date-time }
         expires_at:
           type: string
@@ -266,11 +345,50 @@ components:
           description: Seconds until the ticket expires.
     Channel:
       type: object
-      required: [id, name, topic]
+      required: [id, name, topic, kind, is_default, is_mandatory, is_member, can_post]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         topic: { type: string }
+        kind:
+          type: string
+          enum: [standard, announcement]
+          description: In announcement channels only the administrator can send.
+        is_default:
+          type: boolean
+          description: Every user is a member.
+        is_mandatory:
+          type: boolean
+          description: Members cannot leave.
+        is_member: { type: boolean }
+        can_post:
+          type: boolean
+          description: Whether this user can send messages here.
+    ChannelList:
+      type: object
+      required: [channels]
+      properties:
+        channels:
+          type: array
+          items: { $ref: '#/components/schemas/Channel' }
+    NewChannel:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Display name, unique regardless of case; surrounding spaces are removed.
+        topic: { type: string, maxLength: 250 }
+        kind:
+          type: string
+          enum: [standard, announcement]
+          default: standard
+        is_default:
+          type: boolean
+          default: false
+          description: Make every user, now and later, a member.
     Author:
       type: object
       required: [id, display_name]
@@ -305,6 +423,12 @@ components:
           type: array
           items: { $ref: '#/components/schemas/Message' }
         has_more: { type: boolean }
+    Permissions:
+      type: object
+      required: [create_channels]
+      description: What the user may do (roles replace the single administrator later).
+      properties:
+        create_channels: { type: boolean }
     Logout:
       type: object
       required: [end_session_url]

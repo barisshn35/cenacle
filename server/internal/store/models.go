@@ -11,10 +11,20 @@ import (
 )
 
 type Channel struct {
-	ID        pgtype.UUID `json:"id"`
-	Name      string      `json:"name"`
-	Topic     string      `json:"topic"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID          pgtype.UUID `json:"id"`
+	Name        string      `json:"name"`
+	Topic       string      `json:"topic"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Kind        string      `json:"kind"`
+	IsDefault   bool        `json:"is_default"`
+	IsMandatory bool        `json:"is_mandatory"`
+	CreatedBy   pgtype.UUID `json:"created_by"`
+}
+
+type ChannelMember struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	JoinedAt  time.Time   `json:"joined_at"`
 }
 
 type Message struct {
@@ -47,4 +57,5 @@ type User struct {
 	CreatedAt     time.Time          `json:"created_at"`
 	UpdatedAt     time.Time          `json:"updated_at"`
 	LastLoginAt   pgtype.Timestamptz `json:"last_login_at"`
+	IsAdmin       bool               `json:"is_admin"`
 }

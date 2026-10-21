@@ -181,3 +181,35 @@ func TestLoadServe(t *testing.T) {
 		t.Errorf("production = %+v", cfg)
 	}
 }
+
+func TestChannelSettings(t *testing.T) {
+	base := map[string]string{"CENACLE_DATABASE_URL": "postgres://u:p@localhost/chat"}
+	cfg, err := Load(env(base), files(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AnnouncementChannel != "Central" || len(cfg.DefaultChannels) != 1 || cfg.DefaultChannels[0] != "General" ||
+		cfg.AdminEmail != "" {
+		t.Errorf("defaults: %q %v %q", cfg.AnnouncementChannel, cfg.DefaultChannels, cfg.AdminEmail)
+	}
+
+	base["CENACLE_DEFAULT_CHANNELS"] = " General , Release notes,,"
+	base["CENACLE_ANNOUNCEMENT_CHANNEL"] = ""
+	base["CENACLE_ADMIN_EMAIL"] = " admin@example.com "
+	cfg, err = Load(env(base), files(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AnnouncementChannel != "" || len(cfg.DefaultChannels) != 2 || cfg.DefaultChannels[1] != "Release notes" ||
+		cfg.AdminEmail != "admin@example.com" {
+		t.Errorf("custom: %q %v %q", cfg.AnnouncementChannel, cfg.DefaultChannels, cfg.AdminEmail)
+	}
+
+	base["CENACLE_ANNOUNCEMENT_CHANNEL"] = "general"
+	base["CENACLE_ADMIN_EMAIL"] = "not-an-address"
+	base["CENACLE_OIDC_CLIENT_SECRET"] = "secret"
+	_, err = LoadServe(env(base), files(nil))
+	if err == nil || !strings.Contains(err.Error(), "configured twice") || !strings.Contains(err.Error(), "CENACLE_ADMIN_EMAIL") {
+		t.Errorf("errors = %v", err)
+	}
+}

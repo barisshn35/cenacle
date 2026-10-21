@@ -52,6 +52,12 @@ func newShared(t *testing.T) shared {
 		vc, _ := vk.Get()
 		vc.Do(context.Background(), vc.B().Del().Key(sh.stream).Build())
 	})
+	// As at installation: Central for announcements, General for everyone.
+	if err := chat.EnsureDefaults(context.Background(), store.New(sh.pool), chat.Defaults{
+		Announcement: "Central", Channels: []string{"General"}, AdminEmail: adminEmail,
+	}); err != nil {
+		t.Fatal(err)
+	}
 	return sh
 }
 
@@ -104,7 +110,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second,
 		},
 		Realtime: &realtime.Handler{
-			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Cookies: cookies, PublicURL: public,
+			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Cookies: cookies, PublicURL: public,
 			Settings: o.settings, Log: log,
 		},
 	})
@@ -127,14 +133,33 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 
 // user signs a user in directly (the OIDC flow is tested in package auth)
 // and returns a bearer token.
+// adminEmail is the administrator's address in these tests.
+const adminEmail = "admin@example.com"
+
 func (s *stack) user(subject, name string) string {
+	return s.userWithEmail(subject, name, subject+"@example.com")
+}
+
+func (s *stack) admin() string { return s.userWithEmail("sub-admin", "Yönetici", adminEmail) }
+
+func (s *stack) userWithEmail(subject, name, email string) string {
 	s.t.Helper()
 	ctx := context.Background()
-	u, err := store.New(s.pool).UpsertUserFromIdentity(ctx, store.UpsertUserFromIdentityParams{
-		AuthService: "cenacle-id", AuthData: subject, Email: subject + "@example.com", DisplayName: name,
+	q := store.New(s.pool)
+	u, err := q.UpsertUserFromIdentity(ctx, store.UpsertUserFromIdentityParams{
+		AuthService: "cenacle-id", AuthData: subject, Email: email, DisplayName: name, EmailVerified: true,
 	})
 	if err != nil {
 		s.t.Fatal(err)
+	}
+	// What sign-in does after the OIDC flow (tested in package auth).
+	if _, err := q.JoinDefaultChannels(ctx, u.ID); err != nil {
+		s.t.Fatal(err)
+	}
+	if email == adminEmail {
+		if err := q.SetAdmin(ctx, store.SetAdminParams{ID: u.ID, IsAdmin: true}); err != nil {
+			s.t.Fatal(err)
+		}
 	}
 	token, _, err := s.sessions.Create(ctx, u.ID, auth.ClientInfo{})
 	if err != nil {
@@ -170,8 +195,13 @@ func (s *stack) call(method, path, token string, body any, out any) *http.Respon
 }
 
 type channel struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Kind        string `json:"kind"`
+	IsDefault   bool   `json:"is_default"`
+	IsMandatory bool   `json:"is_mandatory"`
+	IsMember    bool   `json:"is_member"`
+	CanPost     bool   `json:"can_post"`
 }
 
 type message struct {
@@ -185,20 +215,27 @@ type message struct {
 	} `json:"author"`
 }
 
-func (s *stack) general(token string) string {
+func (s *stack) channels(token, path string) []channel {
 	s.t.Helper()
 	var out struct{ Channels []channel }
-	if res := s.call(http.MethodGet, "/api/channels", token, nil, &out); res.StatusCode != http.StatusOK {
-		s.t.Fatalf("list channels = %d", res.StatusCode)
+	if res := s.call(http.MethodGet, path, token, nil, &out); res.StatusCode != http.StatusOK {
+		s.t.Fatalf("GET %s = %d", path, res.StatusCode)
 	}
-	for _, c := range out.Channels {
-		if c.Name == "general" {
+	return out.Channels
+}
+
+func (s *stack) channelID(token, name string) string {
+	s.t.Helper()
+	for _, c := range s.channels(token, "/api/channels") {
+		if c.Name == name {
 			return c.ID
 		}
 	}
-	s.t.Fatal("no #general")
+	s.t.Fatalf("not a member of %s", name)
 	return ""
 }
+
+func (s *stack) general(token string) string { return s.channelID(token, "General") }
 
 func (s *stack) send(token, channelID, body, nonce string) (message, *http.Response) {
 	s.t.Helper()

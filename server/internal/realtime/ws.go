@@ -14,6 +14,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/jackc/pgx/v5/pgtype"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
@@ -55,11 +56,17 @@ type SessionChecker interface {
 	SessionActive(ctx context.Context, id pgtype.UUID) (bool, error)
 }
 
+// MembershipSource lists the channels a user belongs to.
+type MembershipSource interface {
+	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
+}
+
 // Handler serves the ticket endpoint and the WebSocket.
 type Handler struct {
 	Hub       *Hub
 	Tickets   TicketStore
 	Sessions  SessionChecker
+	Members   MembershipSource
 	Cookies   auth.Cookies
 	PublicURL *url.URL
 	Settings  Settings
@@ -171,6 +178,12 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	h.Hub.add(c)
 	defer h.Hub.remove(c)
 
+	aud, err := h.audience(ctx, t.UserID)
+	if err != nil {
+		log.WarnContext(ctx, "websocket memberships", "error", err)
+		_ = conn.Close(websocket.StatusTryAgainLater, "memberships unavailable")
+		return
+	}
 	start, backlog, resync, err := h.startingPoint(ctx, r.URL.Query().Get("last_event_id"))
 	if err != nil {
 		log.WarnContext(ctx, "websocket start", "error", err)
@@ -201,6 +214,9 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			return nil // already sent
 		}
 		sent = id
+		if !aud.allows(ev) {
+			return nil
+		}
 		return send(frame{Op: "event", ID: ev.ID, Type: ev.Type, Data: ev.Data})
 	}
 	for _, ev := range backlog {
@@ -247,6 +263,20 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+func (h *Handler) audience(ctx context.Context, userID pgtype.UUID) (*audience, error) {
+	ids, err := h.Members.ListMemberChannelIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	a := &audience{user: uuidString(userID), channels: make(map[string]bool, len(ids))}
+	for _, id := range ids {
+		a.channels[uuidString(id)] = true
+	}
+	return a, nil
+}
+
+func uuidString(id pgtype.UUID) string { return openapi_types.UUID(id.Bytes).String() }
 
 // startingPoint decides where the event stream starts for a client: after
 // its last_event_id when every event since is available, otherwise at the

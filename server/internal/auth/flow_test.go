@@ -71,10 +71,11 @@ func newEnv(t *testing.T) *env {
 
 	e := &env{t: t, idp: idp, pool: pool, sessions: sessions}
 	handlers := &auth.Handlers{
-		Sessions: sessions,
-		Users:    queries,
-		Flows:    &memFlows{m: map[string][]byte{}},
-		Log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Sessions:   sessions,
+		Users:      queries,
+		Flows:      &memFlows{m: map[string][]byte{}},
+		AdminEmail: "AYSE@example.com", // compared without case
+		Log:        slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 	// The router needs the public URL, known once the server listens.
 	var router http.Handler
@@ -476,5 +477,54 @@ func TestSessionUseIsRecorded(t *testing.T) {
 	_ = e.pool.QueryRow(ctx, "SELECT extract(epoch FROM now() - last_seen_at)::bigint * 1000000000, user_agent FROM sessions").Scan(&age, &ua)
 	if age > time.Minute || ua != "Cenacle-Test/1" {
 		t.Errorf("last_seen age=%v user_agent=%q", age, ua)
+	}
+}
+
+func TestSignInAppliesAdministratorAndDefaultChannels(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t)
+	permissions := func(c *http.Client) bool {
+		var s struct {
+			Permissions struct {
+				CreateChannels bool `json:"create_channels"`
+			} `json:"permissions"`
+		}
+		_, body := e.do(c, http.MethodGet, "/api/session", nil)
+		_ = json.Unmarshal(body, &s)
+		return s.Permissions.CreateChannels
+	}
+
+	// ayse@example.com (verified) is the configured administrator.
+	e.signIn(e.client, "/api/auth/login")
+	if !permissions(e.client) {
+		t.Error("the configured administrator cannot create channels")
+	}
+	var defaults, memberships int
+	_ = e.pool.QueryRow(ctx, "SELECT count(*) FROM channels WHERE is_default").Scan(&defaults)
+	_ = e.pool.QueryRow(ctx, "SELECT count(*) FROM channel_members").Scan(&memberships)
+	if defaults == 0 || memberships != defaults {
+		t.Errorf("default channels %d, memberships %d", defaults, memberships)
+	}
+
+	// Another user is not.
+	e.idp.Subject, e.idp.Email = "sub-2", "mert@example.com"
+	other := newClient(t)
+	e.signIn(other, "/api/auth/login")
+	if permissions(other) {
+		t.Error("another user can create channels")
+	}
+
+	// The address moves to the other user: the flag moves with the next sign-in.
+	e.idp.Email = "ayse@example.com"
+	e.signIn(newClient(t), "/api/auth/login")
+	var admins []string
+	rows, _ := e.pool.Query(ctx, "SELECT auth_data FROM users WHERE is_admin")
+	for rows.Next() {
+		var s string
+		_ = rows.Scan(&s)
+		admins = append(admins, s)
+	}
+	if len(admins) != 1 || admins[0] != "sub-2" {
+		t.Errorf("administrators = %v, want [sub-2]", admins)
 	}
 }

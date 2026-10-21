@@ -16,3 +16,17 @@ RETURNING *;
 
 -- name: GetUser :one
 SELECT * FROM users WHERE id = @id;
+
+-- name: ClearAdminExcept :exec
+-- ClearAdminExcept removes the administrator flag from everyone but one user,
+-- so that it can move to that user (there is at most one administrator).
+UPDATE users SET is_admin = false WHERE is_admin AND id <> @id;
+
+-- name: SetAdmin :exec
+UPDATE users SET is_admin = @is_admin WHERE id = @id;
+
+-- name: RevokeAdminUnlessEmail :exec
+-- RevokeAdminUnlessEmail removes the administrator flag from a user whose
+-- e-mail address is no longer the configured one ('' revokes it from all).
+UPDATE users SET is_admin = false
+WHERE is_admin AND (@email::text = '' OR lower(email) <> lower(@email::text));

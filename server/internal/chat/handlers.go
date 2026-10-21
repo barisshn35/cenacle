@@ -5,8 +5,6 @@ package chat
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -14,7 +12,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -63,29 +60,10 @@ func channelNotFound(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ListChannels implements api.ServerInterface.
-func (h *Handlers) ListChannels(w http.ResponseWriter, r *http.Request) {
-	if _, ok := auth.RequirePrincipal(w, r, h.Cookies); !ok {
-		return
-	}
-	rows, err := h.Queries.ListChannels(r.Context())
-	if err != nil {
-		h.unavailable(w, r, "list channels", err)
-		return
-	}
-	out := make([]api.Channel, 0, len(rows))
-	for _, c := range rows {
-		out = append(out, api.Channel{Id: uuid(c.ID), Name: c.Name, Topic: c.Topic})
-	}
-	httpx.WriteJSON(w, http.StatusOK, struct {
-		Channels []api.Channel `json:"channels"`
-	}{out})
-}
-
 // channel loads a channel or answers 404.
 func (h *Handlers) channel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) (store.Channel, bool) {
 	c, err := h.Queries.GetChannel(r.Context(), pgUUID(id))
-	if errors.Is(err, pgx.ErrNoRows) {
+	if isNoRows(err) {
 		channelNotFound(w, r)
 		return c, false
 	}
@@ -98,10 +76,12 @@ func (h *Handlers) channel(w http.ResponseWriter, r *http.Request, id openapi_ty
 
 // ListMessages implements api.ServerInterface.
 func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID, params api.ListMessagesParams) {
-	if _, ok := auth.RequirePrincipal(w, r, h.Cookies); !ok {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
 		return
 	}
-	if _, ok := h.channel(w, r, channelID); !ok {
+	c, ok := h.channel(w, r, channelID)
+	if !ok || !h.member(w, r, c, p.User) {
 		return
 	}
 	limit := defaultPage
@@ -161,11 +141,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 	var in api.NewMessage
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&in); err != nil {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest,
-			Detail: "The body must be a JSON object with body and nonce."})
+	if !decode(w, r, &in) {
 		return
 	}
 	body, problem := validBody(in.Body)
@@ -176,7 +152,13 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest, Detail: problem})
 		return
 	}
-	if _, ok := h.channel(w, r, channelID); !ok {
+	c, ok := h.channel(w, r, channelID)
+	if !ok || !h.member(w, r, c, p.User) {
+		return
+	}
+	if !canPost(c, p.User) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusForbidden, Code: CodeReadOnlyChannel,
+			Detail: "Only the administrator can send messages in this channel."})
 		return
 	}
 
@@ -196,7 +178,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	msg, err := h.Queries.CreateMessage(r.Context(), store.CreateMessageParams{
 		ChannelID: pgUUID(channelID), AuthorID: p.User.ID, Body: body, Nonce: in.Nonce,
 	})
-	if errors.Is(err, pgx.ErrNoRows) {
+	if isNoRows(err) {
 		// The nonce was used before: this is a retry of a message that exists.
 		msg, err = h.Queries.GetMessageByNonce(r.Context(), store.GetMessageByNonceParams{
 			AuthorID: p.User.ID, Nonce: in.Nonce,
@@ -212,9 +194,6 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	}
 	// The message is stored; if the event cannot be appended, clients still
 	// see it when they load the channel (a transactional outbox follows in v0.9).
-	if _, err := h.Events.Append(r.Context(), events.MessageCreated, out); err != nil {
-		h.Log.ErrorContext(r.Context(), "append message event", "error", err,
-			"request_id", httpx.RequestIDFrom(r.Context()))
-	}
+	h.publish(r.Context(), events.MessageCreated, out)
 	httpx.WriteJSON(w, http.StatusCreated, out)
 }

@@ -17,6 +17,8 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Config is the validated server configuration.
@@ -61,7 +63,19 @@ type Config struct {
 	SessionIdleTimeout time.Duration
 	// SessionMaxAge ends sessions this long after sign-in, used or not.
 	SessionMaxAge time.Duration
+
+	// AdminEmail is the verified e-mail address of the one user who may
+	// create channels and post in announcement channels (until roles, v0.6).
+	AdminEmail string
+	// AnnouncementChannel is created at startup as a mandatory announcement
+	// channel for everyone; empty for none.
+	AnnouncementChannel string
+	// DefaultChannels are created at startup with every user as a member.
+	DefaultChannels []string
 }
+
+// MaxChannelName is the longest channel name in characters.
+const MaxChannelName = 80
 
 // LookupFunc matches os.LookupEnv; tests inject their own.
 type LookupFunc func(key string) (string, bool)
@@ -112,6 +126,13 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.OIDCClientSecret = l.str("CENACLE_OIDC_CLIENT_SECRET", "")
 	cfg.SessionIdleTimeout = l.duration("CENACLE_SESSION_IDLE_TIMEOUT", 7*24*time.Hour)
 	cfg.SessionMaxAge = l.duration("CENACLE_SESSION_MAX_AGE", 30*24*time.Hour)
+	cfg.AdminEmail = strings.TrimSpace(l.str("CENACLE_ADMIN_EMAIL", ""))
+	cfg.AnnouncementChannel = strings.TrimSpace(l.str("CENACLE_ANNOUNCEMENT_CHANNEL", "Central"))
+	for _, name := range strings.Split(l.str("CENACLE_DEFAULT_CHANNELS", "General"), ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			cfg.DefaultChannels = append(cfg.DefaultChannels, name)
+		}
+	}
 
 	if cfg.LogFormat == "" {
 		cfg.LogFormat = "json"
@@ -263,6 +284,23 @@ func (l *loader) validateServe(cfg *Config) {
 	}
 	if cfg.Env == "production" && cfg.PublicURL != nil && cfg.PublicURL.Scheme != "https" {
 		l.fail("CENACLE_PUBLIC_URL: must use https in production")
+	}
+	if cfg.AdminEmail != "" && !strings.Contains(cfg.AdminEmail, "@") {
+		l.fail("CENACLE_ADMIN_EMAIL: must be an e-mail address, got %q", cfg.AdminEmail)
+	}
+	seen := map[string]bool{}
+	for _, name := range append([]string{cfg.AnnouncementChannel}, cfg.DefaultChannels...) {
+		if name == "" {
+			continue
+		}
+		if utf8.RuneCountInString(name) > MaxChannelName || strings.ContainsFunc(name, unicode.IsControl) {
+			l.fail("channel name %q: at most %d characters, no control characters", name, MaxChannelName)
+		}
+		if key := strings.ToLower(name); seen[key] {
+			l.fail("channel %q is configured twice (CENACLE_ANNOUNCEMENT_CHANNEL, CENACLE_DEFAULT_CHANNELS)", name)
+		} else {
+			seen[key] = true
+		}
 	}
 	if cfg.SessionIdleTimeout > cfg.SessionMaxAge {
 		l.fail("CENACLE_SESSION_IDLE_TIMEOUT: must not exceed CENACLE_SESSION_MAX_AGE")

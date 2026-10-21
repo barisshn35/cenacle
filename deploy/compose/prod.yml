@@ -88,6 +88,9 @@ services:
       # Server-to-IdP requests stay inside the Compose network.
       CENACLE_OIDC_BACKCHANNEL_URL: http://idp:8190
       CENACLE_OIDC_CLIENT_SECRET_FILE: /run/secrets/chat_client_secret
+      CENACLE_ADMIN_EMAIL: ${CENACLE_ADMIN_EMAIL:-}
+      CENACLE_ANNOUNCEMENT_CHANNEL: ${CENACLE_ANNOUNCEMENT_CHANNEL-Central}
+      CENACLE_DEFAULT_CHANNELS: ${CENACLE_DEFAULT_CHANNELS-General}
     secrets: [chat_database_url, valkey_password, chat_client_secret]
     networks: [edge, data]
     depends_on:

@@ -130,6 +130,9 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	hub := &realtime.Hub{Log: eventLog, Logger: log}
 	go hub.Run(ctx)
 	cookies := auth.NewCookies(cfg.PublicURL)
+	go chat.RunEnsureDefaults(ctx, queries, chat.Defaults{
+		Announcement: cfg.AnnouncementChannel, Channels: cfg.DefaultChannels, AdminEmail: cfg.AdminEmail,
+	}, log)
 
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
@@ -151,6 +154,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				Cookies:    cookies,
 				PublicURL:  cfg.PublicURL,
 				TrustProxy: cfg.TrustProxy,
+				AdminEmail: cfg.AdminEmail,
 				Log:        log,
 			},
 			Chat: &chat.Handlers{
@@ -166,6 +170,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				Hub:       hub,
 				Tickets:   valkey,
 				Sessions:  sessions,
+				Members:   queries,
 				Cookies:   cookies,
 				PublicURL: cfg.PublicURL,
 				Settings:  realtime.DefaultSettings,

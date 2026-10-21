@@ -12,6 +12,75 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addAllUsers = `-- name: AddAllUsers :execrows
+INSERT INTO channel_members (channel_id, user_id)
+SELECT $1, id FROM users
+ON CONFLICT DO NOTHING
+`
+
+// AddAllUsers makes every user a member of a channel.
+func (q *Queries) AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, addAllUsers, channelID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const addMember = `-- name: AddMember :execrows
+INSERT INTO channel_members (channel_id, user_id) VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+type AddMemberParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) AddMember(ctx context.Context, arg AddMemberParams) (int64, error) {
+	result, err := q.db.Exec(ctx, addMember, arg.ChannelID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const createChannel = `-- name: CreateChannel :one
+INSERT INTO channels (name, topic, kind, is_default, created_by)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by
+`
+
+type CreateChannelParams struct {
+	Name      string      `json:"name"`
+	Topic     string      `json:"topic"`
+	Kind      string      `json:"kind"`
+	IsDefault bool        `json:"is_default"`
+	CreatedBy pgtype.UUID `json:"created_by"`
+}
+
+func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, createChannel,
+		arg.Name,
+		arg.Topic,
+		arg.Kind,
+		arg.IsDefault,
+		arg.CreatedBy,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Topic,
+		&i.CreatedAt,
+		&i.Kind,
+		&i.IsDefault,
+		&i.IsMandatory,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
 const createMessage = `-- name: CreateMessage :one
 INSERT INTO messages (channel_id, author_id, body, nonce)
 VALUES ($1, $2, $3, $4)
@@ -47,8 +116,48 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
+const ensureChannel = `-- name: EnsureChannel :one
+INSERT INTO channels (name, topic, kind, is_default, is_mandatory)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT ((lower(name))) DO UPDATE
+SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by
+`
+
+type EnsureChannelParams struct {
+	Name        string `json:"name"`
+	Topic       string `json:"topic"`
+	Kind        string `json:"kind"`
+	IsDefault   bool   `json:"is_default"`
+	IsMandatory bool   `json:"is_mandatory"`
+}
+
+// EnsureChannel creates a configured channel or brings an existing one of that
+// name to the configured kind and flags; the topic of an existing channel is kept.
+func (q *Queries) EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, ensureChannel,
+		arg.Name,
+		arg.Topic,
+		arg.Kind,
+		arg.IsDefault,
+		arg.IsMandatory,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Topic,
+		&i.CreatedAt,
+		&i.Kind,
+		&i.IsDefault,
+		&i.IsMandatory,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
 const getChannel = `-- name: GetChannel :one
-SELECT id, name, topic, created_at FROM channels WHERE id = $1
+SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by FROM channels WHERE id = $1
 `
 
 func (q *Queries) GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error) {
@@ -59,6 +168,10 @@ func (q *Queries) GetChannel(ctx context.Context, id pgtype.UUID) (Channel, erro
 		&i.Name,
 		&i.Topic,
 		&i.CreatedAt,
+		&i.Kind,
+		&i.IsDefault,
+		&i.IsMandatory,
+		&i.CreatedBy,
 	)
 	return i, err
 }
@@ -86,12 +199,124 @@ func (q *Queries) GetMessageByNonce(ctx context.Context, arg GetMessageByNoncePa
 	return i, err
 }
 
-const listChannels = `-- name: ListChannels :many
-SELECT id, name, topic, created_at FROM channels ORDER BY name
+const isMember = `-- name: IsMember :one
+SELECT EXISTS (
+    SELECT 1 FROM channel_members WHERE channel_id = $1 AND user_id = $2
+)
 `
 
-func (q *Queries) ListChannels(ctx context.Context) ([]Channel, error) {
-	rows, err := q.db.Query(ctx, listChannels)
+type IsMemberParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) IsMember(ctx context.Context, arg IsMemberParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isMember, arg.ChannelID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const joinDefaultChannels = `-- name: JoinDefaultChannels :execrows
+INSERT INTO channel_members (channel_id, user_id)
+SELECT id, $1 FROM channels WHERE is_default
+ON CONFLICT DO NOTHING
+`
+
+// JoinDefaultChannels makes a user a member of every default channel.
+func (q *Queries) JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, joinDefaultChannels, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const listAllChannels = `-- name: ListAllChannels :many
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, (m.user_id IS NOT NULL)::boolean AS is_member
+FROM channels c
+LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
+ORDER BY c.is_mandatory DESC, lower(c.name)
+`
+
+type ListAllChannelsRow struct {
+	ID          pgtype.UUID `json:"id"`
+	Name        string      `json:"name"`
+	Topic       string      `json:"topic"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Kind        string      `json:"kind"`
+	IsDefault   bool        `json:"is_default"`
+	IsMandatory bool        `json:"is_mandatory"`
+	CreatedBy   pgtype.UUID `json:"created_by"`
+	IsMember    bool        `json:"is_member"`
+}
+
+// ListAllChannels returns every channel with whether the user is a member.
+func (q *Queries) ListAllChannels(ctx context.Context, userID pgtype.UUID) ([]ListAllChannelsRow, error) {
+	rows, err := q.db.Query(ctx, listAllChannels, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllChannelsRow
+	for rows.Next() {
+		var i ListAllChannelsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Topic,
+			&i.CreatedAt,
+			&i.Kind,
+			&i.IsDefault,
+			&i.IsMandatory,
+			&i.CreatedBy,
+			&i.IsMember,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMemberChannelIDs = `-- name: ListMemberChannelIDs :many
+SELECT channel_id FROM channel_members WHERE user_id = $1
+`
+
+func (q *Queries) ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, listMemberChannelIDs, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var channel_id pgtype.UUID
+		if err := rows.Scan(&channel_id); err != nil {
+			return nil, err
+		}
+		items = append(items, channel_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMemberChannels = `-- name: ListMemberChannels :many
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by
+FROM channels c
+JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
+ORDER BY c.is_mandatory DESC, lower(c.name)
+`
+
+// ListMemberChannels returns the channels a user belongs to: mandatory ones
+// first, then by name.
+func (q *Queries) ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([]Channel, error) {
+	rows, err := q.db.Query(ctx, listMemberChannels, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +329,10 @@ func (q *Queries) ListChannels(ctx context.Context) ([]Channel, error) {
 			&i.Name,
 			&i.Topic,
 			&i.CreatedAt,
+			&i.Kind,
+			&i.IsDefault,
+			&i.IsMandatory,
+			&i.CreatedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -169,4 +398,21 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeMember = `-- name: RemoveMember :execrows
+DELETE FROM channel_members WHERE channel_id = $1 AND user_id = $2
+`
+
+type RemoveMemberParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeMember, arg.ChannelID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
