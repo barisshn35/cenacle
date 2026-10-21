@@ -46,6 +46,8 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 - Chat migration `00004_channel_membership` adds channel membership (every existing user
   joins the default channels), the announcement and default flags and the administrator
   flag; `general` becomes `General`. Reversible.
+- Chat migration `00005_private_channels` adds channel visibility (all existing channels
+  stay public) and member roles (creators become managers). Reversible.
 - New settings in `.env.prod` (see [installation](../install/README.md#administrator-and-default-channels)):
   `CENACLE_ADMIN_EMAIL` (without it nobody can create channels),
   `CENACLE_ANNOUNCEMENT_CHANNEL` (default `Central`), `CENACLE_DEFAULT_CHANNELS` (default

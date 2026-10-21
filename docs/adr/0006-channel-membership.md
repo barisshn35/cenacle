@@ -1,4 +1,4 @@
-# 0006. Channel membership, default channels and one administrator
+# 0006. Channel membership, public and private channels, one administrator
 
 - Status: accepted
 - Date: 2026-10-21
@@ -8,6 +8,7 @@
 The owner wants channels that everyone belongs to set up at installation, one of them —
 Central — mandatory for everyone and closed for writing, and channel creation limited to
 a single person until roles are designed (v0.6). Channel names are shown without "#".
+Channels can be public or private; only a private channel's manager brings people in.
 
 ## Decisions
 
@@ -44,11 +45,27 @@ a single person until roles are designed (v0.6). Channel names are shown without
    `channel.created` (a default channel, for everyone). Messages of other channels are not
    sent; unknown event types stay on the server.
 8. **Leaving is undoable, not confirmed.** Leaving a channel shows "Undo" (rejoin) instead
-   of a confirmation dialog (UX plan: reversible actions get undo).
+   of a confirmation dialog (UX plan: reversible actions get undo). The same holds for a
+   manager removing someone.
+9. **Public and private.** `channels.visibility`. Public channels are in everyone's
+   directory and can be joined. Private channels are visible to their members only: to
+   others every operation answers `404` as if the channel did not exist (no leak through
+   `403`), the directory omits them and joining is not possible. Channels for everyone
+   (default, announcement) are always public. Visibility is chosen at creation and can be
+   changed by a manager.
+10. **Channel managers.** `channel_members.role` is `member` or `manager`. The creator is
+    the manager; the administrator counts as manager of every channel, so a channel never
+    ends up without one. Managers add people (`POST /api/channels/{id}/members`, the only
+    way into a private channel), remove them, and change visibility and topic. People are
+    found by name or e-mail address (`GET /api/users`, wildcards escaped). Appointing more
+    managers comes with roles (v0.6).
+11. **Membership events.** Adding and removing send `channel.joined`/`channel.left` to the
+    person concerned (their channel list updates at once) and `channel.members_changed` to
+    the channel's members (member lists update); `channel.updated` follows visibility and
+    topic changes.
 
 ## Consequences
 
-- Private channels (invitation only) and channel management (rename, archive, topic) come
-  with roles in v0.6; the directory then hides channels a user may not see.
+- Renaming and archiving channels, and appointing managers, come with roles in v0.6.
 - The administrator is a single point of authority; losing access to that account means
   changing `CENACLE_ADMIN_EMAIL` and restarting.

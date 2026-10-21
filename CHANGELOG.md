@@ -26,6 +26,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   (default `General`).
 - One administrator until roles arrive: the verified account of `CENACLE_ADMIN_EMAIL`
   creates channels (optionally for everyone) and posts in announcement channels.
+- Public and private channels. Private channels are visible to their members only; their
+  manager (the creator, and the administrator) adds and removes people. Members list in the
+  details panel; visibility can be changed by a manager; people search by name or e-mail.
 
 ### Changed
 
@@ -37,7 +40,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 ### Upgrade notes
 
 - See [docs/upgrade](docs/upgrade/README.md#unreleased-040): reversible migrations
-  `00003_channels_messages` and `00004_channel_membership`; set `CENACLE_ADMIN_EMAIL`.
+  `00003_channels_messages`, `00004_channel_membership` and `00005_private_channels`; set
+  `CENACLE_ADMIN_EMAIL`.
 
 ## [0.3.0] - 2026-10-21
 
