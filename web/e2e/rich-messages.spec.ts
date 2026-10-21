@@ -29,6 +29,8 @@ test('messages render Markdown safely, with code, mentions and cards', async ({
       '![resim](https://tracker.example/pixel.png)',
       '',
       `<@${ME.id}> ve <@${AYSE.id}> bakar mısınız?`,
+      '',
+      `[@Patron](https://evil.example/#mention-${ME.id}) [@Patron](#mention-${ME.id})`,
     ].join('\n'),
     mentions: [
       { id: ME.id, display_name: ME.display_name },

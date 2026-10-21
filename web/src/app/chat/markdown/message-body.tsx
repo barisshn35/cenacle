@@ -5,7 +5,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@cenacle/ui/lib/utils';
 import { CodeBlock } from './code-block';
-import { toMarkdownMentions, MENTION_PREFIX } from './mentions';
+import { mentionId, toMarkdownMentions } from './mentions';
 
 type Person = { id: string; display_name: string };
 
@@ -27,12 +27,11 @@ function MentionChip({ name, self }: { name: string; self: boolean }) {
 function components(selfId: string, people: Person[]): Components {
   return {
     a({ href, children }) {
-      const at = href?.indexOf(MENTION_PREFIX) ?? -1;
-      if (href && at >= 0) {
-        const id = href.slice(at + MENTION_PREFIX.length);
-        const person = people.find((p) => p.id === id);
-        return <MentionChip name={person?.display_name ?? String(children)} self={id === selfId} />;
-      }
+      // Only links made from <@id> for people the server says are mentioned
+      // become chips; a typed look-alike stays an ordinary link.
+      const id = mentionId(href);
+      const person = id && people.find((p) => p.id === id);
+      if (person) return <MentionChip name={person.display_name} self={id === selfId} />;
       return (
         <a
           href={href}
