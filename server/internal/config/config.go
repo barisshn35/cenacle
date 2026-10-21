@@ -16,6 +16,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -81,6 +82,20 @@ type Config struct {
 	EgressAllow []netip.Prefix
 	// EgressAllowHTTP permits plain http addresses for bots (development).
 	EgressAllowHTTP bool
+
+	// Files: an S3-compatible object store; without an endpoint, files are off.
+	S3Endpoint  string
+	S3Region    string
+	S3Bucket    string
+	S3AccessKey string
+	S3SecretKey string
+	// S3UploadURL is where browsers post uploads (default: the app's origin
+	// and the bucket as path, served by the proxy).
+	S3UploadURL string
+	// FilesMaxSize is the largest file in bytes.
+	FilesMaxSize int64
+	// ClamAVAddr is a clamd TCP address (host:port) to scan files; empty: no scan.
+	ClamAVAddr string
 }
 
 // MaxChannelName is the longest channel name in characters.
@@ -143,6 +158,18 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 		cfg.EgressAllow = allow
 	}
 	cfg.EgressAllowHTTP = l.boolean("CENACLE_EGRESS_ALLOW_HTTP", false)
+	cfg.S3Endpoint = strings.TrimSpace(l.str("CENACLE_S3_ENDPOINT", ""))
+	cfg.S3Region = l.str("CENACLE_S3_REGION", "garage")
+	cfg.S3Bucket = l.str("CENACLE_S3_BUCKET", "cenacle-files")
+	cfg.S3AccessKey = l.str("CENACLE_S3_ACCESS_KEY", "")
+	cfg.S3SecretKey = l.str("CENACLE_S3_SECRET_KEY", "")
+	cfg.S3UploadURL = strings.TrimSpace(l.str("CENACLE_S3_UPLOAD_URL", ""))
+	if mb, err := strconv.Atoi(l.str("CENACLE_FILES_MAX_SIZE_MB", "100")); err != nil || mb < 1 || mb > 10240 {
+		l.fail("CENACLE_FILES_MAX_SIZE_MB: a number of megabytes from 1 to 10240")
+	} else {
+		cfg.FilesMaxSize = int64(mb) << 20
+	}
+	cfg.ClamAVAddr = strings.TrimSpace(l.str("CENACLE_CLAMAV_ADDR", ""))
 	for _, name := range strings.Split(l.str("CENACLE_DEFAULT_CHANNELS", "General"), ",") {
 		if name = strings.TrimSpace(name); name != "" {
 			cfg.DefaultChannels = append(cfg.DefaultChannels, name)
@@ -285,6 +312,17 @@ func (l *loader) validate(cfg *Config) {
 }
 
 func (l *loader) validateServe(cfg *Config) {
+	if cfg.S3Endpoint != "" {
+		if u, err := url.Parse(cfg.S3Endpoint); err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+			l.fail("CENACLE_S3_ENDPOINT: must be an http(s) URL, got %q", cfg.S3Endpoint)
+		}
+		if cfg.S3AccessKey == "" || cfg.S3SecretKey == "" {
+			l.fail("CENACLE_S3_ACCESS_KEY and CENACLE_S3_SECRET_KEY are required with CENACLE_S3_ENDPOINT")
+		}
+		if cfg.S3Bucket == "" {
+			l.fail("CENACLE_S3_BUCKET: must not be empty")
+		}
+	}
 	if u, err := url.Parse(cfg.OIDCIssuer); err != nil || (u.Scheme != "http" && u.Scheme != "https") ||
 		u.Host == "" || u.RawQuery != "" || u.Fragment != "" {
 		l.fail("CENACLE_OIDC_ISSUER: must be an http(s) URL, got %q", cfg.OIDCIssuer)

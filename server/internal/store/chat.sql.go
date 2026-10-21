@@ -161,10 +161,10 @@ func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversation
 }
 
 const createMessage = `-- name: CreateMessage :one
-INSERT INTO messages (channel_id, author_id, body, nonce, attachments)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files)
+VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
 `
 
 type CreateMessageParams struct {
@@ -173,6 +173,7 @@ type CreateMessageParams struct {
 	Body        string      `json:"body"`
 	Nonce       string      `json:"nonce"`
 	Attachments []byte      `json:"attachments"`
+	HasFiles    bool        `json:"has_files"`
 }
 
 // CreateMessage inserts a message; with a nonce the author used before it
@@ -184,6 +185,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		arg.Body,
 		arg.Nonce,
 		arg.Attachments,
+		arg.HasFiles,
 	)
 	var i Message
 	err := row.Scan(
@@ -197,6 +199,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.DeletedAt,
 		&i.DeletedBy,
 		&i.Attachments,
+		&i.HasFiles,
 	)
 	return i, err
 }
@@ -216,7 +219,7 @@ func (q *Queries) DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, er
 const deleteMessage = `-- name: DeleteMessage :one
 UPDATE messages SET deleted_at = now(), deleted_by = $1
 WHERE id = $2 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
 `
 
 type DeleteMessageParams struct {
@@ -238,6 +241,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (M
 		&i.DeletedAt,
 		&i.DeletedBy,
 		&i.Attachments,
+		&i.HasFiles,
 	)
 	return i, err
 }
@@ -245,7 +249,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (M
 const editMessage = `-- name: EditMessage :one
 UPDATE messages SET body = $1, edited_at = now()
 WHERE id = $2 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
 `
 
 type EditMessageParams struct {
@@ -267,6 +271,7 @@ func (q *Queries) EditMessage(ctx context.Context, arg EditMessageParams) (Messa
 		&i.DeletedAt,
 		&i.DeletedBy,
 		&i.Attachments,
+		&i.HasFiles,
 	)
 	return i, err
 }
@@ -409,7 +414,7 @@ func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (s
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.id = $1 AND m.channel_id = $2
@@ -431,6 +436,7 @@ type GetMessageRow struct {
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 	DeletedBy   pgtype.UUID        `json:"deleted_by"`
 	Attachments []byte             `json:"attachments"`
+	HasFiles    bool               `json:"has_files"`
 	AuthorName  string             `json:"author_name"`
 	AuthorIsBot bool               `json:"author_is_bot"`
 }
@@ -449,6 +455,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMess
 		&i.DeletedAt,
 		&i.DeletedBy,
 		&i.Attachments,
+		&i.HasFiles,
 		&i.AuthorName,
 		&i.AuthorIsBot,
 	)
@@ -456,7 +463,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMess
 }
 
 const getMessageByNonce = `-- name: GetMessageByNonce :one
-SELECT id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments FROM messages WHERE author_id = $1 AND nonce = $2
+SELECT id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files FROM messages WHERE author_id = $1 AND nonce = $2
 `
 
 type GetMessageByNonceParams struct {
@@ -478,6 +485,7 @@ func (q *Queries) GetMessageByNonce(ctx context.Context, arg GetMessageByNoncePa
 		&i.DeletedAt,
 		&i.DeletedBy,
 		&i.Attachments,
+		&i.HasFiles,
 	)
 	return i, err
 }
@@ -778,7 +786,7 @@ func (q *Queries) ListMembers(ctx context.Context, channelID pgtype.UUID) ([]Lis
 }
 
 const listMessagesBefore = `-- name: ListMessagesBefore :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = $1
@@ -805,6 +813,7 @@ type ListMessagesBeforeRow struct {
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 	DeletedBy   pgtype.UUID        `json:"deleted_by"`
 	Attachments []byte             `json:"attachments"`
+	HasFiles    bool               `json:"has_files"`
 	AuthorName  string             `json:"author_name"`
 	AuthorIsBot bool               `json:"author_is_bot"`
 }
@@ -832,6 +841,7 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.DeletedAt,
 			&i.DeletedBy,
 			&i.Attachments,
+			&i.HasFiles,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -899,7 +909,7 @@ func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) (int
 const restoreMessage = `-- name: RestoreMessage :one
 UPDATE messages SET deleted_at = NULL, deleted_by = NULL
 WHERE id = $1 AND deleted_at > now() - $2::interval
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
 `
 
 type RestoreMessageParams struct {
@@ -922,6 +932,7 @@ func (q *Queries) RestoreMessage(ctx context.Context, arg RestoreMessageParams) 
 		&i.DeletedAt,
 		&i.DeletedBy,
 		&i.Attachments,
+		&i.HasFiles,
 	)
 	return i, err
 }

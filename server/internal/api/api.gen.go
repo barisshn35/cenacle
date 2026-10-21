@@ -553,6 +553,20 @@ type ChannelKind string
 // ChannelVisibility Private channels are visible to their members only.
 type ChannelVisibility string
 
+// ChannelFile defines model for ChannelFile.
+type ChannelFile struct {
+	ContentType  string             `json:"content_type"`
+	CreatedAt    time.Time          `json:"created_at"`
+	HasThumbnail bool               `json:"has_thumbnail"`
+	Height       *int               `json:"height"`
+	Id           openapi_types.UUID `json:"id"`
+	MessageId    openapi_types.UUID `json:"message_id"`
+	Name         string             `json:"name"`
+	Size         int64              `json:"size"`
+	Uploader     Author             `json:"uploader"`
+	Width        *int               `json:"width"`
+}
+
 // ChannelList defines model for ChannelList.
 type ChannelList struct {
 	Channels []Channel `json:"channels"`
@@ -619,6 +633,17 @@ type DeviceSession struct {
 	UserAgent  string    `json:"user_agent"`
 }
 
+// FileInfo defines model for FileInfo.
+type FileInfo struct {
+	ContentType  string             `json:"content_type"`
+	HasThumbnail bool               `json:"has_thumbnail"`
+	Height       *int               `json:"height"`
+	Id           openapi_types.UUID `json:"id"`
+	Name         string             `json:"name"`
+	Size         int64              `json:"size"`
+	Width        *int               `json:"width"`
+}
+
 // Invite defines model for Invite.
 type Invite struct {
 	CreatedAt time.Time          `json:"created_at"`
@@ -664,6 +689,7 @@ type Message struct {
 	ChannelId openapi_types.UUID `json:"channel_id"`
 	CreatedAt time.Time          `json:"created_at"`
 	EditedAt  *time.Time         `json:"edited_at"`
+	Files     []FileInfo         `json:"files"`
 	Id        openapi_types.UUID `json:"id"`
 
 	// Mentions The people the message mentions (members of the channel).
@@ -705,15 +731,22 @@ type NewChannelVisibility string
 type NewMessage struct {
 	Attachments *[]Attachment `json:"attachments,omitempty"`
 
-	// Body Markdown; may be empty when the message has attachments.
-	Body  string `json:"body"`
-	Nonce string `json:"nonce"`
+	// Body Markdown; may be empty when the message has attachments or files.
+	Body string `json:"body"`
+
+	// FileIds Ready files the sender uploaded into this channel (see createUpload).
+	FileIds *[]openapi_types.UUID `json:"file_ids,omitempty"`
+	Nonce   string                `json:"nonce"`
 }
 
 // Permissions What the user may do across the instance. Rights inside a workspace follow
 // the role there (see Workspace).
 type Permissions struct {
-	CreateWorkspaces bool `json:"create_workspaces"`
+	CreateWorkspaces bool  `json:"create_workspaces"`
+	MaxFileSize      int64 `json:"max_file_size"`
+
+	// UploadFiles Files can be shared (an object store is configured).
+	UploadFiles bool `json:"upload_files"`
 }
 
 // Person defines model for Person.
@@ -968,6 +1001,18 @@ type RunCommandJSONBody struct {
 	Timezone *string `json:"timezone,omitempty"`
 }
 
+// ListChannelFilesParams defines parameters for ListChannelFiles.
+type ListChannelFilesParams struct {
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+}
+
+// CreateUploadJSONBody defines parameters for CreateUpload.
+type CreateUploadJSONBody struct {
+	ContentType *string `json:"content_type,omitempty"`
+	Name        string  `json:"name"`
+	Size        int64   `json:"size"`
+}
+
 // AddChannelMemberJSONBody defines parameters for AddChannelMember.
 type AddChannelMemberJSONBody struct {
 	UserId openapi_types.UUID `json:"user_id"`
@@ -1001,6 +1046,11 @@ type MarkReadJSONBody struct {
 type ScheduleMessageJSONBody struct {
 	Body   string    `json:"body"`
 	SendAt time.Time `json:"send_at"`
+}
+
+// GetFileContentParams defines parameters for GetFileContent.
+type GetFileContentParams struct {
+	Download *bool `form:"download,omitempty" json:"download,omitempty"`
 }
 
 // PostWebhookJSONBody defines parameters for PostWebhook.
@@ -1106,6 +1156,9 @@ type SetChannelCategoryJSONRequestBody SetChannelCategoryJSONBody
 
 // RunCommandJSONRequestBody defines body for RunCommand for application/json ContentType.
 type RunCommandJSONRequestBody RunCommandJSONBody
+
+// CreateUploadJSONRequestBody defines body for CreateUpload for application/json ContentType.
+type CreateUploadJSONRequestBody CreateUploadJSONBody
 
 // AddChannelMemberJSONRequestBody defines body for AddChannelMember for application/json ContentType.
 type AddChannelMemberJSONRequestBody AddChannelMemberJSONBody
@@ -1247,6 +1300,12 @@ type ServerInterface interface {
 	// RunCommand Run a slash command in a channel
 	// (POST /api/channels/{channel_id}/commands)
 	RunCommand(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListChannelFiles Files shared in a channel, newest first
+	// (GET /api/channels/{channel_id}/files)
+	ListChannelFiles(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListChannelFilesParams)
+	// CreateUpload Start uploading a file into a channel
+	// (POST /api/channels/{channel_id}/files)
+	CreateUpload(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// JoinChannel Join a public channel
 	// (POST /api/channels/{channel_id}/join)
 	JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -1298,6 +1357,18 @@ type ServerInterface interface {
 	// UnarchiveChannel Restore an archived channel (channel managers)
 	// (POST /api/channels/{channel_id}/unarchive)
 	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// DeleteUpload Remove an uploaded file that no message carries yet
+	// (DELETE /api/files/{file_id})
+	DeleteUpload(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID)
+	// CompleteUpload Check an upload and make the file ready to send
+	// (POST /api/files/{file_id}/complete)
+	CompleteUpload(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID)
+	// GetFileContent The file itself
+	// (GET /api/files/{file_id}/content)
+	GetFileContent(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID, params GetFileContentParams)
+	// GetFileThumbnail A small preview of an image (at most 480 pixels wide and high)
+	// (GET /api/files/{file_id}/thumbnail)
+	GetFileThumbnail(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID)
 	// PostWebhook Post into a channel through an incoming webhook
 	// (POST /api/hooks/{token})
 	PostWebhook(w http.ResponseWriter, r *http.Request, token string)
@@ -1571,6 +1642,18 @@ func (_ Unimplemented) RunCommand(w http.ResponseWriter, r *http.Request, channe
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListChannelFiles Files shared in a channel, newest first
+// (GET /api/channels/{channel_id}/files)
+func (_ Unimplemented) ListChannelFiles(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListChannelFilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateUpload Start uploading a file into a channel
+// (POST /api/channels/{channel_id}/files)
+func (_ Unimplemented) CreateUpload(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // JoinChannel Join a public channel
 // (POST /api/channels/{channel_id}/join)
 func (_ Unimplemented) JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -1670,6 +1753,30 @@ func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channe
 // UnarchiveChannel Restore an archived channel (channel managers)
 // (POST /api/channels/{channel_id}/unarchive)
 func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUpload Remove an uploaded file that no message carries yet
+// (DELETE /api/files/{file_id})
+func (_ Unimplemented) DeleteUpload(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CompleteUpload Check an upload and make the file ready to send
+// (POST /api/files/{file_id}/complete)
+func (_ Unimplemented) CompleteUpload(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetFileContent The file itself
+// (GET /api/files/{file_id}/content)
+func (_ Unimplemented) GetFileContent(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID, params GetFileContentParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetFileThumbnail A small preview of an image (at most 480 pixels wide and high)
+// (GET /api/files/{file_id}/thumbnail)
+func (_ Unimplemented) GetFileThumbnail(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2749,6 +2856,74 @@ func (siw *ServerInterfaceWrapper) RunCommand(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ListChannelFiles operation middleware
+func (siw *ServerInterfaceWrapper) ListChannelFiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListChannelFilesParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannelFiles(w, r, channelId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateUpload operation middleware
+func (siw *ServerInterfaceWrapper) CreateUpload(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUpload(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // JoinChannel operation middleware
 func (siw *ServerInterfaceWrapper) JoinChannel(w http.ResponseWriter, r *http.Request) {
 
@@ -3292,6 +3467,126 @@ func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UnarchiveChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUpload operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUpload(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "file_id" -------------
+	var fileId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "file_id", chi.URLParam(r, "file_id"), &fileId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "file_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUpload(w, r, fileId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompleteUpload operation middleware
+func (siw *ServerInterfaceWrapper) CompleteUpload(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "file_id" -------------
+	var fileId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "file_id", chi.URLParam(r, "file_id"), &fileId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "file_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteUpload(w, r, fileId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFileContent operation middleware
+func (siw *ServerInterfaceWrapper) GetFileContent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "file_id" -------------
+	var fileId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "file_id", chi.URLParam(r, "file_id"), &fileId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "file_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetFileContentParams
+
+	// ------------- Optional query parameter "download" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "download", r.URL.Query(), &params.Download, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "download"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "download", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFileContent(w, r, fileId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFileThumbnail operation middleware
+func (siw *ServerInterfaceWrapper) GetFileThumbnail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "file_id" -------------
+	var fileId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "file_id", chi.URLParam(r, "file_id"), &fileId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "file_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFileThumbnail(w, r, fileId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4327,6 +4622,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/leave", wrapper.LeaveChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/files", wrapper.ListChannelFiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/files", wrapper.CreateUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/files/{file_id}", wrapper.DeleteUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/files/{file_id}/complete", wrapper.CompleteUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/files/{file_id}/content", wrapper.GetFileContent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/files/{file_id}/thumbnail", wrapper.GetFileThumbnail)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages", wrapper.ListMessages)

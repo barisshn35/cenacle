@@ -41,7 +41,13 @@ type Background struct {
 	DB      TxBeginner
 	Queries *store.Queries
 	Egress  *egress.Client
+	Files   *Files
 	Log     *slog.Logger
+}
+
+// PruneFiles implements jobs.Integrations.
+func (b *Background) PruneFiles(ctx context.Context) (int, error) {
+	return b.Files.PruneFiles(ctx, b.Queries)
 }
 
 // retryIn is the wait before the next attempt after `attempts` failed ones.

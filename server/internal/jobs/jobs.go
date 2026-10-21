@@ -34,6 +34,34 @@ type Integrations interface {
 	DeliverDue(ctx context.Context) (int, error)
 	SendDueScheduled(ctx context.Context) (int, error)
 	PruneDeliveries(ctx context.Context) (int64, error)
+	// PruneFiles removes unsent uploads and files of purged messages.
+	PruneFiles(ctx context.Context) (int, error)
+}
+
+// PruneFilesArgs removes files nobody can reach any more.
+type PruneFilesArgs struct{}
+
+// Kind implements river.JobArgs.
+func (PruneFilesArgs) Kind() string { return "prune_files" }
+
+type pruneFilesWorker struct {
+	river.WorkerDefaults[PruneFilesArgs]
+	in  Integrations
+	log *slog.Logger
+}
+
+func (w *pruneFilesWorker) Work(ctx context.Context, _ *river.Job[PruneFilesArgs]) error {
+	total := 0
+	for {
+		n, err := w.in.PruneFiles(ctx)
+		total += n
+		if err != nil || n == 0 || ctx.Err() != nil {
+			if total > 0 {
+				w.log.Info("stale files removed", "count", total)
+			}
+			return err
+		}
+	}
 }
 
 // DeliverEventsArgs sends due event deliveries to bots.
@@ -170,10 +198,12 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 		river.AddWorker(workers, &deliverWorker{in: d.Integrations})
 		river.AddWorker(workers, &scheduledWorker{in: d.Integrations})
 		river.AddWorker(workers, &pruneDeliveriesWorker{in: d.Integrations, log: d.Log})
+		river.AddWorker(workers, &pruneFilesWorker{in: d.Integrations, log: d.Log})
 		jobs = append(jobs,
 			periodic(DeliveryInterval, DeliverEventsArgs{}),
 			periodic(ScheduledInterval, SendScheduledArgs{}),
-			periodic(24*time.Hour, PruneDeliveriesArgs{}))
+			periodic(24*time.Hour, PruneDeliveriesArgs{}),
+			periodic(time.Hour, PruneFilesArgs{}))
 	}
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 		Queues:       map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},

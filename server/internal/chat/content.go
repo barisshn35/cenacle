@@ -188,6 +188,14 @@ func decorate(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs []a
 		i := index[uuid(r.MessageID)]
 		msgs[i].Reactions = append(msgs[i].Reactions, api.Reaction{Emoji: r.Emoji, Count: int(r.Count), Me: r.Me})
 	}
+	files, err := q.ListMessageFiles(ctx, ids)
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		i := index[uuid(f.MessageID)]
+		msgs[i].Files = append(msgs[i].Files, fileAPI(f))
+	}
 	return nil
 }
 

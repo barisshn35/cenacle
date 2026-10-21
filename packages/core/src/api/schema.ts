@@ -1235,6 +1235,118 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/files': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** Files shared in a channel, newest first */
+    get: operations['listChannelFiles'];
+    put?: never;
+    /**
+     * Start uploading a file into a channel
+     * @description Returns a form to POST the file to (multipart, the fields first and the
+     *     file last as `file`); it accepts exactly `size` bytes for 15 minutes. Then
+     *     call `complete`. Files that are not sent with a message within a day are
+     *     removed. 503 `files_disabled` when no object store is configured, 413
+     *     `file_too_large` above the limit.
+     */
+    post: operations['createUpload'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/files/{file_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove an uploaded file that no message carries yet */
+    delete: operations['deleteUpload'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/files/{file_id}/complete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Check an upload and make the file ready to send
+     * @description Verifies the stored size, scans it when a virus scanner is configured and
+     *     makes a preview of images. 409 `upload_incomplete` when the object store
+     *     does not have the whole file; 422 `file_blocked` when the scanner rejects it.
+     */
+    post: operations['completeUpload'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/files/{file_id}/content': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * The file itself
+     * @description Images, audio and video (and PDFs) are shown in the browser; everything else,
+     *     and anything with `download=true`, is downloaded. Supports ranges.
+     */
+    get: operations['getFileContent'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/files/{file_id}/thumbnail': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    /** A small preview of an image (at most 480 pixels wide and high) */
+    get: operations['getFileThumbnail'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/messages': {
     parameters: {
       query?: never;
@@ -1592,12 +1704,31 @@ export interface components {
       /** @description Reactions in the order they were first used; `me` is the reader's own. */
       reactions: components['schemas']['Reaction'][];
       attachments: components['schemas']['Attachment'][];
+      files: components['schemas']['FileInfo'][];
       /** @description The client's nonce, so the sender can match its pending message. */
       nonce: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
       edited_at: string | null;
+    };
+    FileInfo: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      content_type: string;
+      /** Format: int64 */
+      size: number;
+      width: number | null;
+      height: number | null;
+      has_thumbnail: boolean;
+    };
+    ChannelFile: components['schemas']['FileInfo'] & {
+      /** Format: uuid */
+      message_id: string;
+      uploader: components['schemas']['Author'];
+      /** Format: date-time */
+      created_at: string;
     };
     Category: {
       /** Format: uuid */
@@ -1606,10 +1737,12 @@ export interface components {
       position: number;
     };
     NewMessage: {
-      /** @description Markdown; may be empty when the message has attachments. */
+      /** @description Markdown; may be empty when the message has attachments or files. */
       body: string;
       nonce: string;
       attachments?: components['schemas']['Attachment'][];
+      /** @description Ready files the sender uploaded into this channel (see createUpload). */
+      file_ids?: string[];
     };
     Reaction: {
       emoji: string;
@@ -1646,6 +1779,10 @@ export interface components {
      */
     Permissions: {
       create_workspaces: boolean;
+      /** @description Files can be shared (an object store is configured). */
+      upload_files: boolean;
+      /** Format: int64 */
+      max_file_size: number;
     };
     Logout: {
       /** @description Sign-out page of Cenacle ID; empty if it is not known. */
@@ -3729,6 +3866,187 @@ export interface operations {
       };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listChannelFiles: {
+    parameters: {
+      query?: {
+        before?: string;
+      };
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A page of files. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            files: components['schemas']['ChannelFile'][];
+            has_more: boolean;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createUpload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+          /** Format: int64 */
+          size: number;
+          content_type?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The file and its upload form. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            file: components['schemas']['FileInfo'];
+            upload: {
+              url: string;
+              fields: {
+                [key: string]: string;
+              };
+            };
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+      429: components['responses']['Problem'];
+      503: components['responses']['Problem'];
+    };
+  };
+  deleteUpload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  completeUpload: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The ready file. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FileInfo'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      422: components['responses']['Problem'];
+    };
+  };
+  getFileContent: {
+    parameters: {
+      query?: {
+        download?: boolean;
+      };
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The bytes. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/octet-stream': string;
+        };
+      };
+      /** @description A range of the bytes. */
+      206: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getFileThumbnail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        file_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description JPEG or PNG. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/jpeg': string;
+        };
+      };
+      401: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };

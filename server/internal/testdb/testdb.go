@@ -9,6 +9,7 @@
 package testdb
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -21,6 +22,7 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"github.com/barisshn35/cenacle/server/internal/cache"
+	"github.com/barisshn35/cenacle/server/internal/storage"
 	"github.com/barisshn35/cenacle/server/migrations"
 )
 
@@ -96,4 +98,24 @@ func Valkey(t *testing.T) *cache.Client {
 		t.Fatalf("test valkey: %v", err)
 	}
 	return c
+}
+
+// Storage returns the test object store (a bucket shared by tests; keys are
+// unique per file).
+func Storage(t *testing.T) *storage.Store {
+	t.Helper()
+	s, err := storage.New(storage.Config{
+		Endpoint:  env(t, "CENACLE_TEST_S3_ENDPOINT"),
+		Region:    cmp.Or(os.Getenv("CENACLE_TEST_S3_REGION"), "garage"),
+		Bucket:    cmp.Or(os.Getenv("CENACLE_TEST_S3_BUCKET"), "cenacle-files"),
+		AccessKey: env(t, "CENACLE_TEST_S3_ACCESS_KEY"),
+		SecretKey: env(t, "CENACLE_TEST_S3_SECRET_KEY"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Check(context.Background()); err != nil {
+		t.Fatalf("test object store: %v", err)
+	}
+	return s
 }

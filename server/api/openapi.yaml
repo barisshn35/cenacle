@@ -24,6 +24,8 @@ tags:
     description: Channels and messages
   - name: realtime
     description: Live events over WebSocket
+  - name: files
+    description: Files shared in channels (stored in an S3-compatible object store)
 paths:
   /api/workspaces:
     get:
@@ -1986,6 +1988,186 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/files:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [files]
+      operationId: listChannelFiles
+      summary: Files shared in a channel, newest first
+      parameters:
+        - name: before
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: A page of files.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [files, has_more]
+                properties:
+                  files:
+                    type: array
+                    items: { $ref: '#/components/schemas/ChannelFile' }
+                  has_more: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [files]
+      operationId: createUpload
+      summary: Start uploading a file into a channel
+      description: |
+        Returns a form to POST the file to (multipart, the fields first and the
+        file last as `file`); it accepts exactly `size` bytes for 15 minutes. Then
+        call `complete`. Files that are not sent with a message within a day are
+        removed. 503 `files_disabled` when no object store is configured, 413
+        `file_too_large` above the limit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, size]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 255 }
+                size: { type: integer, format: int64, minimum: 1 }
+                content_type: { type: string, maxLength: 255 }
+      responses:
+        '201':
+          description: The file and its upload form.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [file, upload]
+                properties:
+                  file: { $ref: '#/components/schemas/FileInfo' }
+                  upload:
+                    type: object
+                    required: [url, fields]
+                    properties:
+                      url: { type: string }
+                      fields:
+                        type: object
+                        additionalProperties: { type: string }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /api/files/{file_id}:
+    parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [files]
+      operationId: deleteUpload
+      summary: Remove an uploaded file that no message carries yet
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/files/{file_id}/complete:
+    parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [files]
+      operationId: completeUpload
+      summary: Check an upload and make the file ready to send
+      description: |
+        Verifies the stored size, scans it when a virus scanner is configured and
+        makes a preview of images. 409 `upload_incomplete` when the object store
+        does not have the whole file; 422 `file_blocked` when the scanner rejects it.
+      responses:
+        '200':
+          description: The ready file.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FileInfo' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /api/files/{file_id}/content:
+    parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [files]
+      operationId: getFileContent
+      summary: The file itself
+      description: |
+        Images, audio and video (and PDFs) are shown in the browser; everything else,
+        and anything with `download=true`, is downloaded. Supports ranges.
+      parameters:
+        - name: download
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: The bytes.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '206':
+          description: A range of the bytes.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/files/{file_id}/thumbnail:
+    parameters:
+      - name: file_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [files]
+      operationId: getFileThumbnail
+      summary: A small preview of an image (at most 480 pixels wide and high)
+      responses:
+        '200':
+          description: JPEG or PNG.
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/channels/{channel_id}/messages:
     parameters:
       - name: channel_id
@@ -2429,7 +2611,7 @@ components:
     Message:
       type: object
       required:
-        [id, channel_id, author, body, nonce, created_at, edited_at, mentions, reactions, attachments]
+        [id, channel_id, author, body, nonce, created_at, edited_at, mentions, reactions, attachments, files]
       properties:
         id: { type: string, format: uuid }
         channel_id: { type: string, format: uuid }
@@ -2450,6 +2632,9 @@ components:
         attachments:
           type: array
           items: { $ref: '#/components/schemas/Attachment' }
+        files:
+          type: array
+          items: { $ref: '#/components/schemas/FileInfo' }
         nonce:
           type: string
           description: The client's nonce, so the sender can match its pending message.
@@ -2458,6 +2643,26 @@ components:
           type: string
           format: date-time
           nullable: true
+    FileInfo:
+      type: object
+      required: [id, name, content_type, size, width, height, has_thumbnail]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        content_type: { type: string }
+        size: { type: integer, format: int64 }
+        width: { type: integer, nullable: true }
+        height: { type: integer, nullable: true }
+        has_thumbnail: { type: boolean }
+    ChannelFile:
+      allOf:
+        - $ref: '#/components/schemas/FileInfo'
+        - type: object
+          required: [message_id, uploader, created_at]
+          properties:
+            message_id: { type: string, format: uuid }
+            uploader: { $ref: '#/components/schemas/Author' }
+            created_at: { type: string, format: date-time }
     Category:
       type: object
       required: [id, name, position]
@@ -2472,12 +2677,17 @@ components:
         body:
           type: string
           maxLength: 4000
-          description: Markdown; may be empty when the message has attachments.
+          description: Markdown; may be empty when the message has attachments or files.
         nonce: { type: string, minLength: 8, maxLength: 64 }
         attachments:
           type: array
           maxItems: 5
           items: { $ref: '#/components/schemas/Attachment' }
+        file_ids:
+          type: array
+          maxItems: 10
+          description: Ready files the sender uploaded into this channel (see createUpload).
+          items: { type: string, format: uuid }
     Reaction:
       type: object
       required: [emoji, count, me]
@@ -2520,12 +2730,16 @@ components:
         has_more: { type: boolean }
     Permissions:
       type: object
-      required: [create_workspaces]
+      required: [create_workspaces, upload_files, max_file_size]
       description: |
         What the user may do across the instance. Rights inside a workspace follow
         the role there (see Workspace).
       properties:
         create_workspaces: { type: boolean }
+        upload_files:
+          type: boolean
+          description: Files can be shared (an object store is configured).
+        max_file_size: { type: integer, format: int64 }
     Logout:
       type: object
       required: [end_session_url]

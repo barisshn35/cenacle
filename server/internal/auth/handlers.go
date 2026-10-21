@@ -71,7 +71,9 @@ type Handlers struct {
 	Audit *audit.Log
 	// Ephemeral tells open connections that sessions ended; optional.
 	Ephemeral *events.Ephemeral
-	Log       *slog.Logger
+	// MaxFileSize is the largest file in bytes; 0 when files are off.
+	MaxFileSize int64
+	Log         *slog.Logger
 }
 
 func randomString() string {
@@ -321,7 +323,9 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
 			EmailVerified: p.User.EmailVerified,
 			DisplayName:   p.User.DisplayName,
 		},
-		Permissions:        api.Permissions{CreateWorkspaces: p.User.IsAdmin},
+		Permissions: api.Permissions{
+			CreateWorkspaces: p.User.IsAdmin, UploadFiles: h.MaxFileSize > 0, MaxFileSize: h.MaxFileSize,
+		},
 		CreatedAt:          p.Session.CreatedAt,
 		ExpiresAt:          p.Session.ExpiresAt,
 		IdleTimeoutSeconds: int(h.Sessions.IdleTimeout / time.Second),

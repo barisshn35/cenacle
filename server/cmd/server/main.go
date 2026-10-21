@@ -13,6 +13,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
@@ -23,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -35,6 +37,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/cache"
 	"github.com/barisshn35/cenacle/server/internal/chat"
+	"github.com/barisshn35/cenacle/server/internal/clamav"
 	"github.com/barisshn35/cenacle/server/internal/config"
 	"github.com/barisshn35/cenacle/server/internal/db"
 	"github.com/barisshn35/cenacle/server/internal/egress"
@@ -43,6 +46,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/jobs"
 	"github.com/barisshn35/cenacle/server/internal/logging"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
+	"github.com/barisshn35/cenacle/server/internal/storage"
 	"github.com/barisshn35/cenacle/server/internal/store"
 	"github.com/barisshn35/cenacle/server/migrations"
 )
@@ -146,6 +150,28 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 
 	// Requests to bots (slash commands, event deliveries) never reach private
 	// networks unless the operator allows them.
+	// Files: an S3-compatible object store, when configured.
+	files := chat.NewFiles(nil, nil, 0)
+	var maxFileSize int64 // 0: files are off
+	checkers := []health.Checker{db.Checker{Pool: pool}, valkey}
+	if cfg.S3Endpoint != "" {
+		objects, err := storage.New(storage.Config{
+			Endpoint: cfg.S3Endpoint, Region: cfg.S3Region, Bucket: cfg.S3Bucket,
+			AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey,
+			UploadURL: cmp.Or(cfg.S3UploadURL, strings.TrimSuffix(cfg.PublicURL.String(), "/")+"/"+cfg.S3Bucket+"/"),
+		})
+		if err != nil {
+			return err
+		}
+		var scanner *clamav.Scanner
+		if cfg.ClamAVAddr != "" {
+			scanner = &clamav.Scanner{Addr: cfg.ClamAVAddr}
+		}
+		files = chat.NewFiles(objects, scanner, cfg.FilesMaxSize)
+		maxFileSize = cfg.FilesMaxSize
+		checkers = append(checkers, objects)
+	}
+
 	egressClient := egress.New(egress.Policy{
 		Allow: cfg.EgressAllow, AllowHTTP: cfg.EgressAllowHTTP, Timeout: 10 * time.Second, MaxResponse: 1 << 20,
 	})
@@ -153,7 +179,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	// Background jobs; River's tables come with `migrate up`.
 	jobClient, err := jobs.NewClient(pool, jobs.Deps{
 		Purger: chat.Purger{Queries: queries}, Sessions: sessions, Log: log,
-		Integrations: &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Log: log},
+		Integrations: &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Files: files, Log: log},
 	})
 	if err != nil {
 		return err
@@ -166,7 +192,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		Addr: cfg.HTTPAddr,
 		Handler: app.NewRouter(app.Deps{
 			Log:          log,
-			Checkers:     []health.Checker{db.Checker{Pool: pool}, valkey},
+			Checkers:     checkers,
 			ReadyTimeout: cfg.ReadyTimeout,
 			Auth: &auth.Handlers{
 				IdP: &auth.IdentityProvider{
@@ -176,21 +202,23 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 					RedirectURL:  cfg.PublicURL.String() + "/api/auth/callback",
 					HTTPClient:   idpClient,
 				},
-				Sessions:   sessions,
-				Users:      queries,
-				Flows:      valkey,
-				Cookies:    cookies,
-				PublicURL:  cfg.PublicURL,
-				TrustProxy: cfg.TrustProxy,
-				AdminEmail: cfg.AdminEmail,
-				Audit:      auditLog,
-				Ephemeral:  ephemeral,
-				Log:        log,
+				Sessions:    sessions,
+				Users:       queries,
+				Flows:       valkey,
+				Cookies:     cookies,
+				PublicURL:   cfg.PublicURL,
+				TrustProxy:  cfg.TrustProxy,
+				AdminEmail:  cfg.AdminEmail,
+				Audit:       auditLog,
+				Ephemeral:   ephemeral,
+				MaxFileSize: maxFileSize,
+				Log:         log,
 			},
 			Chat: &chat.Handlers{
 				Queries:           queries,
 				DB:                pool,
 				Egress:            egressClient,
+				Files:             files,
 				PublicURL:         cfg.PublicURL.String(),
 				Ephemeral:         ephemeral,
 				Audit:             auditLog,

@@ -109,6 +109,23 @@ type EventSubscription struct {
 	DisabledAt pgtype.Timestamptz `json:"disabled_at"`
 }
 
+type File struct {
+	ID           pgtype.UUID        `json:"id"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	ChannelID    pgtype.UUID        `json:"channel_id"`
+	UploaderID   pgtype.UUID        `json:"uploader_id"`
+	MessageID    pgtype.UUID        `json:"message_id"`
+	AttachedAt   pgtype.Timestamptz `json:"attached_at"`
+	Name         string             `json:"name"`
+	ContentType  string             `json:"content_type"`
+	Size         int64              `json:"size"`
+	Status       string             `json:"status"`
+	Width        pgtype.Int4        `json:"width"`
+	Height       pgtype.Int4        `json:"height"`
+	HasThumbnail bool               `json:"has_thumbnail"`
+	CreatedAt    time.Time          `json:"created_at"`
+}
+
 type IncomingWebhook struct {
 	ID         pgtype.UUID        `json:"id"`
 	BotID      pgtype.UUID        `json:"bot_id"`
@@ -132,6 +149,7 @@ type Message struct {
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 	DeletedBy   pgtype.UUID        `json:"deleted_by"`
 	Attachments []byte             `json:"attachments"`
+	HasFiles    bool               `json:"has_files"`
 }
 
 type MessageMention struct {

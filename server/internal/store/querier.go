@@ -20,6 +20,9 @@ type Querier interface {
 	AddMentions(ctx context.Context, arg AddMentionsParams) error
 	AddReaction(ctx context.Context, arg AddReactionParams) (int64, error)
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
+	// AttachFiles gives a new message the uploader's ready files of the channel
+	// that no message carries yet.
+	AttachFiles(ctx context.Context, arg AttachFilesParams) (int64, error)
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
 	// ClaimDueDeliveries takes due deliveries for one attempt; concurrent workers skip
 	// each other's rows. The attempt is counted up front so a crash does not retry forever.
@@ -39,6 +42,7 @@ type Querier interface {
 	// CreateConversation creates a direct or group conversation, or returns the
 	// existing one with the same key (name).
 	CreateConversation(ctx context.Context, arg CreateConversationParams) (Channel, error)
+	CreateFile(ctx context.Context, arg CreateFileParams) (File, error)
 	CreateInvite(ctx context.Context, arg CreateInviteParams) (WorkspaceInvite, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
@@ -52,6 +56,7 @@ type Querier interface {
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
+	DeleteFiles(ctx context.Context, ids []pgtype.UUID) error
 	DeleteMentions(ctx context.Context, messageID pgtype.UUID) error
 	DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error)
 	// DeleteOtherSessions ends a user's sessions except one (uuid nil: all of them).
@@ -66,6 +71,7 @@ type Querier interface {
 	DeleteSessionsBySubject(ctx context.Context, arg DeleteSessionsBySubjectParams) ([]pgtype.UUID, error)
 	DeleteSlashCommand(ctx context.Context, arg DeleteSlashCommandParams) (int64, error)
 	DeleteSubscription(ctx context.Context, arg DeleteSubscriptionParams) (int64, error)
+	DeleteUnattachedFile(ctx context.Context, arg DeleteUnattachedFileParams) (File, error)
 	DeleteUserSession(ctx context.Context, arg DeleteUserSessionParams) (int64, error)
 	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
 	EditMessage(ctx context.Context, arg EditMessageParams) (Message, error)
@@ -77,6 +83,8 @@ type Querier interface {
 	ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) (BotToken, error)
 	FinishDelivery(ctx context.Context, arg FinishDeliveryParams) error
 	FinishScheduled(ctx context.Context, arg FinishScheduledParams) error
+	// FinishUpload records what the server found out about an uploaded file.
+	FinishUpload(ctx context.Context, arg FinishUploadParams) (File, error)
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
 	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
 	// GetActiveSession returns the session of a token hash with its user, unless
@@ -90,6 +98,10 @@ type Querier interface {
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
 	GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error)
 	GetDefaultWorkspace(ctx context.Context) (Workspace, error)
+	GetFile(ctx context.Context, id pgtype.UUID) (File, error)
+	// GetFileForReader returns a file with the message it belongs to (deleted
+	// messages hide their files).
+	GetFileForReader(ctx context.Context, id pgtype.UUID) (GetFileForReaderRow, error)
 	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
@@ -119,6 +131,9 @@ type Querier interface {
 	ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotToken, error)
 	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
+	// ListChannelFiles is the files tab: files of the channel's visible messages,
+	// newest first, with their uploaders.
+	ListChannelFiles(ctx context.Context, arg ListChannelFilesParams) ([]ListChannelFilesRow, error)
 	// ListConversationParticipants returns, for each direct or group conversation
 	// of a user, the other people in it.
 	ListConversationParticipants(ctx context.Context, userID pgtype.UUID) ([]ListConversationParticipantsRow, error)
@@ -131,6 +146,7 @@ type Querier interface {
 	ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelsRow, error)
 	ListMembers(ctx context.Context, channelID pgtype.UUID) ([]ListMembersRow, error)
 	ListMentions(ctx context.Context, messageIds []pgtype.UUID) ([]ListMentionsRow, error)
+	ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error)
 	// ListMessagesBefore returns up to row_limit messages of a channel older than
 	// the cursor (all when before is NULL), newest first, with their authors.
 	// Deleted messages are left out.
@@ -140,6 +156,9 @@ type Querier interface {
 	// reacted, in the order the emoji were first used.
 	ListReactions(ctx context.Context, arg ListReactionsParams) ([]ListReactionsRow, error)
 	ListScheduledMessages(ctx context.Context, ownerID pgtype.UUID) ([]ListScheduledMessagesRow, error)
+	// ListStaleFiles finds files to remove: uploads never sent with a message
+	// within a day, and files whose message was purged.
+	ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, error)
 	ListSubscriptions(ctx context.Context, botID pgtype.UUID) ([]EventSubscription, error)
 	// ListUserSessions returns a user's usable sessions, most recently used first.
 	ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error)

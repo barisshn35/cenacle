@@ -24,6 +24,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/cache"
 	"github.com/barisshn35/cenacle/server/internal/chat"
+	"github.com/barisshn35/cenacle/server/internal/clamav"
 	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
@@ -69,6 +70,9 @@ func newShared(t *testing.T) shared {
 }
 
 type options struct {
+	// files connects the test object store (and a scanner, when set).
+	files       bool
+	scanner     *clamav.Scanner
 	settings    realtime.Settings
 	perWindow   int64
 	maxLen      int64
@@ -115,16 +119,22 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	egressClient := egress.New(egress.Policy{
 		Allow: []netip.Prefix{netip.MustParsePrefix("127.0.0.0/8"), netip.MustParsePrefix("::1/128")}, AllowHTTP: true,
 	})
+	files := chat.NewFiles(nil, nil, 0)
+	var maxFileSize int64
+	if o.files {
+		files = chat.NewFiles(testdb.Storage(t), o.scanner, 5<<20)
+		maxFileSize = 5 << 20
+	}
 	router = app.NewRouter(app.Deps{
 		Log: log,
 		Auth: &auth.Handlers{
 			IdP:      &auth.IdentityProvider{Issuer: "http://127.0.0.1:1", HTTPClient: http.DefaultClient},
 			Sessions: sessions, Users: queries, Flows: sh.valkey, Cookies: cookies, PublicURL: public,
-			Audit: auditLog, Ephemeral: ephemeral, Log: log,
+			Audit: auditLog, Ephemeral: ephemeral, Log: log, MaxFileSize: maxFileSize,
 		},
 		Chat: &chat.Handlers{
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
-			Audit: auditLog, PublicURL: public.String(), Egress: egressClient,
+			Audit: auditLog, PublicURL: public.String(), Egress: egressClient, Files: files,
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},
 		Realtime: &realtime.Handler{
@@ -137,7 +147,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: o.httpTimeout > 0}}
 	t.Cleanup(client.CloseIdleConnections)
 	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub, client: client,
-		bg: &chat.Background{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log}}
+		bg: &chat.Background{DB: sh.pool, Queries: queries, Egress: egressClient, Files: files, Log: log}}
 	if err := sh.pool.QueryRow(context.Background(), "SELECT id::text FROM workspaces WHERE is_default").Scan(&s.defaultWS); err != nil {
 		t.Fatal(err)
 	}

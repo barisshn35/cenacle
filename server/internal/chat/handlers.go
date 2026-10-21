@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -48,6 +49,8 @@ type Handlers struct {
 	Audit *audit.Log
 	// Egress sends requests to bots (slash commands); optional.
 	Egress *egress.Client
+	// Files is the object store for files; nil or without a store: files are off.
+	Files *Files
 	// PublicURL is the app's origin, for webhook addresses.
 	PublicURL string
 	Limiter   RateLimiter
@@ -189,8 +192,19 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 	attachments, rawAttachments, problem := cleanAttachments(in.Attachments)
+	var files []pgtype.UUID
+	if in.FileIds != nil {
+		if len(*in.FileIds) > MaxFilesPerMessage {
+			problem = "A message can carry up to 10 files."
+		}
+		for _, id := range *in.FileIds {
+			if f := pgUUID(id); !slices.Contains(files, f) {
+				files = append(files, f)
+			}
+		}
+	}
 	body := strings.TrimSpace(in.Body)
-	if problem == "" && (body != "" || len(attachments) == 0) {
+	if problem == "" && (body != "" || (len(attachments) == 0 && len(files) == 0)) {
 		body, problem = validBody(in.Body)
 	}
 	if problem == "" && (len(in.Nonce) < 8 || len(in.Nonce) > 64) {
@@ -222,9 +236,14 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
-		out, err = postMessage(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments)
+		out, err = postMessage(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments, files...)
 		return err
 	})
+	if errors.Is(err, errFilesUnavailable) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: CodeFilesUnavailable,
+			Detail: "Some files are not ready, not yours, in another channel or already sent."})
+		return
+	}
 	if errors.Is(err, errNonceReused) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNonceReused,
 			Detail: "This nonce belongs to another message; use a new one."})
@@ -240,9 +259,10 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 // postMessage stores a message with its mentions, marks it read for its
 // author and records message.created, inside the caller's transaction. A
 // nonce the author used before returns that message (a retry).
-func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte) (api.Message, error) {
+func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, files ...pgtype.UUID) (api.Message, error) {
 	msg, err := q.CreateMessage(ctx, store.CreateMessageParams{
 		ChannelID: c.ID, AuthorID: author.ID, Body: body, Nonce: nonce, Attachments: rawAttachments,
+		HasFiles: len(files) > 0,
 	})
 	if isNoRows(err) {
 		msg, err = q.GetMessageByNonce(ctx, store.GetMessageByNonceParams{AuthorID: author.ID, Nonce: nonce})
@@ -260,6 +280,17 @@ func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author 
 	}
 	if err != nil {
 		return api.Message{}, err
+	}
+	if len(files) > 0 {
+		n, err := q.AttachFiles(ctx, store.AttachFilesParams{
+			MessageID: msg.ID, Ids: files, UploaderID: author.ID, ChannelID: c.ID,
+		})
+		if err != nil {
+			return api.Message{}, err
+		}
+		if n != int64(len(files)) {
+			return api.Message{}, errFilesUnavailable
+		}
 	}
 	if ids := mentionedIDs(body); len(ids) > 0 {
 		if err := q.AddMentions(ctx, store.AddMentionsParams{MessageID: msg.ID, ChannelID: c.ID, UserIds: ids}); err != nil {
@@ -285,6 +316,7 @@ func messageAPI(m store.Message, authorName string, authorIsBot bool) api.Messag
 		Id: uuid(m.ID), ChannelId: uuid(m.ChannelID), Body: m.Body, Nonce: m.Nonce, CreatedAt: m.CreatedAt,
 		Author:   api.Author{Id: uuid(m.AuthorID), DisplayName: authorName},
 		Mentions: []api.Author{}, Reactions: []api.Reaction{}, Attachments: []api.Attachment{},
+		Files: []api.FileInfo{},
 	}
 	if len(m.Attachments) > 0 {
 		_ = json.Unmarshal(m.Attachments, &out.Attachments)

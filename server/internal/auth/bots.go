@@ -79,6 +79,11 @@ var botRoutes = []struct {
 	{http.MethodPost, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages$`), ScopeMessagesWrite},
 	{http.MethodPut, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages/[0-9a-fA-F-]{36}/reactions/[^/]+$`), ScopeMessagesWrite},
 	{http.MethodDelete, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages/[0-9a-fA-F-]{36}/reactions/[^/]+$`), ScopeMessagesWrite},
+	{http.MethodPost, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/files$`), ScopeMessagesWrite},
+	{http.MethodPost, regexp.MustCompile(`^/api/files/[0-9a-fA-F-]{36}/complete$`), ScopeMessagesWrite},
+	{http.MethodDelete, regexp.MustCompile(`^/api/files/[0-9a-fA-F-]{36}$`), ScopeMessagesWrite},
+	{http.MethodGet, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/files$`), ScopeMessagesRead},
+	{http.MethodGet, regexp.MustCompile(`^/api/files/[0-9a-fA-F-]{36}/(content|thumbnail)$`), ScopeMessagesRead},
 }
 
 // RestrictBots lets bot tokens reach only the bot API, within their scopes.

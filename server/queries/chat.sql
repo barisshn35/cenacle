@@ -133,8 +133,8 @@ UPDATE channel_members SET role = @role WHERE channel_id = @channel_id AND user_
 -- name: CreateMessage :one
 -- CreateMessage inserts a message; with a nonce the author used before it
 -- returns nothing (see GetMessageByNonce).
-INSERT INTO messages (channel_id, author_id, body, nonce, attachments)
-VALUES (@channel_id, @author_id, @body, @nonce, @attachments)
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files)
+VALUES (@channel_id, @author_id, @body, @nonce, @attachments, @has_files)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
 RETURNING *;
 
