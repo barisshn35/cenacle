@@ -21,6 +21,8 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Session              | Session              | Oturum                         | —                                        | "Your session has ended"                  |
 | Announcement channel | Announcement channel | Duyuru kanalı                  | `channels.kinds.announcement`            | Only the administrator posts              |
 | Join / Leave         | Join / Leave channel | Katıl / Kanaldan ayrıl         | `channels.join`, `channels.leave`        | Leaving shows "Undo", no confirmation     |
+| Visibility           | Public / Private     | Herkese açık / Özel            | `channels.visibility.*`                  | Private channels show a lock              |
+| Channel manager      | Manager              | Yönetici                       | `channels.manager`                       | Adds and removes people                   |
 
 ## Rules
 
