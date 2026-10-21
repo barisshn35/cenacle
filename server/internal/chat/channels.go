@@ -135,6 +135,7 @@ func (h *Handlers) ListChannels(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		c := toAPI(row.Channel, access{ch: row.Role, ws: row.WorkspaceRole})
 		c.UnreadCount = int(row.UnreadCount)
+		c.MentionCount = int(row.MentionCount)
 		if row.LastReadID.Valid {
 			id := uuid(row.LastReadID)
 			c.LastReadId = &id
@@ -642,8 +643,10 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 	}{out})
 }
 
+// publish records an event in the outbox (outside a transaction: the change
+// it describes is already stored).
 func (h *Handlers) publish(ctx context.Context, typ string, data any) {
-	if _, err := h.Events.Append(ctx, typ, data); err != nil {
+	if err := emit(ctx, h.Queries, typ, data); err != nil {
 		h.Log.ErrorContext(ctx, "append event", "type", typ, "error", err,
 			"request_id", httpx.RequestIDFrom(ctx))
 	}

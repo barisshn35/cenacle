@@ -32,6 +32,9 @@ const (
 	MessageCreated = "message.created"
 	MessageUpdated = "message.updated"
 	MessageDeleted = "message.deleted"
+	// ReactionAdded and ReactionRemoved go to the channel's members.
+	ReactionAdded   = "reaction.added"
+	ReactionRemoved = "reaction.removed"
 	// ChannelRead goes to the user who read (their other devices).
 	ChannelRead = "channel.read"
 	// CategoriesChanged goes to the members of a workspace.

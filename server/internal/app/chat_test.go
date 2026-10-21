@@ -92,6 +92,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	t.Cleanup(cancel)
 	go hub.Run(ctx)
 	go hub.RunEphemeral(ctx)
+	go (&events.Relay{Pool: sh.pool, Log: eventLog, Logger: log, Idle: 100 * time.Millisecond}).Run(ctx)
 	presence := &realtime.Presence{Valkey: sh.valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(store.New(sh.pool)), Log: log}
 
 	var router http.Handler
@@ -114,7 +115,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			Audit: auditLog, Ephemeral: ephemeral, Log: log,
 		},
 		Chat: &chat.Handlers{
-			Queries: queries, Events: eventLog, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
+			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
 			Audit:             auditLog,
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},

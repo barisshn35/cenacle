@@ -843,6 +843,50 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji}:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: message_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: emoji
+        in: path
+        required: true
+        description: One emoji (URL-encoded).
+        schema: { type: string, maxLength: 64 }
+    put:
+      tags: [chat]
+      operationId: addReaction
+      summary: React to a message
+      description: Members see `reaction.added`; reacting again changes nothing. A message has up to 50 kinds of reactions.
+      responses:
+        '204':
+          description: Added.
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [chat]
+      operationId: removeReaction
+      summary: Take a reaction back
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/channels/{channel_id}/messages/{message_id}:
     parameters:
       - name: channel_id
@@ -1444,6 +1488,7 @@ components:
           archived,
           category_id,
           unread_count,
+          mention_count,
           last_read_id,
           participants,
         ]
@@ -1481,6 +1526,9 @@ components:
         unread_count:
           type: integer
           description: Messages of others after the read position, counted up to 100.
+        mention_count:
+          type: integer
+          description: Unread messages that mention the user, counted up to 100.
         last_read_id:
           type: string
           format: uuid
@@ -1560,14 +1608,28 @@ components:
         display_name: { type: string }
     Message:
       type: object
-      required: [id, channel_id, author, body, nonce, created_at, edited_at]
+      required:
+        [id, channel_id, author, body, nonce, created_at, edited_at, mentions, reactions, attachments]
       properties:
         id: { type: string, format: uuid }
         channel_id: { type: string, format: uuid }
         author: { $ref: '#/components/schemas/Author' }
         body:
           type: string
-          description: Message text as typed (Markdown rendering arrives later).
+          description: |
+            Markdown (CommonMark with GitHub tables, strikethrough and task lists); clients
+            render it without raw HTML. `<@user-id>` mentions a person.
+        mentions:
+          type: array
+          description: The people the message mentions (members of the channel).
+          items: { $ref: '#/components/schemas/Author' }
+        reactions:
+          type: array
+          description: Reactions in the order they were first used; `me` is the reader's own.
+          items: { $ref: '#/components/schemas/Reaction' }
+        attachments:
+          type: array
+          items: { $ref: '#/components/schemas/Attachment' }
         nonce:
           type: string
           description: The client's nonce, so the sender can match its pending message.
@@ -1587,8 +1649,47 @@ components:
       type: object
       required: [body, nonce]
       properties:
-        body: { type: string, minLength: 1, maxLength: 4000 }
+        body:
+          type: string
+          maxLength: 4000
+          description: Markdown; may be empty when the message has attachments.
         nonce: { type: string, minLength: 8, maxLength: 64 }
+        attachments:
+          type: array
+          maxItems: 5
+          items: { $ref: '#/components/schemas/Attachment' }
+    Reaction:
+      type: object
+      required: [emoji, count, me]
+      properties:
+        emoji: { type: string }
+        count: { type: integer }
+        me: { type: boolean }
+    Attachment:
+      type: object
+      description: A card under a message, e.g. from a bot (an issue, an alert).
+      properties:
+        title: { type: string, maxLength: 200 }
+        title_link:
+          type: string
+          maxLength: 2000
+          description: An http(s) URL the title links to.
+        text: { type: string, maxLength: 2000, description: Markdown. }
+        color:
+          type: string
+          enum: [neutral, info, success, warning, danger]
+          description: The stripe on the card's edge (meaning is never the color alone).
+        fields:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required: [title, value]
+            properties:
+              title: { type: string, maxLength: 100 }
+              value: { type: string, maxLength: 500 }
+              short: { type: boolean, description: Two short fields share a row. }
+        footer: { type: string, maxLength: 200 }
     MessagePage:
       type: object
       required: [messages, has_more]

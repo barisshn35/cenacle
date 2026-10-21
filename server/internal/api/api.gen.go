@@ -14,6 +14,33 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AttachmentColor.
+const (
+	Danger  AttachmentColor = "danger"
+	Info    AttachmentColor = "info"
+	Neutral AttachmentColor = "neutral"
+	Success AttachmentColor = "success"
+	Warning AttachmentColor = "warning"
+)
+
+// Valid indicates whether the value is a known member of the AttachmentColor enum.
+func (e AttachmentColor) Valid() bool {
+	switch e {
+	case Danger:
+		return true
+	case Info:
+		return true
+	case Neutral:
+		return true
+	case Success:
+		return true
+	case Warning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ChannelKind.
 const (
 	ChannelKindAnnouncement ChannelKind = "announcement"
@@ -251,6 +278,29 @@ func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
 	}
 }
 
+// Attachment A card under a message, e.g. from a bot (an issue, an alert).
+type Attachment struct {
+	// Color The stripe on the card's edge (meaning is never the color alone).
+	Color  *AttachmentColor `json:"color,omitempty"`
+	Fields *[]struct {
+		// Short Two short fields share a row.
+		Short *bool  `json:"short,omitempty"`
+		Title string `json:"title"`
+		Value string `json:"value"`
+	} `json:"fields,omitempty"`
+	Footer *string `json:"footer,omitempty"`
+
+	// Text Markdown.
+	Text  *string `json:"text,omitempty"`
+	Title *string `json:"title,omitempty"`
+
+	// TitleLink An http(s) URL the title links to.
+	TitleLink *string `json:"title_link,omitempty"`
+}
+
+// AttachmentColor The stripe on the card's edge (meaning is never the color alone).
+type AttachmentColor string
+
 // AuditEvent defines model for AuditEvent.
 type AuditEvent struct {
 	// Action E.g. workspace.role_changed, channel.archived, invite.created.
@@ -303,7 +353,10 @@ type Channel struct {
 	// group conversations have participants instead of a name.
 	Kind       ChannelKind         `json:"kind"`
 	LastReadId *openapi_types.UUID `json:"last_read_id"`
-	Name       string              `json:"name"`
+
+	// MentionCount Unread messages that mention the user, counted up to 100.
+	MentionCount int    `json:"mention_count"`
+	Name         string `json:"name"`
 
 	// Participants The other people of a direct or group conversation (empty for channels).
 	Participants []Person `json:"participants"`
@@ -389,17 +442,25 @@ type MemberRole string
 
 // Message defines model for Message.
 type Message struct {
-	Author Author `json:"author"`
+	Attachments []Attachment `json:"attachments"`
+	Author      Author       `json:"author"`
 
-	// Body Message text as typed (Markdown rendering arrives later).
+	// Body Markdown (CommonMark with GitHub tables, strikethrough and task lists); clients
+	// render it without raw HTML. `<@user-id>` mentions a person.
 	Body      string             `json:"body"`
 	ChannelId openapi_types.UUID `json:"channel_id"`
 	CreatedAt time.Time          `json:"created_at"`
 	EditedAt  *time.Time         `json:"edited_at"`
 	Id        openapi_types.UUID `json:"id"`
 
+	// Mentions The people the message mentions (members of the channel).
+	Mentions []Author `json:"mentions"`
+
 	// Nonce The client's nonce, so the sender can match its pending message.
 	Nonce string `json:"nonce"`
+
+	// Reactions Reactions in the order they were first used; `me` is the reader's own.
+	Reactions []Reaction `json:"reactions"`
 }
 
 // MessagePage defines model for MessagePage.
@@ -429,6 +490,9 @@ type NewChannelVisibility string
 
 // NewMessage defines model for NewMessage.
 type NewMessage struct {
+	Attachments *[]Attachment `json:"attachments,omitempty"`
+
+	// Body Markdown; may be empty when the message has attachments.
 	Body  string `json:"body"`
 	Nonce string `json:"nonce"`
 }
@@ -465,6 +529,13 @@ type Problem struct {
 	Status    int     `json:"status"`
 	Title     string  `json:"title"`
 	Type      string  `json:"type"`
+}
+
+// Reaction defines model for Reaction.
+type Reaction struct {
+	Count int    `json:"count"`
+	Emoji string `json:"emoji"`
+	Me    bool   `json:"me"`
 }
 
 // Session defines model for Session.
@@ -783,6 +854,12 @@ type ServerInterface interface {
 	// EditMessage Edit your own message
 	// (PATCH /api/channels/{channel_id}/messages/{message_id})
 	EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// RemoveReaction Take a reaction back
+	// (DELETE /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
+	RemoveReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string)
+	// AddReaction React to a message
+	// (PUT /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
+	AddReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string)
 	// RestoreMessage Undo deleting a message (whoever may delete it)
 	// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
 	RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
@@ -1005,6 +1082,18 @@ func (_ Unimplemented) DeleteMessage(w http.ResponseWriter, r *http.Request, cha
 // EditMessage Edit your own message
 // (PATCH /api/channels/{channel_id}/messages/{message_id})
 func (_ Unimplemented) EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveReaction Take a reaction back
+// (DELETE /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
+func (_ Unimplemented) RemoveReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddReaction React to a message
+// (PUT /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
+func (_ Unimplemented) AddReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1867,6 +1956,94 @@ func (siw *ServerInterfaceWrapper) EditMessage(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EditMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveReaction operation middleware
+func (siw *ServerInterfaceWrapper) RemoveReaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "emoji" -------------
+	var emoji string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "emoji", chi.URLParam(r, "emoji"), &emoji, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "emoji", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveReaction(w, r, channelId, messageId, emoji)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddReaction operation middleware
+func (siw *ServerInterfaceWrapper) AddReaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "emoji" -------------
+	var emoji string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "emoji", chi.URLParam(r, "emoji"), &emoji, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "emoji", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddReaction(w, r, channelId, messageId, emoji)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2748,6 +2925,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/channels/{channel_id}/category", wrapper.SetChannelCategory)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/reactions/{emoji}", wrapper.RemoveReaction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/reactions/{emoji}", wrapper.AddReaction)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.DeleteMessage)

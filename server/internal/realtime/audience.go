@@ -42,6 +42,7 @@ func (a *audience) allows(ev events.Event) bool {
 	}
 	switch ev.Type {
 	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted,
+		events.ReactionAdded, events.ReactionRemoved,
 		events.ChannelUpdated, events.ChannelMembersChanged:
 		return a.inChannel(d.ChannelID)
 	case events.ChannelCreated: // a channel for everyone in its workspace

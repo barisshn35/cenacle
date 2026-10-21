@@ -39,6 +39,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/db"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/health"
+	"github.com/barisshn35/cenacle/server/internal/jobs"
 	"github.com/barisshn35/cenacle/server/internal/logging"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
 	"github.com/barisshn35/cenacle/server/internal/store"
@@ -125,23 +126,33 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	sessions := &auth.Sessions{Queries: queries, IdleTimeout: cfg.SessionIdleTimeout, MaxAge: cfg.SessionMaxAge}
-	go sessions.RunCleanup(ctx, 10*time.Minute, log)
 
 	eventLog := &events.Log{Valkey: valkey, Key: "cenacle:events", MaxLen: 10_000}
 	ephemeral := &events.Ephemeral{Valkey: valkey, Channel: "cenacle:ephemeral"}
 	hub := &realtime.Hub{Log: eventLog, Ephemeral: ephemeral, Logger: log}
 	go hub.Run(ctx)
 	go hub.RunEphemeral(ctx)
+	go (&events.Relay{Pool: pool, Log: eventLog, Logger: log}).Run(ctx)
 	presence := &realtime.Presence{
 		Valkey: valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(queries), Log: log,
 	}
 	go presence.RunSweeper(ctx, 10*time.Second)
 	cookies := auth.NewCookies(cfg.PublicURL)
 	auditLog := &audit.Log{Queries: queries, Logger: log}
-	go chat.RunPurge(ctx, queries, time.Minute, log)
 	go chat.RunEnsureDefaults(ctx, queries, chat.Defaults{
 		Announcement: cfg.AnnouncementChannel, Channels: cfg.DefaultChannels, AdminEmail: cfg.AdminEmail,
 	}, log)
+
+	// Background jobs; River's tables come with `migrate up`.
+	jobClient, err := jobs.NewClient(pool, jobs.Deps{
+		Purger: chat.Purger{Queries: queries}, Sessions: sessions, Log: log,
+	})
+	if err != nil {
+		return err
+	}
+	if err := jobClient.Start(ctx); err != nil {
+		return fmt.Errorf("start jobs (did `migrate up` run?): %w", err)
+	}
 
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
@@ -170,7 +181,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			},
 			Chat: &chat.Handlers{
 				Queries:           queries,
-				Events:            eventLog,
+				DB:                pool,
 				Ephemeral:         ephemeral,
 				Audit:             auditLog,
 				Limiter:           valkey,
@@ -216,6 +227,13 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 
 	log.Info("shutting down", "timeout", cfg.ShutdownTimeout)
+	defer func() {
+		stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+		defer cancel()
+		if err := jobClient.Stop(stopCtx); err != nil {
+			log.Warn("stopping jobs", "error", err)
+		}
+	}()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
@@ -249,7 +267,7 @@ func migrate(ctx context.Context, cfg config.Config, log *slog.Logger, cmd strin
 		if len(results) == 0 {
 			log.Info("no pending migrations")
 		}
-		return nil
+		return jobs.Migrate(ctx, pool, log)
 	case "down":
 		res, err := provider.Down(ctx)
 		if err != nil {

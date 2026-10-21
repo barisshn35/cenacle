@@ -16,10 +16,14 @@ type Querier interface {
 	AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error)
 	AddAllUsersToWorkspace(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	AddMember(ctx context.Context, arg AddMemberParams) (int64, error)
+	// AddMentions stores the mentions of a message: only members of its channel.
+	AddMentions(ctx context.Context, arg AddMentionsParams) error
+	AddReaction(ctx context.Context, arg AddReactionParams) (int64, error)
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
+	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (ChannelCategory, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
@@ -34,9 +38,11 @@ type Querier interface {
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
+	DeleteMentions(ctx context.Context, messageID pgtype.UUID) error
 	DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error)
 	// DeleteOtherSessions ends a user's sessions except one (uuid nil: all of them).
 	DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) (int64, error)
+	DeleteOutboxEvents(ctx context.Context, lastID int64) error
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	// DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
 	DeleteSessionsByIdpSid(ctx context.Context, arg DeleteSessionsByIdpSidParams) ([]pgtype.UUID, error)
@@ -65,6 +71,9 @@ type Querier interface {
 	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
 	GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRoleParams) (string, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
+	// InsertOutboxEvent records an event and wakes the relay (notifications are
+	// delivered when the transaction commits).
+	InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventParams) error
 	// JoinDefaultChannels makes a user a member of every default channel of the
 	// workspaces they belong to.
 	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (int64, error)
@@ -86,10 +95,15 @@ type Querier interface {
 	// roles in each and in its workspace: mandatory ones first, then by name.
 	ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelsRow, error)
 	ListMembers(ctx context.Context, channelID pgtype.UUID) ([]ListMembersRow, error)
+	ListMentions(ctx context.Context, messageIds []pgtype.UUID) ([]ListMentionsRow, error)
 	// ListMessagesBefore returns up to row_limit messages of a channel older than
 	// the cursor (all when before is NULL), newest first, with their authors.
 	// Deleted messages are left out.
 	ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error)
+	ListOutboxEvents(ctx context.Context, rowLimit int32) ([]EventOutbox, error)
+	// ListReactions sums up the reactions of messages: count and whether the user
+	// reacted, in the order the emoji were first used.
+	ListReactions(ctx context.Context, arg ListReactionsParams) ([]ListReactionsRow, error)
 	// ListUserSessions returns a user's usable sessions, most recently used first.
 	ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error)
 	// ListUserWorkspaces returns a user's workspaces with their role, the default
@@ -103,6 +117,7 @@ type Querier interface {
 	// PurgeDeletedMessages removes messages that can no longer be restored.
 	PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error)
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
+	RemoveReaction(ctx context.Context, arg RemoveReactionParams) (int64, error)
 	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) (int64, error)
 	RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.

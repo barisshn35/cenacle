@@ -7,7 +7,13 @@ SELECT sqlc.embed(c), m.role, wm.role AS workspace_role, m.last_read_id,
             SELECT 1 FROM messages x
             WHERE x.channel_id = c.id AND x.deleted_at IS NULL AND x.author_id <> @user_id
               AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
-            LIMIT 100) unread)::int AS unread_count
+            LIMIT 100) unread)::int AS unread_count,
+       -- Unread messages that mention the user, also up to 100.
+       (SELECT count(*) FROM (
+            SELECT 1 FROM message_mentions mm JOIN messages x ON x.id = mm.message_id
+            WHERE mm.user_id = @user_id AND x.channel_id = c.id AND x.deleted_at IS NULL
+              AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
+            LIMIT 100) mentioned)::int AS mention_count
 FROM channels c
 JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id
@@ -126,8 +132,8 @@ UPDATE channel_members SET role = @role WHERE channel_id = @channel_id AND user_
 -- name: CreateMessage :one
 -- CreateMessage inserts a message; with a nonce the author used before it
 -- returns nothing (see GetMessageByNonce).
-INSERT INTO messages (channel_id, author_id, body, nonce)
-VALUES (@channel_id, @author_id, @body, @nonce)
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments)
+VALUES (@channel_id, @author_id, @body, @nonce, @attachments)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
 RETURNING *;
 

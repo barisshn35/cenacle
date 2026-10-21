@@ -5,6 +5,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -37,7 +38,8 @@ type RateLimiter interface {
 // Handlers implements the chat operations of the API.
 type Handlers struct {
 	Queries store.Querier
-	Events  *events.Log
+	// DB starts the transactions that write a change and its event together.
+	DB TxBeginner
 	// Ephemeral carries typing notices; optional.
 	Ephemeral *events.Ephemeral
 	// Audit records security-relevant actions; optional.
@@ -121,8 +123,12 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 		// Rows come newest first; pages are chronological.
 		page.Messages[len(rows)-1-i] = messageAPI(store.Message{
 			ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
-			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt,
+			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 		}, m.AuthorName)
+	}
+	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
+		h.unavailable(w, r, "list reactions and mentions", err)
+		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, page)
 }
@@ -151,7 +157,11 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	if !decode(w, r, &in) {
 		return
 	}
-	body, problem := validBody(in.Body)
+	attachments, rawAttachments, problem := cleanAttachments(in.Attachments)
+	body := strings.TrimSpace(in.Body)
+	if problem == "" && (body != "" || len(attachments) == 0) {
+		body, problem = validBody(in.Body)
+	}
 	if problem == "" && (len(in.Nonce) < 8 || len(in.Nonce) > 64) {
 		problem = "The nonce must have 8 to 64 characters."
 	}
@@ -185,36 +195,62 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 
-	msg, err := h.Queries.CreateMessage(r.Context(), store.CreateMessageParams{
-		ChannelID: pgUUID(channelID), AuthorID: p.User.ID, Body: body, Nonce: in.Nonce,
-	})
-	if isNoRows(err) {
-		// The nonce was used before: this is a retry of a message that exists.
-		msg, err = h.Queries.GetMessageByNonce(r.Context(), store.GetMessageByNonceParams{
-			AuthorID: p.User.ID, Nonce: in.Nonce,
+	// The message, its mentions, the author's read position and the event are
+	// written together: the event cannot get lost (transactional outbox).
+	var out api.Message
+	err = h.inTx(r.Context(), func(q *store.Queries) error {
+		msg, err := q.CreateMessage(r.Context(), store.CreateMessageParams{
+			ChannelID: pgUUID(channelID), AuthorID: p.User.ID, Body: body, Nonce: in.Nonce,
+			Attachments: rawAttachments,
 		})
-	}
+		if isNoRows(err) {
+			// The nonce was used before: this is a retry of a message that exists.
+			msg, err = q.GetMessageByNonce(r.Context(), store.GetMessageByNonceParams{
+				AuthorID: p.User.ID, Nonce: in.Nonce,
+			})
+			if err == nil {
+				out = messageAPI(msg, p.User.DisplayName)
+				return decorate(r.Context(), q, p.User.ID, []api.Message{out})
+			}
+		}
+		if err != nil {
+			return err
+		}
+		if ids := mentionedIDs(body); len(ids) > 0 {
+			if err := q.AddMentions(r.Context(), store.AddMentionsParams{MessageID: msg.ID, ChannelID: c.ID, UserIds: ids}); err != nil {
+				return err
+			}
+		}
+		// What you send, you have read. No channel.read: the sender's other
+		// devices see message.created and move their read position themselves.
+		if _, err := q.MarkRead(r.Context(), store.MarkReadParams{ChannelID: c.ID, UserID: p.User.ID, MessageID: msg.ID}); err != nil {
+			return err
+		}
+		out = messageAPI(msg, p.User.DisplayName)
+		msgs := []api.Message{out}
+		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
+			return err
+		}
+		out = msgs[0]
+		return emit(r.Context(), q, events.MessageCreated, out)
+	})
 	if err != nil {
 		h.unavailable(w, r, "create message", err)
 		return
 	}
-	out := messageAPI(msg, p.User.DisplayName)
-	// What you send, you have read. No channel.read: the sender's other
-	// devices see message.created and move their read position themselves.
-	if _, err := h.Queries.MarkRead(r.Context(), store.MarkReadParams{ChannelID: c.ID, UserID: p.User.ID, MessageID: msg.ID}); err != nil {
-		h.Log.WarnContext(r.Context(), "mark own message read", "error", err)
-	}
-	// The message is stored; if the event cannot be appended, clients still
-	// see it when they load the channel (a transactional outbox follows in v0.9).
-	h.publish(r.Context(), events.MessageCreated, out)
 	httpx.WriteJSON(w, http.StatusCreated, out)
 }
 
-// messageAPI describes a stored message with its author's name.
+// messageAPI describes a stored message with its author's name; mentions
+// and reactions are filled by decorate.
 func messageAPI(m store.Message, authorName string) api.Message {
 	out := api.Message{
 		Id: uuid(m.ID), ChannelId: uuid(m.ChannelID), Body: m.Body, Nonce: m.Nonce, CreatedAt: m.CreatedAt,
-		Author: api.Author{Id: uuid(m.AuthorID), DisplayName: authorName},
+		Author:   api.Author{Id: uuid(m.AuthorID), DisplayName: authorName},
+		Mentions: []api.Author{}, Reactions: []api.Reaction{}, Attachments: []api.Attachment{},
+	}
+	if len(m.Attachments) > 0 {
+		_ = json.Unmarshal(m.Attachments, &out.Attachments)
 	}
 	if m.EditedAt.Valid {
 		t := m.EditedAt.Time

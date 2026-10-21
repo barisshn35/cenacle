@@ -4,7 +4,6 @@ package chat
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -363,13 +362,32 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
 		return
 	}
-	edited, err := h.Queries.EditMessage(r.Context(), store.EditMessageParams{ID: m.ID, Body: body})
+	var out api.Message
+	err := h.inTx(r.Context(), func(q *store.Queries) error {
+		edited, err := q.EditMessage(r.Context(), store.EditMessageParams{ID: m.ID, Body: body})
+		if err != nil {
+			return err
+		}
+		// Mentions follow the new text.
+		if err := q.DeleteMentions(r.Context(), m.ID); err != nil {
+			return err
+		}
+		if ids := mentionedIDs(body); len(ids) > 0 {
+			if err := q.AddMentions(r.Context(), store.AddMentionsParams{MessageID: m.ID, ChannelID: c.ID, UserIds: ids}); err != nil {
+				return err
+			}
+		}
+		msgs := []api.Message{messageAPI(edited, m.AuthorName)}
+		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
+			return err
+		}
+		out = msgs[0]
+		return emit(r.Context(), q, events.MessageUpdated, out)
+	})
 	if err != nil {
 		h.unavailable(w, r, "edit message", err)
 		return
 	}
-	out := messageAPI(edited, m.AuthorName)
-	h.publish(r.Context(), events.MessageUpdated, out)
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
@@ -388,11 +406,16 @@ func (h *Handlers) DeleteMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 	if !m.DeletedAt.Valid {
-		if _, err := h.Queries.DeleteMessage(r.Context(), store.DeleteMessageParams{ID: m.ID, DeletedBy: p.User.ID}); err != nil && !isNoRows(err) {
+		err := h.inTx(r.Context(), func(q *store.Queries) error {
+			if _, err := q.DeleteMessage(r.Context(), store.DeleteMessageParams{ID: m.ID, DeletedBy: p.User.ID}); err != nil {
+				return err
+			}
+			return emit(r.Context(), q, events.MessageDeleted, MessageRef{ID: uuid(m.ID).String(), ChannelID: uuid(c.ID).String()})
+		})
+		if err != nil && !isNoRows(err) {
 			h.unavailable(w, r, "delete message", err)
 			return
 		}
-		h.publish(r.Context(), events.MessageDeleted, MessageRef{ID: uuid(m.ID).String(), ChannelID: uuid(c.ID).String()})
 		if m.AuthorID != p.User.ID { // moderation
 			h.record(r, c.WorkspaceID, audit.MessageRemoved, "message", uuid(m.ID).String(),
 				map[string]any{"channel": c.Name, "author": m.AuthorName})
@@ -415,7 +438,19 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 		forbidden(w, r, httpx.CodeForbidden, "Only the author or a channel manager can restore a message.")
 		return
 	}
-	restored, err := h.Queries.RestoreMessage(r.Context(), store.RestoreMessageParams{ID: m.ID, RestoreWindow: interval(RestoreWindow)})
+	var out api.Message
+	err := h.inTx(r.Context(), func(q *store.Queries) error {
+		restored, err := q.RestoreMessage(r.Context(), store.RestoreMessageParams{ID: m.ID, RestoreWindow: interval(RestoreWindow)})
+		if err != nil {
+			return err
+		}
+		msgs := []api.Message{messageAPI(restored, m.AuthorName)}
+		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
+			return err
+		}
+		out = msgs[0]
+		return emit(r.Context(), q, events.MessageCreated, out)
+	})
 	if isNoRows(err) {
 		if !m.DeletedAt.Valid { // not deleted: nothing to do
 			httpx.WriteJSON(w, http.StatusOK, messageAPI(storeMessage(m), m.AuthorName))
@@ -429,32 +464,21 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 		h.unavailable(w, r, "restore message", err)
 		return
 	}
-	out := messageAPI(restored, m.AuthorName)
-	h.publish(r.Context(), events.MessageCreated, out)
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
 func storeMessage(m store.GetMessageRow) store.Message {
 	return store.Message{ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
-		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt}
+		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments}
 }
 
-// RunPurge removes deleted messages once they can no longer be restored.
-func RunPurge(ctx context.Context, q store.Querier, every time.Duration, log *slog.Logger) {
-	t := time.NewTicker(every)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t.C:
-			if n, err := q.PurgeDeletedMessages(ctx, interval(RestoreWindow)); err != nil {
-				log.Warn("purging deleted messages failed", "error", err)
-			} else if n > 0 {
-				log.Info("deleted messages purged", "count", n)
-			}
-		}
-	}
+// Purger removes deleted messages once they can no longer be restored (a
+// periodic job).
+type Purger struct{ Queries store.Querier }
+
+// PurgeDeleted implements jobs.Purger.
+func (p Purger) PurgeDeleted(ctx context.Context) (int64, error) {
+	return p.Queries.PurgeDeletedMessages(ctx, interval(RestoreWindow))
 }
 
 func interval(d time.Duration) pgtype.Interval {

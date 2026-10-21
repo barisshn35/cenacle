@@ -53,16 +53,36 @@ type ChannelMember struct {
 	LastReadID pgtype.UUID `json:"last_read_id"`
 }
 
+type EventOutbox struct {
+	ID        int64     `json:"id"`
+	Type      string    `json:"type"`
+	Data      []byte    `json:"data"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Message struct {
-	ID        pgtype.UUID        `json:"id"`
-	ChannelID pgtype.UUID        `json:"channel_id"`
-	AuthorID  pgtype.UUID        `json:"author_id"`
-	Body      string             `json:"body"`
-	Nonce     string             `json:"nonce"`
-	CreatedAt time.Time          `json:"created_at"`
-	EditedAt  pgtype.Timestamptz `json:"edited_at"`
-	DeletedAt pgtype.Timestamptz `json:"deleted_at"`
-	DeletedBy pgtype.UUID        `json:"deleted_by"`
+	ID          pgtype.UUID        `json:"id"`
+	ChannelID   pgtype.UUID        `json:"channel_id"`
+	AuthorID    pgtype.UUID        `json:"author_id"`
+	Body        string             `json:"body"`
+	Nonce       string             `json:"nonce"`
+	CreatedAt   time.Time          `json:"created_at"`
+	EditedAt    pgtype.Timestamptz `json:"edited_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy   pgtype.UUID        `json:"deleted_by"`
+	Attachments []byte             `json:"attachments"`
+}
+
+type MessageMention struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+type MessageReaction struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	Emoji     string      `json:"emoji"`
+	UserID    pgtype.UUID `json:"user_id"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type Session struct {

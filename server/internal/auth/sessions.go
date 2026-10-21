@@ -16,7 +16,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -142,25 +141,6 @@ func (s *Sessions) Delete(ctx context.Context, id pgtype.UUID) error {
 // DeleteExpired removes sessions that can no longer be used.
 func (s *Sessions) DeleteExpired(ctx context.Context) (int64, error) {
 	return s.Queries.DeleteExpiredSessions(ctx, interval(s.IdleTimeout))
-}
-
-// RunCleanup deletes expired sessions every interval until ctx ends.
-func (s *Sessions) RunCleanup(ctx context.Context, every time.Duration, log *slog.Logger) {
-	t := time.NewTicker(every)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t.C:
-			n, err := s.DeleteExpired(ctx)
-			if err != nil {
-				log.Warn("session cleanup failed", "error", err)
-			} else if n > 0 {
-				log.Info("expired sessions deleted", "count", n)
-			}
-		}
-	}
 }
 
 func interval(d time.Duration) pgtype.Interval {
