@@ -2,7 +2,7 @@
 # Cenacle ID (identity server). Build from the repository root:
 #   docker build -f idp/Dockerfile -t cenacle-idp .
 
-FROM node:24.22.0-alpine3.24 AS build
+FROM node:26.12.0-alpine3.24 AS build
 RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
