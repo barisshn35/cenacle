@@ -8,6 +8,28 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- Live chat: channels (a `#general` channel is created), messages with cursor pagination,
+  idempotent sending with a client nonce and a per-user rate limit.
+- Live events over WebSocket: single-use tickets, a Valkey stream shared by all server
+  instances, resuming after the last event, resync when events were missed, bounded queues,
+  heartbeats; connections close when the session ends.
+- `@cenacle/core`: reconnecting realtime client (backoff with jitter, online/offline and
+  tab visibility).
+- Web: channels in the URL, virtualized timeline with grouped messages and day separators,
+  optimistic sending with retry, drafts per channel, connection notices.
+
+### Changed
+
+- The sample channels, categories and direct messages of the shell are gone; the sidebar
+  lists the real channels.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-040): reversible migration
+  `00003_channels_messages`.
+
 ## [0.3.0] - 2026-10-21
 
 The chat signs users in with Cenacle ID and keeps its own sessions; the brand identity

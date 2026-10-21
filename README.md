@@ -12,9 +12,9 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.3.** Cenacle ID is a working OpenID Provider, and the chat app signs
-> users in with it and keeps its own sessions. Messaging and real data follow (see
-> the [roadmap](#roadmap)).
+> **Status: v0.4 in progress.** Sign in with Cenacle ID and chat live in channels.
+> Channel management, workspaces and direct messages follow (see the
+> [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -115,7 +115,9 @@ flowchart LR
 - **Chat server (`/server`):** Go, chi, pgx + sqlc, goose migrations embedded in the binary,
   spec-first API ([`server/api/openapi.yaml`](server/api/openapi.yaml), oapi-codegen), RFC
   9457 problem details for every error. Signs users in with Cenacle ID and keeps its own
-  sessions ([ADR 0004](docs/adr/0004-chat-sign-in-and-sessions.md)).
+  sessions ([ADR 0004](docs/adr/0004-chat-sign-in-and-sessions.md)). Live events go over
+  WebSocket from a Valkey stream shared by all instances
+  ([ADR 0005](docs/adr/0005-live-chat.md)).
 - **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify); `node-oidc-provider` from v0.2.
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
@@ -140,8 +142,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | -------- | ------------------------------------------------------------------------------------- |
 | v0.1     | Skeleton: services, design system foundations, infrastructure, CI                     |
 | v0.2     | Cenacle ID core (OIDC provider)                                                       |
-| **v0.3** | **OIDC sign-in in chat, sessions**                                                    |
-| v0.4     | Live chat, WebSocket tickets                                                          |
+| v0.3     | OIDC sign-in in chat, sessions                                                        |
+| **v0.4** | **Live chat, WebSocket tickets**                                                      |
 | v0.5     | Channels, categories, cursor pagination                                               |
 | v0.6     | Workspaces, roles, private and announcement channels                                  |
 | v0.7     | Direct messages, unread, presence, typing                                             |

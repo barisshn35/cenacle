@@ -39,6 +39,15 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.4.0)
+
+- Chat migration `00003_channels_messages` adds `channels` (with `#general`) and
+  `messages`. It is reversible (`migrate down` drops both tables and all messages).
+- WebSocket connections go through Caddy's `/ws` route, which the stack has had since
+  0.1.0; nothing to change in `prod.yml`.
+- Valkey now carries the live event stream (`cenacle:events`). It is not needed for
+  backups: clients reload what they missed.
+
 ### 0.3.0
 
 - Use the new `prod.yml`: the chat server gets its public URL, Cenacle ID's issuer and the
