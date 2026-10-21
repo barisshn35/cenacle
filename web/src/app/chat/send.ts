@@ -14,14 +14,18 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   const deliver = useCallback(
-    async (p: Pick<PendingMessage, 'nonce' | 'channelId' | 'body'>) => {
+    async (p: Pick<PendingMessage, 'nonce' | 'channelId' | 'body' | 'files'>) => {
       const { update, remove } = usePending.getState();
       update(p.nonce, { status: 'sending', retryAfter: undefined });
       try {
         const message = await apiFetch<Message>(`/api/channels/${p.channelId}/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ body: p.body, nonce: p.nonce }),
+          body: JSON.stringify({
+            body: p.body,
+            nonce: p.nonce,
+            ...(p.files?.length ? { file_ids: p.files.map((f) => f.id) } : {}),
+          }),
         });
         addMessage(queryClient, message);
         remove(p.nonce);
@@ -42,12 +46,18 @@ export function useSendMessage() {
   );
 
   const send = useCallback(
-    (channelId: string, body: string, mentions: PendingMessage['mentions'] = []) => {
+    (
+      channelId: string,
+      body: string,
+      mentions: PendingMessage['mentions'] = [],
+      files: PendingMessage['files'] = [],
+    ) => {
       const pending: PendingMessage = {
         nonce: newNonce(),
         channelId,
         body,
         mentions,
+        files,
         status: 'sending',
         createdAt: Date.now(),
       };

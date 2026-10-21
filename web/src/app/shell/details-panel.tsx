@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
+import { ChannelFiles } from '../chat/channel-files';
 import { MembersSection, VisibilitySetting } from '../chat/channel-members';
 import { ChannelSettingsDialog } from '../chat/channel-settings';
 import {
@@ -88,6 +89,11 @@ export function DetailsPanel() {
       {channel && (
         <div className="border-t p-4">
           <MembersSection channel={channel} />
+        </div>
+      )}
+      {channel && (
+        <div className="border-t p-4">
+          <ChannelFiles channelId={channel.id} />
         </div>
       )}
     </aside>

@@ -9,7 +9,13 @@ const port = Number(process.env.WEB_PORT ?? 15173);
 // The chat server, reached through this dev server so the app, its API and
 // the session cookie share one origin (as behind the production proxy).
 const api = process.env.CENACLE_DEV_API ?? 'http://127.0.0.1:8180';
-const proxy = { '/api': { target: api }, '/ws': { target: api, ws: true } };
+// Uploads go straight to the object store (the production proxy does the same).
+const s3 = process.env.CENACLE_DEV_S3 ?? 'http://127.0.0.1:13900';
+const proxy = {
+  '/api': { target: api },
+  '/ws': { target: api, ws: true },
+  '/cenacle-files': { target: s3 },
+};
 
 /**
  * Serves the emoji picker's data (emojibase, MIT) from our own origin under

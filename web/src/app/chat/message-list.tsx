@@ -20,6 +20,7 @@ import {
   type Message,
 } from './data';
 import { Attachments } from './attachments';
+import { MessageFiles } from './message-files';
 import { BotBadge } from './bot-badge';
 import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
@@ -194,6 +195,7 @@ function MessageRow({
                 </span>
               )}
               <Attachments items={m.attachments} selfId={self} />
+              <MessageFiles files={m.files} />
               <ReactionBar message={m} />
             </>
           )}
@@ -235,7 +237,16 @@ function PendingRow({ p }: { p: PendingMessage }) {
           {!failed && <span className="text-xs text-muted-foreground">{t('chat.sending')}</span>}
         </header>
         <div className={cn(!failed && 'text-muted-foreground')}>
-          <MessageBody body={p.body} mentions={p.mentions ?? []} selfId={user.id} />
+          {p.body && <MessageBody body={p.body} mentions={p.mentions ?? []} selfId={user.id} />}
+          {p.files && p.files.length > 0 && (
+            <ul className="mt-1 flex flex-wrap gap-1.5 text-sm" aria-label={t('files.attached')}>
+              {p.files.map((f) => (
+                <li key={f.id} className="rounded-md border px-2 py-1">
+                  {f.name}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         {failed ? (
           <div role="alert" className="mt-1 flex flex-wrap items-center gap-2 text-sm">

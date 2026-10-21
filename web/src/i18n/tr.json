@@ -486,5 +486,33 @@
     "cancel": "İptal et",
     "cancelNamed": "{{when}} için zamanlanan mesajı iptal et",
     "cancelFailed": "İptal edilemedi. Yeniden dene."
+  },
+  "files": {
+    "attach": "Dosya ekle",
+    "attached": "Eklenen dosyalar",
+    "images": "Görseller",
+    "title": "Dosyalar",
+    "none": "Burada henüz dosya paylaşılmadı.",
+    "more": "Daha fazla göster",
+    "download": "İndir",
+    "downloadNamed": "{{name}} dosyasını indir",
+    "openImage": "{{name}} görselini aç",
+    "previous": "Önceki görsel",
+    "next": "Sonraki görsel",
+    "position": "{{n}} / {{count}}",
+    "uploading": "Yükleniyor… %{{percent}}",
+    "retryNamed": "{{name}} dosyasını yeniden yükle",
+    "removeNamed": "{{name}} dosyasını kaldır",
+    "progressNamed": "{{name}} yüklemesi",
+    "tooMany": "Bir mesaj en fazla 10 dosya taşıyabilir; diğerleri eklenmedi.",
+    "error": {
+      "failed": "Yüklenmedi. Yeniden dene.",
+      "file_too_large": "Bu sunucunun izin verdiğinden büyük.",
+      "file_blocked": "Virüs tarayıcısı reddetti.",
+      "upload_incomplete": "Yükleme tamamlanmadı. Yeniden dene.",
+      "network_error": "Bağlantı yok. Yeniden dene.",
+      "files_disabled": "Bu sunucuda dosyalar ayarlanmamış.",
+      "rate_limited": "Çok hızlı. Birazdan yeniden dene."
+    }
   }
 }

@@ -73,6 +73,10 @@ const serverEnv = {
   CENACLE_ADMIN_EMAIL: 'deniz@example.com',
   CENACLE_ANNOUNCEMENT_CHANNEL: 'Central',
   CENACLE_DEFAULT_CHANNELS: 'General',
+  // Files go to the development (or CI) Garage.
+  CENACLE_S3_ENDPOINT: process.env.CENACLE_S3_ENDPOINT ?? 'http://127.0.0.1:13900',
+  CENACLE_S3_ACCESS_KEY: required('CENACLE_S3_ACCESS_KEY'),
+  CENACLE_S3_SECRET_KEY: required('CENACLE_S3_SECRET_KEY'),
 };
 
 export default defineConfig({

@@ -486,5 +486,33 @@
     "cancel": "Cancel",
     "cancelNamed": "Cancel the message for {{when}}",
     "cancelFailed": "It could not be cancelled. Try again."
+  },
+  "files": {
+    "attach": "Attach files",
+    "attached": "Attached files",
+    "images": "Images",
+    "title": "Files",
+    "none": "No files shared here yet.",
+    "more": "Show more",
+    "download": "Download",
+    "downloadNamed": "Download {{name}}",
+    "openImage": "Open {{name}}",
+    "previous": "Previous image",
+    "next": "Next image",
+    "position": "{{n}} / {{count}}",
+    "uploading": "Uploading… {{percent}}%",
+    "retryNamed": "Upload {{name}} again",
+    "removeNamed": "Remove {{name}}",
+    "progressNamed": "Upload of {{name}}",
+    "tooMany": "A message can carry up to 10 files; the others were left out.",
+    "error": {
+      "failed": "Not uploaded. Try again.",
+      "file_too_large": "Larger than this server allows.",
+      "file_blocked": "Rejected by the virus scanner.",
+      "upload_incomplete": "The upload did not finish. Try again.",
+      "network_error": "No connection. Try again.",
+      "files_disabled": "Files are not set up on this server.",
+      "rate_limited": "Too fast. Try again in a moment."
+    }
   }
 }

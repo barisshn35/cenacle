@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { create } from 'zustand';
+import type { FileInfo } from './files';
 
 /** A message on its way to the server, shown until the server has it. */
 export interface PendingMessage {
@@ -8,6 +9,8 @@ export interface PendingMessage {
   body: string;
   /** People the body mentions (<@id>), to show their names meanwhile. */
   mentions?: { id: string; display_name: string }[];
+  /** Uploaded files the message carries. */
+  files?: FileInfo[];
   status: 'sending' | 'failed';
   /** Seconds to wait when the server said "too fast". */
   retryAfter?: number;

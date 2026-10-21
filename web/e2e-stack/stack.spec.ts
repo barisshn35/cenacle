@@ -515,3 +515,50 @@ test('slash commands, a reminder from Cenacle and a message sent later', async (
     .click();
   await expect(items.filter({ hasText: `Haftalık özet ${stamp}` })).toHaveCount(0);
 });
+
+test('files: an image and a document travel through the object store', async ({ browser }) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const deniz = await open(EMAIL);
+  const mert = await open(SECOND.email);
+  const stamp = Date.now().toString(36);
+  // A 1×1 PNG.
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const chooser = deniz.waitForEvent('filechooser');
+  await deniz.getByRole('button', { name: 'Attach files' }).click();
+  await (
+    await chooser
+  ).setFiles([
+    { name: `foto-${stamp}.png`, mimeType: 'image/png', buffer: png },
+    { name: `rapor-${stamp}.txt`, mimeType: 'text/plain', buffer: Buffer.from(`rapor ${stamp}`) },
+  ]);
+  await expect(deniz.getByTestId('upload').filter({ hasText: 'Uploading' })).toHaveCount(0);
+  await deniz.getByLabel('Message General').fill(`Dosyalar ${stamp}`);
+  await deniz.getByLabel('Message General').press('Enter');
+
+  const message = mert.getByTestId('message').filter({ hasText: `Dosyalar ${stamp}` });
+  await expect(message.getByTestId('file')).toContainText(`rapor-${stamp}.txt`);
+  await message.getByRole('button', { name: `Open foto-${stamp}.png` }).click();
+  const viewer = mert.getByRole('dialog', { name: `foto-${stamp}.png` });
+  await expect(viewer).toContainText('1 × 1');
+  const img = viewer.getByRole('img', { name: `foto-${stamp}.png` });
+  await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(1);
+  await mert.keyboard.press('Escape');
+
+  const href = await message
+    .getByRole('link', { name: `Download rapor-${stamp}.txt` })
+    .getAttribute('href');
+  const res = await mert.request.get(href!);
+  expect(res.status()).toBe(200);
+  expect(res.headers()['content-disposition']).toContain('attachment');
+  expect(await res.text()).toBe(`rapor ${stamp}`);
+});

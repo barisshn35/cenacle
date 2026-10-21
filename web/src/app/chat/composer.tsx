@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ClockIcon, SendHorizontalIcon } from 'lucide-react';
+import { ClockIcon, PaperclipIcon, SendHorizontalIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
 import { DraftStore } from '@cenacle/core/drafts';
 import { Button } from '@cenacle/ui/components/button';
@@ -15,7 +16,10 @@ import { parseCommand, runCommand } from './commands';
 import { useConnection } from './connection';
 import { addMessage, sendTyping } from './data';
 import { useMentionPicker } from './mention-picker';
+import { useSession } from '../auth/session';
 import { SendLaterDialog } from './send-later';
+import { UploadList } from './uploads';
+import { useUploads } from './use-uploads';
 import { useSendMessage } from './send';
 import { TypingIndicator } from './typing-indicator';
 
@@ -80,6 +84,13 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
   const commands = useCommandPicker({ workspaceId, input, onChange: change });
   const addNote = useCommandNotes((s) => s.add);
   const [later, setLater] = useState(false);
+  const { permissions } = useSession();
+  const uploads = useUploads(channelId, permissions.max_file_size);
+  const picker = useRef<HTMLInputElement>(null);
+  const addFiles = (files: FileList | File[]) => {
+    if (!permissions.upload_files || files.length === 0) return;
+    if (uploads.add(files)) toast(t('files.tooMany'));
+  };
 
   // Load the channel's draft (the composer is keyed by channel).
   useEffect(() => {
@@ -126,7 +137,8 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
 
   const trimmed = body.trim();
   const tooLong = body.length > MAX_LENGTH;
-  const canSend = trimmed !== '' && !tooLong;
+  const canSend =
+    (trimmed !== '' || uploads.ready.length > 0) && !tooLong && !uploads.busy && !uploads.failed;
 
   const clear = () => {
     mentions.reset();
@@ -167,14 +179,15 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
     if (!canSend) return;
     // "//text" sends "/text" as a message.
     const command = trimmed.startsWith('//') ? null : parseCommand(trimmed);
-    if (command) {
+    if (command && uploads.items.length === 0) {
       run(command.command, mentions.resolve(command.text).text);
       return;
     }
     const { text, people } = mentions.resolve(
       trimmed.startsWith('//') ? trimmed.slice(1) : trimmed,
     );
-    send(channelId, text, people);
+    send(channelId, text, people, uploads.ready);
+    uploads.clear();
     clear();
   };
 
@@ -204,47 +217,91 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
         </label>
         {/* The frame holds the text and the send button side by side, so a
             scrollbar of long text never runs under the button. */}
-        <div className="relative flex items-end gap-2 rounded-xl border border-input bg-card py-1.5 pr-1.5 pl-4 shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-aria-invalid:border-destructive">
+        <div
+          className="relative rounded-xl border border-input bg-card py-1.5 pr-1.5 pl-4 shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-aria-invalid:border-destructive"
+          onDragOver={(e) => {
+            if (permissions.upload_files && e.dataTransfer.types.includes('Files'))
+              e.preventDefault();
+          }}
+          onDrop={(e) => {
+            if (e.dataTransfer.files.length === 0) return;
+            e.preventDefault();
+            addFiles(e.dataTransfer.files);
+          }}
+        >
           {mentions.popup}
           {commands.popup}
-          <textarea
-            id="composer"
-            ref={input}
-            rows={1}
-            value={body}
-            onChange={(e) => {
-              typed(e.target.value);
-              mentions.update();
-              commands.update();
-            }}
-            onSelect={() => {
-              mentions.update();
-              commands.update();
-            }}
-            aria-autocomplete="list"
-            aria-controls={
-              commands.open ? commands.listId : mentions.open ? mentions.listId : undefined
-            }
-            onKeyDown={onKeyDown}
-            aria-describedby={
-              body.length > MAX_LENGTH - 200 ? 'composer-hint composer-count' : 'composer-hint'
-            }
-            aria-invalid={tooLong || undefined}
-            placeholder={label}
-            className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
-          />
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            aria-label={t('scheduled.open')}
-            onClick={() => setLater(true)}
-          >
-            <ClockIcon strokeWidth={1.75} />
-          </Button>
-          <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
-            <SendHorizontalIcon strokeWidth={1.75} />
-          </Button>
+          <UploadList uploads={uploads} />
+          <div className="flex items-end gap-2">
+            <textarea
+              id="composer"
+              ref={input}
+              rows={1}
+              value={body}
+              onChange={(e) => {
+                typed(e.target.value);
+                mentions.update();
+                commands.update();
+              }}
+              onSelect={() => {
+                mentions.update();
+                commands.update();
+              }}
+              aria-autocomplete="list"
+              aria-controls={
+                commands.open ? commands.listId : mentions.open ? mentions.listId : undefined
+              }
+              onKeyDown={onKeyDown}
+              onPaste={(e) => {
+                if (e.clipboardData.files.length === 0) return;
+                e.preventDefault();
+                addFiles(e.clipboardData.files);
+              }}
+              aria-describedby={
+                body.length > MAX_LENGTH - 200 ? 'composer-hint composer-count' : 'composer-hint'
+              }
+              aria-invalid={tooLong || undefined}
+              placeholder={label}
+              className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
+            />
+            {permissions.upload_files && (
+              <>
+                <input
+                  ref={picker}
+                  type="file"
+                  multiple
+                  hidden
+                  tabIndex={-1}
+                  aria-hidden
+                  onChange={(e) => {
+                    if (e.target.files) addFiles(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t('files.attach')}
+                  onClick={() => picker.current?.click()}
+                >
+                  <PaperclipIcon strokeWidth={1.75} />
+                </Button>
+              </>
+            )}
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label={t('scheduled.open')}
+              onClick={() => setLater(true)}
+            >
+              <ClockIcon strokeWidth={1.75} />
+            </Button>
+            <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
+              <SendHorizontalIcon strokeWidth={1.75} />
+            </Button>
+          </div>
         </div>
         <div className="mt-1.5 flex justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -274,7 +331,9 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
         }}
         channelId={channelId}
         body={() =>
-          canSend && !(parseCommand(trimmed) && !trimmed.startsWith('//'))
+          canSend &&
+          uploads.items.length === 0 &&
+          !(parseCommand(trimmed) && !trimmed.startsWith('//'))
             ? mentions.resolve(trimmed.startsWith('//') ? trimmed.slice(1) : trimmed).text
             : ''
         }

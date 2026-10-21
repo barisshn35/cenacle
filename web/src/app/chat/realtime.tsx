@@ -38,6 +38,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         if (ev.type === 'message.created') {
           const message = ev.data as Message;
           addMessage(queryClient, message);
+          if (message.files?.length) {
+            void queryClient.invalidateQueries({ queryKey: ['files', message.channel_id] });
+          }
           countIncoming(queryClient, message, selfId);
           live.stopTyping(message.channel_id, message.author.id);
           // The sender's own pending copy is now confirmed.
@@ -55,7 +58,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (ev.type === 'message.updated') {
           replaceMessage(queryClient, ev.data as Message);
         } else if (ev.type === 'message.deleted') {
-          removeMessage(queryClient, ev.data as Pick<Message, 'id' | 'channel_id'>);
+          const ref = ev.data as Pick<Message, 'id' | 'channel_id'>;
+          removeMessage(queryClient, ref);
+          void queryClient.invalidateQueries({ queryKey: ['files', ref.channel_id] });
         } else if (ev.type === 'categories.changed') {
           void queryClient.invalidateQueries({ queryKey: ['categories'] });
           void reloadChannels(queryClient);

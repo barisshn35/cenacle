@@ -153,7 +153,7 @@ export const SESSION = {
     email_verified: true,
     display_name: 'Deniz Kaya',
   },
-  permissions: { create_workspaces: false },
+  permissions: { create_workspaces: false, upload_files: true, max_file_size: 104857600 },
   created_at: '2026-10-21T08:00:00Z',
   expires_at: '2026-11-20T08:00:00Z',
   idle_timeout_seconds: 604800,
@@ -286,6 +286,7 @@ export interface MockMessage {
   mentions: { id: string; display_name: string }[];
   reactions: { emoji: string; count: number; me: boolean }[];
   attachments: Record<string, unknown>[];
+  files: Record<string, unknown>[];
   edited_at: string | null;
   id: string;
   channel_id: string;
@@ -311,6 +312,7 @@ export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): 
     mentions: [],
     reactions: [],
     attachments: [],
+    files: [],
   };
 }
 
@@ -352,15 +354,27 @@ export async function mockApi(
     channels?: MockChannel[];
     general?: Partial<MockChannel>;
     presence?: { user_id: string; status: string }[];
+    /** Whether the server stores files (default: yes). */
+    files?: boolean;
   } = {},
 ): Promise<MockApi> {
   await mockSession(page, {
     ...SESSION,
-    permissions: { create_workspaces: opts.admin ?? false },
+    permissions: {
+      create_workspaces: opts.admin ?? false,
+      upload_files: opts.files ?? true,
+      max_file_size: 104857600,
+    },
   });
   const workspaces = [
     { id: DEFAULT_WS, name: 'Cenacle', is_default: true, role: opts.admin ? 'owner' : 'member' },
   ];
+  // The details panel lists the channel's files.
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/files$/, (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { files: [], has_more: false } })
+      : route.fallback(),
+  );
   await page.route('**/api/workspaces', (route) => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { workspaces } });
     const { name } = route.request().postDataJSON() as { name: string };

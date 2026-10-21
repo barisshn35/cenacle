@@ -22,6 +22,7 @@ const msg = (id: string): Message => ({
   mentions: [],
   reactions: [],
   attachments: [],
+  files: [],
 });
 
 const data = (...pages: string[][]): InfiniteData<MessagePage, string | undefined> => ({
