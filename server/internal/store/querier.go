@@ -12,16 +12,28 @@ import (
 )
 
 type Querier interface {
+	// CreateMessage inserts a message; with a nonce the author used before it
+	// returns nothing (see GetMessageByNonce).
+	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	// GetActiveSession returns the session of a token hash with its user, unless
 	// it passed its absolute expiry or was idle for longer than idle_timeout.
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
+	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
+	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
+	ListChannels(ctx context.Context) ([]Channel, error)
+	// ListMessagesBefore returns up to row_limit messages of a channel older than
+	// the cursor (all when before is NULL), newest first, with their authors.
+	ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error)
 	// ServerTime returns the database clock; used as a smoke test of the
 	// sqlc/pgx setup.
 	ServerTime(ctx context.Context) (time.Time, error)
+	// SessionIsActive checks a session without recording use (long-lived
+	// WebSocket connections re-check their session with it).
+	SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error)
 	// TouchSession records use of a session at most once per minute, which keeps
 	// writes low while the idle timeout stays accurate to the minute.
 	TouchSession(ctx context.Context, arg TouchSessionParams) error

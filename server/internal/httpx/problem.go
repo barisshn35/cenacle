@@ -34,6 +34,7 @@ const (
 	CodeBadRequest       = "invalid_request"
 	CodeUnauthenticated  = "unauthenticated"
 	CodeCrossSite        = "cross_site_request"
+	CodeRateLimited      = "rate_limited"
 )
 
 // WriteProblem writes p as application/problem+json. Missing fields are

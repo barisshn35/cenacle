@@ -256,9 +256,8 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 
 // GetSession implements api.ServerInterface.
 func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
-	p, ok := PrincipalFrom(r.Context())
+	p, ok := RequirePrincipal(w, r, h.Cookies)
 	if !ok {
-		unauthenticated(w, r, h.Cookies)
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, api.Session{

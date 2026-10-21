@@ -133,6 +133,16 @@ func Authenticate(s *Sessions, c Cookies, trustProxy bool, log *slog.Logger) fun
 	}
 }
 
+// RequirePrincipal returns the session of the request, or answers 401 and
+// returns false.
+func RequirePrincipal(w http.ResponseWriter, r *http.Request, c Cookies) (Principal, bool) {
+	p, ok := PrincipalFrom(r.Context())
+	if !ok {
+		unauthenticated(w, r, c)
+	}
+	return p, ok
+}
+
 func unauthenticated(w http.ResponseWriter, r *http.Request, c Cookies) {
 	if _, fromCookie := credentials(r, c); fromCookie {
 		c.clearSession(w) // expired or revoked: drop it
@@ -147,7 +157,8 @@ func unauthenticated(w http.ResponseWriter, r *http.Request, c Cookies) {
 
 // SameOrigin rejects state-changing requests that carry the session cookie
 // but do not come from the app itself (CSRF defense in depth on top of
-// SameSite=Lax). Requests with a bearer token are not exposed to CSRF and pass.
+// SameSite=Lax). Requests with a bearer token or without credentials are not
+// exposed to CSRF and pass.
 func SameOrigin(publicURL *url.URL, c Cookies) func(http.Handler) http.Handler {
 	origin := publicURL.Scheme + "://" + publicURL.Host
 	return func(next http.Handler) http.Handler {
@@ -157,7 +168,9 @@ func SameOrigin(publicURL *url.URL, c Cookies) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			if r.Header.Get("Authorization") != "" {
+			if _, fromCookie := credentials(r, c); !fromCookie {
+				// Bearer token or no credentials at all: nothing for a
+				// forged request to ride on.
 				next.ServeHTTP(w, r)
 				return
 			}

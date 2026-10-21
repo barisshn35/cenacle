@@ -33,10 +33,13 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/app"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/cache"
+	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/config"
 	"github.com/barisshn35/cenacle/server/internal/db"
+	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/health"
 	"github.com/barisshn35/cenacle/server/internal/logging"
+	"github.com/barisshn35/cenacle/server/internal/realtime"
 	"github.com/barisshn35/cenacle/server/internal/store"
 	"github.com/barisshn35/cenacle/server/migrations"
 )
@@ -123,6 +126,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	sessions := &auth.Sessions{Queries: queries, IdleTimeout: cfg.SessionIdleTimeout, MaxAge: cfg.SessionMaxAge}
 	go sessions.RunCleanup(ctx, 10*time.Minute, log)
 
+	eventLog := &events.Log{Valkey: valkey, Key: "cenacle:events", MaxLen: 10_000}
+	hub := &realtime.Hub{Log: eventLog, Logger: log}
+	go hub.Run(ctx)
+	cookies := auth.NewCookies(cfg.PublicURL)
+
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: app.NewRouter(app.Deps{
@@ -140,10 +148,28 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				Sessions:   sessions,
 				Users:      queries,
 				Flows:      valkey,
-				Cookies:    auth.NewCookies(cfg.PublicURL),
+				Cookies:    cookies,
 				PublicURL:  cfg.PublicURL,
 				TrustProxy: cfg.TrustProxy,
 				Log:        log,
+			},
+			Chat: &chat.Handlers{
+				Queries:           queries,
+				Events:            eventLog,
+				Limiter:           valkey,
+				Cookies:           cookies,
+				Log:               log,
+				MessagesPerWindow: 20,
+				Window:            10 * time.Second,
+			},
+			Realtime: &realtime.Handler{
+				Hub:       hub,
+				Tickets:   valkey,
+				Sessions:  sessions,
+				Cookies:   cookies,
+				PublicURL: cfg.PublicURL,
+				Settings:  realtime.DefaultSettings,
+				Log:       log,
 			},
 		}),
 		ReadHeaderTimeout: 10 * time.Second,

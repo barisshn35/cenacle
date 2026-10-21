@@ -73,8 +73,15 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U cenacle_chat -d cenacle_chat_test"
           --health-interval 5s --health-timeout 3s --health-retries 20
+      valkey:
+        image: valkey/valkey:9.0.6-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       CENACLE_TEST_DATABASE_URL: postgres://cenacle_chat:ci-only-password@127.0.0.1:5432/cenacle_chat_test?sslmode=disable
+      CENACLE_TEST_VALKEY_ADDR: 127.0.0.1:6379
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

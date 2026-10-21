@@ -124,6 +124,12 @@ func (s *Sessions) Authenticate(ctx context.Context, token string, client Client
 	return Principal{Session: row.Session, User: row.User}, nil
 }
 
+// SessionActive reports whether a session can still be used, without
+// recording use.
+func (s *Sessions) SessionActive(ctx context.Context, id pgtype.UUID) (bool, error) {
+	return s.Queries.SessionIsActive(ctx, store.SessionIsActiveParams{ID: id, IdleTimeout: interval(s.IdleTimeout)})
+}
+
 // Delete ends a session.
 func (s *Sessions) Delete(ctx context.Context, id pgtype.UUID) error {
 	return s.Queries.DeleteSession(ctx, id)

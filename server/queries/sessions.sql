@@ -27,3 +27,13 @@ DELETE FROM sessions WHERE id = @id;
 DELETE FROM sessions
 WHERE expires_at <= now()
    OR last_seen_at <= now() - sqlc.arg(idle_timeout)::interval;
+
+-- name: SessionIsActive :one
+-- SessionIsActive checks a session without recording use (long-lived
+-- WebSocket connections re-check their session with it).
+SELECT EXISTS (
+    SELECT 1 FROM sessions
+    WHERE id = @id
+      AND expires_at > now()
+      AND last_seen_at > now() - sqlc.arg(idle_timeout)::interval
+);

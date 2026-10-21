@@ -101,3 +101,26 @@ func (c *Client) Take(ctx context.Context, key string) ([]byte, error) {
 	}
 	return b, err
 }
+
+// Hit counts an event in a fixed window and returns the count so far and the
+// time until the window ends (rate limiting).
+func (c *Client) Hit(ctx context.Context, key string, window time.Duration) (int64, time.Duration, error) {
+	vc, err := c.Get()
+	if err != nil {
+		return 0, 0, err
+	}
+	res := vc.DoMulti(ctx,
+		vc.B().Incr().Key(key).Build(),
+		vc.B().Pexpire().Key(key).Milliseconds(window.Milliseconds()).Nx().Build(),
+		vc.B().Pttl().Key(key).Build(),
+	)
+	n, err := res[0].AsInt64()
+	if err != nil {
+		return 0, 0, err
+	}
+	ttl, err := res[2].AsInt64()
+	if err != nil {
+		return 0, 0, err
+	}
+	return n, time.Duration(ttl) * time.Millisecond, nil
+}

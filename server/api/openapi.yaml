@@ -18,6 +18,10 @@ servers:
 tags:
   - name: auth
     description: Sign-in with Cenacle ID and sessions
+  - name: chat
+    description: Channels and messages
+  - name: realtime
+    description: Live events over WebSocket
 paths:
   /api/auth/login:
     get:
@@ -88,6 +92,116 @@ paths:
               schema: { $ref: '#/components/schemas/Session' }
         '401':
           $ref: '#/components/responses/Problem'
+  /api/ws/ticket:
+    post:
+      tags: [realtime]
+      operationId: createWsTicket
+      summary: Ticket for opening the WebSocket
+      description: |
+        Returns a single-use ticket valid for 30 seconds. Open
+        `/ws?ticket=<ticket>[&last_event_id=<id>]` with it: browsers cannot send
+        an Authorization header on WebSocket connections, and a ticket keeps the
+        session token out of URLs and logs.
+
+        WebSocket protocol (JSON text frames, server to client):
+        - `{"op":"hello","last_event_id":"<id>","heartbeat_ms":25000}` after connecting;
+        - `{"op":"event","id":"<id>","type":"message.created","data":{...}}` for each event,
+          in order, starting after `last_event_id` when it was given;
+        - `{"op":"resync"}` when the events since `last_event_id` are no longer
+          available: reload the data and continue from the id in `hello`.
+
+        Close codes: 4001 invalid ticket, 4003 session ended, 4008 the client
+        did not keep up (reconnect and resume).
+      responses:
+        '201':
+          description: Ticket created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WsTicket' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+  /api/channels:
+    get:
+      tags: [chat]
+      operationId: listChannels
+      summary: Channels the user can read
+      responses:
+        '200':
+          description: Channels, ordered by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [channels]
+                properties:
+                  channels:
+                    type: array
+                    items: { $ref: '#/components/schemas/Channel' }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/messages:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [chat]
+      operationId: listMessages
+      summary: Messages of a channel, newest page first
+      description: |
+        Cursor pagination: without `before` the newest messages; with `before`
+        (a message id) the messages older than it. Each page is in chronological
+        order; `has_more` says whether older messages exist.
+      parameters:
+        - name: before
+          in: query
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: A page of messages.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessagePage' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [chat]
+      operationId: createMessage
+      summary: Send a message
+      description: |
+        `nonce` is chosen by the client for each message. Sending the same nonce
+        again (a retry after a lost response) returns the existing message
+        instead of creating a second one. Everyone in the channel receives a
+        `message.created` event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewMessage' }
+      responses:
+        '201':
+          description: Created (or already created with this nonce).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
 security:
   - cookie: []
   - bearer: []
@@ -142,6 +256,55 @@ components:
         idle_timeout_seconds:
           type: integer
           description: The session also ends after this long without use.
+    WsTicket:
+      type: object
+      required: [ticket, expires_in]
+      properties:
+        ticket: { type: string }
+        expires_in:
+          type: integer
+          description: Seconds until the ticket expires.
+    Channel:
+      type: object
+      required: [id, name, topic]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        topic: { type: string }
+    Author:
+      type: object
+      required: [id, display_name]
+      properties:
+        id: { type: string, format: uuid }
+        display_name: { type: string }
+    Message:
+      type: object
+      required: [id, channel_id, author, body, nonce, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        author: { $ref: '#/components/schemas/Author' }
+        body:
+          type: string
+          description: Message text as typed (Markdown rendering arrives later).
+        nonce:
+          type: string
+          description: The client's nonce, so the sender can match its pending message.
+        created_at: { type: string, format: date-time }
+    NewMessage:
+      type: object
+      required: [body, nonce]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        nonce: { type: string, minLength: 8, maxLength: 64 }
+    MessagePage:
+      type: object
+      required: [messages, has_more]
+      properties:
+        messages:
+          type: array
+          items: { $ref: '#/components/schemas/Message' }
+        has_more: { type: boolean }
     Logout:
       type: object
       required: [end_session_url]

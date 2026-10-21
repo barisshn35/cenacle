@@ -12,8 +12,10 @@ import (
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/auth"
+	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/health"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/realtime"
 )
 
 // Deps are the dependencies of the HTTP layer.
@@ -21,15 +23,26 @@ type Deps struct {
 	Log          *slog.Logger
 	Checkers     []health.Checker
 	ReadyTimeout time.Duration
-	// Auth serves sign-in and sessions; without it only the probes are mounted.
-	Auth *auth.Handlers
+	// Auth, Chat and Realtime serve the API; without Auth only the probes
+	// are mounted.
+	Auth     *auth.Handlers
+	Chat     *chat.Handlers
+	Realtime *realtime.Handler
 }
 
 // apiServer implements the generated api.ServerInterface by composing the
 // handlers of each domain.
 type apiServer struct {
-	*auth.Handlers
+	*authHandlers
+	*chatHandlers
+	*realtime.Handler
 }
+
+// Aliases give the embedded handler types distinct field names.
+type (
+	authHandlers = auth.Handlers
+	chatHandlers = chat.Handlers
+)
 
 // NewRouter returns the root handler. Every error response, including
 // unknown routes and panics, is application/problem+json with a request ID.
@@ -51,7 +64,10 @@ func NewRouter(d Deps) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(auth.SameOrigin(a.PublicURL, a.Cookies))
 			r.Use(auth.Authenticate(a.Sessions, a.Cookies, a.TrustProxy, d.Log))
-			api.HandlerWithOptions(apiServer{a}, api.ChiServerOptions{
+			if d.Realtime != nil {
+				r.Get("/ws", d.Realtime.ServeWS)
+			}
+			api.HandlerWithOptions(apiServer{a, d.Chat, d.Realtime}, api.ChiServerOptions{
 				BaseRouter:       r,
 				ErrorHandlerFunc: badRequest,
 			})

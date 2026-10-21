@@ -117,6 +117,29 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 	return i, err
 }
 
+const sessionIsActive = `-- name: SessionIsActive :one
+SELECT EXISTS (
+    SELECT 1 FROM sessions
+    WHERE id = $1
+      AND expires_at > now()
+      AND last_seen_at > now() - $2::interval
+)
+`
+
+type SessionIsActiveParams struct {
+	ID          pgtype.UUID     `json:"id"`
+	IdleTimeout pgtype.Interval `json:"idle_timeout"`
+}
+
+// SessionIsActive checks a session without recording use (long-lived
+// WebSocket connections re-check their session with it).
+func (q *Queries) SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error) {
+	row := q.db.QueryRow(ctx, sessionIsActive, arg.ID, arg.IdleTimeout)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const touchSession = `-- name: TouchSession :exec
 UPDATE sessions
 SET last_seen_at = now(), user_agent = $1, ip_address = $2

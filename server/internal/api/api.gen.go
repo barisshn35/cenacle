@@ -14,10 +14,49 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Author defines model for Author.
+type Author struct {
+	DisplayName string             `json:"display_name"`
+	Id          openapi_types.UUID `json:"id"`
+}
+
+// Channel defines model for Channel.
+type Channel struct {
+	Id    openapi_types.UUID `json:"id"`
+	Name  string             `json:"name"`
+	Topic string             `json:"topic"`
+}
+
 // Logout defines model for Logout.
 type Logout struct {
 	// EndSessionUrl Sign-out page of Cenacle ID; empty if it is not known.
 	EndSessionUrl string `json:"end_session_url"`
+}
+
+// Message defines model for Message.
+type Message struct {
+	Author Author `json:"author"`
+
+	// Body Message text as typed (Markdown rendering arrives later).
+	Body      string             `json:"body"`
+	ChannelId openapi_types.UUID `json:"channel_id"`
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Nonce The client's nonce, so the sender can match its pending message.
+	Nonce string `json:"nonce"`
+}
+
+// MessagePage defines model for MessagePage.
+type MessagePage struct {
+	HasMore  bool      `json:"has_more"`
+	Messages []Message `json:"messages"`
+}
+
+// NewMessage defines model for NewMessage.
+type NewMessage struct {
+	Body  string `json:"body"`
+	Nonce string `json:"nonce"`
 }
 
 // Problem defines model for Problem.
@@ -52,6 +91,13 @@ type User struct {
 	Id            openapi_types.UUID `json:"id"`
 }
 
+// WsTicket defines model for WsTicket.
+type WsTicket struct {
+	// ExpiresIn Seconds until the ticket expires.
+	ExpiresIn int    `json:"expires_in"`
+	Ticket    string `json:"ticket"`
+}
+
 // AuthCallbackParams defines parameters for AuthCallback.
 type AuthCallbackParams struct {
 	Code             *string `form:"code,omitempty" json:"code,omitempty"`
@@ -67,6 +113,15 @@ type LoginParams struct {
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
 }
 
+// ListMessagesParams defines parameters for ListMessages.
+type ListMessagesParams struct {
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateMessageJSONRequestBody defines body for CreateMessage for application/json ContentType.
+type CreateMessageJSONRequestBody = NewMessage
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// AuthCallback Finish sign-in (redirect target of Cenacle ID)
@@ -78,9 +133,21 @@ type ServerInterface interface {
 	// Logout End the current session
 	// (POST /api/auth/logout)
 	Logout(w http.ResponseWriter, r *http.Request)
+	// ListChannels Channels the user can read
+	// (GET /api/channels)
+	ListChannels(w http.ResponseWriter, r *http.Request)
+	// ListMessages Messages of a channel, newest page first
+	// (GET /api/channels/{channel_id}/messages)
+	ListMessages(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListMessagesParams)
+	// CreateMessage Send a message
+	// (POST /api/channels/{channel_id}/messages)
+	CreateMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
+	// CreateWsTicket Ticket for opening the WebSocket
+	// (POST /api/ws/ticket)
+	CreateWsTicket(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -105,9 +172,33 @@ func (_ Unimplemented) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListChannels Channels the user can read
+// (GET /api/channels)
+func (_ Unimplemented) ListChannels(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMessages Messages of a channel, newest page first
+// (GET /api/channels/{channel_id}/messages)
+func (_ Unimplemented) ListMessages(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListMessagesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateMessage Send a message
+// (POST /api/channels/{channel_id}/messages)
+func (_ Unimplemented) CreateMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetSession The current session and its user
 // (GET /api/session)
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateWsTicket Ticket for opening the WebSocket
+// (POST /api/ws/ticket)
+func (_ Unimplemented) CreateWsTicket(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -252,11 +343,120 @@ func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
+// ListChannels operation middleware
+func (siw *ServerInterfaceWrapper) ListChannels(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannels(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMessages operation middleware
+func (siw *ServerInterfaceWrapper) ListMessages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMessagesParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMessages(w, r, channelId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMessage operation middleware
+func (siw *ServerInterfaceWrapper) CreateMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMessage(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateWsTicket operation middleware
+func (siw *ServerInterfaceWrapper) CreateWsTicket(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateWsTicket(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -390,6 +590,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/session", wrapper.GetSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/ws/ticket", wrapper.CreateWsTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels", wrapper.ListChannels)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages", wrapper.ListMessages)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages", wrapper.CreateMessage)
 	})
 
 	return r
