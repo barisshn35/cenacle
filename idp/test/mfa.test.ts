@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { generate } from 'otplib';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { CHALLENGE_ATTEMPTS, MfaStore } from '../src/accounts/mfa.ts';
+import { ACCOUNT_FAILURES, CHALLENGE_ATTEMPTS, MfaStore } from '../src/accounts/mfa.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { signAccount, verifyAccount } from '../src/account/session.ts';
 import { hasTestDatabase, openTestDatabase, resetTestDatabase } from './helpers/db.ts';
@@ -74,9 +74,25 @@ describe.skipIf(!hasTestDatabase)('MfaStore (database)', () => {
 
   it('challenges expire after a few wrong attempts', async () => {
     const id = await mfa.createChallenge(userId, 'account');
-    expect((await mfa.challenge(id, 'account'))?.attemptsLeft).toBe(CHALLENGE_ATTEMPTS);
-    expect(await mfa.challenge(id, 'login')).toBeNull();
-    for (let i = CHALLENGE_ATTEMPTS - 1; i >= 0; i--) expect(await mfa.failAttempt(id)).toBe(i);
-    expect(await mfa.challenge(id, 'account')).toBeNull();
+    expect(await mfa.challenge(id, 'account')).not.toBeNull();
+    expect(await mfa.takeAttempt(id, 'login')).toBeNull();
+    for (let i = CHALLENGE_ATTEMPTS - 1; i >= 0; i--) {
+      expect((await mfa.takeAttempt(id, 'account'))?.attemptsLeft).toBe(i);
+    }
+    expect(await mfa.takeAttempt(id, 'account')).toBeNull();
+    // Entering the password again does not give the attempts back.
+    await mfa.createChallenge(userId, 'account', id);
+    expect(await mfa.takeAttempt(id, 'account')).toBeNull();
+  });
+
+  it('an account allows a limited number of failures across challenges', async () => {
+    for (let i = 0; i < ACCOUNT_FAILURES; i++) {
+      await pool.query(
+        "INSERT INTO audit_events (user_id, action) VALUES ($1, 'signin.second_step_failed')",
+        [userId],
+      );
+    }
+    const id = await mfa.createChallenge(userId, 'login', 'uid-fresh');
+    expect(await mfa.takeAttempt(id, 'login')).toBeNull();
   });
 });

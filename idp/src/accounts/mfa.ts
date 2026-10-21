@@ -13,6 +13,9 @@ export const RECOVERY_CODE_COUNT = 10;
 /** A second step must follow the password within this time, with at most this many tries. */
 export const CHALLENGE_TTL_SECONDS = 5 * 60;
 export const CHALLENGE_ATTEMPTS = 5;
+/** Across challenges: an account allows this many failed second steps per window. */
+export const ACCOUNT_FAILURES = 10;
+export const ACCOUNT_FAILURE_WINDOW_SECONDS = 15 * 60;
 
 export type Purpose = 'login' | 'account';
 export type SecondFactor = 'totp' | 'recovery';
@@ -172,7 +175,11 @@ export class MfaStore {
       `INSERT INTO mfa_challenges (id, user_id, purpose, expires_at)
        VALUES ($1, $2, $3, now() + make_interval(secs => $4))
        ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id, purpose = EXCLUDED.purpose,
-         attempts = 0, expires_at = EXCLUDED.expires_at`,
+         -- Entering the password again does not bring the attempts back.
+         attempts = CASE WHEN mfa_challenges.expires_at > now() AND mfa_challenges.user_id = EXCLUDED.user_id
+                         THEN mfa_challenges.attempts ELSE 0 END,
+         expires_at = CASE WHEN mfa_challenges.expires_at > now() AND mfa_challenges.user_id = EXCLUDED.user_id
+                           THEN mfa_challenges.expires_at ELSE EXCLUDED.expires_at END`,
       [id, userId, purpose, CHALLENGE_TTL_SECONDS],
     );
     return id;
@@ -190,13 +197,33 @@ export class MfaStore {
       : null;
   }
 
-  /** Counts a failed attempt; returns the attempts left (0: the challenge is spent). */
-  async failAttempt(id: string): Promise<number> {
-    const { rows } = await this.pool.query<{ attempts: number }>(
-      'UPDATE mfa_challenges SET attempts = attempts + 1 WHERE id = $1 RETURNING attempts',
-      [id],
+  /**
+   * Takes one attempt of a live challenge before the code is checked, so
+   * parallel requests cannot exceed the limit. Returns the user and the
+   * attempts left after this one, or null when the challenge is spent,
+   * expired, or the account had too many failures lately.
+   */
+  async takeAttempt(id: string, purpose: Purpose): Promise<Challenge | null> {
+    const { rows } = await this.pool.query<{ user_id: string; attempts: number }>(
+      `UPDATE mfa_challenges SET attempts = attempts + 1
+       WHERE id = $1 AND purpose = $2 AND expires_at > now() AND attempts < $3
+       RETURNING user_id, attempts`,
+      [id, purpose, CHALLENGE_ATTEMPTS],
     );
-    return Math.max(CHALLENGE_ATTEMPTS - (rows[0]?.attempts ?? CHALLENGE_ATTEMPTS), 0);
+    const row = rows[0];
+    if (!row || (await this.recentFailures(row.user_id)) >= ACCOUNT_FAILURES) return null;
+    return { id, userId: row.user_id, purpose, attemptsLeft: CHALLENGE_ATTEMPTS - row.attempts };
+  }
+
+  /** Failed second steps of an account in the window (from the audit log). */
+  private async recentFailures(userId: string): Promise<number> {
+    const { rows } = await this.pool.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM audit_events
+       WHERE user_id = $1 AND action = 'signin.second_step_failed'
+         AND at > now() - make_interval(secs => $2)`,
+      [userId, ACCOUNT_FAILURE_WINDOW_SECONDS],
+    );
+    return rows[0]!.n;
   }
 
   async finishChallenge(id: string): Promise<void> {

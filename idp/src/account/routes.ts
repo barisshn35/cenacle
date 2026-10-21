@@ -171,7 +171,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
     if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
     const loc = locale(request);
     const id = request.body?.challenge ?? '';
-    const challenge = id ? await mfa.challenge(id, 'account') : null;
+    const challenge = id ? await mfa.takeAttempt(id, 'account') : null;
     if (!challenge) {
       return page(
         reply,
@@ -184,7 +184,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       await audit.record('signin.second_step_failed', challenge.userId, request.ip, {
         where: 'account',
       });
-      const left = await mfa.failAttempt(id);
+      const left = challenge.attemptsLeft;
       const error: CodeError = left > 0 ? { attemptsLeft: left } : 'expired';
       return page(
         reply,

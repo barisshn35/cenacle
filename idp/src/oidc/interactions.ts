@@ -222,7 +222,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
             error,
           }),
         );
-      const challenge = await mfa.challenge(d.uid, 'login');
+      const challenge = await mfa.takeAttempt(d.uid, 'login');
       if (!challenge) return show(400, 'expired');
       const factor = await mfa.verify(challenge.userId, request.body?.code ?? '');
       if (!factor) {
@@ -230,7 +230,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
         await opts.audit?.record('signin.second_step_failed', challenge.userId, request.ip, {
           client: d.params.client_id,
         });
-        const left = await mfa.failAttempt(d.uid);
+        const left = challenge.attemptsLeft;
         return show(401, left > 0 ? { attemptsLeft: left } : 'expired');
       }
       await mfa.finishChallenge(d.uid);
