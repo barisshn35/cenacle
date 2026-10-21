@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.12.0)
+### 0.12.0
 
 - Run `./gen-secrets.sh` again before upgrading: it keeps every existing secret and adds the
   object store's (`s3_access_key`, `s3_secret_key`, `garage_rpc_secret`, `garage.env`).

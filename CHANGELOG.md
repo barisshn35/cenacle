@@ -8,6 +8,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-22
+
 Files: uploads, previews, a viewer and the channel's files.
 
 ### Added
@@ -29,7 +31,7 @@ Files: uploads, previews, a viewer and the channel's files.
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-0120): run `gen-secrets.sh` again,
+- See [docs/upgrade](docs/upgrade/README.md#0120): run `gen-secrets.sh` again,
   new `garage` service, migration `00013_files`.
 
 ## [0.11.0] - 2026-10-22
@@ -408,7 +410,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/barisshn35/cenacle/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/barisshn35/cenacle/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/barisshn35/cenacle/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/barisshn35/cenacle/compare/v0.9.0...v0.10.0
