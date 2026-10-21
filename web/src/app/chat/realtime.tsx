@@ -3,7 +3,7 @@ import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { RealtimeClient } from '@cenacle/core/realtime';
 import { useConnection } from './connection';
-import { addMessage, reloadMessages, type Message } from './data';
+import { addMessage, reloadChannels, reloadMessages, type Message } from './data';
 import { usePending } from './pending';
 
 /**
@@ -21,11 +21,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           addMessage(queryClient, message);
           // The sender's own pending copy is now confirmed.
           usePending.getState().remove(message.nonce);
+        } else if (ev.type.startsWith('channel.')) {
+          void reloadChannels(queryClient);
         }
       },
       onResync() {
         void reloadMessages(queryClient);
-        void queryClient.invalidateQueries({ queryKey: ['channels'] });
+        void reloadChannels(queryClient);
       },
       onStatus(status) {
         useConnection.setState({ status });

@@ -11,11 +11,38 @@ export type Channel = components['schemas']['Channel'];
 export type Message = components['schemas']['Message'];
 export type MessagePage = components['schemas']['MessagePage'];
 
+export type NewChannel = components['schemas']['NewChannel'];
+
+/** Channels the user is a member of (the sidebar). */
 export const channelsQuery = queryOptions({
   queryKey: ['channels'],
   queryFn: () => apiFetch<{ channels: Channel[] }>('/api/channels').then((r) => r.channels),
   staleTime: 5 * 60_000,
 });
+
+/** Every channel, with membership (browsing). */
+export const directoryQuery = queryOptions({
+  queryKey: ['channels', 'directory'],
+  queryFn: () =>
+    apiFetch<{ channels: Channel[] }>('/api/channels/directory').then((r) => r.channels),
+});
+
+const json = (body: unknown): RequestInit => ({
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+});
+
+export const createChannel = (input: NewChannel) => apiFetch<Channel>('/api/channels', json(input));
+export const joinChannel = (id: string) =>
+  apiFetch<Channel>(`/api/channels/${id}/join`, { method: 'POST' });
+export const leaveChannel = (id: string) =>
+  apiFetch<void>(`/api/channels/${id}/leave`, { method: 'POST' });
+
+/** Channel lists changed (created, joined, left): reload them. */
+export function reloadChannels(queryClient: QueryClient): Promise<void> {
+  return queryClient.invalidateQueries({ queryKey: ['channels'] });
+}
 
 const PAGE = 50;
 

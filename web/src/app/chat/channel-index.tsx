@@ -7,7 +7,7 @@ import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { channelsQuery } from './data';
 
-/** "/" opens #general (or the first channel). */
+/** "/" opens the first channel to talk in. */
 export function ChannelIndex() {
   const { t } = useTranslation();
   const channels = useQuery(channelsQuery);
@@ -23,7 +23,11 @@ export function ChannelIndex() {
   }
   const list = channels.data;
   if (!list) return null;
-  const target = list.find((c) => c.name === 'general') ?? list[0];
+  // The first channel to talk in, not an announcement channel.
+  const target =
+    list.find((c) => c.kind === 'standard' && c.can_post) ??
+    list.find((c) => c.can_post) ??
+    list[0];
   if (!target) {
     return (
       <main className="flex min-h-svh items-center justify-center p-6">

@@ -45,7 +45,7 @@ test('signing in with Cenacle ID and out again', async ({ page }) => {
   await expect(page).toHaveURL(/\/signin$/);
   await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
   await signInAtIdP(page);
-  await expect(page).toHaveURL(/\/c\/[0-9a-f-]{36}$/); // #general
+  await expect(page).toHaveURL(/\/c\/[0-9a-f-]{36}$/); // General
   await expect(page.getByTestId('current-user')).toHaveText('Deniz Kaya');
 
   const cookie = (await page.context().cookies(WEB_URL)).find((c) => c.name === 'cenacle_session');
@@ -103,27 +103,68 @@ test('two people chat live, also after a reconnect', async ({ browser }) => {
     await page.goto('/');
     await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
     await signInAtIdP(page, email);
-    await page.getByLabel('Message #general').waitFor();
+    await page.getByLabel('Message General').waitFor();
     return page;
   };
   const deniz = await open(EMAIL);
   const mert = await open(SECOND.email);
   const stamp = Date.now().toString(36);
 
-  await deniz.getByLabel('Message #general').fill(`Merhaba Mert ${stamp}`);
-  await deniz.getByLabel('Message #general').press('Enter');
+  await deniz.getByLabel('Message General').fill(`Merhaba Mert ${stamp}`);
+  await deniz.getByLabel('Message General').press('Enter');
   await expect(mert.getByText(`Merhaba Mert ${stamp}`)).toBeVisible();
 
   // Mert loses the connection; a message sent meanwhile arrives after it is back.
   await mert.context().setOffline(true);
   await expect(mert.getByRole('status').filter({ hasText: "You're offline" })).toBeVisible();
-  await deniz.getByLabel('Message #general').fill(`Kaçırma bunu ${stamp}`);
-  await deniz.getByLabel('Message #general').press('Enter');
+  await deniz.getByLabel('Message General').fill(`Kaçırma bunu ${stamp}`);
+  await deniz.getByLabel('Message General').press('Enter');
   await mert.context().setOffline(false);
   await expect(mert.getByText(`Kaçırma bunu ${stamp}`)).toBeVisible();
   await expect(mert.getByText(`Kaçırma bunu ${stamp}`)).toHaveCount(1);
 
-  await mert.getByLabel('Message #general').fill(`Selam Deniz ${stamp}`);
-  await mert.getByLabel('Message #general').press('Enter');
+  await mert.getByLabel('Message General').fill(`Selam Deniz ${stamp}`);
+  await mert.getByLabel('Message General').press('Enter');
   await expect(deniz.getByText(`Selam Deniz ${stamp}`)).toBeVisible();
+});
+
+test('Central is for announcements; only the administrator creates channels', async ({
+  browser,
+}) => {
+  const open = async (email: string) => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  // deniz@example.com is CENACLE_ADMIN_EMAIL in this stack.
+  const admin = await open(EMAIL);
+  const member = await open(SECOND.email);
+  const stamp = Date.now().toString(36);
+
+  // Everyone is in Central; only the administrator can write there.
+  await member.getByRole('link', { name: 'Central' }).click();
+  await expect(member.getByTestId('read-only-notice')).toBeVisible();
+  await admin.getByRole('link', { name: 'Central' }).click();
+  await admin.getByLabel('Message Central').fill(`Duyuru ${stamp}`);
+  await admin.getByLabel('Message Central').press('Enter');
+  await expect(member.getByText(`Duyuru ${stamp}`)).toBeVisible();
+
+  // Only the administrator sees "Create a channel".
+  await expect(member.getByRole('button', { name: 'Create a channel' })).toHaveCount(0);
+  await admin.getByRole('button', { name: 'Create a channel' }).click();
+  const dialog = admin.getByRole('dialog', { name: 'Create a channel' });
+  await dialog.getByLabel('Name').fill(`Release ${stamp}`);
+  await dialog.getByRole('button', { name: 'Create channel' }).click();
+  await expect(admin.getByRole('heading', { level: 1 })).toHaveText(`Release ${stamp}`);
+
+  // Others find it and join; messages then reach them live.
+  await member.getByRole('button', { name: 'Browse channels' }).click();
+  await member.getByRole('button', { name: `Join Release ${stamp}` }).click();
+  await expect(member.getByRole('heading', { level: 1 })).toHaveText(`Release ${stamp}`);
+  await admin.getByLabel(`Message Release ${stamp}`).fill('sürüm çıktı');
+  await admin.getByLabel(`Message Release ${stamp}`).press('Enter');
+  await expect(member.getByText('sürüm çıktı')).toBeVisible();
 });

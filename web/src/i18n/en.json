@@ -38,17 +38,12 @@
       "dnd": "Do not disturb",
       "offline": "Offline"
     },
-    "channelTypes": {
-      "public": "Public channel",
-      "private": "Private channel",
-      "announcement": "Announcement channel"
-    },
     "toggleDetails": "Channel details",
     "closeDetails": "Close channel details",
     "details": "Details",
     "about": "About",
-    "channelStart": "This is the start of #{{channel}}.",
-    "composerPlaceholder": "Message #{{channel}}",
+    "channelStart": "This is the start of {{channel}}.",
+    "composerPlaceholder": "Message {{channel}}",
     "notAvailable": "Not available yet",
     "settings": "Settings",
     "channels": "Channels",
@@ -89,8 +84,8 @@
     }
   },
   "chat": {
-    "channelIntro": "Messages are visible to everyone who can sign in to this Cenacle.",
-    "messagesIn": "Messages in #{{channel}}",
+    "channelIntro": "Everyone in this channel can read its messages.",
+    "messagesIn": "Messages in {{channel}}",
     "loadingOlder": "Loading older messages…",
     "send": "Send message",
     "sending": "Sending…",
@@ -103,5 +98,33 @@
     "charactersLeft_one": "{{count}} character left",
     "charactersLeft_other": "{{count}} characters left",
     "noChannels": "There are no channels yet."
+  },
+  "channels": {
+    "kinds": {
+      "standard": "Channel",
+      "announcement": "Announcement channel"
+    },
+    "createTitle": "Create a channel",
+    "createDescription": "Channels are where people talk about one topic.",
+    "name": "Name",
+    "topicOptional": "Topic (optional)",
+    "everyone": "Add everyone",
+    "everyoneHint": "Everyone becomes a member, also people who join later.",
+    "create": "Create channel",
+    "nameTaken": "A channel with this name exists.",
+    "browse": "Browse channels",
+    "browseTitle": "Channels",
+    "browseDescription": "Open a channel you are in, or join another one.",
+    "open": "Open",
+    "join": "Join",
+    "joinNamed": "Join {{channel}}",
+    "notMember": "You're not a member of this channel.",
+    "notFound": "This channel doesn't exist or is not available to you.",
+    "readOnly": "Only announcements are posted in {{channel}}. You can read everything here.",
+    "membership": "Membership",
+    "mandatory": "Everyone is a member of this channel.",
+    "leave": "Leave channel",
+    "left": "You left {{channel}}.",
+    "leaveFailed": "Leaving did not work. Check your connection and try again."
   }
 }

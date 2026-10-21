@@ -38,17 +38,12 @@
       "dnd": "Rahatsız etmeyin",
       "offline": "Çevrimdışı"
     },
-    "channelTypes": {
-      "public": "Herkese açık kanal",
-      "private": "Özel kanal",
-      "announcement": "Duyuru kanalı"
-    },
     "toggleDetails": "Kanal ayrıntıları",
     "closeDetails": "Kanal ayrıntılarını kapat",
     "details": "Ayrıntılar",
     "about": "Hakkında",
-    "channelStart": "#{{channel}} kanalının başlangıcı.",
-    "composerPlaceholder": "#{{channel}} kanalına mesaj yaz",
+    "channelStart": "{{channel}} kanalının başlangıcı.",
+    "composerPlaceholder": "{{channel}} kanalına mesaj yaz",
     "notAvailable": "Henüz kullanılamıyor",
     "settings": "Ayarlar",
     "channels": "Kanallar",
@@ -89,8 +84,8 @@
     }
   },
   "chat": {
-    "channelIntro": "Mesajları bu Cenacle'a giriş yapabilen herkes görür.",
-    "messagesIn": "#{{channel}} kanalındaki mesajlar",
+    "channelIntro": "Bu kanaldaki herkes mesajları okuyabilir.",
+    "messagesIn": "{{channel}} kanalındaki mesajlar",
     "loadingOlder": "Eski mesajlar yükleniyor…",
     "send": "Mesajı gönder",
     "sending": "Gönderiliyor…",
@@ -103,5 +98,33 @@
     "charactersLeft_one": "{{count}} karakter kaldı",
     "charactersLeft_other": "{{count}} karakter kaldı",
     "noChannels": "Henüz kanal yok."
+  },
+  "channels": {
+    "kinds": {
+      "standard": "Kanal",
+      "announcement": "Duyuru kanalı"
+    },
+    "createTitle": "Kanal oluştur",
+    "createDescription": "Kanallar, bir konu hakkında konuşulan yerlerdir.",
+    "name": "Ad",
+    "topicOptional": "Konu (isteğe bağlı)",
+    "everyone": "Herkesi ekle",
+    "everyoneHint": "Herkes üye olur; sonradan katılanlar da.",
+    "create": "Kanalı oluştur",
+    "nameTaken": "Bu adda bir kanal var.",
+    "browse": "Kanallara göz at",
+    "browseTitle": "Kanallar",
+    "browseDescription": "Üyesi olduğun bir kanalı aç ya da başka birine katıl.",
+    "open": "Aç",
+    "join": "Katıl",
+    "joinNamed": "{{channel}} kanalına katıl",
+    "notMember": "Bu kanalın üyesi değilsin.",
+    "notFound": "Bu kanal yok ya da sana açık değil.",
+    "readOnly": "{{channel}} kanalında yalnızca duyurular paylaşılır. Buradaki her şeyi okuyabilirsin.",
+    "membership": "Üyelik",
+    "mandatory": "Herkes bu kanalın üyesi.",
+    "leave": "Kanaldan ayrıl",
+    "left": "{{channel}} kanalından ayrıldın.",
+    "leaveFailed": "Ayrılamadın. Bağlantını kontrol edip tekrar dene."
   }
 }

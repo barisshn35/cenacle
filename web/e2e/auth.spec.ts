@@ -35,7 +35,7 @@ test('a signed-in user skips the sign-in page', async ({ page }) => {
   await mockApi(page);
   await page.goto('/signin');
   await expect(page).toHaveURL(/\/c\//);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('general');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('General');
 });
 
 for (const [error, role, text] of [
@@ -82,7 +82,7 @@ test('the server being unreachable is not mistaken for signed out', async ({ pag
   await expect(page).not.toHaveURL(/signin/);
   down = false;
   await page.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('general');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('General');
 });
 
 test('signing out ends the session and opens the Cenacle ID sign-out page', async ({

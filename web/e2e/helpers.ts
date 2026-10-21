@@ -153,6 +153,7 @@ export const SESSION = {
     email_verified: true,
     display_name: 'Deniz Kaya',
   },
+  permissions: { create_channels: false },
   created_at: '2026-10-21T08:00:00Z',
   expires_at: '2026-11-20T08:00:00Z',
   idle_timeout_seconds: 604800,
@@ -163,6 +164,7 @@ export const SESSION = {
  * server: signed in (default) or signed out (null).
  */
 export async function mockSession(page: Page, session: typeof SESSION | null = SESSION) {
+  await page.unroute('**/api/session');
   await page.route('**/api/session', (route) =>
     session
       ? route.fulfill({ json: session, headers: { 'cache-control': 'no-store' } })
@@ -180,11 +182,31 @@ export async function mockSession(page: Page, session: typeof SESSION | null = S
   );
 }
 
-export const GENERAL = {
-  id: '01a15e50-2335-7d7d-bbee-8e7809fd8ad2',
-  name: 'general',
+const channel = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  name,
+  topic: '',
+  kind: 'standard' as 'standard' | 'announcement',
+  is_default: true,
+  is_mandatory: false,
+  is_member: true,
+  can_post: true,
+  ...extra,
+});
+
+export const CENTRAL = channel('01a15e50-1111-7d7d-bbee-8e7809fd8ad2', 'Central', {
+  topic: 'Announcements for everyone.',
+  kind: 'announcement',
+  is_mandatory: true,
+  can_post: false,
+});
+export const GENERAL = channel('01a15e50-2335-7d7d-bbee-8e7809fd8ad2', 'General', {
   topic: 'Anything and everything.',
-};
+});
+export const RANDOM = channel('01a15e50-3333-7d7d-bbee-8e7809fd8ad2', 'Random', {
+  is_default: false,
+  is_member: false,
+});
 
 export interface MockMessage {
   id: string;
@@ -219,15 +241,16 @@ export interface MockApi {
 }
 
 /**
- * A fake chat server in the browser: session, #general with `messages`, the
+ * A fake chat server in the browser: session, Central, General (with
+ * `messages`) and Random, the
  * ticket endpoint and a WebSocket that says hello. Tests run without the
  * Go server.
  */
 export async function mockApi(
   page: Page,
-  opts: { messages?: MockMessage[]; failSend?: number } = {},
+  opts: { messages?: MockMessage[]; failSend?: number; admin?: boolean } = {},
 ): Promise<MockApi> {
-  await mockSession(page);
+  await mockSession(page, { ...SESSION, permissions: { create_channels: opts.admin ?? false } });
   const api: MockApi & { socket?: import('@playwright/test').WebSocketRoute; seq: number } = {
     sent: [],
     seq: 1,
@@ -237,7 +260,50 @@ export async function mockApi(
     },
   };
   let failures = opts.failSend ?? 0;
-  await page.route('**/api/channels', (route) => route.fulfill({ json: { channels: [GENERAL] } }));
+  // Membership as the fake server keeps it.
+  const all = [CENTRAL, GENERAL, RANDOM].map((c) => ({ ...c }));
+  await page.route('**/api/channels', async (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { channels: all.filter((c) => c.is_member) } });
+    }
+    const input = route.request().postDataJSON() as {
+      name: string;
+      topic?: string;
+      is_default?: boolean;
+    };
+    if (all.some((c) => c.name.toLowerCase() === input.name.toLowerCase())) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          type: 'about:blank',
+          title: 'Conflict',
+          status: 409,
+          code: 'channel_name_taken',
+        }),
+      });
+    }
+    const id = `01a15e50-9999-7d7d-bbee-${String(all.length).padStart(12, '0')}`;
+    const created = channel(id, input.name, {
+      topic: input.topic ?? '',
+      is_default: input.is_default ?? false,
+    });
+    all.push(created);
+    return route.fulfill({ status: 201, json: created });
+  });
+  await page.route('**/api/channels/directory', (route) =>
+    route.fulfill({ json: { channels: all } }),
+  );
+  await page.route('**/api/channels/*/join', (route) => {
+    const c = all.find((x) => route.request().url().includes(x.id))!;
+    c.is_member = true;
+    return route.fulfill({ json: c });
+  });
+  await page.route('**/api/channels/*/leave', (route) => {
+    const c = all.find((x) => route.request().url().includes(x.id))!;
+    c.is_member = false;
+    return route.fulfill({ status: 204 });
+  });
   await page.route('**/api/channels/*/messages*', async (route) => {
     if (route.request().method() === 'GET') {
       return route.fulfill({ json: { messages: opts.messages ?? [], has_more: false } });

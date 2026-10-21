@@ -127,10 +127,73 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Channels the user can read */
+    /** Channels the user is a member of */
     get: operations['listChannels'];
     put?: never;
+    /**
+     * Create a channel (administrator only)
+     * @description The creator becomes a member. A default channel has every user as a
+     *     member, also users who sign in for the first time later.
+     */
+    post: operations['createChannel'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/directory': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** All channels, with membership */
+    get: operations['listChannelDirectory'];
+    put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/join': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Join a channel */
+    post: operations['joinChannel'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/leave': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Leave a channel
+     * @description Mandatory channels cannot be left (403, code `channel_mandatory`).
+     */
+    post: operations['leaveChannel'];
     delete?: never;
     options?: never;
     head?: never;
@@ -148,7 +211,9 @@ export interface paths {
     };
     /**
      * Messages of a channel, newest page first
-     * @description Cursor pagination: without `before` the newest messages; with `before`
+     * @description Members only (403, code `not_a_member`).
+     *
+     *     Cursor pagination: without `before` the newest messages; with `before`
      *     (a message id) the messages older than it. Each page is in chronological
      *     order; `has_more` says whether older messages exist.
      */
@@ -156,7 +221,10 @@ export interface paths {
     put?: never;
     /**
      * Send a message
-     * @description `nonce` is chosen by the client for each message. Sending the same nonce
+     * @description Members only. In announcement channels only the administrator can
+     *     send (403, code `read_only_channel`).
+     *
+     *     `nonce` is chosen by the client for each message. Sending the same nonce
      *     again (a retry after a lost response) returns the existing message
      *     instead of creating a second one. Everyone in the channel receives a
      *     `message.created` event.
@@ -191,6 +259,7 @@ export interface components {
     };
     Session: {
       user: components['schemas']['User'];
+      permissions: components['schemas']['Permissions'];
       /** Format: date-time */
       created_at: string;
       /**
@@ -211,6 +280,36 @@ export interface components {
       id: string;
       name: string;
       topic: string;
+      /**
+       * @description In announcement channels only the administrator can send.
+       * @enum {string}
+       */
+      kind: 'standard' | 'announcement';
+      /** @description Every user is a member. */
+      is_default: boolean;
+      /** @description Members cannot leave. */
+      is_mandatory: boolean;
+      is_member: boolean;
+      /** @description Whether this user can send messages here. */
+      can_post: boolean;
+    };
+    ChannelList: {
+      channels: components['schemas']['Channel'][];
+    };
+    NewChannel: {
+      /** @description Display name, unique regardless of case; surrounding spaces are removed. */
+      name: string;
+      topic?: string;
+      /**
+       * @default standard
+       * @enum {string}
+       */
+      kind: 'standard' | 'announcement';
+      /**
+       * @description Make every user, now and later, a member.
+       * @default false
+       */
+      is_default: boolean;
     };
     Author: {
       /** Format: uuid */
@@ -237,6 +336,10 @@ export interface components {
     MessagePage: {
       messages: components['schemas']['Message'][];
       has_more: boolean;
+    };
+    /** @description What the user may do (roles replace the single administrator later). */
+    Permissions: {
+      create_channels: boolean;
     };
     Logout: {
       /** @description Sign-out page of Cenacle ID; empty if it is not known. */
@@ -380,18 +483,112 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Channels, ordered by name. */
+      /** @description Mandatory channels first, then by name. */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            channels: components['schemas']['Channel'][];
-          };
+          'application/json': components['schemas']['ChannelList'];
         };
       };
       401: components['responses']['Problem'];
+    };
+  };
+  createChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewChannel'];
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Channel'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  listChannelDirectory: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Every channel; `is_member` tells which ones the user belongs to. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChannelList'];
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  joinChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Member (also when already a member). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Channel'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  leaveChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Not a member any more. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
     };
   };
   listMessages: {

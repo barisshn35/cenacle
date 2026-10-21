@@ -1,5 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
-import { ChevronDownIcon, HashIcon, LogOutIcon, SearchIcon, SettingsIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  CompassIcon,
+  LogOutIcon,
+  PlusIcon,
+  SearchIcon,
+  SettingsIcon,
+} from 'lucide-react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +18,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
@@ -29,6 +38,9 @@ import { useSession } from '../auth/session';
 import { initials, useSignOut } from '../auth/sign-out';
 import { channelsQuery } from '../chat/data';
 import { useActiveChannel } from '../chat/active-channel';
+import { ChannelDirectory } from '../chat/channel-directory';
+import { ChannelIcon } from '../chat/channel-icon';
+import { CreateChannelDialog } from '../chat/create-channel-dialog';
 
 function ChannelList() {
   const { t } = useTranslation();
@@ -65,13 +77,53 @@ function ChannelList() {
                 />
               }
             >
-              <HashIcon aria-label={t('shell.channelTypes.public')} strokeWidth={1.75} />
+              <ChannelIcon kind={ch.kind} label={t(`channels.kinds.${ch.kind}`)} />
               <span>{ch.name}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
       })}
     </SidebarMenu>
+  );
+}
+
+function ChannelsGroup() {
+  const { t } = useTranslation();
+  const { permissions } = useSession();
+  const [creating, setCreating] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{t('shell.channels')}</SidebarGroupLabel>
+      {permissions.create_channels && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <SidebarGroupAction
+                aria-label={t('channels.createTitle')}
+                onClick={() => setCreating(true)}
+              />
+            }
+          >
+            <PlusIcon strokeWidth={1.75} />
+          </TooltipTrigger>
+          <TooltipContent side="right">{t('channels.createTitle')}</TooltipContent>
+        </Tooltip>
+      )}
+      <SidebarGroupContent>
+        <ChannelList />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="text-muted-foreground" onClick={() => setBrowsing(true)}>
+              <CompassIcon aria-hidden strokeWidth={1.75} />
+              <span>{t('channels.browse')}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroupContent>
+      <CreateChannelDialog open={creating} onOpenChange={setCreating} />
+      <ChannelDirectory open={browsing} onOpenChange={setBrowsing} />
+    </SidebarGroup>
   );
 }
 
@@ -114,12 +166,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{t('shell.channels')}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <ChannelList />
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <ChannelsGroup />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">

@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 import { expect, test } from '@playwright/test';
-import { GENERAL, expectNoAxeViolations, expectTargetSizes, mockApi, mockMessage } from './helpers';
+import {
+  CENTRAL,
+  GENERAL,
+  RANDOM,
+  expectNoAxeViolations,
+  expectTargetSizes,
+  mockApi,
+  mockMessage,
+} from './helpers';
 
-const composer = (page: import('@playwright/test').Page) => page.getByLabel('Message #general');
+const composer = (page: import('@playwright/test').Page) => page.getByLabel('Message General');
 
-test('the home page opens #general with its history', async ({ page, isMobile }) => {
+test('the home page opens General with its history', async ({ page, isMobile }) => {
   const errors: string[] = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await mockApi(page, {
@@ -16,7 +24,7 @@ test('the home page opens #general with its history', async ({ page, isMobile })
   });
   await page.goto('/');
   await expect(page).toHaveURL(`/c/${GENERAL.id}`);
-  const log = page.getByRole('log', { name: 'Messages in #general' });
+  const log = page.getByRole('log', { name: 'Messages in General' });
   await expect(log.getByTestId('message')).toHaveCount(3);
   await expect(log.getByText('Deploy tamam.')).toBeVisible();
   // Consecutive messages of one author share one visible header (screen
@@ -27,7 +35,7 @@ test('the home page opens #general with its history', async ({ page, isMobile })
   await expect(log.getByRole('article', { name: 'Ayşe Yılmaz' })).toHaveCount(2);
   if (!isMobile) {
     // On phones the channel list is in the drawer.
-    await expect(page.getByRole('link', { name: /general/ })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'General' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -56,7 +64,7 @@ test('sending shows the message at once and confirms it', async ({ page }) => {
 test('messages from others arrive live and are not duplicated', async ({ page }) => {
   const api = await mockApi(page);
   await page.goto('/');
-  await expect(page.getByText('This is the start of #general.')).toBeVisible();
+  await expect(page.getByText('This is the start of General.')).toBeVisible();
   const incoming = mockMessage(5, 'Canlı geldi', 'Mert Kaya');
   api.emit('message.created', incoming);
   api.emit('message.created', incoming); // delivered twice: shown once
@@ -99,4 +107,58 @@ test('chat view: target size and axe with messages and a failed send', async ({
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
   await expectTargetSizes(page, testInfo);
   await expectNoAxeViolations(page);
+});
+
+test('Central is read-only, cannot be left, and shows no "#"', async ({ page, isMobile }) => {
+  await mockApi(page);
+  await page.goto(`/c/${CENTRAL.id}`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Central');
+  await expect(page.getByRole('img', { name: 'Announcement channel' }).first()).toBeVisible();
+  await expect(page.getByTestId('read-only-notice')).toContainText('Only announcements');
+  await expect(page.getByLabel('Message Central')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('#');
+  // On phones the details panel is a sheet that opens on request.
+  if (isMobile) await page.getByRole('button', { name: 'Channel details' }).click();
+  await expect(page.getByText('Everyone is a member of this channel.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Leave channel' })).toHaveCount(0);
+});
+
+test.describe('channels', () => {
+  test.skip(({ isMobile }) => isMobile, 'sidebar actions are in the drawer on phones');
+
+  test('members browse, join and leave with undo', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Create a channel' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Browse channels' }).click();
+    await page.getByRole('button', { name: 'Join Random' }).click();
+    await expect(page).toHaveURL(`/c/${RANDOM.id}`);
+    await expect(page.getByRole('link', { name: 'Random' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Leave channel' }).click();
+    await expect(page.getByRole('link', { name: 'Random' })).toHaveCount(0);
+    await expect(page).toHaveURL(`/c/${GENERAL.id}`);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page).toHaveURL(`/c/${RANDOM.id}`);
+    await expect(page.getByRole('link', { name: 'Random' })).toBeVisible();
+  });
+
+  test('the administrator creates channels', async ({ page }, testInfo) => {
+    await mockApi(page, { admin: true });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Create a channel' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Create a channel' });
+    await dialog.getByLabel('Name').fill('general');
+    await dialog.getByRole('button', { name: 'Create channel' }).click();
+    await expect(dialog.getByRole('alert')).toContainText('A channel with this name exists.');
+    await expectTargetSizes(page, testInfo, '[role="dialog"]');
+    await expectNoAxeViolations(page, '[role="dialog"]');
+
+    await dialog.getByLabel('Name').fill('Release notes');
+    await dialog.getByLabel('Topic (optional)').fill('What shipped');
+    await dialog.getByRole('button', { name: 'Create channel' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Release notes');
+    await expect(page.getByRole('link', { name: 'Release notes' })).toBeVisible();
+  });
 });

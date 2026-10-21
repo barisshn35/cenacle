@@ -12,7 +12,7 @@ test.describe('UX foundation components', () => {
     await trigger.focus();
     await page.keyboard.press('Enter');
 
-    const dialog = page.getByRole('alertdialog', { name: /Archive #ops-alerts/ });
+    const dialog = page.getByRole('alertdialog', { name: /Archive ops-alerts/ });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
 
@@ -40,13 +40,13 @@ test.describe('UX foundation components', () => {
     // The follow-up undo toast is announced politely and does not take focus.
     const toast = page.locator('[data-slot="undo-toast"]');
     await expect(toast).toHaveAttribute('role', 'status');
-    await expect(toast).toContainText('#ops-alerts archived.');
+    await expect(toast).toContainText('ops-alerts archived.');
     await expect(toast).not.toBeFocused();
   });
 
   test('S3 confirm requires typing the name', async ({ page }) => {
     await page.getByTestId('confirm-s3-trigger').click();
-    const dialog = page.getByRole('alertdialog', { name: /Delete #ops-alerts permanently/ });
+    const dialog = page.getByRole('alertdialog', { name: /Delete ops-alerts permanently/ });
     const action = dialog.getByRole('button', { name: /Delete channel/ });
     const input = dialog.getByLabel('To confirm, type ops-alerts');
 

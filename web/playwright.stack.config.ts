@@ -67,6 +67,9 @@ const serverEnv = {
   CENACLE_OIDC_ISSUER: IDP_URL,
   CENACLE_OIDC_CLIENT_ID: 'cenacle-chat',
   CENACLE_OIDC_CLIENT_SECRET_FILE: secretFile,
+  CENACLE_ADMIN_EMAIL: 'deniz@example.com',
+  CENACLE_ANNOUNCEMENT_CHANNEL: 'Central',
+  CENACLE_DEFAULT_CHANNELS: 'General',
 };
 
 export default defineConfig({
