@@ -2,7 +2,9 @@
 # Cenacle ID (identity server). Build from the repository root:
 #   docker build -f idp/Dockerfile -t cenacle-idp .
 
-FROM node:24.22.0-alpine3.24 AS build
+# Dependencies are pure JavaScript, so the build runs on the native build
+# platform (no emulation for arm64); only the node binary is target-specific.
+FROM --platform=$BUILDPLATFORM node:24.22.0-alpine3.24 AS build
 RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
@@ -14,12 +16,15 @@ RUN pnpm --filter @cenacle/idp build \
  && pnpm --filter @cenacle/idp deploy --prod /out \
  && rm -rf /out/src /out/test /out/tsconfig*.json /out/vitest.config.ts /out/Dockerfile
 
+# The node binary for the target platform.
+FROM node:24.22.0-alpine3.24 AS node
+
 # Runtime: plain Alpine plus the node binary only (no npm/corepack/yarn):
 # smaller image and smaller attack surface.
 FROM alpine:3.24.2
 RUN apk add --no-cache libstdc++ libgcc \
  && addgroup -g 1000 node && adduser -u 1000 -G node -s /sbin/nologin -D node
-COPY --from=build /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 ENV NODE_ENV=production \
     IDP_ENV=production \
     IDP_HOST=0.0.0.0 \
