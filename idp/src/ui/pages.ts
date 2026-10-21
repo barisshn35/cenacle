@@ -19,8 +19,9 @@ const label = 'text-sm font-medium';
 const alertIcon = raw(
   '<svg aria-hidden="true" viewBox="0 0 16 16" class="mt-0.5 size-4 shrink-0 fill-none stroke-current text-destructive" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.75v3.75M8 11.25v.01"/></svg>',
 );
+// Cenacle icon (logo pack, direction B); colours follow the theme tokens.
 const logo = raw(
-  '<svg aria-hidden="true" viewBox="0 0 32 32" class="size-9"><rect width="32" height="32" rx="8" class="fill-primary"/><path d="M21.5 11.2A7 7 0 1 0 21.5 20.8" fill="none" stroke-width="3" stroke-linecap="round" class="stroke-primary-foreground"/></svg>',
+  '<svg aria-hidden="true" viewBox="0 0 48 48" class="size-9 shrink-0"><path fill="none" stroke="var(--logo-ink)" stroke-width="6.5" stroke-linecap="round" d="M10 41V22A14 14 0 0 1 38 22V41"/><path fill="var(--logo-accent)" d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"/></svg>',
 );
 
 interface LayoutOptions {
@@ -118,7 +119,7 @@ export function loginPage(opts: {
   const describedBy = error ? errorId : undefined;
 
   const body = html`<div class="flex flex-col gap-1">
-      <h1 class="text-2xl font-semibold">${m.title}</h1>
+      <h1 class="font-display text-3xl font-medium">${m.title}</h1>
       <p class="text-sm text-muted-foreground">
         ${format(m.subtitle, { client: opts.clientName })}
       </p>

@@ -21,6 +21,10 @@ const geist = dirname(require.resolve('@fontsource-variable/geist/package.json')
 for (const file of ['geist-latin-wght-normal.woff2', 'geist-latin-ext-wght-normal.woff2']) {
   copyFileSync(join(geist, 'files', file), join(out, 'fonts', file));
 }
+const fraunces = dirname(require.resolve('@fontsource-variable/fraunces/package.json'));
+for (const file of ['fraunces-latin-full-normal.woff2', 'fraunces-latin-ext-full-normal.woff2']) {
+  copyFileSync(join(fraunces, 'files', file), join(out, 'fonts', file));
+}
 cpSync(join(root, 'assets'), out, { recursive: true });
 
 execFileSync(
