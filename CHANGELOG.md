@@ -8,6 +8,26 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-21
+
+Security and reliability fixes from a review of 0.7 to 0.10.
+
+### Security
+
+- Webhook addresses (which carry their secret) no longer appear in the access log.
+- Cenacle ID: the attempts of a second step can no longer be renewed by entering the
+  password again, are counted atomically, and an account allows 10 failed second steps per
+  15 minutes.
+- Links that imitate mentions no longer render as mention chips.
+
+### Fixed
+
+- A live event whose transaction committed after a later one could be dropped by the
+  outbox relay.
+- Back-channel logout can be retried when ending the sessions failed.
+- Webhooks respect announcement channels and cannot be created for archived channels;
+  reusing a nonce for another message answers 409.
+
 ## [0.10.0] - 2026-10-21
 
 Bots with scoped tokens, incoming webhooks and Jira.
@@ -328,7 +348,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/barisshn35/cenacle/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/barisshn35/cenacle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/barisshn35/cenacle/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/barisshn35/cenacle/compare/v0.7.0...v0.8.0
