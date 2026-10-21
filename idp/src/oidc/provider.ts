@@ -42,8 +42,25 @@ export function createProvider(opts: ProviderOptions): Provider {
     ...(opts.cookieDomain ? { domain: opts.cookieDomain } : {}),
   };
 
+  // Back-channel logout addresses come from the operator's client file and
+  // usually name an internal host (http://server:8180): oidc-provider's SSRF
+  // guard, which refuses private and loopback addresses, is lifted for exactly
+  // these URLs and stays on for every other outgoing request.
+  const trusted = new Set(
+    opts.clients.flatMap((c) =>
+      typeof c.backchannel_logout_uri === 'string' ? [new URL(c.backchannel_logout_uri).href] : [],
+    ),
+  );
+
   const configuration: Configuration = {
     adapter: createPostgresAdapter(opts.pool),
+    fetch: (url, options) => {
+      if (trusted.has(new URL(url instanceof Request ? url.url : url).href)) {
+        const { dispatcher: _guard, ...rest } = options as RequestInit & { dispatcher?: unknown };
+        return globalThis.fetch(url, rest);
+      }
+      return globalThis.fetch(url, options);
+    },
     clients: opts.clients,
     // Custom client metadata: first-party clients skip consent.
     extraClientMetadata: { properties: ['cenacle_first_party'] },
@@ -64,6 +81,13 @@ export function createProvider(opts: ProviderOptions): Provider {
       };
     },
     claims: {
+      // Standalone claims: how and when the user signed in, and the session (sid,
+      // for back-channel logout).
+      acr: null,
+      amr: null,
+      auth_time: null,
+      iss: null,
+      sid: null,
       openid: ['sub'],
       email: ['email', 'email_verified'],
       profile: ['name', 'locale', 'updated_at'],
@@ -102,6 +126,8 @@ export function createProvider(opts: ProviderOptions): Provider {
     features: {
       devInteractions: { enabled: false },
       revocation: { enabled: true },
+      // Signing out at Cenacle ID ends the app sessions of that sign-in too.
+      backchannelLogout: { enabled: true },
       userinfo: { enabled: true },
       rpInitiatedLogout: {
         enabled: true,

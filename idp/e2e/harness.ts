@@ -10,6 +10,8 @@ import type { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
+import { AuditLog } from '../src/accounts/audit.ts';
+import { MfaStore } from '../src/accounts/mfa.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { buildApp } from '../src/app.ts';
 import { migrate } from '../src/db/migrate.ts';
@@ -41,6 +43,8 @@ export interface Harness {
   keys: KeyStore;
   /** Query strings received by the client callback, newest last. */
   callbacks: URLSearchParams[];
+  /** Logout tokens the client received over the back channel. */
+  logoutTokens: string[];
   /** Restarts the IdP (e.g. after a key rotation). */
   restart(): Promise<void>;
   close(): Promise<void>;
@@ -50,7 +54,7 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
   if (!DATABASE_URL) throw new Error('IDP_TEST_DATABASE_URL is not set');
   await migrate({ databaseUrl: DATABASE_URL, direction: 'up' });
   const pool = new pg.Pool({ connectionString: DATABASE_URL, max: 4 });
-  await pool.query('TRUNCATE users, oidc_payloads, signing_keys');
+  await pool.query('TRUNCATE users, oidc_payloads, signing_keys, audit_events CASCADE');
 
   const users = new UserStore(pool);
   await users.create({
@@ -59,11 +63,22 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
     password: PASSWORD,
     emailVerified: true,
   });
-  const keys = new KeyStore(pool, randomBytes(32));
+  const kek = randomBytes(32);
+  const keys = new KeyStore(pool, kek);
   await keys.ensureActiveKey();
 
   const callbacks: URLSearchParams[] = [];
+  const logoutTokens: string[] = [];
   const rp: Server = createServer((req, res) => {
+    if (req.method === 'POST' && req.url === '/backchannel') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => (body += chunk.toString()));
+      req.on('end', () => {
+        logoutTokens.push(new URLSearchParams(body).get('logout_token') ?? '');
+        res.writeHead(200).end();
+      });
+      return;
+    }
     callbacks.push(new URL(req.url ?? '/', 'http://127.0.0.1').searchParams);
     res.writeHead(200, { 'content-type': 'text/plain' }).end('client callback');
   });
@@ -85,6 +100,8 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
     token_endpoint_auth_method: 'client_secret_basic',
     scope: 'openid email profile',
     cenacle_first_party: true,
+    backchannel_logout_uri: `${rpOrigin}/backchannel`,
+    backchannel_logout_session_required: true,
   };
 
   let app: FastifyInstance | undefined;
@@ -108,6 +125,9 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
         issuer,
         formActionOrigins: [rpOrigin],
         loginRateLimit: opts.loginRateLimit,
+        mfa: new MfaStore(pool, kek),
+        audit: new AuditLog(pool),
+        cookieKeys: ['e2e-cookie-key-0123456789abcdefghij'],
       },
     });
     await app.listen({ host: '127.0.0.1', port });
@@ -121,6 +141,7 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
     pool,
     keys,
     callbacks,
+    logoutTokens,
     async restart() {
       await app?.close();
       await start();

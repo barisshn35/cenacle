@@ -1,14 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type Provider from 'oidc-provider';
+import type { AuditLog } from '../accounts/audit.ts';
+import type { MfaStore } from '../accounts/mfa.ts';
 import type { UserStore } from '../accounts/users.ts';
 import { isLocale, pickLocale, type Locale } from '../ui/messages.ts';
-import { errorPage, LANG_PARAM, loginPage, type LoginError } from '../ui/pages.ts';
+import {
+  errorPage,
+  LANG_PARAM,
+  loginPage,
+  secondStepPage,
+  type CodeError,
+  type LoginError,
+} from '../ui/pages.ts';
 import { isSameOriginPost, LOCALE_COOKIE, pageSecurityHeaders } from './security.ts';
 
 export interface InteractionOptions {
   provider: Provider;
   users: UserStore;
+  /** Two-step verification and the audit log (optional in tests of the bare flow). */
+  mfa?: MfaStore;
+  audit?: AuditLog;
   issuer: string;
   formActionOrigins: string[];
   /** Sign-in attempts per IP and minute. */
@@ -145,6 +157,10 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
       else if (!user) error = 'invalid';
       if (error || !user) {
         request.log.info({ uid: d.uid }, 'sign-in failed');
+        await opts.audit?.record('signin.failed', null, request.ip, {
+          email,
+          client: d.params.client_id,
+        });
         return page(
           reply,
           401,
@@ -157,12 +173,86 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           }),
         );
       }
+      if (opts.mfa && (await opts.mfa.enabled(user.id))) {
+        // The password is right; the second step is bound to this interaction.
+        await opts.mfa.createChallenge(user.id, 'login', d.uid);
+        return page(
+          reply,
+          200,
+          secondStepPage({
+            locale: locale(request, d.params.ui_locales),
+            action: `/interaction/${d.uid}/second-step`,
+            cancelAction: `/interaction/${d.uid}/abort`,
+          }),
+        );
+      }
       request.log.info({ uid: d.uid, sub: user.id }, 'sign-in succeeded');
+      await opts.audit?.record('signin.succeeded', user.id, request.ip, {
+        client: d.params.client_id,
+      });
       reply.hijack();
       await provider.interactionFinished(
         request.raw,
         reply.raw,
         { login: { accountId: user.id, amr: ['pwd'] } },
+        { mergeWithLastSubmission: false },
+      );
+    },
+  );
+
+  app.post<{ Params: Params; Body: { code?: string } }>(
+    '/interaction/:uid/second-step',
+    { config: { rateLimit: { max: opts.loginRateLimit ?? 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+      const mfa = opts.mfa;
+      const d = await details(request, reply);
+      if (!mfa || !d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
+        return expired(request, reply);
+      }
+      const loc = locale(request, d.params.ui_locales);
+      const show = (status: number, error: CodeError) =>
+        page(
+          reply,
+          status,
+          secondStepPage({
+            locale: loc,
+            action: `/interaction/${d.uid}/second-step`,
+            cancelAction: `/interaction/${d.uid}/abort`,
+            error,
+          }),
+        );
+      const challenge = await mfa.challenge(d.uid, 'login');
+      if (!challenge) return show(400, 'expired');
+      const factor = await mfa.verify(challenge.userId, request.body?.code ?? '');
+      if (!factor) {
+        request.log.info({ uid: d.uid }, 'second step failed');
+        await opts.audit?.record('signin.second_step_failed', challenge.userId, request.ip, {
+          client: d.params.client_id,
+        });
+        const left = await mfa.failAttempt(d.uid);
+        return show(401, left > 0 ? { attemptsLeft: left } : 'expired');
+      }
+      await mfa.finishChallenge(d.uid);
+      request.log.info({ uid: d.uid, sub: challenge.userId }, 'sign-in succeeded');
+      if (factor === 'recovery') {
+        await opts.audit?.record('recovery_code.used', challenge.userId, request.ip);
+      }
+      await opts.audit?.record('signin.succeeded', challenge.userId, request.ip, {
+        client: d.params.client_id,
+        second_step: factor,
+      });
+      reply.hijack();
+      await provider.interactionFinished(
+        request.raw,
+        reply.raw,
+        {
+          login: {
+            accountId: challenge.userId,
+            // RFC 8176: password plus a one-time code (or a recovery code).
+            amr: factor === 'totp' ? ['pwd', 'otp', 'mfa'] : ['pwd', 'mfa'],
+          },
+        },
         { mergeWithLastSubmission: false },
       );
     },

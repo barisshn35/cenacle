@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { fileURLToPath } from 'node:url';
+import { AuditLog } from './accounts/audit.ts';
+import { MfaStore } from './accounts/mfa.ts';
 import { UserStore } from './accounts/users.ts';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
@@ -64,10 +66,16 @@ async function main(): Promise<void> {
       issuer: config.issuer,
       formActionOrigins,
       loginRateLimit: config.loginRateLimit,
+      mfa: new MfaStore(pool, config.keyEncryptionKey),
+      audit: new AuditLog(pool, (err) => console.error('audit log write failed', err)),
+      cookieKeys: config.cookieKeys,
     },
   });
 
   provider.on('server_error', (_ctx, err) => app.log.error({ err }, 'oidc server error'));
+  provider.on('backchannel.error', (_ctx, err, client) =>
+    app.log.warn({ err, client: client.clientId }, 'back-channel logout failed'),
+  );
 
   const prune = setInterval(() => {
     pruneExpired(pool)

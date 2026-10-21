@@ -36,6 +36,27 @@ describe('clients file', () => {
     expect(clientOrigins([c!])).toEqual(['https://chat.example.com']);
   });
 
+  it('registers a back-channel logout address (internal hosts allowed) with sessions', () => {
+    const [c] = loadClients(
+      '/etc/cenacle/clients.json',
+      files(
+        clientsJson({ backchannel_logout_uri: 'http://server:8180/api/auth/backchannel-logout' }),
+      ),
+      { CENACLE_DOMAIN: 'chat.example.com' },
+    );
+    expect(c).toMatchObject({
+      backchannel_logout_uri: 'http://server:8180/api/auth/backchannel-logout',
+      backchannel_logout_session_required: true,
+    });
+    expect(() =>
+      loadClients(
+        '/etc/cenacle/clients.json',
+        files(clientsJson({ backchannel_logout_uri: 'ftp://server/x' })),
+        { CENACLE_DOMAIN: 'chat.example.com' },
+      ),
+    ).toThrow();
+  });
+
   it('fails on a missing variable instead of producing a broken URL', () => {
     expect(() => interpolate('https://${CENACLE_DOMAIN}/', {})).toThrow(/CENACLE_DOMAIN/);
   });

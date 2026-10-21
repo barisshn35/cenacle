@@ -10,7 +10,10 @@ import formbody from '@fastify/formbody';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import type Provider from 'oidc-provider';
+import type { AuditLog } from './accounts/audit.ts';
+import type { MfaStore } from './accounts/mfa.ts';
 import type { UserStore } from './accounts/users.ts';
+import { registerAccount } from './account/routes.ts';
 import { registerInteractions } from './oidc/interactions.ts';
 import { sendProblem } from './problem.ts';
 
@@ -45,6 +48,10 @@ export interface OidcOptions {
   issuer: string;
   formActionOrigins: string[];
   loginRateLimit?: number;
+  /** Two-step verification and audit log; with cookieKeys they enable /account. */
+  mfa?: MfaStore;
+  audit?: AuditLog;
+  cookieKeys?: string[];
 }
 
 export interface AppOptions {
@@ -187,6 +194,18 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
     await app.register(formbody, { bodyLimit: 16 * 1024 });
     await app.register(rateLimit, { global: false });
     await registerInteractions(app, opts.oidc);
+    const { mfa, audit, cookieKeys } = opts.oidc;
+    if (mfa && audit && cookieKeys) {
+      await registerAccount(app, {
+        users: opts.oidc.users,
+        mfa,
+        audit,
+        cookieKeys,
+        issuer: opts.oidc.issuer,
+        formActionOrigins: opts.oidc.formActionOrigins,
+        rateLimit: opts.oidc.loginRateLimit,
+      });
+    }
   }
 
   return app;

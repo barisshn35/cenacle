@@ -105,6 +105,45 @@ export function loginPage(opts: {
   error?: LoginError;
 }): string {
   const m = MESSAGES[opts.locale].login;
+  return credentialsPage({
+    ...opts,
+    title: m.title,
+    subtitle: format(m.subtitle, { client: opts.clientName }),
+    action: `/interaction/${opts.uid}/login`,
+    cancelAction: `/interaction/${opts.uid}/abort`,
+    languagePath: `/interaction/${opts.uid}`,
+  });
+}
+
+/** Sign-in to the account pages (outside an app's sign-in). */
+export function accountSigninPage(opts: {
+  locale: Locale;
+  email?: string;
+  error?: LoginError;
+  notice?: string;
+}): string {
+  const m = MESSAGES[opts.locale].account;
+  return credentialsPage({
+    ...opts,
+    title: m.signinTitle,
+    subtitle: m.signinSubtitle,
+    action: '/account/signin',
+    languagePath: '/account',
+  });
+}
+
+function credentialsPage(opts: {
+  locale: Locale;
+  title: string;
+  subtitle: string;
+  action: string;
+  cancelAction?: string;
+  languagePath: string;
+  email?: string;
+  error?: LoginError;
+  notice?: string;
+}): string {
+  const m = MESSAGES[opts.locale].login;
   const errorId = 'login-error';
   let error: SafeHtml | null = null;
   if (opts.error === 'invalid') error = alertBox(errorId, m.invalid, m.invalidAction);
@@ -119,13 +158,11 @@ export function loginPage(opts: {
   const describedBy = error ? errorId : undefined;
 
   const body = html`<div class="flex flex-col gap-1">
-      <h1 class="font-display text-3xl font-medium">${m.title}</h1>
-      <p class="text-sm text-muted-foreground">
-        ${format(m.subtitle, { client: opts.clientName })}
-      </p>
+      <h1 class="font-display text-3xl font-medium">${opts.title}</h1>
+      <p class="text-sm text-muted-foreground">${opts.subtitle}</p>
     </div>
-    ${error}
-    <form method="post" action="/interaction/${opts.uid}/login" class="flex flex-col gap-4">
+    ${opts.notice ? noticeBox(opts.notice) : null} ${error}
+    <form method="post" action="${opts.action}" class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
         <label for="email" class="${label}">${m.email}</label>
         <input
@@ -162,14 +199,18 @@ export function loginPage(opts: {
       </div>
       <button type="submit" class="${primary}">${m.submit}</button>
     </form>
-    <form method="post" action="/interaction/${opts.uid}/abort">
-      <button type="submit" class="${secondary}">${m.cancel}</button>
-    </form>`;
+    ${
+      opts.cancelAction
+        ? html`<form method="post" action="${opts.cancelAction}">
+            <button type="submit" class="${secondary}">${m.cancel}</button>
+          </form>`
+        : null
+    }`;
   return layout({
     locale: opts.locale,
-    title: m.title,
+    title: opts.title,
     body,
-    languagePath: `/interaction/${opts.uid}`,
+    languagePath: opts.languagePath,
   });
 }
 
@@ -233,4 +274,240 @@ export function loggedOutPage(opts: { locale: Locale }): string {
     <p class="text-muted-foreground">${m.doneBody}</p>
   </div>`;
   return layout({ locale: opts.locale, title: m.doneTitle, body });
+}
+
+function noticeBox(text: string): SafeHtml {
+  return html`<p role="status" class="rounded-lg border px-3 py-2.5 text-sm">${text}</p>`;
+}
+
+export type CodeError = { attemptsLeft: number } | 'invalid' | 'expired';
+
+/** One field for a TOTP or recovery code; paste allowed (WCAG 3.3.8). */
+function codeField(locale: Locale, error: CodeError | undefined, describedBy: string | undefined) {
+  const m = MESSAGES[locale].mfa;
+  return html`<div class="flex flex-col gap-1.5">
+    <label for="code" class="${label}">${m.code}</label>
+    <input
+      id="code"
+      name="code"
+      type="text"
+      inputmode="text"
+      autocomplete="one-time-code"
+      autocapitalize="none"
+      spellcheck="false"
+      required
+      maxlength="32"
+      class="${input} font-mono tracking-wider"
+      autofocus
+      ${raw(error ? 'aria-invalid="true"' : '')}
+      aria-describedby="${describedBy ? `${describedBy} code-hint` : 'code-hint'}"
+    />
+    <p id="code-hint" class="text-xs text-muted-foreground">${m.codeHint}</p>
+  </div>`;
+}
+
+function codeError(locale: Locale, error: CodeError | undefined): SafeHtml | null {
+  const m = MESSAGES[locale].mfa;
+  if (!error) return null;
+  if (error === 'expired') return alertBox('code-error', m.expired, m.expiredAction);
+  if (error === 'invalid') return alertBox('code-error', m.invalid, m.invalidShort);
+  return alertBox(
+    'code-error',
+    m.invalid,
+    format(m.invalidAction, { attempts: error.attemptsLeft }),
+  );
+}
+
+/** The second step of a sign-in: a code from the app or a recovery code. */
+export function secondStepPage(opts: {
+  locale: Locale;
+  action: string;
+  cancelAction?: string;
+  languagePath?: string;
+  challenge?: string;
+  error?: CodeError;
+}): string {
+  const m = MESSAGES[opts.locale].mfa;
+  const error = codeError(opts.locale, opts.error);
+  const body = html`<div class="flex flex-col gap-1">
+      <h1 class="font-display text-3xl font-medium">${m.title}</h1>
+      <p class="text-sm text-muted-foreground">${m.subtitle}</p>
+    </div>
+    ${error}
+    ${
+      opts.error === 'expired'
+        ? null
+        : html`<form method="post" action="${opts.action}" class="flex flex-col gap-4">
+            ${
+              opts.challenge
+                ? html`<input type="hidden" name="challenge" value="${opts.challenge}" />`
+                : null
+            }
+            ${codeField(opts.locale, opts.error, error ? 'code-error' : undefined)}
+            <p class="text-sm text-muted-foreground">${m.lostDevice}</p>
+            <button type="submit" class="${primary}">${m.submit}</button>
+          </form>`
+    }
+    ${
+      opts.cancelAction
+        ? html`<form method="post" action="${opts.cancelAction}">
+            <button type="submit" class="${secondary}">${m.cancel}</button>
+          </form>`
+        : null
+    }`;
+  return layout({ locale: opts.locale, title: m.title, body, languagePath: opts.languagePath });
+}
+
+export interface AccountView {
+  name: string;
+  email: string;
+  twoStep: boolean;
+  recoveryLeft: number;
+  events: { at: Date; action: string; ip: string }[];
+  returnTo?: string;
+  notice?: string;
+}
+
+/** The account page: two-step verification and recent activity. */
+export function accountPage(opts: { locale: Locale } & AccountView): string {
+  const m = MESSAGES[opts.locale].account;
+  const when = new Intl.DateTimeFormat(opts.locale, { dateStyle: 'medium', timeStyle: 'short' });
+  const body = html`<div class="flex flex-col gap-1">
+      <h1 class="font-display text-3xl font-medium">${m.title}</h1>
+      <p class="text-sm text-muted-foreground">${opts.name} · ${opts.email}</p>
+    </div>
+    ${opts.notice ? noticeBox(opts.notice) : null}
+    <section aria-labelledby="two-step" class="flex flex-col gap-3 rounded-xl border p-4">
+      <h2 id="two-step" class="font-semibold">${m.twoStep}</h2>
+      <p class="text-sm" data-testid="two-step-state">
+        ${opts.twoStep ? m.twoStepOn : m.twoStepOff}
+      </p>
+      ${
+        opts.twoStep
+          ? html`<p class="text-sm text-muted-foreground">
+                ${format(m.recoveryLeft, { count: opts.recoveryLeft })}
+              </p>
+              <a href="/account/recovery-codes" class="${secondary}">${m.newCodes}</a>
+              <a href="/account/two-step/off" class="${secondary}">${m.turnOff}</a>`
+          : html`<a href="/account/two-step/setup" class="${primary}">${m.setUp}</a>`
+      }
+    </section>
+    <section aria-labelledby="activity" class="flex flex-col gap-2">
+      <h2 id="activity" class="font-semibold">${m.activity}</h2>
+      ${
+        opts.events.length === 0
+          ? html`<p class="text-sm text-muted-foreground">${m.noActivity}</p>`
+          : html`<ul class="flex flex-col divide-y rounded-xl border text-sm">
+              ${opts.events.map(
+                (e) =>
+                  html`<li class="flex flex-col gap-0.5 px-3 py-2">
+                    <span>${m.actions[e.action] ?? e.action}</span>
+                    <span class="text-xs text-muted-foreground"
+                      ><time datetime="${e.at.toISOString()}">${when.format(e.at)}</time>${
+                        e.ip ? html` · ${e.ip}` : null
+                      }</span
+                    >
+                  </li>`,
+              )}
+            </ul>`
+      }
+    </section>
+    <div class="flex flex-col gap-3">
+      ${opts.returnTo ? html`<a href="${opts.returnTo}" class="${primary}">${m.back}</a>` : null}
+      <form method="post" action="/account/signout">
+        <button type="submit" class="${secondary}">${m.signOut}</button>
+      </form>
+    </div>`;
+  return layout({ locale: opts.locale, title: m.title, body, languagePath: '/account' });
+}
+
+/** Setting up TOTP: QR code, the key for typing in, and the first code. */
+export function setupPage(opts: {
+  locale: Locale;
+  secret: string;
+  qrSvg: string;
+  error?: CodeError;
+}): string {
+  const m = MESSAGES[opts.locale].account;
+  const error = codeError(opts.locale, opts.error);
+  // The key in groups of four, easier to type.
+  const grouped = opts.secret.replace(/(.{4})/g, '$1 ').trim();
+  const body = html`<h1 class="font-display text-3xl font-medium">${m.setupTitle}</h1>
+    <ol class="flex list-decimal flex-col gap-4 pl-5 text-sm">
+      <li class="flex flex-col gap-3">
+        <span>${m.setupStep1}</span>
+        <figure
+          role="img"
+          aria-label="${m.qrLabel}"
+          class="w-48 self-center rounded-lg bg-white p-2 [&>svg]:h-auto [&>svg]:w-full"
+        >
+          ${raw(opts.qrSvg)}
+        </figure>
+      </li>
+      <li class="flex flex-col gap-1.5">
+        <span>${m.setupStep2}</span>
+        <code
+          data-testid="totp-secret"
+          class="rounded-md bg-muted px-2 py-1.5 font-mono text-sm break-all select-all"
+          >${grouped}</code
+        >
+      </li>
+      <li>${m.setupStep3}</li>
+    </ol>
+    ${error}
+    <form method="post" action="/account/two-step/setup" class="flex flex-col gap-4">
+      ${codeField(opts.locale, opts.error, error ? 'code-error' : undefined)}
+      <button type="submit" class="${primary}">${m.confirm}</button>
+    </form>
+    <a href="/account" class="${secondary}">${m.cancel}</a>`;
+  return layout({ locale: opts.locale, title: m.setupTitle, body });
+}
+
+/** Recovery codes, shown once. */
+export function recoveryCodesPage(opts: { locale: Locale; codes: string[] }): string {
+  const m = MESSAGES[opts.locale].account;
+  const body = html`<div class="flex flex-col gap-2">
+      <h1 class="font-display text-3xl font-medium">${m.codesTitle}</h1>
+      <p class="text-sm text-muted-foreground">${m.codesBody}</p>
+    </div>
+    <ul
+      data-testid="recovery-codes"
+      class="grid grid-cols-2 gap-2 rounded-xl border p-4 font-mono text-sm select-all"
+    >
+      ${opts.codes.map((c) => html`<li>${c}</li>`)}
+    </ul>
+    <a href="/account" class="${primary}">${m.codesDone}</a>`;
+  return layout({ locale: opts.locale, title: m.codesTitle, body });
+}
+
+/** Confirms a security change with a current code (turning off, new recovery codes). */
+export function confirmWithCodePage(opts: {
+  locale: Locale;
+  title: string;
+  body: string;
+  confirm: string;
+  action: string;
+  destructive?: boolean;
+  error?: CodeError;
+}): string {
+  const m = MESSAGES[opts.locale].account;
+  const error = codeError(opts.locale, opts.error);
+  const body = html`<div class="flex flex-col gap-2">
+      <h1 class="font-display text-3xl font-medium">${opts.title}</h1>
+      <p class="text-sm text-muted-foreground">${opts.body}</p>
+    </div>
+    ${error}
+    <form method="post" action="${opts.action}" class="flex flex-col gap-4">
+      ${codeField(opts.locale, opts.error, error ? 'code-error' : undefined)}
+      <button
+        type="submit"
+        class="${
+          opts.destructive ? `${button} bg-destructive text-white hover:bg-destructive/90` : primary
+        }"
+      >
+        ${opts.confirm}
+      </button>
+    </form>
+    <a href="/account" class="${secondary}">${m.cancel}</a>`;
+  return layout({ locale: opts.locale, title: opts.title, body });
 }
