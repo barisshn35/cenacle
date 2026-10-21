@@ -1,0 +1,59 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */}}
+{{- if .Values.podDisruptionBudget.enabled }}
+{{- range $component := list "server" "web" }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ printf "%s-%s" (include "cenacle.fullname" $) $component }}
+  labels:
+    {{- include "cenacle.labels" $ | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "cenacle.selector" (dict "root" $ "component" $component) | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "cenacle.fullname" . }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress]
+  ingress:
+    # The ingress controller reaches the web, server and Cenacle ID.
+    - from:
+        - namespaceSelector:
+            {{- toYaml .Values.networkPolicy.ingressNamespaceSelector | nindent 12 }}
+    # The pods reach each other (back-channel logout, metrics scraping in-release).
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+{{- range $component := list "server" "idp" }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ printf "%s-%s" (include "cenacle.fullname" $) $component }}
+  labels:
+    {{- include "cenacle.labels" $ | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "cenacle.selector" (dict "root" $ "component" $component) | nindent 6 }}
+  endpoints:
+    - port: metrics
+      interval: {{ $.Values.metrics.serviceMonitor.interval }}
+{{- end }}
+{{- end }}

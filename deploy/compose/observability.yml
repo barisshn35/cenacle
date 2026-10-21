@@ -1,0 +1,127 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Optional observability stack, added on top of prod.yml:
+#
+#   docker compose -f prod.yml -f observability.yml --env-file .env.prod up -d
+#
+# Prometheus (metrics), Tempo (traces, OTLP), Loki + Alloy (container logs) and
+# Grafana (dashboards) run on an internal network; Grafana listens on
+# 127.0.0.1:3000 only (reach it over an SSH tunnel). Usage reporting of every
+# component is off: nothing leaves the host.
+
+x-hardening: &hardening
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  logging:
+    driver: local
+    options: { max-size: 20m, max-file: '5' }
+
+services:
+  server:
+    environment:
+      CENACLE_METRICS_ADDR: ':9090'
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      OTEL_TRACES_SAMPLER: parentbased_traceidratio
+      OTEL_TRACES_SAMPLER_ARG: ${CENACLE_TRACE_SAMPLE_RATIO:-0.1}
+    networks: [observability]
+
+  idp:
+    environment:
+      IDP_METRICS_PORT: '9091'
+    networks: [observability]
+
+  prometheus:
+    <<: *hardening
+    image: prom/prometheus:v3.15.1
+    read_only: true
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks: [observability]
+
+  tempo:
+    <<: *hardening
+    image: grafana/tempo:3.1.1
+    read_only: true
+    command: [-target=all, -config.file=/etc/tempo.yml]
+    volumes:
+      - ./observability/tempo.yml:/etc/tempo.yml:ro
+      - tempo-data:/var/tempo
+    networks: [observability]
+
+  loki:
+    <<: *hardening
+    image: grafana/loki:3.7.9
+    read_only: true
+    command: [-config.file=/etc/loki/loki.yml]
+    volumes:
+      - ./observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    networks: [observability]
+
+  # Reads the Docker API (read-only socket, owned by root) to collect this
+  # project's logs; it runs as root without capabilities.
+  alloy:
+    <<: *hardening
+    image: grafana/alloy:v1.21.1
+    user: '0:0'
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/alloy-data
+      - --disable-reporting
+    environment:
+      COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME:-cenacle}
+    volumes:
+      - ./observability/alloy.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/alloy-data
+    networks: [observability]
+
+  grafana:
+    <<: *hardening
+    image: grafana/grafana:13.2.4
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: 'false'
+      GF_NEWS_NEWS_FEED_ENABLED: 'false'
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: 'false'
+      # No plugin downloads (Grafana would fetch its bundled plugins' updates).
+      GF_PLUGINS_PREINSTALL_DISABLED: 'true'
+      GF_PLUGINS_PREINSTALL_AUTO_UPDATE: 'false'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+    secrets: [grafana_admin_password]
+    ports:
+      - 127.0.0.1:${GRAFANA_PORT:-3000}:3000
+    volumes:
+      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    # The published port needs a network that is not internal.
+    networks: [observability, observability-ui]
+
+networks:
+  observability:
+    internal: true
+  observability-ui: {}
+
+volumes:
+  prometheus-data:
+  tempo-data:
+  loki-data:
+  alloy-data:
+  grafana-data:
+
+secrets:
+  grafana_admin_password: { file: ./secrets/grafana_admin_password }

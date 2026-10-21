@@ -1,0 +1,45 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */}}
+{{/* Migrations run before installs and upgrades; each takes its own lock. */}}
+{{- range $component := list "server" "idp" }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-%s-migrate" (include "cenacle.fullname" $) $component }}
+  labels:
+    {{- include "cenacle.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}-migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: '0'
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "cenacle.labels" $ | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "cenacle.podSecurity" $ | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "cenacle.image" (dict "root" $ "component" $component) }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          securityContext:
+            {{- include "cenacle.containerSecurity" $ | nindent 12 }}
+          {{- if eq $component "server" }}
+          args: [migrate, up]
+          env:
+            {{- include "cenacle.serverEnv" $ | nindent 12 }}
+          {{- else }}
+          command: [node, dist/cli.js, migrate, up]
+          env:
+            - name: IDP_DATABASE_URL
+              {{- include "cenacle.secret" (dict "root" $ "key" "idp-database-url") | nindent 14 }}
+          {{- end }}
+{{- end }}

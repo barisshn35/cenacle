@@ -36,6 +36,7 @@ jobs:
           cache-dependency-path: server/go.sum
       - run: make tools
       - run: make lint-go
+      - run: make lint-helm
       - name: Generated code is up to date (sqlc, oapi-codegen)
         run: |
           cd server && ../.bin/sqlc generate

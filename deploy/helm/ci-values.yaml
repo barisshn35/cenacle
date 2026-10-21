@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# Values that switch every optional part on, for `make lint-helm`.
+s3:
+  endpoint: http://garage:3900
+  ingressBackend: { service: garage, port: 3900 }
+files: { clamavAddr: clamav:3310 }
+otlpEndpoint: http://tempo:4318
+metrics: { serviceMonitor: { enabled: true } }
+networkPolicy: { enabled: true }
+ingress:
+  className: nginx
+  tls: [{ secretName: cenacle-tls, hosts: [chat.example.com, id.example.com] }]

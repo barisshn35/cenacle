@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: Apache-2.0
+# Cenacle on Kubernetes. PostgreSQL, Valkey and the S3 object store are
+# external (operators or managed services); see docs/install/kubernetes.md.
+
+image:
+  registry: ghcr.io/barisshn35
+  # Images are <registry>/<prefix><component>:<tag>.
+  prefix: cenacle-
+  # Defaults to the chart's appVersion.
+  tag: ''
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Host names (any domain or subdomain).
+domain: chat.example.com
+idDomain: id.example.com
+
+# A Secret you create with these keys (see docs/install/kubernetes.md):
+#   chat-database-url, idp-database-url, valkey-password (may be empty),
+#   chat-client-secret, idp-key-encryption-key, idp-cookie-keys,
+#   s3-access-key, s3-secret-key
+existingSecret: cenacle
+
+valkey:
+  addr: valkey:6379
+
+s3:
+  # Empty: files are off.
+  endpoint: ''
+  region: garage
+  bucket: cenacle-files
+  # Where browsers post uploads. Empty: https://<domain>/<bucket>/ through the
+  # ingress (s3.ingressBackend must then name the S3 service).
+  uploadURL: ''
+  # The in-cluster S3 service the ingress sends uploads to (POST /<bucket>/).
+  ingressBackend:
+    service: ''
+    port: 3900
+
+admin:
+  # The instance administrator's verified e-mail address at Cenacle ID.
+  email: ''
+  announcementChannel: Central
+  defaultChannels: General
+
+files:
+  maxSizeMB: 100
+  # A clamd address (host:port) to scan files; empty: no scanning.
+  clamavAddr: ''
+
+# Private networks bots may be reached in (comma-separated).
+egressAllow: ''
+
+server:
+  replicas: 2
+  # /readyz fails this long before a pod stops (rolling upgrades).
+  drainDelay: 10s
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  extraEnv: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+idp:
+  replicas: 1
+  loginRateLimit: 10
+  # Share Cenacle ID cookies across subdomains, e.g. example.com.
+  cookieDomain: ''
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 384Mi }
+  extraEnv: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+web:
+  replicas: 2
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 128Mi }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+ingress:
+  enabled: true
+  className: ''
+  annotations: {}
+  # e.g. [{ secretName: cenacle-tls, hosts: [chat.example.com, id.example.com] }]
+  tls: []
+
+metrics:
+  # Prometheus metrics on port 9090 (server) and 9091 (Cenacle ID).
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+
+# OTLP endpoint for traces, e.g. http://tempo:4318; empty: no tracing.
+otlpEndpoint: ''
+traceSampleRatio: '0.1'
+
+podDisruptionBudget:
+  enabled: true
+
+networkPolicy:
+  # Only the ingress controller reaches the pods; set its namespace labels.
+  enabled: false
+  ingressNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: ingress-nginx

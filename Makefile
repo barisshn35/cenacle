@@ -15,6 +15,7 @@ GOLANGCI_LINT_VERSION := 2.15.0
 GO_LICENSES_VERSION   := v2.0.1
 GOVULNCHECK_VERSION   := v1.9.0
 OAPI_CODEGEN_VERSION  := v2.8.0
+HELM_VERSION          := 4.3.1
 
 # License policy for Go modules (see docs/adr/0001-monorepo-and-tooling.md).
 GO_ALLOWED_LICENSES := MIT,ISC,BSD-2-Clause,BSD-3-Clause,Apache-2.0,MPL-2.0,0BSD,Unlicense
@@ -38,6 +39,7 @@ GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 GO_LICENSES   := $(BIN_DIR)/go-licenses
 GOVULNCHECK   := $(BIN_DIR)/govulncheck
 OAPI_CODEGEN  := $(BIN_DIR)/oapi-codegen
+HELM          := $(BIN_DIR)/helm
 
 .DEFAULT_GOAL := help
 
@@ -48,7 +50,7 @@ help: ## Show available targets
 # --- Tooling -----------------------------------------------------------------
 
 .PHONY: tools
-tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) $(OAPI_CODEGEN) ## Install pinned dev tools into ./.bin
+tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) $(OAPI_CODEGEN) $(HELM) ## Install pinned dev tools into ./.bin
 
 $(SQLC):
 	@mkdir -p $(BIN_DIR)
@@ -64,6 +66,11 @@ $(GO_LICENSES):
 
 $(GOVULNCHECK):
 	GOBIN=$(BIN_DIR) go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
+
+$(HELM):
+	@mkdir -p $(BIN_DIR)
+	curl -fsSL https://get.helm.sh/helm-v$(HELM_VERSION)-$(UNAME_S)-$(ARCH).tar.gz \
+	  | tar -xz -C $(BIN_DIR) --strip-components=1 $(UNAME_S)-$(ARCH)/helm
 
 $(OAPI_CODEGEN):
 	GOBIN=$(BIN_DIR) go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
@@ -124,11 +131,16 @@ gen: $(SQLC) $(OAPI_CODEGEN) node_modules ## Generate code (sqlc, OpenAPI server
 # --- Quality gates -------------------------------------------------------------
 
 .PHONY: lint
-lint: lint-go lint-js ## Run all linters
+lint: lint-go lint-js lint-helm ## Run all linters
 
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT)
 	cd $(SERVER_DIR) && $(GOLANGCI_LINT) run ./...
+
+.PHONY: lint-helm
+lint-helm: $(HELM) ## Lint the Helm chart and render it with test values
+	$(HELM) lint deploy/helm/cenacle --strict
+	$(HELM) template test deploy/helm/cenacle -f deploy/helm/ci-values.yaml > /dev/null
 
 .PHONY: lint-js
 lint-js: node_modules

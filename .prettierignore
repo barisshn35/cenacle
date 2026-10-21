@@ -9,3 +9,5 @@ server
 LICENSE
 CODE_OF_CONDUCT.md
 **/routeTree.gen.ts
+# Helm templates are Go templates, not YAML.
+deploy/helm/*/templates

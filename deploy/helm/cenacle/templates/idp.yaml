@@ -1,0 +1,128 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */}}
+{{- $name := printf "%s-idp" (include "cenacle.fullname" .) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-clients
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+data:
+  clients.json: |
+    [
+      {
+        "client_id": "cenacle-chat",
+        "client_name": "Cenacle",
+        "client_secret_file": "/run/secrets/cenacle/chat-client-secret",
+        "redirect_uris": [{{ printf "https://%s/api/auth/callback" .Values.domain | quote }}],
+        "post_logout_redirect_uris": [{{ printf "https://%s/" .Values.domain | quote }}],
+        "first_party": true,
+        "scope": "openid email profile",
+        "backchannel_logout_uri": {{ printf "http://%s-server:8180/api/auth/backchannel-logout" (include "cenacle.fullname" .) | quote }}
+      }
+    ]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: idp
+spec:
+  replicas: {{ .Values.idp.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels:
+      {{- include "cenacle.selector" (dict "root" . "component" "idp") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cenacle.labels" . | nindent 8 }}
+        app.kubernetes.io/component: idp
+      annotations:
+        checksum/clients: {{ .Values.domain | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "cenacle.podSecurity" . | nindent 8 }}
+      containers:
+        - name: idp
+          image: {{ include "cenacle.image" (dict "root" . "component" "idp") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- include "cenacle.containerSecurity" . | nindent 12 }}
+          ports:
+            - { name: http, containerPort: 8190 }
+            {{- if .Values.metrics.enabled }}
+            - { name: metrics, containerPort: 9091 }
+            {{- end }}
+          env:
+            - { name: IDP_ISSUER, value: {{ printf "https://%s" .Values.idDomain | quote }} }
+            - { name: IDP_COOKIE_DOMAIN, value: {{ .Values.idp.cookieDomain | quote }} }
+            - { name: IDP_TRUST_PROXY, value: 'true' }
+            - { name: IDP_DATABASE_URL_FILE, value: /run/secrets/cenacle/idp-database-url }
+            - { name: IDP_KEY_ENCRYPTION_KEY_FILE, value: /run/secrets/cenacle/idp-key-encryption-key }
+            - { name: IDP_COOKIE_KEYS_FILE, value: /run/secrets/cenacle/idp-cookie-keys }
+            - { name: IDP_CLIENTS_FILE, value: /etc/cenacle/clients.json }
+            - { name: IDP_LOGIN_RATE_LIMIT, value: {{ .Values.idp.loginRateLimit | quote }} }
+            {{- if .Values.metrics.enabled }}
+            - { name: IDP_METRICS_PORT, value: '9091' }
+            {{- end }}
+            {{- with .Values.idp.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/cenacle, readOnly: true }
+            - { name: clients, mountPath: /etc/cenacle, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.idp.resources | nindent 12 }}
+      volumes:
+        - name: secrets
+          secret:
+            secretName: {{ .Values.existingSecret }}
+            items:
+              - { key: idp-database-url, path: idp-database-url }
+              - { key: idp-key-encryption-key, path: idp-key-encryption-key }
+              - { key: idp-cookie-keys, path: idp-cookie-keys }
+              - { key: chat-client-secret, path: chat-client-secret }
+        - name: clients
+          configMap: { name: {{ $name }}-clients }
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.idp.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.idp.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.idp.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: idp
+spec:
+  selector:
+    {{- include "cenacle.selector" (dict "root" . "component" "idp") | nindent 4 }}
+  ports:
+    - { name: http, port: 8190, targetPort: http }
+    {{- if .Values.metrics.enabled }}
+    - { name: metrics, port: 9091, targetPort: metrics }
+    {{- end }}

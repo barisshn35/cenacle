@@ -17,3 +17,6 @@ deploy/*
 !deploy/compose
 deploy/compose/*
 !deploy/compose/caddy
+!deploy/compose/postgres
+deploy/compose/postgres/*
+!deploy/compose/postgres/walg-backup.sh

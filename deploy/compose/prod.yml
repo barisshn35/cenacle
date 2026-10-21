@@ -80,6 +80,8 @@ services:
     <<: *hardening
     image: *server-image
     command: [serve]
+    # The drain delay plus the graceful shutdown.
+    stop_grace_period: 30s
     read_only: true
     environment:
       <<: *server-env
@@ -104,6 +106,8 @@ services:
       CENACLE_FILES_MAX_SIZE_MB: ${CENACLE_FILES_MAX_SIZE_MB:-100}
       # Optional virus scanning with a clamd (e.g. the "clamav" profile).
       CENACLE_CLAMAV_ADDR: ${CENACLE_CLAMAV_ADDR:-}
+      # Rolling restarts: /readyz fails this long before the server stops.
+      CENACLE_DRAIN_DELAY: ${CENACLE_DRAIN_DELAY:-5s}
     secrets: [chat_database_url, valkey_password, chat_client_secret, s3_access_key, s3_secret_key]
     networks: [edge, data, files]
     depends_on:

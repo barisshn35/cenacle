@@ -20,18 +20,33 @@
 	tls internal
 }
 
+(chat-servers) {
+	dynamic a server 8180 {
+		refresh 5s
+	}
+	lb_policy least_conn
+	lb_try_duration 10s
+	fail_duration 15s
+}
+
 {$CENACLE_DOMAIN} {
 	import tls-{$CENACLE_TLS_MODE:acme}
 	encode zstd gzip
 
 	# API and WebSocket go to the chat server; everything else is the SPA.
+	# Every instance of the chat server is found by its Compose service name
+	# (`docker compose up --scale server=N`); a request to an instance that is
+	# stopping is retried on another one.
 	handle /api/* {
-		reverse_proxy server:8180
+		reverse_proxy {
+			import chat-servers
+		}
 	}
 	handle /ws* {
-		# WebSockets have no proxy idle timeout; the server pings every 25 s
-		# (v0.4). Keep upgraded streams open across config reloads.
-		reverse_proxy server:8180 {
+		# WebSockets have no proxy idle timeout; the server pings every 25 s.
+		# Keep upgraded streams open across config reloads.
+		reverse_proxy {
+			import chat-servers
 			stream_close_delay 5m
 		}
 	}

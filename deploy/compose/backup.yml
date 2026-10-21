@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Optional continuous archiving of PostgreSQL with WAL-G, on top of prod.yml:
+#
+#   docker compose -f prod.yml -f backup.yml --env-file .env.prod up -d
+#
+# PostgreSQL archives every WAL segment (at least once a minute) and the
+# walg-backup service takes a base backup daily, both to an S3 bucket named in
+# secrets/walg.env (start from walg.env.example). Point it at storage that is
+# not this host. Restoring: docs/backup.
+
+services:
+  postgres:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/postgres/walg.Dockerfile
+    image: cenacle-postgres-walg:${CENACLE_VERSION}
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=/usr/local/bin/wal-g wal-push %p
+      - -c
+      - archive_timeout=60
+    env_file: [secrets/walg.env]
+    networks: [data, backup]
+
+  walg-backup:
+    image: cenacle-postgres-walg:${CENACLE_VERSION}
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    user: '70:70' # the postgres user of the image
+    entrypoint: [/usr/local/bin/walg-backup]
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATA: /var/lib/postgresql/18/docker
+    env_file: [secrets/walg.env, secrets/walg-postgres.env]
+    volumes:
+      - postgres-data:/var/lib/postgresql:ro
+    networks: [data, backup]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+networks:
+  # Reaches the backup bucket (not internal).
+  backup: {}

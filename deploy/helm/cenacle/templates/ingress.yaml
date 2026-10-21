@@ -1,0 +1,48 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */}}
+{{- if .Values.ingress.enabled }}
+{{- $full := include "cenacle.fullname" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls: {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.domain | quote }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend: { service: { name: {{ $full }}-server, port: { name: http } } }
+          - path: /ws
+            pathType: Prefix
+            backend: { service: { name: {{ $full }}-server, port: { name: http } } }
+          {{- if and .Values.s3.endpoint .Values.s3.ingressBackend.service (not .Values.s3.uploadURL) }}
+          # Browser uploads go to the bucket (signed forms; S3 checks them).
+          - path: {{ printf "/%s" .Values.s3.bucket }}
+            pathType: Exact
+            backend: { service: { name: {{ .Values.s3.ingressBackend.service }}, port: { number: {{ .Values.s3.ingressBackend.port }} } } }
+          - path: {{ printf "/%s/" .Values.s3.bucket }}
+            pathType: Exact
+            backend: { service: { name: {{ .Values.s3.ingressBackend.service }}, port: { number: {{ .Values.s3.ingressBackend.port }} } } }
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: {{ $full }}-web, port: { name: http } } }
+    - host: {{ .Values.idDomain | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: {{ $full }}-idp, port: { name: http } } }
+{{- end }}

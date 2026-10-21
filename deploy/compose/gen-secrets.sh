@@ -44,4 +44,11 @@ printf 'GARAGE_RPC_SECRET=%s\nGARAGE_DEFAULT_ACCESS_KEY=%s\nGARAGE_DEFAULT_SECRE
   > secrets/garage.env
 chmod 600 secrets/garage.env
 
+# WAL-G's base backups (optional backup.yml) connect as postgres.
+printf 'PGPASSWORD=%s\n' "$(cat secrets/postgres_password)" > secrets/walg-postgres.env
+chmod 600 secrets/walg-postgres.env
+
+# Grafana (optional observability.yml).
+keep_or_write grafana_admin_password "$(rand)"
+
 echo "secrets ready in $(pwd)/secrets (back them up together with the database)"

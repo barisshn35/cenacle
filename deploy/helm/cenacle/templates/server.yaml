@@ -1,0 +1,114 @@
+{{/* SPDX-License-Identifier: Apache-2.0 */}}
+{{- $name := printf "%s-server" (include "cenacle.fullname" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  replicas: {{ .Values.server.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels:
+      {{- include "cenacle.selector" (dict "root" . "component" "server") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cenacle.labels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "cenacle.podSecurity" . | nindent 8 }}
+      # The drain delay plus the graceful shutdown.
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: server
+          image: {{ include "cenacle.image" (dict "root" . "component" "server") }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: [serve]
+          securityContext:
+            {{- include "cenacle.containerSecurity" . | nindent 12 }}
+          ports:
+            - { name: http, containerPort: 8180 }
+            {{- if .Values.metrics.enabled }}
+            - { name: metrics, containerPort: 9090 }
+            {{- end }}
+          env:
+            {{- include "cenacle.serverEnv" . | nindent 12 }}
+            - { name: CENACLE_PUBLIC_URL, value: {{ printf "https://%s" .Values.domain | quote }} }
+            - { name: CENACLE_TRUST_PROXY, value: 'true' }
+            - { name: CENACLE_OIDC_ISSUER, value: {{ printf "https://%s" .Values.idDomain | quote }} }
+            - name: CENACLE_OIDC_BACKCHANNEL_URL
+              value: {{ printf "http://%s-idp:8190" (include "cenacle.fullname" .) | quote }}
+            - name: CENACLE_OIDC_CLIENT_SECRET
+              {{- include "cenacle.secret" (dict "root" . "key" "chat-client-secret") | nindent 14 }}
+            - { name: CENACLE_ADMIN_EMAIL, value: {{ .Values.admin.email | quote }} }
+            - { name: CENACLE_ANNOUNCEMENT_CHANNEL, value: {{ .Values.admin.announcementChannel | quote }} }
+            - { name: CENACLE_DEFAULT_CHANNELS, value: {{ .Values.admin.defaultChannels | quote }} }
+            - { name: CENACLE_EGRESS_ALLOW, value: {{ .Values.egressAllow | quote }} }
+            - { name: CENACLE_DRAIN_DELAY, value: {{ .Values.server.drainDelay | quote }} }
+            {{- if .Values.metrics.enabled }}
+            - { name: CENACLE_METRICS_ADDR, value: ':9090' }
+            {{- end }}
+            {{- if .Values.s3.endpoint }}
+            - { name: CENACLE_S3_ENDPOINT, value: {{ .Values.s3.endpoint | quote }} }
+            - { name: CENACLE_S3_REGION, value: {{ .Values.s3.region | quote }} }
+            - { name: CENACLE_S3_BUCKET, value: {{ .Values.s3.bucket | quote }} }
+            - { name: CENACLE_S3_UPLOAD_URL, value: {{ .Values.s3.uploadURL | quote }} }
+            - name: CENACLE_S3_ACCESS_KEY
+              {{- include "cenacle.secret" (dict "root" . "key" "s3-access-key") | nindent 14 }}
+            - name: CENACLE_S3_SECRET_KEY
+              {{- include "cenacle.secret" (dict "root" . "key" "s3-secret-key") | nindent 14 }}
+            - { name: CENACLE_FILES_MAX_SIZE_MB, value: {{ .Values.files.maxSizeMB | quote }} }
+            - { name: CENACLE_CLAMAV_ADDR, value: {{ .Values.files.clamavAddr | quote }} }
+            {{- end }}
+            {{- if .Values.otlpEndpoint }}
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: {{ .Values.otlpEndpoint | quote }} }
+            - { name: OTEL_TRACES_SAMPLER, value: parentbased_traceidratio }
+            - { name: OTEL_TRACES_SAMPLER_ARG, value: {{ .Values.traceSampleRatio | quote }} }
+            {{- end }}
+            {{- with .Values.server.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 1
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+      {{- with .Values.server.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  selector:
+    {{- include "cenacle.selector" (dict "root" . "component" "server") | nindent 4 }}
+  ports:
+    - { name: http, port: 8180, targetPort: http }
+    {{- if .Values.metrics.enabled }}
+    - { name: metrics, port: 9090, targetPort: metrics }
+    {{- end }}

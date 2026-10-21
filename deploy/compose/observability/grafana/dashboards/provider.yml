@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: 1
+providers:
+  - name: cenacle
+    folder: Cenacle
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards
