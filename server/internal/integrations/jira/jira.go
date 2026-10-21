@@ -109,10 +109,10 @@ func Card(payload []byte) (card api.Attachment, ok bool, err error) {
 	switch ev.WebhookEvent {
 	case "jira:issue_created":
 		color("info")
-		card.Text = ptr(fmt.Sprintf("%s created a %s.", nameOf(ev.User), kind))
+		card.Text = ptr(fmt.Sprintf("%s created this %s.", nameOf(ev.User), strings.ToLower(kind)))
 	case "jira:issue_deleted":
 		color("danger")
-		card.Text = ptr(fmt.Sprintf("%s deleted the %s.", nameOf(ev.User), kind))
+		card.Text = ptr(fmt.Sprintf("%s deleted this %s.", nameOf(ev.User), strings.ToLower(kind)))
 	case "jira:issue_updated", "issue_updated":
 		if ev.Comment != nil && ev.Changelog == nil {
 			return commentCard(card, ev)
@@ -141,7 +141,7 @@ func Card(payload []byte) (card api.Attachment, ok bool, err error) {
 		if is.Fields.Status != nil && strings.EqualFold(is.Fields.Status.Name, "done") {
 			color("success")
 		}
-		card.Text = ptr(nameOf(ev.User) + " changed the " + kind + ".\n\n" + strings.Join(lines, "\n"))
+		card.Text = ptr(nameOf(ev.User) + " changed this " + strings.ToLower(kind) + ".\n\n" + strings.Join(lines, "\n"))
 	case "comment_created":
 		return commentCard(card, ev)
 	default:

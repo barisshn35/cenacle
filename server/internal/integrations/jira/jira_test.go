@@ -19,7 +19,7 @@ func TestCards(t *testing.T) {
 		t.Fatalf("created: %v %v", ok, err)
 	}
 	if *created.Title != "CEN-42: Giriş sayfası açılmıyor" || *created.TitleLink != "https://acme.atlassian.net/browse/CEN-42" ||
-		*created.Color != "info" || *created.Text != "Ayşe created a Bug." || len(*created.Fields) != 3 {
+		*created.Color != "info" || *created.Text != "Ayşe created this bug." || len(*created.Fields) != 3 {
 		t.Errorf("created card = %+v", created)
 	}
 
