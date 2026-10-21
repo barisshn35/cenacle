@@ -47,6 +47,8 @@ func (a *audience) allows(ev events.Event) bool {
 		}
 		delete(a.channels, d.Channel.ID)
 		return true
+	case events.ChannelUpdated, events.ChannelMembersChanged:
+		return a.channels[d.ChannelID]
 	default:
 		return false // unknown events stay on the server
 	}

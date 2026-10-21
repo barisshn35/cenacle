@@ -16,6 +16,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
@@ -45,17 +46,35 @@ const (
 	MaxTopic       = 250
 )
 
+// Visibility and member roles.
+const (
+	Public      = "public"
+	Private     = "private"
+	RoleMember  = "member"
+	RoleManager = "manager"
+)
+
 // canPost: everyone in standard channels, only the administrator in
 // announcement channels.
 func canPost(c store.Channel, user store.User) bool {
 	return c.Kind != KindAnnouncement || user.IsAdmin
 }
 
-func toAPI(c store.Channel, member bool, user store.User) api.Channel {
+// canManage: the channel's managers and the administrator.
+func canManage(role string, user store.User) bool {
+	return user.IsAdmin || role == RoleManager
+}
+
+// toAPI describes a channel for a user whose role in it is role ("" when not
+// a member).
+func toAPI(c store.Channel, role string, user store.User) api.Channel {
+	member := role != ""
 	return api.Channel{
 		Id: uuid(c.ID), Name: c.Name, Topic: c.Topic, Kind: api.ChannelKind(c.Kind),
-		IsDefault: c.IsDefault, IsMandatory: c.IsMandatory, IsMember: member,
-		CanPost: member && canPost(c, user),
+		Visibility: api.ChannelVisibility(c.Visibility),
+		IsDefault:  c.IsDefault, IsMandatory: c.IsMandatory, IsMember: member,
+		CanPost:   member && canPost(c, user),
+		CanManage: canManage(role, user),
 	}
 }
 
@@ -75,8 +94,8 @@ func (h *Handlers) ListChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out := make([]api.Channel, 0, len(rows))
-	for _, c := range rows {
-		out = append(out, toAPI(c, true, p.User))
+	for _, row := range rows {
+		out = append(out, toAPI(row.Channel, row.Role, p.User))
 	}
 	writeChannels(w, out)
 }
@@ -93,10 +112,8 @@ func (h *Handlers) ListChannelDirectory(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	out := make([]api.Channel, 0, len(rows))
-	for _, c := range rows {
-		ch := store.Channel{ID: c.ID, Name: c.Name, Topic: c.Topic, Kind: c.Kind,
-			IsDefault: c.IsDefault, IsMandatory: c.IsMandatory}
-		out = append(out, toAPI(ch, c.IsMember, p.User))
+	for _, row := range rows {
+		out = append(out, toAPI(row.Channel, row.Role, p.User))
 	}
 	writeChannels(w, out)
 }
@@ -115,9 +132,26 @@ func cleanName(name string) (string, string) {
 	return name, ""
 }
 
+// cleanTopic trims a topic and checks it.
+func cleanTopic(topic string) (string, string) {
+	topic = strings.TrimSpace(topic)
+	if utf8.RuneCountInString(topic) > MaxTopic || strings.ContainsFunc(topic, unicode.IsControl) {
+		return "", "The topic is longer than 250 characters or contains invalid characters."
+	}
+	return topic, ""
+}
+
 func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
+
+func badRequest(w http.ResponseWriter, r *http.Request, detail string) {
+	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest, Detail: detail})
+}
+
+func forbidden(w http.ResponseWriter, r *http.Request, code, detail string) {
+	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusForbidden, Code: code, Detail: detail})
 }
 
 // CreateChannel implements api.ServerInterface.
@@ -127,8 +161,7 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !p.User.IsAdmin {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusForbidden, Code: httpx.CodeForbidden,
-			Detail: "Only the administrator can create channels."})
+		forbidden(w, r, httpx.CodeForbidden, "Only the administrator can create channels.")
 		return
 	}
 	var in api.NewChannel
@@ -137,28 +170,33 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	}
 	name, problem := cleanName(in.Name)
 	topic := ""
-	if in.Topic != nil {
-		topic = strings.TrimSpace(*in.Topic)
+	if problem == "" && in.Topic != nil {
+		topic, problem = cleanTopic(*in.Topic)
 	}
-	kind := KindStandard
+	kind, visibility := KindStandard, Public
 	if in.Kind != nil {
 		kind = string(*in.Kind)
 	}
-	switch {
-	case problem != "":
-	case utf8.RuneCountInString(topic) > MaxTopic || strings.ContainsFunc(topic, unicode.IsControl):
-		problem = "The topic is longer than 250 characters or contains invalid characters."
-	case kind != KindStandard && kind != KindAnnouncement:
-		problem = "kind must be standard or announcement."
-	}
-	if problem != "" {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest, Detail: problem})
-		return
+	if in.Visibility != nil {
+		visibility = string(*in.Visibility)
 	}
 	isDefault := in.IsDefault != nil && *in.IsDefault
+	switch {
+	case problem != "":
+	case kind != KindStandard && kind != KindAnnouncement:
+		problem = "kind must be standard or announcement."
+	case visibility != Public && visibility != Private:
+		problem = "visibility must be public or private."
+	case isDefault && visibility == Private:
+		problem = "A channel for everyone cannot be private."
+	}
+	if problem != "" {
+		badRequest(w, r, problem)
+		return
+	}
 
 	c, err := h.Queries.CreateChannel(r.Context(), store.CreateChannelParams{
-		Name: name, Topic: topic, Kind: kind, IsDefault: isDefault, CreatedBy: p.User.ID,
+		Name: name, Topic: topic, Kind: kind, IsDefault: isDefault, Visibility: visibility, CreatedBy: p.User.ID,
 	})
 	if isUniqueViolation(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
@@ -169,18 +207,18 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w, r, "create channel", err)
 		return
 	}
-	if isDefault {
+	// The creator manages the channel.
+	_, err = h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: p.User.ID, Role: RoleManager})
+	if err == nil && isDefault {
 		_, err = h.Queries.AddAllUsers(r.Context(), c.ID)
-	} else {
-		_, err = h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: p.User.ID})
 	}
 	if err != nil {
 		h.unavailable(w, r, "add channel members", err)
 		return
 	}
-	out := toAPI(c, true, p.User)
+	out := toAPI(c, RoleManager, p.User)
 	if isDefault {
-		h.publish(r.Context(), events.ChannelCreated, ChannelEvent{Channel: out})
+		h.publish(r.Context(), events.ChannelCreated, ChannelEvent{Channel: toAPI(c, RoleMember, store.User{})})
 	} else {
 		h.publish(r.Context(), events.ChannelJoined, ChannelEvent{Channel: out, UserID: uuid(p.User.ID).String()})
 	}
@@ -188,10 +226,45 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 }
 
 // ChannelEvent is the data of channel.created (a default channel, for
-// everyone), channel.joined and channel.left (for UserID).
+// everyone), channel.joined and channel.left (for UserID), channel.updated
+// and channel.members_changed (for the channel's members). Fields that
+// depend on the user (is_member, can_post, can_manage) are not meant to be
+// used from events: clients reload their channel list.
 type ChannelEvent struct {
-	Channel api.Channel `json:"channel"`
-	UserID  string      `json:"user_id,omitempty"`
+	Channel   api.Channel `json:"channel"`
+	UserID    string      `json:"user_id,omitempty"`
+	ChannelID string      `json:"channel_id,omitempty"`
+}
+
+// visibleChannel loads a channel the user may see: public channels, and
+// private ones only for members (and the administrator); other private
+// channels answer 404 as if they did not exist. It returns the user's role
+// ("" when not a member).
+func (h *Handlers) visibleChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, string, bool) {
+	c, ok := h.channel(w, r, id)
+	if !ok {
+		return c, "", false
+	}
+	role, err := h.Queries.GetMemberRole(r.Context(), store.GetMemberRoleParams{ChannelID: c.ID, UserID: user.ID})
+	if err != nil {
+		h.unavailable(w, r, "get membership", err)
+		return c, "", false
+	}
+	if c.Visibility == Private && role == "" && !user.IsAdmin {
+		channelNotFound(w, r)
+		return c, "", false
+	}
+	return c, role, true
+}
+
+// memberChannel is visibleChannel for operations that need membership.
+func (h *Handlers) memberChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, string, bool) {
+	c, role, ok := h.visibleChannel(w, r, id, user)
+	if ok && role == "" {
+		forbidden(w, r, CodeNotAMember, "Join the channel first.")
+		return c, role, false
+	}
+	return c, role, ok
 }
 
 // JoinChannel implements api.ServerInterface.
@@ -200,19 +273,26 @@ func (h *Handlers) JoinChannel(w http.ResponseWriter, r *http.Request, channelID
 	if !ok {
 		return
 	}
-	c, ok := h.channel(w, r, channelID)
+	c, role, ok := h.visibleChannel(w, r, channelID, p.User)
 	if !ok {
 		return
 	}
-	n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: p.User.ID})
-	if err != nil {
+	if role != "" {
+		httpx.WriteJSON(w, http.StatusOK, toAPI(c, role, p.User))
+		return
+	}
+	if c.Visibility == Private {
+		// Private channels are joined by being added by a manager (the
+		// administrator adds themselves through the member list).
+		channelNotFound(w, r)
+		return
+	}
+	if _, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: p.User.ID, Role: RoleMember}); err != nil {
 		h.unavailable(w, r, "join channel", err)
 		return
 	}
-	out := toAPI(c, true, p.User)
-	if n > 0 {
-		h.publish(r.Context(), events.ChannelJoined, ChannelEvent{Channel: out, UserID: uuid(p.User.ID).String()})
-	}
+	out := toAPI(c, RoleMember, p.User)
+	h.membersChanged(r.Context(), c, p.User.ID, events.ChannelJoined, out)
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
@@ -222,13 +302,12 @@ func (h *Handlers) LeaveChannel(w http.ResponseWriter, r *http.Request, channelI
 	if !ok {
 		return
 	}
-	c, ok := h.channel(w, r, channelID)
+	c, _, ok := h.visibleChannel(w, r, channelID, p.User)
 	if !ok {
 		return
 	}
 	if c.IsMandatory {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusForbidden, Code: CodeChannelMandatory,
-			Detail: "Everyone is a member of this channel."})
+		forbidden(w, r, CodeChannelMandatory, "Everyone is a member of this channel.")
 		return
 	}
 	n, err := h.Queries.RemoveMember(r.Context(), store.RemoveMemberParams{ChannelID: c.ID, UserID: p.User.ID})
@@ -237,25 +316,204 @@ func (h *Handlers) LeaveChannel(w http.ResponseWriter, r *http.Request, channelI
 		return
 	}
 	if n > 0 {
-		h.publish(r.Context(), events.ChannelLeft, ChannelEvent{
-			Channel: toAPI(c, false, p.User), UserID: uuid(p.User.ID).String(),
-		})
+		h.membersChanged(r.Context(), c, p.User.ID, events.ChannelLeft, toAPI(c, "", store.User{}))
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// member answers 403 unless the user belongs to the channel.
-func (h *Handlers) member(w http.ResponseWriter, r *http.Request, c store.Channel, user store.User) bool {
-	ok, err := h.Queries.IsMember(r.Context(), store.IsMemberParams{ChannelID: c.ID, UserID: user.ID})
-	if err != nil {
-		h.unavailable(w, r, "check membership", err)
-		return false
-	}
+// membersChanged tells the affected user (joined or left) and the channel's
+// members (their member lists) about a membership change.
+func (h *Handlers) membersChanged(ctx context.Context, c store.Channel, user pgtype.UUID, typ string, ch api.Channel) {
+	h.publish(ctx, typ, ChannelEvent{Channel: ch, UserID: uuid(user).String()})
+	h.publish(ctx, events.ChannelMembersChanged, ChannelEvent{ChannelID: uuid(c.ID).String()})
+}
+
+// UpdateChannel implements api.ServerInterface.
+func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
 	if !ok {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusForbidden, Code: CodeNotAMember,
-			Detail: "Join the channel first."})
+		return
 	}
-	return ok
+	var in api.ChannelUpdate
+	if !decode(w, r, &in) {
+		return
+	}
+	c, role, ok := h.visibleChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	if !canManage(role, p.User) {
+		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can change it.")
+		return
+	}
+	visibility, topic, problem := c.Visibility, c.Topic, ""
+	if in.Visibility != nil {
+		visibility = string(*in.Visibility)
+	}
+	if in.Topic != nil {
+		topic, problem = cleanTopic(*in.Topic)
+	}
+	switch {
+	case problem != "":
+	case visibility != Public && visibility != Private:
+		problem = "visibility must be public or private."
+	case visibility == Private && c.IsDefault:
+		problem = "A channel for everyone cannot be private."
+	}
+	if problem != "" {
+		badRequest(w, r, problem)
+		return
+	}
+	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{ID: c.ID, Visibility: visibility, Topic: topic})
+	if err != nil {
+		h.unavailable(w, r, "update channel", err)
+		return
+	}
+	h.publish(r.Context(), events.ChannelUpdated, ChannelEvent{
+		Channel: toAPI(c, RoleMember, store.User{}), ChannelID: uuid(c.ID).String(),
+	})
+	httpx.WriteJSON(w, http.StatusOK, toAPI(c, role, p.User))
+}
+
+// ListChannelMembers implements api.ServerInterface.
+func (h *Handlers) ListChannelMembers(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	c, _, ok := h.memberChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	rows, err := h.Queries.ListMembers(r.Context(), c.ID)
+	if err != nil {
+		h.unavailable(w, r, "list members", err)
+		return
+	}
+	out := make([]api.Member, 0, len(rows))
+	for _, m := range rows {
+		out = append(out, api.Member{
+			User: api.Person{Id: uuid(m.ID), DisplayName: m.DisplayName, Email: m.Email},
+			Role: api.MemberRole(m.Role),
+		})
+	}
+	httpx.WriteJSON(w, http.StatusOK, struct {
+		Members []api.Member `json:"members"`
+	}{out})
+}
+
+// managedChannel loads a channel the user manages, or answers.
+func (h *Handlers) managedChannel(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.Channel, bool) {
+	c, role, ok := h.visibleChannel(w, r, id, user)
+	if ok && !canManage(role, user) {
+		forbidden(w, r, httpx.CodeForbidden, "Only the channel's managers can add or remove people.")
+		return c, false
+	}
+	return c, ok
+}
+
+// AddChannelMember implements api.ServerInterface.
+func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	var in struct {
+		UserID openapi_types.UUID `json:"user_id"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	c, ok := h.managedChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	u, err := h.Queries.GetUser(r.Context(), pgUUID(in.UserID))
+	if isNoRows(err) {
+		badRequest(w, r, "No user with this id.")
+		return
+	}
+	if err != nil {
+		h.unavailable(w, r, "get user", err)
+		return
+	}
+	n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: u.ID, Role: RoleMember})
+	if err != nil {
+		h.unavailable(w, r, "add member", err)
+		return
+	}
+	role, err := h.Queries.GetMemberRole(r.Context(), store.GetMemberRoleParams{ChannelID: c.ID, UserID: u.ID})
+	if err != nil {
+		h.unavailable(w, r, "get membership", err)
+		return
+	}
+	if n > 0 {
+		h.membersChanged(r.Context(), c, u.ID, events.ChannelJoined, toAPI(c, RoleMember, u))
+	}
+	httpx.WriteJSON(w, http.StatusOK, api.Member{
+		User: api.Person{Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email}, Role: api.MemberRole(role),
+	})
+}
+
+// RemoveChannelMember implements api.ServerInterface.
+func (h *Handlers) RemoveChannelMember(w http.ResponseWriter, r *http.Request, channelID, userID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	c, ok := h.managedChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	switch {
+	case c.IsMandatory:
+		forbidden(w, r, CodeChannelMandatory, "Everyone is a member of this channel.")
+		return
+	case pgUUID(userID) == p.User.ID:
+		badRequest(w, r, "To remove yourself, leave the channel.")
+		return
+	}
+	n, err := h.Queries.RemoveMember(r.Context(), store.RemoveMemberParams{ChannelID: c.ID, UserID: pgUUID(userID)})
+	if err != nil {
+		h.unavailable(w, r, "remove member", err)
+		return
+	}
+	if n > 0 {
+		h.membersChanged(r.Context(), c, pgUUID(userID), events.ChannelLeft, toAPI(c, "", store.User{}))
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// SearchUsers implements api.ServerInterface.
+func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params api.SearchUsersParams) {
+	if _, ok := auth.RequirePrincipal(w, r, h.Cookies); !ok {
+		return
+	}
+	q := strings.TrimSpace(params.Q)
+	limit := 20
+	if params.Limit != nil {
+		limit = *params.Limit
+	}
+	if q == "" || utf8.RuneCountInString(q) > 100 || limit < 1 || limit > 50 {
+		badRequest(w, r, "q must have 1 to 100 characters and limit be between 1 and 50.")
+		return
+	}
+	// The search text is literal: escape LIKE's wildcards.
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q)
+	rows, err := h.Queries.SearchUsers(r.Context(), store.SearchUsersParams{
+		Pattern: "%" + escaped + "%", RowLimit: int32(limit),
+	})
+	if err != nil {
+		h.unavailable(w, r, "search users", err)
+		return
+	}
+	out := make([]api.Person, 0, len(rows))
+	for _, u := range rows {
+		out = append(out, api.Person{Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email})
+	}
+	httpx.WriteJSON(w, http.StatusOK, struct {
+		Users []api.Person `json:"users"`
+	}{out})
 }
 
 func (h *Handlers) publish(ctx context.Context, typ string, data any) {

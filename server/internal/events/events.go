@@ -33,6 +33,9 @@ const (
 	ChannelCreated = "channel.created"
 	ChannelJoined  = "channel.joined"
 	ChannelLeft    = "channel.left"
+	// ChannelUpdated and ChannelMembersChanged go to the channel's members.
+	ChannelUpdated        = "channel.updated"
+	ChannelMembersChanged = "channel.members_changed"
 )
 
 // ID is a parsed stream id.

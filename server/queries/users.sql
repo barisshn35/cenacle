@@ -30,3 +30,11 @@ UPDATE users SET is_admin = @is_admin WHERE id = @id;
 -- e-mail address is no longer the configured one ('' revokes it from all).
 UPDATE users SET is_admin = false
 WHERE is_admin AND (@email::text = '' OR lower(email) <> lower(@email::text));
+
+-- name: SearchUsers :many
+-- SearchUsers finds users by name or e-mail address (pattern: a LIKE pattern
+-- with % and _ escaped by the caller).
+SELECT id, display_name, email FROM users
+WHERE display_name ILIKE @pattern OR email ILIKE @pattern
+ORDER BY lower(display_name), id
+LIMIT @row_limit;

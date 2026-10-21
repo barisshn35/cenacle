@@ -19,12 +19,14 @@ type Channel struct {
 	IsDefault   bool        `json:"is_default"`
 	IsMandatory bool        `json:"is_mandatory"`
 	CreatedBy   pgtype.UUID `json:"created_by"`
+	Visibility  string      `json:"visibility"`
 }
 
 type ChannelMember struct {
 	ChannelID pgtype.UUID `json:"channel_id"`
 	UserID    pgtype.UUID `json:"user_id"`
 	JoinedAt  time.Time   `json:"joined_at"`
+	Role      string      `json:"role"`
 }
 
 type Message struct {

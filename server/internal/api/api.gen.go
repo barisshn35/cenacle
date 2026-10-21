@@ -32,6 +32,60 @@ func (e ChannelKind) Valid() bool {
 	}
 }
 
+// Defines values for ChannelVisibility.
+const (
+	ChannelVisibilityPrivate ChannelVisibility = "private"
+	ChannelVisibilityPublic  ChannelVisibility = "public"
+)
+
+// Valid indicates whether the value is a known member of the ChannelVisibility enum.
+func (e ChannelVisibility) Valid() bool {
+	switch e {
+	case ChannelVisibilityPrivate:
+		return true
+	case ChannelVisibilityPublic:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChannelUpdateVisibility.
+const (
+	ChannelUpdateVisibilityPrivate ChannelUpdateVisibility = "private"
+	ChannelUpdateVisibilityPublic  ChannelUpdateVisibility = "public"
+)
+
+// Valid indicates whether the value is a known member of the ChannelUpdateVisibility enum.
+func (e ChannelUpdateVisibility) Valid() bool {
+	switch e {
+	case ChannelUpdateVisibilityPrivate:
+		return true
+	case ChannelUpdateVisibilityPublic:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MemberRole.
+const (
+	MemberRoleManager MemberRole = "manager"
+	MemberRoleMember  MemberRole = "member"
+)
+
+// Valid indicates whether the value is a known member of the MemberRole enum.
+func (e MemberRole) Valid() bool {
+	switch e {
+	case MemberRoleManager:
+		return true
+	case MemberRoleMember:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NewChannelKind.
 const (
 	NewChannelKindAnnouncement NewChannelKind = "announcement"
@@ -50,6 +104,24 @@ func (e NewChannelKind) Valid() bool {
 	}
 }
 
+// Defines values for NewChannelVisibility.
+const (
+	NewChannelVisibilityPrivate NewChannelVisibility = "private"
+	NewChannelVisibilityPublic  NewChannelVisibility = "public"
+)
+
+// Valid indicates whether the value is a known member of the NewChannelVisibility enum.
+func (e NewChannelVisibility) Valid() bool {
+	switch e {
+	case NewChannelVisibilityPrivate:
+		return true
+	case NewChannelVisibilityPublic:
+		return true
+	default:
+		return false
+	}
+}
+
 // Author defines model for Author.
 type Author struct {
 	DisplayName string             `json:"display_name"`
@@ -58,6 +130,9 @@ type Author struct {
 
 // Channel defines model for Channel.
 type Channel struct {
+	// CanManage Whether this user can add and remove people and change the channel.
+	CanManage bool `json:"can_manage"`
+
 	// CanPost Whether this user can send messages here.
 	CanPost bool               `json:"can_post"`
 	Id      openapi_types.UUID `json:"id"`
@@ -73,21 +148,45 @@ type Channel struct {
 	Kind  ChannelKind `json:"kind"`
 	Name  string      `json:"name"`
 	Topic string      `json:"topic"`
+
+	// Visibility Private channels are visible to their members only.
+	Visibility ChannelVisibility `json:"visibility"`
 }
 
 // ChannelKind In announcement channels only the administrator can send.
 type ChannelKind string
+
+// ChannelVisibility Private channels are visible to their members only.
+type ChannelVisibility string
 
 // ChannelList defines model for ChannelList.
 type ChannelList struct {
 	Channels []Channel `json:"channels"`
 }
 
+// ChannelUpdate defines model for ChannelUpdate.
+type ChannelUpdate struct {
+	Topic      *string                  `json:"topic,omitempty"`
+	Visibility *ChannelUpdateVisibility `json:"visibility,omitempty"`
+}
+
+// ChannelUpdateVisibility defines model for ChannelUpdate.Visibility.
+type ChannelUpdateVisibility string
+
 // Logout defines model for Logout.
 type Logout struct {
 	// EndSessionUrl Sign-out page of Cenacle ID; empty if it is not known.
 	EndSessionUrl string `json:"end_session_url"`
 }
+
+// Member defines model for Member.
+type Member struct {
+	Role MemberRole `json:"role"`
+	User Person     `json:"user"`
+}
+
+// MemberRole defines model for Member.Role.
+type MemberRole string
 
 // Message defines model for Message.
 type Message struct {
@@ -116,12 +215,16 @@ type NewChannel struct {
 	Kind      *NewChannelKind `json:"kind,omitempty"`
 
 	// Name Display name, unique regardless of case; surrounding spaces are removed.
-	Name  string  `json:"name"`
-	Topic *string `json:"topic,omitempty"`
+	Name       string                `json:"name"`
+	Topic      *string               `json:"topic,omitempty"`
+	Visibility *NewChannelVisibility `json:"visibility,omitempty"`
 }
 
 // NewChannelKind defines model for NewChannel.Kind.
 type NewChannelKind string
+
+// NewChannelVisibility defines model for NewChannel.Visibility.
+type NewChannelVisibility string
 
 // NewMessage defines model for NewMessage.
 type NewMessage struct {
@@ -132,6 +235,13 @@ type NewMessage struct {
 // Permissions What the user may do (roles replace the single administrator later).
 type Permissions struct {
 	CreateChannels bool `json:"create_channels"`
+}
+
+// Person defines model for Person.
+type Person struct {
+	DisplayName string             `json:"display_name"`
+	Email       string             `json:"email"`
+	Id          openapi_types.UUID `json:"id"`
 }
 
 // Problem defines model for Problem.
@@ -191,14 +301,31 @@ type LoginParams struct {
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
 }
 
+// AddChannelMemberJSONBody defines parameters for AddChannelMember.
+type AddChannelMemberJSONBody struct {
+	UserId openapi_types.UUID `json:"user_id"`
+}
+
 // ListMessagesParams defines parameters for ListMessages.
 type ListMessagesParams struct {
 	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
 	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// SearchUsersParams defines parameters for SearchUsers.
+type SearchUsersParams struct {
+	Q     string `form:"q" json:"q"`
+	Limit *int   `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
 type CreateChannelJSONRequestBody = NewChannel
+
+// UpdateChannelJSONRequestBody defines body for UpdateChannel for application/json ContentType.
+type UpdateChannelJSONRequestBody = ChannelUpdate
+
+// AddChannelMemberJSONRequestBody defines body for AddChannelMember for application/json ContentType.
+type AddChannelMemberJSONRequestBody AddChannelMemberJSONBody
 
 // CreateMessageJSONRequestBody defines body for CreateMessage for application/json ContentType.
 type CreateMessageJSONRequestBody = NewMessage
@@ -220,15 +347,27 @@ type ServerInterface interface {
 	// CreateChannel Create a channel (administrator only)
 	// (POST /api/channels)
 	CreateChannel(w http.ResponseWriter, r *http.Request)
-	// ListChannelDirectory All channels, with membership
+	// ListChannelDirectory Channels the user can see, with membership
 	// (GET /api/channels/directory)
 	ListChannelDirectory(w http.ResponseWriter, r *http.Request)
-	// JoinChannel Join a channel
+	// UpdateChannel Change visibility or topic (channel managers)
+	// (PATCH /api/channels/{channel_id})
+	UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// JoinChannel Join a public channel
 	// (POST /api/channels/{channel_id}/join)
 	JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// LeaveChannel Leave a channel
 	// (POST /api/channels/{channel_id}/leave)
 	LeaveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListChannelMembers Members of a channel (members only)
+	// (GET /api/channels/{channel_id}/members)
+	ListChannelMembers(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// AddChannelMember Add someone to a channel (channel managers)
+	// (POST /api/channels/{channel_id}/members)
+	AddChannelMember(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// RemoveChannelMember Remove someone from a channel (channel managers)
+	// (DELETE /api/channels/{channel_id}/members/{user_id})
+	RemoveChannelMember(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, userId openapi_types.UUID)
 	// ListMessages Messages of a channel, newest page first
 	// (GET /api/channels/{channel_id}/messages)
 	ListMessages(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListMessagesParams)
@@ -238,6 +377,9 @@ type ServerInterface interface {
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
+	// SearchUsers Find people by name or e-mail address
+	// (GET /api/users)
+	SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams)
 	// CreateWsTicket Ticket for opening the WebSocket
 	// (POST /api/ws/ticket)
 	CreateWsTicket(w http.ResponseWriter, r *http.Request)
@@ -277,13 +419,19 @@ func (_ Unimplemented) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// ListChannelDirectory All channels, with membership
+// ListChannelDirectory Channels the user can see, with membership
 // (GET /api/channels/directory)
 func (_ Unimplemented) ListChannelDirectory(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// JoinChannel Join a channel
+// UpdateChannel Change visibility or topic (channel managers)
+// (PATCH /api/channels/{channel_id})
+func (_ Unimplemented) UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// JoinChannel Join a public channel
 // (POST /api/channels/{channel_id}/join)
 func (_ Unimplemented) JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -292,6 +440,24 @@ func (_ Unimplemented) JoinChannel(w http.ResponseWriter, r *http.Request, chann
 // LeaveChannel Leave a channel
 // (POST /api/channels/{channel_id}/leave)
 func (_ Unimplemented) LeaveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListChannelMembers Members of a channel (members only)
+// (GET /api/channels/{channel_id}/members)
+func (_ Unimplemented) ListChannelMembers(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddChannelMember Add someone to a channel (channel managers)
+// (POST /api/channels/{channel_id}/members)
+func (_ Unimplemented) AddChannelMember(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveChannelMember Remove someone from a channel (channel managers)
+// (DELETE /api/channels/{channel_id}/members/{user_id})
+func (_ Unimplemented) RemoveChannelMember(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, userId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -310,6 +476,12 @@ func (_ Unimplemented) CreateMessage(w http.ResponseWriter, r *http.Request, cha
 // GetSession The current session and its user
 // (GET /api/session)
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SearchUsers Find people by name or e-mail address
+// (GET /api/users)
+func (_ Unimplemented) SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -502,6 +674,32 @@ func (siw *ServerInterfaceWrapper) ListChannelDirectory(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// UpdateChannel operation middleware
+func (siw *ServerInterfaceWrapper) UpdateChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // JoinChannel operation middleware
 func (siw *ServerInterfaceWrapper) JoinChannel(w http.ResponseWriter, r *http.Request) {
 
@@ -545,6 +743,93 @@ func (siw *ServerInterfaceWrapper) LeaveChannel(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.LeaveChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListChannelMembers operation middleware
+func (siw *ServerInterfaceWrapper) ListChannelMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannelMembers(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddChannelMember operation middleware
+func (siw *ServerInterfaceWrapper) AddChannelMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddChannelMember(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveChannelMember operation middleware
+func (siw *ServerInterfaceWrapper) RemoveChannelMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveChannelMember(w, r, channelId, userId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -640,6 +925,52 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SearchUsers operation middleware
+func (siw *ServerInterfaceWrapper) SearchUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchUsersParams
+
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchUsers(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -796,6 +1127,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels", wrapper.CreateChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/channels/{channel_id}", wrapper.UpdateChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/members", wrapper.ListChannelMembers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/members", wrapper.AddChannelMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/members/{user_id}", wrapper.RemoveChannelMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/users", wrapper.SearchUsers)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/directory", wrapper.ListChannelDirectory)

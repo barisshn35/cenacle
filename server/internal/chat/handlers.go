@@ -80,8 +80,7 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 	if !ok {
 		return
 	}
-	c, ok := h.channel(w, r, channelID)
-	if !ok || !h.member(w, r, c, p.User) {
+	if _, _, ok = h.memberChannel(w, r, channelID, p.User); !ok {
 		return
 	}
 	limit := defaultPage
@@ -152,8 +151,8 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest, Detail: problem})
 		return
 	}
-	c, ok := h.channel(w, r, channelID)
-	if !ok || !h.member(w, r, c, p.User) {
+	c, _, ok := h.memberChannel(w, r, channelID, p.User)
+	if !ok {
 		return
 	}
 	if !canPost(c, p.User) {

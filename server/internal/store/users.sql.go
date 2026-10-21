@@ -56,6 +56,46 @@ func (q *Queries) RevokeAdminUnlessEmail(ctx context.Context, email string) erro
 	return err
 }
 
+const searchUsers = `-- name: SearchUsers :many
+SELECT id, display_name, email FROM users
+WHERE display_name ILIKE $1 OR email ILIKE $1
+ORDER BY lower(display_name), id
+LIMIT $2
+`
+
+type SearchUsersParams struct {
+	Pattern  string `json:"pattern"`
+	RowLimit int32  `json:"row_limit"`
+}
+
+type SearchUsersRow struct {
+	ID          pgtype.UUID `json:"id"`
+	DisplayName string      `json:"display_name"`
+	Email       string      `json:"email"`
+}
+
+// SearchUsers finds users by name or e-mail address (pattern: a LIKE pattern
+// with % and _ escaped by the caller).
+func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error) {
+	rows, err := q.db.Query(ctx, searchUsers, arg.Pattern, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchUsersRow
+	for rows.Next() {
+		var i SearchUsersRow
+		if err := rows.Scan(&i.ID, &i.DisplayName, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setAdmin = `-- name: SetAdmin :exec
 UPDATE users SET is_admin = $1 WHERE id = $2
 `

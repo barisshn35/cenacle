@@ -161,14 +161,155 @@ paths:
           $ref: '#/components/responses/Problem'
         '409':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [chat]
+      operationId: updateChannel
+      summary: Change visibility or topic (channel managers)
+      description: Default channels cannot be private (400).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChannelUpdate' }
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Channel' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/members:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [chat]
+      operationId: listChannelMembers
+      summary: Members of a channel (members only)
+      responses:
+        '200':
+          description: Managers first, then by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [members]
+                properties:
+                  members:
+                    type: array
+                    items: { $ref: '#/components/schemas/Member' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [chat]
+      operationId: addChannelMember
+      summary: Add someone to a channel (channel managers)
+      description: |
+        The only way into a private channel. Managers are the channel's creator
+        and the administrator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Member (also when already a member).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/members/{user_id}:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: user_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [chat]
+      operationId: removeChannelMember
+      summary: Remove someone from a channel (channel managers)
+      description: Not from mandatory channels; to remove yourself, leave the channel.
+      responses:
+        '204':
+          description: Not a member any more.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/users:
+    get:
+      tags: [chat]
+      operationId: searchUsers
+      summary: Find people by name or e-mail address
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Matching people, by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: '#/components/schemas/Person' }
+        '401':
+          $ref: '#/components/responses/Problem'
   /api/channels/directory:
     get:
       tags: [chat]
       operationId: listChannelDirectory
-      summary: All channels, with membership
+      summary: Channels the user can see, with membership
       responses:
         '200':
-          description: Every channel; `is_member` tells which ones the user belongs to.
+          description: |
+            Public channels and the private channels the user belongs to;
+            `is_member` tells which ones the user belongs to.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ChannelList' }
@@ -183,7 +324,8 @@ paths:
     post:
       tags: [chat]
       operationId: joinChannel
-      summary: Join a channel
+      summary: Join a public channel
+      description: Private channels are joined only when a manager adds you (404 otherwise).
       responses:
         '200':
           description: Member (also when already a member).
@@ -345,7 +487,8 @@ components:
           description: Seconds until the ticket expires.
     Channel:
       type: object
-      required: [id, name, topic, kind, is_default, is_mandatory, is_member, can_post]
+      required:
+        [id, name, topic, kind, visibility, is_default, is_mandatory, is_member, can_post, can_manage]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -360,10 +503,39 @@ components:
         is_mandatory:
           type: boolean
           description: Members cannot leave.
+        visibility:
+          type: string
+          enum: [public, private]
+          description: Private channels are visible to their members only.
         is_member: { type: boolean }
         can_post:
           type: boolean
           description: Whether this user can send messages here.
+        can_manage:
+          type: boolean
+          description: Whether this user can add and remove people and change the channel.
+    ChannelUpdate:
+      type: object
+      properties:
+        visibility:
+          type: string
+          enum: [public, private]
+        topic: { type: string, maxLength: 250 }
+    Person:
+      type: object
+      required: [id, display_name, email]
+      properties:
+        id: { type: string, format: uuid }
+        display_name: { type: string }
+        email: { type: string }
+    Member:
+      type: object
+      required: [user, role]
+      properties:
+        user: { $ref: '#/components/schemas/Person' }
+        role:
+          type: string
+          enum: [member, manager]
     ChannelList:
       type: object
       required: [channels]
@@ -385,6 +557,10 @@ components:
           type: string
           enum: [standard, announcement]
           default: standard
+        visibility:
+          type: string
+          enum: [public, private]
+          default: public
         is_default:
           type: boolean
           default: false
