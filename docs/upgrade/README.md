@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.11.0)
+### 0.11.0
 
 - Chat migration `00012_commands_subscriptions_scheduling` adds slash commands, event
   subscriptions and their deliveries, scheduled messages, and the per-workspace system bot.

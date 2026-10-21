@@ -8,6 +8,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-22
+
 Slash commands, event subscriptions, scheduled messages and reminders; GitLab and
 Alertmanager.
 
@@ -30,6 +32,8 @@ sonra`, `yarın`) arrive as a direct message from Cenacle.
 - Requests to bots go through one client that refuses internal addresses (SSRF) unless
   `CENACLE_EGRESS_ALLOW` lists them, never follows redirects and signs every request
   (`X-Cenacle-Signature`).
+- Commands count against the per-person message rate limit; a person can have at most 200
+  messages and reminders waiting.
 
 ### Fixed
 
@@ -37,7 +41,7 @@ sonra`, `yarın`) arrive as a direct message from Cenacle.
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-0110): migration
+- See [docs/upgrade](docs/upgrade/README.md#0110): migration
   `00012_commands_subscriptions_scheduling`, new setting `CENACLE_EGRESS_ALLOW`.
 
 ## [0.10.1] - 2026-10-21
@@ -380,7 +384,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/barisshn35/cenacle/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/barisshn35/cenacle/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/barisshn35/cenacle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/barisshn35/cenacle/compare/v0.8.0...v0.9.0
