@@ -8,6 +8,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-21
+
+Markdown, mentions, reactions and message cards; a transactional outbox for live events; background jobs on River.
+
 ### Added
 
 - Markdown in messages (bold, italics, links, lists, quotes, tables, code) with code
@@ -26,7 +30,7 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-090): migration
+- See [docs/upgrade](docs/upgrade/README.md#090): migration
   `00010_outbox_reactions_mentions`; `migrate up` now also creates River's tables.
 
 ## [0.8.0] - 2026-10-21
@@ -306,7 +310,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/barisshn35/cenacle/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/barisshn35/cenacle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/barisshn35/cenacle/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/barisshn35/cenacle/compare/v0.5.0...v0.6.0

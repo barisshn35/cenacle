@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.9.0)
+### 0.9.0
 
 - Chat migration `00010_outbox_reactions_mentions` adds the event outbox, reactions,
   mentions and message attachments, and lets messages with cards have no text. Reversible
