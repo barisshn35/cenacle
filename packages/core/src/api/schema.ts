@@ -319,6 +319,103 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/sessions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Your signed-in devices */
+    get: operations['listSessions'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/sessions/{session_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Sign out one device */
+    delete: operations['endSession'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/sessions/end-all': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Sign out everywhere
+     * @description Ends every session of the user, or every other one with `keep_current`.
+     */
+    post: operations['endAllSessions'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/backchannel-logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * OpenID Connect Back-Channel Logout (called by Cenacle ID)
+     * @description Cenacle ID posts a signed logout token when a sign-in ends there; the sessions
+     *     that came from that sign-in (`sid`), or from that identity when the token names
+     *     none, end. Not for browsers.
+     */
+    post: operations['backchannelLogout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/audit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The workspace's audit log (owners and admins) */
+    get: operations['listWorkspaceAudit'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ws/ticket': {
     parameters: {
       query?: never;
@@ -339,6 +436,8 @@ export interface paths {
      *     - `{"op":"hello","last_event_id":"<id>","heartbeat_ms":25000}` after connecting;
      *     - `{"op":"event","id":"<id>","type":"message.created","data":{...}}` for each event,
      *       in order, starting after `last_event_id` when it was given;
+     *     - `{"op":"ephemeral","type":"typing","data":{...}}` for short-lived notices
+     *       (`typing`, `presence.changed`): no id, never resumed or replayed;
      *     - `{"op":"resync"}` when the events since `last_event_id` are no longer
      *       available: reload the data and continue from the id in `hello`.
      *
@@ -768,6 +867,8 @@ export interface components {
       display_name: string;
     };
     Session: {
+      /** @description Cenacle ID's account page (two-step verification), returning here. */
+      account_url: string;
       user: components['schemas']['User'];
       permissions: components['schemas']['Permissions'];
       /** Format: date-time */
@@ -779,6 +880,39 @@ export interface components {
       expires_at: string;
       /** @description The session also ends after this long without use. */
       idle_timeout_seconds: number;
+    };
+    DeviceSession: {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /**
+       * Format: date-time
+       * @description Recorded at most once a minute.
+       */
+      last_seen_at: string;
+      user_agent: string;
+      ip_address: string;
+      /** @description The session of this request. */
+      current: boolean;
+    };
+    AuditEvent: {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      at: string;
+      actor: {
+        /** Format: uuid */
+        id: string;
+        display_name: string;
+      } | null;
+      /** @description E.g. workspace.role_changed, channel.archived, invite.created. */
+      action: string;
+      target_type: string;
+      target_id: string;
+      detail: {
+        [key: string]: unknown;
+      };
     };
     WsTicket: {
       ticket: string;
@@ -1455,6 +1589,148 @@ export interface operations {
         };
       };
       401: components['responses']['Problem'];
+    };
+  };
+  listSessions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Usable sessions, most recently used first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            sessions: components['schemas']['DeviceSession'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  endSession: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Ended (open connections of that device close). */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  endAllSessions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          keep_current: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Ended. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            ended: number;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  backchannelLogout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': {
+          logout_token: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Accepted. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The logout token is invalid. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            error: string;
+            error_description?: string;
+          };
+        };
+      };
+    };
+  };
+  listWorkspaceAudit: {
+    parameters: {
+      query?: {
+        /** @description Events older than this one (cursor). */
+        before?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Events, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            events: components['schemas']['AuditEvent'][];
+            has_more: boolean;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
     };
   };
   createWsTicket: {

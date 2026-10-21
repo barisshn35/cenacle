@@ -38,6 +38,7 @@ writeFileSync(
       client_secret_file: secretFile,
       redirect_uris: [`${WEB_URL}/api/auth/callback`],
       post_logout_redirect_uris: [`${WEB_URL}/`],
+      backchannel_logout_uri: `http://127.0.0.1:${SERVER_PORT}/api/auth/backchannel-logout`,
       first_party: true,
       scope: 'openid email profile',
     },

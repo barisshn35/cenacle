@@ -1,11 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 import { execFileSync } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { IDP_URL, WEB_URL, idpEnv } from '../playwright.stack.config';
 
 const EMAIL = 'deniz@example.com';
 const PASSWORD = 'e2e stack password 2026';
 const SECOND = { email: 'mert@example.com', name: 'Mert Demir' };
+const THIRD = { email: 'zeynep@example.com', name: 'Zeynep Ak' };
+// Signs in only in the "sign out everywhere" test, so it has exactly two devices.
+const FOURTH = { email: 'leyla@example.com', name: 'Leyla Kaya' };
+
+/** RFC 6238 code (SHA-1, 6 digits, 30 s) of a base32 secret, for the time step `step`. */
+function totp(secret: string, step = Math.floor(Date.now() / 30_000)): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const c of secret.replace(/=+$/, ''))
+    bits += alphabet.indexOf(c).toString(2).padStart(5, '0');
+  const key = Buffer.from(bits.match(/.{8}/g)!.map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(step));
+  const mac = createHmac('sha1', key).update(counter).digest();
+  const offset = mac[mac.length - 1]! & 0xf;
+  return String((mac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}
 
 /** Creates an account at Cenacle ID with its CLI (or resets its password). */
 function ensureAccount(email = EMAIL, name = 'Deniz Kaya') {
@@ -26,6 +44,8 @@ function ensureAccount(email = EMAIL, name = 'Deniz Kaya') {
 test.beforeAll(() => {
   ensureAccount();
   ensureAccount(SECOND.email, SECOND.name);
+  ensureAccount(THIRD.email, THIRD.name);
+  ensureAccount(FOURTH.email, FOURTH.name);
 });
 
 async function signInAtIdP(page: Page, email = EMAIL) {
@@ -325,4 +345,56 @@ test('a direct conversation: unread count, typing and presence', async ({ browse
   // Typing reaches the other side.
   await mert.getByLabel('Message Deniz Kaya').pressSequentially('Yazıyorum');
   await expect(deniz.getByTestId('typing')).toHaveText('Mert Demir is typing…');
+});
+
+test('"Sign out everywhere" signs the other device out at once', async ({ browser }) => {
+  const open = async () => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, FOURTH.email);
+    await page.getByLabel('Message General').waitFor();
+    return page;
+  };
+  const laptop = await open();
+  const phone = await open();
+
+  await laptop.getByRole('button', { name: 'Settings' }).click();
+  await expect(laptop.getByTestId('device')).toHaveCount(2);
+  await laptop.getByRole('button', { name: 'Sign out everywhere' }).click();
+  await laptop
+    .getByRole('alertdialog', { name: 'Sign out everywhere?' })
+    .getByRole('button', { name: 'Sign out everywhere' })
+    .click();
+  await expect(laptop.getByText('1 device was signed out.')).toBeVisible();
+
+  // The phone's connection closes and the app asks to sign in again.
+  await expect(phone).toHaveURL(/\/signin\?error=session_expired/, { timeout: 10_000 });
+  await expect(laptop.getByTestId('device')).toHaveCount(1);
+});
+
+test('with two-step verification, signing in asks for a code', async ({ page }) => {
+  test.setTimeout(90_000);
+  // Turn it on at the Cenacle ID account page.
+  await page.goto(`${IDP_URL}/account`);
+  await page.getByLabel('E-mail address').fill(THIRD.email);
+  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('link', { name: 'Set up two-step verification' }).click();
+  const secret = ((await page.getByTestId('totp-secret').textContent()) ?? '').replace(/\s/g, '');
+  const step = Math.floor(Date.now() / 30_000);
+  await page.getByLabel('Verification code').fill(totp(secret, step));
+  await page.getByRole('button', { name: 'Turn on two-step verification' }).click();
+  await expect(page.getByTestId('recovery-codes').locator('li')).toHaveCount(10);
+
+  // Signing in to Cenacle now needs a code; each code works once, so wait for the next.
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+  await signInAtIdP(page, THIRD.email);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Two-step verification');
+  while (Math.floor(Date.now() / 30_000) <= step) await page.waitForTimeout(500);
+  await page.getByLabel('Verification code').fill(totp(secret));
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByLabel('Message General')).toBeVisible();
+  await expect(page.getByTestId('current-user')).toHaveText(THIRD.name);
 });

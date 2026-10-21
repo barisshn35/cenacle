@@ -291,5 +291,30 @@
   "presence": {
     "change": "Status: {{status}}. Change status",
     "failed": "Your status could not be changed."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Your sign-in, devices and security.",
+    "security": "Security",
+    "securityHint": "Two-step verification and your password are managed in Cenacle ID.",
+    "openAccount": "Open Cenacle ID",
+    "newTab": "(opens in a new tab)",
+    "devices": "Signed-in devices",
+    "thisDevice": "This device",
+    "deviceName": "{{browser}} on {{os}}",
+    "unknownDevice": "Unknown device",
+    "lastActive": "Last active {{when}}",
+    "endDevice": "Sign out",
+    "endDeviceNamed": "Sign out {{device}}",
+    "deviceEnded": "{{device}} was signed out.",
+    "endFailed": "The device could not be signed out.",
+    "endAll": "Sign out everywhere",
+    "endAllTitle": "Sign out everywhere?",
+    "endAllDescription": "Cenacle signs you out on your devices; open apps close their connection at once. Drafts stay on each device. To use Cenacle there again you sign in again.",
+    "endAllImpact_one": "{{count}} other device is signed in.",
+    "endAllImpact_other": "{{count}} other devices are signed in.",
+    "keepThisDevice": "Keep me signed in on this device",
+    "endedOthers_one": "{{count}} device was signed out.",
+    "endedOthers_other": "{{count}} devices were signed out."
   }
 }

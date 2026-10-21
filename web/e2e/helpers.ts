@@ -157,7 +157,38 @@ export const SESSION = {
   created_at: '2026-10-21T08:00:00Z',
   expires_at: '2026-11-20T08:00:00Z',
   idle_timeout_seconds: 604800,
+  account_url: 'http://localhost:8190/account?return_to=http%3A%2F%2Flocalhost%3A15173%2F',
 };
+
+/** Signed-in devices of the fake server (the first one is this browser). */
+export const DEVICES = [
+  {
+    id: '01a15e50-5e55-7000-8000-000000000001',
+    created_at: '2026-10-21T08:00:00Z',
+    last_seen_at: '2026-10-21T09:00:00Z',
+    user_agent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36 OPR/125.0',
+    ip_address: '10.0.0.5',
+    current: true,
+  },
+  {
+    id: '01a15e50-5e55-7000-8000-000000000002',
+    created_at: '2026-10-20T08:00:00Z',
+    last_seen_at: '2026-10-20T18:00:00Z',
+    user_agent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Version/18.0 Mobile Safari/604.1',
+    ip_address: '10.0.0.9',
+    current: false,
+  },
+  {
+    id: '01a15e50-5e55-7000-8000-000000000003',
+    created_at: '2026-10-19T08:00:00Z',
+    last_seen_at: '2026-10-19T12:00:00Z',
+    user_agent: 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0',
+    ip_address: '',
+    current: false,
+  },
+];
 
 /**
  * Answers the session API in the browser, so app tests run without the chat
@@ -290,6 +321,10 @@ export interface MockApi {
   typing: string[];
   /** Statuses the user chose. */
   statuses: string[];
+  /** Requests to end sessions: an id, or "all"/"others". */
+  ended: string[];
+  /** Closes the WebSocket from the server side. */
+  closeSocket(code: number): void;
 }
 
 /**
@@ -364,6 +399,7 @@ export async function mockApi(
     reads: new Map(),
     typing: [],
     statuses: [],
+    ended: [],
     seq: 1,
     emit(type, data) {
       if (type === 'channel.read') {
@@ -374,6 +410,9 @@ export async function mockApi(
       }
       this.seq++;
       this.socket?.send(JSON.stringify({ op: 'event', id: `${this.seq}-0`, type, data }));
+    },
+    closeSocket(code) {
+      void this.socket?.close({ code, reason: '' });
     },
     emitEphemeral(type, data) {
       this.socket?.send(JSON.stringify({ op: 'ephemeral', type, data }));
@@ -574,6 +613,21 @@ export async function mockApi(
   });
   await page.route('**/api/channels/*/typing', (route) => {
     api.typing.push(channelOf(route.request().url()).id);
+    return route.fulfill({ status: 204 });
+  });
+  let devices = [...DEVICES];
+  await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessions: devices } }));
+  await page.route('**/api/sessions/end-all', (route) => {
+    const { keep_current } = route.request().postDataJSON() as { keep_current: boolean };
+    api.ended.push(keep_current ? 'others' : 'all');
+    const ended = devices.filter((d) => !keep_current || !d.current).length;
+    devices = devices.filter((d) => keep_current && d.current);
+    return route.fulfill({ json: { ended } });
+  });
+  await page.route(/\/api\/sessions\/[0-9a-f-]{36}$/, (route) => {
+    const id = route.request().url().split('/').pop()!;
+    api.ended.push(id);
+    devices = devices.filter((d) => d.id !== id);
     return route.fulfill({ status: 204 });
   });
   await page.route('**/api/ws/ticket', (route) =>

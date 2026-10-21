@@ -12,7 +12,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Kbd } from '@cenacle/ui/components/kbd';
 import {
   Sidebar,
@@ -35,6 +34,7 @@ import { Logo } from '@cenacle/ui/brand';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
+import { SettingsDialog } from '../auth/settings-dialog';
 import { initials, useSignOut } from '../auth/sign-out';
 import { categoriesQuery, channelsQuery, isConversation, type Channel } from '../chat/data';
 import { NewConversationDialog } from '../chat/new-conversation-dialog';
@@ -252,7 +252,7 @@ function ConversationsGroup() {
 export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
   const { workspace } = useActiveWorkspace();
-  const notAvailable = () => toast(t('shell.notAvailable'));
+  const [settings, setSettings] = useState(false);
   const openSwitcher = useQuickSwitcher((s) => s.setOpen);
 
   return (
@@ -286,8 +286,9 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <CurrentUser onSettings={notAvailable} />
+        <CurrentUser onSettings={() => setSettings(true)} />
       </SidebarFooter>
+      {settings && <SettingsDialog open onOpenChange={setSettings} />}
     </Sidebar>
   );
 }

@@ -273,23 +273,48 @@
     "title": "Doğrudan mesajlar",
     "none": "Henüz konuşma yok.",
     "newTitle": "Yeni konuşma",
-    "newDescription": "Birebir konuşma için bir kişi, grup için en fazla 8 kişi seçin. Aynı kişiler her zaman aynı konuşmada buluşur.",
+    "newDescription": "Birebir konuşma için bir kişi, grup için en fazla 8 kişi seç. Aynı kişiler her zaman aynı konuşmada buluşur.",
     "picked": "Konuşmadaki kişiler",
     "pick": "{{person}} ekle",
     "unpick": "{{person}} çıkar",
     "full": "Bir konuşmada en fazla {{count}} kişi daha olabilir.",
     "start": "Konuşmayı başlat",
-    "intro": "{{people}} ile konuşmanızın başlangıcı.",
-    "onlyYou": "Yalnızca siz",
+    "intro": "{{people}} ile konuşmanın başlangıcı.",
+    "onlyYou": "Yalnızca sen",
     "unread_one": "{{count}} okunmamış mesaj",
     "unread_other": "{{count}} okunmamış mesaj",
     "about": {
       "direct": "Bu konuşmayı yalnızca ikiniz görürsünüz.",
-      "group": "Bu konuşmayı yalnızca içindeki kişiler görür. Kişileri sabittir; birini eklemek için yeni bir konuşma başlatın."
+      "group": "Bu konuşmayı yalnızca içindeki kişiler görür. Kişileri sabittir; birini eklemek için yeni bir konuşma başlat."
     }
   },
   "presence": {
     "change": "Durum: {{status}}. Durumu değiştir",
-    "failed": "Durumunuz değiştirilemedi."
+    "failed": "Durumun değiştirilemedi."
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "description": "Girişin, cihazların ve güvenliğin.",
+    "security": "Güvenlik",
+    "securityHint": "İki adımlı doğrulama ve parolan Cenacle ID'de yönetilir.",
+    "openAccount": "Cenacle ID'yi aç",
+    "newTab": "(yeni sekmede açılır)",
+    "devices": "Giriş yapılmış cihazlar",
+    "thisDevice": "Bu cihaz",
+    "deviceName": "{{os}} üzerinde {{browser}}",
+    "unknownDevice": "Bilinmeyen cihaz",
+    "lastActive": "Son etkinlik {{when}}",
+    "endDevice": "Çıkış yap",
+    "endDeviceNamed": "{{device}} cihazından çıkış yap",
+    "deviceEnded": "{{device}} cihazından çıkış yapıldı.",
+    "endFailed": "Cihazdan çıkış yapılamadı.",
+    "endAll": "Her yerden çıkış yap",
+    "endAllTitle": "Her yerden çıkış yapılsın mı?",
+    "endAllDescription": "Cenacle cihazlarındaki oturumları kapatır; açık uygulamaların bağlantısı hemen kesilir. Taslaklar her cihazda kalır. Oralarda Cenacle'ı yeniden kullanmak için tekrar giriş yaparsın.",
+    "endAllImpact_one": "Giriş yapılmış {{count}} başka cihaz var.",
+    "endAllImpact_other": "Giriş yapılmış {{count}} başka cihaz var.",
+    "keepThisDevice": "Bu cihazda oturumum açık kalsın",
+    "endedOthers_one": "{{count}} cihazdan çıkış yapıldı.",
+    "endedOthers_other": "{{count}} cihazdan çıkış yapıldı."
   }
 }
