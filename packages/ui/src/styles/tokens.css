@@ -128,7 +128,7 @@
   --brand-brass: #c9a24b; /* logo bubble; accent on dark UI only */
   --brand-brass-ink: #8f6b1f; /* accent on light UI (bright brass fails on light) */
   --brand-paper: #faf7f0;
-  --brand-night: #0c1a16;
+  --brand-night: #121212; /* dark brand surface (app icon), neutral black */
   --brand-bone: #f3eee2;
 
   /* --- Light theme: Paper and Forest --------------------------------- */

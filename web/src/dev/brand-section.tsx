@@ -164,6 +164,8 @@ export function BrandSection() {
           <Panel theme="dark">
             <Img file="cenacle-lockup-white.svg" alt="Cenacle lockup, white" height={24} />
             <Img file="cenacle-icon-white.svg" alt="Cenacle icon, white" height={32} />
+            <Img file="cenacle-lockup-onblack.svg" alt="Cenacle lockup, on black" height={24} />
+            <Img file="cenacle-icon-onblack.svg" alt="Cenacle icon, on black" height={32} />
           </Panel>
         </div>
       </div>
