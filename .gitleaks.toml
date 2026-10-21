@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# gitleaks configuration: the default rules plus exact-match exceptions for
+# values that are public on purpose. Each exception matches one full finding,
+# so any other secret (even in the same file) is still reported.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Development-only values in .env.example"
+regexTarget = "match"
+regexes = [
+  # base64 of "dev-only-key-encryption-key-32b!"
+  '''^IDP_KEY_ENCRYPTION_KEY=ZGV2LW9ubHkta2V5LWVuY3J5cHRpb24ta2V5LTMyYiE=$''',
+]
