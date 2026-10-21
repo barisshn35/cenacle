@@ -124,6 +124,7 @@ services:
       IDP_KEY_ENCRYPTION_KEY_FILE: /run/secrets/idp_key_encryption_key
       IDP_COOKIE_KEYS_FILE: /run/secrets/idp_cookie_keys
       IDP_CLIENTS_FILE: /etc/cenacle/clients.json
+      IDP_LOGIN_RATE_LIMIT: ${IDP_LOGIN_RATE_LIMIT:-10}
       # Used inside clients.json (${CENACLE_DOMAIN}).
       CENACLE_DOMAIN: ${CENACLE_DOMAIN}
     secrets: [idp_database_url, idp_key_encryption_key, idp_cookie_keys, chat_client_secret]

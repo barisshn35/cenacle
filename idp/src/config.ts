@@ -58,6 +58,8 @@ const serverSchema = keySchema.extend({
     .default('false')
     .transform((v) => v === 'true'),
   IDP_READY_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2000),
+  /** Sign-in attempts per client address and minute (raise it for many users behind one NAT). */
+  IDP_LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).max(100_000).default(10),
   IDP_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(100).max(120_000).default(15_000),
 });
 
@@ -87,6 +89,7 @@ export interface Config {
   database: DatabaseConfig;
   readyTimeoutMs: number;
   shutdownTimeoutMs: number;
+  loginRateLimit: number;
 }
 
 export class ConfigError extends Error {
@@ -179,5 +182,6 @@ export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultR
     database: { url: c.IDP_DATABASE_URL, poolMax: c.IDP_DATABASE_POOL_MAX },
     readyTimeoutMs: c.IDP_READY_TIMEOUT_MS,
     shutdownTimeoutMs: c.IDP_SHUTDOWN_TIMEOUT_MS,
+    loginRateLimit: c.IDP_LOGIN_RATE_LIMIT,
   };
 }

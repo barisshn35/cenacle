@@ -58,7 +58,13 @@ async function main(): Promise<void> {
     readyTimeoutMs: config.readyTimeoutMs,
     trustProxy: config.trustProxy,
     assetsDir: ASSETS_DIR,
-    oidc: { provider, users, issuer: config.issuer, formActionOrigins },
+    oidc: {
+      provider,
+      users,
+      issuer: config.issuer,
+      formActionOrigins,
+      loginRateLimit: config.loginRateLimit,
+    },
   });
 
   provider.on('server_error', (_ctx, err) => app.log.error({ err }, 'oidc server error'));
