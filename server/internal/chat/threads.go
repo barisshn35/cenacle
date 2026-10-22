@@ -150,6 +150,7 @@ func (h *Handlers) ListReplies(w http.ResponseWriter, r *http.Request, channelID
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
+			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -375,6 +376,9 @@ func (h *Handlers) setPinned(w http.ResponseWriter, r *http.Request, channelID, 
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
 			Detail: "The message was deleted."})
 		return
+	case m.BurnSeconds.Valid:
+		forbidden(w, r, CodeNotForBurn, "Burn-on-read messages cannot be pinned.")
+		return
 	case !canPost(c, role):
 		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here pin messages.")
 		return
@@ -447,6 +451,7 @@ func (h *Handlers) ListPins(w http.ResponseWriter, r *http.Request, channelID op
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
+			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {
@@ -464,6 +469,7 @@ func messageOf(m store.GetMessagesByIDsRow) api.Message {
 		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 		Title: m.Title, Tags: m.Tags,
+		LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 	}, m.AuthorName, m.AuthorIsBot)
 }
 
@@ -545,6 +551,10 @@ func (h *Handlers) SaveMessage(w http.ResponseWriter, r *http.Request, messageID
 	}
 	m, ok := h.messageAnywhere(w, r, messageID, p.User)
 	if !ok {
+		return
+	}
+	if m.BurnSeconds.Valid {
+		forbidden(w, r, CodeNotForBurn, "Burn-on-read messages cannot be saved.")
 		return
 	}
 	before, err := h.Queries.GetSaved(r.Context(), store.GetSavedParams{UserID: p.User.ID, MessageID: m.ID})
@@ -743,6 +753,7 @@ func (h *Handlers) ListUnreads(w http.ResponseWriter, r *http.Request, params ap
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
+			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {

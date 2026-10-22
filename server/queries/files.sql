@@ -1,6 +1,7 @@
 -- name: CreateFile :one
-INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, size)
-VALUES (@workspace_id, @channel_id, @uploader_id, @name, @content_type, @size)
+INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, size, media_kind, duration_ms, waveform)
+VALUES (@workspace_id, @channel_id, @uploader_id, @name, @content_type, @size,
+        sqlc.narg(media_kind), sqlc.narg(duration_ms), sqlc.narg(waveform))
 RETURNING *;
 
 -- name: CountUnsentFiles :one

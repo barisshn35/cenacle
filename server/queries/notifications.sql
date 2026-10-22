@@ -69,7 +69,8 @@ INSERT INTO push_keys (public_key, private_key) VALUES (@public_key, @private_ke
 -- what the message is to them (a mention, a conversation, any message) and
 -- their channel and workspace settings. A reply kept in its thread is only for
 -- the people it mentions and those following the thread, as a mention.
-SELECT m.id AS message_id, m.channel_id, m.body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
+SELECT m.id AS message_id, m.channel_id,
+    (CASE WHEN m.burn_seconds IS NULL THEN m.body ELSE '' END)::text AS body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
        c.workspace_id, a.display_name AS author_name,
        cm.user_id, (mm.user_id IS NOT NULL OR coalesce(tf.following, false))::boolean AS mentioned,
        coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,
@@ -124,7 +125,8 @@ WHERE (np.prefs -> 'email' ->> 'enabled')::boolean AND u.email <> '' AND u.email
 -- MissedForEmail lists unread mentions, conversation messages and replies in
 -- followed threads of a person after a message id and older than a moment,
 -- oldest first.
-SELECT m.id AS message_id, m.channel_id, m.body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
+SELECT m.id AS message_id, m.channel_id,
+    (CASE WHEN m.burn_seconds IS NULL THEN m.body ELSE '' END)::text AS body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
        c.workspace_id, a.display_name AS author_name,
        (mm.user_id IS NOT NULL OR coalesce(tf.following, false))::boolean AS mentioned,
        coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,

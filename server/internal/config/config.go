@@ -88,6 +88,9 @@ type Config struct {
 	EgressAllow []netip.Prefix
 	// EgressAllowHTTP permits plain http addresses for bots (development).
 	EgressAllowHTTP bool
+	// LinkPreviews: the server fetches a preview of the first link of messages
+	// (public addresses only; never through EgressAllow).
+	LinkPreviews bool
 
 	// Files: an S3-compatible object store; without an endpoint, files are off.
 	S3Endpoint  string
@@ -181,6 +184,7 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 		cfg.EgressAllow = allow
 	}
 	cfg.EgressAllowHTTP = l.boolean("CENACLE_EGRESS_ALLOW_HTTP", false)
+	cfg.LinkPreviews = l.boolean("CENACLE_LINK_PREVIEWS", true)
 	cfg.S3Endpoint = strings.TrimSpace(l.str("CENACLE_S3_ENDPOINT", ""))
 	cfg.S3Region = l.str("CENACLE_S3_REGION", "garage")
 	cfg.S3Bucket = l.str("CENACLE_S3_BUCKET", "cenacle-files")

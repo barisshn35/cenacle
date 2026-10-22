@@ -44,6 +44,8 @@ type stack struct {
 	client   *http.Client
 	// bg does the background integration work (tests run it by hand).
 	bg *chat.Background
+	// links fetches link previews (tests run it by hand).
+	links *chat.LinkFetcher
 	// defaultWS is the default workspace, used by calls that name none.
 	defaultWS string
 }
@@ -143,6 +145,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			AccountURL:        "http://id.test/account",
 			PushPublicKey:     pushKeyFunc(o.pushKey),
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
+			Presence: presence, LinkPreviews: true,
 		},
 		Realtime: &realtime.Handler{
 			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Presence: presence, Cookies: cookies, PublicURL: public,
@@ -154,7 +157,8 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: o.httpTimeout > 0}}
 	t.Cleanup(client.CloseIdleConnections)
 	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub, client: client,
-		bg: &chat.Background{DB: sh.pool, Queries: queries, Egress: egressClient, Files: files, Log: log}}
+		bg:    &chat.Background{DB: sh.pool, Queries: queries, Egress: egressClient, Files: files, Log: log},
+		links: &chat.LinkFetcher{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log}}
 	if err := sh.pool.QueryRow(context.Background(), "SELECT id::text FROM workspaces WHERE is_default").Scan(&s.defaultWS); err != nil {
 		t.Fatal(err)
 	}

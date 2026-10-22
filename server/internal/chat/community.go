@@ -41,6 +41,13 @@ type postExtras struct {
 	title pgtype.Text
 	tags  []string
 	poll  *api.NewPoll
+	// link is the first web address of the text (its preview follows).
+	link    pgtype.Text
+	forward []byte
+	sticker pgtype.UUID
+	burn    pgtype.Int4
+	// presence tells who @here reaches.
+	presence PresenceReader
 }
 
 func (e postExtras) titleText() string { return e.title.String }

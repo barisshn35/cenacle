@@ -17,6 +17,7 @@ import (
 type counter struct{ n atomic.Int64 }
 
 func (c *counter) PurgeDeleted(context.Context) (int64, error)  { c.n.Add(1); return 0, nil }
+func (c *counter) PurgeBurned(context.Context) (int64, error)   { return 0, nil }
 func (c *counter) DeleteExpired(context.Context) (int64, error) { c.n.Add(1); return 0, nil }
 
 func TestPeriodicJobsRunOnStart(t *testing.T) {

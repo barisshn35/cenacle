@@ -41,6 +41,10 @@ type RateLimiter interface {
 
 // Handlers implements the chat operations of the API.
 type Handlers struct {
+	// Presence tells who is online (for @here); optional.
+	Presence PresenceReader
+	// LinkPreviews: the server fetches previews of links in messages.
+	LinkPreviews bool
 	// terms caches the terms of service in force (TermsGate).
 	terms termsCache
 
@@ -148,6 +152,7 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
+			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -219,7 +224,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		}
 	}
 	body := strings.TrimSpace(in.Body)
-	if problem == "" && (body != "" || (len(attachments) == 0 && len(files) == 0)) {
+	if problem == "" && (body != "" || (len(attachments) == 0 && len(files) == 0 && in.StickerId == nil)) {
 		body, problem = validBody(in.Body)
 	}
 	if problem == "" && (len(in.Nonce) < 8 || len(in.Nonce) > 64) {
@@ -246,6 +251,10 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 	extra, problem := h.messageExtras(c, in)
+	if problem == "" {
+		problem = h.richExtras(r, c, in, body, &extra)
+	}
+	extra.presence = h.Presence
 	if problem != "" {
 		badRequest(w, r, problem)
 		return
@@ -320,7 +329,8 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 	msg, err := q.CreateMessage(ctx, store.CreateMessageParams{
 		ChannelID: c.ID, AuthorID: author.ID, Body: body, Nonce: nonce, Attachments: rawAttachments,
 		HasFiles: len(files) > 0, RootID: reply.root.ID, AlsoInChannel: reply.isReply() && reply.also,
-		Title: extra.title, Tags: extra.tags,
+		Title: extra.title, Tags: extra.tags, LinkUrl: extra.link, Forward: extra.forward,
+		StickerID: extra.sticker, BurnSeconds: extra.burn,
 	})
 	if isNoRows(err) {
 		msg, err = q.GetMessageByNonce(ctx, store.GetMessageByNonceParams{AuthorID: author.ID, Nonce: nonce})
@@ -360,6 +370,9 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 			return api.Message{}, err
 		}
 	}
+	if err := addBroadcastMentions(ctx, q, extra.presence, c, msg); err != nil {
+		return api.Message{}, err
+	}
 	// What you send, you have read. No channel.read: the sender's other
 	// devices see message.created and move their read position themselves. A
 	// reply kept in its thread leaves the channel's read position alone.
@@ -372,7 +385,12 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 	if err := decorate(ctx, q, author.ID, msgs); err != nil {
 		return api.Message{}, err
 	}
-	if err := emit(ctx, q, events.MessageCreated, msgs[0]); err != nil {
+	// Burn-on-read: members get the message without its text (they reveal it).
+	event := msgs[0]
+	if event.Burn != nil {
+		hideBurn(&event)
+	}
+	if err := emit(ctx, q, events.MessageCreated, event); err != nil {
 		return api.Message{}, err
 	}
 	if !reply.isReply() {
@@ -416,6 +434,21 @@ func messageAPI(m store.Message, authorName string, authorIsBot bool) api.Messag
 	}
 	if m.Title.Valid {
 		out.Title = &m.Title.String
+	}
+	if len(m.Forward) > 0 {
+		var f api.ForwardInfo
+		if json.Unmarshal(m.Forward, &f) == nil {
+			out.Forward = &f
+		}
+	}
+	if m.StickerID.Valid {
+		out.Sticker = &api.Sticker{Id: uuid(m.StickerID)}
+	}
+	if m.BurnSeconds.Valid {
+		out.Burn = &api.BurnInfo{Seconds: int(m.BurnSeconds.Int32)}
+	}
+	if b := broadcasts(m.Body); len(b) > 0 {
+		out.Broadcast = &b
 	}
 	if len(m.Tags) > 0 {
 		out.Tags = &m.Tags

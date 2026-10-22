@@ -71,6 +71,10 @@ const (
 	// BannerChanged and TermsChanged go to everyone.
 	BannerChanged = "banner.changed"
 	TermsChanged  = "terms.changed"
+	// MessagePreview (a link preview came or went) goes to the channel's
+	// members; EmojiChanged (custom emoji or stickers) to the workspace's.
+	MessagePreview = "message.preview"
+	EmojiChanged   = "emoji.changed"
 )
 
 // ID is a parsed stream id.

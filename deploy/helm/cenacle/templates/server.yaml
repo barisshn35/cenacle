@@ -53,6 +53,7 @@ spec:
             - { name: CENACLE_ANNOUNCEMENT_CHANNEL, value: {{ .Values.admin.announcementChannel | quote }} }
             - { name: CENACLE_DEFAULT_CHANNELS, value: {{ .Values.admin.defaultChannels | quote }} }
             - { name: CENACLE_EGRESS_ALLOW, value: {{ .Values.egressAllow | quote }} }
+            - { name: CENACLE_LINK_PREVIEWS, value: {{ .Values.linkPreviews | quote }} }
             - { name: CENACLE_DRAIN_DELAY, value: {{ .Values.server.drainDelay | quote }} }
             {{- if .Values.metrics.enabled }}
             - { name: CENACLE_METRICS_ADDR, value: ':9090' }

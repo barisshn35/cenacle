@@ -11,6 +11,43 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addBroadcastMentions = `-- name: AddBroadcastMentions :exec
+INSERT INTO message_mentions (message_id, user_id, kind)
+SELECT $1, m.user_id, $2
+FROM channel_members m
+JOIN channels c ON c.id = m.channel_id
+JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = m.user_id
+JOIN users u ON u.id = m.user_id AND NOT u.is_bot
+WHERE m.channel_id = $3 AND m.user_id <> $4
+  AND ($5::uuid[] IS NULL OR m.user_id = ANY($5::uuid[]))
+  AND ($6::text[] IS NULL OR wm.role = ANY($6::text[]))
+ON CONFLICT DO NOTHING
+`
+
+type AddBroadcastMentionsParams struct {
+	MessageID pgtype.UUID   `json:"message_id"`
+	Kind      string        `json:"kind"`
+	ChannelID pgtype.UUID   `json:"channel_id"`
+	AuthorID  pgtype.UUID   `json:"author_id"`
+	Users     []pgtype.UUID `json:"users"`
+	Roles     []string      `json:"roles"`
+}
+
+// AddBroadcastMentions records a mention of many (@channel, @here, @admins)
+// for each member it reaches: everyone but the author, those online (users,
+// for @here) or those with a workspace role (role).
+func (q *Queries) AddBroadcastMentions(ctx context.Context, arg AddBroadcastMentionsParams) error {
+	_, err := q.db.Exec(ctx, addBroadcastMentions,
+		arg.MessageID,
+		arg.Kind,
+		arg.ChannelID,
+		arg.AuthorID,
+		arg.Users,
+		arg.Roles,
+	)
+	return err
+}
+
 const addMentions = `-- name: AddMentions :exec
 INSERT INTO message_mentions (message_id, user_id)
 SELECT $1, m.user_id FROM channel_members m
@@ -72,7 +109,7 @@ func (q *Queries) DeleteMentions(ctx context.Context, messageID pgtype.UUID) err
 const listMentions = `-- name: ListMentions :many
 SELECT mm.message_id, u.id AS user_id, u.display_name
 FROM message_mentions mm JOIN users u ON u.id = mm.user_id
-WHERE mm.message_id = ANY($1::uuid[])
+WHERE mm.message_id = ANY($1::uuid[]) AND mm.kind = 'person'
 ORDER BY mm.message_id, lower(u.display_name)
 `
 

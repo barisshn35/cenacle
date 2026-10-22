@@ -361,7 +361,8 @@ func (q *Queries) ListWorkspaceNotificationPrefs(ctx context.Context, userID pgt
 }
 
 const missedForEmail = `-- name: MissedForEmail :many
-SELECT m.id AS message_id, m.channel_id, m.body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
+SELECT m.id AS message_id, m.channel_id,
+    (CASE WHEN m.burn_seconds IS NULL THEN m.body ELSE '' END)::text AS body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
        c.workspace_id, a.display_name AS author_name,
        (mm.user_id IS NOT NULL OR coalesce(tf.following, false))::boolean AS mentioned,
        coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,
@@ -454,7 +455,8 @@ func (q *Queries) NewestMessageID(ctx context.Context) (pgtype.UUID, error) {
 }
 
 const notifyCandidates = `-- name: NotifyCandidates :many
-SELECT m.id AS message_id, m.channel_id, m.body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
+SELECT m.id AS message_id, m.channel_id,
+    (CASE WHEN m.burn_seconds IS NULL THEN m.body ELSE '' END)::text AS body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
        c.workspace_id, a.display_name AS author_name,
        cm.user_id, (mm.user_id IS NOT NULL OR coalesce(tf.following, false))::boolean AS mentioned,
        coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,

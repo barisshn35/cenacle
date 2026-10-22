@@ -3215,6 +3215,12 @@ paths:
                 name: { type: string, minLength: 1, maxLength: 255 }
                 size: { type: integer, format: int64, minimum: 1 }
                 content_type: { type: string, maxLength: 255 }
+                media_kind: { type: string, enum: [voice, clip], description: Recorded in the app. }
+                duration_ms: { type: integer, minimum: 0, maximum: 3600000 }
+                waveform:
+                  type: array
+                  maxItems: 64
+                  items: { type: integer, minimum: 0, maximum: 255 }
       responses:
         '201':
           description: The file and its upload form.
@@ -4054,6 +4060,175 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/messages/{message_id}/forward:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [chat]
+      operationId: forwardMessage
+      summary: Forward a message to a channel or conversation you can post in
+      description: The new message carries a copy of the original (its author, text, channel and time), with an optional comment. Burn-on-read messages cannot be forwarded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string, format: uuid }
+                comment: { type: string, maxLength: 4000 }
+      responses:
+        '201':
+          description: The new message.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/messages/{message_id}/link-preview:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: hideLinkPreview
+      summary: Remove a message's link preview (its author)
+      responses:
+        '204': { description: Removed; members see `message.preview`. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/messages/{message_id}/reveal:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [chat]
+      operationId: revealMessage
+      summary: Read a burn-on-read message (its text shows for its seconds, once)
+      responses:
+        '200':
+          description: The message with its text; revealing again returns it until it expires for you.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '410': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/emoji:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listCustomEmoji
+      summary: The workspace's custom emoji
+      responses:
+        '200':
+          description: Emoji.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [emoji]
+                properties:
+                  emoji:
+                    type: array
+                    items: { $ref: '#/components/schemas/CustomEmoji' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: addCustomEmoji
+      summary: Add a custom emoji (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 500 per workspace)
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string, pattern: '^[a-z0-9_+-]{2,32}$' } }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: The emoji; the workspace's members see `emoji.changed`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomEmoji' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+  /api/emoji/{emoji_id}:
+    parameters:
+      - { name: emoji_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: deleteCustomEmoji
+      summary: Remove a custom emoji (who added it, or a workspace admin)
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/stickers:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listStickers
+      summary: The workspace's stickers
+      responses:
+        '200':
+          description: Stickers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [stickers]
+                properties:
+                  stickers:
+                    type: array
+                    items: { $ref: '#/components/schemas/Sticker' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: addSticker
+      summary: Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace)
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 40 } }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: The sticker; the workspace's members see `emoji.changed`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sticker' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+  /api/stickers/{sticker_id}:
+    parameters:
+      - { name: sticker_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: deleteSticker
+      summary: Remove a sticker (who added it, or a workspace admin)
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
 security:
   - cookie: []
   - bearer: []
@@ -4074,6 +4249,48 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    LinkPreview:
+      type: object
+      required: [url, title, description, site_name, image_url]
+      properties:
+        url: { type: string }
+        title: { type: string }
+        description: { type: string }
+        site_name: { type: string }
+        image_url: { type: string, nullable: true, description: Served by Cenacle (never the original site). }
+    ForwardInfo:
+      type: object
+      required: [message_id, channel_id, channel_name, author, body, created_at]
+      properties:
+        message_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        channel_name: { type: string }
+        author: { $ref: '#/components/schemas/Author' }
+        body: { type: string }
+        created_at: { type: string, format: date-time }
+    BurnInfo:
+      type: object
+      required: [seconds, revealed_at, hidden]
+      properties:
+        seconds: { type: integer }
+        revealed_at: { type: string, format: date-time, nullable: true, description: When the reader revealed it. }
+        hidden: { type: boolean, description: The text is left out (not revealed yet, or expired). }
+    CustomEmoji:
+      type: object
+      required: [id, name, url, created_by]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        url: { type: string }
+        created_by: { type: string, format: uuid, nullable: true }
+    Sticker:
+      type: object
+      required: [id, name, url, created_by]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        url: { type: string }
+        created_by: { type: string, format: uuid, nullable: true }
     Poll:
       type: object
       required: [options, multiple, anonymous, closes_at, closed, voters]
@@ -4995,6 +5212,14 @@ components:
           type: array
           items: { type: string }
         poll: { $ref: '#/components/schemas/Poll' }
+        link_preview: { $ref: '#/components/schemas/LinkPreview' }
+        forward: { $ref: '#/components/schemas/ForwardInfo' }
+        sticker: { $ref: '#/components/schemas/Sticker' }
+        burn: { $ref: '#/components/schemas/BurnInfo' }
+        broadcast:
+          type: array
+          description: 'Mentions of many: channel (also @everyone), here, or role:owner / role:admin.'
+          items: { type: string }
     ThreadSummary:
       type: object
       description: The replies of a message (absent when it has none).
@@ -5060,6 +5285,12 @@ components:
         width: { type: integer, nullable: true }
         height: { type: integer, nullable: true }
         has_thumbnail: { type: boolean }
+        media_kind: { type: string, enum: [voice, clip], nullable: true }
+        duration_ms: { type: integer, nullable: true }
+        waveform:
+          type: array
+          description: Up to 64 levels (0–255) of a voice message.
+          items: { type: integer }
     ChannelFile:
       allOf:
         - $ref: '#/components/schemas/FileInfo'
@@ -5111,6 +5342,12 @@ components:
           maxItems: 5
           items: { type: string }
         poll: { $ref: '#/components/schemas/NewPoll' }
+        sticker_id: { type: string, format: uuid, description: Send a sticker (the text may be empty). }
+        burn_seconds:
+          type: integer
+          minimum: 10
+          maximum: 86400
+          description: Burn-on-read (conversations only)—each recipient sees the text once, for this long.
     Reaction:
       type: object
       required: [emoji, count, me]

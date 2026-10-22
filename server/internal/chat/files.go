@@ -80,7 +80,58 @@ func fileAPI(f store.File) api.FileInfo {
 		w, h := int(f.Width.Int32), int(f.Height.Int32)
 		out.Width, out.Height = &w, &h
 	}
+	if f.MediaKind.Valid {
+		out.MediaKind = ptr(api.FileInfoMediaKind(f.MediaKind.String))
+	}
+	if f.DurationMs.Valid {
+		out.DurationMs = ptr(int(f.DurationMs.Int32))
+	}
+	if len(f.Waveform) > 0 {
+		levels := make([]int, len(f.Waveform))
+		for i, b := range f.Waveform {
+			levels[i] = int(b)
+		}
+		out.Waveform = &levels
+	}
 	return out
+}
+
+// mediaFields checks what the app says about a recording: a voice message
+// or a clip, its length and (voice) its waveform.
+func mediaFields(kind *string, duration *int, waveform []int) (store.CreateFileParams, string) {
+	var out store.CreateFileParams
+	if kind == nil {
+		if duration != nil || len(waveform) > 0 {
+			return out, "A length or waveform belongs to a voice message or clip."
+		}
+		return out, ""
+	}
+	if *kind != "voice" && *kind != "clip" {
+		return out, "media_kind is voice or clip."
+	}
+	out.MediaKind = pgtype.Text{String: *kind, Valid: true}
+	if duration != nil {
+		if *duration < 0 || *duration > 3_600_000 {
+			return out, "A recording is at most an hour long."
+		}
+		out.DurationMs = pgtype.Int4{Int32: int32(*duration), Valid: true} //nolint:gosec // bounded above
+	}
+	if len(waveform) > 64 {
+		return out, "A waveform has at most 64 levels."
+	}
+	if len(waveform) > 0 {
+		if *kind != "voice" {
+			return out, "Only voice messages have a waveform."
+		}
+		out.Waveform = make([]byte, len(waveform))
+		for i, v := range waveform {
+			if v < 0 || v > 255 {
+				return out, "Waveform levels are 0 to 255."
+			}
+			out.Waveform[i] = byte(v)
+		}
+	}
+	return out, ""
 }
 
 // cleanFileName keeps the last path element and drops control characters.
@@ -132,8 +183,16 @@ func (h *Handlers) CreateUpload(w http.ResponseWriter, r *http.Request, channelI
 		Name        string  `json:"name"`
 		Size        int64   `json:"size"`
 		ContentType *string `json:"content_type"`
+		MediaKind   *string `json:"media_kind"`
+		DurationMs  *int    `json:"duration_ms"`
+		Waveform    []int   `json:"waveform"`
 	}
 	if !decode(w, r, &in) {
+		return
+	}
+	media, problem := mediaFields(in.MediaKind, in.DurationMs, in.Waveform)
+	if problem != "" {
+		badRequest(w, r, problem)
 		return
 	}
 	name := cleanFileName(in.Name)
@@ -177,6 +236,7 @@ func (h *Handlers) CreateUpload(w http.ResponseWriter, r *http.Request, channelI
 	f, err := h.Queries.CreateFile(r.Context(), store.CreateFileParams{
 		WorkspaceID: c.WorkspaceID, ChannelID: c.ID, UploaderID: p.User.ID, Name: name,
 		ContentType: contentType, Size: in.Size,
+		MediaKind: media.MediaKind, DurationMs: media.DurationMs, Waveform: media.Waveform,
 	})
 	if err != nil {
 		h.unavailable(w, r, "create file", err)

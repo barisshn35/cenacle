@@ -39,7 +39,8 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 	if !ok {
 		return
 	}
-	if !validEmoji(emoji) {
+	custom := customEmojiName(emoji)
+	if custom == "" && !validEmoji(emoji) {
 		badRequest(w, r, "A reaction is one emoji.")
 		return
 	}
@@ -57,6 +58,17 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 		return
 	case add && h.timedOut(w, r, c.WorkspaceID, p.User):
 		return
+	}
+	if add && custom != "" {
+		exists, err := h.Queries.CustomEmojiExists(r.Context(), store.CustomEmojiExistsParams{WorkspaceID: c.WorkspaceID, Name: custom})
+		if err != nil {
+			h.unavailable(w, r, "react", err)
+			return
+		}
+		if !exists {
+			badRequest(w, r, "No such custom emoji in this workspace.")
+			return
+		}
 	}
 	ev := ReactionEvent{ChannelID: uuid(c.ID).String(), MessageID: uuid(m.ID).String(), Emoji: emoji,
 		UserID: uuid(p.User.ID).String()}

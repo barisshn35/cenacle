@@ -50,6 +50,8 @@ files:
 
 # Private networks bots may be reached in (comma-separated).
 egressAllow: ''
+# Previews of links in messages (public addresses only); false for air-gapped installs.
+linkPreviews: true
 
 # E-mail about missed mentions and direct messages; empty host: no e-mail.
 # The password is the "smtp-password" key of existingSecret (optional).

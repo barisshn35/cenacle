@@ -58,6 +58,12 @@ type BotToken struct {
 	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
 }
 
+type BurnReveal struct {
+	MessageID  pgtype.UUID `json:"message_id"`
+	UserID     pgtype.UUID `json:"user_id"`
+	RevealedAt time.Time   `json:"revealed_at"`
+}
+
 type Channel struct {
 	ID              pgtype.UUID        `json:"id"`
 	Name            string             `json:"name"`
@@ -105,6 +111,15 @@ type ChannelNotificationPref struct {
 	Level      string             `json:"level"`
 	MutedUntil pgtype.Timestamptz `json:"muted_until"`
 	Sound      string             `json:"sound"`
+}
+
+type CustomEmoji struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Name        string      `json:"name"`
+	PictureID   pgtype.UUID `json:"picture_id"`
+	CreatedBy   pgtype.UUID `json:"created_by"`
+	CreatedAt   time.Time   `json:"created_at"`
 }
 
 type DirectorySyncState struct {
@@ -188,6 +203,9 @@ type File struct {
 	Height       pgtype.Int4        `json:"height"`
 	HasThumbnail bool               `json:"has_thumbnail"`
 	CreatedAt    time.Time          `json:"created_at"`
+	MediaKind    pgtype.Text        `json:"media_kind"`
+	DurationMs   pgtype.Int4        `json:"duration_ms"`
+	Waveform     []byte             `json:"waveform"`
 }
 
 type IncomingWebhook struct {
@@ -210,6 +228,16 @@ type InstanceBanner struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type LinkPreview struct {
+	Url         string      `json:"url"`
+	Ok          bool        `json:"ok"`
+	Title       string      `json:"title"`
+	Description string      `json:"description"`
+	SiteName    string      `json:"site_name"`
+	ImageID     pgtype.UUID `json:"image_id"`
+	FetchedAt   time.Time   `json:"fetched_at"`
+}
+
 type Message struct {
 	ID            pgtype.UUID        `json:"id"`
 	ChannelID     pgtype.UUID        `json:"channel_id"`
@@ -228,11 +256,17 @@ type Message struct {
 	PinnedBy      pgtype.UUID        `json:"pinned_by"`
 	Title         pgtype.Text        `json:"title"`
 	Tags          []string           `json:"tags"`
+	LinkUrl       pgtype.Text        `json:"link_url"`
+	LinkState     pgtype.Text        `json:"link_state"`
+	Forward       []byte             `json:"forward"`
+	StickerID     pgtype.UUID        `json:"sticker_id"`
+	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
 }
 
 type MessageMention struct {
 	MessageID pgtype.UUID `json:"message_id"`
 	UserID    pgtype.UUID `json:"user_id"`
+	Kind      string      `json:"kind"`
 }
 
 type MessageReaction struct {
@@ -382,6 +416,15 @@ type SlashCommand struct {
 	Description string      `json:"description"`
 	Hint        string      `json:"hint"`
 	Secret      string      `json:"secret"`
+	CreatedBy   pgtype.UUID `json:"created_by"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type Sticker struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Name        string      `json:"name"`
+	PictureID   pgtype.UUID `json:"picture_id"`
 	CreatedBy   pgtype.UUID `json:"created_by"`
 	CreatedAt   time.Time   `json:"created_at"`
 }

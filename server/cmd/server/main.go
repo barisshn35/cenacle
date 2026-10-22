@@ -237,6 +237,13 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			DB: pool, Queries: queries, Ephemeral: ephemeral, AdminEmail: cfg.AdminEmail, Log: log,
 		},
 	}
+	if cfg.LinkPreviews {
+		// Anyone can post a link: no allow list, https only.
+		deps.Links = &chat.LinkFetcher{
+			DB: pool, Queries: queries, Log: log,
+			Egress: egress.New(egress.Policy{Timeout: 5 * time.Second, MaxResponse: 2 << 20}),
+		}
+	}
 	// Notifications outside the app: web push and e-mail, both optional.
 	var pushPublicKey func(context.Context) (string, error)
 	if cfg.WebPush {
@@ -307,6 +314,8 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Cookies:           cookies,
 			Log:               log,
 			Configured:        append([]string{cfg.AnnouncementChannel}, cfg.DefaultChannels...),
+			Presence:          presence,
+			LinkPreviews:      cfg.LinkPreviews,
 			MessagesPerWindow: 20,
 			Window:            10 * time.Second,
 		},

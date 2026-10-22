@@ -44,7 +44,7 @@ func (a *audience) allows(ev events.Event) bool {
 	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted,
 		events.ReactionAdded, events.ReactionRemoved,
 		events.ChannelUpdated, events.ChannelMembersChanged, events.ThreadUpdated,
-		events.PollUpdated, events.RunUpdated:
+		events.PollUpdated, events.RunUpdated, events.MessagePreview:
 		return a.inChannel(d.ChannelID)
 	case events.ChannelCreated: // a channel for everyone in its workspace
 		if !a.workspaces[d.Channel.WorkspaceID] {
@@ -82,7 +82,7 @@ func (a *audience) allows(ev events.Event) bool {
 	case events.BannerChanged, events.TermsChanged: // everyone
 		return true
 	case events.CategoriesChanged, events.WorkspaceUpdated, events.WorkspaceMembersChanged,
-		events.ReportCreated, events.EventChanged:
+		events.ReportCreated, events.EventChanged, events.EmojiChanged:
 		return a.workspaces[d.WorkspaceID]
 	case events.WorkspaceJoined:
 		if d.UserID != a.user {

@@ -105,7 +105,7 @@ FROM messages m
 JOIN channel_members cm ON cm.channel_id = m.channel_id AND cm.user_id = $1
 JOIN channels c ON c.id = m.channel_id
 JOIN users u ON u.id = m.author_id
-WHERE m.deleted_at IS NULL
+WHERE m.deleted_at IS NULL AND m.burn_seconds IS NULL
   AND cenacle_search_vector(m.body) @@ cenacle_search_query($2)
   AND ($3::uuid IS NULL OR c.workspace_id = $3::uuid)
   AND ($4::uuid IS NULL OR m.channel_id = $4::uuid)

@@ -196,6 +196,9 @@ func decorate(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs []a
 		i := index[uuid(f.MessageID)]
 		msgs[i].Files = append(msgs[i].Files, fileAPI(f))
 	}
+	if err := richMessages(ctx, q, reader, msgs, index, ids); err != nil {
+		return err
+	}
 	polls, err := pollsFor(ctx, q, reader, ids)
 	if err != nil {
 		return err

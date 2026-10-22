@@ -22,6 +22,8 @@ import (
 // Purger removes deleted messages that can no longer be restored.
 type Purger interface {
 	PurgeDeleted(ctx context.Context) (int64, error)
+	// PurgeBurned removes burn-on-read messages that have been read.
+	PurgeBurned(ctx context.Context) (int64, error)
 }
 
 // SessionCleaner removes sessions that can no longer be used.
@@ -160,6 +162,15 @@ type PushNotificationsArgs struct{}
 // Kind implements river.JobArgs.
 func (PushNotificationsArgs) Kind() string { return "push_notifications" }
 
+// FetchLinkPreviewsArgs fetches the previews of new messages' links.
+type FetchLinkPreviewsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (FetchLinkPreviewsArgs) Kind() string { return "fetch_link_previews" }
+
+// LinksInterval is how often new links are looked for.
+var LinksInterval = 3 * time.Second
+
 // EmailNotificationsArgs e-mails people about what they missed.
 type EmailNotificationsArgs struct{}
 
@@ -229,6 +240,13 @@ func (w *purgeWorker) Work(ctx context.Context, _ *river.Job[PurgeMessagesArgs])
 	if n > 0 {
 		w.log.Info("deleted messages purged", "count", n)
 	}
+	if err != nil {
+		return err
+	}
+	n, err = w.purger.PurgeBurned(ctx)
+	if n > 0 {
+		w.log.Info("burned messages purged", "count", n)
+	}
 	return err
 }
 
@@ -265,6 +283,8 @@ type Deps struct {
 	// Push and Email are optional (web push, e-mail notifications).
 	Push  Runner
 	Email Runner
+	// Links is optional (link previews may be turned off).
+	Links Runner
 	Log   *slog.Logger
 }
 
@@ -300,6 +320,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Email != nil {
 		river.AddWorker(workers, &runnerWorker[EmailNotificationsArgs]{r: d.Email, what: "notification e-mails sent", log: d.Log})
 		jobs = append(jobs, periodic(time.Minute, EmailNotificationsArgs{}))
+	}
+	if d.Links != nil {
+		river.AddWorker(workers, &runnerWorker[FetchLinkPreviewsArgs]{r: d.Links, what: "link previews settled", log: d.Log})
+		jobs = append(jobs, periodic(LinksInterval, FetchLinkPreviewsArgs{}))
 	}
 	if d.Profiles != nil {
 		river.AddWorker(workers, &profilesWorker{p: d.Profiles})

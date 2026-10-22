@@ -2521,10 +2521,196 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/messages/{message_id}/forward': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Forward a message to a channel or conversation you can post in
+     * @description The new message carries a copy of the original (its author, text, channel and time), with an optional comment. Burn-on-read messages cannot be forwarded.
+     */
+    post: operations['forwardMessage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/link-preview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a message's link preview (its author) */
+    delete: operations['hideLinkPreview'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/reveal': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Read a burn-on-read message (its text shows for its seconds, once) */
+    post: operations['revealMessage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/emoji': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The workspace's custom emoji */
+    get: operations['listCustomEmoji'];
+    put?: never;
+    /** Add a custom emoji (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 500 per workspace) */
+    post: operations['addCustomEmoji'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/emoji/{emoji_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        emoji_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a custom emoji (who added it, or a workspace admin) */
+    delete: operations['deleteCustomEmoji'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/stickers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The workspace's stickers */
+    get: operations['listStickers'];
+    put?: never;
+    /** Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace) */
+    post: operations['addSticker'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/stickers/{sticker_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sticker_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a sticker (who added it, or a workspace admin) */
+    delete: operations['deleteSticker'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    LinkPreview: {
+      url: string;
+      title: string;
+      description: string;
+      site_name: string;
+      /** @description Served by Cenacle (never the original site). */
+      image_url: string | null;
+    };
+    ForwardInfo: {
+      /** Format: uuid */
+      message_id: string;
+      /** Format: uuid */
+      channel_id: string;
+      channel_name: string;
+      author: components['schemas']['Author'];
+      body: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    BurnInfo: {
+      seconds: number;
+      /**
+       * Format: date-time
+       * @description When the reader revealed it.
+       */
+      revealed_at: string | null;
+      /** @description The text is left out (not revealed yet */
+      hidden: boolean;
+    };
+    CustomEmoji: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      url: string;
+      /** Format: uuid */
+      created_by: string | null;
+    };
+    Sticker: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      url: string;
+      /** Format: uuid */
+      created_by: string | null;
+    };
     Poll: {
       options: components['schemas']['PollOption'][];
       /** @description More than one option may be chosen. */
@@ -3295,6 +3481,12 @@ export interface components {
       title?: string | null;
       tags?: string[];
       poll?: components['schemas']['Poll'];
+      link_preview?: components['schemas']['LinkPreview'];
+      forward?: components['schemas']['ForwardInfo'];
+      sticker?: components['schemas']['Sticker'];
+      burn?: components['schemas']['BurnInfo'];
+      /** @description Mentions of many: channel (also @everyone), here, or role:owner / role:admin. */
+      broadcast?: string[];
     };
     /** @description The replies of a message (absent when it has none). */
     ThreadSummary: {
@@ -3355,6 +3547,11 @@ export interface components {
       width: number | null;
       height: number | null;
       has_thumbnail: boolean;
+      /** @enum {string|null} */
+      media_kind?: 'voice' | 'clip' | null;
+      duration_ms?: number | null;
+      /** @description Up to 64 levels (0–255) of a voice message. */
+      waveform?: number[];
     };
     ChannelFile: components['schemas']['FileInfo'] & {
       /** Format: uuid */
@@ -3387,6 +3584,13 @@ export interface components {
       title?: string;
       tags?: string[];
       poll?: components['schemas']['NewPoll'];
+      /**
+       * Format: uuid
+       * @description Send a sticker (the text may be empty).
+       */
+      sticker_id?: string;
+      /** @description Burn-on-read (conversations only)—each recipient sees the text once, for this long. */
+      burn_seconds?: number;
     };
     Reaction: {
       emoji: string;
@@ -6922,6 +7126,13 @@ export interface operations {
           /** Format: int64 */
           size: number;
           content_type?: string;
+          /**
+           * @description Recorded in the app.
+           * @enum {string}
+           */
+          media_kind?: 'voice' | 'clip';
+          duration_ms?: number;
+          waveform?: number[];
         };
       };
     };
@@ -8029,6 +8240,255 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Run'];
         };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  forwardMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          channel_id: string;
+          comment?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The new message. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  hideLinkPreview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed; members see `message.preview`. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  revealMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The message with its text; revealing again returns it until it expires for you. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      410: components['responses']['Problem'];
+    };
+  };
+  listCustomEmoji: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Emoji. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            emoji: components['schemas']['CustomEmoji'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  addCustomEmoji: {
+    parameters: {
+      query: {
+        name: string;
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description The emoji; the workspace's members see `emoji.changed`. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CustomEmoji'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+    };
+  };
+  deleteCustomEmoji: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        emoji_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listStickers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Stickers. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            stickers: components['schemas']['Sticker'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  addSticker: {
+    parameters: {
+      query: {
+        name: string;
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description The sticker; the workspace's members see `emoji.changed`. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Sticker'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+    };
+  };
+  deleteSticker: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sticker_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];

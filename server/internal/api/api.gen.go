@@ -440,6 +440,24 @@ func (e ChannelVisibility) Valid() bool {
 	}
 }
 
+// Defines values for ChannelFileMediaKind.
+const (
+	ChannelFileMediaKindClip  ChannelFileMediaKind = "clip"
+	ChannelFileMediaKindVoice ChannelFileMediaKind = "voice"
+)
+
+// Valid indicates whether the value is a known member of the ChannelFileMediaKind enum.
+func (e ChannelFileMediaKind) Valid() bool {
+	switch e {
+	case ChannelFileMediaKindClip:
+		return true
+	case ChannelFileMediaKindVoice:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ChannelNotificationLevel.
 const (
 	ChannelNotificationLevelAll      ChannelNotificationLevel = "all"
@@ -563,6 +581,24 @@ func (e EventMe) Valid() bool {
 	case EventMeGoing:
 		return true
 	case EventMeMaybe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FileInfoMediaKind.
+const (
+	FileInfoMediaKindClip  FileInfoMediaKind = "clip"
+	FileInfoMediaKindVoice FileInfoMediaKind = "voice"
+)
+
+// Valid indicates whether the value is a known member of the FileInfoMediaKind enum.
+func (e FileInfoMediaKind) Valid() bool {
+	switch e {
+	case FileInfoMediaKindClip:
+		return true
+	case FileInfoMediaKindVoice:
 		return true
 	default:
 		return false
@@ -1043,6 +1079,24 @@ func (e CreateWebhookJSONBodyKind) Valid() bool {
 	}
 }
 
+// Defines values for CreateUploadJSONBodyMediaKind.
+const (
+	CreateUploadJSONBodyMediaKindClip  CreateUploadJSONBodyMediaKind = "clip"
+	CreateUploadJSONBodyMediaKindVoice CreateUploadJSONBodyMediaKind = "voice"
+)
+
+// Valid indicates whether the value is a known member of the CreateUploadJSONBodyMediaKind enum.
+func (e CreateUploadJSONBodyMediaKind) Valid() bool {
+	switch e {
+	case CreateUploadJSONBodyMediaKindClip:
+		return true
+	case CreateUploadJSONBodyMediaKindVoice:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetChannelMemberRoleJSONBodyRole.
 const (
 	SetChannelMemberRoleJSONBodyRoleManager SetChannelMemberRoleJSONBodyRole = "manager"
@@ -1406,6 +1460,16 @@ type BotToken struct {
 	Scopes     []string           `json:"scopes"`
 }
 
+// BurnInfo defines model for BurnInfo.
+type BurnInfo struct {
+	// Hidden The text is left out (not revealed yet
+	Hidden bool `json:"hidden"`
+
+	// RevealedAt When the reader revealed it.
+	RevealedAt *time.Time `json:"revealed_at"`
+	Seconds    int        `json:"seconds"`
+}
+
 // Category defines model for Category.
 type Category struct {
 	Id       openapi_types.UUID `json:"id"`
@@ -1474,17 +1538,25 @@ type ChannelVisibility string
 
 // ChannelFile defines model for ChannelFile.
 type ChannelFile struct {
-	ContentType  string             `json:"content_type"`
-	CreatedAt    time.Time          `json:"created_at"`
-	HasThumbnail bool               `json:"has_thumbnail"`
-	Height       *int               `json:"height"`
-	Id           openapi_types.UUID `json:"id"`
-	MessageId    openapi_types.UUID `json:"message_id"`
-	Name         string             `json:"name"`
-	Size         int64              `json:"size"`
-	Uploader     Author             `json:"uploader"`
-	Width        *int               `json:"width"`
+	ContentType  string                `json:"content_type"`
+	CreatedAt    time.Time             `json:"created_at"`
+	DurationMs   *int                  `json:"duration_ms,omitempty"`
+	HasThumbnail bool                  `json:"has_thumbnail"`
+	Height       *int                  `json:"height"`
+	Id           openapi_types.UUID    `json:"id"`
+	MediaKind    *ChannelFileMediaKind `json:"media_kind,omitempty"`
+	MessageId    openapi_types.UUID    `json:"message_id"`
+	Name         string                `json:"name"`
+	Size         int64                 `json:"size"`
+	Uploader     Author                `json:"uploader"`
+
+	// Waveform Up to 64 levels (0–255) of a voice message.
+	Waveform *[]int `json:"waveform,omitempty"`
+	Width    *int   `json:"width"`
 }
+
+// ChannelFileMediaKind defines model for ChannelFile.MediaKind.
+type ChannelFileMediaKind string
 
 // ChannelGroups defines model for ChannelGroups.
 type ChannelGroups struct {
@@ -1558,6 +1630,14 @@ type CommandResult struct {
 
 // CommandResultResponseType ephemeral is shown only to the caller; in_channel was posted as a message.
 type CommandResultResponseType string
+
+// CustomEmoji defines model for CustomEmoji.
+type CustomEmoji struct {
+	CreatedBy *openapi_types.UUID `json:"created_by"`
+	Id        openapi_types.UUID  `json:"id"`
+	Name      string              `json:"name"`
+	Url       string              `json:"url"`
+}
 
 // CustomStatus defines model for CustomStatus.
 type CustomStatus struct {
@@ -1633,13 +1713,21 @@ type EventInput struct {
 // FileInfo defines model for FileInfo.
 type FileInfo struct {
 	ContentType  string             `json:"content_type"`
+	DurationMs   *int               `json:"duration_ms,omitempty"`
 	HasThumbnail bool               `json:"has_thumbnail"`
 	Height       *int               `json:"height"`
 	Id           openapi_types.UUID `json:"id"`
+	MediaKind    *FileInfoMediaKind `json:"media_kind,omitempty"`
 	Name         string             `json:"name"`
 	Size         int64              `json:"size"`
-	Width        *int               `json:"width"`
+
+	// Waveform Up to 64 levels (0–255) of a voice message.
+	Waveform *[]int `json:"waveform,omitempty"`
+	Width    *int   `json:"width"`
 }
+
+// FileInfoMediaKind defines model for FileInfo.MediaKind.
+type FileInfoMediaKind string
 
 // FollowedThread defines model for FollowedThread.
 type FollowedThread struct {
@@ -1654,6 +1742,16 @@ type FollowedThread struct {
 
 // FontTemplate defines model for FontTemplate.
 type FontTemplate string
+
+// ForwardInfo defines model for ForwardInfo.
+type ForwardInfo struct {
+	Author      Author             `json:"author"`
+	Body        string             `json:"body"`
+	ChannelId   openapi_types.UUID `json:"channel_id"`
+	ChannelName string             `json:"channel_name"`
+	CreatedAt   time.Time          `json:"created_at"`
+	MessageId   openapi_types.UUID `json:"message_id"`
+}
 
 // GroupMapping defines model for GroupMapping.
 type GroupMapping struct {
@@ -1683,6 +1781,17 @@ type InvitePreview struct {
 	WorkspaceName string             `json:"workspace_name"`
 }
 
+// LinkPreview defines model for LinkPreview.
+type LinkPreview struct {
+	Description string `json:"description"`
+
+	// ImageUrl Served by Cenacle (never the original site).
+	ImageUrl *string `json:"image_url"`
+	SiteName string  `json:"site_name"`
+	Title    string  `json:"title"`
+	Url      string  `json:"url"`
+}
+
 // Logout defines model for Logout.
 type Logout struct {
 	// EndSessionUrl Sign-out page of Cenacle ID; empty if it is not known.
@@ -1707,12 +1816,18 @@ type Message struct {
 
 	// Body Markdown (CommonMark with GitHub tables, strikethrough and task lists); clients
 	// render it without raw HTML. `<@user-id>` mentions a person.
-	Body      string             `json:"body"`
-	ChannelId openapi_types.UUID `json:"channel_id"`
-	CreatedAt time.Time          `json:"created_at"`
-	EditedAt  *time.Time         `json:"edited_at"`
-	Files     []FileInfo         `json:"files"`
-	Id        openapi_types.UUID `json:"id"`
+	Body string `json:"body"`
+
+	// Broadcast Mentions of many: channel (also @everyone), here, or role:owner / role:admin.
+	Broadcast   *[]string          `json:"broadcast,omitempty"`
+	Burn        *BurnInfo          `json:"burn,omitempty"`
+	ChannelId   openapi_types.UUID `json:"channel_id"`
+	CreatedAt   time.Time          `json:"created_at"`
+	EditedAt    *time.Time         `json:"edited_at"`
+	Files       []FileInfo         `json:"files"`
+	Forward     *ForwardInfo       `json:"forward,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	LinkPreview *LinkPreview       `json:"link_preview,omitempty"`
 
 	// Mentions The people the message mentions (members of the channel).
 	Mentions []Author `json:"mentions"`
@@ -1727,8 +1842,9 @@ type Message struct {
 	Reactions []Reaction `json:"reactions"`
 
 	// RootId The thread's first message when this is a reply.
-	RootId *openapi_types.UUID `json:"root_id,omitempty"`
-	Tags   *[]string           `json:"tags,omitempty"`
+	RootId  *openapi_types.UUID `json:"root_id,omitempty"`
+	Sticker *Sticker            `json:"sticker,omitempty"`
+	Tags    *[]string           `json:"tags,omitempty"`
 
 	// Thread The replies of a message (absent when it has none).
 	Thread *ThreadSummary `json:"thread,omitempty"`
@@ -1804,6 +1920,9 @@ type NewMessage struct {
 	// Body Markdown; may be empty when the message has attachments or files.
 	Body string `json:"body"`
 
+	// BurnSeconds Burn-on-read (conversations only)—each recipient sees the text once, for this long.
+	BurnSeconds *int `json:"burn_seconds,omitempty"`
+
 	// FileIds Ready files the sender uploaded into this channel (see createUpload).
 	FileIds *[]openapi_types.UUID `json:"file_ids,omitempty"`
 	Nonce   string                `json:"nonce"`
@@ -1811,7 +1930,10 @@ type NewMessage struct {
 
 	// RootId Reply in this message's thread (a reply's thread when it is a reply).
 	RootId *openapi_types.UUID `json:"root_id,omitempty"`
-	Tags   *[]string           `json:"tags,omitempty"`
+
+	// StickerId Send a sticker (the text may be empty).
+	StickerId *openapi_types.UUID `json:"sticker_id,omitempty"`
+	Tags      *[]string           `json:"tags,omitempty"`
 
 	// Title Required for posts in forums (not for replies).
 	Title *string `json:"title,omitempty"`
@@ -2161,6 +2283,14 @@ type SlashCommand struct {
 	Url         string             `json:"url"`
 }
 
+// Sticker defines model for Sticker.
+type Sticker struct {
+	CreatedBy *openapi_types.UUID `json:"created_by"`
+	Id        openapi_types.UUID  `json:"id"`
+	Name      string              `json:"name"`
+	Url       string              `json:"url"`
+}
+
 // Subscription defines model for Subscription.
 type Subscription struct {
 	CreatedAt time.Time          `json:"created_at"`
@@ -2427,9 +2557,17 @@ type ListChannelFilesParams struct {
 // CreateUploadJSONBody defines parameters for CreateUpload.
 type CreateUploadJSONBody struct {
 	ContentType *string `json:"content_type,omitempty"`
-	Name        string  `json:"name"`
-	Size        int64   `json:"size"`
+	DurationMs  *int    `json:"duration_ms,omitempty"`
+
+	// MediaKind Recorded in the app.
+	MediaKind *CreateUploadJSONBodyMediaKind `json:"media_kind,omitempty"`
+	Name      string                         `json:"name"`
+	Size      int64                          `json:"size"`
+	Waveform  *[]int                         `json:"waveform,omitempty"`
 }
+
+// CreateUploadJSONBodyMediaKind defines parameters for CreateUpload.
+type CreateUploadJSONBodyMediaKind string
 
 // AddChannelMemberJSONBody defines parameters for AddChannelMember.
 type AddChannelMemberJSONBody struct {
@@ -2453,6 +2591,12 @@ type ListMessagesParams struct {
 // EditMessageJSONBody defines parameters for EditMessage.
 type EditMessageJSONBody struct {
 	Body string `json:"body"`
+}
+
+// ForwardMessageJSONBody defines parameters for ForwardMessage.
+type ForwardMessageJSONBody struct {
+	ChannelId openapi_types.UUID `json:"channel_id"`
+	Comment   *string            `json:"comment,omitempty"`
 }
 
 // VotePollJSONBody defines parameters for VotePoll.
@@ -2697,6 +2841,11 @@ type OpenConversationJSONBody struct {
 	UserIds []openapi_types.UUID `json:"user_ids"`
 }
 
+// AddCustomEmojiParams defines parameters for AddCustomEmoji.
+type AddCustomEmojiParams struct {
+	Name string `form:"name" json:"name"`
+}
+
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
 	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
@@ -2738,6 +2887,11 @@ type ListReportsParams struct {
 
 // ListReportsParamsStatus defines parameters for ListReports.
 type ListReportsParamsStatus string
+
+// AddStickerParams defines parameters for AddSticker.
+type AddStickerParams struct {
+	Name string `form:"name" json:"name"`
+}
 
 // BackchannelLogoutFormdataRequestBody defines body for BackchannelLogout for application/x-www-form-urlencoded ContentType.
 type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
@@ -2801,6 +2955,9 @@ type CreateMessageJSONRequestBody = NewMessage
 
 // EditMessageJSONRequestBody defines body for EditMessage for application/json ContentType.
 type EditMessageJSONRequestBody EditMessageJSONBody
+
+// ForwardMessageJSONRequestBody defines body for ForwardMessage for application/json ContentType.
+type ForwardMessageJSONRequestBody ForwardMessageJSONBody
 
 // VotePollJSONRequestBody defines body for VotePoll for application/json ContentType.
 type VotePollJSONRequestBody VotePollJSONBody
@@ -3080,6 +3237,12 @@ type ServerInterface interface {
 	// EditMessage Edit your own message
 	// (PATCH /api/channels/{channel_id}/messages/{message_id})
 	EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// ForwardMessage Forward a message to a channel or conversation you can post in
+	// (POST /api/channels/{channel_id}/messages/{message_id}/forward)
+	ForwardMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// HideLinkPreview Remove a message's link preview (its author)
+	// (DELETE /api/channels/{channel_id}/messages/{message_id}/link-preview)
+	HideLinkPreview(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// UnpinMessage Unpin a message
 	// (DELETE /api/channels/{channel_id}/messages/{message_id}/pin)
 	UnpinMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
@@ -3107,6 +3270,9 @@ type ServerInterface interface {
 	// RestoreMessage Undo deleting a message (whoever may delete it)
 	// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
 	RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// RevealMessage Read a burn-on-read message (its text shows for its seconds, once)
+	// (POST /api/channels/{channel_id}/messages/{message_id}/reveal)
+	RevealMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// SetChannelNotifications What a channel or conversation notifies you of; mute it
 	// (PUT /api/channels/{channel_id}/notifications)
 	SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -3128,6 +3294,9 @@ type ServerInterface interface {
 	// UnarchiveChannel Restore an archived channel (channel managers)
 	// (POST /api/channels/{channel_id}/unarchive)
 	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// DeleteCustomEmoji Remove a custom emoji (who added it, or a workspace admin)
+	// (DELETE /api/emoji/{emoji_id})
+	DeleteCustomEmoji(w http.ResponseWriter, r *http.Request, emojiId openapi_types.UUID)
 	// CancelEvent Cancel an event (its creator or a workspace admin); reminders are canceled
 	// (DELETE /api/events/{event_id})
 	CancelEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
@@ -3299,6 +3468,9 @@ type ServerInterface interface {
 	// GetSound A sound you uploaded (only for you)
 	// (GET /api/sounds/{sound_id})
 	GetSound(w http.ResponseWriter, r *http.Request, soundId openapi_types.UUID)
+	// DeleteSticker Remove a sticker (who added it, or a workspace admin)
+	// (DELETE /api/stickers/{sticker_id})
+	DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
 	// WithdrawTerms Withdraw the terms (instance administrators)
 	// (DELETE /api/terms)
 	WithdrawTerms(w http.ResponseWriter, r *http.Request)
@@ -3353,6 +3525,12 @@ type ServerInterface interface {
 	// OpenConversation Open a direct or group conversation
 	// (POST /api/workspaces/{workspace_id}/conversations)
 	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListCustomEmoji The workspace's custom emoji
+	// (GET /api/workspaces/{workspace_id}/emoji)
+	ListCustomEmoji(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// AddCustomEmoji Add a custom emoji (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 500 per workspace)
+	// (POST /api/workspaces/{workspace_id}/emoji)
+	AddCustomEmoji(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params AddCustomEmojiParams)
 	// ListEvents Events of a workspace from a time on (default now), soonest first (up to 100)
 	// (GET /api/workspaces/{workspace_id}/events)
 	ListEvents(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListEventsParams)
@@ -3413,6 +3591,12 @@ type ServerInterface interface {
 	// ListReports The moderation queue (workspace owners and admins)
 	// (GET /api/workspaces/{workspace_id}/reports)
 	ListReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListReportsParams)
+	// ListStickers The workspace's stickers
+	// (GET /api/workspaces/{workspace_id}/stickers)
+	ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// AddSticker Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace)
+	// (POST /api/workspaces/{workspace_id}/stickers)
+	AddSticker(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params AddStickerParams)
 	// GetWelcome The welcome a workspace shows new members
 	// (GET /api/workspaces/{workspace_id}/welcome)
 	GetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -3734,6 +3918,18 @@ func (_ Unimplemented) EditMessage(w http.ResponseWriter, r *http.Request, chann
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ForwardMessage Forward a message to a channel or conversation you can post in
+// (POST /api/channels/{channel_id}/messages/{message_id}/forward)
+func (_ Unimplemented) ForwardMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// HideLinkPreview Remove a message's link preview (its author)
+// (DELETE /api/channels/{channel_id}/messages/{message_id}/link-preview)
+func (_ Unimplemented) HideLinkPreview(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // UnpinMessage Unpin a message
 // (DELETE /api/channels/{channel_id}/messages/{message_id}/pin)
 func (_ Unimplemented) UnpinMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
@@ -3788,6 +3984,12 @@ func (_ Unimplemented) RestoreMessage(w http.ResponseWriter, r *http.Request, ch
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// RevealMessage Read a burn-on-read message (its text shows for its seconds, once)
+// (POST /api/channels/{channel_id}/messages/{message_id}/reveal)
+func (_ Unimplemented) RevealMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SetChannelNotifications What a channel or conversation notifies you of; mute it
 // (PUT /api/channels/{channel_id}/notifications)
 func (_ Unimplemented) SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -3827,6 +4029,12 @@ func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channe
 // UnarchiveChannel Restore an archived channel (channel managers)
 // (POST /api/channels/{channel_id}/unarchive)
 func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteCustomEmoji Remove a custom emoji (who added it, or a workspace admin)
+// (DELETE /api/emoji/{emoji_id})
+func (_ Unimplemented) DeleteCustomEmoji(w http.ResponseWriter, r *http.Request, emojiId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4172,6 +4380,12 @@ func (_ Unimplemented) GetSound(w http.ResponseWriter, r *http.Request, soundId 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteSticker Remove a sticker (who added it, or a workspace admin)
+// (DELETE /api/stickers/{sticker_id})
+func (_ Unimplemented) DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // WithdrawTerms Withdraw the terms (instance administrators)
 // (DELETE /api/terms)
 func (_ Unimplemented) WithdrawTerms(w http.ResponseWriter, r *http.Request) {
@@ -4277,6 +4491,18 @@ func (_ Unimplemented) ListCommands(w http.ResponseWriter, r *http.Request, work
 // OpenConversation Open a direct or group conversation
 // (POST /api/workspaces/{workspace_id}/conversations)
 func (_ Unimplemented) OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListCustomEmoji The workspace's custom emoji
+// (GET /api/workspaces/{workspace_id}/emoji)
+func (_ Unimplemented) ListCustomEmoji(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddCustomEmoji Add a custom emoji (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 500 per workspace)
+// (POST /api/workspaces/{workspace_id}/emoji)
+func (_ Unimplemented) AddCustomEmoji(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params AddCustomEmojiParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4397,6 +4623,18 @@ func (_ Unimplemented) ListPresence(w http.ResponseWriter, r *http.Request, work
 // ListReports The moderation queue (workspace owners and admins)
 // (GET /api/workspaces/{workspace_id}/reports)
 func (_ Unimplemented) ListReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListReportsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListStickers The workspace's stickers
+// (GET /api/workspaces/{workspace_id}/stickers)
+func (_ Unimplemented) ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddSticker Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace)
+// (POST /api/workspaces/{workspace_id}/stickers)
+func (_ Unimplemented) AddSticker(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params AddStickerParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5906,6 +6144,76 @@ func (siw *ServerInterfaceWrapper) EditMessage(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ForwardMessage operation middleware
+func (siw *ServerInterfaceWrapper) ForwardMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ForwardMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// HideLinkPreview operation middleware
+func (siw *ServerInterfaceWrapper) HideLinkPreview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.HideLinkPreview(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // UnpinMessage operation middleware
 func (siw *ServerInterfaceWrapper) UnpinMessage(w http.ResponseWriter, r *http.Request) {
 
@@ -6268,6 +6576,41 @@ func (siw *ServerInterfaceWrapper) RestoreMessage(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// RevealMessage operation middleware
+func (siw *ServerInterfaceWrapper) RevealMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevealMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetChannelNotifications operation middleware
 func (siw *ServerInterfaceWrapper) SetChannelNotifications(w http.ResponseWriter, r *http.Request) {
 
@@ -6441,6 +6784,32 @@ func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UnarchiveChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteCustomEmoji operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCustomEmoji(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "emoji_id" -------------
+	var emojiId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "emoji_id", chi.URLParam(r, "emoji_id"), &emojiId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "emoji_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCustomEmoji(w, r, emojiId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7982,6 +8351,32 @@ func (siw *ServerInterfaceWrapper) GetSound(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteSticker operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSticker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sticker_id" -------------
+	var stickerId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sticker_id", chi.URLParam(r, "sticker_id"), &stickerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sticker_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSticker(w, r, stickerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // WithdrawTerms operation middleware
 func (siw *ServerInterfaceWrapper) WithdrawTerms(w http.ResponseWriter, r *http.Request) {
 
@@ -8407,6 +8802,74 @@ func (siw *ServerInterfaceWrapper) OpenConversation(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.OpenConversation(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCustomEmoji operation middleware
+func (siw *ServerInterfaceWrapper) ListCustomEmoji(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCustomEmoji(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddCustomEmoji operation middleware
+func (siw *ServerInterfaceWrapper) AddCustomEmoji(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AddCustomEmojiParams
+
+	// ------------- Required query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddCustomEmoji(w, r, workspaceId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9004,6 +9467,74 @@ func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListReports(w, r, workspaceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListStickers operation middleware
+func (siw *ServerInterfaceWrapper) ListStickers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListStickers(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddSticker operation middleware
+func (siw *ServerInterfaceWrapper) AddSticker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AddStickerParams
+
+	// ------------- Required query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddSticker(w, r, workspaceId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9686,6 +10217,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/runs/{run_id}/finish", wrapper.FinishRun)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/forward", wrapper.ForwardMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/link-preview", wrapper.HideLinkPreview)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/reveal", wrapper.RevealMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/emoji", wrapper.ListCustomEmoji)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/emoji", wrapper.AddCustomEmoji)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/emoji/{emoji_id}", wrapper.DeleteCustomEmoji)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/stickers", wrapper.ListStickers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/stickers", wrapper.AddSticker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/stickers/{sticker_id}", wrapper.DeleteSticker)
 	})
 
 	return r

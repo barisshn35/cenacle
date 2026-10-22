@@ -361,6 +361,9 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 	case m.AuthorID != p.User.ID:
 		forbidden(w, r, httpx.CodeForbidden, "Only the author can edit a message.")
 		return
+	case m.BurnSeconds.Valid:
+		forbidden(w, r, CodeNotForBurn, "Burn-on-read messages cannot be edited.")
+		return
 	case c.ArchivedAt.Valid:
 		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
 		return
@@ -379,6 +382,9 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 			if err := q.AddMentions(r.Context(), store.AddMentionsParams{MessageID: m.ID, ChannelID: c.ID, UserIds: ids}); err != nil {
 				return err
 			}
+		}
+		if err := addBroadcastMentions(r.Context(), q, h.Presence, c, edited); err != nil {
+			return err
 		}
 		msgs := []api.Message{messageAPI(edited, m.AuthorName, m.AuthorIsBot)}
 		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
@@ -490,7 +496,8 @@ func storeMessage(m store.GetMessageRow) store.Message {
 	return store.Message{ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
-		Title: m.Title, Tags: m.Tags}
+		Title: m.Title, Tags: m.Tags,
+		LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds}
 }
 
 // Purger removes deleted messages once they can no longer be restored (a
