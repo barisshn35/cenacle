@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { FederationPage } from '../federation/federation-page';
 import { AskPage } from '../ai/ai-ui';
 import { useState, type ReactNode } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -58,7 +59,8 @@ export type HomeView =
   | 'playbooks'
   | 'workflows'
   | 'compliance'
-  | 'ask';
+  | 'ask'
+  | 'federation';
 
 function channelLabel(c: { name: string; kind: string }) {
   return c.kind === 'direct' || c.kind === 'group' ? c.name : `#${c.name}`;
@@ -139,6 +141,7 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
       {view === 'workflows' && <WorkflowsPage />}
       {view === 'compliance' && <CompliancePage />}
       {view === 'ask' && <AskPage />}
+      {view === 'federation' && <FederationPage />}
     </Shell>
   );
 }

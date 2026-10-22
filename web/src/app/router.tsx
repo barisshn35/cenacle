@@ -91,6 +91,7 @@ const homeRoutes = (
     'workflows',
     'compliance',
     'ask',
+    'federation',
   ] as const
 ).map((view) =>
   createRoute({

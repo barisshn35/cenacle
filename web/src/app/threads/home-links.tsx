@@ -7,6 +7,7 @@ import {
   InboxIcon,
   ListChecksIcon,
   MessagesSquareIcon,
+  GlobeIcon,
   ShieldCheckIcon,
   SparklesIcon,
   SquareCheckBigIcon,
@@ -40,6 +41,7 @@ const LINKS = [
   { view: 'workflows', icon: ZapIcon },
   { view: 'compliance', icon: ShieldCheckIcon },
   { view: 'ask', icon: SparklesIcon },
+  { view: 'federation', icon: GlobeIcon },
 ] as const;
 
 /** At the top of the sidebar: views across the workspace's channels. */
@@ -59,7 +61,10 @@ export function HomeLinks() {
       <SidebarGroupContent>
         <SidebarMenu>
           {LINKS.filter(({ view }) =>
-            view === 'ask' ? ai : (view !== 'workflows' && view !== 'compliance') || active.admin,
+            view === 'ask'
+              ? ai
+              : (view !== 'workflows' && view !== 'compliance' && view !== 'federation') ||
+                active.admin,
           ).map(({ view, icon: Icon }) => {
             const active = path === `/${view}`;
             const count = view === 'threads' ? (threads?.threads ?? 0) : 0;

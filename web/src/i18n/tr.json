@@ -889,7 +889,8 @@
     "playbooks": "Playbook'lar",
     "workflows": "İş akışları",
     "compliance": "Uyumluluk",
-    "ask": "Yapay zekâya sor"
+    "ask": "Yapay zekâya sor",
+    "federation": "Federasyon"
   },
   "community": {
     "banner": {
@@ -1634,5 +1635,62 @@
     "settingsTitle": "Yapay zekâ",
     "turnOn": "Bu çalışma alanında yapay zekâyı aç",
     "settingsHint": "Özetler, yeniden yazma ve sorular; bu sunucunun yöneticisinin çalıştırdığı modelle. Mesajlar yalnızca ona gönderilir."
+  },
+  "federation": {
+    "loadFailed": "Bağlantılar yüklenemedi.",
+    "failed": "Olmadı. Tekrar deneyin.",
+    "offered": "onay bekleniyor",
+    "status": {
+      "pending": "Kuruluyor",
+      "active": "Bağlı",
+      "disabled": "Duraklatıldı"
+    },
+    "offers": {
+      "title": "Size önerilen kanallar",
+      "hint": "Kabul edince burada özel bir kanal açılır; mesajlar iki yönlü akar.",
+      "from": "{{server}} sunucusundan",
+      "accept": "Kabul et",
+      "decline": "Reddet"
+    },
+    "connections": {
+      "title": "Bağlı sunucular",
+      "hint": "Bu çalışma alanının kanal paylaştığı diğer Cenacle sunucuları. Kişileri burada sunucularının adıyla misafir olarak görünür.",
+      "none": "Henüz bağlantı yok.",
+      "pause": "Duraklat",
+      "resume": "Sürdür",
+      "remove": "Kaldır",
+      "removeTitle": "{{name}} bağlantısı kaldırılsın mı?",
+      "removeHint": "Paylaşılan kanallar mesaj alışverişini durdurur; buradaki mesajlar kalır.",
+      "seen": "Son haber: {{time}}",
+      "error": "Son gönderim başarısız:",
+      "shared": "Paylaşılanlar: {{channels}}"
+    },
+    "invite": {
+      "title": "Başka bir sunucuyu davet et",
+      "hint": "Kodu diğer sunucunun yöneticilerine verin; bir gün içinde onunla bağlanırlar.",
+      "name": "Diğer sunucunun buradaki adı",
+      "create": "Kod oluştur",
+      "code": "Davet kodu",
+      "copy": "Kopyala",
+      "copied": "Kod kopyalandı.",
+      "once": "Bir kez gösterilir. Bir gün içinde bir kez kullanılabilir."
+    },
+    "connect": {
+      "title": "Kodla bağlan",
+      "hint": "Başka bir Cenacle sunucusunun yöneticilerinden aldığınız davet kodunu yapıştırın.",
+      "code": "Davet kodu",
+      "name": "O sunucunun buradaki adı",
+      "submit": "Bağlan",
+      "done": "Bağlandı.",
+      "failed": "Bağlanılamadı."
+    },
+    "shares": {
+      "title": "Diğer sunucularla paylaşılan",
+      "with": "Şununla paylaş",
+      "choose": "Bir sunucu seçin",
+      "share": "Paylaş",
+      "offered": "Önerildi; kabul edince paylaşılır.",
+      "stop": "{{server}} ile paylaşmayı durdur"
+    }
   }
 }

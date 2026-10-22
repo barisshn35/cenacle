@@ -26,7 +26,7 @@ import type { RightView } from '../../stores/layout';
 function MainView({ mobile = false }: { mobile?: boolean }) {
   const path = useLocation({ select: (l) => l.pathname });
   const view =
-    /^\/(threads|activity|saved|unreads|tasks|events|playbooks|workflows|compliance|ask)$/.exec(
+    /^\/(threads|activity|saved|unreads|tasks|events|playbooks|workflows|compliance|ask|federation)$/.exec(
       path,
     )?.[1] as HomeView | undefined;
   return view ? <HomeViewPage view={view} mobile={mobile} /> : <ChannelView mobile={mobile} />;

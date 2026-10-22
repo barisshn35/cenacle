@@ -889,7 +889,8 @@
     "playbooks": "Playbooks",
     "workflows": "Workflows",
     "compliance": "Compliance",
-    "ask": "Ask AI"
+    "ask": "Ask AI",
+    "federation": "Federation"
   },
   "community": {
     "banner": {
@@ -1634,5 +1635,62 @@
     "settingsTitle": "AI",
     "turnOn": "Turn on AI for this workspace",
     "settingsHint": "Summaries, rewriting and questions, with the model this server's operator runs. Messages are sent only to it."
+  },
+  "federation": {
+    "loadFailed": "Couldn't load the connections.",
+    "failed": "That did not work. Try again.",
+    "offered": "waiting for them",
+    "status": {
+      "pending": "Setting up",
+      "active": "Connected",
+      "disabled": "Paused"
+    },
+    "offers": {
+      "title": "Channels offered to you",
+      "hint": "Accepting makes a private channel here; its messages go both ways.",
+      "from": "From {{server}}",
+      "accept": "Accept",
+      "decline": "Decline"
+    },
+    "connections": {
+      "title": "Connected servers",
+      "hint": "Other Cenacle servers this workspace shares channels with. Their people show here as guests named after their server.",
+      "none": "No connections yet.",
+      "pause": "Pause",
+      "resume": "Resume",
+      "remove": "Remove",
+      "removeTitle": "Remove the connection to {{name}}?",
+      "removeHint": "Shared channels stop exchanging messages; messages already here stay.",
+      "seen": "Last heard from {{time}}",
+      "error": "Last delivery failed:",
+      "shared": "Shared: {{channels}}"
+    },
+    "invite": {
+      "title": "Invite another server",
+      "hint": "Give the code to the other server's admins; they connect with it within a day.",
+      "name": "Name of the other server here",
+      "create": "Create code",
+      "code": "Invitation code",
+      "copy": "Copy",
+      "copied": "Code copied.",
+      "once": "Shown once. It works once, for a day."
+    },
+    "connect": {
+      "title": "Connect with a code",
+      "hint": "Paste the invitation code you got from another Cenacle server's admins.",
+      "code": "Invitation code",
+      "name": "Name of that server here",
+      "submit": "Connect",
+      "done": "Connected.",
+      "failed": "Couldn't connect."
+    },
+    "shares": {
+      "title": "Shared with other servers",
+      "with": "Share with",
+      "choose": "Choose a server",
+      "share": "Share",
+      "offered": "Offered; it is shared once they accept.",
+      "stop": "Stop sharing with {{server}}"
+    }
   }
 }

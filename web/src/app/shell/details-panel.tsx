@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { ChannelShares } from '../federation/channel-shares';
 import { ChannelNotificationsSection } from '../notifications/channel-notifications';
 import { PinsSection } from '../threads/pins-section';
 import { RunsSection } from '../community/playbooks';
@@ -57,6 +58,7 @@ export function DetailsPanel() {
         </div>
       )}
       {channel?.encrypted && <EncryptionInfo channel={channel} />}
+      {channel && <ChannelShares channel={channel} />}
       {channel && isConversation(channel) && (
         <div className="flex flex-col gap-3 p-4 text-sm">
           <p className="text-muted-foreground">{t(`dm.about.${channel.kind}`)}</p>

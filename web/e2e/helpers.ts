@@ -503,6 +503,13 @@ export async function mockApi(
     const kind = route.request().url().split('/').pop()!;
     return route.fulfill({ json: { [kind]: [] } });
   });
+  // Servers channels are shared with (v0.25): none unless a test adds them.
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/shares$/, (route) =>
+    route.request().method() === 'GET' ? route.fulfill({ json: { shares: [] } }) : route.fallback(),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/federation$/, (route) =>
+    route.fulfill({ json: { connections: [], offers: [] } }),
+  );
   // Classification banners (v0.23): none unless a test adds them.
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/classifications$/, (route) =>
     route.fulfill({ json: { classifications: [], default_id: null } }),
@@ -754,7 +761,10 @@ export async function mockApi(
       void this.socket?.close({ code, reason: '' });
     },
     emitEphemeral(type, data) {
-      this.socket?.send(JSON.stringify({ op: 'ephemeral', type, data }));
+      // Like events: kept until the app has connected (a busy machine connects late).
+      const frame = JSON.stringify({ op: 'ephemeral', type, data });
+      if (this.socket) this.socket.send(frame);
+      else this.pending.push(frame);
     },
   };
   let failures = opts.failSend ?? 0;
