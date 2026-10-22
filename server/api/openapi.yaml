@@ -664,6 +664,268 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/search/messages:
+    get:
+      tags: [search]
+      operationId: searchMessages
+      summary: Search the messages of your channels and conversations
+      description: |
+        Every word must begin a word of the message (accents and case do not matter);
+        `-word` leaves out messages with it. Newest first; `before` continues a page.
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+        - { name: channel_id, in: query, schema: { type: string, format: uuid } }
+        - { name: from, in: query, description: Only messages of this person., schema: { type: string, format: uuid } }
+        - { name: after, in: query, schema: { type: string, format: date-time } }
+        - { name: until, in: query, schema: { type: string, format: date-time } }
+        - { name: has, in: query, schema: { type: string, enum: [file, link] } }
+        - { name: before, in: query, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+      responses:
+        '200':
+          description: Matching messages.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results, has_more]
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: '#/components/schemas/SearchMessage' }
+                  has_more: { type: boolean }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/search/files:
+    get:
+      tags: [search]
+      operationId: searchFiles
+      summary: Search files of your channels by name
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+        - { name: before, in: query, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+      responses:
+        '200':
+          description: Matching files.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results, has_more]
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: '#/components/schemas/SearchFile' }
+                  has_more: { type: boolean }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/notifications:
+    get:
+      tags: [notifications]
+      operationId: getNotificationSettings
+      summary: Your notification settings, with muted channels and workspaces
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSettings' }
+        '401':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags: [notifications]
+      operationId: setNotificationPrefs
+      summary: Save your notification settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationPrefs' }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSettings' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/notifications:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [notifications]
+      operationId: setChannelNotifications
+      summary: What a channel or conversation notifies you of; mute it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChannelNotificationInput' }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelNotification' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/notifications:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [notifications]
+      operationId: setWorkspaceNotifications
+      summary: Mute or unmute a workspace for you
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [muted_until]
+              properties:
+                muted_until: { type: string, format: date-time, nullable: true }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorkspaceNotification' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/me/sounds:
+    get:
+      tags: [notifications]
+      operationId: listMySounds
+      summary: Sounds you uploaded
+      responses:
+        '200':
+          description: Your sounds.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sounds]
+                properties:
+                  sounds:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserSound' }
+        '401':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [notifications]
+      operationId: uploadSound
+      summary: Upload a notification sound for yourself
+      description: MP3, Ogg, WAV or WebM audio, at most 1 MB; five per person.
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 60 } }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: Uploaded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserSound' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /api/me/sounds/{sound_id}:
+    parameters:
+      - { name: sound_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [notifications]
+      operationId: deleteSound
+      summary: Remove a sound you uploaded
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/sounds/{sound_id}:
+    parameters:
+      - { name: sound_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [notifications]
+      operationId: getSound
+      summary: A sound you uploaded (only for you)
+      responses:
+        '200':
+          description: The audio.
+          content:
+            audio/mpeg:
+              schema: { type: string, format: binary }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/me/push-subscriptions:
+    post:
+      tags: [notifications]
+      operationId: addPushSubscription
+      summary: Receive web push notifications in this browser
+      description: Only when web push is turned on for the installation (`push_public_key` is set).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PushSubscription' }
+      responses:
+        '204':
+          description: Subscribed.
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [notifications]
+      operationId: removePushSubscription
+      summary: Stop web push notifications in a browser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [endpoint]
+              properties:
+                endpoint: { type: string, maxLength: 2000 }
+      responses:
+        '204':
+          description: Unsubscribed.
+        '401':
+          $ref: '#/components/responses/Problem'
   /api/presence:
     put:
       tags: [realtime]
@@ -3168,6 +3430,142 @@ components:
           type: array
           items: { type: string }
           description: The keys administrators may replace.
+    SearchMessage:
+      type: object
+      required: [id, channel, author, body, created_at, has_files]
+      properties:
+        id: { type: string, format: uuid }
+        channel: { $ref: '#/components/schemas/SearchChannel' }
+        author: { $ref: '#/components/schemas/Author' }
+        body: { type: string }
+        created_at: { type: string, format: date-time }
+        has_files: { type: boolean }
+    SearchFile:
+      type: object
+      required: [id, channel, message_id, name, content_type, size, has_thumbnail, created_at, uploader]
+      properties:
+        id: { type: string, format: uuid }
+        channel: { $ref: '#/components/schemas/SearchChannel' }
+        message_id: { type: string, format: uuid }
+        name: { type: string }
+        content_type: { type: string }
+        size: { type: integer, format: int64 }
+        has_thumbnail: { type: boolean }
+        created_at: { type: string, format: date-time }
+        uploader: { $ref: '#/components/schemas/Author' }
+    SearchChannel:
+      type: object
+      required: [id, name, kind, workspace_id]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        kind: { type: string, enum: [standard, announcement, direct, group] }
+        workspace_id: { type: string, format: uuid }
+    NotificationSound:
+      type: string
+      description: "A built-in sound, 'none', or 'user:<sound id>' for one you uploaded."
+      maxLength: 64
+    NotificationPrefs:
+      type: object
+      required: [desktop, push, sounds, volume, default_level, email, paused_until, quiet_hours]
+      properties:
+        desktop: { type: boolean, description: Notifications of the browser or desktop app. }
+        push: { type: boolean, description: Web push when no Cenacle tab is open. }
+        sounds:
+          type: object
+          required: [mention, direct, message]
+          properties:
+            mention: { $ref: '#/components/schemas/NotificationSound' }
+            direct: { $ref: '#/components/schemas/NotificationSound' }
+            message: { $ref: '#/components/schemas/NotificationSound' }
+        volume: { type: integer, minimum: 0, maximum: 100 }
+        default_level:
+          type: string
+          enum: [all, mentions, none]
+          description: What channels notify of unless set per channel (conversations always notify).
+        email:
+          type: object
+          required: [enabled, delay_minutes]
+          properties:
+            enabled: { type: boolean }
+            delay_minutes: { type: integer, enum: [5, 15, 60] }
+        paused_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: All notifications paused until then.
+        quiet_hours:
+          type: object
+          required: [enabled, start, end, days]
+          properties:
+            enabled: { type: boolean }
+            start: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+            end: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+            days:
+              type: array
+              description: Days of the week (0 Sunday) the quiet hours start on.
+              items: { type: integer, minimum: 0, maximum: 6 }
+              maxItems: 7
+    ChannelNotificationInput:
+      type: object
+      required: [level, muted_until, sound]
+      properties:
+        level: { type: string, enum: [default, all, mentions, none] }
+        muted_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Muted until then; far in the future for good; null to unmute.
+        sound: { type: string, maxLength: 64, description: "'' for the default sound." }
+    ChannelNotification:
+      allOf:
+        - $ref: '#/components/schemas/ChannelNotificationInput'
+        - type: object
+          required: [channel_id]
+          properties:
+            channel_id: { type: string, format: uuid }
+    WorkspaceNotification:
+      type: object
+      required: [workspace_id, muted_until]
+      properties:
+        workspace_id: { type: string, format: uuid }
+        muted_until: { type: string, format: date-time, nullable: true }
+    NotificationSettings:
+      type: object
+      required: [prefs, channels, workspaces, push_public_key, email_available]
+      properties:
+        prefs: { $ref: '#/components/schemas/NotificationPrefs' }
+        channels:
+          type: array
+          items: { $ref: '#/components/schemas/ChannelNotification' }
+        workspaces:
+          type: array
+          items: { $ref: '#/components/schemas/WorkspaceNotification' }
+        push_public_key:
+          type: string
+          nullable: true
+          description: The VAPID public key (base64url) when web push is on, else null.
+        email_available: { type: boolean, description: The installation can send e-mail. }
+    UserSound:
+      type: object
+      required: [id, name, content_type, size, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        content_type: { type: string }
+        size: { type: integer }
+        created_at: { type: string, format: date-time }
+    PushSubscription:
+      type: object
+      required: [endpoint, keys]
+      properties:
+        endpoint: { type: string, maxLength: 2000 }
+        keys:
+          type: object
+          required: [p256dh, auth]
+          properties:
+            p256dh: { type: string, maxLength: 200 }
+            auth: { type: string, maxLength: 100 }
     CustomStatus:
       type: object
       required: [emoji, text]

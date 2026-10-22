@@ -79,6 +79,8 @@ type options struct {
 	perWindow   int64
 	maxLen      int64
 	httpTimeout time.Duration
+	// pushKey turns on web push (subscriptions) with this public key.
+	pushKey string
 }
 
 func newStack(t *testing.T, sh shared, o options) *stack {
@@ -139,6 +141,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
 			Audit: auditLog, PublicURL: public.String(), Egress: egressClient, Files: files,
 			AccountURL:        "http://id.test/account",
+			PushPublicKey:     pushKeyFunc(o.pushKey),
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},
 		Realtime: &realtime.Handler{
@@ -630,4 +633,11 @@ func TestConnectionOutlivesHTTPTimeouts(t *testing.T) {
 	if got.ID != sent.ID {
 		t.Fatalf("got %s, want %s", got.ID, sent.ID)
 	}
+}
+
+func pushKeyFunc(key string) func(context.Context) (string, error) {
+	if key == "" {
+		return nil
+	}
+	return func(context.Context) (string, error) { return key, nil }
 }

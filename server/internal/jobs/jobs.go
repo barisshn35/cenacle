@@ -149,6 +149,38 @@ func (w *profilesWorker) Work(ctx context.Context, _ *river.Job[TidyProfilesArgs
 // ProfilesInterval is how often expired custom statuses are cleared.
 var ProfilesInterval = 30 * time.Second
 
+// Runner is a periodic piece of work that reports how much it did.
+type Runner interface {
+	Run(ctx context.Context) (int, error)
+}
+
+// PushNotificationsArgs sends web push about new messages.
+type PushNotificationsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (PushNotificationsArgs) Kind() string { return "push_notifications" }
+
+// EmailNotificationsArgs e-mails people about what they missed.
+type EmailNotificationsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (EmailNotificationsArgs) Kind() string { return "email_notifications" }
+
+type runnerWorker[T river.JobArgs] struct {
+	river.WorkerDefaults[T]
+	r    Runner
+	what string
+	log  *slog.Logger
+}
+
+func (w *runnerWorker[T]) Work(ctx context.Context, _ *river.Job[T]) error {
+	n, err := w.r.Run(ctx)
+	if n > 0 {
+		w.log.Info(w.what, "count", n)
+	}
+	return err
+}
+
 // Directory follows Cenacle ID's directory feed.
 type Directory interface {
 	Sync(ctx context.Context) (int, error)
@@ -230,7 +262,10 @@ type Deps struct {
 	Directory Directory
 	// Profiles is optional.
 	Profiles Profiles
-	Log      *slog.Logger
+	// Push and Email are optional (web push, e-mail notifications).
+	Push  Runner
+	Email Runner
+	Log   *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -257,6 +292,14 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 			periodic(ScheduledInterval, SendScheduledArgs{}),
 			periodic(24*time.Hour, PruneDeliveriesArgs{}),
 			periodic(time.Hour, PruneFilesArgs{}))
+	}
+	if d.Push != nil {
+		river.AddWorker(workers, &runnerWorker[PushNotificationsArgs]{r: d.Push, what: "web push sent", log: d.Log})
+		jobs = append(jobs, periodic(10*time.Second, PushNotificationsArgs{}))
+	}
+	if d.Email != nil {
+		river.AddWorker(workers, &runnerWorker[EmailNotificationsArgs]{r: d.Email, what: "notification e-mails sent", log: d.Log})
+		jobs = append(jobs, periodic(time.Minute, EmailNotificationsArgs{}))
 	}
 	if d.Profiles != nil {
 		river.AddWorker(workers, &profilesWorker{p: d.Profiles})

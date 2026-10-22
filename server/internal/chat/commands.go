@@ -65,7 +65,7 @@ func (h *Handlers) ListCommands(w http.ResponseWriter, r *http.Request, workspac
 }
 
 func ephemeral(w http.ResponseWriter, text string) {
-	httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.Ephemeral, Text: &text})
+	httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeEphemeral, Text: &text})
 }
 
 // RunCommand implements api.ServerInterface.
@@ -110,7 +110,7 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 			return
 		}
 		h.membersChanged(r.Context(), c, p.User.ID, events.ChannelLeft, toAPI(c, access{}))
-		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.None})
+		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeNone})
 	case "topic":
 		if !canManage(c, role) {
 			ephemeral(w, "Only the channel's managers can change its topic.")
@@ -129,7 +129,7 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 			return
 		}
 		h.publish(r.Context(), events.ChannelUpdated, ChannelEvent{Channel: toAPI(updated, access{ch: RoleMember}), ChannelID: uuid(c.ID).String()})
-		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.None})
+		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeNone})
 	case "me", "shrug":
 		body := "_" + strings.ReplaceAll(text, "_", `\_`) + "_"
 		if command == "shrug" {
@@ -164,7 +164,7 @@ func (h *Handlers) postAsCommand(w http.ResponseWriter, r *http.Request, c store
 		h.unavailable(w, r, "post command message", err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.InChannel, Message: &out})
+	httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeInChannel, Message: &out})
 }
 
 func (h *Handlers) commandJoin(w http.ResponseWriter, r *http.Request, user store.User, from store.Channel, name string) {
@@ -332,7 +332,7 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 	}
 	var out commandResponse
 	if len(bytes.TrimSpace(res.Body)) == 0 {
-		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.None})
+		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeNone})
 		return
 	}
 	if err := json.Unmarshal(res.Body, &out); err != nil {
@@ -346,12 +346,12 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 	}
 	if out.ResponseType != "in_channel" {
 		text := out.Text
-		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.Ephemeral, Text: &text, Attachments: &clean})
+		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeEphemeral, Text: &text, Attachments: &clean})
 		return
 	}
 	msg := trimBody(out.Text)
 	if msg == "" && len(clean) == 0 {
-		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.None})
+		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeNone})
 		return
 	}
 	if msg != "" {
@@ -375,7 +375,7 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 		h.unavailable(w, r, "post command answer", err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.InChannel, Message: &posted})
+	httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeInChannel, Message: &posted})
 }
 
 func (h *Handlers) commandFailed(w http.ResponseWriter, r *http.Request, trigger string, err error) {

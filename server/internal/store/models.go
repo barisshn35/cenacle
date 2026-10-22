@@ -85,10 +85,24 @@ type ChannelMember struct {
 	ViaGroup   bool        `json:"via_group"`
 }
 
+type ChannelNotificationPref struct {
+	UserID     pgtype.UUID        `json:"user_id"`
+	ChannelID  pgtype.UUID        `json:"channel_id"`
+	Level      string             `json:"level"`
+	MutedUntil pgtype.Timestamptz `json:"muted_until"`
+	Sound      string             `json:"sound"`
+}
+
 type DirectorySyncState struct {
 	ID       bool               `json:"id"`
 	Cursor   string             `json:"cursor"`
 	SyncedAt pgtype.Timestamptz `json:"synced_at"`
+}
+
+type EmailNotification struct {
+	UserID      pgtype.UUID        `json:"user_id"`
+	LastMessage pgtype.UUID        `json:"last_message"`
+	SentAt      pgtype.Timestamptz `json:"sent_at"`
 }
 
 type EventDelivery struct {
@@ -178,12 +192,39 @@ type MessageReaction struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+type NotificationPref struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	Prefs     []byte      `json:"prefs"`
+	UpdatedAt time.Time   `json:"updated_at"`
+}
+
+type NotifyCursor struct {
+	Name   string      `json:"name"`
+	Cursor pgtype.UUID `json:"cursor"`
+}
+
 type Picture struct {
 	ID          pgtype.UUID `json:"id"`
 	ContentType string      `json:"content_type"`
 	Data        []byte      `json:"data"`
 	Still       []byte      `json:"still"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type PushKey struct {
+	ID         bool      `json:"id"`
+	PublicKey  string    `json:"public_key"`
+	PrivateKey string    `json:"private_key"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type PushSubscription struct {
+	ID        pgtype.UUID `json:"id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	Endpoint  string      `json:"endpoint"`
+	P256dh    string      `json:"p256dh"`
+	Auth      string      `json:"auth"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type ScheduledMessage struct {
@@ -280,6 +321,15 @@ type UserPreference struct {
 	UpdatedAt  time.Time   `json:"updated_at"`
 }
 
+type UserSound struct {
+	ID          pgtype.UUID `json:"id"`
+	UserID      pgtype.UUID `json:"user_id"`
+	Name        string      `json:"name"`
+	ContentType string      `json:"content_type"`
+	Data        []byte      `json:"data"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
 type Workspace struct {
 	ID          pgtype.UUID `json:"id"`
 	Name        string      `json:"name"`
@@ -315,4 +365,10 @@ type WorkspaceMember struct {
 	Role        string      `json:"role"`
 	JoinedAt    time.Time   `json:"joined_at"`
 	ViaGroup    bool        `json:"via_group"`
+}
+
+type WorkspaceNotificationPref struct {
+	UserID      pgtype.UUID        `json:"user_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	MutedUntil  pgtype.Timestamptz `json:"muted_until"`
 }

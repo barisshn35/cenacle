@@ -384,6 +384,180 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/search/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search the messages of your channels and conversations
+     * @description Every word must begin a word of the message (accents and case do not matter);
+     *     `-word` leaves out messages with it. Newest first; `before` continues a page.
+     */
+    get: operations['searchMessages'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/search/files': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Search files of your channels by name */
+    get: operations['searchFiles'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/notifications': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Your notification settings, with muted channels and workspaces */
+    get: operations['getNotificationSettings'];
+    /** Save your notification settings */
+    put: operations['setNotificationPrefs'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/notifications': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** What a channel or conversation notifies you of; mute it */
+    put: operations['setChannelNotifications'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/notifications': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Mute or unmute a workspace for you */
+    put: operations['setWorkspaceNotifications'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/sounds': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Sounds you uploaded */
+    get: operations['listMySounds'];
+    put?: never;
+    /**
+     * Upload a notification sound for yourself
+     * @description MP3, Ogg, WAV or WebM audio, at most 1 MB; five per person.
+     */
+    post: operations['uploadSound'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/sounds/{sound_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sound_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a sound you uploaded */
+    delete: operations['deleteSound'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/sounds/{sound_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sound_id: string;
+      };
+      cookie?: never;
+    };
+    /** A sound you uploaded (only for you) */
+    get: operations['getSound'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/push-subscriptions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Receive web push notifications in this browser
+     * @description Only when web push is turned on for the installation (`push_public_key` is set).
+     */
+    post: operations['addPushSubscription'];
+    /** Stop web push notifications in a browser */
+    delete: operations['removePushSubscription'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/presence': {
     parameters: {
       query?: never;
@@ -2035,6 +2209,122 @@ export interface components {
       /** @description The keys administrators may replace. */
       editable: string[];
     };
+    SearchMessage: {
+      /** Format: uuid */
+      id: string;
+      channel: components['schemas']['SearchChannel'];
+      author: components['schemas']['Author'];
+      body: string;
+      /** Format: date-time */
+      created_at: string;
+      has_files: boolean;
+    };
+    SearchFile: {
+      /** Format: uuid */
+      id: string;
+      channel: components['schemas']['SearchChannel'];
+      /** Format: uuid */
+      message_id: string;
+      name: string;
+      content_type: string;
+      /** Format: int64 */
+      size: number;
+      has_thumbnail: boolean;
+      /** Format: date-time */
+      created_at: string;
+      uploader: components['schemas']['Author'];
+    };
+    SearchChannel: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @enum {string} */
+      kind: 'standard' | 'announcement' | 'direct' | 'group';
+      /** Format: uuid */
+      workspace_id: string;
+    };
+    /** @description A built-in sound, 'none', or 'user:<sound id>' for one you uploaded. */
+    NotificationSound: string;
+    NotificationPrefs: {
+      /** @description Notifications of the browser or desktop app. */
+      desktop: boolean;
+      /** @description Web push when no Cenacle tab is open. */
+      push: boolean;
+      sounds: {
+        mention: components['schemas']['NotificationSound'];
+        direct: components['schemas']['NotificationSound'];
+        message: components['schemas']['NotificationSound'];
+      };
+      volume: number;
+      /**
+       * @description What channels notify of unless set per channel (conversations always notify).
+       * @enum {string}
+       */
+      default_level: 'all' | 'mentions' | 'none';
+      email: {
+        enabled: boolean;
+        /** @enum {integer} */
+        delay_minutes: 5 | 15 | 60;
+      };
+      /**
+       * Format: date-time
+       * @description All notifications paused until then.
+       */
+      paused_until: string | null;
+      quiet_hours: {
+        enabled: boolean;
+        start: string;
+        end: string;
+        /** @description Days of the week (0 Sunday) the quiet hours start on. */
+        days: number[];
+      };
+    };
+    ChannelNotificationInput: {
+      /** @enum {string} */
+      level: 'default' | 'all' | 'mentions' | 'none';
+      /**
+       * Format: date-time
+       * @description Muted until then; far in the future for good; null to unmute.
+       */
+      muted_until: string | null;
+      /** @description '' for the default sound. */
+      sound: string;
+    };
+    ChannelNotification: components['schemas']['ChannelNotificationInput'] & {
+      /** Format: uuid */
+      channel_id: string;
+    };
+    WorkspaceNotification: {
+      /** Format: uuid */
+      workspace_id: string;
+      /** Format: date-time */
+      muted_until: string | null;
+    };
+    NotificationSettings: {
+      prefs: components['schemas']['NotificationPrefs'];
+      channels: components['schemas']['ChannelNotification'][];
+      workspaces: components['schemas']['WorkspaceNotification'][];
+      /** @description The VAPID public key (base64url) when web push is on, else null. */
+      push_public_key: string | null;
+      /** @description The installation can send e-mail. */
+      email_available: boolean;
+    };
+    UserSound: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      content_type: string;
+      size: number;
+      /** Format: date-time */
+      created_at: string;
+    };
+    PushSubscription: {
+      endpoint: string;
+      keys: {
+        p256dh: string;
+        auth: string;
+      };
+    };
     CustomStatus: {
       /** @description One emoji, or empty. */
       emoji: string;
@@ -2965,6 +3255,330 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  searchMessages: {
+    parameters: {
+      query: {
+        q: string;
+        workspace_id?: string;
+        channel_id?: string;
+        /** @description Only messages of this person. */
+        from?: string;
+        after?: string;
+        until?: string;
+        has?: 'file' | 'link';
+        before?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Matching messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            results: components['schemas']['SearchMessage'][];
+            has_more: boolean;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  searchFiles: {
+    parameters: {
+      query: {
+        q: string;
+        workspace_id?: string;
+        before?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Matching files. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            results: components['schemas']['SearchFile'][];
+            has_more: boolean;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  getNotificationSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The settings. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NotificationSettings'];
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setNotificationPrefs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NotificationPrefs'];
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NotificationSettings'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  setChannelNotifications: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChannelNotificationInput'];
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChannelNotification'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setWorkspaceNotifications: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: date-time */
+          muted_until: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkspaceNotification'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listMySounds: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Your sounds. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            sounds: components['schemas']['UserSound'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  uploadSound: {
+    parameters: {
+      query: {
+        name: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Uploaded. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserSound'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+      422: components['responses']['Problem'];
+    };
+  };
+  deleteSound: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sound_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getSound: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sound_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The audio. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'audio/mpeg': string;
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  addPushSubscription: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PushSubscription'];
+      };
+    };
+    responses: {
+      /** @description Subscribed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  removePushSubscription: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          endpoint: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Unsubscribed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
     };
   };
   setPresence: {

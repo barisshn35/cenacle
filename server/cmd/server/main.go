@@ -54,6 +54,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/importer"
 	"github.com/barisshn35/cenacle/server/internal/jobs"
 	"github.com/barisshn35/cenacle/server/internal/logging"
+	"github.com/barisshn35/cenacle/server/internal/notify"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
 	"github.com/barisshn35/cenacle/server/internal/storage"
 	"github.com/barisshn35/cenacle/server/internal/store"
@@ -227,7 +228,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 
 	// Background jobs; River's tables come with `migrate up`.
 	background := &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Files: files, Log: log}
-	jobClient, err := jobs.NewClient(pool, jobs.Deps{
+	deps := jobs.Deps{
 		Purger: chat.Purger{Queries: queries}, Sessions: sessions, Log: log,
 		Integrations: background,
 		Profiles:     background,
@@ -235,7 +236,30 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			HTTP: idpClient, Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
 			DB: pool, Queries: queries, Ephemeral: ephemeral, AdminEmail: cfg.AdminEmail, Log: log,
 		},
-	})
+	}
+	// Notifications outside the app: web push and e-mail, both optional.
+	var pushPublicKey func(context.Context) (string, error)
+	if cfg.WebPush {
+		public, private, err := notify.Keys(ctx, queries)
+		if err != nil {
+			return fmt.Errorf("web push keys: %w", err)
+		}
+		pushPublicKey = func(context.Context) (string, error) { return public, nil }
+		deps.Push = &notify.Pusher{
+			Queries: queries, Presence: presence, PublicURL: cfg.PublicURL.String(), Log: log,
+			Push: &notify.Push{Egress: egressClient, Subscriber: cfg.WebPushSubject, PublicKey: public, PrivateKey: private},
+		}
+	}
+	if cfg.SMTPHost != "" {
+		deps.Email = &notify.Emailer{
+			Queries: queries, Presence: presence, PublicURL: cfg.PublicURL.String(), Log: log,
+			SMTP: &notify.SMTP{
+				Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername, Password: cfg.SMTPPassword,
+				From: cfg.SMTPFrom, Security: cfg.SMTPSecurity,
+			},
+		}
+	}
+	jobClient, err := jobs.NewClient(pool, deps)
 	if err != nil {
 		return err
 	}
@@ -275,6 +299,8 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			AdminEmail:        cfg.AdminEmail,
 			PublicURL:         cfg.PublicURL.String(),
 			AccountURL:        auth.AccountURL(cfg.OIDCIssuer, cfg.PublicURL.String()),
+			EmailAvailable:    cfg.SMTPHost != "",
+			PushPublicKey:     pushPublicKey,
 			Ephemeral:         ephemeral,
 			Audit:             auditLog,
 			Limiter:           valkey,

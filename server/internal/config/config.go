@@ -102,6 +102,21 @@ type Config struct {
 	FilesMaxSize int64
 	// ClamAVAddr is a clamd TCP address (host:port) to scan files; empty: no scan.
 	ClamAVAddr string
+
+	// SMTPHost turns on e-mail (missed mentions and messages); empty: no e-mail.
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	// SMTPFrom is the sender address ("Cenacle <chat@example.com>").
+	SMTPFrom string
+	// SMTPSecurity is starttls (port 587), tls (port 465) or none (a local relay).
+	SMTPSecurity string
+
+	// WebPush turns on web push (through the browsers' push services).
+	WebPush bool
+	// WebPushSubject is the contact the push services see (mailto: or https:).
+	WebPushSubject string
 }
 
 // MaxChannelName is the longest channel name in characters.
@@ -178,6 +193,33 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 		cfg.FilesMaxSize = int64(mb) << 20
 	}
 	cfg.ClamAVAddr = strings.TrimSpace(l.str("CENACLE_CLAMAV_ADDR", ""))
+	cfg.SMTPHost = strings.TrimSpace(l.str("CENACLE_SMTP_HOST", ""))
+	if port, err := strconv.Atoi(l.str("CENACLE_SMTP_PORT", "587")); err != nil || port < 1 || port > 65535 {
+		l.fail("CENACLE_SMTP_PORT: a port number")
+	} else {
+		cfg.SMTPPort = port
+	}
+	cfg.SMTPUsername = l.str("CENACLE_SMTP_USERNAME", "")
+	cfg.SMTPPassword = l.str("CENACLE_SMTP_PASSWORD", "")
+	cfg.SMTPFrom = strings.TrimSpace(l.str("CENACLE_SMTP_FROM", ""))
+	cfg.SMTPSecurity = l.str("CENACLE_SMTP_SECURITY", "starttls")
+	switch cfg.SMTPSecurity {
+	case "starttls", "tls", "none":
+	default:
+		l.fail("CENACLE_SMTP_SECURITY: starttls, tls or none")
+	}
+	if cfg.SMTPHost != "" && cfg.SMTPFrom == "" {
+		l.fail("CENACLE_SMTP_FROM: the sender address is needed with CENACLE_SMTP_HOST")
+	}
+	cfg.WebPush = l.boolean("CENACLE_WEB_PUSH", false)
+	cfg.WebPushSubject = strings.TrimSpace(l.str("CENACLE_WEB_PUSH_SUBJECT", ""))
+	if cfg.WebPush && cfg.WebPushSubject == "" {
+		if cfg.AdminEmail == "" {
+			l.fail("CENACLE_WEB_PUSH_SUBJECT: a mailto: or https: contact is needed with CENACLE_WEB_PUSH")
+		} else {
+			cfg.WebPushSubject = "mailto:" + cfg.AdminEmail
+		}
+	}
 	for _, name := range strings.Split(l.str("CENACLE_DEFAULT_CHANNELS", "General"), ",") {
 		if name = strings.TrimSpace(name); name != "" {
 			cfg.DefaultChannels = append(cfg.DefaultChannels, name)

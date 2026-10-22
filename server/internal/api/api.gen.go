@@ -248,6 +248,54 @@ func (e ChannelVisibility) Valid() bool {
 	}
 }
 
+// Defines values for ChannelNotificationLevel.
+const (
+	ChannelNotificationLevelAll      ChannelNotificationLevel = "all"
+	ChannelNotificationLevelDefault  ChannelNotificationLevel = "default"
+	ChannelNotificationLevelMentions ChannelNotificationLevel = "mentions"
+	ChannelNotificationLevelNone     ChannelNotificationLevel = "none"
+)
+
+// Valid indicates whether the value is a known member of the ChannelNotificationLevel enum.
+func (e ChannelNotificationLevel) Valid() bool {
+	switch e {
+	case ChannelNotificationLevelAll:
+		return true
+	case ChannelNotificationLevelDefault:
+		return true
+	case ChannelNotificationLevelMentions:
+		return true
+	case ChannelNotificationLevelNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChannelNotificationInputLevel.
+const (
+	ChannelNotificationInputLevelAll      ChannelNotificationInputLevel = "all"
+	ChannelNotificationInputLevelDefault  ChannelNotificationInputLevel = "default"
+	ChannelNotificationInputLevelMentions ChannelNotificationInputLevel = "mentions"
+	ChannelNotificationInputLevelNone     ChannelNotificationInputLevel = "none"
+)
+
+// Valid indicates whether the value is a known member of the ChannelNotificationInputLevel enum.
+func (e ChannelNotificationInputLevel) Valid() bool {
+	switch e {
+	case ChannelNotificationInputLevelAll:
+		return true
+	case ChannelNotificationInputLevelDefault:
+		return true
+	case ChannelNotificationInputLevelMentions:
+		return true
+	case ChannelNotificationInputLevelNone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ChannelUpdateVisibility.
 const (
 	ChannelUpdateVisibilityPrivate ChannelUpdateVisibility = "private"
@@ -268,19 +316,19 @@ func (e ChannelUpdateVisibility) Valid() bool {
 
 // Defines values for CommandResultResponseType.
 const (
-	Ephemeral CommandResultResponseType = "ephemeral"
-	InChannel CommandResultResponseType = "in_channel"
-	None      CommandResultResponseType = "none"
+	CommandResultResponseTypeEphemeral CommandResultResponseType = "ephemeral"
+	CommandResultResponseTypeInChannel CommandResultResponseType = "in_channel"
+	CommandResultResponseTypeNone      CommandResultResponseType = "none"
 )
 
 // Valid indicates whether the value is a known member of the CommandResultResponseType enum.
 func (e CommandResultResponseType) Valid() bool {
 	switch e {
-	case Ephemeral:
+	case CommandResultResponseTypeEphemeral:
 		return true
-	case InChannel:
+	case CommandResultResponseTypeInChannel:
 		return true
-	case None:
+	case CommandResultResponseTypeNone:
 		return true
 	default:
 		return false
@@ -413,6 +461,48 @@ func (e NewChannelVisibility) Valid() bool {
 	}
 }
 
+// Defines values for NotificationPrefsDefaultLevel.
+const (
+	NotificationPrefsDefaultLevelAll      NotificationPrefsDefaultLevel = "all"
+	NotificationPrefsDefaultLevelMentions NotificationPrefsDefaultLevel = "mentions"
+	NotificationPrefsDefaultLevelNone     NotificationPrefsDefaultLevel = "none"
+)
+
+// Valid indicates whether the value is a known member of the NotificationPrefsDefaultLevel enum.
+func (e NotificationPrefsDefaultLevel) Valid() bool {
+	switch e {
+	case NotificationPrefsDefaultLevelAll:
+		return true
+	case NotificationPrefsDefaultLevelMentions:
+		return true
+	case NotificationPrefsDefaultLevelNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPrefsEmailDelayMinutes.
+const (
+	N15 NotificationPrefsEmailDelayMinutes = 15
+	N5  NotificationPrefsEmailDelayMinutes = 5
+	N60 NotificationPrefsEmailDelayMinutes = 60
+)
+
+// Valid indicates whether the value is a known member of the NotificationPrefsEmailDelayMinutes enum.
+func (e NotificationPrefsEmailDelayMinutes) Valid() bool {
+	switch e {
+	case N15:
+		return true
+	case N5:
+		return true
+	case N60:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PresenceStatus.
 const (
 	PresenceStatusAway   PresenceStatus = "away"
@@ -446,6 +536,30 @@ func (e ScheduledMessageKind) Valid() bool {
 	case ScheduledMessageKindMessage:
 		return true
 	case ScheduledMessageKindReminder:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchChannelKind.
+const (
+	SearchChannelKindAnnouncement SearchChannelKind = "announcement"
+	SearchChannelKindDirect       SearchChannelKind = "direct"
+	SearchChannelKindGroup        SearchChannelKind = "group"
+	SearchChannelKindStandard     SearchChannelKind = "standard"
+)
+
+// Valid indicates whether the value is a known member of the SearchChannelKind enum.
+func (e SearchChannelKind) Valid() bool {
+	switch e {
+	case SearchChannelKindAnnouncement:
+		return true
+	case SearchChannelKindDirect:
+		return true
+	case SearchChannelKindGroup:
+		return true
+	case SearchChannelKindStandard:
 		return true
 	default:
 		return false
@@ -689,6 +803,24 @@ func (e SetPresenceJSONBodyStatus) Valid() bool {
 	}
 }
 
+// Defines values for SearchMessagesParamsHas.
+const (
+	File SearchMessagesParamsHas = "file"
+	Link SearchMessagesParamsHas = "link"
+)
+
+// Valid indicates whether the value is a known member of the SearchMessagesParamsHas enum.
+func (e SearchMessagesParamsHas) Valid() bool {
+	switch e {
+	case File:
+		return true
+	case Link:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetUITextsJSONBodyLocale.
 const (
 	En SetUITextsJSONBodyLocale = "en"
@@ -925,6 +1057,35 @@ type ChannelList struct {
 	Channels []Channel `json:"channels"`
 }
 
+// ChannelNotification defines model for ChannelNotification.
+type ChannelNotification struct {
+	ChannelId openapi_types.UUID       `json:"channel_id"`
+	Level     ChannelNotificationLevel `json:"level"`
+
+	// MutedUntil Muted until then; far in the future for good; null to unmute.
+	MutedUntil *time.Time `json:"muted_until"`
+
+	// Sound '' for the default sound.
+	Sound string `json:"sound"`
+}
+
+// ChannelNotificationLevel defines model for ChannelNotification.Level.
+type ChannelNotificationLevel string
+
+// ChannelNotificationInput defines model for ChannelNotificationInput.
+type ChannelNotificationInput struct {
+	Level ChannelNotificationInputLevel `json:"level"`
+
+	// MutedUntil Muted until then; far in the future for good; null to unmute.
+	MutedUntil *time.Time `json:"muted_until"`
+
+	// Sound '' for the default sound.
+	Sound string `json:"sound"`
+}
+
+// ChannelNotificationInputLevel defines model for ChannelNotificationInput.Level.
+type ChannelNotificationInputLevel string
+
 // ChannelUpdate defines model for ChannelUpdate.
 type ChannelUpdate struct {
 	Name       *string                  `json:"name,omitempty"`
@@ -1147,6 +1308,65 @@ type NewMessage struct {
 	Nonce   string                `json:"nonce"`
 }
 
+// NotificationPrefs defines model for NotificationPrefs.
+type NotificationPrefs struct {
+	// DefaultLevel What channels notify of unless set per channel (conversations always notify).
+	DefaultLevel NotificationPrefsDefaultLevel `json:"default_level"`
+
+	// Desktop Notifications of the browser or desktop app.
+	Desktop bool `json:"desktop"`
+	Email   struct {
+		DelayMinutes NotificationPrefsEmailDelayMinutes `json:"delay_minutes"`
+		Enabled      bool                               `json:"enabled"`
+	} `json:"email"`
+
+	// PausedUntil All notifications paused until then.
+	PausedUntil *time.Time `json:"paused_until"`
+
+	// Push Web push when no Cenacle tab is open.
+	Push       bool `json:"push"`
+	QuietHours struct {
+		// Days Days of the week (0 Sunday) the quiet hours start on.
+		Days    []int  `json:"days"`
+		Enabled bool   `json:"enabled"`
+		End     string `json:"end"`
+		Start   string `json:"start"`
+	} `json:"quiet_hours"`
+	Sounds struct {
+		// Direct A built-in sound, 'none', or 'user:<sound id>' for one you uploaded.
+		Direct NotificationSound `json:"direct"`
+
+		// Mention A built-in sound, 'none', or 'user:<sound id>' for one you uploaded.
+		Mention NotificationSound `json:"mention"`
+
+		// Message A built-in sound, 'none', or 'user:<sound id>' for one you uploaded.
+		Message NotificationSound `json:"message"`
+	} `json:"sounds"`
+	Volume int `json:"volume"`
+}
+
+// NotificationPrefsDefaultLevel What channels notify of unless set per channel (conversations always notify).
+type NotificationPrefsDefaultLevel string
+
+// NotificationPrefsEmailDelayMinutes defines model for NotificationPrefs.Email.DelayMinutes.
+type NotificationPrefsEmailDelayMinutes int
+
+// NotificationSettings defines model for NotificationSettings.
+type NotificationSettings struct {
+	Channels []ChannelNotification `json:"channels"`
+
+	// EmailAvailable The installation can send e-mail.
+	EmailAvailable bool              `json:"email_available"`
+	Prefs          NotificationPrefs `json:"prefs"`
+
+	// PushPublicKey The VAPID public key (base64url) when web push is on, else null.
+	PushPublicKey *string                 `json:"push_public_key"`
+	Workspaces    []WorkspaceNotification `json:"workspaces"`
+}
+
+// NotificationSound A built-in sound, 'none', or 'user:<sound id>' for one you uploaded.
+type NotificationSound = string
+
 // Permissions What the user may do across the instance. Rights inside a workspace follow
 // the role there (see Workspace).
 type Permissions struct {
@@ -1213,6 +1433,15 @@ type Profile struct {
 	Username string `json:"username"`
 }
 
+// PushSubscription defines model for PushSubscription.
+type PushSubscription struct {
+	Endpoint string `json:"endpoint"`
+	Keys     struct {
+		Auth   string `json:"auth"`
+		P256dh string `json:"p256dh"`
+	} `json:"keys"`
+}
+
 // Reaction defines model for Reaction.
 type Reaction struct {
 	Count int    `json:"count"`
@@ -1233,6 +1462,40 @@ type ScheduledMessage struct {
 
 // ScheduledMessageKind defines model for ScheduledMessage.Kind.
 type ScheduledMessageKind string
+
+// SearchChannel defines model for SearchChannel.
+type SearchChannel struct {
+	Id          openapi_types.UUID `json:"id"`
+	Kind        SearchChannelKind  `json:"kind"`
+	Name        string             `json:"name"`
+	WorkspaceId openapi_types.UUID `json:"workspace_id"`
+}
+
+// SearchChannelKind defines model for SearchChannel.Kind.
+type SearchChannelKind string
+
+// SearchFile defines model for SearchFile.
+type SearchFile struct {
+	Channel      SearchChannel      `json:"channel"`
+	ContentType  string             `json:"content_type"`
+	CreatedAt    time.Time          `json:"created_at"`
+	HasThumbnail bool               `json:"has_thumbnail"`
+	Id           openapi_types.UUID `json:"id"`
+	MessageId    openapi_types.UUID `json:"message_id"`
+	Name         string             `json:"name"`
+	Size         int64              `json:"size"`
+	Uploader     Author             `json:"uploader"`
+}
+
+// SearchMessage defines model for SearchMessage.
+type SearchMessage struct {
+	Author    Author             `json:"author"`
+	Body      string             `json:"body"`
+	Channel   SearchChannel      `json:"channel"`
+	CreatedAt time.Time          `json:"created_at"`
+	HasFiles  bool               `json:"has_files"`
+	Id        openapi_types.UUID `json:"id"`
+}
 
 // Session defines model for Session.
 type Session struct {
@@ -1303,6 +1566,15 @@ type UserFont struct {
 // UserFontFormat defines model for UserFont.Format.
 type UserFontFormat string
 
+// UserSound defines model for UserSound.
+type UserSound struct {
+	ContentType string             `json:"content_type"`
+	CreatedAt   time.Time          `json:"created_at"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+	Size        int                `json:"size"`
+}
+
 // Webhook defines model for Webhook.
 type Webhook struct {
 	ChannelId   openapi_types.UUID `json:"channel_id"`
@@ -1351,6 +1623,12 @@ type WorkspaceMember struct {
 
 // WorkspaceMemberRole defines model for WorkspaceMember.Role.
 type WorkspaceMemberRole string
+
+// WorkspaceNotification defines model for WorkspaceNotification.
+type WorkspaceNotification struct {
+	MutedUntil  *time.Time         `json:"muted_until"`
+	WorkspaceId openapi_types.UUID `json:"workspace_id"`
+}
 
 // WsTicket defines model for WsTicket.
 type WsTicket struct {
@@ -1542,6 +1820,16 @@ type UpdateMyProfileJSONBody struct {
 	Username *string `json:"username,omitempty"`
 }
 
+// RemovePushSubscriptionJSONBody defines parameters for RemovePushSubscription.
+type RemovePushSubscriptionJSONBody struct {
+	Endpoint string `json:"endpoint"`
+}
+
+// UploadSoundParams defines parameters for UploadSound.
+type UploadSoundParams struct {
+	Name string `form:"name" json:"name"`
+}
+
 // GetPictureParams defines parameters for GetPicture.
 type GetPictureParams struct {
 	// Still The first frame of an animated picture.
@@ -1560,6 +1848,32 @@ type SetPresenceJSONBodyStatus string
 type GetProfilesParams struct {
 	Ids []openapi_types.UUID `form:"ids" json:"ids"`
 }
+
+// SearchFilesParams defines parameters for SearchFiles.
+type SearchFilesParams struct {
+	Q           string              `form:"q" json:"q"`
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
+	Before      *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+	Limit       *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// SearchMessagesParams defines parameters for SearchMessages.
+type SearchMessagesParams struct {
+	Q           string              `form:"q" json:"q"`
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
+	ChannelId   *openapi_types.UUID `form:"channel_id,omitempty" json:"channel_id,omitempty"`
+
+	// From Only messages of this person.
+	From   *openapi_types.UUID      `form:"from,omitempty" json:"from,omitempty"`
+	After  *time.Time               `form:"after,omitempty" json:"after,omitempty"`
+	Until  *time.Time               `form:"until,omitempty" json:"until,omitempty"`
+	Has    *SearchMessagesParamsHas `form:"has,omitempty" json:"has,omitempty"`
+	Before *openapi_types.UUID      `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                     `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// SearchMessagesParamsHas defines parameters for SearchMessages.
+type SearchMessagesParamsHas string
 
 // EndAllSessionsJSONBody defines parameters for EndAllSessions.
 type EndAllSessionsJSONBody struct {
@@ -1625,6 +1939,11 @@ type SetWorkspaceRoleJSONBody struct {
 // SetWorkspaceRoleJSONBodyRole defines parameters for SetWorkspaceRole.
 type SetWorkspaceRoleJSONBodyRole string
 
+// SetWorkspaceNotificationsJSONBody defines parameters for SetWorkspaceNotifications.
+type SetWorkspaceNotificationsJSONBody struct {
+	MutedUntil *time.Time `json:"muted_until"`
+}
+
 // BackchannelLogoutFormdataRequestBody defines body for BackchannelLogout for application/x-www-form-urlencoded ContentType.
 type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
 
@@ -1682,6 +2001,9 @@ type CreateMessageJSONRequestBody = NewMessage
 // EditMessageJSONRequestBody defines body for EditMessage for application/json ContentType.
 type EditMessageJSONRequestBody EditMessageJSONBody
 
+// SetChannelNotificationsJSONRequestBody defines body for SetChannelNotifications for application/json ContentType.
+type SetChannelNotificationsJSONRequestBody = ChannelNotificationInput
+
 // MarkReadJSONRequestBody defines body for MarkRead for application/json ContentType.
 type MarkReadJSONRequestBody MarkReadJSONBody
 
@@ -1694,8 +2016,17 @@ type PostWebhookJSONRequestBody PostWebhookJSONBody
 // SetMyAppearanceJSONRequestBody defines body for SetMyAppearance for application/json ContentType.
 type SetMyAppearanceJSONRequestBody = Appearance
 
+// SetNotificationPrefsJSONRequestBody defines body for SetNotificationPrefs for application/json ContentType.
+type SetNotificationPrefsJSONRequestBody = NotificationPrefs
+
 // UpdateMyProfileJSONRequestBody defines body for UpdateMyProfile for application/json ContentType.
 type UpdateMyProfileJSONRequestBody UpdateMyProfileJSONBody
+
+// RemovePushSubscriptionJSONRequestBody defines body for RemovePushSubscription for application/json ContentType.
+type RemovePushSubscriptionJSONRequestBody RemovePushSubscriptionJSONBody
+
+// AddPushSubscriptionJSONRequestBody defines body for AddPushSubscription for application/json ContentType.
+type AddPushSubscriptionJSONRequestBody = PushSubscription
 
 // SetCustomStatusJSONRequestBody defines body for SetCustomStatus for application/json ContentType.
 type SetCustomStatusJSONRequestBody = CustomStatus
@@ -1732,6 +2063,9 @@ type CreateInviteJSONRequestBody CreateInviteJSONBody
 
 // SetWorkspaceRoleJSONRequestBody defines body for SetWorkspaceRole for application/json ContentType.
 type SetWorkspaceRoleJSONRequestBody SetWorkspaceRoleJSONBody
+
+// SetWorkspaceNotificationsJSONRequestBody defines body for SetWorkspaceNotifications for application/json ContentType.
+type SetWorkspaceNotificationsJSONRequestBody SetWorkspaceNotificationsJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1879,6 +2213,9 @@ type ServerInterface interface {
 	// RestoreMessage Undo deleting a message (whoever may delete it)
 	// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
 	RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// SetChannelNotifications What a channel or conversation notifies you of; mute it
+	// (PUT /api/channels/{channel_id}/notifications)
+	SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// MarkRead Mark a channel read up to a message
 	// (POST /api/channels/{channel_id}/read)
 	MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -1936,12 +2273,33 @@ type ServerInterface interface {
 	// DeleteFont Remove a font you uploaded
 	// (DELETE /api/me/fonts/{font_id})
 	DeleteFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID)
+	// GetNotificationSettings Your notification settings, with muted channels and workspaces
+	// (GET /api/me/notifications)
+	GetNotificationSettings(w http.ResponseWriter, r *http.Request)
+	// SetNotificationPrefs Save your notification settings
+	// (PUT /api/me/notifications)
+	SetNotificationPrefs(w http.ResponseWriter, r *http.Request)
 	// GetMyProfile Your profile and its settings
 	// (GET /api/me/profile)
 	GetMyProfile(w http.ResponseWriter, r *http.Request)
 	// UpdateMyProfile Change your @username, time zone or who sees when you were last online
 	// (PATCH /api/me/profile)
 	UpdateMyProfile(w http.ResponseWriter, r *http.Request)
+	// RemovePushSubscription Stop web push notifications in a browser
+	// (DELETE /api/me/push-subscriptions)
+	RemovePushSubscription(w http.ResponseWriter, r *http.Request)
+	// AddPushSubscription Receive web push notifications in this browser
+	// (POST /api/me/push-subscriptions)
+	AddPushSubscription(w http.ResponseWriter, r *http.Request)
+	// ListMySounds Sounds you uploaded
+	// (GET /api/me/sounds)
+	ListMySounds(w http.ResponseWriter, r *http.Request)
+	// UploadSound Upload a notification sound for yourself
+	// (POST /api/me/sounds)
+	UploadSound(w http.ResponseWriter, r *http.Request, params UploadSoundParams)
+	// DeleteSound Remove a sound you uploaded
+	// (DELETE /api/me/sounds/{sound_id})
+	DeleteSound(w http.ResponseWriter, r *http.Request, soundId openapi_types.UUID)
 	// ClearCustomStatus Clear your custom status
 	// (DELETE /api/me/status)
 	ClearCustomStatus(w http.ResponseWriter, r *http.Request)
@@ -1963,6 +2321,12 @@ type ServerInterface interface {
 	// CancelScheduled Cancel a scheduled message or reminder
 	// (DELETE /api/scheduled/{scheduled_id})
 	CancelScheduled(w http.ResponseWriter, r *http.Request, scheduledId openapi_types.UUID)
+	// SearchFiles Search files of your channels by name
+	// (GET /api/search/files)
+	SearchFiles(w http.ResponseWriter, r *http.Request, params SearchFilesParams)
+	// SearchMessages Search the messages of your channels and conversations
+	// (GET /api/search/messages)
+	SearchMessages(w http.ResponseWriter, r *http.Request, params SearchMessagesParams)
 	// GetSession The current session and its user
 	// (GET /api/session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -1975,6 +2339,9 @@ type ServerInterface interface {
 	// EndSession Sign out one device
 	// (DELETE /api/sessions/{session_id})
 	EndSession(w http.ResponseWriter, r *http.Request, sessionId openapi_types.UUID)
+	// GetSound A sound you uploaded (only for you)
+	// (GET /api/sounds/{sound_id})
+	GetSound(w http.ResponseWriter, r *http.Request, soundId openapi_types.UUID)
 	// GetUITexts Interface texts the administrators replaced
 	// (GET /api/ui-texts)
 	GetUITexts(w http.ResponseWriter, r *http.Request)
@@ -2044,6 +2411,9 @@ type ServerInterface interface {
 	// SetWorkspaceRole Change someone's role
 	// (PATCH /api/workspaces/{workspace_id}/members/{user_id})
 	SetWorkspaceRole(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
+	// SetWorkspaceNotifications Mute or unmute a workspace for you
+	// (PUT /api/workspaces/{workspace_id}/notifications)
+	SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListPresence Who of a workspace is online, away or busy
 	// (GET /api/workspaces/{workspace_id}/presence)
 	ListPresence(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -2344,6 +2714,12 @@ func (_ Unimplemented) RestoreMessage(w http.ResponseWriter, r *http.Request, ch
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SetChannelNotifications What a channel or conversation notifies you of; mute it
+// (PUT /api/channels/{channel_id}/notifications)
+func (_ Unimplemented) SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // MarkRead Mark a channel read up to a message
 // (POST /api/channels/{channel_id}/read)
 func (_ Unimplemented) MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -2458,6 +2834,18 @@ func (_ Unimplemented) DeleteFont(w http.ResponseWriter, r *http.Request, fontId
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetNotificationSettings Your notification settings, with muted channels and workspaces
+// (GET /api/me/notifications)
+func (_ Unimplemented) GetNotificationSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetNotificationPrefs Save your notification settings
+// (PUT /api/me/notifications)
+func (_ Unimplemented) SetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetMyProfile Your profile and its settings
 // (GET /api/me/profile)
 func (_ Unimplemented) GetMyProfile(w http.ResponseWriter, r *http.Request) {
@@ -2467,6 +2855,36 @@ func (_ Unimplemented) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 // UpdateMyProfile Change your @username, time zone or who sees when you were last online
 // (PATCH /api/me/profile)
 func (_ Unimplemented) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemovePushSubscription Stop web push notifications in a browser
+// (DELETE /api/me/push-subscriptions)
+func (_ Unimplemented) RemovePushSubscription(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddPushSubscription Receive web push notifications in this browser
+// (POST /api/me/push-subscriptions)
+func (_ Unimplemented) AddPushSubscription(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMySounds Sounds you uploaded
+// (GET /api/me/sounds)
+func (_ Unimplemented) ListMySounds(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UploadSound Upload a notification sound for yourself
+// (POST /api/me/sounds)
+func (_ Unimplemented) UploadSound(w http.ResponseWriter, r *http.Request, params UploadSoundParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSound Remove a sound you uploaded
+// (DELETE /api/me/sounds/{sound_id})
+func (_ Unimplemented) DeleteSound(w http.ResponseWriter, r *http.Request, soundId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2512,6 +2930,18 @@ func (_ Unimplemented) CancelScheduled(w http.ResponseWriter, r *http.Request, s
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SearchFiles Search files of your channels by name
+// (GET /api/search/files)
+func (_ Unimplemented) SearchFiles(w http.ResponseWriter, r *http.Request, params SearchFilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SearchMessages Search the messages of your channels and conversations
+// (GET /api/search/messages)
+func (_ Unimplemented) SearchMessages(w http.ResponseWriter, r *http.Request, params SearchMessagesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetSession The current session and its user
 // (GET /api/session)
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request) {
@@ -2533,6 +2963,12 @@ func (_ Unimplemented) EndAllSessions(w http.ResponseWriter, r *http.Request) {
 // EndSession Sign out one device
 // (DELETE /api/sessions/{session_id})
 func (_ Unimplemented) EndSession(w http.ResponseWriter, r *http.Request, sessionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSound A sound you uploaded (only for you)
+// (GET /api/sounds/{sound_id})
+func (_ Unimplemented) GetSound(w http.ResponseWriter, r *http.Request, soundId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2671,6 +3107,12 @@ func (_ Unimplemented) RemoveWorkspaceMember(w http.ResponseWriter, r *http.Requ
 // SetWorkspaceRole Change someone's role
 // (PATCH /api/workspaces/{workspace_id}/members/{user_id})
 func (_ Unimplemented) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWorkspaceNotifications Mute or unmute a workspace for you
+// (PUT /api/workspaces/{workspace_id}/notifications)
+func (_ Unimplemented) SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4168,6 +4610,32 @@ func (siw *ServerInterfaceWrapper) RestoreMessage(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// SetChannelNotifications operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelNotifications(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelNotifications(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // MarkRead operation middleware
 func (siw *ServerInterfaceWrapper) MarkRead(w http.ResponseWriter, r *http.Request) {
 
@@ -4625,6 +5093,34 @@ func (siw *ServerInterfaceWrapper) DeleteFont(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// GetNotificationSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetNotificationSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotificationSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetNotificationPrefs operation middleware
+func (siw *ServerInterfaceWrapper) SetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetNotificationPrefs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMyProfile operation middleware
 func (siw *ServerInterfaceWrapper) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 
@@ -4644,6 +5140,107 @@ func (siw *ServerInterfaceWrapper) UpdateMyProfile(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateMyProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemovePushSubscription operation middleware
+func (siw *ServerInterfaceWrapper) RemovePushSubscription(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemovePushSubscription(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddPushSubscription operation middleware
+func (siw *ServerInterfaceWrapper) AddPushSubscription(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddPushSubscription(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMySounds operation middleware
+func (siw *ServerInterfaceWrapper) ListMySounds(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMySounds(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadSound operation middleware
+func (siw *ServerInterfaceWrapper) UploadSound(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UploadSoundParams
+
+	// ------------- Required query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadSound(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSound operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSound(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sound_id" -------------
+	var soundId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sound_id", chi.URLParam(r, "sound_id"), &soundId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sound_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSound(w, r, soundId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4810,6 +5407,215 @@ func (siw *ServerInterfaceWrapper) CancelScheduled(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// SearchFiles operation middleware
+func (siw *ServerInterfaceWrapper) SearchFiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchFilesParams
+
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchFiles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SearchMessages operation middleware
+func (siw *ServerInterfaceWrapper) SearchMessages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchMessagesParams
+
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "channel_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "channel_id", r.URL.Query(), &params.ChannelId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "channel_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", r.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "until" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "until", r.URL.Query(), &params.Until, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "until"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "until", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "has" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "has", r.URL.Query(), &params.Has, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "has"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "has", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchMessages(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
 
@@ -4869,6 +5675,32 @@ func (siw *ServerInterfaceWrapper) EndSession(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EndSession(w, r, sessionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSound operation middleware
+func (siw *ServerInterfaceWrapper) GetSound(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sound_id" -------------
+	var soundId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sound_id", chi.URLParam(r, "sound_id"), &soundId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sound_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSound(w, r, soundId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5526,6 +6358,32 @@ func (siw *ServerInterfaceWrapper) SetWorkspaceRole(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// SetWorkspaceNotifications operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspaceNotifications(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListPresence operation middleware
 func (siw *ServerInterfaceWrapper) ListPresence(w http.ResponseWriter, r *http.Request) {
 
@@ -5759,6 +6617,42 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/appearance", wrapper.SetWorkspaceAppearance)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/search/messages", wrapper.SearchMessages)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/search/files", wrapper.SearchFiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/notifications", wrapper.GetNotificationSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/notifications", wrapper.SetNotificationPrefs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/notifications", wrapper.SetChannelNotifications)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/notifications", wrapper.SetWorkspaceNotifications)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/sounds", wrapper.ListMySounds)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/me/sounds", wrapper.UploadSound)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/sounds/{sound_id}", wrapper.DeleteSound)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/sounds/{sound_id}", wrapper.GetSound)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/push-subscriptions", wrapper.RemovePushSubscription)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/me/push-subscriptions", wrapper.AddPushSubscription)
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/presence", wrapper.SetPresence)

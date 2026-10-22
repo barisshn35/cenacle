@@ -59,9 +59,13 @@ type Handlers struct {
 	PublicURL string
 	// AccountURL is Cenacle ID's account page (where people change their name).
 	AccountURL string
-	Limiter    RateLimiter
-	Cookies    auth.Cookies
-	Log        *slog.Logger
+	// EmailAvailable: the installation sends e-mail (SMTP is configured).
+	EmailAvailable bool
+	// PushPublicKey gives the web push (VAPID) public key; nil: web push is off.
+	PushPublicKey func(ctx context.Context) (string, error)
+	Limiter       RateLimiter
+	Cookies       auth.Cookies
+	Log           *slog.Logger
 	// Configured lists the channels of the installation settings, which keep
 	// their names.
 	Configured []string
