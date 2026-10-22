@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.15.0)
+### 0.15.0
 
 - Migration `00015_profiles` gives everyone a @username (directory accounts keep their
   sign-in name; names that differ only in case get a short suffix) and adds pictures,

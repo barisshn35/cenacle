@@ -12,11 +12,11 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.14.** Sign in with Cenacle ID (passwords with two-step verification,
+> **Status: v0.15.** Sign in with Cenacle ID (passwords with two-step verification,
 > passkeys, Active Directory/LDAP or your OpenID Connect or SAML provider), chat live in
-> channels and direct conversations with directory groups and guests, share files, connect
-> bots and schedule messages; run several instances, monitor, back up, install on
-> Kubernetes or offline, and import from Mattermost or Slack. Profiles and settings come
+> channels and direct conversations with profiles, pictures and custom statuses, directory
+> groups and guests, share files, connect bots and schedule messages; run several
+> instances, monitor, back up, install on Kubernetes or offline. Appearance settings come
 > next (see the [roadmap](#roadmap)).
 
 ## Highlights
@@ -174,8 +174,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.11     | Slash commands, event subscriptions, scheduled messages and reminders, GitLab, alerts |
 | v0.12     | Files (S3-compatible object store), previews, viewer, virus scanning                  |
 | v0.13     | Scaling and operations (multiple instances, OpenTelemetry, backups, Helm, air-gapped) |
-| **v0.14** | **Identity federation (LDAP/AD, SAML and OIDC, WebAuthn), admin console, guests**     |
-| v0.15     | Profiles, profile cards, custom status, channel and workspace settings                |
+| v0.14     | Identity federation (LDAP/AD, SAML and OIDC, WebAuthn), admin console, guests         |
+| **v0.15** | **Profiles, profile cards, custom status, channel and workspace settings**            |
 | v0.16     | Appearance: theme presets, typography, fonts, code blocks                             |
 | v0.17     | Search and notifications (sounds, muting, web push, e-mail)                           |
 | v0.18     | Threads, pins, saved items, activity                                                  |
