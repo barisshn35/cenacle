@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import {
+  BellOffIcon,
   CompassIcon,
   FoldersIcon,
   LogOutIcon,
@@ -40,6 +41,7 @@ import { categoriesQuery, channelsQuery, isConversation, type Channel } from '..
 import { NewConversationDialog } from '../chat/new-conversation-dialog';
 import { usePresence, useWorkspacePresence } from '../chat/presence-state';
 import { StatusMenu } from '../chat/status-menu';
+import { useMutedChannels } from '../notifications/muted';
 import { ProfileDialogs } from '../profile/profile-dialogs';
 import { StatusLine } from '../profile/profile-card';
 import { useProfile } from '../profile/profiles';
@@ -68,20 +70,27 @@ function ChannelList({ channels }: { channels: Channel[] }) {
   const { t } = useTranslation();
   const { id: activeId } = useActiveChannel();
   const { isMobile, setOpenMobile } = useSidebar();
+  const muted = useMutedChannels();
   return (
     <SidebarMenu>
       {channels.map((ch) => {
         const isActive = ch.id === activeId;
-        const unread = ch.unread_count > 0;
+        const isMuted = muted.has(ch.id);
+        // Muted: new messages stay quiet; mentions still show.
+        const unread = ch.unread_count > 0 && (!isMuted || ch.mention_count > 0);
         // Conversations are addressed to you: their count stands out like a
         // mention; channels are only marked as having something new.
-        const counted = unread && (isConversation(ch) || ch.mention_count > 0);
-        const count = isConversation(ch) ? ch.unread_count : ch.mention_count;
+        const counted = unread && ((isConversation(ch) && !isMuted) || ch.mention_count > 0);
+        const count = isConversation(ch) && !isMuted ? ch.unread_count : ch.mention_count;
         return (
           <SidebarMenuItem key={ch.id} data-unread={unread || undefined}>
             <SidebarMenuButton
               isActive={isActive}
-              className={cn(unread && 'font-semibold text-unread', (unread || counted) && 'pr-8')}
+              className={cn(
+                unread && 'font-semibold text-unread',
+                isMuted && !unread && 'text-muted-foreground',
+                (unread || counted) && 'pr-8',
+              )}
               render={
                 <Link
                   to="/c/$channelId"
@@ -98,6 +107,16 @@ function ChannelList({ channels }: { channels: Channel[] }) {
                 <ChannelIcon channel={ch} labelled />
               )}
               <span>{ch.name}</span>
+              {isMuted && (
+                <>
+                  <BellOffIcon
+                    aria-hidden
+                    className="ml-auto size-3.5 shrink-0 opacity-70"
+                    strokeWidth={1.75}
+                  />
+                  <span className="sr-only">{t('notifications.mutedLabel')}</span>
+                </>
+              )}
               {unread && (
                 <span className="sr-only">
                   {t('dm.unread', { count: ch.unread_count })}

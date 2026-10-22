@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
   ChevronDownIcon,
+  BellIcon,
+  BellOffIcon,
   CopyIcon,
   LogOutIcon,
   SettingsIcon,
@@ -35,6 +37,12 @@ import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { useSession } from '../auth/session';
+import {
+  FOREVER,
+  isActive,
+  notificationsQuery,
+  setWorkspaceMute,
+} from '../notifications/notifications';
 import { WorkspaceGroupsSection } from './directory-groups';
 import { WorkspaceAppearanceForm, WorkspaceDetailsForm } from './workspace-details';
 import { IntegrationsDialog } from './integrations';
@@ -65,8 +73,18 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
     null,
   );
   const admin = isWorkspaceAdmin(workspace);
-  const { user } = useSession();
   const queryClient = useQueryClient();
+  const notifications = useQuery(notificationsQuery);
+  const wsMuted = isActive(
+    notifications.data?.workspaces.find((w) => w.workspace_id === workspace.id)?.muted_until,
+  );
+  const toggleMute = () => {
+    const until = wsMuted ? null : FOREVER;
+    void setWorkspaceMute(workspace.id, until)
+      .then(() => queryClient.invalidateQueries({ queryKey: notificationsQuery.queryKey }))
+      .catch(() => toast.error(t('notifications.saveFailed')));
+  };
+  const { user } = useSession();
   const navigate = useNavigate();
   const close = (open: boolean) => {
     if (!open) setDialog(null);
@@ -97,6 +115,10 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
           <DropdownMenuItem onClick={() => setDialog('settings')}>
             <SettingsIcon strokeWidth={1.75} />
             {admin ? t('workspaces.settings') : t('workspaces.members')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => toggleMute()}>
+            {wsMuted ? <BellIcon strokeWidth={1.75} /> : <BellOffIcon strokeWidth={1.75} />}
+            {wsMuted ? t('notifications.unmuteWorkspace') : t('notifications.muteWorkspace')}
           </DropdownMenuItem>
           {admin && (
             <DropdownMenuItem onClick={() => setDialog('integrations')}>

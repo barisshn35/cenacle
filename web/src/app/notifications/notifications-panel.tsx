@@ -1,0 +1,491 @@
+// SPDX-License-Identifier: Apache-2.0
+import { useCallback, useId, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PlayIcon, Trash2Icon, UploadIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { ApiError } from '@cenacle/core/api';
+import { Button } from '@cenacle/ui/components/button';
+import { Label } from '@cenacle/ui/components/label';
+import {
+  deleteSound,
+  isActive,
+  notificationsQuery,
+  savePrefs,
+  soundsQuery,
+  untilOf,
+  uploadSound,
+  type NotificationPrefs,
+} from './notifications';
+import { canNotify } from './notifier';
+import { disablePush, enablePush, pushSupported } from './push';
+import { BUILTIN_SOUNDS, playSound } from './sounds';
+
+const selectClass =
+  'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
+const inputClass =
+  'min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
+
+const PAUSES = ['30m', '1h', '2h', '8h', 'tomorrow'] as const;
+const DAYS = [1, 2, 3, 4, 5, 6, 0] as const;
+
+/** Saves a change of the notification settings, showing it at once. */
+function useSavePrefs() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { mutate } = useMutation({
+    mutationFn: savePrefs,
+    scope: { id: 'notification-prefs' },
+    onError: () => {
+      toast.error(t('notifications.saveFailed'));
+      void queryClient.invalidateQueries({ queryKey: notificationsQuery.queryKey });
+    },
+  });
+  return useCallback(
+    (patch: Partial<NotificationPrefs>) => {
+      const current = queryClient.getQueryData(notificationsQuery.queryKey);
+      if (!current) return;
+      const prefs = { ...current.prefs, ...patch };
+      queryClient.setQueryData(notificationsQuery.queryKey, { ...current, prefs });
+      mutate(prefs);
+    },
+    [queryClient, mutate],
+  );
+}
+
+/** Sounds, desktop and push, pause, quiet hours and e-mail. */
+export function NotificationsPanel() {
+  const { t } = useTranslation();
+  const ids = {
+    level: useId(),
+    volume: useId(),
+    pause: useId(),
+    start: useId(),
+    end: useId(),
+    delay: useId(),
+  };
+  const settings = useQuery(notificationsQuery);
+  const sounds = useQuery(soundsQuery);
+  const save = useSavePrefs();
+  const [permission, setPermission] = useState(() =>
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+  );
+  if (!settings.data) return null;
+  const p = settings.data.prefs;
+  const pushKey = settings.data.push_public_key;
+  const paused = isActive(p.paused_until);
+
+  const soundOptions = (
+    <>
+      <option value="none">{t('notifications.sounds.none')}</option>
+      {BUILTIN_SOUNDS.map((s) => (
+        <option key={s} value={s}>
+          {t(`notifications.sounds.${s}`)}
+        </option>
+      ))}
+      {(sounds.data ?? []).length > 0 && (
+        <optgroup label={t('notifications.yourSounds')}>
+          {sounds.data!.map((s) => (
+            <option key={s.id} value={`user:${s.id}`}>
+              {s.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-5" data-testid="notifications-panel">
+      <section className="grid gap-2" aria-labelledby={`${ids.pause}-title`}>
+        <h4 id={`${ids.pause}-title`} className="text-sm font-medium">
+          {t('notifications.pause')}
+        </h4>
+        {paused ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span>
+              {t('notifications.pausedUntil', {
+                time: new Intl.DateTimeFormat(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                }).format(new Date(p.paused_until!)),
+              })}
+            </span>
+            <Button size="sm" variant="outline" onClick={() => save({ paused_until: null })}>
+              {t('notifications.resume')}
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-1.5">
+            <Label htmlFor={ids.pause}>{t('notifications.pauseFor')}</Label>
+            <select
+              id={ids.pause}
+              className={selectClass}
+              value=""
+              onChange={(e) =>
+                e.target.value &&
+                save({ paused_until: untilOf(e.target.value as (typeof PAUSES)[number]) })
+              }
+            >
+              <option value="">{t('notifications.notPaused')}</option>
+              {PAUSES.map((k) => (
+                <option key={k} value={k}>
+                  {t(`notifications.durations.${k}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </section>
+
+      <section className="grid gap-3" aria-labelledby={`${ids.level}-title`}>
+        <h4 id={`${ids.level}-title`} className="text-sm font-medium">
+          {t('notifications.what')}
+        </h4>
+        <div className="grid gap-1.5">
+          <Label htmlFor={ids.level}>{t('notifications.channelsDefault')}</Label>
+          <select
+            id={ids.level}
+            className={selectClass}
+            value={p.default_level}
+            onChange={(e) =>
+              save({ default_level: e.target.value as NotificationPrefs['default_level'] })
+            }
+          >
+            {(['all', 'mentions', 'none'] as const).map((l) => (
+              <option key={l} value={l}>
+                {t(`notifications.levels.${l}`)}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">{t('notifications.conversationsAlways')}</p>
+        </div>
+        <label data-target className="flex min-h-target items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={p.desktop}
+            onChange={(e) => {
+              save({ desktop: e.target.checked });
+              if (
+                e.target.checked &&
+                typeof Notification !== 'undefined' &&
+                Notification.permission === 'default'
+              ) {
+                void Notification.requestPermission().then(setPermission);
+              }
+            }}
+            className="size-4 accent-primary"
+            data-target-exempt
+          />
+          {t('notifications.desktop')}
+        </label>
+        {p.desktop && permission === 'denied' && (
+          <p className="text-xs text-muted-foreground">{t('notifications.desktopBlocked')}</p>
+        )}
+        {p.desktop && !canNotify() && permission !== 'denied' && permission !== 'unsupported' && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="justify-self-start"
+            onClick={() => void Notification.requestPermission().then(setPermission)}
+          >
+            {t('notifications.allow')}
+          </Button>
+        )}
+        {pushKey && pushSupported() && (
+          <label data-target className="flex min-h-target items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={p.push}
+              onChange={(e) => {
+                const on = e.target.checked;
+                void (on ? enablePush(pushKey) : disablePush().then(() => true))
+                  .then((ok) =>
+                    ok ? save({ push: on }) : toast.error(t('notifications.pushDeclined')),
+                  )
+                  .catch(() => toast.error(t('notifications.saveFailed')));
+              }}
+              className="size-4 accent-primary"
+              data-target-exempt
+            />
+            {t('notifications.push')}
+          </label>
+        )}
+      </section>
+
+      <section className="grid gap-3" aria-labelledby={`${ids.volume}-title`}>
+        <h4 id={`${ids.volume}-title`} className="text-sm font-medium">
+          {t('notifications.soundsTitle')}
+        </h4>
+        {(['mention', 'direct', 'message'] as const).map((k) => (
+          <SoundChoice
+            key={k}
+            label={t(`notifications.for.${k}`)}
+            value={p.sounds[k]}
+            volume={p.volume}
+            options={soundOptions}
+            onChange={(v) => save({ sounds: { ...p.sounds, [k]: v } })}
+          />
+        ))}
+        <div className="grid gap-1.5">
+          <Label htmlFor={ids.volume}>{t('notifications.volume', { volume: p.volume })}</Label>
+          <input
+            id={ids.volume}
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={p.volume}
+            onChange={(e) => save({ volume: Number(e.target.value) })}
+            className="min-h-target accent-primary"
+          />
+        </div>
+        <SoundUploads />
+      </section>
+
+      <section className="grid gap-3" aria-labelledby={`${ids.start}-title`}>
+        <h4 id={`${ids.start}-title`} className="text-sm font-medium">
+          {t('notifications.quietHours')}
+        </h4>
+        <label data-target className="flex min-h-target items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={p.quiet_hours.enabled}
+            onChange={(e) => save({ quiet_hours: { ...p.quiet_hours, enabled: e.target.checked } })}
+            className="size-4 accent-primary"
+            data-target-exempt
+          />
+          {t('notifications.quietHoursOn')}
+        </label>
+        {p.quiet_hours.enabled && (
+          <>
+            <div className="flex flex-wrap gap-3">
+              <div className="grid gap-1">
+                <Label htmlFor={ids.start}>{t('notifications.from')}</Label>
+                <input
+                  id={ids.start}
+                  type="time"
+                  value={p.quiet_hours.start}
+                  className={inputClass}
+                  onChange={(e) =>
+                    e.target.value &&
+                    save({ quiet_hours: { ...p.quiet_hours, start: e.target.value } })
+                  }
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label htmlFor={ids.end}>{t('notifications.to')}</Label>
+                <input
+                  id={ids.end}
+                  type="time"
+                  value={p.quiet_hours.end}
+                  className={inputClass}
+                  onChange={(e) =>
+                    e.target.value &&
+                    save({ quiet_hours: { ...p.quiet_hours, end: e.target.value } })
+                  }
+                />
+              </div>
+            </div>
+            <fieldset className="flex flex-wrap gap-1">
+              <legend className="mb-1 text-sm">{t('notifications.days')}</legend>
+              {DAYS.map((d) => {
+                const on = p.quiet_hours.days.includes(d);
+                return (
+                  <label
+                    key={d}
+                    data-target
+                    className="flex min-h-target items-center gap-1.5 rounded-md border px-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() =>
+                        save({
+                          quiet_hours: {
+                            ...p.quiet_hours,
+                            days: on
+                              ? p.quiet_hours.days.filter((x) => x !== d)
+                              : [...p.quiet_hours.days, d],
+                          },
+                        })
+                      }
+                      className="size-4 accent-primary"
+                      data-target-exempt
+                    />
+                    {t(`notifications.weekdays.${d}`)}
+                  </label>
+                );
+              })}
+            </fieldset>
+          </>
+        )}
+      </section>
+
+      {settings.data.email_available && (
+        <section className="grid gap-2" aria-labelledby={`${ids.delay}-title`}>
+          <h4 id={`${ids.delay}-title`} className="text-sm font-medium">
+            {t('notifications.email')}
+          </h4>
+          <label data-target className="flex min-h-target items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={p.email.enabled}
+              onChange={(e) => save({ email: { ...p.email, enabled: e.target.checked } })}
+              className="size-4 accent-primary"
+              data-target-exempt
+            />
+            {t('notifications.emailOn')}
+          </label>
+          {p.email.enabled && (
+            <div className="grid gap-1.5">
+              <Label htmlFor={ids.delay}>{t('notifications.emailAfter')}</Label>
+              <select
+                id={ids.delay}
+                className={selectClass}
+                value={p.email.delay_minutes}
+                onChange={(e) =>
+                  save({
+                    email: { ...p.email, delay_minutes: Number(e.target.value) as 5 | 15 | 60 },
+                  })
+                }
+              >
+                {[5, 15, 60].map((m) => (
+                  <option key={m} value={m}>
+                    {t('notifications.minutes', { count: m })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function SoundChoice({
+  label,
+  value,
+  volume,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  volume: number;
+  options: React.ReactNode;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  return (
+    <div className="grid gap-1">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex gap-2">
+        <select
+          id={id}
+          className={selectClass}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {options}
+        </select>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          aria-label={t('notifications.preview', { what: label })}
+          disabled={value === 'none'}
+          onClick={() => playSound(value, volume)}
+        >
+          <PlayIcon strokeWidth={1.75} />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+const MAX_SOUND = 1024 * 1024;
+
+function SoundUploads() {
+  const { t } = useTranslation();
+  const id = useId();
+  const file = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState('');
+  const sounds = useQuery(soundsQuery);
+  const queryClient = useQueryClient();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: soundsQuery.queryKey });
+  const upload = useMutation({
+    mutationFn: (f: File) => uploadSound(name.trim() || f.name.replace(/\.[^.]+$/, ''), f),
+    onSuccess: () => {
+      setName('');
+      void refresh();
+      toast.success(t('notifications.soundAdded'));
+    },
+    onError: (err) =>
+      toast.error(
+        err instanceof ApiError && err.problem.code === 'sound_limit'
+          ? t('notifications.soundLimit')
+          : t('notifications.soundInvalid'),
+      ),
+  });
+  const remove = useMutation({ mutationFn: deleteSound, onSuccess: refresh });
+  return (
+    <div className="grid gap-2" data-testid="sound-uploads">
+      {(sounds.data ?? []).length > 0 && (
+        <ul className="grid gap-1">
+          {sounds.data!.map((s) => (
+            <li key={s.id} className="flex items-center gap-2 text-sm">
+              <span className="flex-1 truncate">{s.name}</span>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label={t('notifications.soundRemove', { name: s.name })}
+                onClick={() => remove.mutate(s.id)}
+              >
+                <Trash2Icon strokeWidth={1.75} />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="grid min-w-40 flex-1 gap-1">
+          <Label htmlFor={`${id}-name`}>{t('notifications.soundName')}</Label>
+          <input
+            id={`${id}-name`}
+            value={name}
+            maxLength={60}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <input
+          ref={file}
+          type="file"
+          accept="audio/mpeg,audio/ogg,audio/wav,audio/webm,.mp3,.ogg,.wav,.webm"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (!f) return;
+            if (f.size > MAX_SOUND) toast.error(t('notifications.soundInvalid'));
+            else upload.mutate(f);
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          disabled={upload.isPending}
+          onClick={() => file.current?.click()}
+        >
+          <UploadIcon aria-hidden strokeWidth={1.75} />
+          {t('notifications.soundUpload')}
+        </Button>
+      </div>
+    </div>
+  );
+}

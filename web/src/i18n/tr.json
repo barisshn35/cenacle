@@ -386,7 +386,8 @@
     "tabs": {
       "account": "Hesap",
       "appearance": "Görünüm",
-      "texts": "Arayüz metinleri"
+      "texts": "Arayüz metinleri",
+      "notifications": "Bildirimler"
     }
   },
   "reactions": {
@@ -676,5 +677,135 @@
       "shell_channelStart": "Kanalın başlangıcı",
       "shell_composerPlaceholder": "Mesaj kutusu ipucu"
     }
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "notifyMe": "Bana bildir",
+    "what": "Neler bildirilsin",
+    "channelsDefault": "Kanallarda",
+    "conversationsAlways": "Doğrudan mesajlar ve grup konuşmaları, sessize almadıkça her zaman bildirilir.",
+    "levels": {
+      "default": "Varsayılanımı kullan",
+      "defaultConversation": "Varsayılanımı kullan (tüm mesajlar)",
+      "all": "Tüm mesajlar",
+      "mentions": "Yalnızca bahsedilmeler",
+      "none": "Hiçbir şey"
+    },
+    "muteChannel": "Kanalı sessize al",
+    "muteConversation": "Konuşmayı sessize al",
+    "notMuted": "Sessizde değil",
+    "mutedUntil": "{{time}} saatine kadar sessizde",
+    "mutedForGood": "Sesi açılana kadar sessizde",
+    "mutedLabel": "(sessizde)",
+    "muteWorkspace": "Çalışma alanını sessize al",
+    "unmuteWorkspace": "Çalışma alanının sesini aç",
+    "durations": {
+      "30m": "30 dakika",
+      "1h": "1 saat",
+      "2h": "2 saat",
+      "8h": "8 saat",
+      "tomorrow": "Yarın sabaha kadar",
+      "week": "Bir hafta",
+      "forever": "Sesi açana kadar"
+    },
+    "pause": "Bildirimleri duraklat",
+    "pauseFor": "Duraklatma süresi",
+    "notPaused": "Duraklatılmadı",
+    "pausedUntil": "{{time}} saatine kadar duraklatıldı",
+    "resume": "Bildirimleri sürdür",
+    "pauseHour": "Bildirimleri 1 saat duraklat",
+    "pauseTomorrow": "Yarın sabaha kadar duraklat",
+    "desktop": "Masaüstü bildirimleri",
+    "desktopBlocked": "Tarayıcınız bu site için bildirimleri engelliyor. Tarayıcının site ayarlarından izin verin.",
+    "allow": "Bildirimlere izin ver",
+    "push": "Cenacle kapalıyken bu cihazda bildir (web push)",
+    "pushDeclined": "Bu tarayıcıda bildirimlere izin verilmiyor.",
+    "soundsTitle": "Sesler",
+    "for": {
+      "mention": "Bahsedilmeler",
+      "direct": "Doğrudan mesajlar",
+      "message": "Diğer mesajlar"
+    },
+    "volume": "Ses düzeyi: %{{volume}}",
+    "preview": "{{what}} sesini çal",
+    "sounds": {
+      "default": "Varsayılan ses",
+      "none": "Ses yok",
+      "chime": "Çan",
+      "bell": "Zil",
+      "pop": "Pıt",
+      "ding": "Ding",
+      "marimba": "Marimba",
+      "glass": "Cam",
+      "drop": "Damla",
+      "pulse": "Nabız",
+      "harp": "Arp",
+      "knock": "Tıklama"
+    },
+    "yourSounds": "Seslerin",
+    "soundName": "Ses adı",
+    "soundUpload": "Ses yükle",
+    "soundAdded": "Ses eklendi",
+    "soundInvalid": "En fazla 1 MB'lık bir MP3, OGG, WAV veya WebM dosyası kullanın.",
+    "soundLimit": "En fazla 5 ses tutabilirsiniz. Önce birini kaldırın.",
+    "soundRemove": "{{name}} sesini kaldır",
+    "channelSound": "Bu kanalın sesi",
+    "quietHours": "Sessiz saatler",
+    "quietHoursOn": "Bu saatlerde sessiz kal",
+    "from": "Başlangıç",
+    "to": "Bitiş",
+    "days": "Günler",
+    "weekdays": {
+      "0": "Paz",
+      "1": "Pzt",
+      "2": "Sal",
+      "3": "Çar",
+      "4": "Per",
+      "5": "Cum",
+      "6": "Cmt"
+    },
+    "email": "E-posta",
+    "emailOn": "Kaçırdığım bahsedilmeleri ve doğrudan mesajları e-postayla gönder",
+    "emailAfter": "Gönderme gecikmesi",
+    "minutes_one": "{{count}} dakika",
+    "minutes_other": "{{count}} dakika",
+    "saveFailed": "Bildirim ayarlarınız kaydedilemedi. Yeniden deneyin."
+  },
+  "search": {
+    "title": "Ara",
+    "open": "Mesajlarda ve dosyalarda ara",
+    "close": "Aramayı kapat",
+    "label": "Aranacak",
+    "placeholder": "Ara",
+    "hint": "Sözcükler başlarından eşleşir; -sözcük onu dışarıda bırakır.",
+    "kind": "Neyi arayacağın",
+    "tabs": {
+      "messages": "Mesajlar",
+      "files": "Dosyalar"
+    },
+    "filters": "Süzgeçler",
+    "scope": "Nerede",
+    "scopes": {
+      "workspace": "Bu çalışma alanı",
+      "channel": "{{channel}} içinde",
+      "all": "Tüm çalışma alanları"
+    },
+    "from": "Gönderen",
+    "fromPlaceholder": "Bir kişinin adı",
+    "clearFrom": "{{name}} süzgeçten kaldır",
+    "people": "Kişiler",
+    "after": "Başlangıç tarihi",
+    "until": "Bitiş tarihi",
+    "has": "İçerdiği",
+    "hasAny": "Herhangi",
+    "hasFile": "Dosyalar",
+    "hasLink": "Bağlantılar",
+    "empty": "Kanallarında ve konuşmalarında aramak için yaz.",
+    "noMessages": "Mesaj bulunamadı. Daha az ya da başka sözcükler deneyin.",
+    "noFiles": "Dosya bulunamadı.",
+    "found_one": "{{count}} sonuç",
+    "found_other": "{{count}} sonuç",
+    "more": "Daha fazla göster",
+    "notLoaded": "Bu mesaj burada gösterilemeyecek kadar eski."
   }
 }

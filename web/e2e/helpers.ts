@@ -376,6 +376,12 @@ export interface MockApi {
   profiles: Record<string, MockProfile>;
   /** Closes the WebSocket from the server side. */
   closeSocket(code: number): void;
+  /** Notification settings as the fake server keeps them. */
+  notifications?: {
+    prefs: Record<string, unknown>;
+    channels: Record<string, unknown>[];
+    workspaces: Record<string, unknown>[];
+  };
 }
 
 /**
@@ -788,10 +794,16 @@ export async function mockApi(
   await page.route('**/api/channels/*/messages*', async (route) => {
     const channelId = route.request().url().split('/api/channels/')[1]!.split('/')[0]!;
     if (route.request().method() === 'GET') {
-      const list = stored
-        .filter((m) => !m.deleted && m.channel_id === channelId)
+      const params = new URL(route.request().url()).searchParams;
+      const before = params.get('before');
+      const limit = Number(params.get('limit') ?? 50);
+      const all = stored
+        .filter((m) => !m.deleted && m.channel_id === channelId && (!before || m.id < before))
         .map(({ deleted: _, ...m }) => m);
-      return route.fulfill({ json: { messages: list, has_more: false } });
+      // Oldest first; a page is the newest `limit` before the cursor.
+      return route.fulfill({
+        json: { messages: all.slice(-limit), has_more: all.length > limit },
+      });
     }
     if (failures > 0) {
       failures--;
@@ -868,6 +880,75 @@ export async function mockApi(
     api.reacted.push(`${req.method() === 'PUT' ? '+' : '-'}${decodeURIComponent(emoji!)} ${id}`);
     return route.fulfill({ status: 204 });
   });
+  // Notification settings, sounds and web push.
+  const notifications = {
+    prefs: {
+      desktop: false,
+      push: false,
+      sounds: { message: 'none', mention: 'chime', direct: 'bell' },
+      volume: 70,
+      default_level: 'all',
+      email: { enabled: false, delay_minutes: 15 },
+      paused_until: null as string | null,
+      quiet_hours: { enabled: false, start: '22:00', end: '08:00', days: [1, 2, 3, 4, 5] },
+    },
+    channels: [] as Record<string, unknown>[],
+    workspaces: [] as Record<string, unknown>[],
+    email_available: true,
+    push_public_key: null as string | null,
+  };
+  api.notifications = notifications;
+  await page.route('**/api/me/notifications', (route) => {
+    if (route.request().method() === 'PUT') notifications.prefs = route.request().postDataJSON();
+    return route.fulfill({ json: notifications });
+  });
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/notifications$/, (route) => {
+    const id = route.request().url().split('/').at(-2)!;
+    const n = { channel_id: id, ...route.request().postDataJSON() };
+    notifications.channels = [...notifications.channels.filter((c) => c.channel_id !== id), n];
+    return route.fulfill({ json: n });
+  });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/notifications$/, (route) => {
+    const id = route.request().url().split('/').at(-2)!;
+    const n = { workspace_id: id, ...route.request().postDataJSON() };
+    notifications.workspaces = [
+      ...notifications.workspaces.filter((w) => w.workspace_id !== id),
+      n,
+    ];
+    return route.fulfill({ json: n });
+  });
+  await page.route('**/api/me/sounds**', (route) => route.fulfill({ json: { sounds: [] } }));
+  // Search: words that begin words of the message, newest first.
+  await page.route('**/api/search/messages?**', (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const words = (params.get('q') ?? '').toLocaleLowerCase('tr').split(/\s+/).filter(Boolean);
+    const results = stored
+      .filter((m) => !m.deleted)
+      .filter((m) =>
+        words.every((w) =>
+          m.body
+            .toLocaleLowerCase('tr')
+            .split(/[^\p{L}\p{N}_]+/u)
+            .some((x) => x.startsWith(w)),
+        ),
+      )
+      .toReversed()
+      .map(({ deleted: _, ...m }) => {
+        const ch = all.find((c) => c.id === m.channel_id)!;
+        return {
+          id: m.id,
+          channel: { id: ch.id, name: ch.name, kind: ch.kind, workspace_id: ch.workspace_id },
+          author: m.author,
+          body: m.body,
+          created_at: m.created_at,
+          has_files: m.files.length > 0,
+        };
+      });
+    return route.fulfill({ json: { results, has_more: false } });
+  });
+  await page.route('**/api/search/files?**', (route) =>
+    route.fulfill({ json: { results: [], has_more: false } }),
+  );
   await page.route('**/api/ws/ticket', (route) =>
     route.fulfill({ status: 201, json: { ticket: 'test-ticket', expires_in: 30 } }),
   );

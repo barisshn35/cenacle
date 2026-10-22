@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import { CheckIcon, PencilIcon, SmileIcon } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
+import { BellIcon, BellOffIcon, CheckIcon, PencilIcon, SmileIcon } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
@@ -13,6 +13,7 @@ import {
 import { Avatar } from '../profile/avatar';
 import { useProfileDialogs } from '../profile/dialogs-state';
 import { useProfile } from '../profile/profiles';
+import { isActive, notificationsQuery, savePrefs, untilOf } from '../notifications/notifications';
 import { useSession } from '../auth/session';
 import { PresenceIndicator } from '../shell/presence';
 import { setPresence, type PresenceStatus } from './data';
@@ -26,6 +27,19 @@ export function StatusMenu({ name }: { name: string }) {
   const self = useSession().user.id;
   const profile = useProfile(self);
   const openDialog = useProfileDialogs((s) => s.open);
+  const queryClient = useQueryClient();
+  const notifications = useQuery(notificationsQuery);
+  const paused = isActive(notifications.data?.prefs.paused_until);
+  const pause = (until: string | null) => {
+    const current = notifications.data;
+    if (!current) return;
+    const prefs = { ...current.prefs, paused_until: until };
+    queryClient.setQueryData(notificationsQuery.queryKey, { ...current, prefs });
+    savePrefs(prefs).catch(() => {
+      toast.error(t('notifications.saveFailed'));
+      void queryClient.invalidateQueries({ queryKey: notificationsQuery.queryKey });
+    });
+  };
   const status = usePresence(self);
   const set = useMutation({
     mutationFn: (s: Exclude<PresenceStatus, 'offline'>) => setPresence(s),
@@ -63,6 +77,24 @@ export function StatusMenu({ name }: { name: string }) {
           <SmileIcon aria-hidden strokeWidth={1.75} />
           {profile?.status ? t('profile.statusChange') : t('profile.statusSet')}
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {paused ? (
+          <DropdownMenuItem onClick={() => pause(null)}>
+            <BellIcon aria-hidden strokeWidth={1.75} />
+            {t('notifications.resume')}
+          </DropdownMenuItem>
+        ) : (
+          <>
+            <DropdownMenuItem onClick={() => pause(untilOf('1h'))}>
+              <BellOffIcon aria-hidden strokeWidth={1.75} />
+              {t('notifications.pauseHour')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => pause(untilOf('tomorrow'))}>
+              <BellOffIcon aria-hidden strokeWidth={1.75} />
+              {t('notifications.pauseTomorrow')}
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuItem onClick={() => openDialog('edit')}>
           <PencilIcon aria-hidden strokeWidth={1.75} />
           {t('profile.edit')}

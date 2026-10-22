@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { CircleAlertIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Virtuoso } from 'react-virtuoso';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
+import { toast } from 'sonner';
+import { useJump } from './jump';
 import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
@@ -118,6 +120,7 @@ function MessageRow({
   const at = new Date(m.created_at);
   const editing = useEditing((s) => s.id === m.id);
   const mentionsMe = m.mentions.some((p) => p.id === self);
+  const highlighted = useJump((s) => s.highlighted === m.id);
   return (
     <div>
       {row.day && (
@@ -150,12 +153,15 @@ function MessageRow({
           'group relative flex gap-3 px-4 hover:bg-muted/40 focus-within:bg-muted/40',
           row.first ? 'pt-3 pb-0.5' : 'py-0.5',
           editing && 'bg-muted/40',
+          highlighted && 'bg-accent',
           // A message for the reader: tinted and marked at the edge (not by color alone:
           // the mention chip in the text says it too).
           mentionsMe &&
             'border-l-3 border-l-mention bg-mention-bg/60 pl-[13px] hover:bg-mention-bg',
         )}
         data-mentions-me={mentionsMe || undefined}
+        data-highlighted={highlighted || undefined}
+        data-message-id={m.id}
       >
         {row.first ? (
           <ProfileCard userId={m.author.id} name={m.author.display_name}>
@@ -329,6 +335,60 @@ function useMarkRead(channel: Channel, messages: Message[]) {
 }
 
 /** The timeline of a channel: newest at the bottom, older pages load on scroll up. */
+/** Older pages loaded at most while looking for a message to jump to. */
+const JUMP_PAGES = 40;
+
+/**
+ * Brings the message asked for (a search result) into view: loads older pages
+ * until it is there, then scrolls to it and highlights it for a moment.
+ */
+function useJumpTo(
+  channelId: string,
+  rows: Row[],
+  state: {
+    loading: boolean;
+    hasNextPage: boolean;
+    pages: number;
+    fetchNextPage: () => Promise<unknown>;
+  },
+  list: RefObject<VirtuosoHandle | null>,
+) {
+  const { t } = useTranslation();
+  const target = useJump((s) => (s.target?.channelId === channelId ? s.target.messageId : null));
+  const done = useJump((s) => s.done);
+  const { loading, hasNextPage, pages, fetchNextPage } = state;
+  useEffect(() => {
+    if (!target || loading) return;
+    const index = rows.findIndex((r) => r.kind === 'message' && r.message.id === target);
+    if (index >= 0) {
+      // The index is in `rows` (not counted from firstItemIndex). The list may
+      // still move to keep its place after pages were prepended, so scroll
+      // again until the message is in view (a few tries).
+      let tries = 0;
+      const bring = () => {
+        list.current?.scrollToIndex({ index, align: 'center' });
+        const el = document.querySelector(`[data-message-id="${target}"]`);
+        const box = el?.closest('[role="log"]')?.getBoundingClientRect();
+        const r = el?.getBoundingClientRect();
+        const inView = !!r && !!box && r.top >= box.top && r.bottom <= box.bottom;
+        if (!inView && ++tries < 20) setTimeout(bring, 100);
+      };
+      setTimeout(bring, 50);
+      done(target);
+      setTimeout(() => {
+        if (useJump.getState().highlighted === target) useJump.getState().done(null);
+      }, 2600);
+      return;
+    }
+    if (hasNextPage && pages < JUMP_PAGES) {
+      void fetchNextPage();
+      return;
+    }
+    done(null);
+    toast(t('search.notLoaded'));
+  }, [target, rows, loading, hasNextPage, pages, fetchNextPage, list, done, t]);
+}
+
 export function MessageList({ channel }: { channel: Channel }) {
   const { id: channelId, name: channelName } = channel;
   const { t } = useTranslation();
@@ -350,11 +410,24 @@ export function MessageList({ channel }: { channel: Channel }) {
     [messages, pending, fmt.day, mark],
   );
   const setAtBottom = useMarkRead(channel, messages);
+  const list = useRef<VirtuosoHandle>(null);
 
   // Prepending older messages lowers the index of the first row.
   const olderCount = useMemo(
     () => (query.data ? query.data.pages.slice(1).reduce((n, p) => n + p.messages.length, 0) : 0),
     [query.data],
+  );
+
+  useJumpTo(
+    channelId,
+    rows,
+    {
+      loading: query.isPending || query.isFetchingNextPage,
+      hasNextPage: query.hasNextPage,
+      pages: query.data?.pages.length ?? 0,
+      fetchNextPage: query.fetchNextPage,
+    },
+    list,
   );
 
   if (query.isPending) return <Loading />;
@@ -387,6 +460,7 @@ export function MessageList({ channel }: { channel: Channel }) {
       className="min-h-0 flex-1"
     >
       <Virtuoso
+        ref={list}
         className="h-full"
         data={rows}
         firstItemIndex={START_INDEX - olderCount}

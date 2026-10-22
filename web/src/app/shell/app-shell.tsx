@@ -14,6 +14,7 @@ import { useRememberWorkspace } from '../chat/active-workspace';
 import { ChannelSidebar } from './channel-sidebar';
 import { ChannelView } from './channel-view';
 import { DetailsPanel } from './details-panel';
+import { SearchPanel } from '../search/search-panel';
 import { WorkspaceRail } from './workspace-rail';
 import { useTranslation } from 'react-i18next';
 
@@ -36,6 +37,7 @@ export function AppShell() {
 function DesktopShell() {
   const detailsOpen = useLayout((s) => s.detailsOpen);
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
+  const rightView = useLayout((s) => s.rightView);
   const detailsRef = usePanelRef();
 
   // Keep the panel in sync with the toggle button.
@@ -72,7 +74,7 @@ function DesktopShell() {
           }}
         >
           {/* Collapsed content is not rendered, so it leaves the tab order and the a11y tree. */}
-          {detailsOpen && <DetailsPanel />}
+          {detailsOpen && (rightView === 'search' ? <SearchPanel /> : <DetailsPanel />)}
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
@@ -83,6 +85,7 @@ function MobileShell() {
   const { t } = useTranslation();
   const detailsOpen = useLayout((s) => s.detailsOpen);
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
+  const rightView = useLayout((s) => s.rightView);
   return (
     <>
       <ChannelSidebar mobile />
@@ -92,8 +95,10 @@ function MobileShell() {
       {/* On small screens the details panel is a full-height sheet. */}
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
         <SheetContent side="right" showCloseButton={false} className="w-full p-0 sm:max-w-sm">
-          <SheetTitle className="sr-only">{t('shell.details')}</SheetTitle>
-          <DetailsPanel />
+          <SheetTitle className="sr-only">
+            {rightView === 'search' ? t('search.title') : t('shell.details')}
+          </SheetTitle>
+          {rightView === 'search' ? <SearchPanel /> : <DetailsPanel />}
         </SheetContent>
       </Sheet>
     </>

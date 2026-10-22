@@ -386,7 +386,8 @@
     "tabs": {
       "account": "Account",
       "appearance": "Appearance",
-      "texts": "Interface texts"
+      "texts": "Interface texts",
+      "notifications": "Notifications"
     }
   },
   "reactions": {
@@ -676,5 +677,135 @@
       "shell_channelStart": "Start of a channel",
       "shell_composerPlaceholder": "Message box placeholder"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "notifyMe": "Notify me about",
+    "what": "What notifies you",
+    "channelsDefault": "In channels",
+    "conversationsAlways": "Direct messages and group conversations always notify, unless you mute them.",
+    "levels": {
+      "default": "Use my default",
+      "defaultConversation": "Use my default (all messages)",
+      "all": "All messages",
+      "mentions": "Mentions only",
+      "none": "Nothing"
+    },
+    "muteChannel": "Mute channel",
+    "muteConversation": "Mute conversation",
+    "notMuted": "Not muted",
+    "mutedUntil": "Muted until {{time}}",
+    "mutedForGood": "Muted until you unmute",
+    "mutedLabel": "(muted)",
+    "muteWorkspace": "Mute workspace",
+    "unmuteWorkspace": "Unmute workspace",
+    "durations": {
+      "30m": "For 30 minutes",
+      "1h": "For 1 hour",
+      "2h": "For 2 hours",
+      "8h": "For 8 hours",
+      "tomorrow": "Until tomorrow morning",
+      "week": "For a week",
+      "forever": "Until I unmute"
+    },
+    "pause": "Pause notifications",
+    "pauseFor": "Pause for",
+    "notPaused": "Not paused",
+    "pausedUntil": "Paused until {{time}}",
+    "resume": "Resume notifications",
+    "pauseHour": "Pause notifications for 1 hour",
+    "pauseTomorrow": "Pause until tomorrow morning",
+    "desktop": "Desktop notifications",
+    "desktopBlocked": "Your browser blocks notifications for this site. Allow them in the browser's site settings.",
+    "allow": "Allow notifications",
+    "push": "Notify me on this device when Cenacle is closed (web push)",
+    "pushDeclined": "Notifications are not allowed in this browser.",
+    "soundsTitle": "Sounds",
+    "for": {
+      "mention": "Mentions",
+      "direct": "Direct messages",
+      "message": "Other messages"
+    },
+    "volume": "Volume: {{volume}}%",
+    "preview": "Play {{what}}",
+    "sounds": {
+      "default": "Default sound",
+      "none": "No sound",
+      "chime": "Chime",
+      "bell": "Bell",
+      "pop": "Pop",
+      "ding": "Ding",
+      "marimba": "Marimba",
+      "glass": "Glass",
+      "drop": "Drop",
+      "pulse": "Pulse",
+      "harp": "Harp",
+      "knock": "Knock"
+    },
+    "yourSounds": "Your sounds",
+    "soundName": "Sound name",
+    "soundUpload": "Upload a sound",
+    "soundAdded": "Sound added",
+    "soundInvalid": "Use an MP3, OGG, WAV or WebM file up to 1 MB.",
+    "soundLimit": "You can keep up to 5 sounds. Remove one first.",
+    "soundRemove": "Remove {{name}}",
+    "channelSound": "Sound for this channel",
+    "quietHours": "Quiet hours",
+    "quietHoursOn": "Stay quiet during these hours",
+    "from": "From",
+    "to": "To",
+    "days": "Days",
+    "weekdays": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
+    "email": "E-mail",
+    "emailOn": "E-mail me about mentions and direct messages I missed",
+    "emailAfter": "Send after",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "saveFailed": "Couldn't save your notification settings. Try again."
+  },
+  "search": {
+    "title": "Search",
+    "open": "Search messages and files",
+    "close": "Close search",
+    "label": "Search for",
+    "placeholder": "Search",
+    "hint": "Words match their beginnings; -word leaves it out.",
+    "kind": "What to search",
+    "tabs": {
+      "messages": "Messages",
+      "files": "Files"
+    },
+    "filters": "Filters",
+    "scope": "Where",
+    "scopes": {
+      "workspace": "This workspace",
+      "channel": "In {{channel}}",
+      "all": "All workspaces"
+    },
+    "from": "From",
+    "fromPlaceholder": "A person's name",
+    "clearFrom": "Remove {{name}} from the filter",
+    "people": "People",
+    "after": "From date",
+    "until": "To date",
+    "has": "Contains",
+    "hasAny": "Anything",
+    "hasFile": "Files",
+    "hasLink": "Links",
+    "empty": "Type to search your channels and conversations.",
+    "noMessages": "No messages found. Try fewer or other words.",
+    "noFiles": "No files found.",
+    "found_one": "{{count}} result",
+    "found_other": "{{count}} results",
+    "more": "Show more",
+    "notLoaded": "That message is too far back to show here."
   }
 }

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@cenacle/ui/lib/utils';
 import { AppearancePanel } from '../appearance/appearance-panel';
 import { UITextsPanel } from '../appearance/ui-texts-panel';
+import { NotificationsPanel } from '../notifications/notifications-panel';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@cenacle/ui/components/button';
 import { ConfirmDialog } from '@cenacle/ui/components/confirm-dialog';
@@ -91,7 +92,7 @@ function DeviceRow({ device }: { device: DeviceSession }) {
  * Settings of the signed-in user: signed-in devices with "sign out
  * everywhere" (S3) and the way to two-step verification in Cenacle ID.
  */
-type Tab = 'account' | 'appearance' | 'texts';
+type Tab = 'account' | 'appearance' | 'notifications' | 'texts';
 
 export function SettingsDialog({
   open,
@@ -109,8 +110,8 @@ export function SettingsDialog({
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const tabs: Tab[] = session.permissions.create_workspaces
-    ? ['account', 'appearance', 'texts']
-    : ['account', 'appearance'];
+    ? ['account', 'appearance', 'notifications', 'texts']
+    : ['account', 'appearance', 'notifications'];
   const [tab, setTab] = useState<Tab>('account');
 
   return (
@@ -163,6 +164,15 @@ export function SettingsDialog({
               aria-labelledby="settings-tab-appearance"
             >
               <AppearancePanel />
+            </div>
+          )}
+          {tab === 'notifications' && (
+            <div
+              role="tabpanel"
+              id="settings-panel-notifications"
+              aria-labelledby="settings-tab-notifications"
+            >
+              <NotificationsPanel />
             </div>
           )}
           {tab === 'texts' && (

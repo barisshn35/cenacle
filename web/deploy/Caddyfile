@@ -15,7 +15,7 @@
 
 	header {
 		# No third-party origins: scripts, styles, fonts and images are self-hosted.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
@@ -25,7 +25,7 @@
 
 	@hashed path /assets/*
 	header @hashed Cache-Control "public, max-age=31536000, immutable"
-	@html path / /index.html
+	@html path / /index.html /sw.js
 	header @html Cache-Control "no-cache"
 
 	respond /healthz 200

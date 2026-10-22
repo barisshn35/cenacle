@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '../auth/session';
 import { useQueryClient } from '@tanstack/react-query';
 import { RealtimeClient } from '@cenacle/core/realtime';
@@ -23,6 +24,7 @@ import {
 } from './data';
 import { usePending } from './pending';
 import { profileChanged } from '../profile/profiles';
+import { notifyIncoming } from '../notifications/notifier';
 
 /**
  * Keeps the live connection open while signed in and applies its events to
@@ -31,6 +33,12 @@ import { profileChanged } from '../profile/profiles';
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const selfId = useSession().user.id;
+  // The latest navigate, without restarting the connection when it changes.
+  const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   useEffect(() => {
     const live = useLive.getState();
@@ -43,6 +51,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
             void queryClient.invalidateQueries({ queryKey: ['files', message.channel_id] });
           }
           countIncoming(queryClient, message, selfId);
+          notifyIncoming(queryClient, message, selfId, (channelId) => {
+            void navigateRef.current({ to: '/c/$channelId', params: { channelId } });
+          });
           live.stopTyping(message.channel_id, message.author.id);
           // The sender's own pending copy is now confirmed.
           usePending.getState().remove(message.nonce);

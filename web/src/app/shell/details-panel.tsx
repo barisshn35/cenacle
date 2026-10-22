@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { ChannelNotificationsSection } from '../notifications/channel-notifications';
 import { LogOutIcon, SettingsIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -87,6 +88,11 @@ export function DetailsPanel() {
             </dd>
           </div>
         </dl>
+      )}
+      {channel && (
+        <div className="border-t p-4">
+          <ChannelNotificationsSection channel={channel} />
+        </div>
       )}
       {channel && (
         <div className="border-t p-4">

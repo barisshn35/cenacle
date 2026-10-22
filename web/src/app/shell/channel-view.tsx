@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { PanelRightIcon } from 'lucide-react';
+import { PanelRightIcon, SearchIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
@@ -23,7 +23,11 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const saveAppearance = useSaveAppearance();
   const { id, channel } = useActiveChannel();
   const detailsOpen = useLayout((s) => s.detailsOpen);
+  const rightView = useLayout((s) => s.rightView);
+  const show = useLayout((s) => s.show);
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
+  const showing = (view: typeof rightView) => detailsOpen && rightView === view;
+  const toggle = (view: typeof rightView) => (showing(view) ? setDetailsOpen(false) : show(view));
   const name = channel?.name ?? '';
   const channelsLoaded = useQuery(channelsQuery).isSuccess;
 
@@ -63,9 +67,19 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
         <Button
           variant="ghost"
           size="icon"
+          aria-label={t('search.open')}
+          aria-keyshortcuts="Control+Shift+F Meta+Shift+F"
+          aria-pressed={showing('search')}
+          onClick={() => toggle('search')}
+        >
+          <SearchIcon strokeWidth={1.75} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label={t('shell.toggleDetails')}
-          aria-pressed={detailsOpen}
-          onClick={() => setDetailsOpen(!detailsOpen)}
+          aria-pressed={showing('details')}
+          onClick={() => toggle('details')}
         >
           <PanelRightIcon strokeWidth={1.75} />
         </Button>

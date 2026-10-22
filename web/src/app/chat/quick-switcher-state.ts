@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect } from 'react';
 import { create } from 'zustand';
+import { useLayout } from '../../stores/layout';
 
 export const useQuickSwitcher = create<{ open: boolean; setOpen: (open: boolean) => void }>()(
   (set) => ({ open: false, setOpen: (open) => set({ open }) }),
 );
 
-/** Ctrl+K / ⌘K anywhere opens the quick switcher. */
+/** Ctrl+K / ⌘K anywhere opens the quick switcher; Ctrl+Shift+F / ⌘⇧F opens search. */
 export function useQuickSwitcherShortcut() {
   const setOpen = useQuickSwitcher((s) => s.setOpen);
   useEffect(() => {
@@ -14,6 +15,14 @@ export function useQuickSwitcherShortcut() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setOpen(true);
+      }
+      // Ctrl+Shift+F / ⌘⇧F opens search.
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        useLayout.getState().show('search');
+        requestAnimationFrame(() =>
+          document.querySelector<HTMLInputElement>('[data-testid="search-panel"] input')?.focus(),
+        );
       }
     };
     window.addEventListener('keydown', onKey);

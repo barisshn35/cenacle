@@ -9,6 +9,7 @@ import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Logo } from '@cenacle/ui/brand';
 import { SessionContext, sessionQuery, signinSearchFor } from './session';
 import { AppearanceSync } from '../appearance/appearance-sync';
+import { NotificationsSync } from '../notifications/notifications-sync';
 import { RealtimeProvider } from '../chat/realtime';
 
 /**
@@ -43,6 +44,7 @@ export function RequireSession() {
       <SessionContext.Provider value={session.data}>
         <RealtimeProvider>
           <AppearanceSync />
+          <NotificationsSync />
           <Outlet />
         </RealtimeProvider>
       </SessionContext.Provider>
