@@ -8,6 +8,25 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Profiles and settings.
+
+### Added
+
+- Profile pictures (animated GIFs too, still for people who reduce motion), from the
+  company directory unless people choose their own.
+- @usernames for everyone (the directory's sign-in name for directory accounts).
+- Profile cards: picture with presence, name, @username, custom status, local time, last
+  seen and address; "Edit profile" for oneself, "Message" for others.
+- Custom status with an emoji and/or text, suggestions and recent ones, clearing itself
+  after a chosen time; shown next to names in messages and member lists.
+- Last seen while offline, which people may hide; local time from the browser's time zone.
+- Workspace description and icon.
+- Local Cenacle ID accounts change their name on the account page.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0150).
+
 ## [0.14.0] - 2026-10-22
 
 Identity: company directories, other identity providers, passkeys, an admin panel and

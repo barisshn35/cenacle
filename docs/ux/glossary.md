@@ -42,6 +42,10 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Passkey              | Passkey                         | Geçiş anahtarı                        | —                                         | Cenacle ID pages; never "security key" alone  |
 | Identity provider    | Identity provider               | Kimlik sağlayıcısı                    | —                                         | OIDC or SAML; "Continue with …"               |
 | Directory            | Directory                       | Dizin                                 | —                                         | Active Directory or LDAP                      |
+| Profile              | Edit profile                    | Profili düzenle                       | `profile.edit`                            | Picture, @username, time zone, last seen      |
+| Custom status        | Custom status                   | Özel durum                            | `profile.statusSet`                       | Emoji and/or text; clears itself              |
+| Username             | Username                        | Kullanıcı adı                         | `profile.username`                        | Shown as @username                            |
+| Last seen            | last seen                       | son görülme                           | `profile.lastSeen`                        | Only while offline; can be hidden             |
 
 ## Rules
 

@@ -39,6 +39,14 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.15.0)
+
+- Migration `00015_profiles` gives everyone a @username (directory accounts keep their
+  sign-in name; names that differ only in case get a short suffix) and adds pictures,
+  custom status, time zone and last seen.
+- Directory photos reach the chat through the directory feed: nothing to configure; the
+  first synchronization after the upgrade fetches them.
+
 ### 0.14.0
 
 - Migrations: Cenacle ID `0003_directory`, `0004_passkeys`, `0005_federation`; chat
