@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package telemetry exposes Prometheus metrics and, when an OTLP endpoint is
 // configured with the standard OTEL_* variables, sends traces with

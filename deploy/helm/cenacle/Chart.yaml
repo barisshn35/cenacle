@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 apiVersion: v2
 name: cenacle
 description: Self-hosted team chat (Cenacle) with its identity server (Cenacle ID).
@@ -9,4 +9,4 @@ home: https://github.com/barisshn35/cenacle
 sources: [https://github.com/barisshn35/cenacle]
 keywords: [chat, self-hosted, oidc]
 annotations:
-  licenses: Apache-2.0
+  licenses: AGPL-3.0-only

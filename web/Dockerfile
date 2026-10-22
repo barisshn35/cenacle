@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Cenacle web app: static build served by Caddy. Build from the repository root:
 #   docker build -f web/Dockerfile -t cenacle-web .
 

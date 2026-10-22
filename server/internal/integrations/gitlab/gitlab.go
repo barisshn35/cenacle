@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package gitlab turns GitLab webhook events into message cards: pushes,
 // merge requests, pipelines, issues and comments.

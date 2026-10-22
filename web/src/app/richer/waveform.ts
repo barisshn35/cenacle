@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 /** Levels kept for a voice message's waveform. */
 const LEVELS = 64;

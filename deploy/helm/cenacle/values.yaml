@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Cenacle on Kubernetes. PostgreSQL, Valkey and the S3 object store are
 # external (operators or managed services); see docs/install/kubernetes.md.
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { defineConfig, devices } from '@playwright/test';
 
 // The specs start Cenacle ID in-process (e2e/harness.ts) against the

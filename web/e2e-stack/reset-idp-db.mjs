@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Empties the Cenacle ID database. The IdP's own end-to-end tests share it
 // with their own key encryption key; without this, the IdP of the stack tests

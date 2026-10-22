@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // The directory feed: apps registered with directory_feed (the chat) read the
 // accounts that changed since a cursor, to follow names, groups, roles and
 // deactivations without waiting for the next sign-in.

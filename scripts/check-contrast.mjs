@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Checks WCAG 2.2 contrast of the design tokens in both themes
 // (packages/ui/src/styles/tokens.css): text pairs need 4.5:1 (1.4.3), UI

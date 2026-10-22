@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Empties the chat test database before the stack tests (after migrations,
 // before the server starts and recreates the default channels): Cenacle ID's

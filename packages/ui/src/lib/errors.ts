@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 /** Error kinds with localized texts under `ui:errors.<kind>`. */
 export type ErrorKind =

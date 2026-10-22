@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import Provider, { type Configuration, type KoaContextWithOIDC } from 'oidc-provider';
 import type { JWK } from 'jose';
 import type pg from 'pg';

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package jobs runs background work with River (a PostgreSQL job queue): each
 // periodic job runs once per interval across all instances, and later

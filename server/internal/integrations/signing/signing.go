@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package signing signs requests Cenacle sends to bots (slash commands, event
 // subscriptions) so they can tell them from forgeries:

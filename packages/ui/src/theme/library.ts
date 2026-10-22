@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // The appearance choices (v0.16, ADR 0013/0019): theme presets, the font
 // library, font templates and code themes, and applying a person's settings
 // to the page.

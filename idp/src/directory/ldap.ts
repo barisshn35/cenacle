@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // LDAP / Active Directory: checking passwords by binding as the person, and
 // reading people and groups for synchronization. Values from users are always
 // escaped in filters (RFC 4515).

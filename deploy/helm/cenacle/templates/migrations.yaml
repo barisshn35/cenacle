@@ -1,4 +1,4 @@
-{{/* SPDX-License-Identifier: Apache-2.0 */}}
+{{/* SPDX-License-Identifier: AGPL-3.0-only */}}
 {{/* Migrations run before installs and upgrades; each takes its own lock. */}}
 {{- range $component := list "server" "idp" }}
 ---

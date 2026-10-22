@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Public entry point. Host names come from the environment (.env.prod), never
 # from code: CENACLE_DOMAIN (chat) and CENACLE_ID_DOMAIN (Cenacle ID).
 {

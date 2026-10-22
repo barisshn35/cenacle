@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Maintenance commands of Cenacle ID:
 //   cenacle-idp migrate up|down

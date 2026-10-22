@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Brand section of the development gallery: logo, files, favicons, app icons,
 // brand tokens and their contrast in the current theme.
 

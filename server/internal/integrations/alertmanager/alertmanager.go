@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package alertmanager turns Prometheus Alertmanager notifications (Grafana's
 // alerting sends the same format) into a message card per notification.

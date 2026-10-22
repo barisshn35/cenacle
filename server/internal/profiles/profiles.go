@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package profiles holds what the chat and the directory feed share about
 // profiles: changing a picture and announcing a change.

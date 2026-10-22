@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package clamav scans streams with clamd (ClamAV's daemon) over TCP, using
 // the INSTREAM command. ClamAV runs as its own service; nothing is linked.

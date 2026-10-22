@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Starts Cenacle ID in-process against the integration test database, with a
 // registered first-party client whose redirect URI points at a local callback

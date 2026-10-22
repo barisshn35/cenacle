@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 openapi: 3.0.3
 info:
   title: Cenacle chat API
@@ -12,7 +12,8 @@ info:
     Cookie-authenticated requests that change state must come from the app's own
     origin (`Origin` or `Sec-Fetch-Site: same-origin`).
   license:
-    name: Apache-2.0
+    name: AGPL-3.0-only
+    url: https://www.gnu.org/licenses/agpl-3.0.html
 servers:
   - url: /
 tags:

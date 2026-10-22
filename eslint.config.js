@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';

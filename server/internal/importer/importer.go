@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package importer moves the history of another chat (a Mattermost bulk export
 // or a Slack export) into Cenacle once: workspaces, people, channels,

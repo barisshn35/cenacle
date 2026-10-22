@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Source: shadcn/ui https://ui.shadcn.com (MIT, shadcn and contributors).
 // Adapted for Cenacle: built on useMediaQuery (no setState in effects).
 import { useMediaQuery } from './use-media-query';

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Signing in with other identity providers: an OpenID Connect provider (a
 // small oidc-provider with its development sign-in pages) and a SAML 2.0

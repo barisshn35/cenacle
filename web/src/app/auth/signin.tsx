@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';

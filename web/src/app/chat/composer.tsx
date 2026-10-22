@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClockIcon, PaperclipIcon, SendHorizontalIcon, BarChart3Icon } from 'lucide-react';

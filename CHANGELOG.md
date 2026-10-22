@@ -8,6 +8,13 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Changed
+
+- Cenacle is now licensed under the GNU Affero General Public License v3.0
+  (`AGPL-3.0-only`); `packages/core` stays under the Apache License 2.0 (ADR 0025).
+  Contributions need the Contributor License Agreement (`CLA.md`), checked in merge
+  requests; the name and logo follow `TRADEMARKS.md`.
+
 ## [0.20.0] - 2026-10-22
 
 Richer communication.

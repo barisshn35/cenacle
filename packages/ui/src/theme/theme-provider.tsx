@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { safeStorage } from '../lib/storage';

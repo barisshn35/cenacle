@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 -- Cenacle ID: signing in with other identity providers (OpenID Connect, SAML 2.0).
 
 -- Up Migration

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { apiFetch } from '@cenacle/core/api';
 
 const json = (body: unknown, method: string): RequestInit => ({

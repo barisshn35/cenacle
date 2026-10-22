@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

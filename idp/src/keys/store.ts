@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { calculateJwkThumbprint, exportJWK, generateKeyPair, type JWK } from 'jose';
 import type pg from 'pg';
 import { openPrivateKey, sealPrivateKey } from './crypto.ts';

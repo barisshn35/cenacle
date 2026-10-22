@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Cenacle's service worker: web push only (no caching; the app is online).
 // The server sends {title, body, url, tag} encrypted for this browser.
 /* global self */

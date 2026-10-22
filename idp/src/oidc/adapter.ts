@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import type pg from 'pg';
 
 // Models whose artifacts belong to a grant and are revoked together.

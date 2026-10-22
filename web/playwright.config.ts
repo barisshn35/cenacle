@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.WEB_PORT ?? 15173);

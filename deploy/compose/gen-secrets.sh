@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Generates random secrets for deploy/compose/prod.yml into ./secrets.
 # Existing files are kept, so re-running never rotates live credentials.

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package admin holds operator tools of the server binary: an instance status
 // report and a support bundle (status, redacted settings, runtime). Bundles

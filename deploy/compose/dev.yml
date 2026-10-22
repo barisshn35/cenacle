@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Local development stack. Start with `make up` (uses .env, project "cenacle").
 # Infrastructure only by default; the application containers are in the

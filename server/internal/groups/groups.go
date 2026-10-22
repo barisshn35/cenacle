@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package groups applies what Cenacle ID's directory says about a person to
 // the chat: their sign-in name, role (administrator, guest), and the

@@ -1,4 +1,4 @@
-{{/* SPDX-License-Identifier: Apache-2.0 */}}
+{{/* SPDX-License-Identifier: AGPL-3.0-only */}}
 {{- define "cenacle.fullname" -}}
 {{- if contains .Chart.Name .Release.Name -}}{{ .Release.Name | trunc 50 | trimSuffix "-" }}{{- else -}}{{ printf "%s-%s" .Release.Name .Chart.Name | trunc 50 | trimSuffix "-" }}{{- end -}}
 {{- end -}}

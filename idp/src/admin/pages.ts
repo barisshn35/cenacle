@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Pages of the Cenacle ID admin panel (server-rendered, no script needed).
 import type { LdapConfig } from '../directory/ldap.ts';
 import type { Source, SyncRun } from '../directory/store.ts';

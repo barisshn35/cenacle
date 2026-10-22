@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Bots (out-of-process integrations): bot accounts, scoped API tokens and incoming
 -- webhooks (generic and Jira).

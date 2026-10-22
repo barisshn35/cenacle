@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Public and private channels, and channel managers. Only managers (and the
 -- administrator) add people to private channels.

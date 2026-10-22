@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package jira turns Jira webhook events (Jira Cloud and Data Center send the
 // same shape) into chat message cards.

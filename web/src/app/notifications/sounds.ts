@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Notification sounds. The ten built-in ones are made with the Web Audio API
 // (no audio files, nothing to license); people's own sounds are played from
 // the server.

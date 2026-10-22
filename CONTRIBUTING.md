@@ -8,6 +8,19 @@ Thanks for your interest in Cenacle. This document describes how to work on the 
 - Report security issues privately; see [SECURITY.md](SECURITY.md).
 - Keep changes small and focused. One logical change per commit.
 
+## License and Contributor License Agreement (CLA)
+
+Cenacle is licensed under the GNU Affero General Public License v3.0 (`AGPL-3.0-only`);
+`packages/core` (the API and WebSocket client) is under the Apache License 2.0, so
+applications and bots can embed it freely. New files carry the same SPDX header as the
+files around them.
+
+Before your first merge request is accepted, sign the [CLA](CLA.md): add a line with
+your commit e-mail to [`cla/signatures.txt`](cla/signatures.txt) in a signed-off commit.
+You keep the copyright in your work; the CLA lets the project distribute it under its
+open-source licenses and other terms. CI checks every commit of a merge request
+(`ci/check-cla.sh`). The names and logo are covered by the [trademark policy](TRADEMARKS.md).
+
 ## Developer Certificate of Origin (DCO)
 
 Every commit must be signed off, certifying that you wrote the change or have the

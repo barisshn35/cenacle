@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Development-only component gallery (/dev/gallery). Not part of production
 // builds. Every interactive element here is measured by e2e/target-size.spec.ts

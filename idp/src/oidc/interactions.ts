@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type Provider from 'oidc-provider';
 import type { AuditLog } from '../accounts/audit.ts';

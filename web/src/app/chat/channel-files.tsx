@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { DownloadIcon } from 'lucide-react';

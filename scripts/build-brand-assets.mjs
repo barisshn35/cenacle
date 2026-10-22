@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Renders the raster brand assets of the web app from the committed SVGs
 // (web/public/brand). Run with `make brand`; the outputs are committed.

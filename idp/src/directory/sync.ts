@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Synchronization with directories, and signing in with a directory password.
 import type pg from 'pg';
 import { Directory, memberships, verifyPassword, type DirectoryPerson } from './ldap.ts';

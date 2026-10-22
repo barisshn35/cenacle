@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Starts the development Garage on 127.0.0.1:13900 for CI (no compose there)
 # and waits until its bucket exists.

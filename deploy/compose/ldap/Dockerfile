@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Test-only OpenLDAP server for local development (IdP LDAP connector, v0.14).
 # Built from Alpine's maintained openldap packages; runs as the unprivileged

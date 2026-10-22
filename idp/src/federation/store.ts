@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Identity providers (identity sources of kind oidc and saml) and the
 // sign-ins at them that are on their way.
 import { createHash, randomBytes } from 'node:crypto';

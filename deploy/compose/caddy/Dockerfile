@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Reverse proxy with automatic TLS, running as an unprivileged user.
 # Build context is the repository root (see prod.yml). Ports 80/443 are opened
 # via the net.ipv4.ip_unprivileged_port_start sysctl, so no capabilities are needed.

@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Workspaces with roles, and invitations. Everything that existed moves to
 -- the default workspace, which every user belongs to.

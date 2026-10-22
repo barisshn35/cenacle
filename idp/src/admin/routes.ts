@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // The Cenacle ID admin panel (/account/admin): accounts and directories. Only
 // administrators (users.is_admin) reach it, signed in on the account pages.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Passkey challenges and options. Real authenticator answers are covered by
 // e2e/passkeys.spec.ts (Chromium's virtual authenticator).

@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Starts the services a CI job needs on 127.0.0.1 and waits until they are
 # healthy. CI jobs share the network of the CI Docker engine, so a published

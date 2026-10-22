@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // The account of a person an identity provider vouched for.
 import type pg from 'pg';
 import { endSessions, ensureGroups, upsertPerson, type Role } from '../directory/store.ts';

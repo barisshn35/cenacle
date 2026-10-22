@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Channel membership, default and announcement channels, and the one user
 -- who may create channels until roles arrive (v0.6).

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Garage (S3-compatible object store for files) in production: one node.
 # For redundancy, run a Garage cluster (or any S3 service) and point
 # CENACLE_S3_ENDPOINT at it instead (docs/install).

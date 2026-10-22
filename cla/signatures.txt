@@ -1,0 +1,5 @@
+# Contributors who signed the Cenacle Contributor License Agreement (CLA.md).
+# Add one line in your first merge request, in the same commit as your change or
+# before it:  <e-mail>  <name>  <YYYY-MM-DD>  individual | corporate:<organization>
+# Fields are separated by spaces; names may not contain tabs.
+barisshn88@gmail.com  Yusuf-Barış-Şahin  2026-10-22  individual

@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Slash commands, outgoing event subscriptions with a delivery log, scheduled messages
 -- and reminders, GitLab and alert webhooks, and a system bot per workspace.

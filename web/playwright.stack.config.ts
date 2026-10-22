@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // End-to-end tests of the whole sign-in: Cenacle ID, the chat server and the
 // web app run as real processes against the integration test databases

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { infiniteQueryOptions } from '@tanstack/react-query';
 import { apiFetch, type components } from '@cenacle/core/api';
 

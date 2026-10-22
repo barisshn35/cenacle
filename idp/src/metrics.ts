@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Prometheus metrics of Cenacle ID, served on a separate internal port.
 import { createServer, type Server } from 'node:http';
 import type { FastifyInstance } from 'fastify';

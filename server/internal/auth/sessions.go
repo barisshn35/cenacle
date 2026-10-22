@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package auth signs users in with Cenacle ID (OpenID Connect, authorization
 // code flow with PKCE) and manages the chat server's own sessions.

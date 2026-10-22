@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Builds an offline bundle of every image the production stack uses (and,
 # with --observability / --clamav, the optional ones) on a machine with

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { Outlet, useRouterState } from '@tanstack/react-router';
 import { DensityProvider, ThemeProvider } from '@cenacle/ui/theme';
 import { TooltipProvider } from '@cenacle/ui/components/tooltip';

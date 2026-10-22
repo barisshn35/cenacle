@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package audit records security-relevant actions: who did what, when, to
 // which object (UX plan: every S2/S3 action is audited).

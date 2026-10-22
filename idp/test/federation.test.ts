@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Accounts of people signed in at identity providers (the protocols are
 // covered by e2e/federation.spec.ts).
 import { randomBytes } from 'node:crypto';

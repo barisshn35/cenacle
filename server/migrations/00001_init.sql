@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Initial, intentionally empty migration. It establishes the goose version
 -- table so that later releases start from a known baseline. Chat schema

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 const ALGORITHM = 'aes-256-gcm';

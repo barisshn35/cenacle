@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
 import { DEFAULT_WS, expectNoAxeViolations, expectTargetSizes, mockApi } from './helpers';
 

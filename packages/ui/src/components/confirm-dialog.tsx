@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Loader2Icon, TriangleAlertIcon } from 'lucide-react';

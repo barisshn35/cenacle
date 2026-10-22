@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Sessions remember the Cenacle ID sign-in they came from (back-channel logout), and
 -- an audit log records security-relevant actions.

@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Creates the two application databases with separate owners:
 # the chat backend and the identity server never share a database.

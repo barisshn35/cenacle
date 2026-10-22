@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Source: shadcn/ui (style "base-nova", Base UI primitives) https://ui.shadcn.com
 // Author: shadcn and contributors. License: MIT.
 // Adapted for Cenacle: target size tokens, i18n labels, local imports.

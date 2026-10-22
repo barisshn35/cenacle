@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 -- Cenacle ID: directory accounts (LDAP / Active Directory), groups, sync runs,
 -- administrators of Cenacle ID and account photos.
 

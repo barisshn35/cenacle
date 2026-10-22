@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Garage (S3-compatible object store) for local development: one node, data in
 # the "garage-data" volume. The secrets below are development-only values.
 metadata_dir = "/var/lib/garage/meta"

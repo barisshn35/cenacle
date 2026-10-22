@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // The two protocols of identity providers: OpenID Connect (openid-client) and
 // SAML 2.0 (node-saml). Both turn a provider's answer into a FederatedPerson.
 import { createHash } from 'node:crypto';

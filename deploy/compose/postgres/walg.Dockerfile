@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # PostgreSQL (the same Alpine image as the stack) with WAL-G (Apache-2.0) for
 # continuous archiving. WAL-G is built from source as a static binary.
 FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS walg

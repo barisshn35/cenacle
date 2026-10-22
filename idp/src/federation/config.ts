@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Settings of the identity providers people may sign in with.
 import { z } from 'zod';
 

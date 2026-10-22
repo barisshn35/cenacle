@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { execFileSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';

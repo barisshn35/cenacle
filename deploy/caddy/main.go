@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Command caddy builds the Caddy web server from source with Cenacle's Go
 // toolchain, so security fixes in Go and golang.org/x/net ship without waiting

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Signing in with another identity provider: /federation/:id/start sends the
 // person there; its answer comes back to /callback (OIDC) or /acs (SAML),
 // is verified and attached to the request; the browser that started it then

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useTranslation } from 'react-i18next';
 
 /** "30 s", "5 min", "1 h": a burn time, short. */

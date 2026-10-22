@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Passkeys on the Cenacle ID pages: shows the passkey controls where the browser
 // supports WebAuthn, asks the browser and posts its answer with the form.
 // Uses SimpleWebAuthn (browser bundle, MIT) loaded before this script.

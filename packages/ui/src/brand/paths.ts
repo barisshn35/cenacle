@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Generated from web/public/brand/*.svg (Cenacle logo pack, Forest & Brass,
 // direction B "Upper room"). Do not edit by hand; update the SVGs instead.
 

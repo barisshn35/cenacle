@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Builds public/assets for the Cenacle ID pages: compiled CSS (Tailwind with
 // the shared Cenacle tokens), the bundled fonts, the WebAuthn browser library

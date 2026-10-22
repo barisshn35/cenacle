@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 #
 # Stages: prepare -> lint -> test -> licenses -> build.
 # Jobs run on the project's own runner (docs/operations/ci.md): in the CI
@@ -162,6 +162,18 @@ security:
       --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed
       --ignorefile /src/.trivyignore.yaml --exit-code 1 /src
 
+# ------------------------------------------------------------------ CLA ---
+# Merge requests: every commit is signed off by someone who signed CLA.md.
+cla:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: '0'
+  script:
+    - ci/check-cla.sh "$CI_MERGE_REQUEST_DIFF_BASE_SHA" HEAD
+
 # ------------------------------------------------------------ licenses ---
 licenses:
   stage: licenses
@@ -221,7 +233,7 @@ images:
         docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" \
           --platform linux/amd64,linux/arm64 \
           --label org.opencontainers.image.title="cenacle-$IMAGE" \
-          --label org.opencontainers.image.licenses=Apache-2.0 \
+          --label org.opencontainers.image.licenses=AGPL-3.0-only \
           --label org.opencontainers.image.version="$version" \
           --provenance mode=max --sbom true \
           --cache-from "type=local,src=$BUILDX_CACHE" \

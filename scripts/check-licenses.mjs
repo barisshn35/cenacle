@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Enforces the dependency license policy for the JS workspace
 // (see docs/adr/0001-monorepo-and-tooling.md).

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package notify decides who is told about a message and tells them: the
 // rules of people's notification settings (shared with the web app, which

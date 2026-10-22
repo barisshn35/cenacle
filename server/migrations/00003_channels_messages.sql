@@ -1,4 +1,4 @@
--- SPDX-License-Identifier: Apache-2.0
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- Channels and messages (v0.4). Workspaces, categories and channel types
 -- follow in v0.5 and v0.6; until then every signed-in user can read and

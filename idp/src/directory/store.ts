@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Identity sources of kind ldap (directories) and what Cenacle ID keeps of
 // their people and groups. Identity providers (oidc, saml): federation/store.ts.
 import type pg from 'pg';

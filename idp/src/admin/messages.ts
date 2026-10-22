@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Texts of the Cenacle ID admin panel (English default, Turkish).
 import type { Locale } from '../ui/messages.ts';
 

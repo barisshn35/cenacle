@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { ChannelNotificationsSection } from '../notifications/channel-notifications';
 import { PinsSection } from '../threads/pins-section';
 import { RunsSection } from '../community/playbooks';

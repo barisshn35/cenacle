@@ -218,4 +218,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) (DCO sign-off required) and
 
 ## License
 
-[Apache License 2.0](LICENSE).
+Cenacle is free software under the [GNU Affero General Public License v3.0](LICENSE)
+(`AGPL-3.0-only`): use, change and share it; if you offer a modified version to users over
+a network, offer them its source too. The client library `packages/core` is under the
+[Apache License 2.0](packages/core/LICENSE), so apps and bots can embed it under any
+license. Contributions are accepted under the [Contributor License Agreement](CLA.md);
+the name and logo follow the [trademark policy](TRADEMARKS.md).

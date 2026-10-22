@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Takes a base backup now and then every WALG_BACKUP_INTERVAL seconds (default
 # a day), keeping WALG_RETAIN_FULL full backups (default 7). WAL segments are
 # archived continuously by PostgreSQL itself (archive_command).

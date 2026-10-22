@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { myProfileQuery, type MyProfile } from '../profile/profiles';
 import { inChannel, type Channel, type Message } from '../chat/data';

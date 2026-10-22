@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Cenacle ID texts (English default, Turkish). Wording follows docs/ux/glossary.md.
 
 export const LOCALES = ['en', 'tr'] as const;

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { createContext, useContext } from 'react';
 import { queryOptions } from '@tanstack/react-query';
 import { getSession, isUnauthenticated, type Session } from '@cenacle/core/api';

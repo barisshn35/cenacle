@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package storage keeps files in an S3-compatible object store (Garage by
 // default; any S3 service works). Browsers upload directly with a POST policy

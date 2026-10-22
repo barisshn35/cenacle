@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 // Follows the system theme and pointer type (no stored preference on the ID domain).
 (function () {
   var root = document.documentElement;

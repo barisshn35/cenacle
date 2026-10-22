@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 import { create } from 'zustand';
 
 /** A message to bring into view once its channel's list is open. */
