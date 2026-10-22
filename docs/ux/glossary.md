@@ -46,6 +46,8 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Custom status        | Custom status                   | Özel durum                            | `profile.statusSet`                       | Emoji and/or text; clears itself              |
 | Username             | Username                        | Kullanıcı adı                         | `profile.username`                        | Shown as @username                            |
 | Last seen            | last seen                       | son görülme                           | `profile.lastSeen`                        | Only while offline; can be hidden             |
+| Appearance           | Appearance                      | Görünüm                               | `settings.tabs.appearance`                | Theme, fonts, code blocks                     |
+| Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
 ## Rules
 

@@ -8,6 +8,26 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Appearance.
+
+### Added
+
+- Theme presets (Cenacle, Graphite, Ocean, Forest, Sunset, Rose, High contrast), all
+  checked against WCAG 2.2 AA in light and dark; workspaces set a default.
+- Fonts: ten text and ten code fonts bundled, six font templates, own combinations, text
+  size and line spacing; fonts people upload for themselves.
+- Code blocks: six color themes, line numbers, wrapping and ligatures.
+- Appearance settings follow people to every device.
+- Administrators replace the sign-in page texts and a few chat texts, per language.
+
+### Changed
+
+- Image builds retry downloading pnpm.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0160).
+
 ## [0.15.0] - 2026-10-22
 
 Profiles and settings.

@@ -39,6 +39,11 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.16.0)
+
+- Migration `00016_appearance` adds appearance settings, uploaded fonts and interface
+  texts. Nothing to configure; people keep the look they had until they choose.
+
 ### 0.15.0
 
 - Migration `00015_profiles` gives everyone a @username (directory accounts keep their
