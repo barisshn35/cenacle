@@ -39,6 +39,20 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.14.0)
+
+- Migrations: Cenacle ID `0003_directory`, `0004_passkeys`, `0005_federation`; chat
+  `00014_directory_groups_guests`. They run on start as usual.
+- **Update `deploy/compose/idp/clients.json`** (or the Helm values) for the chat client:
+  `"scope": "openid email profile groups"` and `"directory_feed": true`. Without them the chat
+  gets no groups and does not follow directory changes. Restart Cenacle ID afterwards.
+- Cenacle ID e-mail addresses become optional (directory accounts may have none).
+- Cenacle ID administrators: give the administration to an account with
+  `node dist/cli.js users admin --email you@example.com` to reach `/account/admin`.
+- The Cenacle ID pages allow `connect-src 'self'` (passkeys fetch their options).
+- Rolling back to 0.13 needs the migrations rolled back first (`migrate down` in Cenacle ID
+  three times; accounts of identity providers become local accounts).
+
 ### 0.13.0
 
 - No migration. The proxy image changes (load balancing across server instances): pull or

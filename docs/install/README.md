@@ -90,8 +90,11 @@ Registered applications are listed in `deploy/compose/idp/clients.json`; host na
 `${CENACLE_DOMAIN}` from `.env.prod`. `backchannel_logout_uri` is where Cenacle ID tells the
 chat server that a sign-in ended (an internal address of the compose network).
 
-Users turn on two-step verification (an authenticator app plus recovery codes) at
-`https://<id-domain>/account`; the app links there from Settings.
+Users turn on two-step verification (an authenticator app plus recovery codes) and add
+passkeys at `https://<id-domain>/account`; the app links there from Settings.
+
+Directories (Active Directory, LDAP), other identity providers (OpenID Connect, SAML) and
+directory groups: see [Identity](identity.md).
 
 ## Firewall
 
@@ -118,6 +121,7 @@ container are only reachable through Caddy.
 | SMTP relay (587 or 465/tcp)                  | e-mail features (v0.8+)                                 |
 | ClamAV signature mirror (443/tcp)            | only with the optional virus scanner (`clamav` profile) |
 | LDAP / Active Directory (389 or 636/tcp)     | directory sign-in (v0.14)                               |
+| Identity providers (443/tcp)                 | sign-in with OpenID Connect or SAML providers (v0.14)   |
 
 ### Things to know
 

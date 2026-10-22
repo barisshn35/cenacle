@@ -37,6 +37,11 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Event subscription   | Events / Deliveries             | Olaylar / Teslimatlar                 | `bots.events`, `bots.deliveries`          | Signed POSTs to a bot; retried                |
 | Send later           | Send later / Scheduled          | Sonra gönder / Zamanlanmış            | `scheduled.*`                             | Cancel until it goes out; reminders too       |
 | Rotate token         | Rotate                          | Yenile                                | `bots.rotate`                             | New token; the old one works for an overlap   |
+| Directory groups     | Directory groups                | Dizin grupları                        | `groups.title`                            | Groups of Cenacle ID (directory or provider)  |
+| Guest                | Guest                           | Misafir                               | `workspaces.roles.guest`                  | Sees only their channels and their people     |
+| Passkey              | Passkey                         | Geçiş anahtarı                        | —                                         | Cenacle ID pages; never "security key" alone  |
+| Identity provider    | Identity provider               | Kimlik sağlayıcısı                    | —                                         | OIDC or SAML; "Continue with …"               |
+| Directory            | Directory                       | Dizin                                 | —                                         | Active Directory or LDAP                      |
 
 ## Rules
 

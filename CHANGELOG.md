@@ -8,6 +8,33 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Identity: company directories, other identity providers, passkeys, an admin panel and
+guests.
+
+### Added
+
+- Sign-in with Active Directory and LDAP directories (Cenacle ID): directory passwords,
+  nested groups, administrator and guest filters, and synchronization that deactivates people
+  who left and ends their sessions. Sign-in accepts a sign-in name or an e-mail address.
+- Sign-in with other identity providers over OpenID Connect or SAML 2.0 (Entra ID, Okta,
+  Keycloak, Google Workspace, AD FS…), with their groups and roles.
+- Passkeys: add them on the account page and sign in without a password.
+- The Cenacle ID admin panel (`/account/admin`): accounts, directories (test, preview,
+  synchronize, history) and identity providers.
+- Directory groups in the chat: map them to workspaces with a role and to private channels,
+  optionally managed by groups (members are exactly the people of the groups).
+- Guests: they see only their channels and the people in them.
+- Several chat administrators: the configured one and those from the directory or provider.
+- `cenacle-idp users admin|no-admin` and `users create --admin`.
+
+### Fixed
+
+- Unread counts that arrived while the channel list reloaded could come back.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0140).
+
 ## [0.13.0] - 2026-10-22
 
 Scaling and operations: several instances, metrics and traces, backups with point-in-time
