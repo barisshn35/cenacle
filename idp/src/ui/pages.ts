@@ -34,6 +34,8 @@ interface LayoutOptions {
   wide?: boolean;
   /** The page uses passkeys (WebAuthn): load their scripts. */
   passkeys?: boolean;
+  /** Go on to this same-origin path at once (a navigation of our own page). */
+  refreshTo?: string;
 }
 
 export function layout({
@@ -43,6 +45,7 @@ export function layout({
   languagePath,
   wide,
   passkeys,
+  refreshTo,
 }: LayoutOptions): string {
   const m = MESSAGES[locale];
   const languages = languagePath
@@ -72,6 +75,7 @@ export function layout({
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="color-scheme" content="light dark" />
       <meta name="referrer" content="same-origin" />
+      ${refreshTo ? html`<meta http-equiv="refresh" content="0; url=${refreshTo}" />` : null}
       <title>${title} · ${m.productName}</title>
       <link rel="stylesheet" href="/assets/cenacle-id.css" />
       <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
@@ -119,7 +123,7 @@ export function alertBox(id: string, title: string, action?: string): SafeHtml {
 }
 
 export type LoginError =
-  'invalid' | 'missing' | 'unavailable' | 'passkey' | { rateLimited: number };
+  'invalid' | 'missing' | 'unavailable' | 'passkey' | 'federation' | { rateLimited: number };
 
 export function loginPage(opts: {
   locale: Locale;
@@ -129,10 +133,16 @@ export function loginPage(opts: {
   error?: LoginError;
   /** A directory is connected: people may sign in with their username. */
   usernames?: boolean;
+  /** Identity providers people may sign in with instead. */
+  providers?: { id: string; name: string }[];
 }): string {
   const m = MESSAGES[opts.locale].login;
   return credentialsPage({
     ...opts,
+    providerLinks: (opts.providers ?? []).map((p) => ({
+      name: p.name,
+      href: `/federation/${p.id}/start?interaction=${encodeURIComponent(opts.uid)}`,
+    })),
     title: m.title,
     subtitle: format(m.subtitle, { client: opts.clientName }),
     action: `/interaction/${opts.uid}/login`,
@@ -149,10 +159,15 @@ export function accountSigninPage(opts: {
   error?: LoginError;
   notice?: string;
   usernames?: boolean;
+  providers?: { id: string; name: string }[];
 }): string {
   const m = MESSAGES[opts.locale].account;
   return credentialsPage({
     ...opts,
+    providerLinks: (opts.providers ?? []).map((p) => ({
+      name: p.name,
+      href: `/federation/${p.id}/start?purpose=account`,
+    })),
     title: m.signinTitle,
     subtitle: m.signinSubtitle,
     action: '/account/signin',
@@ -170,6 +185,7 @@ function credentialsPage(opts: {
   languagePath: string;
   /** Where a passkey sign-in posts (its options at `${passkey}/options`). */
   passkey: string;
+  providerLinks: { name: string; href: string }[];
   email?: string;
   error?: LoginError;
   notice?: string;
@@ -186,6 +202,8 @@ function credentialsPage(opts: {
     error = alertBox(errorId, m.unavailable, m.unavailableAction);
   else if (opts.error === 'passkey')
     error = alertBox(errorId, m.passkeyFailed, m.passkeyFailedAction);
+  else if (opts.error === 'federation')
+    error = alertBox(errorId, m.federationFailed, m.federationFailedAction);
   else if (opts.error)
     error = alertBox(
       errorId,
@@ -237,9 +255,11 @@ function credentialsPage(opts: {
       </div>
       <button type="submit" class="${primary}">${m.submit}</button>
     </form>
-    ${passkeyButton({
-      action: opts.passkey,
+    ${alternatives({
+      passkey: opts.passkey,
+      providers: opts.providerLinks,
       text: m.passkey,
+      continueWith: m.continueWith,
       or: m.or,
       cancelled: m.passkeyCancelled,
       failed: `${m.passkeyFailed} ${m.passkeyFailedAction}`,
@@ -266,37 +286,50 @@ const keyIcon = raw(
 );
 
 /**
- * The passkey sign-in: shown by passkey.js where the browser supports
- * WebAuthn (hidden otherwise). The script fetches the options, asks the
- * browser and posts the answer with the form.
+ * Other ways to sign in, below the password: a passkey (shown by passkey.js
+ * where the browser supports WebAuthn; it fetches the options, asks the
+ * browser and posts the answer with the form) and identity providers.
  */
-function passkeyButton(o: {
-  action: string;
+function alternatives(o: {
+  passkey: string;
+  providers: { name: string; href: string }[];
   text: string;
+  continueWith: string;
   or: string;
   cancelled: string;
   failed: string;
 }): SafeHtml {
-  return html`<div data-passkey-block hidden class="flex flex-col gap-4">
+  // Without providers the block shows only where passkeys work.
+  const onlyPasskey = o.providers.length === 0;
+  return html`<div
+    class="flex flex-col gap-3"
+    ${onlyPasskey ? raw('data-passkey-block hidden') : null}
+  >
     <p class="flex items-center gap-3 text-xs text-muted-foreground uppercase">
       <span aria-hidden="true" class="h-px flex-1 bg-border"></span>${o.or}<span
         aria-hidden="true"
         class="h-px flex-1 bg-border"
       ></span>
     </p>
-    <form id="passkey-form" method="post" action="${o.action}">
+    <form id="passkey-form" method="post" action="${o.passkey}" data-passkey-block hidden>
       <input type="hidden" name="challenge" />
       <input type="hidden" name="response" />
       <button
         type="button"
         class="${secondary}"
         data-passkey="signin"
-        data-options="${o.action}/options"
+        data-options="${o.passkey}/options"
         data-status="passkey-status"
       >
         ${keyIcon}${o.text}
       </button>
     </form>
+    ${o.providers.map(
+      (p) =>
+        html`<a href="${p.href}" class="${secondary}" data-testid="provider"
+          >${format(o.continueWith, { provider: p.name })}</a
+        >`,
+    )}
     <p
       id="passkey-status"
       aria-live="polite"
@@ -710,4 +743,19 @@ export function confirmWithCodePage(opts: {
     </form>
     <a href="/account" class="${secondary}">${m.cancel}</a>`;
   return layout({ locale: opts.locale, title: opts.title, body });
+}
+
+/**
+ * After signing in at another provider: the way back to the account page.
+ * The browser arrives here from the provider's site, so the account cookie
+ * (SameSite=Strict) only goes along once our own page navigates on.
+ */
+export function continuePage(opts: { locale: Locale; to: string }): string {
+  const m = MESSAGES[opts.locale].account;
+  return layout({
+    locale: opts.locale,
+    title: m.title,
+    refreshTo: opts.to,
+    body: html`<a href="${opts.to}" class="${primary}">${m.continue}</a>`,
+  });
 }

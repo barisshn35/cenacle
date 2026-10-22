@@ -23,8 +23,10 @@ export interface User {
   directoryRole: 'admin' | 'guest' | null;
   /** Administers Cenacle ID (the admin panel). */
   isAdmin: boolean;
-  /** Comes from a directory: name and address are the directory's. */
+  /** Comes from a directory (LDAP): name, address and state are the directory's. */
   fromDirectory: boolean;
+  /** Signs in at another identity provider (OIDC, SAML). */
+  fromProvider: boolean;
 }
 
 interface UserRow {
@@ -41,10 +43,12 @@ interface UserRow {
   directory_role: 'admin' | 'guest' | null;
   is_admin: boolean;
   source_id: string | null;
+  source_kind: 'ldap' | 'oidc' | 'saml' | null;
 }
 
 const COLUMNS =
-  'id, email, email_verified, display_name, locale, updated_at, disabled_at, password_hash, username, title, directory_role, is_admin, source_id';
+  'id, email, email_verified, display_name, locale, updated_at, disabled_at, password_hash, username, title, directory_role, is_admin, source_id, ' +
+  '(SELECT kind FROM identity_sources WHERE identity_sources.id = source_id) AS source_kind';
 
 function toUser(r: UserRow): User {
   return {
@@ -59,7 +63,8 @@ function toUser(r: UserRow): User {
     title: r.title,
     directoryRole: r.directory_role,
     isAdmin: r.is_admin,
-    fromDirectory: r.source_id !== null,
+    fromDirectory: r.source_kind === 'ldap',
+    fromProvider: r.source_kind === 'oidc' || r.source_kind === 'saml',
   };
 }
 
@@ -165,11 +170,15 @@ export class UserStore {
     return rows.map((r) => ({ ...toUser(r), twoStep: r.two_step }));
   }
 
-  /** Disables or enables an account by id (local accounts; directories manage their own). */
+  /**
+   * Disables or enables an account by id: local accounts and those of identity
+   * providers (directories manage their own).
+   */
   async setDisabledById(id: string, disabled: boolean): Promise<boolean> {
     const { rowCount } = await this.pool.query(
       `UPDATE users SET disabled_at = CASE WHEN $2 THEN now() ELSE NULL END, updated_at = now()
-       WHERE id = $1 AND source_id IS NULL`,
+       WHERE id = $1 AND (source_id IS NULL
+         OR source_id IN (SELECT id FROM identity_sources WHERE kind <> 'ldap'))`,
       [id, disabled],
     );
     return rowCount === 1;

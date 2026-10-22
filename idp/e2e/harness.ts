@@ -16,6 +16,7 @@ import { PasskeyStore } from '../src/accounts/passkeys.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { buildApp } from '../src/app.ts';
 import { SourceStore } from '../src/directory/store.ts';
+import { ProviderStore } from '../src/federation/store.ts';
 import { migrate } from '../src/db/migrate.ts';
 import { KeyStore } from '../src/keys/store.ts';
 import type { ClientMetadata } from '../src/oidc/clients.ts';
@@ -43,6 +44,8 @@ export interface Harness {
   postLogoutUrl: string;
   pool: pg.Pool;
   keys: KeyStore;
+  /** Identity providers people may sign in with (with the directory option). */
+  providers: ProviderStore;
   /** Query strings received by the client callback, newest last. */
   callbacks: URLSearchParams[];
   /** Logout tokens the client received over the back channel. */
@@ -79,6 +82,7 @@ export async function startHarness(
   await users.setAdmin(EMAIL, true);
   const kek = randomBytes(32);
   const sources = new SourceStore(pool, kek);
+  const providers = new ProviderStore(pool, kek);
   const keys = new KeyStore(pool, kek);
   await keys.ensureActiveKey();
 
@@ -146,6 +150,7 @@ export async function startHarness(
         cookieKeys: ['e2e-cookie-key-0123456789abcdefghij'],
         directory: opts.directory ? { pool, sources } : undefined,
         passkeys: new PasskeyStore(pool, issuer),
+        federation: opts.directory ? providers : undefined,
       },
     });
     await app.listen({ host, port });
@@ -158,6 +163,7 @@ export async function startHarness(
     postLogoutUrl,
     pool,
     keys,
+    providers,
     callbacks,
     logoutTokens,
     async restart() {

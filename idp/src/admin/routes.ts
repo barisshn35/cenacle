@@ -23,9 +23,15 @@ import {
   accountsPage,
   directoriesPage,
   directoryPage,
+  providerPage,
+  providersPage,
   type DirectoryForm,
   type DirectoryOutcome,
+  type ProviderForm,
 } from './pages.ts';
+import { oidcConfigSchema, samlConfigSchema, type ProviderKind } from '../federation/config.ts';
+import { endProviderSessions } from '../federation/people.ts';
+import type { ProviderStore } from '../federation/store.ts';
 
 export interface AdminOptions {
   pool: pg.Pool;
@@ -33,6 +39,8 @@ export interface AdminOptions {
   mfa: MfaStore;
   audit: AuditLog;
   sources: SourceStore;
+  /** Identity providers (OIDC, SAML); without them their pages are not offered. */
+  providers?: ProviderStore;
   issuer: string;
   cookieKeys: string[];
   formActionOrigins: string[];
@@ -80,6 +88,46 @@ function formOf(body: Body, hasSecret: boolean): DirectoryForm {
     enabled: body.enabled === '1',
     syncIntervalMinutes: Number(body.syncInterval ?? 60) || 60,
     hasSecret,
+  };
+}
+
+/** The identity provider form as typed. */
+function providerFormOf(kind: ProviderKind, body: Body, hasSecret: boolean): ProviderForm {
+  const text = (k: string) => (body[k] ?? '').trim();
+  const lines = (k: string) =>
+    (body[k] ?? '')
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+  const common = {
+    linkByEmail: body.linkByEmail === '1',
+    adminGroups: lines('adminGroups'),
+    guestGroups: lines('guestGroups'),
+  };
+  return {
+    kind,
+    name: text('name'),
+    enabled: body.enabled === '1',
+    hasSecret,
+    config:
+      kind === 'oidc'
+        ? {
+            issuer: text('issuer'),
+            clientId: text('clientId'),
+            scopes: text('scopes') || 'openid email profile',
+            groupsClaim: text('groupsClaim'),
+            ...common,
+          }
+        : {
+            entryPoint: text('entryPoint'),
+            idpEntityId: text('idpEntityId'),
+            idpCert: (body.idpCert ?? '').trim(),
+            emailAttribute: text('emailAttribute'),
+            nameAttribute: text('nameAttribute'),
+            groupsAttribute: text('groupsAttribute'),
+            trustEmail: body.trustEmail === '1',
+            ...common,
+          },
   };
 }
 
@@ -413,6 +461,144 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
         const text = err instanceof DirectoryError ? err.message : message(err);
         return show(request, reply, source.id, { kind: 'error', message: text });
       }
+    },
+  );
+
+  // --- identity providers -------------------------------------------------
+
+  const providers = opts.providers;
+  if (!providers) return;
+
+  function validateProvider(form: ProviderForm) {
+    const schema = form.kind === 'oidc' ? oidcConfigSchema : samlConfigSchema;
+    const parsed = schema.safeParse(form.config);
+    const fields = new Set<string>();
+    if (!form.name || form.name.length > 100) fields.add('name');
+    if (!parsed.success) for (const issue of parsed.error.issues) fields.add(String(issue.path[0]));
+    return parsed.success && fields.size === 0 ? { config: parsed.data } : { fields: [...fields] };
+  }
+
+  app.get('/account/admin/providers', async (request, reply) => {
+    if (!(await admin(request, reply))) return;
+    const list = await providers.list();
+    return page(
+      reply,
+      200,
+      providersPage({
+        locale: locale(request),
+        providers: await Promise.all(
+          list.map(async (p) => ({ ...p, people: await providers.people(p.id) })),
+        ),
+      }),
+    );
+  });
+
+  const kindOf = (v: string | undefined): ProviderKind => (v === 'saml' ? 'saml' : 'oidc');
+
+  app.get<{ Querystring: { kind?: string } }>(
+    '/account/admin/providers/new',
+    async (request, reply) => {
+      if (!(await admin(request, reply))) return;
+      const kind = kindOf(request.query.kind);
+      const defaults =
+        kind === 'oidc'
+          ? oidcConfigSchema.partial().parse({})
+          : samlConfigSchema.partial().parse({});
+      return page(
+        reply,
+        200,
+        providerPage({
+          locale: locale(request),
+          issuer,
+          form: { kind, name: '', enabled: true, hasSecret: false, config: defaults },
+        }),
+      );
+    },
+  );
+
+  app.post<{ Querystring: { kind?: string }; Body: Body }>(
+    '/account/admin/providers/new',
+    async (request, reply) => {
+      const me = await guardPost(request, reply);
+      if (!me) return;
+      const form = providerFormOf(kindOf(request.query.kind), request.body ?? {}, false);
+      const v = validateProvider(form);
+      if ('fields' in v) {
+        return page(
+          reply,
+          400,
+          providerPage({ locale: locale(request), issuer, form, invalid: v.fields }),
+        );
+      }
+      const created = await providers.create({
+        kind: form.kind,
+        name: form.name,
+        config: v.config,
+        enabled: form.enabled,
+        secret: request.body?.clientSecret ?? '',
+      });
+      await audit.record('admin.provider.created', me.id, request.ip, {
+        provider: created.id,
+        kind: form.kind,
+        name: form.name,
+      });
+      return reply.redirect(`/account/admin/providers/${created.id}?saved=1`, 303);
+    },
+  );
+
+  app.get<{ Params: { id: string }; Querystring: { saved?: string } }>(
+    '/account/admin/providers/:id',
+    async (request, reply) => {
+      if (!(await admin(request, reply))) return;
+      const p = await providers.get(request.params.id);
+      if (!p) return reply.code(404).send();
+      return page(
+        reply,
+        200,
+        providerPage({
+          locale: locale(request),
+          issuer,
+          id: p.id,
+          form: {
+            kind: p.kind,
+            name: p.name,
+            enabled: p.enabled,
+            hasSecret: p.hasSecret,
+            config: p.config,
+          },
+          saved: Boolean(request.query.saved),
+        }),
+      );
+    },
+  );
+
+  app.post<{ Params: { id: string }; Body: Body }>(
+    '/account/admin/providers/:id',
+    async (request, reply) => {
+      const me = await guardPost(request, reply);
+      if (!me) return;
+      const p = await providers.get(request.params.id);
+      if (!p) return reply.code(404).send();
+      const form = providerFormOf(p.kind, request.body ?? {}, p.hasSecret);
+      const v = validateProvider(form);
+      if ('fields' in v) {
+        return page(
+          reply,
+          400,
+          providerPage({ locale: locale(request), issuer, id: p.id, form, invalid: v.fields }),
+        );
+      }
+      const secret = request.body?.clientSecret ?? '';
+      await providers.update(p.id, {
+        name: form.name,
+        config: v.config,
+        enabled: form.enabled,
+        ...(secret ? { secret } : {}),
+      });
+      // Turned off: its people are signed out of Cenacle ID.
+      if (p.enabled && !form.enabled) await endProviderSessions(opts.pool, p.id);
+      await audit.record('admin.provider.updated', me.id, request.ip, { provider: p.id });
+      return reply.redirect(`/account/admin/providers/${p.id}?saved=1`, 303);
     },
   );
 }

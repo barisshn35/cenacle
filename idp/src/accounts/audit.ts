@@ -7,6 +7,7 @@ export type AuditAction =
   | 'signin.failed'
   | 'signin.second_step_failed'
   | 'signin.passkey_failed'
+  | 'signin.federation_failed'
   | 'passkey.added'
   | 'passkey.removed'
   | 'recovery_code.used'
@@ -22,7 +23,9 @@ export type AuditAction =
   | 'admin.account.remove_admin'
   | 'admin.directory.created'
   | 'admin.directory.updated'
-  | 'admin.directory.synced';
+  | 'admin.directory.synced'
+  | 'admin.provider.created'
+  | 'admin.provider.updated';
 
 export interface AuditEvent {
   id: string;

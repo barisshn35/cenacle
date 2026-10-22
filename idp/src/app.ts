@@ -15,6 +15,8 @@ import type { MfaStore } from './accounts/mfa.ts';
 import type { UserStore } from './accounts/users.ts';
 import { registerAccount } from './account/routes.ts';
 import type { PasskeyStore } from './accounts/passkeys.ts';
+import { registerFederation } from './federation/routes.ts';
+import type { ProviderStore } from './federation/store.ts';
 import { registerAdmin } from './admin/routes.ts';
 import { registerDirectoryFeed } from './directory/feed.ts';
 import type { ClientMetadata } from './oidc/clients.ts';
@@ -61,6 +63,8 @@ export interface OidcOptions {
   directory?: DirectoryAccess;
   /** Passkeys (WebAuthn) for signing in. */
   passkeys?: PasskeyStore;
+  /** Identity providers (OIDC, SAML) people may sign in with. */
+  federation?: ProviderStore;
   /** Registered apps (the directory feed authenticates them). */
   clients?: ClientMetadata[];
 }
@@ -217,7 +221,17 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
         rateLimit: opts.oidc.loginRateLimit,
         directory: opts.oidc.directory,
         passkeys: opts.oidc.passkeys,
+        federation: opts.oidc.federation,
       });
+      if (opts.oidc.federation && opts.oidc.directory) {
+        await registerFederation(app, {
+          pool: opts.oidc.directory.pool,
+          providers: opts.oidc.federation,
+          audit,
+          issuer: opts.oidc.issuer,
+          formActionOrigins: opts.oidc.formActionOrigins,
+        });
+      }
       if (opts.oidc.directory && opts.oidc.clients) {
         registerDirectoryFeed(app, { pool: opts.oidc.directory.pool, clients: opts.oidc.clients });
       }
@@ -228,6 +242,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
           mfa,
           audit,
           sources: opts.oidc.directory.sources,
+          providers: opts.oidc.federation,
           issuer: opts.oidc.issuer,
           cookieKeys,
           formActionOrigins: opts.oidc.formActionOrigins,

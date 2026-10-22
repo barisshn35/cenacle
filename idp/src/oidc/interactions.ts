@@ -11,6 +11,8 @@ import {
   type DirectoryAccess,
 } from '../accounts/signin.ts';
 import type { UserStore } from '../accounts/users.ts';
+import { FEDERATION_COOKIE } from '../federation/routes.ts';
+import type { ProviderStore } from '../federation/store.ts';
 import { isLocale, pickLocale, type Locale } from '../ui/messages.ts';
 import {
   errorPage,
@@ -36,6 +38,8 @@ export interface InteractionOptions {
   directory?: DirectoryAccess;
   /** Passkeys (WebAuthn); without them the passkey sign-in answers 404. */
   passkeys?: PasskeyStore;
+  /** Identity providers people may sign in with (OIDC, SAML). */
+  federation?: ProviderStore;
 }
 
 interface Params {
@@ -67,6 +71,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
   }
 
   const usernames = () => usernamesAllowed(opts.directory);
+  const providers = async () => (opts.federation ? await opts.federation.enabled() : []);
 
   function clientName(clientId: unknown): Promise<string> {
     return provider.Client.find(String(clientId)).then((c) => c?.clientName ?? String(clientId));
@@ -124,6 +129,8 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           clientName: await clientName(d.params.client_id),
           email: typeof d.params.login_hint === 'string' ? d.params.login_hint : undefined,
           usernames: await usernames(),
+          providers: await providers(),
+          error: request.query.federation_error ? 'federation' : undefined,
         }),
       );
     },
@@ -152,6 +159,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
               clientName: await clientName(d.params.client_id),
               error: { rateLimited: retry },
               usernames: await usernames(),
+              providers: await providers(),
             }),
           );
         }
@@ -193,6 +201,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
             email,
             error,
             usernames: await usernames(),
+            providers: await providers(),
           }),
         );
       }
@@ -326,6 +335,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
             clientName: await clientName(d.params.client_id),
             error: 'passkey',
             usernames: await usernames(),
+            providers: await providers(),
           }),
         );
       }
@@ -342,6 +352,39 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
         request.raw,
         reply.raw,
         { login: { accountId: user.id, amr: [synced ? 'swk' : 'hwk', 'mfa'] } },
+        { mergeWithLastSubmission: false },
+      );
+    },
+  );
+
+  app.get<{ Params: Params; Querystring: { state?: string } }>(
+    '/interaction/:uid/federated',
+    async (request, reply) => {
+      if (!opts.federation) return reply.code(404).send();
+      const d = await details(request, reply);
+      if (!d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
+        return expired(request, reply);
+      }
+      const userId = await opts.federation.finish(
+        request.query.state ?? '',
+        request.cookieValue(FEDERATION_COOKIE),
+        'login',
+        d.uid,
+      );
+      const user = userId ? await users.findById(userId) : null;
+      if (!user || user.disabled) {
+        return reply.redirect(`/interaction/${encodeURIComponent(d.uid)}?federation_error=1`, 303);
+      }
+      request.log.info({ uid: d.uid, sub: user.id }, 'sign-in succeeded');
+      await opts.audit?.record('signin.succeeded', user.id, request.ip, {
+        client: d.params.client_id,
+        method: 'federation',
+      });
+      reply.hijack();
+      await provider.interactionFinished(
+        request.raw,
+        reply.raw,
+        { login: { accountId: user.id } },
         { mergeWithLastSubmission: false },
       );
     },

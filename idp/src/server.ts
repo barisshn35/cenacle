@@ -8,6 +8,7 @@ import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
 import { createPool, poolCheck } from './db.ts';
 import { SourceStore } from './directory/store.ts';
+import { ProviderStore } from './federation/store.ts';
 import { scheduleSync } from './directory/sync.ts';
 import { instrument, oidcEvents, registerPool, serveMetrics } from './metrics.ts';
 import { KeyStore } from './keys/store.ts';
@@ -76,6 +77,7 @@ async function main(): Promise<void> {
       cookieKeys: config.cookieKeys,
       directory: { pool, sources },
       passkeys: new PasskeyStore(pool, config.issuer),
+      federation: new ProviderStore(pool, config.keyEncryptionKey),
       clients,
     },
   });

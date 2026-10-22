@@ -25,6 +25,7 @@
     "@fontsource-variable/fraunces": "5.3.0",
     "@fontsource-variable/inter": "5.3.0",
     "@node-rs/argon2": "2.2.2",
+    "@node-saml/node-saml": "5.1.0",
     "@simplewebauthn/browser": "14.0.0",
     "@simplewebauthn/server": "14.0.3",
     "fastify": "5.12.7",
@@ -32,6 +33,7 @@
     "ldapts": "9.2.0",
     "node-pg-migrate": "9.0.0",
     "oidc-provider": "9.12.2",
+    "openid-client": "6.8.8",
     "otplib": "13.5.0",
     "pg": "8.23.1",
     "prom-client": "15.1.3",
@@ -47,10 +49,10 @@
     "@types/oidc-provider": "9.12.1",
     "@types/pg": "8.23.1",
     "@types/qrcode": "1.5.6",
-    "openid-client": "6.8.8",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "xml-crypto": "6.4.0"
   },
   "bin": {
     "cenacle-idp": "dist/cli.js"

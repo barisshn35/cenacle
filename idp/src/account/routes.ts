@@ -11,12 +11,15 @@ import {
   type DirectoryAccess,
 } from '../accounts/signin.ts';
 import type { UserStore } from '../accounts/users.ts';
+import { FEDERATION_COOKIE, federationCookie } from '../federation/routes.ts';
+import type { ProviderStore } from '../federation/store.ts';
 import { isSameOriginPost, LOCALE_COOKIE, pageSecurityHeaders } from '../oidc/security.ts';
 import { isLocale, MESSAGES, pickLocale, type Locale } from '../ui/messages.ts';
 import {
   accountPage,
   accountSigninPage,
   confirmWithCodePage,
+  continuePage,
   LANG_PARAM,
   recoveryCodesPage,
   secondStepPage,
@@ -46,6 +49,7 @@ export interface AccountOptions {
   rateLimit?: number;
   directory?: DirectoryAccess;
   passkeys?: PasskeyStore;
+  federation?: ProviderStore;
 }
 
 type CodeBody = { code?: string; challenge?: string };
@@ -58,6 +62,8 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
   const { users, mfa, audit, issuer, cookieKeys, formActionOrigins } = opts;
   const secure = new URL(issuer).protocol === 'https:';
   const limited = { config: { rateLimit: { max: opts.rateLimit ?? 10, timeWindow: '1 minute' } } };
+
+  const providers = async () => (opts.federation ? await opts.federation.enabled() : []);
 
   const locale = (request: FastifyRequest): Locale =>
     pickLocale(request.cookieValue(LOCALE_COOKIE), request.headers['accept-language']);
@@ -125,7 +131,12 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
         return page(
           reply,
           200,
-          accountSigninPage({ locale: loc, usernames: await usernamesAllowed(opts.directory) }),
+          accountSigninPage({
+            locale: loc,
+            usernames: await usernamesAllowed(opts.directory),
+            providers: await providers(),
+            error: request.query.federation_error ? 'federation' : undefined,
+          }),
         );
       const on = await mfa.enabled(user.id);
       const m = MESSAGES[loc].account;
@@ -182,6 +193,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
             email,
             error: result && 'error' in result ? result.error : 'missing',
             usernames: await usernamesAllowed(opts.directory),
+            providers: await providers(),
           }),
         );
       }
@@ -230,6 +242,26 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
     return signedIn(reply, challenge.userId);
   });
 
+  // --- identity providers ---------------------------------------------------
+
+  app.get<{ Querystring: { state?: string } }>('/account/federated', async (request, reply) => {
+    if (!opts.federation) return reply.code(404).send();
+    const userId = await opts.federation.finish(
+      request.query.state ?? '',
+      request.cookieValue(FEDERATION_COOKIE),
+      'account',
+      null,
+    );
+    const user = userId ? await users.findById(userId) : null;
+    if (!user || user.disabled) return reply.redirect('/account?federation_error=1', 303);
+    await audit.record('account.signed_in', user.id, request.ip, { method: 'federation' });
+    reply.header('set-cookie', [
+      accountCookie(signAccount(cookieKeys, user.id), secure),
+      federationCookie('', secure, 0),
+    ]);
+    return page(reply, 200, continuePage({ locale: locale(request), to: '/account' }));
+  });
+
   // --- passkeys -------------------------------------------------------------
 
   app.post('/account/passkey/options', limited, async (request, reply) => {
@@ -256,6 +288,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
             locale: locale(request),
             error: 'passkey',
             usernames: await usernamesAllowed(opts.directory),
+            providers: await providers(),
           }),
         );
       }
@@ -335,6 +368,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
         locale: loc,
         notice: MESSAGES[loc].account.signedOut,
         usernames: await usernamesAllowed(opts.directory),
+        providers: await providers(),
       }),
     );
   });

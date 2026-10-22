@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Identity sources (directories) and what Cenacle ID keeps of their people
-// and groups.
+// Identity sources of kind ldap (directories) and what Cenacle ID keeps of
+// their people and groups. Identity providers (oidc, saml): federation/store.ts.
 import type pg from 'pg';
 import { openPrivateKey, sealPrivateKey } from '../keys/crypto.ts';
 import { ldapConfigSchema, type DirectoryPerson, type LdapConfig } from './ldap.ts';
@@ -73,7 +73,7 @@ export class SourceStore {
 
   async list(): Promise<Source[]> {
     const { rows } = await this.pool.query<SourceRow>(
-      `SELECT ${SOURCE_COLUMNS} FROM identity_sources ORDER BY created_at`,
+      `SELECT ${SOURCE_COLUMNS} FROM identity_sources WHERE kind = 'ldap' ORDER BY created_at`,
     );
     return rows.map(toSource);
   }
@@ -81,7 +81,7 @@ export class SourceStore {
   async get(id: string): Promise<Source | null> {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const { rows } = await this.pool.query<SourceRow>(
-      `SELECT ${SOURCE_COLUMNS} FROM identity_sources WHERE id = $1`,
+      `SELECT ${SOURCE_COLUMNS} FROM identity_sources WHERE id = $1 AND kind = 'ldap'`,
       [id],
     );
     return rows[0] ? toSource(rows[0]) : null;
@@ -215,7 +215,7 @@ export class SourceStore {
   async due(): Promise<Source[]> {
     const { rows } = await this.pool.query<SourceRow>(
       `SELECT ${SOURCE_COLUMNS} FROM identity_sources
-       WHERE enabled AND (last_sync_at IS NULL OR last_sync_at < now() - make_interval(mins => sync_interval_minutes))`,
+       WHERE kind = 'ldap' AND enabled AND (last_sync_at IS NULL OR last_sync_at < now() - make_interval(mins => sync_interval_minutes))`,
     );
     return rows.map(toSource);
   }
@@ -233,7 +233,8 @@ export type Role = 'admin' | 'guest' | null;
 export async function upsertPerson(
   db: pg.Pool | pg.PoolClient,
   sourceId: string,
-  person: DirectoryPerson,
+  // Accounts of identity providers have no sign-in name (federation/people.ts).
+  person: Omit<DirectoryPerson, 'username'> & { username: string | null },
   role: Role,
   groupIds: string[] | null,
 ): Promise<{ id: string; created: boolean; changed: boolean }> {
