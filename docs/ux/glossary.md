@@ -47,6 +47,10 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Username             | Username                        | Kullanıcı adı                         | `profile.username`                        | Shown as @username                            |
 | Last seen            | last seen                       | son görülme                           | `profile.lastSeen`                        | Only while offline; can be hidden             |
 | Appearance           | Appearance                      | Görünüm                               | `settings.tabs.appearance`                | Theme, fonts, code blocks                     |
+| Mute                 | Mute / Unmute                   | Sessize al / Sesini aç                | `notifications.muteChannel`               | Until a time or until unmuted                 |
+| Pause notifications  | Pause notifications             | Bildirimleri duraklat                 | `notifications.pause`                     | All notifications, for a while                |
+| Quiet hours          | Quiet hours                     | Sessiz saatler                        | `notifications.quietHours`                | Daily, in one's own time zone                 |
+| Search               | Search                          | Ara                                   | `search.title`                            | Messages and files                            |
 | Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
 ## Rules

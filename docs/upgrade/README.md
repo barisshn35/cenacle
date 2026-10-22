@@ -39,6 +39,18 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.17.0)
+
+- Migration `00017_search_notifications` creates the `unaccent` extension (trusted: the
+  database owner may create it) and builds search indexes over all messages; on large
+  databases the migration takes a while (roughly a minute per few million messages).
+- E-mail: set `CENACLE_SMTP_*` (see `deploy/compose/.env.prod.example`, Helm `smtp`). Without
+  it people simply cannot turn e-mail on.
+- Web push stays off until `CENACLE_WEB_PUSH=true` and `CENACLE_WEB_PUSH_SUBJECT` are set;
+  the server then needs outbound HTTPS to the browsers' push services.
+- The web app adds a service worker (`/sw.js`, served without caching) and allows
+  `media-src blob:` for uploaded sounds.
+
 ### 0.16.0
 
 - Migration `00016_appearance` adds appearance settings, uploaded fonts and interface

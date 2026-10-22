@@ -8,6 +8,25 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Search and notifications.
+
+### Added
+
+- Search messages and files of your channels and conversations: accents and case do not
+  matter, words match their beginnings, `-word` leaves it out; filters for where, from
+  whom, when, with files or links; results jump to the message (Ctrl+Shift+F / ⌘⇧F).
+- Notification settings: what notifies in channels, pause for a while, quiet hours, ten
+  sounds plus your own, volume, desktop notifications.
+- Mute channels, conversations and workspaces for a while or until you unmute; muted
+  channels are dimmed and still show mentions.
+- E-mail about missed mentions and direct messages (needs SMTP).
+- Web push on devices where Cenacle is closed (off by default; needs the browsers' push
+  services).
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0170).
+
 ## [0.16.0] - 2026-10-22
 
 Appearance.

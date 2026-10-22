@@ -64,6 +64,21 @@ Virus scanning: start the stack with `--profile clamav` and set
 virus signatures on start and keeps them current; in air-gapped networks, point it at a
 local signature mirror. Its `StreamMaxLength` must be at least `CENACLE_FILES_MAX_SIZE_MB`.
 
+### Notifications
+
+People choose their notifications in Settings → Notifications. Two features need the
+server's help:
+
+| Setting                    | Default    | Meaning                                                                                                 |
+| -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------- |
+| `CENACLE_SMTP_HOST`        | (none)     | SMTP server for e-mail about missed mentions and direct messages; empty: no e-mail.                     |
+| `CENACLE_SMTP_PORT`        | `587`      | Its port.                                                                                               |
+| `CENACLE_SMTP_SECURITY`    | `starttls` | `starttls`, `tls` (port 465) or `none` (only for a relay on a trusted network).                         |
+| `CENACLE_SMTP_USERNAME`    | (none)     | Sign-in, if the server asks for one (with `CENACLE_SMTP_PASSWORD` or `CENACLE_SMTP_PASSWORD_FILE`).     |
+| `CENACLE_SMTP_FROM`        | (none)     | Sender, e.g. `Cenacle <chat@example.com>`; required with a host.                                        |
+| `CENACLE_WEB_PUSH`         | `false`    | Notifications on devices where Cenacle is closed, through the browser makers' push services (internet). |
+| `CENACLE_WEB_PUSH_SUBJECT` | (none)     | A `mailto:` or `https:` contact for the push services; required with web push.                          |
+
 ### First account and Cenacle ID operations
 
 Cenacle ID has no self-registration yet. Create accounts with its CLI (the password is
@@ -119,6 +134,7 @@ container are only reachable through Caddy.
 | Let's Encrypt (443/tcp)                      | certificate issuance and renewal                        |
 | Container registry, e.g. `ghcr.io` (443/tcp) | installing and upgrading images (not needed air-gapped) |
 | SMTP relay (587 or 465/tcp)                  | e-mail features (v0.8+)                                 |
+| Browser push services (443/tcp)              | only with web push turned on (`CENACLE_WEB_PUSH`)       |
 | ClamAV signature mirror (443/tcp)            | only with the optional virus scanner (`clamav` profile) |
 | LDAP / Active Directory (389 or 636/tcp)     | directory sign-in (v0.14)                               |
 | Identity providers (443/tcp)                 | sign-in with OpenID Connect or SAML providers (v0.14)   |
