@@ -33,7 +33,7 @@ record covers the tooling and the decisions made while implementing v0.1.
    Upgrade when both are supported.
 6. **Go tools are pinned binaries** in `./.bin` (`make tools`): sqlc (needs cgo, so not a
    `go tool` dependency), golangci-lint v2, go-licenses, govulncheck.
-7. **GitHub instead of GitLab (deliberate).** The kickoff mentioned GitLab CI and a
+7. **GitHub instead of GitLab (deliberate; superseded for CI by ADR 0022).** The kickoff mentioned GitLab CI and a
    `git.calaixo.com` module path; the project deliberately lives on GitHub, so CI is GitHub Actions
    and the Go module path is `github.com/barisshn35/cenacle/server`. Third-party actions
    are pinned to commit SHAs; gitleaks and trivy run from version-pinned images.

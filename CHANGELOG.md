@@ -8,6 +8,18 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Changed
+
+- CI runs on the project's GitLab with a self-hosted runner (ADR 0022,
+  `docs/operations/ci.md`); GitHub is a mirror without workflows.
+
+### Fixed
+
+- Go integration tests no longer race to create the `unaccent` extension on a fresh
+  test database.
+- Jumping to a search result highlights the message once it is in view, not before
+  (on slow machines the highlight could end before the message showed).
+
 ## [0.18.0] - 2026-10-22
 
 Threads, pins and saved messages.
