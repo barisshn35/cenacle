@@ -8,6 +8,19 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Community and moderation.
+
+### Added
+
+- Forum channels: posts with titles and tags, answered in their threads.
+- Polls: single or multiple choice, anonymous if wished, closing on time or by hand.
+- Events with RSVPs and a reminder 15 minutes before.
+- Moderation: slow mode, member timeouts, AutoMod rules (words, mention floods, links),
+  reports and the moderation queue.
+- A workspace welcome with rules and suggested channels for new members.
+- Playbooks: repeatable checklists run in channels.
+- An instance-wide announcement banner and terms of service everyone accepts.
+
 ### Changed
 
 - CI runs on the project's GitLab with a self-hosted runner (ADR 0022,

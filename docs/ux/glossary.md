@@ -50,6 +50,12 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Mute                 | Mute / Unmute                   | Sessize al / Sesini aç                | `notifications.muteChannel`               | Until a time or until unmuted                 |
 | Pause notifications  | Pause notifications             | Bildirimleri duraklat                 | `notifications.pause`                     | All notifications, for a while                |
 | Quiet hours          | Quiet hours                     | Sessiz saatler                        | `notifications.quietHours`                | Daily, in one's own time zone                 |
+| Forum                | Forum                           | Forum                                 | `channels.kinds.forum`                    | Posts with titles, answered in threads        |
+| Poll                 | Poll                            | Anket                                 | `community.poll.legend`                   | 2–10 options                                  |
+| Time out             | Time out                        | Sustur                                | `community.moderation.timeout`            | No messages for a while (moderators)          |
+| Slow mode            | Slow mode                       | Yavaş mod                             | `community.moderation.slowMode`           | Wait between messages                         |
+| Report               | Report                          | Şikâyet et                            | `community.report.action`                 | To the workspace's moderators                 |
+| Playbook             | Playbook                        | Playbook                              | `home.playbooks`                          | Repeatable checklists                         |
 | Thread               | Thread                          | Yanıt dizisi                          | `threads.title`                           | One level of replies to a message             |
 | Pin                  | Pin / Unpin                     | Sabitle / Sabitlemeyi kaldır          | `pins.pin`                                | Up to 50 per channel                          |
 | Save for later       | Save for later                  | Sonrası için kaydet                   | `saved.save`                              | Personal; reminder optional                   |

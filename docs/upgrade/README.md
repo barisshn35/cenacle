@@ -39,6 +39,15 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.19.0)
+
+- Migration `00019_community_moderation` adds forum, poll, event, moderation, playbook,
+  banner and terms tables and columns. Nothing to configure.
+- Terms of service are off until an administrator publishes them (Settings →
+  Announcements); from then on everyone accepts them before using the app or the API
+  (bots excepted).
+- Rolling back to 0.18 needs `migrate down` once; forum channels are removed with it.
+
 ### 0.18.0
 
 - Migration `00018_threads_pins_saved` adds columns to `messages` (thread, pins) with
