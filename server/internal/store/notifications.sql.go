@@ -362,7 +362,8 @@ func (q *Queries) ListWorkspaceNotificationPrefs(ctx context.Context, userID pgt
 
 const missedForEmail = `-- name: MissedForEmail :many
 SELECT m.id AS message_id, m.channel_id, m.body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
-       c.workspace_id, a.display_name AS author_name, (mm.user_id IS NOT NULL)::boolean AS mentioned,
+       c.workspace_id, a.display_name AS author_name,
+       (mm.user_id IS NOT NULL OR coalesce(tf.following, false))::boolean AS mentioned,
        coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,
        wnp.muted_until AS workspace_muted_until
 FROM channel_members cm
@@ -370,11 +371,15 @@ JOIN messages m ON m.channel_id = cm.channel_id AND m.author_id <> cm.user_id
 JOIN channels c ON c.id = m.channel_id
 JOIN users a ON a.id = m.author_id
 LEFT JOIN message_mentions mm ON mm.message_id = m.id AND mm.user_id = cm.user_id
+LEFT JOIN thread_follows tf ON tf.root_id = m.root_id AND tf.user_id = cm.user_id
 LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.channel_id = m.channel_id
 LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
 WHERE cm.user_id = $1 AND m.deleted_at IS NULL
-  AND (mm.user_id IS NOT NULL OR c.kind IN ('direct', 'group'))
-  AND (cm.last_read_id IS NULL OR cm.last_read_id < m.id)
+  AND (CASE WHEN m.root_id IS NULL OR m.also_in_channel
+            THEN (mm.user_id IS NOT NULL OR c.kind IN ('direct', 'group'))
+                 AND (cm.last_read_id IS NULL OR cm.last_read_id < m.id)
+            ELSE (mm.user_id IS NOT NULL OR coalesce(tf.following, false))
+                 AND (tf.last_read_id IS NULL OR tf.last_read_id < m.id) END)
   AND m.id > $2 AND m.created_at < $3 AND m.created_at > now() - interval '7 days'
 ORDER BY m.id
 LIMIT 50
@@ -401,8 +406,9 @@ type MissedForEmailRow struct {
 	WorkspaceMutedUntil pgtype.Timestamptz `json:"workspace_muted_until"`
 }
 
-// MissedForEmail lists unread mentions and conversation messages of a person
-// after a message id and older than a moment, oldest first.
+// MissedForEmail lists unread mentions, conversation messages and replies in
+// followed threads of a person after a message id and older than a moment,
+// oldest first.
 func (q *Queries) MissedForEmail(ctx context.Context, arg MissedForEmailParams) ([]MissedForEmailRow, error) {
 	rows, err := q.db.Query(ctx, missedForEmail, arg.UserID, arg.After, arg.OlderThan)
 	if err != nil {
@@ -450,7 +456,7 @@ func (q *Queries) NewestMessageID(ctx context.Context) (pgtype.UUID, error) {
 const notifyCandidates = `-- name: NotifyCandidates :many
 SELECT m.id AS message_id, m.channel_id, m.body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
        c.workspace_id, a.display_name AS author_name,
-       cm.user_id, (mm.user_id IS NOT NULL)::boolean AS mentioned,
+       cm.user_id, (mm.user_id IS NOT NULL OR coalesce(tf.following, false))::boolean AS mentioned,
        coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,
        wnp.muted_until AS workspace_muted_until
 FROM messages m
@@ -459,10 +465,14 @@ JOIN users a ON a.id = m.author_id
 JOIN channel_members cm ON cm.channel_id = m.channel_id AND cm.user_id <> m.author_id
 JOIN users u ON u.id = cm.user_id AND NOT u.is_bot AND u.deactivated_at IS NULL
 LEFT JOIN message_mentions mm ON mm.message_id = m.id AND mm.user_id = cm.user_id
+LEFT JOIN thread_follows tf ON tf.root_id = m.root_id AND tf.user_id = cm.user_id
 LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.channel_id = m.channel_id
 LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
 WHERE m.id > $1 AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day'
-  AND (cm.last_read_id IS NULL OR cm.last_read_id < m.id)
+  AND (CASE WHEN m.root_id IS NULL OR m.also_in_channel
+            THEN cm.last_read_id IS NULL OR cm.last_read_id < m.id
+            ELSE (mm.user_id IS NOT NULL OR coalesce(tf.following, false))
+                 AND (tf.last_read_id IS NULL OR tf.last_read_id < m.id) END)
 ORDER BY m.id
 LIMIT $2
 `
@@ -491,7 +501,8 @@ type NotifyCandidatesRow struct {
 // NotifyCandidates lists, for messages after a cursor, the people who may be
 // told about them: the members of the message's channel other than its author,
 // what the message is to them (a mention, a conversation, any message) and
-// their channel and workspace settings.
+// their channel and workspace settings. A reply kept in its thread is only for
+// the people it mentions and those following the thread, as a mention.
 func (q *Queries) NotifyCandidates(ctx context.Context, arg NotifyCandidatesParams) ([]NotifyCandidatesRow, error) {
 	rows, err := q.db.Query(ctx, notifyCandidates, arg.After, arg.RowLimit)
 	if err != nil {

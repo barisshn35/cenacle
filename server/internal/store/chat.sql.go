@@ -164,19 +164,21 @@ func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversation
 }
 
 const createMessage = `-- name: CreateMessage :one
-INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files, root_id, also_in_channel)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by
 `
 
 type CreateMessageParams struct {
-	ChannelID   pgtype.UUID `json:"channel_id"`
-	AuthorID    pgtype.UUID `json:"author_id"`
-	Body        string      `json:"body"`
-	Nonce       string      `json:"nonce"`
-	Attachments []byte      `json:"attachments"`
-	HasFiles    bool        `json:"has_files"`
+	ChannelID     pgtype.UUID `json:"channel_id"`
+	AuthorID      pgtype.UUID `json:"author_id"`
+	Body          string      `json:"body"`
+	Nonce         string      `json:"nonce"`
+	Attachments   []byte      `json:"attachments"`
+	HasFiles      bool        `json:"has_files"`
+	RootID        pgtype.UUID `json:"root_id"`
+	AlsoInChannel bool        `json:"also_in_channel"`
 }
 
 // CreateMessage inserts a message; with a nonce the author used before it
@@ -189,6 +191,8 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		arg.Nonce,
 		arg.Attachments,
 		arg.HasFiles,
+		arg.RootID,
+		arg.AlsoInChannel,
 	)
 	var i Message
 	err := row.Scan(
@@ -203,6 +207,10 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.DeletedBy,
 		&i.Attachments,
 		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
 	)
 	return i, err
 }
@@ -222,7 +230,7 @@ func (q *Queries) DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, er
 const deleteMessage = `-- name: DeleteMessage :one
 UPDATE messages SET deleted_at = now(), deleted_by = $1
 WHERE id = $2 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by
 `
 
 type DeleteMessageParams struct {
@@ -245,6 +253,10 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (M
 		&i.DeletedBy,
 		&i.Attachments,
 		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
 	)
 	return i, err
 }
@@ -252,7 +264,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (M
 const editMessage = `-- name: EditMessage :one
 UPDATE messages SET body = $1, edited_at = now()
 WHERE id = $2 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by
 `
 
 type EditMessageParams struct {
@@ -275,6 +287,10 @@ func (q *Queries) EditMessage(ctx context.Context, arg EditMessageParams) (Messa
 		&i.DeletedBy,
 		&i.Attachments,
 		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
 	)
 	return i, err
 }
@@ -420,7 +436,7 @@ func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (s
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.id = $1 AND m.channel_id = $2
@@ -432,19 +448,23 @@ type GetMessageParams struct {
 }
 
 type GetMessageRow struct {
-	ID          pgtype.UUID        `json:"id"`
-	ChannelID   pgtype.UUID        `json:"channel_id"`
-	AuthorID    pgtype.UUID        `json:"author_id"`
-	Body        string             `json:"body"`
-	Nonce       string             `json:"nonce"`
-	CreatedAt   time.Time          `json:"created_at"`
-	EditedAt    pgtype.Timestamptz `json:"edited_at"`
-	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
-	DeletedBy   pgtype.UUID        `json:"deleted_by"`
-	Attachments []byte             `json:"attachments"`
-	HasFiles    bool               `json:"has_files"`
-	AuthorName  string             `json:"author_name"`
-	AuthorIsBot bool               `json:"author_is_bot"`
+	ID            pgtype.UUID        `json:"id"`
+	ChannelID     pgtype.UUID        `json:"channel_id"`
+	AuthorID      pgtype.UUID        `json:"author_id"`
+	Body          string             `json:"body"`
+	Nonce         string             `json:"nonce"`
+	CreatedAt     time.Time          `json:"created_at"`
+	EditedAt      pgtype.Timestamptz `json:"edited_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy     pgtype.UUID        `json:"deleted_by"`
+	Attachments   []byte             `json:"attachments"`
+	HasFiles      bool               `json:"has_files"`
+	RootID        pgtype.UUID        `json:"root_id"`
+	AlsoInChannel bool               `json:"also_in_channel"`
+	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
+	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	AuthorName    string             `json:"author_name"`
+	AuthorIsBot   bool               `json:"author_is_bot"`
 }
 
 func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error) {
@@ -462,6 +482,10 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMess
 		&i.DeletedBy,
 		&i.Attachments,
 		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
 		&i.AuthorName,
 		&i.AuthorIsBot,
 	)
@@ -469,7 +493,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMess
 }
 
 const getMessageByNonce = `-- name: GetMessageByNonce :one
-SELECT id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files FROM messages WHERE author_id = $1 AND nonce = $2
+SELECT id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by FROM messages WHERE author_id = $1 AND nonce = $2
 `
 
 type GetMessageByNonceParams struct {
@@ -492,6 +516,10 @@ func (q *Queries) GetMessageByNonce(ctx context.Context, arg GetMessageByNoncePa
 		&i.DeletedBy,
 		&i.Attachments,
 		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
 	)
 	return i, err
 }
@@ -697,12 +725,14 @@ SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory
        (SELECT count(*) FROM (
             SELECT 1 FROM messages x
             WHERE x.channel_id = c.id AND x.deleted_at IS NULL AND x.author_id <> $1
+              AND (x.root_id IS NULL OR x.also_in_channel)
               AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
             LIMIT 100) unread)::int AS unread_count,
        -- Unread messages that mention the user, also up to 100.
        (SELECT count(*) FROM (
             SELECT 1 FROM message_mentions mm JOIN messages x ON x.id = mm.message_id
             WHERE mm.user_id = $1 AND x.channel_id = c.id AND x.deleted_at IS NULL
+              AND (x.root_id IS NULL OR x.also_in_channel)
               AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
             LIMIT 100) mentioned)::int AS mention_count
 FROM channels c
@@ -807,11 +837,12 @@ func (q *Queries) ListMembers(ctx context.Context, channelID pgtype.UUID) ([]Lis
 }
 
 const listMessagesBefore = `-- name: ListMessagesBefore :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = $1
   AND m.deleted_at IS NULL
+  AND (m.root_id IS NULL OR m.also_in_channel)
   AND ($2::uuid IS NULL OR m.id < $2::uuid)
 ORDER BY m.id DESC
 LIMIT $3
@@ -824,24 +855,28 @@ type ListMessagesBeforeParams struct {
 }
 
 type ListMessagesBeforeRow struct {
-	ID          pgtype.UUID        `json:"id"`
-	ChannelID   pgtype.UUID        `json:"channel_id"`
-	AuthorID    pgtype.UUID        `json:"author_id"`
-	Body        string             `json:"body"`
-	Nonce       string             `json:"nonce"`
-	CreatedAt   time.Time          `json:"created_at"`
-	EditedAt    pgtype.Timestamptz `json:"edited_at"`
-	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
-	DeletedBy   pgtype.UUID        `json:"deleted_by"`
-	Attachments []byte             `json:"attachments"`
-	HasFiles    bool               `json:"has_files"`
-	AuthorName  string             `json:"author_name"`
-	AuthorIsBot bool               `json:"author_is_bot"`
+	ID            pgtype.UUID        `json:"id"`
+	ChannelID     pgtype.UUID        `json:"channel_id"`
+	AuthorID      pgtype.UUID        `json:"author_id"`
+	Body          string             `json:"body"`
+	Nonce         string             `json:"nonce"`
+	CreatedAt     time.Time          `json:"created_at"`
+	EditedAt      pgtype.Timestamptz `json:"edited_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy     pgtype.UUID        `json:"deleted_by"`
+	Attachments   []byte             `json:"attachments"`
+	HasFiles      bool               `json:"has_files"`
+	RootID        pgtype.UUID        `json:"root_id"`
+	AlsoInChannel bool               `json:"also_in_channel"`
+	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
+	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	AuthorName    string             `json:"author_name"`
+	AuthorIsBot   bool               `json:"author_is_bot"`
 }
 
 // ListMessagesBefore returns up to row_limit messages of a channel older than
 // the cursor (all when before is NULL), newest first, with their authors.
-// Deleted messages are left out.
+// Deleted messages and replies kept in their thread are left out.
 func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error) {
 	rows, err := q.db.Query(ctx, listMessagesBefore, arg.ChannelID, arg.Before, arg.RowLimit)
 	if err != nil {
@@ -863,6 +898,10 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.DeletedBy,
 			&i.Attachments,
 			&i.HasFiles,
+			&i.RootID,
+			&i.AlsoInChannel,
+			&i.PinnedAt,
+			&i.PinnedBy,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -930,7 +969,7 @@ func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) (int
 const restoreMessage = `-- name: RestoreMessage :one
 UPDATE messages SET deleted_at = NULL, deleted_by = NULL
 WHERE id = $1 AND deleted_at > now() - $2::interval
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by
 `
 
 type RestoreMessageParams struct {
@@ -954,6 +993,10 @@ func (q *Queries) RestoreMessage(ctx context.Context, arg RestoreMessageParams) 
 		&i.DeletedBy,
 		&i.Attachments,
 		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
 	)
 	return i, err
 }

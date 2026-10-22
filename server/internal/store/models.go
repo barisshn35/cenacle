@@ -167,17 +167,21 @@ type IncomingWebhook struct {
 }
 
 type Message struct {
-	ID          pgtype.UUID        `json:"id"`
-	ChannelID   pgtype.UUID        `json:"channel_id"`
-	AuthorID    pgtype.UUID        `json:"author_id"`
-	Body        string             `json:"body"`
-	Nonce       string             `json:"nonce"`
-	CreatedAt   time.Time          `json:"created_at"`
-	EditedAt    pgtype.Timestamptz `json:"edited_at"`
-	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
-	DeletedBy   pgtype.UUID        `json:"deleted_by"`
-	Attachments []byte             `json:"attachments"`
-	HasFiles    bool               `json:"has_files"`
+	ID            pgtype.UUID        `json:"id"`
+	ChannelID     pgtype.UUID        `json:"channel_id"`
+	AuthorID      pgtype.UUID        `json:"author_id"`
+	Body          string             `json:"body"`
+	Nonce         string             `json:"nonce"`
+	CreatedAt     time.Time          `json:"created_at"`
+	EditedAt      pgtype.Timestamptz `json:"edited_at"`
+	DeletedAt     pgtype.Timestamptz `json:"deleted_at"`
+	DeletedBy     pgtype.UUID        `json:"deleted_by"`
+	Attachments   []byte             `json:"attachments"`
+	HasFiles      bool               `json:"has_files"`
+	RootID        pgtype.UUID        `json:"root_id"`
+	AlsoInChannel bool               `json:"also_in_channel"`
+	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
+	PinnedBy      pgtype.UUID        `json:"pinned_by"`
 }
 
 type MessageMention struct {
@@ -227,6 +231,15 @@ type PushSubscription struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+type SavedMessage struct {
+	UserID     pgtype.UUID        `json:"user_id"`
+	MessageID  pgtype.UUID        `json:"message_id"`
+	CreatedAt  time.Time          `json:"created_at"`
+	RemindAt   pgtype.Timestamptz `json:"remind_at"`
+	ReminderID pgtype.UUID        `json:"reminder_id"`
+	DoneAt     pgtype.Timestamptz `json:"done_at"`
+}
+
 type ScheduledMessage struct {
 	ID        pgtype.UUID `json:"id"`
 	Kind      string      `json:"kind"`
@@ -264,6 +277,13 @@ type SlashCommand struct {
 	Secret      string      `json:"secret"`
 	CreatedBy   pgtype.UUID `json:"created_by"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type ThreadFollow struct {
+	UserID     pgtype.UUID `json:"user_id"`
+	RootID     pgtype.UUID `json:"root_id"`
+	Following  bool        `json:"following"`
+	LastReadID pgtype.UUID `json:"last_read_id"`
 }
 
 type UiText struct {

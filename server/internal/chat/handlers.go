@@ -143,6 +143,7 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 		page.Messages[len(rows)-1-i] = messageAPI(store.Message{
 			ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
+			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -237,6 +238,18 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 
+	var reply replyTo
+	if in.RootId != nil {
+		root, ok := h.threadRoot(w, r, c, *in.RootId)
+		if !ok {
+			return
+		}
+		reply = replyTo{root: root, also: in.AlsoInChannel != nil && *in.AlsoInChannel}
+	} else if in.AlsoInChannel != nil && *in.AlsoInChannel {
+		badRequest(w, r, "also_in_channel is for replies.")
+		return
+	}
+
 	if !h.allowMessage(w, r, p.User) {
 		return
 	}
@@ -246,7 +259,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
-		out, err = postMessage(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments, files...)
+		out, err = postMessageTo(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments, reply, files...)
 		return err
 	})
 	if errors.Is(err, errFilesUnavailable) {
@@ -270,9 +283,24 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 // author and records message.created, inside the caller's transaction. A
 // nonce the author used before returns that message (a retry).
 func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, files ...pgtype.UUID) (api.Message, error) {
+	return postMessageTo(ctx, q, c, author, body, nonce, rawAttachments, replyTo{}, files...)
+}
+
+// replyTo places a message in a thread (no root: in the channel).
+type replyTo struct {
+	root store.GetMessageRow
+	// also shows the reply in the channel too.
+	also bool
+}
+
+func (r replyTo) isReply() bool { return r.root.ID.Valid }
+
+// postMessageTo is postMessage, in a thread when reply has a root: the
+// author, the root's author and the people mentioned follow the thread.
+func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, reply replyTo, files ...pgtype.UUID) (api.Message, error) {
 	msg, err := q.CreateMessage(ctx, store.CreateMessageParams{
 		ChannelID: c.ID, AuthorID: author.ID, Body: body, Nonce: nonce, Attachments: rawAttachments,
-		HasFiles: len(files) > 0,
+		HasFiles: len(files) > 0, RootID: reply.root.ID, AlsoInChannel: reply.isReply() && reply.also,
 	})
 	if isNoRows(err) {
 		msg, err = q.GetMessageByNonce(ctx, store.GetMessageByNonceParams{AuthorID: author.ID, Nonce: nonce})
@@ -281,7 +309,7 @@ func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author 
 		}
 		// A retry is the same message in the same channel; anything else reuses
 		// a nonce by mistake.
-		if msg.ChannelID != c.ID || msg.DeletedAt.Valid {
+		if msg.ChannelID != c.ID || msg.DeletedAt.Valid || msg.RootID != reply.root.ID {
 			return api.Message{}, errNonceReused
 		}
 		msgs := []api.Message{messageAPI(msg, author.DisplayName, author.IsBot)}
@@ -303,21 +331,38 @@ func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author 
 			return api.Message{}, errFilesUnavailable
 		}
 	}
-	if ids := mentionedIDs(body); len(ids) > 0 {
+	ids := mentionedIDs(body)
+	if len(ids) > 0 {
 		if err := q.AddMentions(ctx, store.AddMentionsParams{MessageID: msg.ID, ChannelID: c.ID, UserIds: ids}); err != nil {
 			return api.Message{}, err
 		}
 	}
 	// What you send, you have read. No channel.read: the sender's other
-	// devices see message.created and move their read position themselves.
-	if _, err := q.MarkRead(ctx, store.MarkReadParams{ChannelID: c.ID, UserID: author.ID, MessageID: msg.ID}); err != nil {
-		return api.Message{}, err
+	// devices see message.created and move their read position themselves. A
+	// reply kept in its thread leaves the channel's read position alone.
+	if !reply.isReply() || reply.also {
+		if _, err := q.MarkRead(ctx, store.MarkReadParams{ChannelID: c.ID, UserID: author.ID, MessageID: msg.ID}); err != nil {
+			return api.Message{}, err
+		}
 	}
 	msgs := []api.Message{messageAPI(msg, author.DisplayName, author.IsBot)}
 	if err := decorate(ctx, q, author.ID, msgs); err != nil {
 		return api.Message{}, err
 	}
-	return msgs[0], emit(ctx, q, events.MessageCreated, msgs[0])
+	if err := emit(ctx, q, events.MessageCreated, msgs[0]); err != nil {
+		return api.Message{}, err
+	}
+	if !reply.isReply() {
+		return msgs[0], nil
+	}
+	followers := append([]pgtype.UUID{author.ID, reply.root.AuthorID}, ids...)
+	if err := q.FollowThread(ctx, store.FollowThreadParams{UserIds: followers, RootID: reply.root.ID}); err != nil {
+		return api.Message{}, err
+	}
+	if _, err := q.MarkThreadRead(ctx, store.MarkThreadReadParams{UserID: author.ID, RootID: reply.root.ID, MessageID: msg.ID}); err != nil {
+		return api.Message{}, err
+	}
+	return msgs[0], threadUpdated(ctx, q, c.ID, reply.root.ID)
 }
 
 // messageAPI describes a stored message with its author's name; mentions
@@ -338,6 +383,21 @@ func messageAPI(m store.Message, authorName string, authorIsBot bool) api.Messag
 	if m.EditedAt.Valid {
 		t := m.EditedAt.Time
 		out.EditedAt = &t
+	}
+	if m.RootID.Valid {
+		root := uuid(m.RootID)
+		out.RootId = &root
+		if m.AlsoInChannel {
+			out.AlsoInChannel = &m.AlsoInChannel
+		}
+	}
+	if m.PinnedAt.Valid {
+		t := m.PinnedAt.Time
+		out.PinnedAt = &t
+		if m.PinnedBy.Valid {
+			by := uuid(m.PinnedBy)
+			out.PinnedBy = &by
+		}
 	}
 	return out
 }

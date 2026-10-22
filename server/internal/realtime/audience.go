@@ -43,7 +43,7 @@ func (a *audience) allows(ev events.Event) bool {
 	switch ev.Type {
 	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted,
 		events.ReactionAdded, events.ReactionRemoved,
-		events.ChannelUpdated, events.ChannelMembersChanged:
+		events.ChannelUpdated, events.ChannelMembersChanged, events.ThreadUpdated:
 		return a.inChannel(d.ChannelID)
 	case events.ChannelCreated: // a channel for everyone in its workspace
 		if !a.workspaces[d.Channel.WorkspaceID] {
@@ -65,7 +65,8 @@ func (a *audience) allows(ev events.Event) bool {
 		return true
 	case events.Typing: // others typing in the user's channels
 		return d.UserID != a.user && a.inChannel(d.ChannelID)
-	case events.ChannelRead, events.SessionsEnded: // about the user only
+	case events.ChannelRead, events.SessionsEnded, // about the user only
+		events.ThreadFollowed, events.ThreadRead, events.SavedChanged:
 		return d.UserID == a.user
 	case events.PresenceChanged, events.UserUpdated:
 		if ev.Type == events.UserUpdated && d.UserID == a.user {

@@ -238,35 +238,7 @@ func (h *Handlers) remind(w http.ResponseWriter, r *http.Request, user store.Use
 		return
 	}
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
-		bot, err := h.systemBot(r.Context(), q, c.WorkspaceID)
-		if err != nil {
-			return err
-		}
-		kind, key := conversationKey([]string{uuid(user.ID).String(), uuid(bot.ID).String()})
-		dm, err := q.GetChannelByName(r.Context(), store.GetChannelByNameParams{WorkspaceID: c.WorkspaceID, Name: key})
-		if isNoRows(err) {
-			dm, err = q.CreateConversation(r.Context(), store.CreateConversationParams{
-				WorkspaceID: c.WorkspaceID, Name: key, Kind: kind, CreatedBy: bot.ID,
-			})
-		}
-		if err != nil {
-			return err
-		}
-		for _, id := range []pgtype.UUID{user.ID, bot.ID} {
-			n, err := q.AddMember(r.Context(), store.AddMemberParams{ChannelID: dm.ID, UserID: id, Role: RoleMember})
-			if err != nil {
-				return err
-			}
-			if n > 0 && id == user.ID {
-				if err := emit(r.Context(), q, events.ChannelJoined, ChannelEvent{Channel: toAPI(dm, access{ch: RoleMember}), UserID: uuid(id).String()}); err != nil {
-					return err
-				}
-			}
-		}
-		_, err = q.CreateScheduledMessage(r.Context(), store.CreateScheduledMessageParams{
-			Kind: "reminder", ChannelID: dm.ID, AuthorID: bot.ID, OwnerID: user.ID,
-			Body: "⏰ " + what, SendAt: when,
-		})
+		_, err := h.scheduleReminder(r.Context(), q, c.WorkspaceID, user, "⏰ "+what, when)
 		return err
 	})
 	if err != nil {
@@ -385,4 +357,38 @@ func (h *Handlers) commandFailed(w http.ResponseWriter, r *http.Request, trigger
 		detail = "The address of /" + trigger + " is not allowed (an internal network); an administrator can allow it."
 	}
 	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadGateway, Code: CodeCommandFailed, Detail: detail})
+}
+
+// scheduleReminder schedules a message from the workspace's system bot to a
+// person, in their conversation with it (created when needed).
+func (h *Handlers) scheduleReminder(ctx context.Context, q *store.Queries, workspace pgtype.UUID, user store.User, body string, when time.Time) (store.ScheduledMessage, error) {
+	bot, err := h.systemBot(ctx, q, workspace)
+	if err != nil {
+		return store.ScheduledMessage{}, err
+	}
+	kind, key := conversationKey([]string{uuid(user.ID).String(), uuid(bot.ID).String()})
+	dm, err := q.GetChannelByName(ctx, store.GetChannelByNameParams{WorkspaceID: workspace, Name: key})
+	if isNoRows(err) {
+		dm, err = q.CreateConversation(ctx, store.CreateConversationParams{
+			WorkspaceID: workspace, Name: key, Kind: kind, CreatedBy: bot.ID,
+		})
+	}
+	if err != nil {
+		return store.ScheduledMessage{}, err
+	}
+	for _, id := range []pgtype.UUID{user.ID, bot.ID} {
+		n, err := q.AddMember(ctx, store.AddMemberParams{ChannelID: dm.ID, UserID: id, Role: RoleMember})
+		if err != nil {
+			return store.ScheduledMessage{}, err
+		}
+		if n > 0 && id == user.ID {
+			if err := emit(ctx, q, events.ChannelJoined, ChannelEvent{Channel: toAPI(dm, access{ch: RoleMember}), UserID: uuid(id).String()}); err != nil {
+				return store.ScheduledMessage{}, err
+			}
+		}
+	}
+	return q.CreateScheduledMessage(ctx, store.CreateScheduledMessageParams{
+		Kind: "reminder", ChannelID: dm.ID, AuthorID: bot.ID, OwnerID: user.ID,
+		Body: body, SendAt: when,
+	})
 }

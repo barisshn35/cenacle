@@ -14,6 +14,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for ActivityItemKind.
+const (
+	ActivityItemKindMention  ActivityItemKind = "mention"
+	ActivityItemKindReaction ActivityItemKind = "reaction"
+	ActivityItemKindReply    ActivityItemKind = "reply"
+)
+
+// Valid indicates whether the value is a known member of the ActivityItemKind enum.
+func (e ActivityItemKind) Valid() bool {
+	switch e {
+	case ActivityItemKindMention:
+		return true
+	case ActivityItemKindReaction:
+		return true
+	case ActivityItemKindReply:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AppearanceCodeTheme.
 const (
 	Catppuccin AppearanceCodeTheme = "catppuccin"
@@ -863,6 +884,21 @@ func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
 	}
 }
 
+// ActivityItem defines model for ActivityItem.
+type ActivityItem struct {
+	Actor   Author        `json:"actor"`
+	At      time.Time     `json:"at"`
+	Channel SearchChannel `json:"channel"`
+
+	// Emoji The reaction (reactions only).
+	Emoji   string           `json:"emoji"`
+	Kind    ActivityItemKind `json:"kind"`
+	Message Message          `json:"message"`
+}
+
+// ActivityItemKind defines model for ActivityItem.Kind.
+type ActivityItemKind string
+
 // Appearance defines model for Appearance.
 type Appearance struct {
 	Code struct {
@@ -1168,6 +1204,17 @@ type FileInfo struct {
 	Width        *int               `json:"width"`
 }
 
+// FollowedThread defines model for FollowedThread.
+type FollowedThread struct {
+	Channel SearchChannel `json:"channel"`
+
+	// LastReplyId The paging cursor (before).
+	LastReplyId  openapi_types.UUID `json:"last_reply_id"`
+	MentionCount int                `json:"mention_count"`
+	Root         Message            `json:"root"`
+	UnreadCount  int                `json:"unread_count"`
+}
+
 // FontTemplate defines model for FontTemplate.
 type FontTemplate string
 
@@ -1216,8 +1263,10 @@ type MemberRole string
 
 // Message defines model for Message.
 type Message struct {
-	Attachments []Attachment `json:"attachments"`
-	Author      Author       `json:"author"`
+	// AlsoInChannel A reply its author also sent to the channel.
+	AlsoInChannel *bool        `json:"also_in_channel,omitempty"`
+	Attachments   []Attachment `json:"attachments"`
+	Author        Author       `json:"author"`
 
 	// Body Markdown (CommonMark with GitHub tables, strikethrough and task lists); clients
 	// render it without raw HTML. `<@user-id>` mentions a person.
@@ -1232,10 +1281,18 @@ type Message struct {
 	Mentions []Author `json:"mentions"`
 
 	// Nonce The client's nonce, so the sender can match its pending message.
-	Nonce string `json:"nonce"`
+	Nonce    string              `json:"nonce"`
+	PinnedAt *time.Time          `json:"pinned_at,omitempty"`
+	PinnedBy *openapi_types.UUID `json:"pinned_by,omitempty"`
 
 	// Reactions Reactions in the order they were first used; `me` is the reader's own.
 	Reactions []Reaction `json:"reactions"`
+
+	// RootId The thread's first message when this is a reply.
+	RootId *openapi_types.UUID `json:"root_id,omitempty"`
+
+	// Thread The replies of a message (absent when it has none).
+	Thread *ThreadSummary `json:"thread,omitempty"`
 }
 
 // MessagePage defines model for MessagePage.
@@ -1298,7 +1355,9 @@ type NewChannelVisibility string
 
 // NewMessage defines model for NewMessage.
 type NewMessage struct {
-	Attachments *[]Attachment `json:"attachments,omitempty"`
+	// AlsoInChannel Show the reply in the channel too.
+	AlsoInChannel *bool         `json:"also_in_channel,omitempty"`
+	Attachments   *[]Attachment `json:"attachments,omitempty"`
 
 	// Body Markdown; may be empty when the message has attachments or files.
 	Body string `json:"body"`
@@ -1306,6 +1365,9 @@ type NewMessage struct {
 	// FileIds Ready files the sender uploaded into this channel (see createUpload).
 	FileIds *[]openapi_types.UUID `json:"file_ids,omitempty"`
 	Nonce   string                `json:"nonce"`
+
+	// RootId Reply in this message's thread (a reply's thread when it is a reply).
+	RootId *openapi_types.UUID `json:"root_id,omitempty"`
 }
 
 // NotificationPrefs defines model for NotificationPrefs.
@@ -1449,6 +1511,15 @@ type Reaction struct {
 	Me    bool   `json:"me"`
 }
 
+// SavedItem defines model for SavedItem.
+type SavedItem struct {
+	Channel  SearchChannel `json:"channel"`
+	DoneAt   *time.Time    `json:"done_at"`
+	Message  Message       `json:"message"`
+	RemindAt *time.Time    `json:"remind_at"`
+	SavedAt  time.Time     `json:"saved_at"`
+}
+
 // ScheduledMessage defines model for ScheduledMessage.
 type ScheduledMessage struct {
 	Body        string               `json:"body"`
@@ -1489,12 +1560,13 @@ type SearchFile struct {
 
 // SearchMessage defines model for SearchMessage.
 type SearchMessage struct {
-	Author    Author             `json:"author"`
-	Body      string             `json:"body"`
-	Channel   SearchChannel      `json:"channel"`
-	CreatedAt time.Time          `json:"created_at"`
-	HasFiles  bool               `json:"has_files"`
-	Id        openapi_types.UUID `json:"id"`
+	Author    Author              `json:"author"`
+	Body      string              `json:"body"`
+	Channel   SearchChannel       `json:"channel"`
+	CreatedAt time.Time           `json:"created_at"`
+	HasFiles  bool                `json:"has_files"`
+	Id        openapi_types.UUID  `json:"id"`
+	RootId    *openapi_types.UUID `json:"root_id,omitempty"`
 }
 
 // Session defines model for Session.
@@ -1536,6 +1608,15 @@ type Subscription struct {
 
 // ThemePreset defines model for ThemePreset.
 type ThemePreset string
+
+// ThreadSummary The replies of a message (absent when it has none).
+type ThreadSummary struct {
+	LastReplyAt time.Time `json:"last_reply_at"`
+
+	// Participants The latest repliers, newest first (up to three).
+	Participants []Author `json:"participants"`
+	ReplyCount   int      `json:"reply_count"`
+}
 
 // UITexts defines model for UITexts.
 type UITexts struct {
@@ -1785,6 +1866,12 @@ type EditMessageJSONBody struct {
 	Body string `json:"body"`
 }
 
+// ListRepliesParams defines parameters for ListReplies.
+type ListRepliesParams struct {
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // MarkReadJSONBody defines parameters for MarkRead.
 type MarkReadJSONBody struct {
 	MessageId openapi_types.UUID `json:"message_id"`
@@ -1803,6 +1890,15 @@ type GetFileContentParams struct {
 
 // PostWebhookJSONBody defines parameters for PostWebhook.
 type PostWebhookJSONBody map[string]interface{}
+
+// ListActivityParams defines parameters for ListActivity.
+type ListActivityParams struct {
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
+
+	// Before The time of the last item of the previous page.
+	Before *time.Time `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int       `form:"limit,omitempty" json:"limit,omitempty"`
+}
 
 // UploadFontParams defines parameters for UploadFont.
 type UploadFontParams struct {
@@ -1825,9 +1921,44 @@ type RemovePushSubscriptionJSONBody struct {
 	Endpoint string `json:"endpoint"`
 }
 
+// SaveMessageJSONBody defines parameters for SaveMessage.
+type SaveMessageJSONBody struct {
+	Done     *bool      `json:"done,omitempty"`
+	RemindAt *time.Time `json:"remind_at,omitempty"`
+}
+
 // UploadSoundParams defines parameters for UploadSound.
 type UploadSoundParams struct {
 	Name string `form:"name" json:"name"`
+}
+
+// ListThreadsParams defines parameters for ListThreads.
+type ListThreadsParams struct {
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
+
+	// Before A last-reply id from the previous page.
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CountUnreadThreadsParams defines parameters for CountUnreadThreads.
+type CountUnreadThreadsParams struct {
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
+}
+
+// SetThreadFollowingJSONBody defines parameters for SetThreadFollowing.
+type SetThreadFollowingJSONBody struct {
+	Following bool `json:"following"`
+}
+
+// MarkThreadReadJSONBody defines parameters for MarkThreadRead.
+type MarkThreadReadJSONBody struct {
+	MessageId openapi_types.UUID `json:"message_id"`
+}
+
+// ListUnreadsParams defines parameters for ListUnreads.
+type ListUnreadsParams struct {
+	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
 }
 
 // GetPictureParams defines parameters for GetPicture.
@@ -2028,8 +2159,17 @@ type RemovePushSubscriptionJSONRequestBody RemovePushSubscriptionJSONBody
 // AddPushSubscriptionJSONRequestBody defines body for AddPushSubscription for application/json ContentType.
 type AddPushSubscriptionJSONRequestBody = PushSubscription
 
+// SaveMessageJSONRequestBody defines body for SaveMessage for application/json ContentType.
+type SaveMessageJSONRequestBody SaveMessageJSONBody
+
 // SetCustomStatusJSONRequestBody defines body for SetCustomStatus for application/json ContentType.
 type SetCustomStatusJSONRequestBody = CustomStatus
+
+// SetThreadFollowingJSONRequestBody defines body for SetThreadFollowing for application/json ContentType.
+type SetThreadFollowingJSONRequestBody SetThreadFollowingJSONBody
+
+// MarkThreadReadJSONRequestBody defines body for MarkThreadRead for application/json ContentType.
+type MarkThreadReadJSONRequestBody MarkThreadReadJSONBody
 
 // SetPresenceJSONRequestBody defines body for SetPresence for application/json ContentType.
 type SetPresenceJSONRequestBody SetPresenceJSONBody
@@ -2201,21 +2341,36 @@ type ServerInterface interface {
 	// DeleteMessage Delete a message (its author, or a channel manager)
 	// (DELETE /api/channels/{channel_id}/messages/{message_id})
 	DeleteMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// GetMessage One message (a thread's first message, a link to a message)
+	// (GET /api/channels/{channel_id}/messages/{message_id})
+	GetMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// EditMessage Edit your own message
 	// (PATCH /api/channels/{channel_id}/messages/{message_id})
 	EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// UnpinMessage Unpin a message
+	// (DELETE /api/channels/{channel_id}/messages/{message_id}/pin)
+	UnpinMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// PinMessage Pin a message to its channel
+	// (PUT /api/channels/{channel_id}/messages/{message_id}/pin)
+	PinMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// RemoveReaction Take a reaction back
 	// (DELETE /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
 	RemoveReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string)
 	// AddReaction React to a message
 	// (PUT /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
 	AddReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string)
+	// ListReplies The replies of a thread, newest page first
+	// (GET /api/channels/{channel_id}/messages/{message_id}/replies)
+	ListReplies(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, params ListRepliesParams)
 	// RestoreMessage Undo deleting a message (whoever may delete it)
 	// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
 	RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// SetChannelNotifications What a channel or conversation notifies you of; mute it
 	// (PUT /api/channels/{channel_id}/notifications)
 	SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListPins The pinned messages of a channel, latest pinned first
+	// (GET /api/channels/{channel_id}/pins)
+	ListPins(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// MarkRead Mark a channel read up to a message
 	// (POST /api/channels/{channel_id}/read)
 	MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -2252,6 +2407,9 @@ type ServerInterface interface {
 	// AcceptInvite Join the workspace of an invitation
 	// (POST /api/invites/{token}/accept)
 	AcceptInvite(w http.ResponseWriter, r *http.Request, token string)
+	// ListActivity Mentions, replies in your threads and reactions to your messages (30 days)
+	// (GET /api/me/activity)
+	ListActivity(w http.ResponseWriter, r *http.Request, params ListActivityParams)
 	// GetMyAppearance Your appearance settings
 	// (GET /api/me/appearance)
 	GetMyAppearance(w http.ResponseWriter, r *http.Request)
@@ -2291,6 +2449,15 @@ type ServerInterface interface {
 	// AddPushSubscription Receive web push notifications in this browser
 	// (POST /api/me/push-subscriptions)
 	AddPushSubscription(w http.ResponseWriter, r *http.Request)
+	// ListSaved Messages you saved for later, newest first (up to 500)
+	// (GET /api/me/saved)
+	ListSaved(w http.ResponseWriter, r *http.Request)
+	// UnsaveMessage Remove a message from your saved ones
+	// (DELETE /api/me/saved/{message_id})
+	UnsaveMessage(w http.ResponseWriter, r *http.Request, messageId openapi_types.UUID)
+	// SaveMessage Save a message for later, set its reminder or mark it done
+	// (PUT /api/me/saved/{message_id})
+	SaveMessage(w http.ResponseWriter, r *http.Request, messageId openapi_types.UUID)
 	// ListMySounds Sounds you uploaded
 	// (GET /api/me/sounds)
 	ListMySounds(w http.ResponseWriter, r *http.Request)
@@ -2306,6 +2473,24 @@ type ServerInterface interface {
 	// SetCustomStatus Set your custom status
 	// (PUT /api/me/status)
 	SetCustomStatus(w http.ResponseWriter, r *http.Request)
+	// ListThreads The threads you follow, the latest reply first
+	// (GET /api/me/threads)
+	ListThreads(w http.ResponseWriter, r *http.Request, params ListThreadsParams)
+	// CountUnreadThreads How many followed threads have unread replies (up to 100)
+	// (GET /api/me/threads/unread)
+	CountUnreadThreads(w http.ResponseWriter, r *http.Request, params CountUnreadThreadsParams)
+	// GetThreadFollowing Whether you follow a thread and how far you read it
+	// (GET /api/me/threads/{root_id})
+	GetThreadFollowing(w http.ResponseWriter, r *http.Request, rootId openapi_types.UUID)
+	// SetThreadFollowing Follow or stop following a thread
+	// (PUT /api/me/threads/{root_id})
+	SetThreadFollowing(w http.ResponseWriter, r *http.Request, rootId openapi_types.UUID)
+	// MarkThreadRead Move your read position in a followed thread forward
+	// (POST /api/me/threads/{root_id}/read)
+	MarkThreadRead(w http.ResponseWriter, r *http.Request, rootId openapi_types.UUID)
+	// ListUnreads The unread messages of a workspace's channels (20 latest per channel)
+	// (GET /api/me/unreads)
+	ListUnreads(w http.ResponseWriter, r *http.Request, params ListUnreadsParams)
 	// GetPicture A profile picture or workspace icon
 	// (GET /api/pictures/{picture_id})
 	GetPicture(w http.ResponseWriter, r *http.Request, pictureId openapi_types.UUID, params GetPictureParams)
@@ -2690,9 +2875,27 @@ func (_ Unimplemented) DeleteMessage(w http.ResponseWriter, r *http.Request, cha
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetMessage One message (a thread's first message, a link to a message)
+// (GET /api/channels/{channel_id}/messages/{message_id})
+func (_ Unimplemented) GetMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // EditMessage Edit your own message
 // (PATCH /api/channels/{channel_id}/messages/{message_id})
 func (_ Unimplemented) EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UnpinMessage Unpin a message
+// (DELETE /api/channels/{channel_id}/messages/{message_id}/pin)
+func (_ Unimplemented) UnpinMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PinMessage Pin a message to its channel
+// (PUT /api/channels/{channel_id}/messages/{message_id}/pin)
+func (_ Unimplemented) PinMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2708,6 +2911,12 @@ func (_ Unimplemented) AddReaction(w http.ResponseWriter, r *http.Request, chann
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListReplies The replies of a thread, newest page first
+// (GET /api/channels/{channel_id}/messages/{message_id}/replies)
+func (_ Unimplemented) ListReplies(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, params ListRepliesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // RestoreMessage Undo deleting a message (whoever may delete it)
 // (POST /api/channels/{channel_id}/messages/{message_id}/restore)
 func (_ Unimplemented) RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
@@ -2717,6 +2926,12 @@ func (_ Unimplemented) RestoreMessage(w http.ResponseWriter, r *http.Request, ch
 // SetChannelNotifications What a channel or conversation notifies you of; mute it
 // (PUT /api/channels/{channel_id}/notifications)
 func (_ Unimplemented) SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListPins The pinned messages of a channel, latest pinned first
+// (GET /api/channels/{channel_id}/pins)
+func (_ Unimplemented) ListPins(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2789,6 +3004,12 @@ func (_ Unimplemented) GetInvite(w http.ResponseWriter, r *http.Request, token s
 // AcceptInvite Join the workspace of an invitation
 // (POST /api/invites/{token}/accept)
 func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListActivity Mentions, replies in your threads and reactions to your messages (30 days)
+// (GET /api/me/activity)
+func (_ Unimplemented) ListActivity(w http.ResponseWriter, r *http.Request, params ListActivityParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2870,6 +3091,24 @@ func (_ Unimplemented) AddPushSubscription(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListSaved Messages you saved for later, newest first (up to 500)
+// (GET /api/me/saved)
+func (_ Unimplemented) ListSaved(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UnsaveMessage Remove a message from your saved ones
+// (DELETE /api/me/saved/{message_id})
+func (_ Unimplemented) UnsaveMessage(w http.ResponseWriter, r *http.Request, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SaveMessage Save a message for later, set its reminder or mark it done
+// (PUT /api/me/saved/{message_id})
+func (_ Unimplemented) SaveMessage(w http.ResponseWriter, r *http.Request, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListMySounds Sounds you uploaded
 // (GET /api/me/sounds)
 func (_ Unimplemented) ListMySounds(w http.ResponseWriter, r *http.Request) {
@@ -2897,6 +3136,42 @@ func (_ Unimplemented) ClearCustomStatus(w http.ResponseWriter, r *http.Request)
 // SetCustomStatus Set your custom status
 // (PUT /api/me/status)
 func (_ Unimplemented) SetCustomStatus(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListThreads The threads you follow, the latest reply first
+// (GET /api/me/threads)
+func (_ Unimplemented) ListThreads(w http.ResponseWriter, r *http.Request, params ListThreadsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CountUnreadThreads How many followed threads have unread replies (up to 100)
+// (GET /api/me/threads/unread)
+func (_ Unimplemented) CountUnreadThreads(w http.ResponseWriter, r *http.Request, params CountUnreadThreadsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetThreadFollowing Whether you follow a thread and how far you read it
+// (GET /api/me/threads/{root_id})
+func (_ Unimplemented) GetThreadFollowing(w http.ResponseWriter, r *http.Request, rootId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetThreadFollowing Follow or stop following a thread
+// (PUT /api/me/threads/{root_id})
+func (_ Unimplemented) SetThreadFollowing(w http.ResponseWriter, r *http.Request, rootId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MarkThreadRead Move your read position in a followed thread forward
+// (POST /api/me/threads/{root_id}/read)
+func (_ Unimplemented) MarkThreadRead(w http.ResponseWriter, r *http.Request, rootId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListUnreads The unread messages of a workspace's channels (20 latest per channel)
+// (GET /api/me/unreads)
+func (_ Unimplemented) ListUnreads(w http.ResponseWriter, r *http.Request, params ListUnreadsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4452,6 +4727,41 @@ func (siw *ServerInterfaceWrapper) DeleteMessage(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetMessage operation middleware
+func (siw *ServerInterfaceWrapper) GetMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // EditMessage operation middleware
 func (siw *ServerInterfaceWrapper) EditMessage(w http.ResponseWriter, r *http.Request) {
 
@@ -4478,6 +4788,76 @@ func (siw *ServerInterfaceWrapper) EditMessage(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EditMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnpinMessage operation middleware
+func (siw *ServerInterfaceWrapper) UnpinMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnpinMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PinMessage operation middleware
+func (siw *ServerInterfaceWrapper) PinMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PinMessage(w, r, channelId, messageId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4575,6 +4955,70 @@ func (siw *ServerInterfaceWrapper) AddReaction(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListReplies operation middleware
+func (siw *ServerInterfaceWrapper) ListReplies(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRepliesParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReplies(w, r, channelId, messageId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RestoreMessage operation middleware
 func (siw *ServerInterfaceWrapper) RestoreMessage(w http.ResponseWriter, r *http.Request) {
 
@@ -4627,6 +5071,32 @@ func (siw *ServerInterfaceWrapper) SetChannelNotifications(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetChannelNotifications(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPins operation middleware
+func (siw *ServerInterfaceWrapper) ListPins(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPins(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4964,6 +5434,65 @@ func (siw *ServerInterfaceWrapper) AcceptInvite(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ListActivity operation middleware
+func (siw *ServerInterfaceWrapper) ListActivity(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListActivityParams
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListActivity(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMyAppearance operation middleware
 func (siw *ServerInterfaceWrapper) GetMyAppearance(w http.ResponseWriter, r *http.Request) {
 
@@ -5177,6 +5706,72 @@ func (siw *ServerInterfaceWrapper) AddPushSubscription(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// ListSaved operation middleware
+func (siw *ServerInterfaceWrapper) ListSaved(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSaved(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnsaveMessage operation middleware
+func (siw *ServerInterfaceWrapper) UnsaveMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnsaveMessage(w, r, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveMessage operation middleware
+func (siw *ServerInterfaceWrapper) SaveMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveMessage(w, r, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMySounds operation middleware
 func (siw *ServerInterfaceWrapper) ListMySounds(w http.ResponseWriter, r *http.Request) {
 
@@ -5269,6 +5864,209 @@ func (siw *ServerInterfaceWrapper) SetCustomStatus(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetCustomStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListThreads operation middleware
+func (siw *ServerInterfaceWrapper) ListThreads(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListThreadsParams
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListThreads(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CountUnreadThreads operation middleware
+func (siw *ServerInterfaceWrapper) CountUnreadThreads(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CountUnreadThreadsParams
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CountUnreadThreads(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetThreadFollowing operation middleware
+func (siw *ServerInterfaceWrapper) GetThreadFollowing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "root_id" -------------
+	var rootId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "root_id", chi.URLParam(r, "root_id"), &rootId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "root_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetThreadFollowing(w, r, rootId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetThreadFollowing operation middleware
+func (siw *ServerInterfaceWrapper) SetThreadFollowing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "root_id" -------------
+	var rootId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "root_id", chi.URLParam(r, "root_id"), &rootId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "root_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetThreadFollowing(w, r, rootId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkThreadRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkThreadRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "root_id" -------------
+	var rootId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "root_id", chi.URLParam(r, "root_id"), &rootId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "root_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkThreadRead(w, r, rootId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUnreads operation middleware
+func (siw *ServerInterfaceWrapper) ListUnreads(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUnreadsParams
+
+	// ------------- Required query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUnreads(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6808,7 +7606,52 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Delete(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.DeleteMessage)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.GetMessage)
+	})
+	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.EditMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/replies", wrapper.ListReplies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/pin", wrapper.UnpinMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/pin", wrapper.PinMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/pins", wrapper.ListPins)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/threads", wrapper.ListThreads)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/threads/unread", wrapper.CountUnreadThreads)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/threads/{root_id}", wrapper.GetThreadFollowing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/threads/{root_id}", wrapper.SetThreadFollowing)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/me/threads/{root_id}/read", wrapper.MarkThreadRead)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/saved", wrapper.ListSaved)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/saved/{message_id}", wrapper.UnsaveMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/saved/{message_id}", wrapper.SaveMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/activity", wrapper.ListActivity)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/unreads", wrapper.ListUnreads)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/restore", wrapper.RestoreMessage)

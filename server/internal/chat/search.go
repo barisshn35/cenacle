@@ -96,10 +96,15 @@ func (h *Handlers) SearchMessages(w http.ResponseWriter, r *http.Request, params
 		if m.AuthorIsBot {
 			author.IsBot = &m.AuthorIsBot
 		}
-		out = append(out, api.SearchMessage{
+		res := api.SearchMessage{
 			Id: uuid(m.ID), Channel: searchChannel(m.ChannelID, m.WorkspaceID, m.ChannelName, m.ChannelKind),
 			Author: author, Body: m.Body, CreatedAt: m.CreatedAt, HasFiles: m.HasFiles,
-		})
+		}
+		if m.RootID.Valid {
+			root := uuid(m.RootID)
+			res.RootId = &root
+		}
+		out = append(out, res)
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"results": out, "has_more": more})
 }

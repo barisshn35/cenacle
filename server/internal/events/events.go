@@ -55,6 +55,12 @@ const (
 	// UserUpdated (a profile or custom status changed) goes to the people of the
 	// user's workspaces and to the user.
 	UserUpdated = "user.updated"
+	// ThreadUpdated (a thread's replies changed) goes to the channel's members.
+	ThreadUpdated = "thread.updated"
+	// ThreadFollowed, ThreadRead and SavedChanged go to the user concerned.
+	ThreadFollowed = "thread.followed"
+	ThreadRead     = "thread.read"
+	SavedChanged   = "saved.changed"
 )
 
 // ID is a parsed stream id.

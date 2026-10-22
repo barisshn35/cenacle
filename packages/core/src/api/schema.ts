@@ -1457,7 +1457,8 @@ export interface paths {
       };
       cookie?: never;
     };
-    get?: never;
+    /** One message (a thread's first message, a link to a message) */
+    get: operations['getMessage'];
     put?: never;
     post?: never;
     /**
@@ -1470,6 +1471,221 @@ export interface paths {
     head?: never;
     /** Edit your own message */
     patch: operations['editMessage'];
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/replies': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * The replies of a thread, newest page first
+     * @description Pages are chronological; `before` continues with older replies.
+     */
+    get: operations['listReplies'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/pin': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Pin a message to its channel
+     * @description Members who can post pin and unpin; a channel has up to 50 pinned messages. Members see `message.updated`.
+     */
+    put: operations['pinMessage'];
+    post?: never;
+    /** Unpin a message */
+    delete: operations['unpinMessage'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/pins': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** The pinned messages of a channel, latest pinned first */
+    get: operations['listPins'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/threads': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The threads you follow, the latest reply first */
+    get: operations['listThreads'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/threads/unread': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** How many followed threads have unread replies (up to 100) */
+    get: operations['countUnreadThreads'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/threads/{root_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        root_id: string;
+      };
+      cookie?: never;
+    };
+    /** Whether you follow a thread and how far you read it */
+    get: operations['getThreadFollowing'];
+    /** Follow or stop following a thread */
+    put: operations['setThreadFollowing'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/threads/{root_id}/read': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        root_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Move your read position in a followed thread forward */
+    post: operations['markThreadRead'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/saved': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Messages you saved for later, newest first (up to 500) */
+    get: operations['listSaved'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/saved/{message_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Save a message for later, set its reminder or mark it done
+     * @description A reminder is a message from the system bot at `remind_at` with a link to the
+     *     saved message; changing it or marking the item done cancels the old one. Up to
+     *     500 saved messages.
+     */
+    put: operations['saveMessage'];
+    post?: never;
+    /** Remove a message from your saved ones */
+    delete: operations['unsaveMessage'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/activity': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Mentions, replies in your threads and reactions to your messages (30 days) */
+    get: operations['listActivity'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/unreads': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The unread messages of a workspace's channels (20 latest per channel) */
+    get: operations['listUnreads'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/api/channels/{channel_id}/messages/{message_id}/restore': {
@@ -2218,6 +2434,8 @@ export interface components {
       /** Format: date-time */
       created_at: string;
       has_files: boolean;
+      /** Format: uuid */
+      root_id?: string | null;
     };
     SearchFile: {
       /** Format: uuid */
@@ -2434,6 +2652,58 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       edited_at: string | null;
+      /**
+       * Format: uuid
+       * @description The thread's first message when this is a reply.
+       */
+      root_id?: string | null;
+      /** @description A reply its author also sent to the channel. */
+      also_in_channel?: boolean;
+      /** Format: date-time */
+      pinned_at?: string | null;
+      /** Format: uuid */
+      pinned_by?: string | null;
+      thread?: components['schemas']['ThreadSummary'];
+    };
+    /** @description The replies of a message (absent when it has none). */
+    ThreadSummary: {
+      reply_count: number;
+      /** Format: date-time */
+      last_reply_at: string;
+      /** @description The latest repliers, newest first (up to three). */
+      participants: components['schemas']['Author'][];
+    };
+    FollowedThread: {
+      root: components['schemas']['Message'];
+      /**
+       * Format: uuid
+       * @description The paging cursor (before).
+       */
+      last_reply_id: string;
+      channel: components['schemas']['SearchChannel'];
+      unread_count: number;
+      mention_count: number;
+    };
+    SavedItem: {
+      message: components['schemas']['Message'];
+      channel: components['schemas']['SearchChannel'];
+      /** Format: date-time */
+      saved_at: string;
+      /** Format: date-time */
+      remind_at: string | null;
+      /** Format: date-time */
+      done_at: string | null;
+    };
+    ActivityItem: {
+      /** @enum {string} */
+      kind: 'mention' | 'reply' | 'reaction';
+      /** Format: date-time */
+      at: string;
+      actor: components['schemas']['Author'];
+      /** @description The reaction (reactions only). */
+      emoji: string;
+      message: components['schemas']['Message'];
+      channel: components['schemas']['SearchChannel'];
     };
     GroupMapping: {
       group: string;
@@ -2475,6 +2745,13 @@ export interface components {
       attachments?: components['schemas']['Attachment'][];
       /** @description Ready files the sender uploaded into this channel (see createUpload). */
       file_ids?: string[];
+      /**
+       * Format: uuid
+       * @description Reply in this message's thread (a reply's thread when it is a reply).
+       */
+      root_id?: string;
+      /** @description Show the reply in the channel too. */
+      also_in_channel?: boolean;
     };
     Reaction: {
       emoji: string;
@@ -4994,6 +5271,32 @@ export interface operations {
       404: components['responses']['Problem'];
     };
   };
+  getMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The message. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
   deleteMessage: {
     parameters: {
       query?: never;
@@ -5049,6 +5352,399 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  listReplies: {
+    parameters: {
+      query?: {
+        before?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Replies. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MessagePage'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  pinMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The pinned message. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  unpinMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The message. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listPins: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Pinned messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            messages: components['schemas']['Message'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listThreads: {
+    parameters: {
+      query?: {
+        workspace_id?: string;
+        /** @description A last-reply id from the previous page. */
+        before?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Followed threads. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            threads: components['schemas']['FollowedThread'][];
+            has_more: boolean;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  countUnreadThreads: {
+    parameters: {
+      query?: {
+        workspace_id?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Counts. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            threads: number;
+            /** @description Threads among them with unread mentions of you. */
+            mentions: number;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  getThreadFollowing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        root_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Your state in the thread. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            following: boolean;
+            /** Format: uuid */
+            last_read_id: string | null;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setThreadFollowing: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        root_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          following: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Saved; your other devices see `thread.followed`. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  markThreadRead: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        root_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          message_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Saved; your other devices see `thread.read`. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listSaved: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Saved messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            items: components['schemas']['SavedItem'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  saveMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: date-time */
+          remind_at?: string | null;
+          done?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description The saved item; your other devices see `saved.changed`. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SavedItem'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  unsaveMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  listActivity: {
+    parameters: {
+      query?: {
+        workspace_id?: string;
+        /** @description The time of the last item of the previous page. */
+        before?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Activity, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            items: components['schemas']['ActivityItem'][];
+            has_more: boolean;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  listUnreads: {
+    parameters: {
+      query: {
+        workspace_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Channels with unread messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            channels: {
+              /** Format: uuid */
+              channel_id: string;
+              messages: components['schemas']['Message'][];
+            }[];
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
     };
   };
   restoreMessage: {

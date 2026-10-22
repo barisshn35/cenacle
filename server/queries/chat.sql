@@ -6,12 +6,14 @@ SELECT sqlc.embed(c), m.role, wm.role AS workspace_role, m.last_read_id,
        (SELECT count(*) FROM (
             SELECT 1 FROM messages x
             WHERE x.channel_id = c.id AND x.deleted_at IS NULL AND x.author_id <> @user_id
+              AND (x.root_id IS NULL OR x.also_in_channel)
               AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
             LIMIT 100) unread)::int AS unread_count,
        -- Unread messages that mention the user, also up to 100.
        (SELECT count(*) FROM (
             SELECT 1 FROM message_mentions mm JOIN messages x ON x.id = mm.message_id
             WHERE mm.user_id = @user_id AND x.channel_id = c.id AND x.deleted_at IS NULL
+              AND (x.root_id IS NULL OR x.also_in_channel)
               AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
             LIMIT 100) mentioned)::int AS mention_count
 FROM channels c
@@ -135,8 +137,8 @@ UPDATE channel_members SET role = @role WHERE channel_id = @channel_id AND user_
 -- name: CreateMessage :one
 -- CreateMessage inserts a message; with a nonce the author used before it
 -- returns nothing (see GetMessageByNonce).
-INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files)
-VALUES (@channel_id, @author_id, @body, @nonce, @attachments, @has_files)
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files, root_id, also_in_channel)
+VALUES (@channel_id, @author_id, @body, @nonce, @attachments, @has_files, sqlc.narg(root_id), @also_in_channel)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
 RETURNING *;
 
@@ -146,12 +148,13 @@ SELECT * FROM messages WHERE author_id = @author_id AND nonce = @nonce;
 -- name: ListMessagesBefore :many
 -- ListMessagesBefore returns up to row_limit messages of a channel older than
 -- the cursor (all when before is NULL), newest first, with their authors.
--- Deleted messages are left out.
+-- Deleted messages and replies kept in their thread are left out.
 SELECT m.*, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = @channel_id
   AND m.deleted_at IS NULL
+  AND (m.root_id IS NULL OR m.also_in_channel)
   AND (sqlc.narg(before)::uuid IS NULL OR m.id < sqlc.narg(before)::uuid)
 ORDER BY m.id DESC
 LIMIT @row_limit;

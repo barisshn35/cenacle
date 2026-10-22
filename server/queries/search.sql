@@ -1,7 +1,7 @@
 -- name: SearchMessages :many
 -- SearchMessages finds messages of the channels and conversations the user is
 -- in, newest first, with filters; before is the cursor (a message id).
-SELECT m.id, m.channel_id, m.author_id, m.body, m.created_at, m.edited_at, m.has_files,
+SELECT m.id, m.channel_id, m.author_id, m.body, m.created_at, m.edited_at, m.has_files, m.root_id,
        u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
 FROM messages m

@@ -196,6 +196,23 @@ func decorate(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs []a
 		i := index[uuid(f.MessageID)]
 		msgs[i].Files = append(msgs[i].Files, fileAPI(f))
 	}
+	var roots []pgtype.UUID
+	for _, m := range msgs {
+		if m.RootId == nil {
+			roots = append(roots, pgUUID(m.Id))
+		}
+	}
+	if len(roots) == 0 {
+		return nil
+	}
+	summaries, err := q.ThreadSummaries(ctx, roots)
+	if err != nil {
+		return err
+	}
+	for _, s := range summaries {
+		i := index[uuid(s.RootID)]
+		msgs[i].Thread = threadAPI(s)
+	}
 	return nil
 }
 

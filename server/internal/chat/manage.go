@@ -303,6 +303,8 @@ func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, ch
 type MessageRef struct {
 	ID        string `json:"id"`
 	ChannelID string `json:"channel_id"`
+	// RootID is the thread of a reply.
+	RootID string `json:"root_id,omitempty"`
 }
 
 // message loads a message of a channel the user belongs to.
@@ -410,7 +412,17 @@ func (h *Handlers) DeleteMessage(w http.ResponseWriter, r *http.Request, channel
 			if _, err := q.DeleteMessage(r.Context(), store.DeleteMessageParams{ID: m.ID, DeletedBy: p.User.ID}); err != nil {
 				return err
 			}
-			return emit(r.Context(), q, events.MessageDeleted, MessageRef{ID: uuid(m.ID).String(), ChannelID: uuid(c.ID).String()})
+			ref := MessageRef{ID: uuid(m.ID).String(), ChannelID: uuid(c.ID).String()}
+			if m.RootID.Valid {
+				ref.RootID = uuid(m.RootID).String()
+			}
+			if err := emit(r.Context(), q, events.MessageDeleted, ref); err != nil {
+				return err
+			}
+			if m.RootID.Valid {
+				return threadUpdated(r.Context(), q, c.ID, m.RootID)
+			}
+			return nil
 		})
 		if err != nil && !isNoRows(err) {
 			h.unavailable(w, r, "delete message", err)
@@ -449,7 +461,13 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 			return err
 		}
 		out = msgs[0]
-		return emit(r.Context(), q, events.MessageCreated, out)
+		if err := emit(r.Context(), q, events.MessageCreated, out); err != nil {
+			return err
+		}
+		if restored.RootID.Valid {
+			return threadUpdated(r.Context(), q, c.ID, restored.RootID)
+		}
+		return nil
 	})
 	if isNoRows(err) {
 		if !m.DeletedAt.Valid { // not deleted: nothing to do
@@ -469,7 +487,8 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 
 func storeMessage(m store.GetMessageRow) store.Message {
 	return store.Message{ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
-		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments}
+		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
+		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy}
 }
 
 // Purger removes deleted messages once they can no longer be restored (a

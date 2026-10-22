@@ -26,6 +26,14 @@ tags:
     description: Live events over WebSocket
   - name: files
     description: Files shared in channels (stored in an S3-compatible object store)
+  - name: search
+    description: Searching messages and files
+  - name: notifications
+    description: What notifies people, sounds, web push and e-mail
+  - name: threads
+    description: Replies in threads, followed threads and activity
+  - name: saved
+    description: Messages saved for later
 paths:
   /api/workspaces:
     get:
@@ -2287,6 +2295,22 @@ paths:
         in: path
         required: true
         schema: { type: string, format: uuid }
+    get:
+      tags: [chat]
+      operationId: getMessage
+      summary: One message (a thread's first message, a link to a message)
+      responses:
+        '200':
+          description: The message.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
     patch:
       tags: [chat]
       operationId: editMessage
@@ -2329,6 +2353,355 @@ paths:
         '403':
           $ref: '#/components/responses/Problem'
         '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/messages/{message_id}/replies:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: message_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [threads]
+      operationId: listReplies
+      summary: The replies of a thread, newest page first
+      description: Pages are chronological; `before` continues with older replies.
+      parameters:
+        - { name: before, in: query, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200':
+          description: Replies.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessagePage' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/messages/{message_id}/pin:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: message_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [chat]
+      operationId: pinMessage
+      summary: Pin a message to its channel
+      description: Members who can post pin and unpin; a channel has up to 50 pinned messages. Members see `message.updated`.
+      responses:
+        '200':
+          description: The pinned message.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [chat]
+      operationId: unpinMessage
+      summary: Unpin a message
+      responses:
+        '200':
+          description: The message.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/pins:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [chat]
+      operationId: listPins
+      summary: The pinned messages of a channel, latest pinned first
+      responses:
+        '200':
+          description: Pinned messages.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [messages]
+                properties:
+                  messages:
+                    type: array
+                    items: { $ref: '#/components/schemas/Message' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/me/threads:
+    get:
+      tags: [threads]
+      operationId: listThreads
+      summary: The threads you follow, the latest reply first
+      parameters:
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+        - { name: before, in: query, description: A last-reply id from the previous page., schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+      responses:
+        '200':
+          description: Followed threads.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [threads, has_more]
+                properties:
+                  threads:
+                    type: array
+                    items: { $ref: '#/components/schemas/FollowedThread' }
+                  has_more: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/threads/unread:
+    get:
+      tags: [threads]
+      operationId: countUnreadThreads
+      summary: How many followed threads have unread replies (up to 100)
+      parameters:
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Counts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [threads, mentions]
+                properties:
+                  threads: { type: integer }
+                  mentions: { type: integer, description: Threads among them with unread mentions of you. }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/threads/{root_id}:
+    parameters:
+      - name: root_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [threads]
+      operationId: getThreadFollowing
+      summary: Whether you follow a thread and how far you read it
+      responses:
+        '200':
+          description: Your state in the thread.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [following, last_read_id]
+                properties:
+                  following: { type: boolean }
+                  last_read_id: { type: string, format: uuid, nullable: true }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags: [threads]
+      operationId: setThreadFollowing
+      summary: Follow or stop following a thread
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [following]
+              properties:
+                following: { type: boolean }
+      responses:
+        '204':
+          description: Saved; your other devices see `thread.followed`.
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/me/threads/{root_id}/read:
+    parameters:
+      - name: root_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [threads]
+      operationId: markThreadRead
+      summary: Move your read position in a followed thread forward
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message_id]
+              properties:
+                message_id: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Saved; your other devices see `thread.read`.
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/me/saved:
+    get:
+      tags: [saved]
+      operationId: listSaved
+      summary: Messages you saved for later, newest first (up to 500)
+      responses:
+        '200':
+          description: Saved messages.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/SavedItem' }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/saved/{message_id}:
+    parameters:
+      - name: message_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [saved]
+      operationId: saveMessage
+      summary: Save a message for later, set its reminder or mark it done
+      description: |
+        A reminder is a message from the system bot at `remind_at` with a link to the
+        saved message; changing it or marking the item done cancels the old one. Up to
+        500 saved messages.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                remind_at: { type: string, format: date-time, nullable: true }
+                done: { type: boolean }
+      responses:
+        '200':
+          description: The saved item; your other devices see `saved.changed`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SavedItem' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [saved]
+      operationId: unsaveMessage
+      summary: Remove a message from your saved ones
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/activity:
+    get:
+      tags: [threads]
+      operationId: listActivity
+      summary: Mentions, replies in your threads and reactions to your messages (30 days)
+      parameters:
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+        - { name: before, in: query, description: The time of the last item of the previous page., schema: { type: string, format: date-time } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+      responses:
+        '200':
+          description: Activity, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, has_more]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ActivityItem' }
+                  has_more: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/unreads:
+    get:
+      tags: [chat]
+      operationId: listUnreads
+      summary: The unread messages of a workspace's channels (20 latest per channel)
+      parameters:
+        - { name: workspace_id, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Channels with unread messages.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [channels]
+                properties:
+                  channels:
+                    type: array
+                    items:
+                      type: object
+                      required: [channel_id, messages]
+                      properties:
+                        channel_id: { type: string, format: uuid }
+                        messages:
+                          type: array
+                          items: { $ref: '#/components/schemas/Message' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
           $ref: '#/components/responses/Problem'
   /api/channels/{channel_id}/messages/{message_id}/restore:
     parameters:
@@ -3440,6 +3813,7 @@ components:
         body: { type: string }
         created_at: { type: string, format: date-time }
         has_files: { type: boolean }
+        root_id: { type: string, format: uuid, nullable: true }
     SearchFile:
       type: object
       required: [id, channel, message_id, name, content_type, size, has_thumbnail, created_at, uploader]
@@ -3708,6 +4082,56 @@ components:
           type: string
           format: date-time
           nullable: true
+        root_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: The thread's first message when this is a reply.
+        also_in_channel:
+          type: boolean
+          description: A reply its author also sent to the channel.
+        pinned_at: { type: string, format: date-time, nullable: true }
+        pinned_by: { type: string, format: uuid, nullable: true }
+        thread: { $ref: '#/components/schemas/ThreadSummary' }
+    ThreadSummary:
+      type: object
+      description: The replies of a message (absent when it has none).
+      required: [reply_count, last_reply_at, participants]
+      properties:
+        reply_count: { type: integer }
+        last_reply_at: { type: string, format: date-time }
+        participants:
+          type: array
+          description: The latest repliers, newest first (up to three).
+          items: { $ref: '#/components/schemas/Author' }
+    FollowedThread:
+      type: object
+      required: [root, channel, unread_count, mention_count, last_reply_id]
+      properties:
+        root: { $ref: '#/components/schemas/Message' }
+        last_reply_id: { type: string, format: uuid, description: The paging cursor (before). }
+        channel: { $ref: '#/components/schemas/SearchChannel' }
+        unread_count: { type: integer }
+        mention_count: { type: integer }
+    SavedItem:
+      type: object
+      required: [message, channel, saved_at, remind_at, done_at]
+      properties:
+        message: { $ref: '#/components/schemas/Message' }
+        channel: { $ref: '#/components/schemas/SearchChannel' }
+        saved_at: { type: string, format: date-time }
+        remind_at: { type: string, format: date-time, nullable: true }
+        done_at: { type: string, format: date-time, nullable: true }
+    ActivityItem:
+      type: object
+      required: [kind, at, actor, emoji, message, channel]
+      properties:
+        kind: { type: string, enum: [mention, reply, reaction] }
+        at: { type: string, format: date-time }
+        actor: { $ref: '#/components/schemas/Author' }
+        emoji: { type: string, description: The reaction (reactions only). }
+        message: { $ref: '#/components/schemas/Message' }
+        channel: { $ref: '#/components/schemas/SearchChannel' }
     GroupMapping:
       type: object
       required: [group, role]
@@ -3768,6 +4192,13 @@ components:
           maxItems: 10
           description: Ready files the sender uploaded into this channel (see createUpload).
           items: { type: string, format: uuid }
+        root_id:
+          type: string
+          format: uuid
+          description: Reply in this message's thread (a reply's thread when it is a reply).
+        also_in_channel:
+          type: boolean
+          description: Show the reply in the channel too.
     Reaction:
       type: object
       required: [emoji, count, me]

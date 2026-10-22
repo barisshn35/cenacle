@@ -98,7 +98,7 @@ func (q *Queries) SearchFiles(ctx context.Context, arg SearchFilesParams) ([]Sea
 }
 
 const searchMessages = `-- name: SearchMessages :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.created_at, m.edited_at, m.has_files,
+SELECT m.id, m.channel_id, m.author_id, m.body, m.created_at, m.edited_at, m.has_files, m.root_id,
        u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
 FROM messages m
@@ -141,6 +141,7 @@ type SearchMessagesRow struct {
 	CreatedAt   time.Time          `json:"created_at"`
 	EditedAt    pgtype.Timestamptz `json:"edited_at"`
 	HasFiles    bool               `json:"has_files"`
+	RootID      pgtype.UUID        `json:"root_id"`
 	AuthorName  string             `json:"author_name"`
 	AuthorIsBot bool               `json:"author_is_bot"`
 	ChannelName string             `json:"channel_name"`
@@ -179,6 +180,7 @@ func (q *Queries) SearchMessages(ctx context.Context, arg SearchMessagesParams) 
 			&i.CreatedAt,
 			&i.EditedAt,
 			&i.HasFiles,
+			&i.RootID,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 			&i.ChannelName,
