@@ -17,6 +17,9 @@ FROM --platform=$BUILDPLATFORM node:24.22.0-alpine3.24 AS build
 RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+# Corepack fetches pnpm (the version in package.json) from the npm registry; a
+# slow registry should not fail the build: try a few times.
+RUN for i in 1 2 3 4; do pnpm --version && exit 0; echo "pnpm download failed ($i), retrying"; sleep $((i * 10)); done; exit 1
 COPY web/package.json web/
 COPY packages/ui/package.json packages/ui/
 COPY packages/core/package.json packages/core/
