@@ -51,6 +51,22 @@ files:
 # Private networks bots may be reached in (comma-separated).
 egressAllow: ''
 
+# E-mail about missed mentions and direct messages; empty host: no e-mail.
+# The password is the "smtp-password" key of existingSecret (optional).
+smtp:
+  host: ''
+  port: 587
+  # starttls (587), tls (465) or none (a relay on a trusted network)
+  security: starttls
+  username: ''
+  from: ''
+
+# Web push through the browsers' push services (needs internet access).
+webPush:
+  enabled: false
+  # A contact for the push services: mailto: or https:
+  subject: ''
+
 server:
   replicas: 2
   # /readyz fails this long before a pod stops (rolling upgrades).

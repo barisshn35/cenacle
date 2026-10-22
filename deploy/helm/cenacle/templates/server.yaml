@@ -69,6 +69,23 @@ spec:
             - { name: CENACLE_FILES_MAX_SIZE_MB, value: {{ .Values.files.maxSizeMB | quote }} }
             - { name: CENACLE_CLAMAV_ADDR, value: {{ .Values.files.clamavAddr | quote }} }
             {{- end }}
+            {{- if .Values.smtp.host }}
+            - { name: CENACLE_SMTP_HOST, value: {{ .Values.smtp.host | quote }} }
+            - { name: CENACLE_SMTP_PORT, value: {{ .Values.smtp.port | quote }} }
+            - { name: CENACLE_SMTP_SECURITY, value: {{ .Values.smtp.security | quote }} }
+            - { name: CENACLE_SMTP_USERNAME, value: {{ .Values.smtp.username | quote }} }
+            - { name: CENACLE_SMTP_FROM, value: {{ .Values.smtp.from | quote }} }
+            - name: CENACLE_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: smtp-password
+                  optional: true
+            {{- end }}
+            {{- if .Values.webPush.enabled }}
+            - { name: CENACLE_WEB_PUSH, value: 'true' }
+            - { name: CENACLE_WEB_PUSH_SUBJECT, value: {{ .Values.webPush.subject | quote }} }
+            {{- end }}
             {{- if .Values.otlpEndpoint }}
             - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: {{ .Values.otlpEndpoint | quote }} }
             - { name: OTEL_TRACES_SAMPLER, value: parentbased_traceidratio }

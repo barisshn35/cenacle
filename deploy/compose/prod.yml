@@ -108,6 +108,16 @@ services:
       CENACLE_CLAMAV_ADDR: ${CENACLE_CLAMAV_ADDR:-}
       # Rolling restarts: /readyz fails this long before the server stops.
       CENACLE_DRAIN_DELAY: ${CENACLE_DRAIN_DELAY:-5s}
+      # E-mail about missed mentions and direct messages (empty host: no e-mail).
+      CENACLE_SMTP_HOST: ${CENACLE_SMTP_HOST:-}
+      CENACLE_SMTP_PORT: ${CENACLE_SMTP_PORT:-587}
+      CENACLE_SMTP_SECURITY: ${CENACLE_SMTP_SECURITY:-starttls}
+      CENACLE_SMTP_USERNAME: ${CENACLE_SMTP_USERNAME:-}
+      CENACLE_SMTP_PASSWORD: ${CENACLE_SMTP_PASSWORD:-}
+      CENACLE_SMTP_FROM: ${CENACLE_SMTP_FROM:-}
+      # Web push through the browsers' push services (needs internet access).
+      CENACLE_WEB_PUSH: ${CENACLE_WEB_PUSH:-false}
+      CENACLE_WEB_PUSH_SUBJECT: ${CENACLE_WEB_PUSH_SUBJECT:-}
     secrets: [chat_database_url, valkey_password, chat_client_secret, s3_access_key, s3_secret_key]
     networks: [edge, data, files]
     depends_on:
