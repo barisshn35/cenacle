@@ -60,6 +60,12 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Pin                  | Pin / Unpin                     | Sabitle / Sabitlemeyi kaldır          | `pins.pin`                                | Up to 50 per channel                          |
 | Save for later       | Save for later                  | Sonrası için kaydet                   | `saved.save`                              | Personal; reminder optional                   |
 | Search               | Search                          | Ara                                   | `search.title`                            | Messages and files                            |
+| Forward              | Forward                         | İlet                                  | `richer.forward.action`                   | A copy, with where it came from               |
+| Copy link            | Copy link                       | Bağlantıyı kopyala                    | `richer.link.copy`                        | Permalink to a message                        |
+| Burn after reading   | Burn after reading              | Okununca sil                          | `richer.burn.choice`                      | Conversations only; read once, for a time     |
+| Voice message        | Record a voice message          | Sesli mesaj kaydet                    | `richer.record.voice`                     | Recorded in the app, with a waveform          |
+| Custom emoji         | Custom emoji                    | Özel emojiler                         | `richer.manage.emoji.title`               | `:name:` in text and reactions                |
+| Sticker              | Stickers                        | Çıkartmalar                           | `richer.stickers.title`                   | A picture sent as a message of its own        |
 | Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
 ## Rules

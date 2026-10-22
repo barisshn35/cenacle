@@ -39,6 +39,21 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.20.0
+
+- Migration `00020_richer_communication` adds link previews, custom emoji, stickers and
+  burn-on-read reveals, columns for forwarded, sticker and burn-on-read messages, voice
+  and clip details of files, and the kind of each mention. Nothing to configure.
+- Link previews are on by default. The server fetches pages from public addresses only
+  (never through `CENACLE_EGRESS_ALLOW`); on servers without internet access set
+  `CENACLE_LINK_PREVIEWS=false` (Helm: `linkPreviews: false`).
+- Recording voice messages and clips needs the browser's microphone and camera, which
+  browsers allow on HTTPS only.
+- Rolling back to 0.19 needs `migrate down` once; custom emoji, stickers, previews and
+  messages that were only a sticker are removed with it.
+- `cenacle-idp` and `cenacle-web` 0.19.0 were not published (a registry push failure);
+  upgrade from 0.18 straight to 0.20.
+
 ### 0.19.0
 
 - Migration `00019_community_moderation` adds forum, poll, event, moderation, playbook,

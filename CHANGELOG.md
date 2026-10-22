@@ -8,6 +8,28 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-22
+
+Richer communication.
+
+### Added
+
+- Link previews: the first link of a message shows the page's title, description and
+  picture, fetched by the server from public addresses only and served by Cenacle; its
+  author can remove it. `CENACLE_LINK_PREVIEWS=false` turns them off.
+- Voice messages (with a waveform) and short video clips recorded in the app.
+- Forwarding a message, with a comment, to another channel or conversation; "Copy link".
+- Custom emoji (`:name:` in text and reactions) and stickers, added by workspace members.
+- Mentions of many: `@channel`/`@everyone`, `@here` (people online), `@admins`, `@owners`;
+  they count and notify as mentions, and a larger channel asks before notifying everyone.
+- Burn-on-read messages in direct and group conversations: each recipient reveals the
+  text once, for a set time; it is not kept in search, notifications or pins.
+
+### Fixed
+
+- Images are published to each registry with skopeo; GitLab's registry rejected
+  buildkit's pushes of `cenacle-idp` and `cenacle-web` 0.19.0.
+
 ## [0.19.0] - 2026-10-22
 
 Community and moderation.
