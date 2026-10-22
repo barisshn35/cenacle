@@ -85,3 +85,9 @@ A `v*` tag publishes `cenacle-{server,idp,web,proxy}` (amd64 and arm64) to the p
 container registry. Set the masked CI/CD variable `GHCR_TOKEN` (a GitHub token with
 `write:packages`, and `GHCR_USER` if not the default) to publish them to GitHub's
 registry as well, which `deploy/compose/prod.yml` uses by default.
+
+The images are built once into an OCI archive and copied to each registry with skopeo,
+which uploads every platform manifest itself. Pushing straight from buildkit failed on
+GitLab's registry with `blob unknown to registry`: buildkit skips platform manifests
+the registry reports as present, and the registry then rejected the index that
+referenced them. A failure on one registry no longer stops the push to the other.

@@ -22,6 +22,7 @@ variables:
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
   TRIVY_IMAGE: aquasec/trivy:0.76.0
   BINFMT_IMAGE: tonistiigi/binfmt:qemu-v10.0.4
+  SKOPEO_IMAGE: quay.io/skopeo/stable:v1.22.2
   GOMODCACHE: /cache/go/mod
   GOCACHE: /cache/go/build
   GOLANGCI_LINT_CACHE: /cache/golangci
@@ -212,18 +213,36 @@ images:
         version="${CI_COMMIT_TAG#v}"
         minor="${version%.*}"
         docker run --privileged --rm "$BINFMT_IMAGE" --install arm64 >/dev/null
-        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-        tags="-t $CI_REGISTRY_IMAGE/cenacle-$IMAGE:$version -t $CI_REGISTRY_IMAGE/cenacle-$IMAGE:$minor"
-        # Also to GitHub's registry when a token for it is set (CI/CD variable GHCR_TOKEN).
-        if [ -n "${GHCR_TOKEN:-}" ]; then
-          echo "$GHCR_TOKEN" | docker login -u "${GHCR_USER:-barisshn35}" --password-stdin ghcr.io
-          tags="$tags -t ghcr.io/${GHCR_USER:-barisshn35}/cenacle-$IMAGE:$version -t ghcr.io/${GHCR_USER:-barisshn35}/cenacle-$IMAGE:$minor"
-        fi
+        # Built once into an OCI archive, then copied to each registry with
+        # skopeo: it uploads every platform manifest itself (buildkit trusts
+        # the registry's "already there" for them, which GitLab's registry
+        # sometimes gets wrong: "blob unknown to registry").
+        archive="$CI_PROJECT_DIR/.image-$IMAGE.tar"
         docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" \
-          --platform linux/amd64,linux/arm64 --push $tags \
+          --platform linux/amd64,linux/arm64 \
           --label org.opencontainers.image.title="cenacle-$IMAGE" \
           --label org.opencontainers.image.licenses=Apache-2.0 \
           --label org.opencontainers.image.version="$version" \
           --provenance mode=max --sbom true \
-          --cache-from "type=local,src=$BUILDX_CACHE" .
+          --cache-from "type=local,src=$BUILDX_CACHE" \
+          --output "type=oci,dest=$archive" .
+        auth="$CI_PROJECT_DIR/.registry-auth.json"
+        b64() { printf '%s:%s' "$1" "$2" | base64 | tr -d '\n'; }
+        entries="\"$CI_REGISTRY\":{\"auth\":\"$(b64 "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD")\"}"
+        if [ -n "${GHCR_TOKEN:-}" ]; then
+          entries="$entries,\"ghcr.io\":{\"auth\":\"$(b64 "${GHCR_USER:-barisshn35}" "$GHCR_TOKEN")\"}"
+        fi
+        (umask 077 && printf '{"auths":{%s}}' "$entries" > "$auth")
+        targets="$CI_REGISTRY_IMAGE/cenacle-$IMAGE"
+        # Also to GitHub's registry when a token for it is set (CI/CD variable GHCR_TOKEN).
+        if [ -n "${GHCR_TOKEN:-}" ]; then targets="$targets ghcr.io/${GHCR_USER:-barisshn35}/cenacle-$IMAGE"; fi
+        status=0
+        for target in $targets; do
+          for tag in "$version" "$minor"; do
+            docker run --rm --network host -v "$CI_PROJECT_DIR:$CI_PROJECT_DIR" -e REGISTRY_AUTH_FILE="$auth" "$SKOPEO_IMAGE" \
+              copy --all --retry-times 3 "oci-archive:$archive" "docker://$target:$tag" || status=1
+          done
+        done
+        rm -f "$auth" "$archive"
+        exit $status
       fi
