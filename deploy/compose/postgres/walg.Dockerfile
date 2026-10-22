@@ -15,3 +15,5 @@ RUN --mount=type=cache,target=/root/go/pkg/mod --mount=type=cache,target=/root/.
 FROM postgres:18.6-alpine3.24
 COPY --from=walg /out/wal-g /usr/local/bin/wal-g
 COPY deploy/compose/postgres/walg-backup.sh /usr/local/bin/walg-backup
+# The image's postgres user (uid 70) owns the data directory; no root needed.
+USER postgres
