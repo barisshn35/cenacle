@@ -10,6 +10,8 @@
 @import './shadcn.css';
 @import './fonts.css';
 @import './tokens.css';
+@import './presets.css';
+@import './font-library.css';
 
 /* Scan every workspace source that may use our utilities. */
 @source '../';
@@ -26,6 +28,12 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  /* Code follows the code font's ligature setting (Appearance). */
+  code,
+  pre,
+  kbd {
+    font-variant-ligatures: var(--code-ligatures, normal);
   }
   /* Keep focused elements visible under sticky headers and toasts (WCAG 2.4.11). */
   html {

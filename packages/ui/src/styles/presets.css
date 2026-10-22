@@ -1,0 +1,249 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Theme presets (v0.16): a workspace's default or a person's choice, set as
+ * data-preset on <html>. "cenacle" is tokens.css itself. Each preset sets its
+ * accent and neutral surfaces for both themes; scripts/check-contrast.mjs checks
+ * every pair of every preset against WCAG 2.2 AA. Status colors (mention,
+ * destructive, presence) never change.
+ */
+
+[data-preset='graphite'] {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --secondary: #f1f1f3;
+  --muted: #f1f1f3;
+  --muted-foreground: #52525b;
+  --accent: #e9e9ec;
+  --border: #dedee3;
+  --input: #7c7c87;
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: #27272a;
+  --sidebar-accent: #e7e7ea;
+  --sidebar-border: #dedee3;
+  --rail: #ebebee;
+  --accent-brand: #3f3f46;
+  --accent-brand-foreground: #ffffff;
+}
+
+[data-preset='graphite'][data-theme='dark'] {
+  --background: #161616;
+  --foreground: #ececec;
+  --card: #1c1c1c;
+  --popover: #1c1c1c;
+  --secondary: #262626;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #2c2c2c;
+  --border: #2e2e2e;
+  --input: #6e6e6e;
+  --sidebar: #121212;
+  --sidebar-foreground: #dcdcdc;
+  --sidebar-accent: #282828;
+  --sidebar-border: #2a2a2a;
+  --rail: #0c0c0c;
+  --accent-brand: #d4d4d8;
+  --accent-brand-foreground: #141414;
+}
+
+[data-preset='ocean'] {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --secondary: #f1f1f3;
+  --muted: #f1f1f3;
+  --muted-foreground: #52525b;
+  --accent: #e9e9ec;
+  --border: #dedee3;
+  --input: #7c7c87;
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: #27272a;
+  --sidebar-accent: #e7e7ea;
+  --sidebar-border: #dedee3;
+  --rail: #ebebee;
+  --accent-brand: #0b5cad;
+  --accent-brand-foreground: #ffffff;
+}
+
+[data-preset='ocean'][data-theme='dark'] {
+  --background: #161616;
+  --foreground: #ececec;
+  --card: #1c1c1c;
+  --popover: #1c1c1c;
+  --secondary: #262626;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #2c2c2c;
+  --border: #2e2e2e;
+  --input: #6e6e6e;
+  --sidebar: #121212;
+  --sidebar-foreground: #dcdcdc;
+  --sidebar-accent: #282828;
+  --sidebar-border: #2a2a2a;
+  --rail: #0c0c0c;
+  --accent-brand: #6cb4ff;
+  --accent-brand-foreground: #141414;
+}
+
+[data-preset='forest'] {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --secondary: #f1f1f3;
+  --muted: #f1f1f3;
+  --muted-foreground: #52525b;
+  --accent: #e9e9ec;
+  --border: #dedee3;
+  --input: #7c7c87;
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: #27272a;
+  --sidebar-accent: #e7e7ea;
+  --sidebar-border: #dedee3;
+  --rail: #ebebee;
+  --accent-brand: #1f7a4d;
+  --accent-brand-foreground: #ffffff;
+}
+
+[data-preset='forest'][data-theme='dark'] {
+  --background: #161616;
+  --foreground: #ececec;
+  --card: #1c1c1c;
+  --popover: #1c1c1c;
+  --secondary: #262626;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #2c2c2c;
+  --border: #2e2e2e;
+  --input: #6e6e6e;
+  --sidebar: #121212;
+  --sidebar-foreground: #dcdcdc;
+  --sidebar-accent: #282828;
+  --sidebar-border: #2a2a2a;
+  --rail: #0c0c0c;
+  --accent-brand: #5fd39a;
+  --accent-brand-foreground: #141414;
+}
+
+[data-preset='sunset'] {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --secondary: #f1f1f3;
+  --muted: #f1f1f3;
+  --muted-foreground: #52525b;
+  --accent: #e9e9ec;
+  --border: #dedee3;
+  --input: #7c7c87;
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: #27272a;
+  --sidebar-accent: #e7e7ea;
+  --sidebar-border: #dedee3;
+  --rail: #ebebee;
+  --accent-brand: #b0420a;
+  --accent-brand-foreground: #ffffff;
+}
+
+[data-preset='sunset'][data-theme='dark'] {
+  --background: #161616;
+  --foreground: #ececec;
+  --card: #1c1c1c;
+  --popover: #1c1c1c;
+  --secondary: #262626;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #2c2c2c;
+  --border: #2e2e2e;
+  --input: #6e6e6e;
+  --sidebar: #121212;
+  --sidebar-foreground: #dcdcdc;
+  --sidebar-accent: #282828;
+  --sidebar-border: #2a2a2a;
+  --rail: #0c0c0c;
+  --accent-brand: #ff9a5c;
+  --accent-brand-foreground: #141414;
+}
+
+[data-preset='rose'] {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --secondary: #f1f1f3;
+  --muted: #f1f1f3;
+  --muted-foreground: #52525b;
+  --accent: #e9e9ec;
+  --border: #dedee3;
+  --input: #7c7c87;
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: #27272a;
+  --sidebar-accent: #e7e7ea;
+  --sidebar-border: #dedee3;
+  --rail: #ebebee;
+  --accent-brand: #b0245c;
+  --accent-brand-foreground: #ffffff;
+}
+
+[data-preset='rose'][data-theme='dark'] {
+  --background: #161616;
+  --foreground: #ececec;
+  --card: #1c1c1c;
+  --popover: #1c1c1c;
+  --secondary: #262626;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #2c2c2c;
+  --border: #2e2e2e;
+  --input: #6e6e6e;
+  --sidebar: #121212;
+  --sidebar-foreground: #dcdcdc;
+  --sidebar-accent: #282828;
+  --sidebar-border: #2a2a2a;
+  --rail: #0c0c0c;
+  --accent-brand: #ff8fb8;
+  --accent-brand-foreground: #141414;
+}
+
+[data-preset='contrast'] {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --secondary: #f1f1f3;
+  --muted: #f1f1f3;
+  --muted-foreground: #333333;
+  --accent: #e9e9ec;
+  --border: #6b6b6b;
+  --input: #4d4d4d;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #000000;
+  --sidebar-accent: #e7e7ea;
+  --sidebar-border: #6b6b6b;
+  --rail: #f0f0f0;
+  --accent-brand: #0033b3;
+  --accent-brand-foreground: #ffffff;
+}
+
+[data-preset='contrast'][data-theme='dark'] {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #0a0a0a;
+  --popover: #0a0a0a;
+  --secondary: #262626;
+  --muted: #262626;
+  --muted-foreground: #d0d0d0;
+  --accent: #2c2c2c;
+  --border: #8a8a8a;
+  --input: #a0a0a0;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #282828;
+  --sidebar-border: #8a8a8a;
+  --rail: #000000;
+  --accent-brand: #ffd400;
+  --accent-brand-foreground: #000000;
+}

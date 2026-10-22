@@ -11,10 +11,11 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const css = readFileSync(join(root, 'packages/ui/src/styles/tokens.css'), 'utf8');
+const tokensCss = readFileSync(join(root, 'packages/ui/src/styles/tokens.css'), 'utf8');
+const presetsCss = readFileSync(join(root, 'packages/ui/src/styles/presets.css'), 'utf8');
 
 /** Custom properties declared directly in the first block opened by `selector`. */
-function declarations(selector) {
+function declarations(selector, css = tokensCss) {
   const start = css.indexOf(`${selector} {`);
   if (start < 0) throw new Error(`selector not found: ${selector}`);
   let depth = 0;
@@ -33,7 +34,17 @@ function declarations(selector) {
 }
 
 const light = declarations(':root');
-const themes = { light, dark: { ...light, ...declarations("[data-theme='dark']") } };
+const dark = { ...light, ...declarations("[data-theme='dark']") };
+const themes = { light, dark };
+// Every theme preset, over the base theme of its kind.
+for (const m of presetsCss.matchAll(/\[data-preset='([\w-]+)'\] \{/g)) {
+  const name = m[1];
+  themes[`${name} light`] = { ...light, ...declarations(`[data-preset='${name}']`, presetsCss) };
+  themes[`${name} dark`] = {
+    ...dark,
+    ...declarations(`[data-preset='${name}'][data-theme='dark']`, presetsCss),
+  };
+}
 
 function resolveVar(vars, value, seen = new Set()) {
   const m = /^var\((--[\w-]+)\)$/.exec(value);

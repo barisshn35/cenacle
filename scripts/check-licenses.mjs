@@ -34,6 +34,23 @@ const FONT_PACKAGES = new Set([
   '@fontsource-variable/fraunces',
   '@fontsource-variable/inter',
   '@fontsource-variable/jetbrains-mono',
+  // The font library (ADR 0013, v0.16).
+  '@fontsource-variable/ibm-plex-sans',
+  '@fontsource-variable/manrope',
+  '@fontsource-variable/source-sans-3',
+  '@fontsource-variable/figtree',
+  '@fontsource-variable/public-sans',
+  '@fontsource-variable/plus-jakarta-sans',
+  '@fontsource-variable/noto-sans',
+  '@fontsource-variable/atkinson-hyperlegible-next',
+  '@fontsource/ibm-plex-mono',
+  '@fontsource-variable/fira-code',
+  '@fontsource-variable/source-code-pro',
+  '@fontsource-variable/cascadia-code',
+  '@fontsource-variable/roboto-mono',
+  '@fontsource-variable/red-hat-mono',
+  '@fontsource-variable/noto-sans-mono',
+  '@fontsource/commit-mono',
 ]);
 
 function listLicenses(prodOnly) {
