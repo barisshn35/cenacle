@@ -39,6 +39,13 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.20.1
+
+- Security update of Cenacle ID (Node.js 24.22.1, CVE-2026-111497). Update the `idp`
+  image and restart it; nothing else changes. Use 0.20.1 instead of 0.20.0.
+- Scanners that look at the Brotli version may still report 1.2.0: Node.js applied the
+  fix to its bundled copy without changing the version number.
+
 ### 0.20.0
 
 - Migration `00020_richer_communication` adds link previews, custom emoji, stickers and
