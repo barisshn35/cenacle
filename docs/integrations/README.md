@@ -127,6 +127,27 @@ Each notification becomes one card: FIRING or RESOLVED with the alert name, colo
 `severity` (`critical` → danger, `warning` → warning, resolved → success), the summary or
 description, labels that differ between alerts, and a link to the generator.
 
+## Workflows
+
+Workspace owners and admins build workflows without code: **Workflows** at the top of the sidebar.
+A workflow has a trigger and steps; people start manual workflows and fill in forms from
+the ⚡ button of the composer. Steps run as the workspace's **Cenacle** bot.
+
+A **webhook** workflow has a secret address (shown once; **New address** replaces it).
+The JSON object's top-level fields become `{{webhook.<field>}}` variables:
+
+```sh
+curl -X POST "$WORKFLOW_URL" -H "Content-Type: application/json" \
+  -d '{"service": "api", "state": "down"}'
+```
+
+It answers `202` (started), `400` (not a JSON object), `404` (unknown address or turned
+off) or `429` (more than 120 runs in the last hour).
+
+A **Send to a web address** step posts
+`{"workflow": "…", "run_id": "…", "variables": {…}}`, signed with the workflow's secret
+exactly like the requests below.
+
 ## Requests from Cenacle
 
 Slash commands and event subscriptions make Cenacle call a bot's server. Every request:

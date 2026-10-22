@@ -8,6 +8,17 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Automation.
+
+### Added
+
+- Workflows: a trigger (from the composer, someone joining a channel, a reaction, a
+  keyword, a schedule or a webhook) and steps (post in a channel, send a direct message,
+  ask for a form, ask for approval, wait, send to a web address), with variables, built
+  without code by workspace owners and admins (ADR 0026).
+- Forms, filled in from the composer or in a workflow; their answers show as a card.
+- Approvals: approvers decide on a card in their conversation with the Cenacle bot.
+
 ### Changed
 
 - Cenacle is now licensed under the GNU Affero General Public License v3.0

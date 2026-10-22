@@ -66,6 +66,9 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Voice message        | Record a voice message          | Sesli mesaj kaydet                    | `richer.record.voice`                     | Recorded in the app, with a waveform          |
 | Custom emoji         | Custom emoji                    | Özel emojiler                         | `richer.manage.emoji.title`               | `:name:` in text and reactions                |
 | Sticker              | Stickers                        | Çıkartmalar                           | `richer.stickers.title`                   | A picture sent as a message of its own        |
+| Workflow             | Workflow                        | İş akışı                              | `automation.admin.workflows`              | A trigger and steps, without code             |
+| Form                 | Form                            | Form                                  | `automation.admin.forms`                  | Same questions every time                     |
+| Approve / Reject     | Approve / Reject                | Onayla / Reddet                       | `automation.card.approve`                 | One of the approvers decides                  |
 | Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
 ## Rules

@@ -39,6 +39,15 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.21.0
+
+- Migration `00021_automation` adds forms, form submissions, workflows, workflow runs and
+  tasks, and two columns of messages (a task card, a form's answers). Nothing to configure.
+- Workflows' requests to other servers use the same rules as bots: public `https`
+  addresses, or private networks allowed in `CENACLE_EGRESS_ALLOW`.
+- Rolling back to 0.20 needs `migrate down` once; workflows, forms and their messages are
+  removed with it.
+
 ### 0.20.1
 
 - Security update of Cenacle ID (Node.js 24.22.1, CVE-2026-111497). Update the `idp`
