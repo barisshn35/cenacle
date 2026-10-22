@@ -83,6 +83,10 @@ images, checksums and `load.sh`. Copy the directory and the repository (or at le
 `deploy/compose`) to the offline host, run `./load.sh`, then install as usual. ClamAV still
 needs virus signatures: point it at a local mirror.
 
+## AI (optional)
+
+AI features are off until a model you run is configured; see the [AI guide](ai.md).
+
 ## Moving from Mattermost or Slack
 
 Cenacle imports the history of another chat once, from its export files (it never

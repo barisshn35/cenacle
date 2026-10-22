@@ -39,6 +39,13 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.24.0
+
+- Migration `00024_ai` adds the workspace AI switch and a log of AI requests (no content).
+- AI stays off. To offer it, run a model and set `CENACLE_AI_URL` and `CENACLE_AI_MODEL`
+  (see the [AI guide](../operations/ai.md)); workspaces then turn it on in their settings.
+- Rolling back to 0.23 needs `migrate down` once.
+
 ### 0.23.0
 
 - Migration `00023_compliance` adds retention settings, legal holds, classifications,

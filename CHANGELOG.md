@@ -8,6 +8,22 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Optional, self-hosted AI.
+
+### Added
+
+- AI features with a model you run (Ollama, vLLM, llama.cpp, LocalAI, … through the
+  OpenAI-compatible API), off unless the operator configures a model and a workspace turns
+  it on; while off, the app shows nothing about AI (ADR 0029).
+- Summaries of channels and threads, rewriting of drafts, and answers to questions from the
+  messages you can read, with their sources.
+
+### Fixed
+
+- The composer's buttons wrap below the text on narrow screens instead of squeezing it.
+- Jumping to an older message (from search or a link) could stop short on a busy device
+  while older pages were still arriving.
+
 ## [0.23.0] - 2026-10-22
 
 Compliance and access control.
