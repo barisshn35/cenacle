@@ -75,6 +75,11 @@ const (
 	// members; EmojiChanged (custom emoji or stickers) to the workspace's.
 	MessagePreview = "message.preview"
 	EmojiChanged   = "emoji.changed"
+	// TabsChanged, CanvasUpdated and ListChanged (a channel's tabs, a canvas
+	// and a list) go to the channel's members.
+	TabsChanged   = "tabs.changed"
+	CanvasUpdated = "canvas.updated"
+	ListChanged   = "list.changed"
 )
 
 // ID is a parsed stream id.

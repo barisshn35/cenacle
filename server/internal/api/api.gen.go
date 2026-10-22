@@ -693,6 +693,39 @@ func (e GroupMappingRole) Valid() bool {
 	}
 }
 
+// Defines values for ListColumnKind.
+const (
+	ListColumnKindCheckbox ListColumnKind = "checkbox"
+	ListColumnKindDate     ListColumnKind = "date"
+	ListColumnKindNumber   ListColumnKind = "number"
+	ListColumnKindPerson   ListColumnKind = "person"
+	ListColumnKindSelect   ListColumnKind = "select"
+	ListColumnKindStatus   ListColumnKind = "status"
+	ListColumnKindText     ListColumnKind = "text"
+)
+
+// Valid indicates whether the value is a known member of the ListColumnKind enum.
+func (e ListColumnKind) Valid() bool {
+	switch e {
+	case ListColumnKindCheckbox:
+		return true
+	case ListColumnKindDate:
+		return true
+	case ListColumnKindNumber:
+		return true
+	case ListColumnKindPerson:
+		return true
+	case ListColumnKindSelect:
+		return true
+	case ListColumnKindStatus:
+		return true
+	case ListColumnKindText:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MemberRole.
 const (
 	MemberRoleManager MemberRole = "manager"
@@ -912,6 +945,48 @@ func (e SearchChannelKind) Valid() bool {
 	case SearchChannelKindGroup:
 		return true
 	case SearchChannelKindStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TabKind.
+const (
+	TabKindCanvas TabKind = "canvas"
+	TabKindLink   TabKind = "link"
+	TabKindList   TabKind = "list"
+)
+
+// Valid indicates whether the value is a known member of the TabKind enum.
+func (e TabKind) Valid() bool {
+	switch e {
+	case TabKindCanvas:
+		return true
+	case TabKindLink:
+		return true
+	case TabKindList:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TabInputKind.
+const (
+	TabInputKindCanvas TabInputKind = "canvas"
+	TabInputKindLink   TabInputKind = "link"
+	TabInputKindList   TabInputKind = "list"
+)
+
+// Valid indicates whether the value is a known member of the TabInputKind enum.
+func (e TabInputKind) Valid() bool {
+	switch e {
+	case TabInputKindCanvas:
+		return true
+	case TabInputKindLink:
+		return true
+	case TabInputKindList:
 		return true
 	default:
 		return false
@@ -1370,16 +1445,16 @@ func (e ResolveReportJSONBodyAction) Valid() bool {
 
 // Defines values for SearchMessagesParamsHas.
 const (
-	File SearchMessagesParamsHas = "file"
-	Link SearchMessagesParamsHas = "link"
+	SearchMessagesParamsHasFile SearchMessagesParamsHas = "file"
+	SearchMessagesParamsHasLink SearchMessagesParamsHas = "link"
 )
 
 // Valid indicates whether the value is a known member of the SearchMessagesParamsHas enum.
 func (e SearchMessagesParamsHas) Valid() bool {
 	switch e {
-	case File:
+	case SearchMessagesParamsHasFile:
 		return true
-	case Link:
+	case SearchMessagesParamsHasLink:
 		return true
 	default:
 		return false
@@ -1504,6 +1579,16 @@ type AppearancePreset string
 
 // AppearanceTheme defines model for Appearance.Theme.
 type AppearanceTheme string
+
+// AssignedItem defines model for AssignedItem.
+type AssignedItem struct {
+	ChannelId   openapi_types.UUID  `json:"channel_id"`
+	ChannelName string              `json:"channel_name"`
+	Due         *openapi_types.Date `json:"due,omitempty"`
+	Item        ListItem            `json:"item"`
+	ListTitle   string              `json:"list_title"`
+	TabId       openapi_types.UUID  `json:"tab_id"`
+}
 
 // Attachment A card under a message, e.g. from a bot (an issue, an alert).
 type Attachment struct {
@@ -1658,6 +1743,20 @@ type BurnInfo struct {
 	// RevealedAt When the reader revealed it.
 	RevealedAt *time.Time `json:"revealed_at"`
 	Seconds    int        `json:"seconds"`
+}
+
+// Canvas defines model for Canvas.
+type Canvas struct {
+	// Body Markdown.
+	Body      string             `json:"body"`
+	CanEdit   bool               `json:"can_edit"`
+	ChannelId openapi_types.UUID `json:"channel_id"`
+	EditingBy *Author            `json:"editing_by,omitempty"`
+	Id        openapi_types.UUID `json:"id"`
+	Title     string             `json:"title"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	UpdatedBy *Author            `json:"updated_by,omitempty"`
+	Version   int                `json:"version"`
 }
 
 // Category defines model for Category.
@@ -2026,6 +2125,17 @@ type InvitePreview struct {
 	WorkspaceName string             `json:"workspace_name"`
 }
 
+// ItemList defines model for ItemList.
+type ItemList struct {
+	BoardColumn *string            `json:"board_column,omitempty"`
+	CanEdit     bool               `json:"can_edit"`
+	ChannelId   openapi_types.UUID `json:"channel_id"`
+	Columns     []ListColumn       `json:"columns"`
+	Id          openapi_types.UUID `json:"id"`
+	Items       []ListItem         `json:"items"`
+	Title       string             `json:"title"`
+}
+
 // LinkPreview defines model for LinkPreview.
 type LinkPreview struct {
 	Description string `json:"description"`
@@ -2036,6 +2146,47 @@ type LinkPreview struct {
 	Title    string  `json:"title"`
 	Url      string  `json:"url"`
 }
+
+// ListColumn defines model for ListColumn.
+type ListColumn struct {
+	Id      string         `json:"id"`
+	Kind    ListColumnKind `json:"kind"`
+	Name    string         `json:"name"`
+	Options *[]string      `json:"options,omitempty"`
+}
+
+// ListColumnKind defines model for ListColumn.Kind.
+type ListColumnKind string
+
+// ListInput defines model for ListInput.
+type ListInput struct {
+	// BoardColumn A status or select column to group the board by.
+	BoardColumn *string      `json:"board_column,omitempty"`
+	Columns     []ListColumn `json:"columns"`
+}
+
+// ListItem defines model for ListItem.
+type ListItem struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+	ListId    openapi_types.UUID `json:"list_id"`
+	Title     string             `json:"title"`
+	UpdatedAt time.Time          `json:"updated_at"`
+
+	// Values Values by column id: text, a number as text, an option, todo/doing/done, a user id, YYYY-MM-DD or "true"/"false". An empty string clears a value.
+	Values ListValues `json:"values"`
+}
+
+// ListItemInput defines model for ListItemInput.
+type ListItemInput struct {
+	Title string `json:"title"`
+
+	// Values Values by column id: text, a number as text, an option, todo/doing/done, a user id, YYYY-MM-DD or "true"/"false". An empty string clears a value.
+	Values *ListValues `json:"values,omitempty"`
+}
+
+// ListValues Values by column id: text, a number as text, an option, todo/doing/done, a user id, YYYY-MM-DD or "true"/"false". An empty string clears a value.
+type ListValues map[string]string
 
 // Logout defines model for Logout.
 type Logout struct {
@@ -2557,6 +2708,39 @@ type Subscription struct {
 	Url       string             `json:"url"`
 }
 
+// Tab defines model for Tab.
+type Tab struct {
+	CanDelete bool                `json:"can_delete"`
+	CanvasId  *openapi_types.UUID `json:"canvas_id,omitempty"`
+	ChannelId openapi_types.UUID  `json:"channel_id"`
+	Id        openapi_types.UUID  `json:"id"`
+	Kind      TabKind             `json:"kind"`
+	ListId    *openapi_types.UUID `json:"list_id,omitempty"`
+	Position  int                 `json:"position"`
+	Title     string              `json:"title"`
+	Url       *string             `json:"url,omitempty"`
+}
+
+// TabKind defines model for Tab.Kind.
+type TabKind string
+
+// TabInput defines model for TabInput.
+type TabInput struct {
+	// BoardColumn A list tab: a status or select column to group the board by.
+	BoardColumn *string `json:"board_column,omitempty"`
+
+	// Columns A list tab: its columns (none: rows with a title only).
+	Columns *[]ListColumn `json:"columns,omitempty"`
+	Kind    TabInputKind  `json:"kind"`
+	Title   string        `json:"title"`
+
+	// Url A link tab: an http(s) address.
+	Url *string `json:"url,omitempty"`
+}
+
+// TabInputKind defines model for TabInput.Kind.
+type TabInputKind string
+
 // Task defines model for Task.
 type Task struct {
 	Assignees []openapi_types.UUID `json:"assignees"`
@@ -2887,6 +3071,12 @@ type CreateWebhookJSONBody struct {
 // CreateWebhookJSONBodyKind defines parameters for CreateWebhook.
 type CreateWebhookJSONBodyKind string
 
+// SaveCanvasJSONBody defines parameters for SaveCanvas.
+type SaveCanvasJSONBody struct {
+	Body    string `json:"body"`
+	Version int    `json:"version"`
+}
+
 // ListCategoriesParams defines parameters for ListCategories.
 type ListCategoriesParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
@@ -3031,6 +3221,19 @@ type SubmitFormJSONBody struct {
 // PostWebhookJSONBody defines parameters for PostWebhook.
 type PostWebhookJSONBody map[string]interface{}
 
+// UpdateListItemJSONBody defines parameters for UpdateListItem.
+type UpdateListItemJSONBody struct {
+	// Before Move before this row.
+	Before *openapi_types.UUID `json:"before,omitempty"`
+	Title  *string             `json:"title,omitempty"`
+
+	// ToEnd Move to the end.
+	ToEnd *bool `json:"to_end,omitempty"`
+
+	// Values Values by column id: text, a number as text, an option, todo/doing/done, a user id, YYYY-MM-DD or "true"/"false". An empty string clears a value.
+	Values *ListValues `json:"values,omitempty"`
+}
+
 // ListActivityParams defines parameters for ListActivity.
 type ListActivityParams struct {
 	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
@@ -3173,6 +3376,14 @@ type SearchMessagesParamsHas string
 // EndAllSessionsJSONBody defines parameters for EndAllSessions.
 type EndAllSessionsJSONBody struct {
 	KeepCurrent bool `json:"keep_current"`
+}
+
+// UpdateChannelTabJSONBody defines parameters for UpdateChannelTab.
+type UpdateChannelTabJSONBody struct {
+	// Position The new place among the tabs, from 0.
+	Position *int    `json:"position,omitempty"`
+	Title    *string `json:"title,omitempty"`
+	Url      *string `json:"url,omitempty"`
 }
 
 // DecideTaskJSONBody defines parameters for DecideTask.
@@ -3329,6 +3540,9 @@ type RotateBotTokenJSONRequestBody RotateBotTokenJSONBody
 // CreateWebhookJSONRequestBody defines body for CreateWebhook for application/json ContentType.
 type CreateWebhookJSONRequestBody CreateWebhookJSONBody
 
+// SaveCanvasJSONRequestBody defines body for SaveCanvas for application/json ContentType.
+type SaveCanvasJSONRequestBody SaveCanvasJSONBody
+
 // CreateCategoryJSONRequestBody defines body for CreateCategory for application/json ContentType.
 type CreateCategoryJSONRequestBody CreateCategoryJSONBody
 
@@ -3383,6 +3597,9 @@ type MarkReadJSONRequestBody MarkReadJSONBody
 // ScheduleMessageJSONRequestBody defines body for ScheduleMessage for application/json ContentType.
 type ScheduleMessageJSONRequestBody ScheduleMessageJSONBody
 
+// CreateChannelTabJSONRequestBody defines body for CreateChannelTab for application/json ContentType.
+type CreateChannelTabJSONRequestBody = TabInput
+
 // UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
 type UpdateEventJSONRequestBody = EventInput
 
@@ -3397,6 +3614,15 @@ type SubmitFormJSONRequestBody SubmitFormJSONBody
 
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
+
+// UpdateListItemJSONRequestBody defines body for UpdateListItem for application/json ContentType.
+type UpdateListItemJSONRequestBody UpdateListItemJSONBody
+
+// UpdateListJSONRequestBody defines body for UpdateList for application/json ContentType.
+type UpdateListJSONRequestBody = ListInput
+
+// CreateListItemJSONRequestBody defines body for CreateListItem for application/json ContentType.
+type CreateListItemJSONRequestBody = ListItemInput
 
 // SetMyAppearanceJSONRequestBody defines body for SetMyAppearance for application/json ContentType.
 type SetMyAppearanceJSONRequestBody = Appearance
@@ -3442,6 +3668,9 @@ type UpdateRunItemJSONRequestBody UpdateRunItemJSONBody
 
 // EndAllSessionsJSONRequestBody defines body for EndAllSessions for application/json ContentType.
 type EndAllSessionsJSONRequestBody EndAllSessionsJSONBody
+
+// UpdateChannelTabJSONRequestBody defines body for UpdateChannelTab for application/json ContentType.
+type UpdateChannelTabJSONRequestBody UpdateChannelTabJSONBody
 
 // DecideTaskJSONRequestBody defines body for DecideTask for application/json ContentType.
 type DecideTaskJSONRequestBody DecideTaskJSONBody
@@ -3657,6 +3886,18 @@ type ServerInterface interface {
 	// DeleteWebhook Delete a webhook (its URL stops working)
 	// (DELETE /api/bots/{bot_id}/webhooks/{webhook_id})
 	DeleteWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, webhookId openapi_types.UUID)
+	// GetCanvas A canvas (members of its channel)
+	// (GET /api/canvases/{canvas_id})
+	GetCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID)
+	// SaveCanvas Save a canvas over the version it was edited from
+	// (PUT /api/canvases/{canvas_id})
+	SaveCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID)
+	// StopEditingCanvas Give back the turn to edit
+	// (DELETE /api/canvases/{canvas_id}/editing)
+	StopEditingCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID)
+	// StartEditingCanvas Take (or keep) the turn to edit a canvas for two minutes
+	// (POST /api/canvases/{canvas_id}/editing)
+	StartEditingCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID)
 	// ListCategories Channel categories of a workspace, in order
 	// (GET /api/categories)
 	ListCategories(w http.ResponseWriter, r *http.Request, params ListCategoriesParams)
@@ -3789,6 +4030,12 @@ type ServerInterface interface {
 	// ListShortcuts Workflows and forms people can start in a channel
 	// (GET /api/channels/{channel_id}/shortcuts)
 	ListShortcuts(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListChannelTabs The tabs of a channel, in order (members)
+	// (GET /api/channels/{channel_id}/tabs)
+	ListChannelTabs(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// CreateChannelTab Add a canvas, a list or a link (people who can post)
+	// (POST /api/channels/{channel_id}/tabs)
+	CreateChannelTab(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// SendTyping Tell the channel you are typing (every few seconds while typing)
 	// (POST /api/channels/{channel_id}/typing)
 	SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -3843,6 +4090,21 @@ type ServerInterface interface {
 	// AcceptInvite Join the workspace of an invitation
 	// (POST /api/invites/{token}/accept)
 	AcceptInvite(w http.ResponseWriter, r *http.Request, token string)
+	// DeleteListItem Delete a row
+	// (DELETE /api/list-items/{item_id})
+	DeleteListItem(w http.ResponseWriter, r *http.Request, itemId openapi_types.UUID)
+	// UpdateListItem Change a row, or move it before another row
+	// (PATCH /api/list-items/{item_id})
+	UpdateListItem(w http.ResponseWriter, r *http.Request, itemId openapi_types.UUID)
+	// GetList A list with its rows (members of its channel)
+	// (GET /api/lists/{list_id})
+	GetList(w http.ResponseWriter, r *http.Request, listId openapi_types.UUID)
+	// UpdateList Change a list's columns and the column its board groups by
+	// (PUT /api/lists/{list_id})
+	UpdateList(w http.ResponseWriter, r *http.Request, listId openapi_types.UUID)
+	// CreateListItem Add a row at the end of a list
+	// (POST /api/lists/{list_id}/items)
+	CreateListItem(w http.ResponseWriter, r *http.Request, listId openapi_types.UUID)
 	// ListActivity Mentions, replies in your threads and reactions to your messages (30 days)
 	// (GET /api/me/activity)
 	ListActivity(w http.ResponseWriter, r *http.Request, params ListActivityParams)
@@ -3984,6 +4246,12 @@ type ServerInterface interface {
 	// DeleteSticker Remove a sticker (who added it, or a workspace admin)
 	// (DELETE /api/stickers/{sticker_id})
 	DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
+	// DeleteChannelTab Delete a tab with its canvas or list (who added it and channel managers)
+	// (DELETE /api/tabs/{tab_id})
+	DeleteChannelTab(w http.ResponseWriter, r *http.Request, tabId openapi_types.UUID)
+	// UpdateChannelTab Rename a tab, change a link or move the tab (people who can post)
+	// (PATCH /api/tabs/{tab_id})
+	UpdateChannelTab(w http.ResponseWriter, r *http.Request, tabId openapi_types.UUID)
 	// GetTask A task (for its form, the form's fields)
 	// (GET /api/tasks/{task_id})
 	GetTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID)
@@ -4044,6 +4312,9 @@ type ServerInterface interface {
 	// SetWorkspaceAppearance The workspace's default theme preset and font template (owners and admins)
 	// (PUT /api/workspaces/{workspace_id}/appearance)
 	SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListAssignedItems Open list rows assigned to me, the soonest due first
+	// (GET /api/workspaces/{workspace_id}/assigned-items)
+	ListAssignedItems(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListWorkspaceAudit The workspace's audit log (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/audit)
 	ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListWorkspaceAuditParams)
@@ -4317,6 +4588,30 @@ func (_ Unimplemented) DeleteWebhook(w http.ResponseWriter, r *http.Request, bot
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetCanvas A canvas (members of its channel)
+// (GET /api/canvases/{canvas_id})
+func (_ Unimplemented) GetCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SaveCanvas Save a canvas over the version it was edited from
+// (PUT /api/canvases/{canvas_id})
+func (_ Unimplemented) SaveCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// StopEditingCanvas Give back the turn to edit
+// (DELETE /api/canvases/{canvas_id}/editing)
+func (_ Unimplemented) StopEditingCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// StartEditingCanvas Take (or keep) the turn to edit a canvas for two minutes
+// (POST /api/canvases/{canvas_id}/editing)
+func (_ Unimplemented) StartEditingCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListCategories Channel categories of a workspace, in order
 // (GET /api/categories)
 func (_ Unimplemented) ListCategories(w http.ResponseWriter, r *http.Request, params ListCategoriesParams) {
@@ -4581,6 +4876,18 @@ func (_ Unimplemented) ListShortcuts(w http.ResponseWriter, r *http.Request, cha
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListChannelTabs The tabs of a channel, in order (members)
+// (GET /api/channels/{channel_id}/tabs)
+func (_ Unimplemented) ListChannelTabs(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateChannelTab Add a canvas, a list or a link (people who can post)
+// (POST /api/channels/{channel_id}/tabs)
+func (_ Unimplemented) CreateChannelTab(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SendTyping Tell the channel you are typing (every few seconds while typing)
 // (POST /api/channels/{channel_id}/typing)
 func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -4686,6 +4993,36 @@ func (_ Unimplemented) GetInvite(w http.ResponseWriter, r *http.Request, token s
 // AcceptInvite Join the workspace of an invitation
 // (POST /api/invites/{token}/accept)
 func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteListItem Delete a row
+// (DELETE /api/list-items/{item_id})
+func (_ Unimplemented) DeleteListItem(w http.ResponseWriter, r *http.Request, itemId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateListItem Change a row, or move it before another row
+// (PATCH /api/list-items/{item_id})
+func (_ Unimplemented) UpdateListItem(w http.ResponseWriter, r *http.Request, itemId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetList A list with its rows (members of its channel)
+// (GET /api/lists/{list_id})
+func (_ Unimplemented) GetList(w http.ResponseWriter, r *http.Request, listId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateList Change a list's columns and the column its board groups by
+// (PUT /api/lists/{list_id})
+func (_ Unimplemented) UpdateList(w http.ResponseWriter, r *http.Request, listId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateListItem Add a row at the end of a list
+// (POST /api/lists/{list_id}/items)
+func (_ Unimplemented) CreateListItem(w http.ResponseWriter, r *http.Request, listId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4971,6 +5308,18 @@ func (_ Unimplemented) DeleteSticker(w http.ResponseWriter, r *http.Request, sti
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteChannelTab Delete a tab with its canvas or list (who added it and channel managers)
+// (DELETE /api/tabs/{tab_id})
+func (_ Unimplemented) DeleteChannelTab(w http.ResponseWriter, r *http.Request, tabId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateChannelTab Rename a tab, change a link or move the tab (people who can post)
+// (PATCH /api/tabs/{tab_id})
+func (_ Unimplemented) UpdateChannelTab(w http.ResponseWriter, r *http.Request, tabId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetTask A task (for its form, the form's fields)
 // (GET /api/tasks/{task_id})
 func (_ Unimplemented) GetTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID) {
@@ -5088,6 +5437,12 @@ func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, w
 // SetWorkspaceAppearance The workspace's default theme preset and font template (owners and admins)
 // (PUT /api/workspaces/{workspace_id}/appearance)
 func (_ Unimplemented) SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListAssignedItems Open list rows assigned to me, the soonest due first
+// (GET /api/workspaces/{workspace_id}/assigned-items)
+func (_ Unimplemented) ListAssignedItems(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6060,6 +6415,110 @@ func (siw *ServerInterfaceWrapper) DeleteWebhook(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteWebhook(w, r, botId, webhookId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCanvas operation middleware
+func (siw *ServerInterfaceWrapper) GetCanvas(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "canvas_id" -------------
+	var canvasId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "canvas_id", chi.URLParam(r, "canvas_id"), &canvasId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "canvas_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCanvas(w, r, canvasId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveCanvas operation middleware
+func (siw *ServerInterfaceWrapper) SaveCanvas(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "canvas_id" -------------
+	var canvasId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "canvas_id", chi.URLParam(r, "canvas_id"), &canvasId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "canvas_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveCanvas(w, r, canvasId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StopEditingCanvas operation middleware
+func (siw *ServerInterfaceWrapper) StopEditingCanvas(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "canvas_id" -------------
+	var canvasId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "canvas_id", chi.URLParam(r, "canvas_id"), &canvasId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "canvas_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StopEditingCanvas(w, r, canvasId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartEditingCanvas operation middleware
+func (siw *ServerInterfaceWrapper) StartEditingCanvas(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "canvas_id" -------------
+	var canvasId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "canvas_id", chi.URLParam(r, "canvas_id"), &canvasId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "canvas_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartEditingCanvas(w, r, canvasId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7436,6 +7895,58 @@ func (siw *ServerInterfaceWrapper) ListShortcuts(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// ListChannelTabs operation middleware
+func (siw *ServerInterfaceWrapper) ListChannelTabs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannelTabs(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateChannelTab operation middleware
+func (siw *ServerInterfaceWrapper) CreateChannelTab(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateChannelTab(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SendTyping operation middleware
 func (siw *ServerInterfaceWrapper) SendTyping(w http.ResponseWriter, r *http.Request) {
 
@@ -7927,6 +8438,136 @@ func (siw *ServerInterfaceWrapper) AcceptInvite(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AcceptInvite(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteListItem operation middleware
+func (siw *ServerInterfaceWrapper) DeleteListItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "item_id" -------------
+	var itemId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "item_id", chi.URLParam(r, "item_id"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "item_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteListItem(w, r, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateListItem operation middleware
+func (siw *ServerInterfaceWrapper) UpdateListItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "item_id" -------------
+	var itemId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "item_id", chi.URLParam(r, "item_id"), &itemId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "item_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateListItem(w, r, itemId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetList operation middleware
+func (siw *ServerInterfaceWrapper) GetList(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "list_id" -------------
+	var listId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "list_id", chi.URLParam(r, "list_id"), &listId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "list_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetList(w, r, listId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateList operation middleware
+func (siw *ServerInterfaceWrapper) UpdateList(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "list_id" -------------
+	var listId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "list_id", chi.URLParam(r, "list_id"), &listId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "list_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateList(w, r, listId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateListItem operation middleware
+func (siw *ServerInterfaceWrapper) CreateListItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "list_id" -------------
+	var listId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "list_id", chi.URLParam(r, "list_id"), &listId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "list_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateListItem(w, r, listId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9192,6 +9833,58 @@ func (siw *ServerInterfaceWrapper) DeleteSticker(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteChannelTab operation middleware
+func (siw *ServerInterfaceWrapper) DeleteChannelTab(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tab_id" -------------
+	var tabId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tab_id", chi.URLParam(r, "tab_id"), &tabId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tab_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteChannelTab(w, r, tabId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateChannelTab operation middleware
+func (siw *ServerInterfaceWrapper) UpdateChannelTab(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tab_id" -------------
+	var tabId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tab_id", chi.URLParam(r, "tab_id"), &tabId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tab_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateChannelTab(w, r, tabId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetTask operation middleware
 func (siw *ServerInterfaceWrapper) GetTask(w http.ResponseWriter, r *http.Request) {
 
@@ -9640,6 +10333,32 @@ func (siw *ServerInterfaceWrapper) SetWorkspaceAppearance(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetWorkspaceAppearance(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAssignedItems operation middleware
+func (siw *ServerInterfaceWrapper) ListAssignedItems(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAssignedItems(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11480,6 +12199,48 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/tasks/{task_id}/decide", wrapper.DecideTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/tabs", wrapper.ListChannelTabs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/tabs", wrapper.CreateChannelTab)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/tabs/{tab_id}", wrapper.DeleteChannelTab)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/tabs/{tab_id}", wrapper.UpdateChannelTab)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/canvases/{canvas_id}", wrapper.GetCanvas)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/canvases/{canvas_id}", wrapper.SaveCanvas)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/canvases/{canvas_id}/editing", wrapper.StopEditingCanvas)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/canvases/{canvas_id}/editing", wrapper.StartEditingCanvas)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/lists/{list_id}", wrapper.GetList)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/lists/{list_id}", wrapper.UpdateList)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/lists/{list_id}/items", wrapper.CreateListItem)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/list-items/{item_id}", wrapper.DeleteListItem)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/list-items/{item_id}", wrapper.UpdateListItem)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/assigned-items", wrapper.ListAssignedItems)
 	})
 
 	return r

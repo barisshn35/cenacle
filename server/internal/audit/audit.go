@@ -65,6 +65,7 @@ const (
 	PlaybookChanged    = "playbook.changed"
 	FormChanged        = "form.changed"
 	WorkflowChanged    = "workflow.changed"
+	TabDeleted         = "tab.deleted"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

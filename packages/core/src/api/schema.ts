@@ -2922,10 +2922,270 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/tabs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** The tabs of a channel, in order (members) */
+    get: operations['listChannelTabs'];
+    put?: never;
+    /** Add a canvas, a list or a link (people who can post) */
+    post: operations['createChannelTab'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/tabs/{tab_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tab_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete a tab with its canvas or list (who added it and channel managers) */
+    delete: operations['deleteChannelTab'];
+    options?: never;
+    head?: never;
+    /** Rename a tab, change a link or move the tab (people who can post) */
+    patch: operations['updateChannelTab'];
+    trace?: never;
+  };
+  '/api/canvases/{canvas_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        canvas_id: string;
+      };
+      cookie?: never;
+    };
+    /** A canvas (members of its channel) */
+    get: operations['getCanvas'];
+    /**
+     * Save a canvas over the version it was edited from
+     * @description Answers 409 canvas_changed when someone saved in between (load it again), and 409 canvas_busy while someone else is editing.
+     */
+    put: operations['saveCanvas'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/canvases/{canvas_id}/editing': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        canvas_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Take (or keep) the turn to edit a canvas for two minutes */
+    post: operations['startEditingCanvas'];
+    /** Give back the turn to edit */
+    delete: operations['stopEditingCanvas'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/lists/{list_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        list_id: string;
+      };
+      cookie?: never;
+    };
+    /** A list with its rows (members of its channel) */
+    get: operations['getList'];
+    /**
+     * Change a list's columns and the column its board groups by
+     * @description Values of removed columns are dropped from the rows.
+     */
+    put: operations['updateList'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/lists/{list_id}/items': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        list_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Add a row at the end of a list */
+    post: operations['createListItem'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/list-items/{item_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        item_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete a row */
+    delete: operations['deleteListItem'];
+    options?: never;
+    head?: never;
+    /** Change a row, or move it before another row */
+    patch: operations['updateListItem'];
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/assigned-items': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Open list rows assigned to me, the soonest due first */
+    get: operations['listAssignedItems'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    TabInput: {
+      /** @enum {string} */
+      kind: 'canvas' | 'list' | 'link';
+      title: string;
+      /** @description A link tab: an http(s) address. */
+      url?: string;
+      /** @description A list tab: its columns (none: rows with a title only). */
+      columns?: components['schemas']['ListColumn'][];
+      /** @description A list tab: a status or select column to group the board by. */
+      board_column?: string;
+    };
+    Tab: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      channel_id: string;
+      /** @enum {string} */
+      kind: 'canvas' | 'list' | 'link';
+      title: string;
+      url?: string;
+      /** Format: uuid */
+      canvas_id?: string;
+      /** Format: uuid */
+      list_id?: string;
+      position: number;
+      can_delete: boolean;
+    };
+    Canvas: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      channel_id: string;
+      title: string;
+      /** @description Markdown. */
+      body: string;
+      version: number;
+      /** Format: date-time */
+      updated_at: string;
+      updated_by?: components['schemas']['Author'];
+      editing_by?: components['schemas']['Author'];
+      can_edit: boolean;
+    };
+    ListColumn: {
+      id: string;
+      name: string;
+      /** @enum {string} */
+      kind: 'text' | 'number' | 'select' | 'status' | 'person' | 'date' | 'checkbox';
+      options?: string[];
+    };
+    ListInput: {
+      columns: components['schemas']['ListColumn'][];
+      /** @description A status or select column to group the board by. */
+      board_column?: string | null;
+    };
+    /** @description Values by column id: text, a number as text, an option, todo/doing/done, a user id, YYYY-MM-DD or "true"/"false". An empty string clears a value. */
+    ListValues: {
+      [key: string]: string;
+    };
+    ListItemInput: {
+      title: string;
+      values?: components['schemas']['ListValues'];
+    };
+    ListItem: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      list_id: string;
+      title: string;
+      values: components['schemas']['ListValues'];
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    ItemList: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      channel_id: string;
+      title: string;
+      columns: components['schemas']['ListColumn'][];
+      board_column?: string | null;
+      items: components['schemas']['ListItem'][];
+      can_edit: boolean;
+    };
+    AssignedItem: {
+      item: components['schemas']['ListItem'];
+      list_title: string;
+      /** Format: uuid */
+      tab_id: string;
+      /** Format: uuid */
+      channel_id: string;
+      channel_name: string;
+      /** Format: date */
+      due?: string;
+    };
     FormField: {
       /** @description Used in workflows as {{form.<id>}}. */
       id: string;
@@ -9449,6 +9709,405 @@ export interface operations {
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
       409: components['responses']['Problem'];
+    };
+  };
+  listChannelTabs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Tabs. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            tabs: components['schemas']['Tab'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createChannelTab: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TabInput'];
+      };
+    };
+    responses: {
+      /** @description The tab. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Tab'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  deleteChannelTab: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tab_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateChannelTab: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tab_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          title?: string;
+          url?: string;
+          /** @description The new place among the tabs, from 0. */
+          position?: number;
+        };
+      };
+    };
+    responses: {
+      /** @description The tab. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Tab'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getCanvas: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        canvas_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The canvas. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Canvas'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  saveCanvas: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        canvas_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          body: string;
+          version: number;
+        };
+      };
+    };
+    responses: {
+      /** @description The canvas. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Canvas'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  startEditingCanvas: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        canvas_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The canvas. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Canvas'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  stopEditingCanvas: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        canvas_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Given back. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getList: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        list_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The list. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ItemList'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateList: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        list_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ListInput'];
+      };
+    };
+    responses: {
+      /** @description The list. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ItemList'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createListItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        list_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ListItemInput'];
+      };
+    };
+    responses: {
+      /** @description The row. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ListItem'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  deleteListItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateListItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        item_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          title?: string;
+          values?: components['schemas']['ListValues'];
+          /**
+           * Format: uuid
+           * @description Move before this row.
+           */
+          before?: string;
+          /** @description Move to the end. */
+          to_end?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description The row. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ListItem'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listAssignedItems: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Rows. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            items: components['schemas']['AssignedItem'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
     };
   };
 }

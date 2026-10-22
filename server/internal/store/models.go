@@ -64,6 +64,17 @@ type BurnReveal struct {
 	RevealedAt time.Time   `json:"revealed_at"`
 }
 
+type Canvase struct {
+	ID           pgtype.UUID        `json:"id"`
+	ChannelID    pgtype.UUID        `json:"channel_id"`
+	Body         string             `json:"body"`
+	Version      int32              `json:"version"`
+	UpdatedBy    pgtype.UUID        `json:"updated_by"`
+	UpdatedAt    time.Time          `json:"updated_at"`
+	EditingBy    pgtype.UUID        `json:"editing_by"`
+	EditingUntil pgtype.Timestamptz `json:"editing_until"`
+}
+
 type Channel struct {
 	ID              pgtype.UUID        `json:"id"`
 	Name            string             `json:"name"`
@@ -111,6 +122,19 @@ type ChannelNotificationPref struct {
 	Level      string             `json:"level"`
 	MutedUntil pgtype.Timestamptz `json:"muted_until"`
 	Sound      string             `json:"sound"`
+}
+
+type ChannelTab struct {
+	ID        pgtype.UUID `json:"id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	Kind      string      `json:"kind"`
+	Title     string      `json:"title"`
+	Url       pgtype.Text `json:"url"`
+	CanvasID  pgtype.UUID `json:"canvas_id"`
+	ListID    pgtype.UUID `json:"list_id"`
+	Position  int32       `json:"position"`
+	CreatedBy pgtype.UUID `json:"created_by"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type CustomEmoji struct {
@@ -258,6 +282,28 @@ type LinkPreview struct {
 	SiteName    string      `json:"site_name"`
 	ImageID     pgtype.UUID `json:"image_id"`
 	FetchedAt   time.Time   `json:"fetched_at"`
+}
+
+type List struct {
+	ID          pgtype.UUID `json:"id"`
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	Columns     []byte      `json:"columns"`
+	BoardColumn pgtype.Text `json:"board_column"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+}
+
+type ListItem struct {
+	ID        pgtype.UUID   `json:"id"`
+	ListID    pgtype.UUID   `json:"list_id"`
+	Title     string        `json:"title"`
+	Values    []byte        `json:"values"`
+	Position  float64       `json:"position"`
+	Assignees []pgtype.UUID `json:"assignees"`
+	Done      bool          `json:"done"`
+	Due       pgtype.Date   `json:"due"`
+	CreatedBy pgtype.UUID   `json:"created_by"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
 }
 
 type Message struct {

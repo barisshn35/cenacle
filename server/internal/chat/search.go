@@ -78,8 +78,8 @@ func (h *Handlers) SearchMessages(w http.ResponseWriter, r *http.Request, params
 		args.Until = pgtype.Timestamptz{Time: *params.Until, Valid: true}
 	}
 	if params.Has != nil {
-		args.HasFiles = *params.Has == api.File
-		args.HasLink = *params.Has == api.Link
+		args.HasFiles = *params.Has == api.SearchMessagesParamsHasFile
+		args.HasLink = *params.Has == api.SearchMessagesParamsHasLink
 	}
 	rows, err := h.Queries.SearchMessages(r.Context(), args)
 	if err != nil {

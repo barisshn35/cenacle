@@ -21,6 +21,8 @@ tags:
     description: Workspaces, their members and invitations
   - name: automation
     description: Workflows, forms and approvals
+  - name: collaboration
+    description: Channel tabs, canvases and lists
   - name: auth
     description: Sign-in with Cenacle ID and sessions
   - name: chat
@@ -4626,6 +4628,269 @@ paths:
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
         '409': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/tabs:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [collaboration]
+      operationId: listChannelTabs
+      summary: The tabs of a channel, in order (members)
+      responses:
+        '200':
+          description: Tabs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tabs]
+                properties:
+                  tabs:
+                    type: array
+                    items: { $ref: '#/components/schemas/Tab' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [collaboration]
+      operationId: createChannelTab
+      summary: Add a canvas, a list or a link (people who can post)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TabInput' }
+      responses:
+        '201':
+          description: The tab.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tab' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/tabs/{tab_id}:
+    parameters:
+      - { name: tab_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [collaboration]
+      operationId: updateChannelTab
+      summary: Rename a tab, change a link or move the tab (people who can post)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string, minLength: 1, maxLength: 80 }
+                url: { type: string, maxLength: 2000 }
+                position: { type: integer, minimum: 0, description: 'The new place among the tabs, from 0.' }
+      responses:
+        '200':
+          description: The tab.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tab' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [collaboration]
+      operationId: deleteChannelTab
+      summary: Delete a tab with its canvas or list (who added it and channel managers)
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/canvases/{canvas_id}:
+    parameters:
+      - { name: canvas_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [collaboration]
+      operationId: getCanvas
+      summary: A canvas (members of its channel)
+      responses:
+        '200':
+          description: The canvas.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Canvas' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [collaboration]
+      operationId: saveCanvas
+      summary: Save a canvas over the version it was edited from
+      description: Answers 409 canvas_changed when someone saved in between (load it again), and 409 canvas_busy while someone else is editing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body, version]
+              properties:
+                body: { type: string, maxLength: 50000 }
+                version: { type: integer }
+      responses:
+        '200':
+          description: The canvas.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Canvas' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/canvases/{canvas_id}/editing:
+    parameters:
+      - { name: canvas_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [collaboration]
+      operationId: startEditingCanvas
+      summary: Take (or keep) the turn to edit a canvas for two minutes
+      responses:
+        '200':
+          description: The canvas.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Canvas' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [collaboration]
+      operationId: stopEditingCanvas
+      summary: Give back the turn to edit
+      responses:
+        '204': { description: Given back. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/lists/{list_id}:
+    parameters:
+      - { name: list_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [collaboration]
+      operationId: getList
+      summary: A list with its rows (members of its channel)
+      responses:
+        '200':
+          description: The list.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemList' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [collaboration]
+      operationId: updateList
+      summary: Change a list's columns and the column its board groups by
+      description: Values of removed columns are dropped from the rows.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListInput' }
+      responses:
+        '200':
+          description: The list.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ItemList' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/lists/{list_id}/items:
+    parameters:
+      - { name: list_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [collaboration]
+      operationId: createListItem
+      summary: Add a row at the end of a list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListItemInput' }
+      responses:
+        '201':
+          description: The row.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListItem' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/list-items/{item_id}:
+    parameters:
+      - { name: item_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [collaboration]
+      operationId: updateListItem
+      summary: Change a row, or move it before another row
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string, minLength: 1, maxLength: 500 }
+                values: { $ref: '#/components/schemas/ListValues' }
+                before: { type: string, format: uuid, description: 'Move before this row.' }
+                to_end: { type: boolean, description: 'Move to the end.' }
+      responses:
+        '200':
+          description: The row.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListItem' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [collaboration]
+      operationId: deleteListItem
+      summary: Delete a row
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/assigned-items:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [collaboration]
+      operationId: listAssignedItems
+      summary: Open list rows assigned to me, the soonest due first
+      responses:
+        '200':
+          description: Rows.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AssignedItem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
 security:
   - cookie: []
   - bearer: []
@@ -4646,6 +4911,110 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    TabInput:
+      type: object
+      required: [kind, title]
+      properties:
+        kind: { type: string, enum: [canvas, list, link] }
+        title: { type: string, minLength: 1, maxLength: 80 }
+        url: { type: string, maxLength: 2000, description: 'A link tab: an http(s) address.' }
+        columns:
+          type: array
+          maxItems: 20
+          description: 'A list tab: its columns (none: rows with a title only).'
+          items: { $ref: '#/components/schemas/ListColumn' }
+        board_column: { type: string, description: 'A list tab: a status or select column to group the board by.' }
+    Tab:
+      type: object
+      required: [id, channel_id, kind, title, position, can_delete]
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        kind: { type: string, enum: [canvas, list, link] }
+        title: { type: string }
+        url: { type: string }
+        canvas_id: { type: string, format: uuid }
+        list_id: { type: string, format: uuid }
+        position: { type: integer }
+        can_delete: { type: boolean }
+    Canvas:
+      type: object
+      required: [id, channel_id, title, body, version, updated_at, can_edit]
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string, description: Markdown. }
+        version: { type: integer }
+        updated_at: { type: string, format: date-time }
+        updated_by: { $ref: '#/components/schemas/Author' }
+        editing_by: { $ref: '#/components/schemas/Author' }
+        can_edit: { type: boolean }
+    ListColumn:
+      type: object
+      required: [id, name, kind]
+      properties:
+        id: { type: string, pattern: '^[a-z0-9_]{1,32}$' }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        kind: { type: string, enum: [text, number, select, status, person, date, checkbox] }
+        options:
+          type: array
+          maxItems: 30
+          items: { type: string, minLength: 1, maxLength: 60 }
+    ListInput:
+      type: object
+      required: [columns]
+      properties:
+        columns:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/ListColumn' }
+        board_column: { type: string, nullable: true, description: 'A status or select column to group the board by.' }
+    ListValues:
+      type: object
+      description: 'Values by column id: text, a number as text, an option, todo/doing/done, a user id, YYYY-MM-DD or "true"/"false". An empty string clears a value.'
+      additionalProperties: { type: string, maxLength: 2000 }
+    ListItemInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 500 }
+        values: { $ref: '#/components/schemas/ListValues' }
+    ListItem:
+      type: object
+      required: [id, list_id, title, values, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        list_id: { type: string, format: uuid }
+        title: { type: string }
+        values: { $ref: '#/components/schemas/ListValues' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ItemList:
+      type: object
+      required: [id, channel_id, title, columns, items, can_edit]
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        title: { type: string }
+        columns:
+          type: array
+          items: { $ref: '#/components/schemas/ListColumn' }
+        board_column: { type: string, nullable: true }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ListItem' }
+        can_edit: { type: boolean }
+    AssignedItem:
+      type: object
+      required: [item, list_title, tab_id, channel_id, channel_name]
+      properties:
+        item: { $ref: '#/components/schemas/ListItem' }
+        list_title: { type: string }
+        tab_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        channel_name: { type: string }
+        due: { type: string, format: date }
     FormField:
       type: object
       required: [id, label, kind, required]
