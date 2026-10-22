@@ -34,6 +34,12 @@ tags:
     description: Replies in threads, followed threads and activity
   - name: saved
     description: Messages saved for later
+  - name: community
+    description: Polls, events, onboarding, the banner and terms of service
+  - name: moderation
+    description: Reports, AutoMod, timeouts and slow mode
+  - name: playbooks
+    description: Checklists teams run again and again
 paths:
   /api/workspaces:
     get:
@@ -3401,6 +3407,653 @@ paths:
           $ref: '#/components/responses/Problem'
         '429':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/messages/{message_id}/poll/votes:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [community]
+      operationId: votePoll
+      summary: Vote in a poll (replaces your earlier choices; none takes the vote back)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [option_ids]
+              properties:
+                option_ids:
+                  type: array
+                  maxItems: 10
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The poll; members see `poll.updated`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Poll' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/messages/{message_id}/poll/close:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [community]
+      operationId: closePoll
+      summary: Close a poll (its author or a channel manager)
+      responses:
+        '200':
+          description: The closed poll.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Poll' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/messages/{message_id}/report:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [moderation]
+      operationId: reportMessage
+      summary: Report a message to the workspace's moderators
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, maxLength: 1000 }
+      responses:
+        '204': { description: Reported (again reporting the same message changes nothing). }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/reports:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [moderation]
+      operationId: listReports
+      summary: The moderation queue (workspace owners and admins)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [open, closed], default: open } }
+      responses:
+        '200':
+          description: Reports, newest first (up to 200).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reports]
+                properties:
+                  reports:
+                    type: array
+                    items: { $ref: '#/components/schemas/Report' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/reports/{report_id}/resolve:
+    parameters:
+      - { name: report_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [moderation]
+      operationId: resolveReport
+      summary: Resolve a report (dismiss it, delete the message, or time its author out)
+      description: Every open report of the same message is resolved with it. Audited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [dismiss, delete, timeout] }
+                timeout_minutes: { type: integer, minimum: 1, maximum: 40320 }
+      responses:
+        '200':
+          description: The report.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Report' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/members/{user_id}/timeout:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [moderation]
+      operationId: setMemberTimeout
+      summary: Time a member out (no messages or reactions in the workspace) or end it
+      description: Workspace owners and admins; owners and admins cannot be timed out. Audited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [until]
+              properties:
+                until: { type: string, format: date-time, nullable: true }
+      responses:
+        '204': { description: Saved; the member sees `workspace.joined` with the timeout. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/automod:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [moderation]
+      operationId: listAutomodRules
+      summary: AutoMod rules of a workspace (owners and admins)
+      responses:
+        '200':
+          description: Rules.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rules]
+                properties:
+                  rules:
+                    type: array
+                    items: { $ref: '#/components/schemas/AutomodRule' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [moderation]
+      operationId: createAutomodRule
+      summary: Add an AutoMod rule (up to 20 per workspace)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AutomodRuleInput' }
+      responses:
+        '201':
+          description: The rule.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AutomodRule' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/automod/{rule_id}:
+    parameters:
+      - { name: rule_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [moderation]
+      operationId: updateAutomodRule
+      summary: Change an AutoMod rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AutomodRuleInput' }
+      responses:
+        '200':
+          description: The rule.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AutomodRule' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [moderation]
+      operationId: deleteAutomodRule
+      summary: Remove an AutoMod rule
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/events:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [community]
+      operationId: listEvents
+      summary: Events of a workspace from a time on (default now), soonest first (up to 100)
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Events.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events]
+                properties:
+                  events:
+                    type: array
+                    items: { $ref: '#/components/schemas/Event' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [community]
+      operationId: createEvent
+      summary: Plan an event (members; announced in its channel when it has one)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventInput' }
+      responses:
+        '201':
+          description: The event.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/events/{event_id}:
+    parameters:
+      - { name: event_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [community]
+      operationId: updateEvent
+      summary: Change an event (its creator or a workspace admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventInput' }
+      responses:
+        '200':
+          description: The event.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [community]
+      operationId: cancelEvent
+      summary: Cancel an event (its creator or a workspace admin); reminders are canceled
+      responses:
+        '204': { description: Canceled. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/events/{event_id}/rsvp:
+    parameters:
+      - { name: event_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [community]
+      operationId: rsvpEvent
+      summary: Answer an event; "going" schedules a reminder 15 minutes before it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [going, maybe, declined], nullable: true }
+      responses:
+        '200':
+          description: The event.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/welcome:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [community]
+      operationId: getWelcome
+      summary: The welcome a workspace shows new members
+      responses:
+        '200':
+          description: The welcome.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Welcome' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [community]
+      operationId: setWelcome
+      summary: Set the welcome (owners and admins); empty message and rules turn it off
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Welcome' }
+      responses:
+        '200':
+          description: The welcome.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Welcome' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/onboarded:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [community]
+      operationId: finishOnboarding
+      summary: Close the welcome, joining the suggested channels chosen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [join_channel_ids]
+              properties:
+                join_channel_ids:
+                  type: array
+                  maxItems: 20
+                  items: { type: string, format: uuid }
+      responses:
+        '204': { description: Done. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/banner:
+    get:
+      tags: [community]
+      operationId: getBanner
+      summary: The announcement banner of the instance, if any
+      responses:
+        '200':
+          description: The banner, or null.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [banner]
+                properties:
+                  banner:
+                    allOf: [{ $ref: '#/components/schemas/Banner' }]
+                    nullable: true
+        '401': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [community]
+      operationId: setBanner
+      summary: Show an announcement banner to everyone (instance administrators)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BannerInput' }
+      responses:
+        '200':
+          description: The banner; everyone sees `banner.changed`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Banner' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [community]
+      operationId: removeBanner
+      summary: Take the banner down (instance administrators)
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/terms:
+    get:
+      tags: [community]
+      operationId: getTerms
+      summary: The terms of service in force and whether you accepted them
+      responses:
+        '200':
+          description: Terms, or null when there are none.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [terms, accepted]
+                properties:
+                  terms:
+                    allOf: [{ $ref: '#/components/schemas/Terms' }]
+                    nullable: true
+                  accepted: { type: boolean }
+        '401': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [community]
+      operationId: setTerms
+      summary: Publish new terms everyone must accept (instance administrators)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 20000 }
+      responses:
+        '200':
+          description: The terms.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Terms' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [community]
+      operationId: withdrawTerms
+      summary: Withdraw the terms (instance administrators)
+      responses:
+        '204': { description: Withdrawn. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/terms/accept:
+    post:
+      tags: [community]
+      operationId: acceptTerms
+      summary: Accept the terms in force
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [terms_id]
+              properties:
+                terms_id: { type: string, format: uuid }
+      responses:
+        '204': { description: Accepted. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/playbooks:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [playbooks]
+      operationId: listPlaybooks
+      summary: Playbooks of a workspace
+      responses:
+        '200':
+          description: Playbooks.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playbooks]
+                properties:
+                  playbooks:
+                    type: array
+                    items: { $ref: '#/components/schemas/Playbook' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [playbooks]
+      operationId: createPlaybook
+      summary: Create a playbook (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlaybookInput' }
+      responses:
+        '201':
+          description: The playbook.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Playbook' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/playbooks/{playbook_id}:
+    parameters:
+      - { name: playbook_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [playbooks]
+      operationId: updatePlaybook
+      summary: Change a playbook (runs already started keep their checklists)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlaybookInput' }
+      responses:
+        '200':
+          description: The playbook.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Playbook' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [playbooks]
+      operationId: archivePlaybook
+      summary: Archive a playbook (its runs stay)
+      responses:
+        '204': { description: Archived. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/playbooks/{playbook_id}/runs:
+    parameters:
+      - { name: playbook_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [playbooks]
+      operationId: startRun
+      summary: Start a run of a playbook in a channel you can post in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id, name]
+              properties:
+                channel_id: { type: string, format: uuid }
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        '201':
+          description: The run; the channel gets a message about it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Run' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/runs:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [playbooks]
+      operationId: listChannelRuns
+      summary: Runs in a channel, newest first (up to 50)
+      responses:
+        '200':
+          description: Runs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runs]
+                properties:
+                  runs:
+                    type: array
+                    items: { $ref: '#/components/schemas/Run' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/runs/{run_id}/items:
+    parameters:
+      - { name: run_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [playbooks]
+      operationId: updateRunItem
+      summary: Check, skip or assign a checklist item of an active run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [checklist, item]
+              properties:
+                checklist: { type: integer, minimum: 0 }
+                item: { type: integer, minimum: 0 }
+                done: { type: boolean }
+                skipped: { type: boolean }
+                assignee_id: { type: string, format: uuid, nullable: true }
+      responses:
+        '200':
+          description: The run; the channel's members see `run.updated`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Run' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/runs/{run_id}/finish:
+    parameters:
+      - { name: run_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [playbooks]
+      operationId: finishRun
+      summary: Finish a run (its owner or a channel manager); the channel is told
+      responses:
+        '200':
+          description: The run.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Run' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
 security:
   - cookie: []
   - bearer: []
@@ -3421,6 +4074,229 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    Poll:
+      type: object
+      required: [options, multiple, anonymous, closes_at, closed, voters]
+      properties:
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/PollOption' }
+        multiple: { type: boolean, description: More than one option may be chosen. }
+        anonymous: { type: boolean }
+        closes_at: { type: string, format: date-time, nullable: true }
+        closed: { type: boolean }
+        voters: { type: integer, description: People who voted. }
+    PollOption:
+      type: object
+      required: [id, text, votes, me]
+      properties:
+        id: { type: string, format: uuid }
+        text: { type: string }
+        votes: { type: integer }
+        me: { type: boolean, description: The reader chose it. }
+        voters:
+          type: array
+          description: Who chose it (not in anonymous polls).
+          items: { $ref: '#/components/schemas/Author' }
+    NewPoll:
+      type: object
+      required: [options]
+      properties:
+        options:
+          type: array
+          minItems: 2
+          maxItems: 10
+          items: { type: string, minLength: 1, maxLength: 200 }
+        multiple: { type: boolean }
+        anonymous: { type: boolean }
+        closes_at: { type: string, format: date-time }
+    Report:
+      type: object
+      required: [id, message, channel, reporter, rule_name, reason, status, action, created_at, reports]
+      properties:
+        id: { type: string, format: uuid }
+        message: { $ref: '#/components/schemas/Message' }
+        channel: { $ref: '#/components/schemas/SearchChannel' }
+        reporter:
+          description: Who reported it; null for AutoMod (see rule_name).
+          allOf: [{ $ref: '#/components/schemas/Author' }]
+          nullable: true
+        rule_name: { type: string }
+        reason: { type: string }
+        status: { type: string, enum: [open, resolved, dismissed] }
+        action: { type: string, enum: ['', deleted, timeout, none] }
+        created_at: { type: string, format: date-time }
+        reports: { type: integer, description: Open reports of the same message. }
+    AutomodRuleInput:
+      type: object
+      required: [name, kind, action]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        kind:
+          type: string
+          enum: [keywords, mentions, links]
+          description: |
+            keywords: any of `words` (a trailing `*` matches a word's beginning; case and
+            accents do not matter); mentions: more than `max_mentions` people mentioned;
+            links: links to domains not in `allowed_domains`.
+        words:
+          type: array
+          maxItems: 200
+          items: { type: string, minLength: 1, maxLength: 60 }
+        max_mentions: { type: integer, minimum: 1, maximum: 100 }
+        allowed_domains:
+          type: array
+          maxItems: 100
+          items: { type: string, minLength: 1, maxLength: 253 }
+        action: { type: string, enum: [block, flag], description: 'block: the message is not sent; flag: it is sent and reported.' }
+        exempt_roles:
+          type: array
+          items: { type: string, enum: [owner, admin, member, guest] }
+        enabled: { type: boolean }
+    AutomodRule:
+      allOf:
+        - $ref: '#/components/schemas/AutomodRuleInput'
+        - type: object
+          required: [id, words, max_mentions, allowed_domains, exempt_roles, enabled]
+          properties:
+            id: { type: string, format: uuid }
+    EventInput:
+      type: object
+      required: [title, starts_at, ends_at]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 4000 }
+        location: { type: string, maxLength: 300 }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        channel_id: { type: string, format: uuid, nullable: true }
+    Event:
+      type: object
+      required: [id, workspace_id, channel_id, title, description, location, starts_at, ends_at, created_by, canceled, going, maybe, me, can_edit]
+      properties:
+        id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid, nullable: true }
+        title: { type: string }
+        description: { type: string }
+        location: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        created_by:
+          allOf: [{ $ref: '#/components/schemas/Author' }]
+          nullable: true
+        canceled: { type: boolean }
+        going:
+          type: array
+          items: { $ref: '#/components/schemas/Author' }
+        maybe: { type: integer }
+        me: { type: string, enum: [going, maybe, declined], nullable: true }
+        can_edit: { type: boolean }
+    Welcome:
+      type: object
+      required: [message, rules, channel_ids]
+      properties:
+        message: { type: string, maxLength: 4000, description: Markdown. }
+        rules:
+          type: array
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 500 }
+        channel_ids:
+          type: array
+          maxItems: 20
+          description: Channels suggested to join.
+          items: { type: string, format: uuid }
+    BannerInput:
+      type: object
+      required: [text, level]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 500 }
+        level: { type: string, enum: [info, warning, critical] }
+        dismissible: { type: boolean, default: true }
+    Banner:
+      allOf:
+        - $ref: '#/components/schemas/BannerInput'
+        - type: object
+          required: [dismissible, updated_at]
+          properties:
+            updated_at: { type: string, format: date-time }
+    Terms:
+      type: object
+      required: [id, text, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        text: { type: string, description: Markdown. }
+        created_at: { type: string, format: date-time }
+    PlaybookChecklist:
+      type: object
+      required: [title, items]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: object
+            required: [title]
+            properties:
+              title: { type: string, minLength: 1, maxLength: 200 }
+              description: { type: string, maxLength: 1000 }
+    PlaybookInput:
+      type: object
+      required: [name, checklists]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 4000 }
+        checklists:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: '#/components/schemas/PlaybookChecklist' }
+    Playbook:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookInput'
+        - type: object
+          required: [id, description, updated_at, runs_active]
+          properties:
+            id: { type: string, format: uuid }
+            updated_at: { type: string, format: date-time }
+            runs_active: { type: integer }
+    Run:
+      type: object
+      required: [id, playbook_id, channel_id, name, owner, status, checklists, created_at, finished_at]
+      properties:
+        id: { type: string, format: uuid }
+        playbook_id: { type: string, format: uuid, nullable: true }
+        channel_id: { type: string, format: uuid }
+        name: { type: string }
+        owner:
+          allOf: [{ $ref: '#/components/schemas/Author' }]
+          nullable: true
+        status: { type: string, enum: [active, finished] }
+        checklists:
+          type: array
+          items: { $ref: '#/components/schemas/RunChecklist' }
+        created_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+    RunChecklist:
+      type: object
+      required: [title, items]
+      properties:
+        title: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RunItem' }
+    RunItem:
+      type: object
+      required: [title, description, done_at, done_by, skipped, assignee_id]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        done_at: { type: string, format: date-time, nullable: true }
+        done_by: { type: string, format: uuid, nullable: true }
+        skipped: { type: boolean }
+        assignee_id: { type: string, format: uuid, nullable: true }
     Problem:
       type: object
       required: [type, title, status, code]
@@ -3621,6 +4497,14 @@ components:
           type: string
           enum: [owner, admin, member, guest]
           description: Guests see only the channels they are in and the people in them.
+        timeout_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Until then you may not post or react here (a moderator's timeout).
+        needs_onboarding:
+          type: boolean
+          description: The workspace has a welcome you have not seen yet.
     WorkspaceMember:
       type: object
       required: [user, role]
@@ -3676,10 +4560,18 @@ components:
         topic: { type: string }
         kind:
           type: string
-          enum: [standard, announcement, direct, group]
+          enum: [standard, announcement, direct, group, forum]
           description: |
             In announcement channels only workspace owners and admins send. Direct and
-            group conversations have participants instead of a name.
+            group conversations have participants instead of a name. A forum's messages
+            are posts with titles; people answer in their threads.
+        forum_tags:
+          type: array
+          description: Tags a forum's posts may carry.
+          items: { type: string }
+        slow_mode_seconds:
+          type: integer
+          description: Seconds a member waits between messages (0 off; managers are exempt).
         is_default:
           type: boolean
           description: Every user is a member.
@@ -3729,6 +4621,11 @@ components:
           type: string
           enum: [public, private]
         topic: { type: string, maxLength: 250 }
+        slow_mode_seconds: { type: integer, minimum: 0, maximum: 21600 }
+        forum_tags:
+          type: array
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 40 }
     Presence:
       type: object
       required: [user_id, status]
@@ -4030,7 +4927,7 @@ components:
         topic: { type: string, maxLength: 250 }
         kind:
           type: string
-          enum: [standard, announcement]
+          enum: [standard, announcement, forum]
           default: standard
         visibility:
           type: string
@@ -4093,6 +4990,11 @@ components:
         pinned_at: { type: string, format: date-time, nullable: true }
         pinned_by: { type: string, format: uuid, nullable: true }
         thread: { $ref: '#/components/schemas/ThreadSummary' }
+        title: { type: string, nullable: true, description: A forum post's title. }
+        tags:
+          type: array
+          items: { type: string }
+        poll: { $ref: '#/components/schemas/Poll' }
     ThreadSummary:
       type: object
       description: The replies of a message (absent when it has none).
@@ -4199,6 +5101,16 @@ components:
         also_in_channel:
           type: boolean
           description: Show the reply in the channel too.
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Required for posts in forums (not for replies).
+        tags:
+          type: array
+          maxItems: 5
+          items: { type: string }
+        poll: { $ref: '#/components/schemas/NewPoll' }
     Reaction:
       type: object
       required: [emoji, count, me]

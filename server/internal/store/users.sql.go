@@ -23,7 +23,7 @@ func (q *Queries) ClearAdminExcept(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory FROM users WHERE id = $1
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -55,6 +55,7 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.StatusExpiresAt,
 		&i.RecentStatuses,
 		&i.UsernameFromDirectory,
+		&i.TermsAcceptedID,
 	)
 	return i, err
 }
@@ -148,7 +149,7 @@ SET email          = EXCLUDED.email,
         WHEN (users.email, users.email_verified, users.display_name)
              IS DISTINCT FROM (EXCLUDED.email, EXCLUDED.email_verified, EXCLUDED.display_name)
         THEN now() ELSE users.updated_at END
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id
 `
 
 type UpsertUserFromIdentityParams struct {
@@ -196,6 +197,7 @@ func (q *Queries) UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFrom
 		&i.StatusExpiresAt,
 		&i.RecentStatuses,
 		&i.UsernameFromDirectory,
+		&i.TermsAcceptedID,
 	)
 	return i, err
 }

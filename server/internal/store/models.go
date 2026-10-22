@@ -22,6 +22,18 @@ type AuditEvent struct {
 	Detail      []byte      `json:"detail"`
 }
 
+type AutomodRule struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Name        string      `json:"name"`
+	Kind        string      `json:"kind"`
+	Config      []byte      `json:"config"`
+	Action      string      `json:"action"`
+	ExemptRoles []string    `json:"exempt_roles"`
+	Enabled     bool        `json:"enabled"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
 type Bot struct {
 	ID          pgtype.UUID        `json:"id"`
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
@@ -47,19 +59,21 @@ type BotToken struct {
 }
 
 type Channel struct {
-	ID           pgtype.UUID        `json:"id"`
-	Name         string             `json:"name"`
-	Topic        string             `json:"topic"`
-	CreatedAt    time.Time          `json:"created_at"`
-	Kind         string             `json:"kind"`
-	IsDefault    bool               `json:"is_default"`
-	IsMandatory  bool               `json:"is_mandatory"`
-	CreatedBy    pgtype.UUID        `json:"created_by"`
-	Visibility   string             `json:"visibility"`
-	ArchivedAt   pgtype.Timestamptz `json:"archived_at"`
-	CategoryID   pgtype.UUID        `json:"category_id"`
-	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
-	GroupManaged bool               `json:"group_managed"`
+	ID              pgtype.UUID        `json:"id"`
+	Name            string             `json:"name"`
+	Topic           string             `json:"topic"`
+	CreatedAt       time.Time          `json:"created_at"`
+	Kind            string             `json:"kind"`
+	IsDefault       bool               `json:"is_default"`
+	IsMandatory     bool               `json:"is_mandatory"`
+	CreatedBy       pgtype.UUID        `json:"created_by"`
+	Visibility      string             `json:"visibility"`
+	ArchivedAt      pgtype.Timestamptz `json:"archived_at"`
+	CategoryID      pgtype.UUID        `json:"category_id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	GroupManaged    bool               `json:"group_managed"`
+	ForumTags       []string           `json:"forum_tags"`
+	SlowModeSeconds int32              `json:"slow_mode_seconds"`
 }
 
 type ChannelCategory struct {
@@ -105,6 +119,20 @@ type EmailNotification struct {
 	SentAt      pgtype.Timestamptz `json:"sent_at"`
 }
 
+type Event struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ChannelID   pgtype.UUID        `json:"channel_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	Location    string             `json:"location"`
+	StartsAt    time.Time          `json:"starts_at"`
+	EndsAt      time.Time          `json:"ends_at"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	CanceledAt  pgtype.Timestamptz `json:"canceled_at"`
+}
+
 type EventDelivery struct {
 	ID             pgtype.UUID        `json:"id"`
 	SubscriptionID pgtype.UUID        `json:"subscription_id"`
@@ -124,6 +152,14 @@ type EventOutbox struct {
 	Type      string    `json:"type"`
 	Data      []byte    `json:"data"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type EventRsvp struct {
+	EventID    pgtype.UUID `json:"event_id"`
+	UserID     pgtype.UUID `json:"user_id"`
+	Status     string      `json:"status"`
+	ReminderID pgtype.UUID `json:"reminder_id"`
+	UpdatedAt  time.Time   `json:"updated_at"`
 }
 
 type EventSubscription struct {
@@ -166,6 +202,14 @@ type IncomingWebhook struct {
 	LastUsedAt pgtype.Timestamptz `json:"last_used_at"`
 }
 
+type InstanceBanner struct {
+	ID          bool      `json:"id"`
+	Text        string    `json:"text"`
+	Level       string    `json:"level"`
+	Dismissible bool      `json:"dismissible"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type Message struct {
 	ID            pgtype.UUID        `json:"id"`
 	ChannelID     pgtype.UUID        `json:"channel_id"`
@@ -182,6 +226,8 @@ type Message struct {
 	AlsoInChannel bool               `json:"also_in_channel"`
 	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
 	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	Title         pgtype.Text        `json:"title"`
+	Tags          []string           `json:"tags"`
 }
 
 type MessageMention struct {
@@ -194,6 +240,20 @@ type MessageReaction struct {
 	Emoji     string      `json:"emoji"`
 	UserID    pgtype.UUID `json:"user_id"`
 	CreatedAt time.Time   `json:"created_at"`
+}
+
+type MessageReport struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	MessageID   pgtype.UUID        `json:"message_id"`
+	ReporterID  pgtype.UUID        `json:"reporter_id"`
+	RuleName    string             `json:"rule_name"`
+	Reason      string             `json:"reason"`
+	Status      string             `json:"status"`
+	Action      string             `json:"action"`
+	ResolvedBy  pgtype.UUID        `json:"resolved_by"`
+	ResolvedAt  pgtype.Timestamptz `json:"resolved_at"`
+	CreatedAt   time.Time          `json:"created_at"`
 }
 
 type NotificationPref struct {
@@ -213,6 +273,53 @@ type Picture struct {
 	Data        []byte      `json:"data"`
 	Still       []byte      `json:"still"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type Playbook struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Checklists  []byte             `json:"checklists"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+	ArchivedAt  pgtype.Timestamptz `json:"archived_at"`
+}
+
+type PlaybookRun struct {
+	ID          pgtype.UUID        `json:"id"`
+	PlaybookID  pgtype.UUID        `json:"playbook_id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ChannelID   pgtype.UUID        `json:"channel_id"`
+	Name        string             `json:"name"`
+	OwnerID     pgtype.UUID        `json:"owner_id"`
+	Checklists  []byte             `json:"checklists"`
+	Status      string             `json:"status"`
+	CreatedAt   time.Time          `json:"created_at"`
+	FinishedAt  pgtype.Timestamptz `json:"finished_at"`
+}
+
+type Poll struct {
+	MessageID pgtype.UUID        `json:"message_id"`
+	Multiple  bool               `json:"multiple"`
+	Anonymous bool               `json:"anonymous"`
+	ClosesAt  pgtype.Timestamptz `json:"closes_at"`
+	ClosedAt  pgtype.Timestamptz `json:"closed_at"`
+}
+
+type PollOption struct {
+	ID        pgtype.UUID `json:"id"`
+	MessageID pgtype.UUID `json:"message_id"`
+	Position  int32       `json:"position"`
+	Text      string      `json:"text"`
+}
+
+type PollVote struct {
+	OptionID  pgtype.UUID `json:"option_id"`
+	MessageID pgtype.UUID `json:"message_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type PushKey struct {
@@ -279,6 +386,14 @@ type SlashCommand struct {
 	CreatedAt   time.Time   `json:"created_at"`
 }
 
+type TermsOfService struct {
+	ID          pgtype.UUID        `json:"id"`
+	Text        string             `json:"text"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	WithdrawnAt pgtype.Timestamptz `json:"withdrawn_at"`
+}
+
 type ThreadFollow struct {
 	UserID     pgtype.UUID `json:"user_id"`
 	RootID     pgtype.UUID `json:"root_id"`
@@ -319,6 +434,7 @@ type User struct {
 	StatusExpiresAt       pgtype.Timestamptz `json:"status_expires_at"`
 	RecentStatuses        []byte             `json:"recent_statuses"`
 	UsernameFromDirectory bool               `json:"username_from_directory"`
+	TermsAcceptedID       pgtype.UUID        `json:"terms_accepted_id"`
 }
 
 type UserFont struct {
@@ -358,6 +474,7 @@ type Workspace struct {
 	Description string      `json:"description"`
 	IconID      pgtype.UUID `json:"icon_id"`
 	Appearance  []byte      `json:"appearance"`
+	Welcome     []byte      `json:"welcome"`
 }
 
 type WorkspaceGroupMapping struct {
@@ -380,11 +497,13 @@ type WorkspaceInvite struct {
 }
 
 type WorkspaceMember struct {
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	UserID      pgtype.UUID `json:"user_id"`
-	Role        string      `json:"role"`
-	JoinedAt    time.Time   `json:"joined_at"`
-	ViaGroup    bool        `json:"via_group"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	UserID       pgtype.UUID        `json:"user_id"`
+	Role         string             `json:"role"`
+	JoinedAt     time.Time          `json:"joined_at"`
+	ViaGroup     bool               `json:"via_group"`
+	TimeoutUntil pgtype.Timestamptz `json:"timeout_until"`
+	OnboardedAt  pgtype.Timestamptz `json:"onboarded_at"`
 }
 
 type WorkspaceNotificationPref struct {

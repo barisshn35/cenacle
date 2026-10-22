@@ -61,6 +61,16 @@ const (
 	ThreadFollowed = "thread.followed"
 	ThreadRead     = "thread.read"
 	SavedChanged   = "saved.changed"
+	// PollUpdated and RunUpdated go to the channel's members.
+	PollUpdated = "poll.updated"
+	RunUpdated  = "run.updated"
+	// ReportCreated (the moderation queue changed) and EventChanged go to the
+	// members of a workspace.
+	ReportCreated = "report.created"
+	EventChanged  = "event.changed"
+	// BannerChanged and TermsChanged go to everyone.
+	BannerChanged = "banner.changed"
+	TermsChanged  = "terms.changed"
 )
 
 // ID is a parsed stream id.

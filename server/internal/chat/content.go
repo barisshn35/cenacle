@@ -196,6 +196,13 @@ func decorate(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs []a
 		i := index[uuid(f.MessageID)]
 		msgs[i].Files = append(msgs[i].Files, fileAPI(f))
 	}
+	polls, err := pollsFor(ctx, q, reader, ids)
+	if err != nil {
+		return err
+	}
+	for id, p := range polls {
+		msgs[index[uuid(id)]].Poll = p
+	}
 	var roots []pgtype.UUID
 	for _, m := range msgs {
 		if m.RootId == nil {

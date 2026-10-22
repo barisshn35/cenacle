@@ -41,6 +41,9 @@ type RateLimiter interface {
 
 // Handlers implements the chat operations of the API.
 type Handlers struct {
+	// terms caches the terms of service in force (TermsGate).
+	terms termsCache
+
 	Queries store.Querier
 	// DB starts the transactions that write a change and its event together.
 	DB TxBeginner
@@ -144,6 +147,7 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 			ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
+			Title: m.Title, Tags: m.Tags,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -238,6 +242,14 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 
+	if h.timedOut(w, r, c.WorkspaceID, p.User) || h.slowedDown(w, r, c, role, p.User) {
+		return
+	}
+	extra, problem := h.messageExtras(c, in)
+	if problem != "" {
+		badRequest(w, r, problem)
+		return
+	}
 	var reply replyTo
 	if in.RootId != nil {
 		root, ok := h.threadRoot(w, r, c, *in.RootId)
@@ -253,14 +265,21 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	if !h.allowMessage(w, r, p.User) {
 		return
 	}
+	flags, ok := h.automod(w, r, c, role, strings.TrimSpace(extra.titleText()+"\n"+body))
+	if !ok {
+		return
+	}
 
 	// The message, its mentions, the author's read position and the event are
 	// written together: the event cannot get lost (transactional outbox).
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
-		out, err = postMessageTo(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments, reply, files...)
-		return err
+		out, err = postMessageTo(r.Context(), q, c, p.User, body, in.Nonce, rawAttachments, reply, extra, files...)
+		if err != nil {
+			return err
+		}
+		return flagMessage(r.Context(), q, c, out.Id, flags)
 	})
 	if errors.Is(err, errFilesUnavailable) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: CodeFilesUnavailable,
@@ -283,7 +302,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 // author and records message.created, inside the caller's transaction. A
 // nonce the author used before returns that message (a retry).
 func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, files ...pgtype.UUID) (api.Message, error) {
-	return postMessageTo(ctx, q, c, author, body, nonce, rawAttachments, replyTo{}, files...)
+	return postMessageTo(ctx, q, c, author, body, nonce, rawAttachments, replyTo{}, postExtras{}, files...)
 }
 
 // replyTo places a message in a thread (no root: in the channel).
@@ -297,10 +316,11 @@ func (r replyTo) isReply() bool { return r.root.ID.Valid }
 
 // postMessageTo is postMessage, in a thread when reply has a root: the
 // author, the root's author and the people mentioned follow the thread.
-func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, reply replyTo, files ...pgtype.UUID) (api.Message, error) {
+func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, reply replyTo, extra postExtras, files ...pgtype.UUID) (api.Message, error) {
 	msg, err := q.CreateMessage(ctx, store.CreateMessageParams{
 		ChannelID: c.ID, AuthorID: author.ID, Body: body, Nonce: nonce, Attachments: rawAttachments,
 		HasFiles: len(files) > 0, RootID: reply.root.ID, AlsoInChannel: reply.isReply() && reply.also,
+		Title: extra.title, Tags: extra.tags,
 	})
 	if isNoRows(err) {
 		msg, err = q.GetMessageByNonce(ctx, store.GetMessageByNonceParams{AuthorID: author.ID, Nonce: nonce})
@@ -330,6 +350,9 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 		if n != int64(len(files)) {
 			return api.Message{}, errFilesUnavailable
 		}
+	}
+	if err := createPoll(ctx, q, msg.ID, extra.poll); err != nil {
+		return api.Message{}, err
 	}
 	ids := mentionedIDs(body)
 	if len(ids) > 0 {
@@ -390,6 +413,12 @@ func messageAPI(m store.Message, authorName string, authorIsBot bool) api.Messag
 		if m.AlsoInChannel {
 			out.AlsoInChannel = &m.AlsoInChannel
 		}
+	}
+	if m.Title.Valid {
+		out.Title = &m.Title.String
+	}
+	if len(m.Tags) > 0 {
+		out.Tags = &m.Tags
 	}
 	if m.PinnedAt.Valid {
 		t := m.PinnedAt.Time

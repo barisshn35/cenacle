@@ -287,6 +287,7 @@ func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, ch
 	}
 	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
 		ID: c.ID, Name: c.Name, Visibility: c.Visibility, Topic: c.Topic, CategoryID: category,
+		SlowModeSeconds: c.SlowModeSeconds, ForumTags: c.ForumTags,
 	})
 	if err != nil {
 		h.unavailable(w, r, "set channel category", err)
@@ -488,7 +489,8 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 func storeMessage(m store.GetMessageRow) store.Message {
 	return store.Message{ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
-		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy}
+		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
+		Title: m.Title, Tags: m.Tags}
 }
 
 // Purger removes deleted messages once they can no longer be restored (a

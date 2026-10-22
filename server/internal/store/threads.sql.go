@@ -125,7 +125,7 @@ func (q *Queries) FollowThread(ctx context.Context, arg FollowThreadParams) erro
 }
 
 const getMessagesByIDs = `-- name: GetMessagesByIDs :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, u.display_name AS author_name, u.is_bot AS author_is_bot,
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
 FROM messages m
 JOIN users u ON u.id = m.author_id
@@ -149,6 +149,8 @@ type GetMessagesByIDsRow struct {
 	AlsoInChannel bool               `json:"also_in_channel"`
 	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
 	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	Title         pgtype.Text        `json:"title"`
+	Tags          []string           `json:"tags"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 	ChannelName   string             `json:"channel_name"`
@@ -182,6 +184,8 @@ func (q *Queries) GetMessagesByIDs(ctx context.Context, ids []pgtype.UUID) ([]Ge
 			&i.AlsoInChannel,
 			&i.PinnedAt,
 			&i.PinnedBy,
+			&i.Title,
+			&i.Tags,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 			&i.ChannelName,
@@ -243,7 +247,7 @@ func (q *Queries) GetThreadFollow(ctx context.Context, arg GetThreadFollowParams
 }
 
 const getUsersByIDs = `-- name: GetUsersByIDs :many
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory FROM users WHERE id = ANY($1::uuid[])
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id FROM users WHERE id = ANY($1::uuid[])
 `
 
 func (q *Queries) GetUsersByIDs(ctx context.Context, ids []pgtype.UUID) ([]User, error) {
@@ -281,6 +285,7 @@ func (q *Queries) GetUsersByIDs(ctx context.Context, ids []pgtype.UUID) ([]User,
 			&i.StatusExpiresAt,
 			&i.RecentStatuses,
 			&i.UsernameFromDirectory,
+			&i.TermsAcceptedID,
 		); err != nil {
 			return nil, err
 		}
@@ -372,7 +377,7 @@ func (q *Queries) ListActivity(ctx context.Context, arg ListActivityParams) ([]L
 
 const listFollowedThreads = `-- name: ListFollowedThreads :many
 SELECT r.id, r.channel_id, r.author_id, r.body, r.nonce, r.created_at, r.edited_at, r.attachments,
-       r.pinned_at, r.pinned_by, u.display_name AS author_name, u.is_bot AS author_is_bot,
+       r.pinned_at, r.pinned_by, r.title, r.tags, u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id,
        last.id AS last_reply_id,
        (SELECT count(*) FROM (
@@ -419,6 +424,8 @@ type ListFollowedThreadsRow struct {
 	Attachments  []byte             `json:"attachments"`
 	PinnedAt     pgtype.Timestamptz `json:"pinned_at"`
 	PinnedBy     pgtype.UUID        `json:"pinned_by"`
+	Title        pgtype.Text        `json:"title"`
+	Tags         []string           `json:"tags"`
 	AuthorName   string             `json:"author_name"`
 	AuthorIsBot  bool               `json:"author_is_bot"`
 	ChannelName  string             `json:"channel_name"`
@@ -456,6 +463,8 @@ func (q *Queries) ListFollowedThreads(ctx context.Context, arg ListFollowedThrea
 			&i.Attachments,
 			&i.PinnedAt,
 			&i.PinnedBy,
+			&i.Title,
+			&i.Tags,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 			&i.ChannelName,
@@ -476,7 +485,7 @@ func (q *Queries) ListFollowedThreads(ctx context.Context, arg ListFollowedThrea
 }
 
 const listPins = `-- name: ListPins :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = $1 AND m.pinned_at IS NOT NULL AND m.deleted_at IS NULL
@@ -500,6 +509,8 @@ type ListPinsRow struct {
 	AlsoInChannel bool               `json:"also_in_channel"`
 	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
 	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	Title         pgtype.Text        `json:"title"`
+	Tags          []string           `json:"tags"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -529,6 +540,8 @@ func (q *Queries) ListPins(ctx context.Context, channelID pgtype.UUID) ([]ListPi
 			&i.AlsoInChannel,
 			&i.PinnedAt,
 			&i.PinnedBy,
+			&i.Title,
+			&i.Tags,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -543,7 +556,7 @@ func (q *Queries) ListPins(ctx context.Context, channelID pgtype.UUID) ([]ListPi
 }
 
 const listReplies = `-- name: ListReplies :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.root_id = $1
@@ -575,6 +588,8 @@ type ListRepliesRow struct {
 	AlsoInChannel bool               `json:"also_in_channel"`
 	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
 	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	Title         pgtype.Text        `json:"title"`
+	Tags          []string           `json:"tags"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -606,6 +621,8 @@ func (q *Queries) ListReplies(ctx context.Context, arg ListRepliesParams) ([]Lis
 			&i.AlsoInChannel,
 			&i.PinnedAt,
 			&i.PinnedBy,
+			&i.Title,
+			&i.Tags,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -665,12 +682,12 @@ func (q *Queries) ListSaved(ctx context.Context, userID pgtype.UUID) ([]ListSave
 
 const listUnreadMessages = `-- name: ListUnreadMessages :many
 SELECT x.id, x.channel_id, x.author_id, x.body, x.nonce, x.created_at, x.edited_at, x.attachments,
-       x.root_id, x.also_in_channel, x.pinned_at, x.pinned_by,
+       x.root_id, x.also_in_channel, x.pinned_at, x.pinned_by, x.title, x.tags,
        u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM channel_members cm
 JOIN channels c ON c.id = cm.channel_id AND c.archived_at IS NULL AND c.workspace_id = $1
 CROSS JOIN LATERAL (
-    SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by FROM messages m
+    SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags FROM messages m
     WHERE m.channel_id = c.id AND m.deleted_at IS NULL AND m.author_id <> $2
       AND (m.root_id IS NULL OR m.also_in_channel)
       AND (cm.last_read_id IS NULL OR m.id > cm.last_read_id)
@@ -698,6 +715,8 @@ type ListUnreadMessagesRow struct {
 	AlsoInChannel bool               `json:"also_in_channel"`
 	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
 	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	Title         pgtype.Text        `json:"title"`
+	Tags          []string           `json:"tags"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -726,6 +745,8 @@ func (q *Queries) ListUnreadMessages(ctx context.Context, arg ListUnreadMessages
 			&i.AlsoInChannel,
 			&i.PinnedAt,
 			&i.PinnedBy,
+			&i.Title,
+			&i.Tags,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -765,7 +786,7 @@ UPDATE messages
 SET pinned_at = CASE WHEN $1::boolean THEN now() END,
     pinned_by = CASE WHEN $1::boolean THEN $2::uuid END
 WHERE id = $3 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags
 `
 
 type SetPinnedParams struct {
@@ -793,6 +814,8 @@ func (q *Queries) SetPinned(ctx context.Context, arg SetPinnedParams) (Message, 
 		&i.AlsoInChannel,
 		&i.PinnedAt,
 		&i.PinnedBy,
+		&i.Title,
+		&i.Tags,
 	)
 	return i, err
 }

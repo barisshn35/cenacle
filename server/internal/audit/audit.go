@@ -54,6 +54,15 @@ const (
 	GroupMappingDeleted = "workspace.group_mapping_deleted"
 	ChannelGroupsSet    = "channel.groups_set"
 	Unsubscribed        = "bot.subscription_deleted"
+
+	SlowModeChanged    = "channel.slow_mode_changed"
+	MemberTimedOut     = "workspace.member_timed_out"
+	ReportResolved     = "moderation.report_resolved"
+	AutomodRuleChanged = "moderation.automod_rule_changed"
+	WelcomeChanged     = "workspace.welcome_changed"
+	BannerChanged      = "instance.banner_changed"
+	TermsChanged       = "instance.terms_changed"
+	PlaybookChanged    = "playbook.changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

@@ -57,7 +57,8 @@ ORDER BY m.role = 'manager' DESC, lower(u.display_name), u.id;
 
 -- name: UpdateChannel :one
 UPDATE channels
-SET name = @name, visibility = @visibility, topic = @topic, category_id = sqlc.narg(category_id)
+SET name = @name, visibility = @visibility, topic = @topic, category_id = sqlc.narg(category_id),
+    slow_mode_seconds = @slow_mode_seconds, forum_tags = coalesce(@forum_tags::text[], '{}')
 WHERE id = @id
 RETURNING *;
 
@@ -137,8 +138,9 @@ UPDATE channel_members SET role = @role WHERE channel_id = @channel_id AND user_
 -- name: CreateMessage :one
 -- CreateMessage inserts a message; with a nonce the author used before it
 -- returns nothing (see GetMessageByNonce).
-INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files, root_id, also_in_channel)
-VALUES (@channel_id, @author_id, @body, @nonce, @attachments, @has_files, sqlc.narg(root_id), @also_in_channel)
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files, root_id, also_in_channel, title, tags)
+VALUES (@channel_id, @author_id, @body, @nonce, @attachments, @has_files, sqlc.narg(root_id), @also_in_channel,
+        sqlc.narg(title), coalesce(@tags::text[], '{}'))
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
 RETURNING *;
 

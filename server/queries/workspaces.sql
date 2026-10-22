@@ -1,7 +1,7 @@
 -- name: ListUserWorkspaces :many
 -- ListUserWorkspaces returns a user's workspaces with their role, the default
 -- workspace first.
-SELECT sqlc.embed(w), wm.role
+SELECT sqlc.embed(w), wm.role, wm.timeout_until, wm.onboarded_at
 FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.user_id = @user_id
 ORDER BY w.is_default DESC, lower(w.name), w.id;

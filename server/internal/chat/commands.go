@@ -123,6 +123,7 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 		}
 		updated, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
 			ID: c.ID, Name: c.Name, Visibility: c.Visibility, Topic: topic, CategoryID: c.CategoryID,
+			SlowModeSeconds: c.SlowModeSeconds, ForumTags: c.ForumTags,
 		})
 		if err != nil {
 			h.unavailable(w, r, "set topic", err)

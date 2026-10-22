@@ -149,6 +149,7 @@ func (h *Handlers) ListReplies(w http.ResponseWriter, r *http.Request, channelID
 			ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
+			Title: m.Title, Tags: m.Tags,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -320,7 +321,7 @@ func (h *Handlers) ListThreads(w http.ResponseWriter, r *http.Request, params ap
 		roots[i] = messageAPI(store.Message{
 			ID: t.ID, ChannelID: t.ChannelID, AuthorID: t.AuthorID, Body: t.Body, Nonce: t.Nonce,
 			CreatedAt: t.CreatedAt, EditedAt: t.EditedAt, Attachments: t.Attachments,
-			PinnedAt: t.PinnedAt, PinnedBy: t.PinnedBy,
+			PinnedAt: t.PinnedAt, PinnedBy: t.PinnedBy, Title: t.Title, Tags: t.Tags,
 		}, t.AuthorName, t.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, roots); err != nil {
@@ -445,6 +446,7 @@ func (h *Handlers) ListPins(w http.ResponseWriter, r *http.Request, channelID op
 			ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
+			Title: m.Title, Tags: m.Tags,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {
@@ -461,6 +463,7 @@ func messageOf(m store.GetMessagesByIDsRow) api.Message {
 		ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 		CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
+		Title: m.Title, Tags: m.Tags,
 	}, m.AuthorName, m.AuthorIsBot)
 }
 
@@ -739,6 +742,7 @@ func (h *Handlers) ListUnreads(w http.ResponseWriter, r *http.Request, params ap
 			ID: m.ID, ChannelID: m.ChannelID, AuthorID: m.AuthorID, Body: m.Body, Nonce: m.Nonce,
 			CreatedAt: m.CreatedAt, EditedAt: m.EditedAt, Attachments: m.Attachments,
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
+			Title: m.Title, Tags: m.Tags,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {

@@ -55,7 +55,12 @@ func (h *Handlers) ListWorkspaces(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]api.Workspace, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, workspaceAPI(row.Workspace, row.Role))
+		ws := workspaceAPI(row.Workspace, row.Role)
+		if row.TimeoutUntil.Valid && row.TimeoutUntil.Time.After(time.Now()) {
+			ws.TimeoutUntil = &row.TimeoutUntil.Time
+		}
+		ws.NeedsOnboarding = ptr(!row.OnboardedAt.Valid && welcomeOf(row.Workspace).set())
+		out = append(out, ws)
 	}
 	httpx.WriteJSON(w, http.StatusOK, struct {
 		Workspaces []api.Workspace `json:"workspaces"`

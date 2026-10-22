@@ -31,6 +31,7 @@ import (
 const (
 	KindStandard     = "standard"
 	KindAnnouncement = "announcement"
+	KindForum        = "forum"
 	// Direct (two people) and group conversations: private, without
 	// managers, keyed by their people (see conversationKey).
 	KindDirect = "direct"
@@ -102,11 +103,13 @@ func toAPI(c store.Channel, a access) api.Channel {
 		Id: uuid(c.ID), WorkspaceId: uuid(c.WorkspaceID), Name: c.Name, Topic: c.Topic, Kind: api.ChannelKind(c.Kind),
 		Visibility: api.ChannelVisibility(c.Visibility),
 		IsDefault:  c.IsDefault, IsMandatory: c.IsMandatory, IsMember: member,
-		CanPost:      member && canPost(c, a),
-		CanManage:    canManage(c, a),
-		Archived:     c.ArchivedAt.Valid,
-		GroupManaged: c.GroupManaged,
-		Participants: []api.Person{},
+		CanPost:         member && canPost(c, a),
+		CanManage:       canManage(c, a),
+		Archived:        c.ArchivedAt.Valid,
+		GroupManaged:    c.GroupManaged,
+		Participants:    []api.Person{},
+		SlowModeSeconds: ptr(int(c.SlowModeSeconds)),
+		ForumTags:       ptr(append([]string{}, c.ForumTags...)),
 	}
 	if c.CategoryID.Valid {
 		id := uuid(c.CategoryID)
@@ -250,8 +253,8 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	isDefault := in.IsDefault != nil && *in.IsDefault
 	switch {
 	case problem != "":
-	case kind != KindStandard && kind != KindAnnouncement:
-		problem = "kind must be standard or announcement."
+	case kind != KindStandard && kind != KindAnnouncement && kind != KindForum:
+		problem = "kind must be standard, announcement or forum."
 	case visibility != Public && visibility != Private:
 		problem = "visibility must be public or private."
 	case isDefault && visibility == Private:
@@ -460,6 +463,17 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 	if problem == "" && in.Topic != nil {
 		topic, problem = cleanTopic(*in.Topic)
 	}
+	slow, tags := c.SlowModeSeconds, c.ForumTags
+	if problem == "" && in.SlowModeSeconds != nil {
+		if *in.SlowModeSeconds < 0 || *in.SlowModeSeconds > MaxSlowMode {
+			problem = "slow_mode_seconds must be between 0 and 21600."
+		} else {
+			slow = int32(*in.SlowModeSeconds) //nolint:gosec // checked just above
+		}
+	}
+	if problem == "" && in.ForumTags != nil {
+		tags, problem = cleanTags(*in.ForumTags, MaxForumTags)
+	}
 	if name != c.Name && h.configured(c.Name) {
 		// The server would create the configured name again at the next start.
 		forbidden(w, r, CodeConfiguredName, "This channel is named in the installation settings.")
@@ -479,7 +493,13 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 	before := c
 	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
 		ID: c.ID, Name: name, Visibility: visibility, Topic: topic, CategoryID: c.CategoryID,
+		SlowModeSeconds: slow, ForumTags: tags,
 	})
+	if err == nil && before.SlowModeSeconds != c.SlowModeSeconds {
+		h.record(r, c.WorkspaceID, audit.SlowModeChanged, "channel", uuid(c.ID).String(), map[string]any{
+			"channel": c.Name, "seconds": c.SlowModeSeconds,
+		})
+	}
 	if err == nil && (before.Name != c.Name || before.Visibility != c.Visibility) {
 		h.record(r, c.WorkspaceID, audit.ChannelUpdated, "channel", uuid(c.ID).String(), map[string]any{
 			"channel": c.Name, "previous_name": before.Name, "visibility": c.Visibility,

@@ -55,6 +55,8 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 	case c.ArchivedAt.Valid:
 		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
 		return
+	case add && h.timedOut(w, r, c.WorkspaceID, p.User):
+		return
 	}
 	ev := ReactionEvent{ChannelID: uuid(c.ID).String(), MessageID: uuid(m.ID).String(), Emoji: emoji,
 		UserID: uuid(p.User.ID).String()}

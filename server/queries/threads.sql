@@ -53,7 +53,7 @@ SELECT * FROM thread_follows WHERE user_id = @user_id AND root_id = @root_id;
 -- ListFollowedThreads returns the threads a user follows in channels they
 -- belong to, the latest reply first, with unread replies and mentions.
 SELECT r.id, r.channel_id, r.author_id, r.body, r.nonce, r.created_at, r.edited_at, r.attachments,
-       r.pinned_at, r.pinned_by, u.display_name AS author_name, u.is_bot AS author_is_bot,
+       r.pinned_at, r.pinned_by, r.title, r.tags, u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id,
        last.id AS last_reply_id,
        (SELECT count(*) FROM (
@@ -201,7 +201,7 @@ LIMIT @row_limit;
 -- ListUnreadMessages returns, for each channel of a workspace with unread
 -- messages, its 20 latest unread messages of others.
 SELECT x.id, x.channel_id, x.author_id, x.body, x.nonce, x.created_at, x.edited_at, x.attachments,
-       x.root_id, x.also_in_channel, x.pinned_at, x.pinned_by,
+       x.root_id, x.also_in_channel, x.pinned_at, x.pinned_by, x.title, x.tags,
        u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM channel_members cm
 JOIN channels c ON c.id = cm.channel_id AND c.archived_at IS NULL AND c.workspace_id = @workspace_id

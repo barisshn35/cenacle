@@ -202,25 +202,193 @@ func (e AppearanceTheme) Valid() bool {
 
 // Defines values for AttachmentColor.
 const (
-	Danger  AttachmentColor = "danger"
-	Info    AttachmentColor = "info"
-	Neutral AttachmentColor = "neutral"
-	Success AttachmentColor = "success"
-	Warning AttachmentColor = "warning"
+	AttachmentColorDanger  AttachmentColor = "danger"
+	AttachmentColorInfo    AttachmentColor = "info"
+	AttachmentColorNeutral AttachmentColor = "neutral"
+	AttachmentColorSuccess AttachmentColor = "success"
+	AttachmentColorWarning AttachmentColor = "warning"
 )
 
 // Valid indicates whether the value is a known member of the AttachmentColor enum.
 func (e AttachmentColor) Valid() bool {
 	switch e {
-	case Danger:
+	case AttachmentColorDanger:
 		return true
-	case Info:
+	case AttachmentColorInfo:
 		return true
-	case Neutral:
+	case AttachmentColorNeutral:
 		return true
-	case Success:
+	case AttachmentColorSuccess:
 		return true
-	case Warning:
+	case AttachmentColorWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AutomodRuleAction.
+const (
+	AutomodRuleActionBlock AutomodRuleAction = "block"
+	AutomodRuleActionFlag  AutomodRuleAction = "flag"
+)
+
+// Valid indicates whether the value is a known member of the AutomodRuleAction enum.
+func (e AutomodRuleAction) Valid() bool {
+	switch e {
+	case AutomodRuleActionBlock:
+		return true
+	case AutomodRuleActionFlag:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AutomodRuleExemptRoles.
+const (
+	AutomodRuleExemptRolesAdmin  AutomodRuleExemptRoles = "admin"
+	AutomodRuleExemptRolesGuest  AutomodRuleExemptRoles = "guest"
+	AutomodRuleExemptRolesMember AutomodRuleExemptRoles = "member"
+	AutomodRuleExemptRolesOwner  AutomodRuleExemptRoles = "owner"
+)
+
+// Valid indicates whether the value is a known member of the AutomodRuleExemptRoles enum.
+func (e AutomodRuleExemptRoles) Valid() bool {
+	switch e {
+	case AutomodRuleExemptRolesAdmin:
+		return true
+	case AutomodRuleExemptRolesGuest:
+		return true
+	case AutomodRuleExemptRolesMember:
+		return true
+	case AutomodRuleExemptRolesOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AutomodRuleKind.
+const (
+	AutomodRuleKindKeywords AutomodRuleKind = "keywords"
+	AutomodRuleKindLinks    AutomodRuleKind = "links"
+	AutomodRuleKindMentions AutomodRuleKind = "mentions"
+)
+
+// Valid indicates whether the value is a known member of the AutomodRuleKind enum.
+func (e AutomodRuleKind) Valid() bool {
+	switch e {
+	case AutomodRuleKindKeywords:
+		return true
+	case AutomodRuleKindLinks:
+		return true
+	case AutomodRuleKindMentions:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AutomodRuleInputAction.
+const (
+	AutomodRuleInputActionBlock AutomodRuleInputAction = "block"
+	AutomodRuleInputActionFlag  AutomodRuleInputAction = "flag"
+)
+
+// Valid indicates whether the value is a known member of the AutomodRuleInputAction enum.
+func (e AutomodRuleInputAction) Valid() bool {
+	switch e {
+	case AutomodRuleInputActionBlock:
+		return true
+	case AutomodRuleInputActionFlag:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AutomodRuleInputExemptRoles.
+const (
+	AutomodRuleInputExemptRolesAdmin  AutomodRuleInputExemptRoles = "admin"
+	AutomodRuleInputExemptRolesGuest  AutomodRuleInputExemptRoles = "guest"
+	AutomodRuleInputExemptRolesMember AutomodRuleInputExemptRoles = "member"
+	AutomodRuleInputExemptRolesOwner  AutomodRuleInputExemptRoles = "owner"
+)
+
+// Valid indicates whether the value is a known member of the AutomodRuleInputExemptRoles enum.
+func (e AutomodRuleInputExemptRoles) Valid() bool {
+	switch e {
+	case AutomodRuleInputExemptRolesAdmin:
+		return true
+	case AutomodRuleInputExemptRolesGuest:
+		return true
+	case AutomodRuleInputExemptRolesMember:
+		return true
+	case AutomodRuleInputExemptRolesOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AutomodRuleInputKind.
+const (
+	AutomodRuleInputKindKeywords AutomodRuleInputKind = "keywords"
+	AutomodRuleInputKindLinks    AutomodRuleInputKind = "links"
+	AutomodRuleInputKindMentions AutomodRuleInputKind = "mentions"
+)
+
+// Valid indicates whether the value is a known member of the AutomodRuleInputKind enum.
+func (e AutomodRuleInputKind) Valid() bool {
+	switch e {
+	case AutomodRuleInputKindKeywords:
+		return true
+	case AutomodRuleInputKindLinks:
+		return true
+	case AutomodRuleInputKindMentions:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BannerLevel.
+const (
+	BannerLevelCritical BannerLevel = "critical"
+	BannerLevelInfo     BannerLevel = "info"
+	BannerLevelWarning  BannerLevel = "warning"
+)
+
+// Valid indicates whether the value is a known member of the BannerLevel enum.
+func (e BannerLevel) Valid() bool {
+	switch e {
+	case BannerLevelCritical:
+		return true
+	case BannerLevelInfo:
+		return true
+	case BannerLevelWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BannerInputLevel.
+const (
+	BannerInputLevelCritical BannerInputLevel = "critical"
+	BannerInputLevelInfo     BannerInputLevel = "info"
+	BannerInputLevelWarning  BannerInputLevel = "warning"
+)
+
+// Valid indicates whether the value is a known member of the BannerInputLevel enum.
+func (e BannerInputLevel) Valid() bool {
+	switch e {
+	case BannerInputLevelCritical:
+		return true
+	case BannerInputLevelInfo:
+		return true
+	case BannerInputLevelWarning:
 		return true
 	default:
 		return false
@@ -231,6 +399,7 @@ func (e AttachmentColor) Valid() bool {
 const (
 	ChannelKindAnnouncement ChannelKind = "announcement"
 	ChannelKindDirect       ChannelKind = "direct"
+	ChannelKindForum        ChannelKind = "forum"
 	ChannelKindGroup        ChannelKind = "group"
 	ChannelKindStandard     ChannelKind = "standard"
 )
@@ -241,6 +410,8 @@ func (e ChannelKind) Valid() bool {
 	case ChannelKindAnnouncement:
 		return true
 	case ChannelKindDirect:
+		return true
+	case ChannelKindForum:
 		return true
 	case ChannelKindGroup:
 		return true
@@ -377,6 +548,27 @@ func (e DeliveryStatus) Valid() bool {
 	}
 }
 
+// Defines values for EventMe.
+const (
+	EventMeDeclined EventMe = "declined"
+	EventMeGoing    EventMe = "going"
+	EventMeMaybe    EventMe = "maybe"
+)
+
+// Valid indicates whether the value is a known member of the EventMe enum.
+func (e EventMe) Valid() bool {
+	switch e {
+	case EventMeDeclined:
+		return true
+	case EventMeGoing:
+		return true
+	case EventMeMaybe:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FontTemplate.
 const (
 	FontTemplateClassic   FontTemplate = "classic"
@@ -449,6 +641,7 @@ func (e MemberRole) Valid() bool {
 // Defines values for NewChannelKind.
 const (
 	NewChannelKindAnnouncement NewChannelKind = "announcement"
+	NewChannelKindForum        NewChannelKind = "forum"
 	NewChannelKindStandard     NewChannelKind = "standard"
 )
 
@@ -456,6 +649,8 @@ const (
 func (e NewChannelKind) Valid() bool {
 	switch e {
 	case NewChannelKindAnnouncement:
+		return true
+	case NewChannelKindForum:
 		return true
 	case NewChannelKindStandard:
 		return true
@@ -539,6 +734,69 @@ func (e PresenceStatus) Valid() bool {
 	case PresenceStatusDnd:
 		return true
 	case PresenceStatusOnline:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportAction.
+const (
+	ReportActionDeleted ReportAction = "deleted"
+	ReportActionEmpty   ReportAction = ""
+	ReportActionNone    ReportAction = "none"
+	ReportActionTimeout ReportAction = "timeout"
+)
+
+// Valid indicates whether the value is a known member of the ReportAction enum.
+func (e ReportAction) Valid() bool {
+	switch e {
+	case ReportActionDeleted:
+		return true
+	case ReportActionEmpty:
+		return true
+	case ReportActionNone:
+		return true
+	case ReportActionTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportStatus.
+const (
+	ReportStatusDismissed ReportStatus = "dismissed"
+	ReportStatusOpen      ReportStatus = "open"
+	ReportStatusResolved  ReportStatus = "resolved"
+)
+
+// Valid indicates whether the value is a known member of the ReportStatus enum.
+func (e ReportStatus) Valid() bool {
+	switch e {
+	case ReportStatusDismissed:
+		return true
+	case ReportStatusOpen:
+		return true
+	case ReportStatusResolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunStatus.
+const (
+	Active   RunStatus = "active"
+	Finished RunStatus = "finished"
+)
+
+// Valid indicates whether the value is a known member of the RunStatus enum.
+func (e RunStatus) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Finished:
 		return true
 	default:
 		return false
@@ -803,6 +1061,27 @@ func (e SetChannelMemberRoleJSONBodyRole) Valid() bool {
 	}
 }
 
+// Defines values for RsvpEventJSONBodyStatus.
+const (
+	RsvpEventJSONBodyStatusDeclined RsvpEventJSONBodyStatus = "declined"
+	RsvpEventJSONBodyStatusGoing    RsvpEventJSONBodyStatus = "going"
+	RsvpEventJSONBodyStatusMaybe    RsvpEventJSONBodyStatus = "maybe"
+)
+
+// Valid indicates whether the value is a known member of the RsvpEventJSONBodyStatus enum.
+func (e RsvpEventJSONBodyStatus) Valid() bool {
+	switch e {
+	case RsvpEventJSONBodyStatusDeclined:
+		return true
+	case RsvpEventJSONBodyStatusGoing:
+		return true
+	case RsvpEventJSONBodyStatusMaybe:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetPresenceJSONBodyStatus.
 const (
 	SetPresenceJSONBodyStatusAway   SetPresenceJSONBodyStatus = "away"
@@ -818,6 +1097,27 @@ func (e SetPresenceJSONBodyStatus) Valid() bool {
 	case SetPresenceJSONBodyStatusDnd:
 		return true
 	case SetPresenceJSONBodyStatusOnline:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResolveReportJSONBodyAction.
+const (
+	ResolveReportJSONBodyActionDelete  ResolveReportJSONBodyAction = "delete"
+	ResolveReportJSONBodyActionDismiss ResolveReportJSONBodyAction = "dismiss"
+	ResolveReportJSONBodyActionTimeout ResolveReportJSONBodyAction = "timeout"
+)
+
+// Valid indicates whether the value is a known member of the ResolveReportJSONBodyAction enum.
+func (e ResolveReportJSONBodyAction) Valid() bool {
+	switch e {
+	case ResolveReportJSONBodyActionDelete:
+		return true
+	case ResolveReportJSONBodyActionDismiss:
+		return true
+	case ResolveReportJSONBodyActionTimeout:
 		return true
 	default:
 		return false
@@ -878,6 +1178,24 @@ func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
 	case SetWorkspaceRoleJSONBodyRoleMember:
 		return true
 	case SetWorkspaceRoleJSONBodyRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListReportsParamsStatus.
+const (
+	ListReportsParamsStatusClosed ListReportsParamsStatus = "closed"
+	ListReportsParamsStatusOpen   ListReportsParamsStatus = "open"
+)
+
+// Valid indicates whether the value is a known member of the ListReportsParamsStatus enum.
+func (e ListReportsParamsStatus) Valid() bool {
+	switch e {
+	case ListReportsParamsStatusClosed:
+		return true
+	case ListReportsParamsStatusOpen:
 		return true
 	default:
 		return false
@@ -990,6 +1308,84 @@ type Author struct {
 	IsBot *bool `json:"is_bot,omitempty"`
 }
 
+// AutomodRule defines model for AutomodRule.
+type AutomodRule struct {
+	// Action block: the message is not sent; flag: it is sent and reported.
+	Action         AutomodRuleAction        `json:"action"`
+	AllowedDomains []string                 `json:"allowed_domains"`
+	Enabled        bool                     `json:"enabled"`
+	ExemptRoles    []AutomodRuleExemptRoles `json:"exempt_roles"`
+	Id             openapi_types.UUID       `json:"id"`
+
+	// Kind keywords: any of `words` (a trailing `*` matches a word's beginning; case and
+	// accents do not matter); mentions: more than `max_mentions` people mentioned;
+	// links: links to domains not in `allowed_domains`.
+	Kind        AutomodRuleKind `json:"kind"`
+	MaxMentions int             `json:"max_mentions"`
+	Name        string          `json:"name"`
+	Words       []string        `json:"words"`
+}
+
+// AutomodRuleAction block: the message is not sent; flag: it is sent and reported.
+type AutomodRuleAction string
+
+// AutomodRuleExemptRoles defines model for AutomodRule.ExemptRoles.
+type AutomodRuleExemptRoles string
+
+// AutomodRuleKind keywords: any of `words` (a trailing `*` matches a word's beginning; case and
+// accents do not matter); mentions: more than `max_mentions` people mentioned;
+// links: links to domains not in `allowed_domains`.
+type AutomodRuleKind string
+
+// AutomodRuleInput defines model for AutomodRuleInput.
+type AutomodRuleInput struct {
+	// Action block: the message is not sent; flag: it is sent and reported.
+	Action         AutomodRuleInputAction         `json:"action"`
+	AllowedDomains *[]string                      `json:"allowed_domains,omitempty"`
+	Enabled        *bool                          `json:"enabled,omitempty"`
+	ExemptRoles    *[]AutomodRuleInputExemptRoles `json:"exempt_roles,omitempty"`
+
+	// Kind keywords: any of `words` (a trailing `*` matches a word's beginning; case and
+	// accents do not matter); mentions: more than `max_mentions` people mentioned;
+	// links: links to domains not in `allowed_domains`.
+	Kind        AutomodRuleInputKind `json:"kind"`
+	MaxMentions *int                 `json:"max_mentions,omitempty"`
+	Name        string               `json:"name"`
+	Words       *[]string            `json:"words,omitempty"`
+}
+
+// AutomodRuleInputAction block: the message is not sent; flag: it is sent and reported.
+type AutomodRuleInputAction string
+
+// AutomodRuleInputExemptRoles defines model for AutomodRuleInput.ExemptRoles.
+type AutomodRuleInputExemptRoles string
+
+// AutomodRuleInputKind keywords: any of `words` (a trailing `*` matches a word's beginning; case and
+// accents do not matter); mentions: more than `max_mentions` people mentioned;
+// links: links to domains not in `allowed_domains`.
+type AutomodRuleInputKind string
+
+// Banner defines model for Banner.
+type Banner struct {
+	Dismissible bool        `json:"dismissible"`
+	Level       BannerLevel `json:"level"`
+	Text        string      `json:"text"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+}
+
+// BannerLevel defines model for Banner.Level.
+type BannerLevel string
+
+// BannerInput defines model for BannerInput.
+type BannerInput struct {
+	Dismissible *bool            `json:"dismissible,omitempty"`
+	Level       BannerInputLevel `json:"level"`
+	Text        string           `json:"text"`
+}
+
+// BannerInputLevel defines model for BannerInput.Level.
+type BannerInputLevel string
+
 // Bot defines model for Bot.
 type Bot struct {
 	CreatedAt   time.Time          `json:"created_at"`
@@ -1029,6 +1425,9 @@ type Channel struct {
 	CanPost    bool                `json:"can_post"`
 	CategoryId *openapi_types.UUID `json:"category_id"`
 
+	// ForumTags Tags a forum's posts may carry.
+	ForumTags *[]string `json:"forum_tags,omitempty"`
+
 	// GroupManaged Members are exactly the people of the channel's directory groups.
 	GroupManaged bool               `json:"group_managed"`
 	Id           openapi_types.UUID `json:"id"`
@@ -1041,7 +1440,8 @@ type Channel struct {
 	IsMember    bool `json:"is_member"`
 
 	// Kind In announcement channels only workspace owners and admins send. Direct and
-	// group conversations have participants instead of a name.
+	// group conversations have participants instead of a name. A forum's messages
+	// are posts with titles; people answer in their threads.
 	Kind       ChannelKind         `json:"kind"`
 	LastReadId *openapi_types.UUID `json:"last_read_id"`
 
@@ -1051,7 +1451,10 @@ type Channel struct {
 
 	// Participants The other people of a direct or group conversation (empty for channels).
 	Participants []Person `json:"participants"`
-	Topic        string   `json:"topic"`
+
+	// SlowModeSeconds Seconds a member waits between messages (0 off; managers are exempt).
+	SlowModeSeconds *int   `json:"slow_mode_seconds,omitempty"`
+	Topic           string `json:"topic"`
 
 	// UnreadCount Messages of others after the read position, counted up to 100.
 	UnreadCount int `json:"unread_count"`
@@ -1062,7 +1465,8 @@ type Channel struct {
 }
 
 // ChannelKind In announcement channels only workspace owners and admins send. Direct and
-// group conversations have participants instead of a name.
+// group conversations have participants instead of a name. A forum's messages
+// are posts with titles; people answer in their threads.
 type ChannelKind string
 
 // ChannelVisibility Private channels are visible to their members only.
@@ -1124,9 +1528,11 @@ type ChannelNotificationInputLevel string
 
 // ChannelUpdate defines model for ChannelUpdate.
 type ChannelUpdate struct {
-	Name       *string                  `json:"name,omitempty"`
-	Topic      *string                  `json:"topic,omitempty"`
-	Visibility *ChannelUpdateVisibility `json:"visibility,omitempty"`
+	ForumTags       *[]string                `json:"forum_tags,omitempty"`
+	Name            *string                  `json:"name,omitempty"`
+	SlowModeSeconds *int                     `json:"slow_mode_seconds,omitempty"`
+	Topic           *string                  `json:"topic,omitempty"`
+	Visibility      *ChannelUpdateVisibility `json:"visibility,omitempty"`
 }
 
 // ChannelUpdateVisibility defines model for ChannelUpdate.Visibility.
@@ -1191,6 +1597,37 @@ type DeviceSession struct {
 	// LastSeenAt Recorded at most once a minute.
 	LastSeenAt time.Time `json:"last_seen_at"`
 	UserAgent  string    `json:"user_agent"`
+}
+
+// Event defines model for Event.
+type Event struct {
+	CanEdit     bool                `json:"can_edit"`
+	Canceled    bool                `json:"canceled"`
+	ChannelId   *openapi_types.UUID `json:"channel_id"`
+	CreatedBy   *Author             `json:"created_by"`
+	Description string              `json:"description"`
+	EndsAt      time.Time           `json:"ends_at"`
+	Going       []Author            `json:"going"`
+	Id          openapi_types.UUID  `json:"id"`
+	Location    string              `json:"location"`
+	Maybe       int                 `json:"maybe"`
+	Me          *EventMe            `json:"me"`
+	StartsAt    time.Time           `json:"starts_at"`
+	Title       string              `json:"title"`
+	WorkspaceId openapi_types.UUID  `json:"workspace_id"`
+}
+
+// EventMe defines model for Event.Me.
+type EventMe string
+
+// EventInput defines model for EventInput.
+type EventInput struct {
+	ChannelId   *openapi_types.UUID `json:"channel_id,omitempty"`
+	Description *string             `json:"description,omitempty"`
+	EndsAt      time.Time           `json:"ends_at"`
+	Location    *string             `json:"location,omitempty"`
+	StartsAt    time.Time           `json:"starts_at"`
+	Title       string              `json:"title"`
 }
 
 // FileInfo defines model for FileInfo.
@@ -1284,15 +1721,20 @@ type Message struct {
 	Nonce    string              `json:"nonce"`
 	PinnedAt *time.Time          `json:"pinned_at,omitempty"`
 	PinnedBy *openapi_types.UUID `json:"pinned_by,omitempty"`
+	Poll     *Poll               `json:"poll,omitempty"`
 
 	// Reactions Reactions in the order they were first used; `me` is the reader's own.
 	Reactions []Reaction `json:"reactions"`
 
 	// RootId The thread's first message when this is a reply.
 	RootId *openapi_types.UUID `json:"root_id,omitempty"`
+	Tags   *[]string           `json:"tags,omitempty"`
 
 	// Thread The replies of a message (absent when it has none).
 	Thread *ThreadSummary `json:"thread,omitempty"`
+
+	// Title A forum post's title.
+	Title *string `json:"title,omitempty"`
 }
 
 // MessagePage defines model for MessagePage.
@@ -1365,9 +1807,22 @@ type NewMessage struct {
 	// FileIds Ready files the sender uploaded into this channel (see createUpload).
 	FileIds *[]openapi_types.UUID `json:"file_ids,omitempty"`
 	Nonce   string                `json:"nonce"`
+	Poll    *NewPoll              `json:"poll,omitempty"`
 
 	// RootId Reply in this message's thread (a reply's thread when it is a reply).
 	RootId *openapi_types.UUID `json:"root_id,omitempty"`
+	Tags   *[]string           `json:"tags,omitempty"`
+
+	// Title Required for posts in forums (not for replies).
+	Title *string `json:"title,omitempty"`
+}
+
+// NewPoll defines model for NewPoll.
+type NewPoll struct {
+	Anonymous *bool      `json:"anonymous,omitempty"`
+	ClosesAt  *time.Time `json:"closes_at,omitempty"`
+	Multiple  *bool      `json:"multiple,omitempty"`
+	Options   []string   `json:"options"`
 }
 
 // NotificationPrefs defines model for NotificationPrefs.
@@ -1449,6 +1904,59 @@ type Person struct {
 	IsBot *bool `json:"is_bot,omitempty"`
 }
 
+// Playbook defines model for Playbook.
+type Playbook struct {
+	Checklists  []PlaybookChecklist `json:"checklists"`
+	Description string              `json:"description"`
+	Id          openapi_types.UUID  `json:"id"`
+	Name        string              `json:"name"`
+	RunsActive  int                 `json:"runs_active"`
+	UpdatedAt   time.Time           `json:"updated_at"`
+}
+
+// PlaybookChecklist defines model for PlaybookChecklist.
+type PlaybookChecklist struct {
+	Items []struct {
+		Description *string `json:"description,omitempty"`
+		Title       string  `json:"title"`
+	} `json:"items"`
+	Title string `json:"title"`
+}
+
+// PlaybookInput defines model for PlaybookInput.
+type PlaybookInput struct {
+	Checklists  []PlaybookChecklist `json:"checklists"`
+	Description *string             `json:"description,omitempty"`
+	Name        string              `json:"name"`
+}
+
+// Poll defines model for Poll.
+type Poll struct {
+	Anonymous bool       `json:"anonymous"`
+	Closed    bool       `json:"closed"`
+	ClosesAt  *time.Time `json:"closes_at"`
+
+	// Multiple More than one option may be chosen.
+	Multiple bool         `json:"multiple"`
+	Options  []PollOption `json:"options"`
+
+	// Voters People who voted.
+	Voters int `json:"voters"`
+}
+
+// PollOption defines model for PollOption.
+type PollOption struct {
+	Id openapi_types.UUID `json:"id"`
+
+	// Me The reader chose it.
+	Me   bool   `json:"me"`
+	Text string `json:"text"`
+
+	// Voters Who chose it (not in anonymous polls).
+	Voters *[]Author `json:"voters,omitempty"`
+	Votes  int       `json:"votes"`
+}
+
 // Presence defines model for Presence.
 type Presence struct {
 	Status PresenceStatus     `json:"status"`
@@ -1509,6 +2017,62 @@ type Reaction struct {
 	Count int    `json:"count"`
 	Emoji string `json:"emoji"`
 	Me    bool   `json:"me"`
+}
+
+// Report defines model for Report.
+type Report struct {
+	Action    ReportAction       `json:"action"`
+	Channel   SearchChannel      `json:"channel"`
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+	Message   Message            `json:"message"`
+	Reason    string             `json:"reason"`
+
+	// Reporter Who reported it; null for AutoMod (see rule_name).
+	Reporter *Author `json:"reporter"`
+
+	// Reports Open reports of the same message.
+	Reports  int          `json:"reports"`
+	RuleName string       `json:"rule_name"`
+	Status   ReportStatus `json:"status"`
+}
+
+// ReportAction defines model for Report.Action.
+type ReportAction string
+
+// ReportStatus defines model for Report.Status.
+type ReportStatus string
+
+// Run defines model for Run.
+type Run struct {
+	ChannelId  openapi_types.UUID  `json:"channel_id"`
+	Checklists []RunChecklist      `json:"checklists"`
+	CreatedAt  time.Time           `json:"created_at"`
+	FinishedAt *time.Time          `json:"finished_at"`
+	Id         openapi_types.UUID  `json:"id"`
+	Name       string              `json:"name"`
+	Owner      *Author             `json:"owner"`
+	PlaybookId *openapi_types.UUID `json:"playbook_id"`
+	Status     RunStatus           `json:"status"`
+}
+
+// RunStatus defines model for Run.Status.
+type RunStatus string
+
+// RunChecklist defines model for RunChecklist.
+type RunChecklist struct {
+	Items []RunItem `json:"items"`
+	Title string    `json:"title"`
+}
+
+// RunItem defines model for RunItem.
+type RunItem struct {
+	AssigneeId  *openapi_types.UUID `json:"assignee_id"`
+	Description string              `json:"description"`
+	DoneAt      *time.Time          `json:"done_at"`
+	DoneBy      *openapi_types.UUID `json:"done_by"`
+	Skipped     bool                `json:"skipped"`
+	Title       string              `json:"title"`
 }
 
 // SavedItem defines model for SavedItem.
@@ -1606,6 +2170,15 @@ type Subscription struct {
 	Url       string             `json:"url"`
 }
 
+// Terms defines model for Terms.
+type Terms struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Text Markdown.
+	Text string `json:"text"`
+}
+
 // ThemePreset defines model for ThemePreset.
 type ThemePreset string
 
@@ -1670,6 +2243,16 @@ type Webhook struct {
 // WebhookKind defines model for Webhook.Kind.
 type WebhookKind string
 
+// Welcome defines model for Welcome.
+type Welcome struct {
+	// ChannelIds Channels suggested to join.
+	ChannelIds []openapi_types.UUID `json:"channel_ids"`
+
+	// Message Markdown.
+	Message string   `json:"message"`
+	Rules   []string `json:"rules"`
+}
+
 // Workspace defines model for Workspace.
 type Workspace struct {
 	Appearance  WorkspaceAppearance `json:"appearance"`
@@ -1683,8 +2266,14 @@ type Workspace struct {
 	IsDefault bool   `json:"is_default"`
 	Name      string `json:"name"`
 
+	// NeedsOnboarding The workspace has a welcome you have not seen yet.
+	NeedsOnboarding *bool `json:"needs_onboarding,omitempty"`
+
 	// Role Guests see only the channels they are in and the people in them.
 	Role WorkspaceRole `json:"role"`
+
+	// TimeoutUntil Until then you may not post or react here (a moderator's timeout).
+	TimeoutUntil *time.Time `json:"timeout_until,omitempty"`
 }
 
 // WorkspaceRole Guests see only the channels they are in and the people in them.
@@ -1866,10 +2455,20 @@ type EditMessageJSONBody struct {
 	Body string `json:"body"`
 }
 
+// VotePollJSONBody defines parameters for VotePoll.
+type VotePollJSONBody struct {
+	OptionIds []openapi_types.UUID `json:"option_ids"`
+}
+
 // ListRepliesParams defines parameters for ListReplies.
 type ListRepliesParams struct {
 	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
 	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ReportMessageJSONBody defines parameters for ReportMessage.
+type ReportMessageJSONBody struct {
+	Reason *string `json:"reason,omitempty"`
 }
 
 // MarkReadJSONBody defines parameters for MarkRead.
@@ -1882,6 +2481,14 @@ type ScheduleMessageJSONBody struct {
 	Body   string    `json:"body"`
 	SendAt time.Time `json:"send_at"`
 }
+
+// RsvpEventJSONBody defines parameters for RsvpEvent.
+type RsvpEventJSONBody struct {
+	Status *RsvpEventJSONBodyStatus `json:"status"`
+}
+
+// RsvpEventJSONBodyStatus defines parameters for RsvpEvent.
+type RsvpEventJSONBodyStatus string
 
 // GetFileContentParams defines parameters for GetFileContent.
 type GetFileContentParams struct {
@@ -1967,6 +2574,12 @@ type GetPictureParams struct {
 	Still *bool `form:"still,omitempty" json:"still,omitempty"`
 }
 
+// StartRunJSONBody defines parameters for StartRun.
+type StartRunJSONBody struct {
+	ChannelId openapi_types.UUID `json:"channel_id"`
+	Name      string             `json:"name"`
+}
+
 // SetPresenceJSONBody defines parameters for SetPresence.
 type SetPresenceJSONBody struct {
 	Status SetPresenceJSONBodyStatus `json:"status"`
@@ -1978,6 +2591,24 @@ type SetPresenceJSONBodyStatus string
 // GetProfilesParams defines parameters for GetProfiles.
 type GetProfilesParams struct {
 	Ids []openapi_types.UUID `form:"ids" json:"ids"`
+}
+
+// ResolveReportJSONBody defines parameters for ResolveReport.
+type ResolveReportJSONBody struct {
+	Action         ResolveReportJSONBodyAction `json:"action"`
+	TimeoutMinutes *int                        `json:"timeout_minutes,omitempty"`
+}
+
+// ResolveReportJSONBodyAction defines parameters for ResolveReport.
+type ResolveReportJSONBodyAction string
+
+// UpdateRunItemJSONBody defines parameters for UpdateRunItem.
+type UpdateRunItemJSONBody struct {
+	AssigneeId *openapi_types.UUID `json:"assignee_id,omitempty"`
+	Checklist  int                 `json:"checklist"`
+	Done       *bool               `json:"done,omitempty"`
+	Item       int                 `json:"item"`
+	Skipped    *bool               `json:"skipped,omitempty"`
 }
 
 // SearchFilesParams defines parameters for SearchFiles.
@@ -2009,6 +2640,16 @@ type SearchMessagesParamsHas string
 // EndAllSessionsJSONBody defines parameters for EndAllSessions.
 type EndAllSessionsJSONBody struct {
 	KeepCurrent bool `json:"keep_current"`
+}
+
+// SetTermsJSONBody defines parameters for SetTerms.
+type SetTermsJSONBody struct {
+	Text string `json:"text"`
+}
+
+// AcceptTermsJSONBody defines parameters for AcceptTerms.
+type AcceptTermsJSONBody struct {
+	TermsId openapi_types.UUID `json:"terms_id"`
 }
 
 // SetUITextsJSONBody defines parameters for SetUITexts.
@@ -2056,6 +2697,11 @@ type OpenConversationJSONBody struct {
 	UserIds []openapi_types.UUID `json:"user_ids"`
 }
 
+// ListEventsParams defines parameters for ListEvents.
+type ListEventsParams struct {
+	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+}
+
 // CreateInviteJSONBody defines parameters for CreateInvite.
 type CreateInviteJSONBody struct {
 	ExpiresInHours *int `json:"expires_in_hours,omitempty"`
@@ -2070,13 +2716,37 @@ type SetWorkspaceRoleJSONBody struct {
 // SetWorkspaceRoleJSONBodyRole defines parameters for SetWorkspaceRole.
 type SetWorkspaceRoleJSONBodyRole string
 
+// SetMemberTimeoutJSONBody defines parameters for SetMemberTimeout.
+type SetMemberTimeoutJSONBody struct {
+	Until *time.Time `json:"until"`
+}
+
 // SetWorkspaceNotificationsJSONBody defines parameters for SetWorkspaceNotifications.
 type SetWorkspaceNotificationsJSONBody struct {
 	MutedUntil *time.Time `json:"muted_until"`
 }
 
+// FinishOnboardingJSONBody defines parameters for FinishOnboarding.
+type FinishOnboardingJSONBody struct {
+	JoinChannelIds []openapi_types.UUID `json:"join_channel_ids"`
+}
+
+// ListReportsParams defines parameters for ListReports.
+type ListReportsParams struct {
+	Status *ListReportsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListReportsParamsStatus defines parameters for ListReports.
+type ListReportsParamsStatus string
+
 // BackchannelLogoutFormdataRequestBody defines body for BackchannelLogout for application/x-www-form-urlencoded ContentType.
 type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
+
+// UpdateAutomodRuleJSONRequestBody defines body for UpdateAutomodRule for application/json ContentType.
+type UpdateAutomodRuleJSONRequestBody = AutomodRuleInput
+
+// SetBannerJSONRequestBody defines body for SetBanner for application/json ContentType.
+type SetBannerJSONRequestBody = BannerInput
 
 // UpdateBotJSONRequestBody defines body for UpdateBot for application/json ContentType.
 type UpdateBotJSONRequestBody UpdateBotJSONBody
@@ -2132,6 +2802,12 @@ type CreateMessageJSONRequestBody = NewMessage
 // EditMessageJSONRequestBody defines body for EditMessage for application/json ContentType.
 type EditMessageJSONRequestBody EditMessageJSONBody
 
+// VotePollJSONRequestBody defines body for VotePoll for application/json ContentType.
+type VotePollJSONRequestBody VotePollJSONBody
+
+// ReportMessageJSONRequestBody defines body for ReportMessage for application/json ContentType.
+type ReportMessageJSONRequestBody ReportMessageJSONBody
+
 // SetChannelNotificationsJSONRequestBody defines body for SetChannelNotifications for application/json ContentType.
 type SetChannelNotificationsJSONRequestBody = ChannelNotificationInput
 
@@ -2140,6 +2816,12 @@ type MarkReadJSONRequestBody MarkReadJSONBody
 
 // ScheduleMessageJSONRequestBody defines body for ScheduleMessage for application/json ContentType.
 type ScheduleMessageJSONRequestBody ScheduleMessageJSONBody
+
+// UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
+type UpdateEventJSONRequestBody = EventInput
+
+// RsvpEventJSONRequestBody defines body for RsvpEvent for application/json ContentType.
+type RsvpEventJSONRequestBody RsvpEventJSONBody
 
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
@@ -2171,11 +2853,29 @@ type SetThreadFollowingJSONRequestBody SetThreadFollowingJSONBody
 // MarkThreadReadJSONRequestBody defines body for MarkThreadRead for application/json ContentType.
 type MarkThreadReadJSONRequestBody MarkThreadReadJSONBody
 
+// UpdatePlaybookJSONRequestBody defines body for UpdatePlaybook for application/json ContentType.
+type UpdatePlaybookJSONRequestBody = PlaybookInput
+
+// StartRunJSONRequestBody defines body for StartRun for application/json ContentType.
+type StartRunJSONRequestBody StartRunJSONBody
+
 // SetPresenceJSONRequestBody defines body for SetPresence for application/json ContentType.
 type SetPresenceJSONRequestBody SetPresenceJSONBody
 
+// ResolveReportJSONRequestBody defines body for ResolveReport for application/json ContentType.
+type ResolveReportJSONRequestBody ResolveReportJSONBody
+
+// UpdateRunItemJSONRequestBody defines body for UpdateRunItem for application/json ContentType.
+type UpdateRunItemJSONRequestBody UpdateRunItemJSONBody
+
 // EndAllSessionsJSONRequestBody defines body for EndAllSessions for application/json ContentType.
 type EndAllSessionsJSONRequestBody EndAllSessionsJSONBody
+
+// SetTermsJSONRequestBody defines body for SetTerms for application/json ContentType.
+type SetTermsJSONRequestBody SetTermsJSONBody
+
+// AcceptTermsJSONRequestBody defines body for AcceptTerms for application/json ContentType.
+type AcceptTermsJSONRequestBody AcceptTermsJSONBody
 
 // SetUITextsJSONRequestBody defines body for SetUITexts for application/json ContentType.
 type SetUITextsJSONRequestBody SetUITextsJSONBody
@@ -2189,11 +2889,17 @@ type RenameWorkspaceJSONRequestBody RenameWorkspaceJSONBody
 // SetWorkspaceAppearanceJSONRequestBody defines body for SetWorkspaceAppearance for application/json ContentType.
 type SetWorkspaceAppearanceJSONRequestBody = WorkspaceAppearance
 
+// CreateAutomodRuleJSONRequestBody defines body for CreateAutomodRule for application/json ContentType.
+type CreateAutomodRuleJSONRequestBody = AutomodRuleInput
+
 // CreateBotJSONRequestBody defines body for CreateBot for application/json ContentType.
 type CreateBotJSONRequestBody CreateBotJSONBody
 
 // OpenConversationJSONRequestBody defines body for OpenConversation for application/json ContentType.
 type OpenConversationJSONRequestBody OpenConversationJSONBody
+
+// CreateEventJSONRequestBody defines body for CreateEvent for application/json ContentType.
+type CreateEventJSONRequestBody = EventInput
 
 // SetWorkspaceGroupJSONRequestBody defines body for SetWorkspaceGroup for application/json ContentType.
 type SetWorkspaceGroupJSONRequestBody = GroupMapping
@@ -2204,8 +2910,20 @@ type CreateInviteJSONRequestBody CreateInviteJSONBody
 // SetWorkspaceRoleJSONRequestBody defines body for SetWorkspaceRole for application/json ContentType.
 type SetWorkspaceRoleJSONRequestBody SetWorkspaceRoleJSONBody
 
+// SetMemberTimeoutJSONRequestBody defines body for SetMemberTimeout for application/json ContentType.
+type SetMemberTimeoutJSONRequestBody SetMemberTimeoutJSONBody
+
 // SetWorkspaceNotificationsJSONRequestBody defines body for SetWorkspaceNotifications for application/json ContentType.
 type SetWorkspaceNotificationsJSONRequestBody SetWorkspaceNotificationsJSONBody
+
+// FinishOnboardingJSONRequestBody defines body for FinishOnboarding for application/json ContentType.
+type FinishOnboardingJSONRequestBody FinishOnboardingJSONBody
+
+// CreatePlaybookJSONRequestBody defines body for CreatePlaybook for application/json ContentType.
+type CreatePlaybookJSONRequestBody = PlaybookInput
+
+// SetWelcomeJSONRequestBody defines body for SetWelcome for application/json ContentType.
+type SetWelcomeJSONRequestBody = Welcome
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -2221,6 +2939,21 @@ type ServerInterface interface {
 	// Logout End the current session
 	// (POST /api/auth/logout)
 	Logout(w http.ResponseWriter, r *http.Request)
+	// DeleteAutomodRule Remove an AutoMod rule
+	// (DELETE /api/automod/{rule_id})
+	DeleteAutomodRule(w http.ResponseWriter, r *http.Request, ruleId openapi_types.UUID)
+	// UpdateAutomodRule Change an AutoMod rule
+	// (PUT /api/automod/{rule_id})
+	UpdateAutomodRule(w http.ResponseWriter, r *http.Request, ruleId openapi_types.UUID)
+	// RemoveBanner Take the banner down (instance administrators)
+	// (DELETE /api/banner)
+	RemoveBanner(w http.ResponseWriter, r *http.Request)
+	// GetBanner The announcement banner of the instance, if any
+	// (GET /api/banner)
+	GetBanner(w http.ResponseWriter, r *http.Request)
+	// SetBanner Show an announcement banner to everyone (instance administrators)
+	// (PUT /api/banner)
+	SetBanner(w http.ResponseWriter, r *http.Request)
 	// UpdateBot Rename, describe, disable or enable a bot
 	// (PATCH /api/bots/{bot_id})
 	UpdateBot(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
@@ -2353,6 +3086,12 @@ type ServerInterface interface {
 	// PinMessage Pin a message to its channel
 	// (PUT /api/channels/{channel_id}/messages/{message_id}/pin)
 	PinMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// ClosePoll Close a poll (its author or a channel manager)
+	// (POST /api/channels/{channel_id}/messages/{message_id}/poll/close)
+	ClosePoll(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// VotePoll Vote in a poll (replaces your earlier choices; none takes the vote back)
+	// (PUT /api/channels/{channel_id}/messages/{message_id}/poll/votes)
+	VotePoll(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// RemoveReaction Take a reaction back
 	// (DELETE /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
 	RemoveReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string)
@@ -2362,6 +3101,9 @@ type ServerInterface interface {
 	// ListReplies The replies of a thread, newest page first
 	// (GET /api/channels/{channel_id}/messages/{message_id}/replies)
 	ListReplies(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, params ListRepliesParams)
+	// ReportMessage Report a message to the workspace's moderators
+	// (POST /api/channels/{channel_id}/messages/{message_id}/report)
+	ReportMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// RestoreMessage Undo deleting a message (whoever may delete it)
 	// (POST /api/channels/{channel_id}/messages/{message_id}/restore)
 	RestoreMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
@@ -2374,6 +3116,9 @@ type ServerInterface interface {
 	// MarkRead Mark a channel read up to a message
 	// (POST /api/channels/{channel_id}/read)
 	MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListChannelRuns Runs in a channel, newest first (up to 50)
+	// (GET /api/channels/{channel_id}/runs)
+	ListChannelRuns(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// ScheduleMessage Send a message later
 	// (POST /api/channels/{channel_id}/scheduled)
 	ScheduleMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -2383,6 +3128,15 @@ type ServerInterface interface {
 	// UnarchiveChannel Restore an archived channel (channel managers)
 	// (POST /api/channels/{channel_id}/unarchive)
 	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// CancelEvent Cancel an event (its creator or a workspace admin); reminders are canceled
+	// (DELETE /api/events/{event_id})
+	CancelEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// UpdateEvent Change an event (its creator or a workspace admin)
+	// (PUT /api/events/{event_id})
+	UpdateEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// RsvpEvent Answer an event; "going" schedules a reminder 15 minutes before it
+	// (PUT /api/events/{event_id}/rsvp)
+	RsvpEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
 	// DeleteUpload Remove an uploaded file that no message carries yet
 	// (DELETE /api/files/{file_id})
 	DeleteUpload(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID)
@@ -2494,12 +3248,30 @@ type ServerInterface interface {
 	// GetPicture A profile picture or workspace icon
 	// (GET /api/pictures/{picture_id})
 	GetPicture(w http.ResponseWriter, r *http.Request, pictureId openapi_types.UUID, params GetPictureParams)
+	// ArchivePlaybook Archive a playbook (its runs stay)
+	// (DELETE /api/playbooks/{playbook_id})
+	ArchivePlaybook(w http.ResponseWriter, r *http.Request, playbookId openapi_types.UUID)
+	// UpdatePlaybook Change a playbook (runs already started keep their checklists)
+	// (PUT /api/playbooks/{playbook_id})
+	UpdatePlaybook(w http.ResponseWriter, r *http.Request, playbookId openapi_types.UUID)
+	// StartRun Start a run of a playbook in a channel you can post in
+	// (POST /api/playbooks/{playbook_id}/runs)
+	StartRun(w http.ResponseWriter, r *http.Request, playbookId openapi_types.UUID)
 	// SetPresence Set your own status
 	// (PUT /api/presence)
 	SetPresence(w http.ResponseWriter, r *http.Request)
 	// GetProfiles Profiles of people
 	// (GET /api/profiles)
 	GetProfiles(w http.ResponseWriter, r *http.Request, params GetProfilesParams)
+	// ResolveReport Resolve a report (dismiss it, delete the message, or time its author out)
+	// (POST /api/reports/{report_id}/resolve)
+	ResolveReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// FinishRun Finish a run (its owner or a channel manager); the channel is told
+	// (POST /api/runs/{run_id}/finish)
+	FinishRun(w http.ResponseWriter, r *http.Request, runId openapi_types.UUID)
+	// UpdateRunItem Check, skip or assign a checklist item of an active run
+	// (PATCH /api/runs/{run_id}/items)
+	UpdateRunItem(w http.ResponseWriter, r *http.Request, runId openapi_types.UUID)
 	// ListScheduled Your scheduled messages and reminders that are still to come
 	// (GET /api/scheduled)
 	ListScheduled(w http.ResponseWriter, r *http.Request)
@@ -2527,6 +3299,18 @@ type ServerInterface interface {
 	// GetSound A sound you uploaded (only for you)
 	// (GET /api/sounds/{sound_id})
 	GetSound(w http.ResponseWriter, r *http.Request, soundId openapi_types.UUID)
+	// WithdrawTerms Withdraw the terms (instance administrators)
+	// (DELETE /api/terms)
+	WithdrawTerms(w http.ResponseWriter, r *http.Request)
+	// GetTerms The terms of service in force and whether you accepted them
+	// (GET /api/terms)
+	GetTerms(w http.ResponseWriter, r *http.Request)
+	// SetTerms Publish new terms everyone must accept (instance administrators)
+	// (PUT /api/terms)
+	SetTerms(w http.ResponseWriter, r *http.Request)
+	// AcceptTerms Accept the terms in force
+	// (POST /api/terms/accept)
+	AcceptTerms(w http.ResponseWriter, r *http.Request)
 	// GetUITexts Interface texts the administrators replaced
 	// (GET /api/ui-texts)
 	GetUITexts(w http.ResponseWriter, r *http.Request)
@@ -2551,6 +3335,12 @@ type ServerInterface interface {
 	// ListWorkspaceAudit The workspace's audit log (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/audit)
 	ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListWorkspaceAuditParams)
+	// ListAutomodRules AutoMod rules of a workspace (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/automod)
+	ListAutomodRules(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateAutomodRule Add an AutoMod rule (up to 20 per workspace)
+	// (POST /api/workspaces/{workspace_id}/automod)
+	CreateAutomodRule(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListBots The workspace's bots (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/bots)
 	ListBots(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -2563,6 +3353,12 @@ type ServerInterface interface {
 	// OpenConversation Open a direct or group conversation
 	// (POST /api/workspaces/{workspace_id}/conversations)
 	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListEvents Events of a workspace from a time on (default now), soonest first (up to 100)
+	// (GET /api/workspaces/{workspace_id}/events)
+	ListEvents(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListEventsParams)
+	// CreateEvent Plan an event (members; announced in its channel when it has one)
+	// (POST /api/workspaces/{workspace_id}/events)
+	CreateEvent(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListWorkspaceGroups Directory groups that give membership of the workspace (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/groups)
 	ListWorkspaceGroups(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -2596,12 +3392,33 @@ type ServerInterface interface {
 	// SetWorkspaceRole Change someone's role
 	// (PATCH /api/workspaces/{workspace_id}/members/{user_id})
 	SetWorkspaceRole(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
+	// SetMemberTimeout Time a member out (no messages or reactions in the workspace) or end it
+	// (PUT /api/workspaces/{workspace_id}/members/{user_id}/timeout)
+	SetMemberTimeout(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
 	// SetWorkspaceNotifications Mute or unmute a workspace for you
 	// (PUT /api/workspaces/{workspace_id}/notifications)
 	SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// FinishOnboarding Close the welcome, joining the suggested channels chosen
+	// (POST /api/workspaces/{workspace_id}/onboarded)
+	FinishOnboarding(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListPlaybooks Playbooks of a workspace
+	// (GET /api/workspaces/{workspace_id}/playbooks)
+	ListPlaybooks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreatePlaybook Create a playbook (owners and admins)
+	// (POST /api/workspaces/{workspace_id}/playbooks)
+	CreatePlaybook(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListPresence Who of a workspace is online, away or busy
 	// (GET /api/workspaces/{workspace_id}/presence)
 	ListPresence(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListReports The moderation queue (workspace owners and admins)
+	// (GET /api/workspaces/{workspace_id}/reports)
+	ListReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListReportsParams)
+	// GetWelcome The welcome a workspace shows new members
+	// (GET /api/workspaces/{workspace_id}/welcome)
+	GetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetWelcome Set the welcome (owners and admins); empty message and rules turn it off
+	// (PUT /api/workspaces/{workspace_id}/welcome)
+	SetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// CreateWsTicket Ticket for opening the WebSocket
 	// (POST /api/ws/ticket)
 	CreateWsTicket(w http.ResponseWriter, r *http.Request)
@@ -2632,6 +3449,36 @@ func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request, params Logi
 // Logout End the current session
 // (POST /api/auth/logout)
 func (_ Unimplemented) Logout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteAutomodRule Remove an AutoMod rule
+// (DELETE /api/automod/{rule_id})
+func (_ Unimplemented) DeleteAutomodRule(w http.ResponseWriter, r *http.Request, ruleId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateAutomodRule Change an AutoMod rule
+// (PUT /api/automod/{rule_id})
+func (_ Unimplemented) UpdateAutomodRule(w http.ResponseWriter, r *http.Request, ruleId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveBanner Take the banner down (instance administrators)
+// (DELETE /api/banner)
+func (_ Unimplemented) RemoveBanner(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetBanner The announcement banner of the instance, if any
+// (GET /api/banner)
+func (_ Unimplemented) GetBanner(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetBanner Show an announcement banner to everyone (instance administrators)
+// (PUT /api/banner)
+func (_ Unimplemented) SetBanner(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2899,6 +3746,18 @@ func (_ Unimplemented) PinMessage(w http.ResponseWriter, r *http.Request, channe
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ClosePoll Close a poll (its author or a channel manager)
+// (POST /api/channels/{channel_id}/messages/{message_id}/poll/close)
+func (_ Unimplemented) ClosePoll(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// VotePoll Vote in a poll (replaces your earlier choices; none takes the vote back)
+// (PUT /api/channels/{channel_id}/messages/{message_id}/poll/votes)
+func (_ Unimplemented) VotePoll(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // RemoveReaction Take a reaction back
 // (DELETE /api/channels/{channel_id}/messages/{message_id}/reactions/{emoji})
 func (_ Unimplemented) RemoveReaction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, emoji string) {
@@ -2914,6 +3773,12 @@ func (_ Unimplemented) AddReaction(w http.ResponseWriter, r *http.Request, chann
 // ListReplies The replies of a thread, newest page first
 // (GET /api/channels/{channel_id}/messages/{message_id}/replies)
 func (_ Unimplemented) ListReplies(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID, params ListRepliesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReportMessage Report a message to the workspace's moderators
+// (POST /api/channels/{channel_id}/messages/{message_id}/report)
+func (_ Unimplemented) ReportMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2941,6 +3806,12 @@ func (_ Unimplemented) MarkRead(w http.ResponseWriter, r *http.Request, channelI
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListChannelRuns Runs in a channel, newest first (up to 50)
+// (GET /api/channels/{channel_id}/runs)
+func (_ Unimplemented) ListChannelRuns(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ScheduleMessage Send a message later
 // (POST /api/channels/{channel_id}/scheduled)
 func (_ Unimplemented) ScheduleMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -2956,6 +3827,24 @@ func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channe
 // UnarchiveChannel Restore an archived channel (channel managers)
 // (POST /api/channels/{channel_id}/unarchive)
 func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CancelEvent Cancel an event (its creator or a workspace admin); reminders are canceled
+// (DELETE /api/events/{event_id})
+func (_ Unimplemented) CancelEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateEvent Change an event (its creator or a workspace admin)
+// (PUT /api/events/{event_id})
+func (_ Unimplemented) UpdateEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RsvpEvent Answer an event; "going" schedules a reminder 15 minutes before it
+// (PUT /api/events/{event_id}/rsvp)
+func (_ Unimplemented) RsvpEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3181,6 +4070,24 @@ func (_ Unimplemented) GetPicture(w http.ResponseWriter, r *http.Request, pictur
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ArchivePlaybook Archive a playbook (its runs stay)
+// (DELETE /api/playbooks/{playbook_id})
+func (_ Unimplemented) ArchivePlaybook(w http.ResponseWriter, r *http.Request, playbookId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdatePlaybook Change a playbook (runs already started keep their checklists)
+// (PUT /api/playbooks/{playbook_id})
+func (_ Unimplemented) UpdatePlaybook(w http.ResponseWriter, r *http.Request, playbookId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// StartRun Start a run of a playbook in a channel you can post in
+// (POST /api/playbooks/{playbook_id}/runs)
+func (_ Unimplemented) StartRun(w http.ResponseWriter, r *http.Request, playbookId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SetPresence Set your own status
 // (PUT /api/presence)
 func (_ Unimplemented) SetPresence(w http.ResponseWriter, r *http.Request) {
@@ -3190,6 +4097,24 @@ func (_ Unimplemented) SetPresence(w http.ResponseWriter, r *http.Request) {
 // GetProfiles Profiles of people
 // (GET /api/profiles)
 func (_ Unimplemented) GetProfiles(w http.ResponseWriter, r *http.Request, params GetProfilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ResolveReport Resolve a report (dismiss it, delete the message, or time its author out)
+// (POST /api/reports/{report_id}/resolve)
+func (_ Unimplemented) ResolveReport(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// FinishRun Finish a run (its owner or a channel manager); the channel is told
+// (POST /api/runs/{run_id}/finish)
+func (_ Unimplemented) FinishRun(w http.ResponseWriter, r *http.Request, runId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateRunItem Check, skip or assign a checklist item of an active run
+// (PATCH /api/runs/{run_id}/items)
+func (_ Unimplemented) UpdateRunItem(w http.ResponseWriter, r *http.Request, runId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3247,6 +4172,30 @@ func (_ Unimplemented) GetSound(w http.ResponseWriter, r *http.Request, soundId 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// WithdrawTerms Withdraw the terms (instance administrators)
+// (DELETE /api/terms)
+func (_ Unimplemented) WithdrawTerms(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTerms The terms of service in force and whether you accepted them
+// (GET /api/terms)
+func (_ Unimplemented) GetTerms(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetTerms Publish new terms everyone must accept (instance administrators)
+// (PUT /api/terms)
+func (_ Unimplemented) SetTerms(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AcceptTerms Accept the terms in force
+// (POST /api/terms/accept)
+func (_ Unimplemented) AcceptTerms(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetUITexts Interface texts the administrators replaced
 // (GET /api/ui-texts)
 func (_ Unimplemented) GetUITexts(w http.ResponseWriter, r *http.Request) {
@@ -3295,6 +4244,18 @@ func (_ Unimplemented) ListWorkspaceAudit(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListAutomodRules AutoMod rules of a workspace (owners and admins)
+// (GET /api/workspaces/{workspace_id}/automod)
+func (_ Unimplemented) ListAutomodRules(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateAutomodRule Add an AutoMod rule (up to 20 per workspace)
+// (POST /api/workspaces/{workspace_id}/automod)
+func (_ Unimplemented) CreateAutomodRule(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListBots The workspace's bots (owners and admins)
 // (GET /api/workspaces/{workspace_id}/bots)
 func (_ Unimplemented) ListBots(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
@@ -3316,6 +4277,18 @@ func (_ Unimplemented) ListCommands(w http.ResponseWriter, r *http.Request, work
 // OpenConversation Open a direct or group conversation
 // (POST /api/workspaces/{workspace_id}/conversations)
 func (_ Unimplemented) OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListEvents Events of a workspace from a time on (default now), soonest first (up to 100)
+// (GET /api/workspaces/{workspace_id}/events)
+func (_ Unimplemented) ListEvents(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListEventsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateEvent Plan an event (members; announced in its channel when it has one)
+// (POST /api/workspaces/{workspace_id}/events)
+func (_ Unimplemented) CreateEvent(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3385,15 +4358,57 @@ func (_ Unimplemented) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SetMemberTimeout Time a member out (no messages or reactions in the workspace) or end it
+// (PUT /api/workspaces/{workspace_id}/members/{user_id}/timeout)
+func (_ Unimplemented) SetMemberTimeout(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SetWorkspaceNotifications Mute or unmute a workspace for you
 // (PUT /api/workspaces/{workspace_id}/notifications)
 func (_ Unimplemented) SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// FinishOnboarding Close the welcome, joining the suggested channels chosen
+// (POST /api/workspaces/{workspace_id}/onboarded)
+func (_ Unimplemented) FinishOnboarding(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListPlaybooks Playbooks of a workspace
+// (GET /api/workspaces/{workspace_id}/playbooks)
+func (_ Unimplemented) ListPlaybooks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreatePlaybook Create a playbook (owners and admins)
+// (POST /api/workspaces/{workspace_id}/playbooks)
+func (_ Unimplemented) CreatePlaybook(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListPresence Who of a workspace is online, away or busy
 // (GET /api/workspaces/{workspace_id}/presence)
 func (_ Unimplemented) ListPresence(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListReports The moderation queue (workspace owners and admins)
+// (GET /api/workspaces/{workspace_id}/reports)
+func (_ Unimplemented) ListReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListReportsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetWelcome The welcome a workspace shows new members
+// (GET /api/workspaces/{workspace_id}/welcome)
+func (_ Unimplemented) GetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWelcome Set the welcome (owners and admins); empty message and rules turn it off
+// (PUT /api/workspaces/{workspace_id}/welcome)
+func (_ Unimplemented) SetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3549,6 +4564,100 @@ func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Logout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAutomodRule operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAutomodRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "rule_id" -------------
+	var ruleId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "rule_id", chi.URLParam(r, "rule_id"), &ruleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "rule_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAutomodRule(w, r, ruleId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateAutomodRule operation middleware
+func (siw *ServerInterfaceWrapper) UpdateAutomodRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "rule_id" -------------
+	var ruleId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "rule_id", chi.URLParam(r, "rule_id"), &ruleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "rule_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateAutomodRule(w, r, ruleId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveBanner operation middleware
+func (siw *ServerInterfaceWrapper) RemoveBanner(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveBanner(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBanner operation middleware
+func (siw *ServerInterfaceWrapper) GetBanner(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBanner(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetBanner operation middleware
+func (siw *ServerInterfaceWrapper) SetBanner(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetBanner(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4867,6 +5976,76 @@ func (siw *ServerInterfaceWrapper) PinMessage(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ClosePoll operation middleware
+func (siw *ServerInterfaceWrapper) ClosePoll(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClosePoll(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VotePoll operation middleware
+func (siw *ServerInterfaceWrapper) VotePoll(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VotePoll(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RemoveReaction operation middleware
 func (siw *ServerInterfaceWrapper) RemoveReaction(w http.ResponseWriter, r *http.Request) {
 
@@ -5019,6 +6198,41 @@ func (siw *ServerInterfaceWrapper) ListReplies(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ReportMessage operation middleware
+func (siw *ServerInterfaceWrapper) ReportMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RestoreMessage operation middleware
 func (siw *ServerInterfaceWrapper) RestoreMessage(w http.ResponseWriter, r *http.Request) {
 
@@ -5132,6 +6346,32 @@ func (siw *ServerInterfaceWrapper) MarkRead(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// ListChannelRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListChannelRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannelRuns(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ScheduleMessage operation middleware
 func (siw *ServerInterfaceWrapper) ScheduleMessage(w http.ResponseWriter, r *http.Request) {
 
@@ -5201,6 +6441,84 @@ func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UnarchiveChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelEvent operation middleware
+func (siw *ServerInterfaceWrapper) CancelEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "event_id" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "event_id", chi.URLParam(r, "event_id"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "event_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelEvent(w, r, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateEvent operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "event_id" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "event_id", chi.URLParam(r, "event_id"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "event_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateEvent(w, r, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RsvpEvent operation middleware
+func (siw *ServerInterfaceWrapper) RsvpEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "event_id" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "event_id", chi.URLParam(r, "event_id"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "event_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RsvpEvent(w, r, eventId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6118,6 +7436,84 @@ func (siw *ServerInterfaceWrapper) GetPicture(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ArchivePlaybook operation middleware
+func (siw *ServerInterfaceWrapper) ArchivePlaybook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "playbook_id" -------------
+	var playbookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "playbook_id", chi.URLParam(r, "playbook_id"), &playbookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "playbook_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchivePlaybook(w, r, playbookId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePlaybook operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePlaybook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "playbook_id" -------------
+	var playbookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "playbook_id", chi.URLParam(r, "playbook_id"), &playbookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "playbook_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePlaybook(w, r, playbookId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartRun operation middleware
+func (siw *ServerInterfaceWrapper) StartRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "playbook_id" -------------
+	var playbookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "playbook_id", chi.URLParam(r, "playbook_id"), &playbookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "playbook_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartRun(w, r, playbookId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetPresence operation middleware
 func (siw *ServerInterfaceWrapper) SetPresence(w http.ResponseWriter, r *http.Request) {
 
@@ -6156,6 +7552,84 @@ func (siw *ServerInterfaceWrapper) GetProfiles(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetProfiles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResolveReport operation middleware
+func (siw *ServerInterfaceWrapper) ResolveReport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "report_id" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "report_id", chi.URLParam(r, "report_id"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "report_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResolveReport(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FinishRun operation middleware
+func (siw *ServerInterfaceWrapper) FinishRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "run_id" -------------
+	var runId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "run_id", chi.URLParam(r, "run_id"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FinishRun(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRunItem operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRunItem(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "run_id" -------------
+	var runId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "run_id", chi.URLParam(r, "run_id"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRunItem(w, r, runId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6508,6 +7982,62 @@ func (siw *ServerInterfaceWrapper) GetSound(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// WithdrawTerms operation middleware
+func (siw *ServerInterfaceWrapper) WithdrawTerms(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WithdrawTerms(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTerms operation middleware
+func (siw *ServerInterfaceWrapper) GetTerms(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTerms(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetTerms operation middleware
+func (siw *ServerInterfaceWrapper) SetTerms(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetTerms(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcceptTerms operation middleware
+func (siw *ServerInterfaceWrapper) AcceptTerms(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcceptTerms(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUITexts operation middleware
 func (siw *ServerInterfaceWrapper) GetUITexts(w http.ResponseWriter, r *http.Request) {
 
@@ -6730,6 +8260,58 @@ func (siw *ServerInterfaceWrapper) ListWorkspaceAudit(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// ListAutomodRules operation middleware
+func (siw *ServerInterfaceWrapper) ListAutomodRules(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAutomodRules(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAutomodRule operation middleware
+func (siw *ServerInterfaceWrapper) CreateAutomodRule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAutomodRule(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListBots operation middleware
 func (siw *ServerInterfaceWrapper) ListBots(w http.ResponseWriter, r *http.Request) {
 
@@ -6825,6 +8407,74 @@ func (siw *ServerInterfaceWrapper) OpenConversation(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.OpenConversation(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEvents operation middleware
+func (siw *ServerInterfaceWrapper) ListEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEventsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEvents(w, r, workspaceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEvent operation middleware
+func (siw *ServerInterfaceWrapper) CreateEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEvent(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7156,6 +8806,41 @@ func (siw *ServerInterfaceWrapper) SetWorkspaceRole(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// SetMemberTimeout operation middleware
+func (siw *ServerInterfaceWrapper) SetMemberTimeout(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMemberTimeout(w, r, workspaceId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetWorkspaceNotifications operation middleware
 func (siw *ServerInterfaceWrapper) SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request) {
 
@@ -7182,6 +8867,84 @@ func (siw *ServerInterfaceWrapper) SetWorkspaceNotifications(w http.ResponseWrit
 	handler.ServeHTTP(w, r)
 }
 
+// FinishOnboarding operation middleware
+func (siw *ServerInterfaceWrapper) FinishOnboarding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FinishOnboarding(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPlaybooks operation middleware
+func (siw *ServerInterfaceWrapper) ListPlaybooks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPlaybooks(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePlaybook operation middleware
+func (siw *ServerInterfaceWrapper) CreatePlaybook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePlaybook(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListPresence operation middleware
 func (siw *ServerInterfaceWrapper) ListPresence(w http.ResponseWriter, r *http.Request) {
 
@@ -7199,6 +8962,100 @@ func (siw *ServerInterfaceWrapper) ListPresence(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListPresence(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListReports operation middleware
+func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListReportsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReports(w, r, workspaceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetWelcome operation middleware
+func (siw *ServerInterfaceWrapper) GetWelcome(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWelcome(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetWelcome operation middleware
+func (siw *ServerInterfaceWrapper) SetWelcome(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWelcome(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7730,6 +9587,105 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages", wrapper.CreateMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/poll/votes", wrapper.VotePoll)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/poll/close", wrapper.ClosePoll)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/report", wrapper.ReportMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/reports", wrapper.ListReports)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/reports/{report_id}/resolve", wrapper.ResolveReport)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/members/{user_id}/timeout", wrapper.SetMemberTimeout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/automod", wrapper.ListAutomodRules)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/automod", wrapper.CreateAutomodRule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/automod/{rule_id}", wrapper.DeleteAutomodRule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/automod/{rule_id}", wrapper.UpdateAutomodRule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/events", wrapper.ListEvents)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/events", wrapper.CreateEvent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/events/{event_id}", wrapper.CancelEvent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/events/{event_id}", wrapper.UpdateEvent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/events/{event_id}/rsvp", wrapper.RsvpEvent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/welcome", wrapper.GetWelcome)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/welcome", wrapper.SetWelcome)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/onboarded", wrapper.FinishOnboarding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/banner", wrapper.RemoveBanner)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/banner", wrapper.GetBanner)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/banner", wrapper.SetBanner)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/terms", wrapper.WithdrawTerms)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/terms", wrapper.GetTerms)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/terms", wrapper.SetTerms)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/terms/accept", wrapper.AcceptTerms)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/playbooks", wrapper.ListPlaybooks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/playbooks", wrapper.CreatePlaybook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/playbooks/{playbook_id}", wrapper.ArchivePlaybook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/playbooks/{playbook_id}", wrapper.UpdatePlaybook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/playbooks/{playbook_id}/runs", wrapper.StartRun)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/runs", wrapper.ListChannelRuns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/runs/{run_id}/items", wrapper.UpdateRunItem)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/runs/{run_id}/finish", wrapper.FinishRun)
 	})
 
 	return r

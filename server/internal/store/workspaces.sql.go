@@ -94,7 +94,7 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Wor
 }
 
 const createWorkspace = `-- name: CreateWorkspace :one
-INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance
+INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome
 `
 
 type CreateWorkspaceParams struct {
@@ -113,12 +113,13 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.Description,
 		&i.IconID,
 		&i.Appearance,
+		&i.Welcome,
 	)
 	return i, err
 }
 
 const getDefaultWorkspace = `-- name: GetDefaultWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance FROM workspaces WHERE is_default
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome FROM workspaces WHERE is_default
 `
 
 func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
@@ -132,6 +133,7 @@ func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
 		&i.Description,
 		&i.IconID,
 		&i.Appearance,
+		&i.Welcome,
 	)
 	return i, err
 }
@@ -167,7 +169,7 @@ func (q *Queries) GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInv
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance FROM workspaces WHERE id = $1
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error) {
@@ -181,6 +183,7 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.Description,
 		&i.IconID,
 		&i.Appearance,
+		&i.Welcome,
 	)
 	return i, err
 }
@@ -292,15 +295,17 @@ func (q *Queries) ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]W
 }
 
 const listUserWorkspaces = `-- name: ListUserWorkspaces :many
-SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, wm.role
+SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, w.welcome, wm.role, wm.timeout_until, wm.onboarded_at
 FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.user_id = $1
 ORDER BY w.is_default DESC, lower(w.name), w.id
 `
 
 type ListUserWorkspacesRow struct {
-	Workspace Workspace `json:"workspace"`
-	Role      string    `json:"role"`
+	Workspace    Workspace          `json:"workspace"`
+	Role         string             `json:"role"`
+	TimeoutUntil pgtype.Timestamptz `json:"timeout_until"`
+	OnboardedAt  pgtype.Timestamptz `json:"onboarded_at"`
 }
 
 // ListUserWorkspaces returns a user's workspaces with their role, the default
@@ -322,7 +327,10 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([
 			&i.Workspace.Description,
 			&i.Workspace.IconID,
 			&i.Workspace.Appearance,
+			&i.Workspace.Welcome,
 			&i.Role,
+			&i.TimeoutUntil,
+			&i.OnboardedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -398,7 +406,7 @@ func (q *Queries) RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspace
 const renameWorkspace = `-- name: RenameWorkspace :one
 UPDATE workspaces SET name = coalesce($1, name),
     description = coalesce($2, description)
-WHERE id = $3 RETURNING id, name, is_default, created_at, description, icon_id, appearance
+WHERE id = $3 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome
 `
 
 type RenameWorkspaceParams struct {
@@ -418,6 +426,7 @@ func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams
 		&i.Description,
 		&i.IconID,
 		&i.Appearance,
+		&i.Welcome,
 	)
 	return i, err
 }

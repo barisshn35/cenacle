@@ -2088,10 +2088,623 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/messages/{message_id}/poll/votes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Vote in a poll (replaces your earlier choices; none takes the vote back) */
+    put: operations['votePoll'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/poll/close': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Close a poll (its author or a channel manager) */
+    post: operations['closePoll'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/report': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Report a message to the workspace's moderators */
+    post: operations['reportMessage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/reports': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The moderation queue (workspace owners and admins) */
+    get: operations['listReports'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reports/{report_id}/resolve': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resolve a report (dismiss it, delete the message, or time its author out)
+     * @description Every open report of the same message is resolved with it. Audited.
+     */
+    post: operations['resolveReport'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/members/{user_id}/timeout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Time a member out (no messages or reactions in the workspace) or end it
+     * @description Workspace owners and admins; owners and admins cannot be timed out. Audited.
+     */
+    put: operations['setMemberTimeout'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/automod': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** AutoMod rules of a workspace (owners and admins) */
+    get: operations['listAutomodRules'];
+    put?: never;
+    /** Add an AutoMod rule (up to 20 per workspace) */
+    post: operations['createAutomodRule'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/automod/{rule_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rule_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Change an AutoMod rule */
+    put: operations['updateAutomodRule'];
+    post?: never;
+    /** Remove an AutoMod rule */
+    delete: operations['deleteAutomodRule'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Events of a workspace from a time on (default now), soonest first (up to 100) */
+    get: operations['listEvents'];
+    put?: never;
+    /** Plan an event (members; announced in its channel when it has one) */
+    post: operations['createEvent'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/{event_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Change an event (its creator or a workspace admin) */
+    put: operations['updateEvent'];
+    post?: never;
+    /** Cancel an event (its creator or a workspace admin); reminders are canceled */
+    delete: operations['cancelEvent'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/events/{event_id}/rsvp': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Answer an event; "going" schedules a reminder 15 minutes before it */
+    put: operations['rsvpEvent'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/welcome': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The welcome a workspace shows new members */
+    get: operations['getWelcome'];
+    /** Set the welcome (owners and admins); empty message and rules turn it off */
+    put: operations['setWelcome'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/onboarded': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Close the welcome, joining the suggested channels chosen */
+    post: operations['finishOnboarding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/banner': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The announcement banner of the instance, if any */
+    get: operations['getBanner'];
+    /** Show an announcement banner to everyone (instance administrators) */
+    put: operations['setBanner'];
+    post?: never;
+    /** Take the banner down (instance administrators) */
+    delete: operations['removeBanner'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/terms': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The terms of service in force and whether you accepted them */
+    get: operations['getTerms'];
+    /** Publish new terms everyone must accept (instance administrators) */
+    put: operations['setTerms'];
+    post?: never;
+    /** Withdraw the terms (instance administrators) */
+    delete: operations['withdrawTerms'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/terms/accept': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Accept the terms in force */
+    post: operations['acceptTerms'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/playbooks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Playbooks of a workspace */
+    get: operations['listPlaybooks'];
+    put?: never;
+    /** Create a playbook (owners and admins) */
+    post: operations['createPlaybook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/playbooks/{playbook_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        playbook_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Change a playbook (runs already started keep their checklists) */
+    put: operations['updatePlaybook'];
+    post?: never;
+    /** Archive a playbook (its runs stay) */
+    delete: operations['archivePlaybook'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/playbooks/{playbook_id}/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        playbook_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Start a run of a playbook in a channel you can post in */
+    post: operations['startRun'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** Runs in a channel, newest first (up to 50) */
+    get: operations['listChannelRuns'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/runs/{run_id}/items': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Check, skip or assign a checklist item of an active run */
+    patch: operations['updateRunItem'];
+    trace?: never;
+  };
+  '/api/runs/{run_id}/finish': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Finish a run (its owner or a channel manager); the channel is told */
+    post: operations['finishRun'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    Poll: {
+      options: components['schemas']['PollOption'][];
+      /** @description More than one option may be chosen. */
+      multiple: boolean;
+      anonymous: boolean;
+      /** Format: date-time */
+      closes_at: string | null;
+      closed: boolean;
+      /** @description People who voted. */
+      voters: number;
+    };
+    PollOption: {
+      /** Format: uuid */
+      id: string;
+      text: string;
+      votes: number;
+      /** @description The reader chose it. */
+      me: boolean;
+      /** @description Who chose it (not in anonymous polls). */
+      voters?: components['schemas']['Author'][];
+    };
+    NewPoll: {
+      options: string[];
+      multiple?: boolean;
+      anonymous?: boolean;
+      /** Format: date-time */
+      closes_at?: string;
+    };
+    Report: {
+      /** Format: uuid */
+      id: string;
+      message: components['schemas']['Message'];
+      channel: components['schemas']['SearchChannel'];
+      /** @description Who reported it; null for AutoMod (see rule_name). */
+      reporter: components['schemas']['Author'] | null;
+      rule_name: string;
+      reason: string;
+      /** @enum {string} */
+      status: 'open' | 'resolved' | 'dismissed';
+      /** @enum {string} */
+      action: '' | 'deleted' | 'timeout' | 'none';
+      /** Format: date-time */
+      created_at: string;
+      /** @description Open reports of the same message. */
+      reports: number;
+    };
+    AutomodRuleInput: {
+      name: string;
+      /**
+       * @description keywords: any of `words` (a trailing `*` matches a word's beginning; case and
+       *     accents do not matter); mentions: more than `max_mentions` people mentioned;
+       *     links: links to domains not in `allowed_domains`.
+       * @enum {string}
+       */
+      kind: 'keywords' | 'mentions' | 'links';
+      words?: string[];
+      max_mentions?: number;
+      allowed_domains?: string[];
+      /**
+       * @description block: the message is not sent; flag: it is sent and reported.
+       * @enum {string}
+       */
+      action: 'block' | 'flag';
+      exempt_roles?: ('owner' | 'admin' | 'member' | 'guest')[];
+      enabled?: boolean;
+    };
+    AutomodRule: components['schemas']['AutomodRuleInput'] & {
+      /** Format: uuid */
+      id: string;
+    };
+    EventInput: {
+      title: string;
+      description?: string;
+      location?: string;
+      /** Format: date-time */
+      starts_at: string;
+      /** Format: date-time */
+      ends_at: string;
+      /** Format: uuid */
+      channel_id?: string | null;
+    };
+    Event: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      workspace_id: string;
+      /** Format: uuid */
+      channel_id: string | null;
+      title: string;
+      description: string;
+      location: string;
+      /** Format: date-time */
+      starts_at: string;
+      /** Format: date-time */
+      ends_at: string;
+      created_by: components['schemas']['Author'] | null;
+      canceled: boolean;
+      going: components['schemas']['Author'][];
+      maybe: number;
+      /** @enum {string|null} */
+      me: 'going' | 'maybe' | 'declined' | null;
+      can_edit: boolean;
+    };
+    Welcome: {
+      /** @description Markdown. */
+      message: string;
+      rules: string[];
+      /** @description Channels suggested to join. */
+      channel_ids: string[];
+    };
+    BannerInput: {
+      text: string;
+      /** @enum {string} */
+      level: 'info' | 'warning' | 'critical';
+      /** @default true */
+      dismissible: boolean;
+    };
+    Banner: components['schemas']['BannerInput'] & {
+      /** Format: date-time */
+      updated_at: string;
+    };
+    Terms: {
+      /** Format: uuid */
+      id: string;
+      /** @description Markdown. */
+      text: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    PlaybookChecklist: {
+      title: string;
+      items: {
+        title: string;
+        description?: string;
+      }[];
+    };
+    PlaybookInput: {
+      name: string;
+      description?: string;
+      checklists: components['schemas']['PlaybookChecklist'][];
+    };
+    Playbook: components['schemas']['PlaybookInput'] & {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      updated_at: string;
+      runs_active: number;
+    };
+    Run: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      playbook_id: string | null;
+      /** Format: uuid */
+      channel_id: string;
+      name: string;
+      owner: components['schemas']['Author'] | null;
+      /** @enum {string} */
+      status: 'active' | 'finished';
+      checklists: components['schemas']['RunChecklist'][];
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      finished_at: string | null;
+    };
+    RunChecklist: {
+      title: string;
+      items: components['schemas']['RunItem'][];
+    };
+    RunItem: {
+      title: string;
+      description: string;
+      /** Format: date-time */
+      done_at: string | null;
+      /** Format: uuid */
+      done_by: string | null;
+      skipped: boolean;
+      /** Format: uuid */
+      assignee_id: string | null;
+    };
     Problem: {
       type: string;
       title: string;
@@ -2279,6 +2892,13 @@ export interface components {
        * @enum {string}
        */
       role: 'owner' | 'admin' | 'member' | 'guest';
+      /**
+       * Format: date-time
+       * @description Until then you may not post or react here (a moderator's timeout).
+       */
+      timeout_until?: string | null;
+      /** @description The workspace has a welcome you have not seen yet. */
+      needs_onboarding?: boolean;
     };
     WorkspaceMember: {
       user: components['schemas']['Person'];
@@ -2312,10 +2932,15 @@ export interface components {
       topic: string;
       /**
        * @description In announcement channels only workspace owners and admins send. Direct and
-       *     group conversations have participants instead of a name.
+       *     group conversations have participants instead of a name. A forum's messages
+       *     are posts with titles; people answer in their threads.
        * @enum {string}
        */
-      kind: 'standard' | 'announcement' | 'direct' | 'group';
+      kind: 'standard' | 'announcement' | 'direct' | 'group' | 'forum';
+      /** @description Tags a forum's posts may carry. */
+      forum_tags?: string[];
+      /** @description Seconds a member waits between messages (0 off; managers are exempt). */
+      slow_mode_seconds?: number;
       /** @description Every user is a member. */
       is_default: boolean;
       /** @description Members cannot leave. */
@@ -2350,6 +2975,8 @@ export interface components {
       /** @enum {string} */
       visibility?: 'public' | 'private';
       topic?: string;
+      slow_mode_seconds?: number;
+      forum_tags?: string[];
     };
     Presence: {
       /** Format: uuid */
@@ -2610,7 +3237,7 @@ export interface components {
        * @default standard
        * @enum {string}
        */
-      kind: 'standard' | 'announcement';
+      kind: 'standard' | 'announcement' | 'forum';
       /**
        * @default public
        * @enum {string}
@@ -2664,6 +3291,10 @@ export interface components {
       /** Format: uuid */
       pinned_by?: string | null;
       thread?: components['schemas']['ThreadSummary'];
+      /** @description A forum post's title. */
+      title?: string | null;
+      tags?: string[];
+      poll?: components['schemas']['Poll'];
     };
     /** @description The replies of a message (absent when it has none). */
     ThreadSummary: {
@@ -2752,6 +3383,10 @@ export interface components {
       root_id?: string;
       /** @description Show the reply in the channel too. */
       also_in_channel?: boolean;
+      /** @description Required for posts in forums (not for replies). */
+      title?: string;
+      tags?: string[];
+      poll?: components['schemas']['NewPoll'];
     };
     Reaction: {
       emoji: string;
@@ -6478,6 +7113,926 @@ export interface operations {
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
       429: components['responses']['Problem'];
+    };
+  };
+  votePoll: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          option_ids: string[];
+        };
+      };
+    };
+    responses: {
+      /** @description The poll; members see `poll.updated`. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Poll'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  closePoll: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The closed poll. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Poll'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  reportMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          reason?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Reported (again reporting the same message changes nothing). */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listReports: {
+    parameters: {
+      query?: {
+        status?: 'open' | 'closed';
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Reports, newest first (up to 200). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            reports: components['schemas']['Report'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  resolveReport: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          action: 'dismiss' | 'delete' | 'timeout';
+          timeout_minutes?: number;
+        };
+      };
+    };
+    responses: {
+      /** @description The report. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Report'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setMemberTimeout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: date-time */
+          until: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Saved; the member sees `workspace.joined` with the timeout. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listAutomodRules: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Rules. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            rules: components['schemas']['AutomodRule'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  createAutomodRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AutomodRuleInput'];
+      };
+    };
+    responses: {
+      /** @description The rule. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AutomodRule'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  updateAutomodRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AutomodRuleInput'];
+      };
+    };
+    responses: {
+      /** @description The rule. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AutomodRule'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  deleteAutomodRule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        rule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listEvents: {
+    parameters: {
+      query?: {
+        from?: string;
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Events. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            events: components['schemas']['Event'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EventInput'];
+      };
+    };
+    responses: {
+      /** @description The event. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Event'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EventInput'];
+      };
+    };
+    responses: {
+      /** @description The event. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Event'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  cancelEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Canceled. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  rsvpEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        event_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string|null} */
+          status: 'going' | 'maybe' | 'declined' | null;
+        };
+      };
+    };
+    responses: {
+      /** @description The event. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Event'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getWelcome: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The welcome. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Welcome'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setWelcome: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Welcome'];
+      };
+    };
+    responses: {
+      /** @description The welcome. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Welcome'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  finishOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          join_channel_ids: string[];
+        };
+      };
+    };
+    responses: {
+      /** @description Done. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getBanner: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The banner, or null. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            banner: components['schemas']['Banner'] | null;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setBanner: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BannerInput'];
+      };
+    };
+    responses: {
+      /** @description The banner; everyone sees `banner.changed`. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Banner'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  removeBanner: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  getTerms: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Terms, or null when there are none. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            terms: components['schemas']['Terms'] | null;
+            accepted: boolean;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setTerms: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          text: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The terms. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Terms'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  withdrawTerms: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Withdrawn. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  acceptTerms: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          terms_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Accepted. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  listPlaybooks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Playbooks. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            playbooks: components['schemas']['Playbook'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createPlaybook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlaybookInput'];
+      };
+    };
+    responses: {
+      /** @description The playbook. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Playbook'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  updatePlaybook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        playbook_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlaybookInput'];
+      };
+    };
+    responses: {
+      /** @description The playbook. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Playbook'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  archivePlaybook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        playbook_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Archived. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  startRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        playbook_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          channel_id: string;
+          name: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The run; the channel gets a message about it. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Run'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listChannelRuns: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Runs. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            runs: components['schemas']['Run'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateRunItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          checklist: number;
+          item: number;
+          done?: boolean;
+          skipped?: boolean;
+          /** Format: uuid */
+          assignee_id?: string | null;
+        };
+      };
+    };
+    responses: {
+      /** @description The run; the channel's members see `run.updated`. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Run'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  finishRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The run. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Run'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
     };
   };
 }

@@ -12,6 +12,7 @@ import (
 )
 
 type Querier interface {
+	AcceptTerms(ctx context.Context, arg AcceptTermsParams) error
 	// AddAllUsers makes every member of the channel's workspace a member of it
 	// (guests are added where they work, like bots).
 	AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error)
@@ -20,15 +21,19 @@ type Querier interface {
 	AddMember(ctx context.Context, arg AddMemberParams) (int64, error)
 	// AddMentions stores the mentions of a message: only members of its channel.
 	AddMentions(ctx context.Context, arg AddMentionsParams) error
+	AddPollOptions(ctx context.Context, arg AddPollOptionsParams) error
+	AddPollVotes(ctx context.Context, arg AddPollVotesParams) (int64, error)
 	AddPushSubscription(ctx context.Context, arg AddPushSubscriptionParams) error
 	AddReaction(ctx context.Context, arg AddReactionParams) (int64, error)
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
+	ArchivePlaybook(ctx context.Context, id pgtype.UUID) (int64, error)
 	// AssignUsername gives someone without a @username one made from their
 	// address or name (with a random suffix when it is taken).
 	AssignUsername(ctx context.Context, id pgtype.UUID) error
 	// AttachFiles gives a new message the uploader's ready files of the channel
 	// that no message carries yet.
 	AttachFiles(ctx context.Context, arg AttachFilesParams) (int64, error)
+	CancelEvent(ctx context.Context, id pgtype.UUID) (int64, error)
 	CancelScheduled(ctx context.Context, id pgtype.UUID) error
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
 	// ChannelsFromGroups is the channels a person's groups give them, in the
@@ -47,8 +52,13 @@ type Querier interface {
 	ClearCustomStatus(ctx context.Context, id pgtype.UUID) error
 	// ClearExpiredStatuses empties custom statuses whose time is up.
 	ClearExpiredStatuses(ctx context.Context) ([]pgtype.UUID, error)
+	ClearPollVotes(ctx context.Context, arg ClearPollVotesParams) error
+	ClosePoll(ctx context.Context, messageID pgtype.UUID) error
+	CountActiveRuns(ctx context.Context, playbookID pgtype.UUID) (int32, error)
+	CountAutomodRules(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID) (int64, error)
 	CountPins(ctx context.Context, channelID pgtype.UUID) (int32, error)
+	CountPollVoters(ctx context.Context, messageIds []pgtype.UUID) ([]CountPollVotersRow, error)
 	CountPushSubscriptions(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
 	CountSaved(ctx context.Context, userID pgtype.UUID) (int32, error)
@@ -60,6 +70,7 @@ type Querier interface {
 	CountUserFonts(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountUserSounds(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
+	CreateAutomodRule(ctx context.Context, arg CreateAutomodRuleParams) (AutomodRule, error)
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
 	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)
 	CreateBotUser(ctx context.Context, arg CreateBotUserParams) (User, error)
@@ -68,6 +79,8 @@ type Querier interface {
 	// CreateConversation creates a direct or group conversation, or returns the
 	// existing one with the same key (name).
 	CreateConversation(ctx context.Context, arg CreateConversationParams) (Channel, error)
+	// ----------------------------------------------------------------- events ---
+	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
 	CreateFile(ctx context.Context, arg CreateFileParams) (File, error)
 	// CreateImportedUser creates (or renames) a person from an export. They sign
 	// in later with Cenacle ID under the same verified address (ClaimImportedUser).
@@ -76,13 +89,22 @@ type Querier interface {
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
+	CreatePlaybook(ctx context.Context, arg CreatePlaybookParams) (Playbook, error)
+	// ------------------------------------------------------------------ polls ---
+	CreatePoll(ctx context.Context, arg CreatePollParams) error
+	// ---------------------------------------------------------------- reports ---
+	CreateReport(ctx context.Context, arg CreateReportParams) (int64, error)
+	CreateRun(ctx context.Context, arg CreateRunParams) (PlaybookRun, error)
 	CreateScheduledMessage(ctx context.Context, arg CreateScheduledMessageParams) (ScheduledMessage, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateSlashCommand(ctx context.Context, arg CreateSlashCommandParams) (SlashCommand, error)
 	CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (EventSubscription, error)
 	CreateSystemBot(ctx context.Context, arg CreateSystemBotParams) (Bot, error)
+	CreateTerms(ctx context.Context, arg CreateTermsParams) (TermsOfService, error)
 	CreateWebhook(ctx context.Context, arg CreateWebhookParams) (IncomingWebhook, error)
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
+	DeleteAutomodRule(ctx context.Context, id pgtype.UUID) (int64, error)
+	DeleteBanner(ctx context.Context) error
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteChannelGroupMapping(ctx context.Context, arg DeleteChannelGroupMappingParams) (int64, error)
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
@@ -95,6 +117,7 @@ type Querier interface {
 	// that committed later must stay for the next round.
 	DeleteOutboxEvents(ctx context.Context, ids []int64) error
 	DeletePicture(ctx context.Context, id pgtype.UUID) error
+	DeleteRsvp(ctx context.Context, arg DeleteRsvpParams) error
 	DeleteSaved(ctx context.Context, arg DeleteSavedParams) (SavedMessage, error)
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	// DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
@@ -125,6 +148,7 @@ type Querier interface {
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	FindWorkspaceByName(ctx context.Context, name string) (Workspace, error)
 	FinishDelivery(ctx context.Context, arg FinishDeliveryParams) error
+	FinishRun(ctx context.Context, id pgtype.UUID) (PlaybookRun, error)
 	FinishScheduled(ctx context.Context, arg FinishScheduledParams) error
 	// FinishUpload records what the server found out about an uploaded file.
 	FinishUpload(ctx context.Context, arg FinishUploadParams) (File, error)
@@ -135,9 +159,13 @@ type Querier interface {
 	// GetActiveSession returns the session of a token hash with its user, unless
 	// it passed its absolute expiry or was idle for longer than idle_timeout.
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
+	GetActiveTerms(ctx context.Context) (TermsOfService, error)
 	// GetActiveWebhook returns a webhook of an enabled bot with the bot's user.
 	GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetActiveWebhookRow, error)
 	GetAppearance(ctx context.Context, userID pgtype.UUID) ([]byte, error)
+	GetAutomodRule(ctx context.Context, id pgtype.UUID) (AutomodRule, error)
+	// ------------------------------------------------------- banner and terms ---
+	GetBanner(ctx context.Context) (InstanceBanner, error)
 	GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
 	GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotToken, error)
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
@@ -147,6 +175,7 @@ type Querier interface {
 	GetDirectoryPhoto(ctx context.Context, id pgtype.UUID) (GetDirectoryPhotoRow, error)
 	GetDirectorySyncState(ctx context.Context) (DirectorySyncState, error)
 	GetEmailNotification(ctx context.Context, userID pgtype.UUID) (GetEmailNotificationRow, error)
+	GetEvent(ctx context.Context, id pgtype.UUID) (Event, error)
 	GetFile(ctx context.Context, id pgtype.UUID) (File, error)
 	// GetFileForReader returns a file with the message it belongs to (deleted
 	// messages hide their files).
@@ -155,6 +184,7 @@ type Querier interface {
 	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
+	GetMemberTimeout(ctx context.Context, arg GetMemberTimeoutParams) (pgtype.Timestamptz, error)
 	GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error)
 	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
 	// GetMessagesByIDs returns messages with their authors and channels.
@@ -162,10 +192,15 @@ type Querier interface {
 	GetNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]byte, error)
 	GetNotifyCursor(ctx context.Context, name string) (pgtype.UUID, error)
 	GetPicture(ctx context.Context, id pgtype.UUID) (GetPictureRow, error)
+	GetPlaybook(ctx context.Context, id pgtype.UUID) (Playbook, error)
+	GetPoll(ctx context.Context, messageID pgtype.UUID) (Poll, error)
 	// GetProfiles reads the profiles of people; an expired custom status reads
 	// as none.
 	GetProfiles(ctx context.Context, ids []pgtype.UUID) ([]GetProfilesRow, error)
 	GetPushKeys(ctx context.Context) (GetPushKeysRow, error)
+	GetReport(ctx context.Context, id pgtype.UUID) (MessageReport, error)
+	GetRsvp(ctx context.Context, arg GetRsvpParams) (EventRsvp, error)
+	GetRun(ctx context.Context, id pgtype.UUID) (PlaybookRun, error)
 	GetSaved(ctx context.Context, arg GetSavedParams) (SavedMessage, error)
 	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetThreadFollow(ctx context.Context, arg GetThreadFollowParams) (ThreadFollow, error)
@@ -205,6 +240,8 @@ type Querier interface {
 	// the role a group gave). Memberships added by hand only ever gain a role;
 	// owners stay owners. Returns whether the person is new there.
 	JoinWorkspaceViaGroup(ctx context.Context, arg JoinWorkspaceViaGroupParams) (bool, error)
+	// LastMessageAt is when a member last sent a message in a channel (slow mode).
+	LastMessageAt(ctx context.Context, arg LastMessageAtParams) (time.Time, error)
 	// LeaveChannelsViaGroup takes the person out of channels their groups no
 	// longer give: group-given memberships, and any membership of a channel
 	// managed by groups.
@@ -224,6 +261,8 @@ type Querier interface {
 	// ListAllChannels returns the public channels of a workspace and its private
 	// channels the user belongs to, with the user's role ('' when not a member).
 	ListAllChannels(ctx context.Context, arg ListAllChannelsParams) ([]ListAllChannelsRow, error)
+	// ---------------------------------------------------------------- AutoMod ---
+	ListAutomodRules(ctx context.Context, workspaceID pgtype.UUID) ([]AutomodRule, error)
 	ListBotCommands(ctx context.Context, botID pgtype.UUID) ([]SlashCommand, error)
 	ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotToken, error)
 	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
@@ -234,10 +273,16 @@ type Querier interface {
 	ListChannelGroupMappings(ctx context.Context, channelID pgtype.UUID) ([]string, error)
 	ListChannelMemberIDs(ctx context.Context, channelID pgtype.UUID) ([]pgtype.UUID, error)
 	ListChannelNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]ListChannelNotificationPrefsRow, error)
+	ListChannelRuns(ctx context.Context, channelID pgtype.UUID) ([]PlaybookRun, error)
 	// ListConversationParticipants returns, for each direct or group conversation
 	// of a user, the other people in it.
 	ListConversationParticipants(ctx context.Context, userID pgtype.UUID) ([]ListConversationParticipantsRow, error)
 	ListDeliveries(ctx context.Context, arg ListDeliveriesParams) ([]EventDelivery, error)
+	ListEnabledAutomodRules(ctx context.Context, workspaceID pgtype.UUID) ([]AutomodRule, error)
+	ListEventReminders(ctx context.Context, eventID pgtype.UUID) ([]ListEventRemindersRow, error)
+	ListEventRsvps(ctx context.Context, eventIds []pgtype.UUID) ([]ListEventRsvpsRow, error)
+	// ListEvents returns a workspace's events that end after a moment, soonest first.
+	ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error)
 	// ListFollowedThreads returns the threads a user follows in channels they
 	// belong to, the latest reply first, with unread replies and mentions.
 	ListFollowedThreads(ctx context.Context, arg ListFollowedThreadsParams) ([]ListFollowedThreadsRow, error)
@@ -258,6 +303,14 @@ type Querier interface {
 	ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error)
 	ListOutboxEvents(ctx context.Context, rowLimit int32) ([]EventOutbox, error)
 	ListPins(ctx context.Context, channelID pgtype.UUID) ([]ListPinsRow, error)
+	// -------------------------------------------------------------- playbooks ---
+	ListPlaybooks(ctx context.Context, workspaceID pgtype.UUID) ([]ListPlaybooksRow, error)
+	// ListPollOptions returns the options of polls with their votes and whether
+	// the reader chose them.
+	ListPollOptions(ctx context.Context, arg ListPollOptionsParams) ([]ListPollOptionsRow, error)
+	// ListPollVoters returns who chose what in polls that are not anonymous.
+	ListPollVoters(ctx context.Context, messageIds []pgtype.UUID) ([]ListPollVotersRow, error)
+	ListPolls(ctx context.Context, messageIds []pgtype.UUID) ([]Poll, error)
 	ListPushSubscriptions(ctx context.Context, userID pgtype.UUID) ([]ListPushSubscriptionsRow, error)
 	// ListReactions sums up the reactions of messages: count and whether the user
 	// reacted, in the order the emoji were first used.
@@ -265,6 +318,9 @@ type Querier interface {
 	// ListReplies returns up to row_limit replies of a thread older than the
 	// cursor (all when before is NULL), newest first, with their authors.
 	ListReplies(ctx context.Context, arg ListRepliesParams) ([]ListRepliesRow, error)
+	// ListReports returns the open (or the closed) reports of a workspace, newest
+	// first, with how many open reports each message has.
+	ListReports(ctx context.Context, arg ListReportsParams) ([]ListReportsRow, error)
 	// ListSaved returns the saved messages of a user in channels they belong to,
 	// newest first.
 	ListSaved(ctx context.Context, userID pgtype.UUID) ([]ListSavedRow, error)
@@ -331,6 +387,8 @@ type Querier interface {
 	// ReplaceUserGroups sets the directory groups of a person.
 	ReplaceUserGroups(ctx context.Context, arg ReplaceUserGroupsParams) error
 	ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (EventDelivery, error)
+	// ResolveReports closes every open report of a message.
+	ResolveReports(ctx context.Context, arg ResolveReportsParams) ([]MessageReport, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.
 	RestoreMessage(ctx context.Context, arg RestoreMessageParams) (Message, error)
 	// RevokeAdminUnlessEmail removes the administrator flag from a user whose
@@ -364,6 +422,7 @@ type Querier interface {
 	// SetAvatar changes the picture of a person and returns the previous one (to
 	// delete).
 	SetAvatar(ctx context.Context, arg SetAvatarParams) (pgtype.UUID, error)
+	SetBanner(ctx context.Context, arg SetBannerParams) (InstanceBanner, error)
 	SetBotDescription(ctx context.Context, arg SetBotDescriptionParams) error
 	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
@@ -381,9 +440,13 @@ type Querier interface {
 	// administrator (or takes it back when they are not a guest any more).
 	SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error
 	SetLastSeen(ctx context.Context, id pgtype.UUID) error
+	SetMemberTimeout(ctx context.Context, arg SetMemberTimeoutParams) (int64, error)
 	SetNotificationPrefs(ctx context.Context, arg SetNotificationPrefsParams) error
 	SetNotifyCursor(ctx context.Context, arg SetNotifyCursorParams) error
+	SetOnboarded(ctx context.Context, arg SetOnboardedParams) (int64, error)
 	SetPinned(ctx context.Context, arg SetPinnedParams) (Message, error)
+	SetRsvp(ctx context.Context, arg SetRsvpParams) error
+	SetRunChecklists(ctx context.Context, arg SetRunChecklistsParams) (PlaybookRun, error)
 	SetSavedReminder(ctx context.Context, arg SetSavedReminderParams) error
 	// SetThreadFollowing records a choice to follow (from the latest reply on: older
 	// ones count as read) or to stop following a thread.
@@ -396,6 +459,8 @@ type Querier interface {
 	SetWorkspaceMemberRole(ctx context.Context, arg SetWorkspaceMemberRoleParams) error
 	SetWorkspaceNotificationPrefs(ctx context.Context, arg SetWorkspaceNotificationPrefsParams) error
 	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)
+	// ---------------------------------------------------------------- welcome ---
+	SetWorkspaceWelcome(ctx context.Context, arg SetWorkspaceWelcomeParams) (Workspace, error)
 	// ThreadSummaries counts the replies of messages and names their latest three
 	// repliers (newest first).
 	ThreadSummaries(ctx context.Context, rootIds []pgtype.UUID) ([]ThreadSummariesRow, error)
@@ -404,9 +469,12 @@ type Querier interface {
 	// writes low while the idle timeout stays accurate to the minute.
 	TouchSession(ctx context.Context, arg TouchSessionParams) error
 	TouchWebhook(ctx context.Context, id pgtype.UUID) error
+	UpdateAutomodRule(ctx context.Context, arg UpdateAutomodRuleParams) (AutomodRule, error)
 	UpdateBot(ctx context.Context, arg UpdateBotParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (ChannelCategory, error)
 	UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error)
+	UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error)
+	UpdatePlaybook(ctx context.Context, arg UpdatePlaybookParams) (Playbook, error)
 	UpdateProfileSettings(ctx context.Context, arg UpdateProfileSettingsParams) error
 	// UpdateUserProfile follows a change of name or address at Cenacle ID.
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
@@ -426,6 +494,7 @@ type Querier interface {
 	// people of their workspaces (guests: only of their channels) and people of
 	// their channels and conversations.
 	VisibleProfileIDs(ctx context.Context, arg VisibleProfileIDsParams) ([]pgtype.UUID, error)
+	WithdrawTerms(ctx context.Context) error
 	// WorkspaceRolesFromGroups is, per workspace, the strongest role a person's
 	// groups give them there.
 	WorkspaceRolesFromGroups(ctx context.Context, userID pgtype.UUID) ([]WorkspaceRolesFromGroupsRow, error)
