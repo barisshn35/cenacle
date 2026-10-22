@@ -8,6 +8,18 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Compliance and access control.
+
+### Added
+
+- Retention: how many days messages are kept, for a workspace and per channel (ADR 0028).
+- Legal holds that keep people's or channels' messages from any deletion, and an
+  eDiscovery export of messages (deleted ones included) as JSON lines; both audited.
+- Classification banners at the top of channels.
+- Member attributes (e.g. department) and channel access rules that require them.
+- End-to-end encrypted channels with a passphrase their members share; the server only
+  stores what it cannot read.
+
 ## [0.22.0] - 2026-10-22
 
 Collaboration.

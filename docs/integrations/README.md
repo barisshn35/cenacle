@@ -41,6 +41,9 @@ are Markdown; `<@user-id>` mentions a member. Up to five cards can go with a mes
 Colors are `neutral`, `info`, `success`, `warning` and `danger`; say the meaning in the text
 too.
 
+Bots, webhooks, commands and workflows cannot write in channels encrypted end to end
+(`encrypted_channel`): only their members' apps hold the key.
+
 To rotate a token, choose **Rotate** next to it: a new token with the same name, scopes and
 lifetime is created, and the old one keeps working for the overlap you pick (up to a week,
 or none). Switch the program over within the overlap.

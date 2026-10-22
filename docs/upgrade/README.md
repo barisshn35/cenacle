@@ -39,6 +39,15 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.23.0
+
+- Migration `00023_compliance` adds retention settings, legal holds, classifications,
+  member attributes, channel access rules and encrypted channels. Nothing is deleted until
+  an owner or admin sets a retention period.
+- Messages deleted by retention are gone for good: place legal holds first where needed.
+- Rolling back to 0.22 needs `migrate down` once; it deletes encrypted messages longer than
+  4,000 characters, and holds, classifications and attributes.
+
 ### 0.22.0
 
 - Migration `00022_collaboration` adds channel tabs, canvases, lists and their rows. Nothing

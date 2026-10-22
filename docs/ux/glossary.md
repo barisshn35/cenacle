@@ -73,6 +73,10 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Canvas               | Canvas                          | Tuval                                 | `collab.tabs.newCanvas`                   | A page of Markdown; one editor at a time      |
 | List / Board         | List / Board                    | Liste / Pano                          | `collab.list.board`                       | A board is a list grouped by a column         |
 | Tasks                | Tasks                           | Görevler                              | `home.tasks`                              | Approvals, forms and rows assigned to me      |
+| Retention            | Retention                       | Saklama süresi                        | `compliance.retention.title`              | Days messages are kept, then deleted for good |
+| Legal hold           | Legal hold / Release            | Yasal saklama / Kaldır                | `compliance.holds.title`                  | Keeps messages from every deletion            |
+| Classification       | Classification                  | Sınıflandırma                         | `compliance.classes.title`                | A channel's banner                            |
+| Encrypted channel    | Encrypted end to end            | Uçtan uca şifreli                     | `e2e.info`                                | Readable only with the passphrase             |
 | Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
 ## Rules
