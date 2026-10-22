@@ -264,6 +264,126 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/me/appearance': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Your appearance settings */
+    get: operations['getMyAppearance'];
+    /** Save your appearance settings (they follow you to every device) */
+    put: operations['setMyAppearance'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/fonts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Fonts you uploaded */
+    get: operations['listMyFonts'];
+    put?: never;
+    /**
+     * Upload a font for yourself
+     * @description WOFF2, WOFF, TrueType or OpenType, at most 2 MB; five per person.
+     */
+    post: operations['uploadFont'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/fonts/{font_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        font_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a font you uploaded */
+    delete: operations['deleteFont'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/fonts/{font_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        font_id: string;
+      };
+      cookie?: never;
+    };
+    /** A font you uploaded (only for you) */
+    get: operations['getFont'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/ui-texts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Interface texts the administrators replaced
+     * @description Public (the sign-in page uses them too). Keys are those of the app's translations.
+     */
+    get: operations['getUITexts'];
+    /**
+     * Replace interface texts (instance administrators)
+     * @description Only the keys in `editable` may be changed; an empty text restores the original.
+     */
+    put: operations['setUITexts'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/appearance': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** The workspace's default theme preset and font template (owners and admins) */
+    put: operations['setWorkspaceAppearance'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/presence': {
     parameters: {
       query?: never;
@@ -1761,6 +1881,7 @@ export interface components {
       description: string;
       /** @description The workspace's icon, or null (the app shows its initials). */
       icon_url: string | null;
+      appearance: components['schemas']['WorkspaceAppearance'];
       /** @description Everyone who signs in belongs to the default workspace. */
       is_default: boolean;
       /**
@@ -1845,6 +1966,74 @@ export interface components {
       user_id: string;
       /** @enum {string} */
       status: 'online' | 'away' | 'dnd';
+    };
+    /** @enum {string} */
+    ThemePreset: 'cenacle' | 'graphite' | 'ocean' | 'forest' | 'sunset' | 'rose' | 'contrast';
+    /** @enum {string} */
+    FontTemplate: 'corporate' | 'classic' | 'modern' | 'product' | 'reading' | 'legible';
+    WorkspaceAppearance: {
+      preset: components['schemas']['ThemePreset'];
+      font_template: components['schemas']['FontTemplate'];
+    };
+    Appearance: {
+      /** @enum {string} */
+      theme: 'system' | 'light' | 'dark';
+      /**
+       * @description A ThemePreset, or 'workspace' for the workspace's.
+       * @enum {string}
+       */
+      preset:
+        'workspace' | 'cenacle' | 'graphite' | 'ocean' | 'forest' | 'sunset' | 'rose' | 'contrast';
+      /** @enum {string} */
+      density: 'auto' | 'compact' | 'comfortable';
+      fonts: {
+        /**
+         * @description A FontTemplate, 'workspace' for the workspace's, or 'custom' (text and code below).
+         * @enum {string}
+         */
+        template:
+          | 'workspace'
+          | 'corporate'
+          | 'classic'
+          | 'modern'
+          | 'product'
+          | 'reading'
+          | 'legible'
+          | 'custom';
+        /** @description A library font id, or 'user:<font id>' for one you uploaded. */
+        text: string;
+        code: string;
+      };
+      font_size: number;
+      /** @enum {string} */
+      line_height: 'compact' | 'normal' | 'relaxed';
+      code: {
+        /** @enum {string} */
+        theme: 'github' | 'github-soft' | 'one' | 'solarized' | 'catppuccin' | 'vitesse';
+        line_numbers: boolean;
+        wrap: boolean;
+        ligatures: boolean;
+      };
+    };
+    UserFont: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @enum {string} */
+      format: 'woff2' | 'woff' | 'truetype' | 'opentype';
+      size: number;
+      /** Format: date-time */
+      created_at: string;
+    };
+    UITexts: {
+      /** @description Replaced texts, by language and key. */
+      texts: {
+        [key: string]: {
+          [key: string]: string;
+        };
+      };
+      /** @description The keys administrators may replace. */
+      editable: string[];
     };
     CustomStatus: {
       /** @description One emoji, or empty. */
@@ -2545,6 +2734,236 @@ export interface operations {
         };
       };
       401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getMyAppearance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The settings (defaults filled in). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Appearance'];
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setMyAppearance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Appearance'];
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Appearance'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  listMyFonts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Your fonts. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            fonts: components['schemas']['UserFont'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  uploadFont: {
+    parameters: {
+      query: {
+        name: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Uploaded. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserFont'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+      422: components['responses']['Problem'];
+    };
+  };
+  deleteFont: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        font_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getFont: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        font_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The font file. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'font/woff2': string;
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getUITexts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Texts by language and key. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UITexts'];
+        };
+      };
+    };
+  };
+  setUITexts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          locale: 'en' | 'tr';
+          texts: {
+            [key: string]: string;
+          };
+        };
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UITexts'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setWorkspaceAppearance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WorkspaceAppearance'];
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workspace'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };

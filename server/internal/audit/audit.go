@@ -50,6 +50,7 @@ const (
 	CommandDeleted      = "bot.command_deleted"
 	SubscribedTo        = "bot.subscription_created"
 	GroupMappingSet     = "workspace.group_mapping_set"
+	UITextsChanged      = "ui_texts.changed"
 	GroupMappingDeleted = "workspace.group_mapping_deleted"
 	ChannelGroupsSet    = "channel.groups_set"
 	Unsubscribed        = "bot.subscription_deleted"

@@ -156,7 +156,7 @@ func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, erro
 }
 
 const findWorkspaceByName = `-- name: FindWorkspaceByName :one
-SELECT id, name, is_default, created_at, description, icon_id FROM workspaces WHERE lower(name) = lower($1) ORDER BY created_at LIMIT 1
+SELECT id, name, is_default, created_at, description, icon_id, appearance FROM workspaces WHERE lower(name) = lower($1) ORDER BY created_at LIMIT 1
 `
 
 func (q *Queries) FindWorkspaceByName(ctx context.Context, name string) (Workspace, error) {
@@ -169,6 +169,7 @@ func (q *Queries) FindWorkspaceByName(ctx context.Context, name string) (Workspa
 		&i.CreatedAt,
 		&i.Description,
 		&i.IconID,
+		&i.Appearance,
 	)
 	return i, err
 }

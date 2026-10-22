@@ -14,6 +14,171 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AppearanceCodeTheme.
+const (
+	Catppuccin AppearanceCodeTheme = "catppuccin"
+	Github     AppearanceCodeTheme = "github"
+	GithubSoft AppearanceCodeTheme = "github-soft"
+	One        AppearanceCodeTheme = "one"
+	Solarized  AppearanceCodeTheme = "solarized"
+	Vitesse    AppearanceCodeTheme = "vitesse"
+)
+
+// Valid indicates whether the value is a known member of the AppearanceCodeTheme enum.
+func (e AppearanceCodeTheme) Valid() bool {
+	switch e {
+	case Catppuccin:
+		return true
+	case Github:
+		return true
+	case GithubSoft:
+		return true
+	case One:
+		return true
+	case Solarized:
+		return true
+	case Vitesse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppearanceDensity.
+const (
+	AppearanceDensityAuto        AppearanceDensity = "auto"
+	AppearanceDensityComfortable AppearanceDensity = "comfortable"
+	AppearanceDensityCompact     AppearanceDensity = "compact"
+)
+
+// Valid indicates whether the value is a known member of the AppearanceDensity enum.
+func (e AppearanceDensity) Valid() bool {
+	switch e {
+	case AppearanceDensityAuto:
+		return true
+	case AppearanceDensityComfortable:
+		return true
+	case AppearanceDensityCompact:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppearanceFontsTemplate.
+const (
+	AppearanceFontsTemplateClassic   AppearanceFontsTemplate = "classic"
+	AppearanceFontsTemplateCorporate AppearanceFontsTemplate = "corporate"
+	AppearanceFontsTemplateCustom    AppearanceFontsTemplate = "custom"
+	AppearanceFontsTemplateLegible   AppearanceFontsTemplate = "legible"
+	AppearanceFontsTemplateModern    AppearanceFontsTemplate = "modern"
+	AppearanceFontsTemplateProduct   AppearanceFontsTemplate = "product"
+	AppearanceFontsTemplateReading   AppearanceFontsTemplate = "reading"
+	AppearanceFontsTemplateWorkspace AppearanceFontsTemplate = "workspace"
+)
+
+// Valid indicates whether the value is a known member of the AppearanceFontsTemplate enum.
+func (e AppearanceFontsTemplate) Valid() bool {
+	switch e {
+	case AppearanceFontsTemplateClassic:
+		return true
+	case AppearanceFontsTemplateCorporate:
+		return true
+	case AppearanceFontsTemplateCustom:
+		return true
+	case AppearanceFontsTemplateLegible:
+		return true
+	case AppearanceFontsTemplateModern:
+		return true
+	case AppearanceFontsTemplateProduct:
+		return true
+	case AppearanceFontsTemplateReading:
+		return true
+	case AppearanceFontsTemplateWorkspace:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppearanceLineHeight.
+const (
+	AppearanceLineHeightCompact AppearanceLineHeight = "compact"
+	AppearanceLineHeightNormal  AppearanceLineHeight = "normal"
+	AppearanceLineHeightRelaxed AppearanceLineHeight = "relaxed"
+)
+
+// Valid indicates whether the value is a known member of the AppearanceLineHeight enum.
+func (e AppearanceLineHeight) Valid() bool {
+	switch e {
+	case AppearanceLineHeightCompact:
+		return true
+	case AppearanceLineHeightNormal:
+		return true
+	case AppearanceLineHeightRelaxed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppearancePreset.
+const (
+	AppearancePresetCenacle   AppearancePreset = "cenacle"
+	AppearancePresetContrast  AppearancePreset = "contrast"
+	AppearancePresetForest    AppearancePreset = "forest"
+	AppearancePresetGraphite  AppearancePreset = "graphite"
+	AppearancePresetOcean     AppearancePreset = "ocean"
+	AppearancePresetRose      AppearancePreset = "rose"
+	AppearancePresetSunset    AppearancePreset = "sunset"
+	AppearancePresetWorkspace AppearancePreset = "workspace"
+)
+
+// Valid indicates whether the value is a known member of the AppearancePreset enum.
+func (e AppearancePreset) Valid() bool {
+	switch e {
+	case AppearancePresetCenacle:
+		return true
+	case AppearancePresetContrast:
+		return true
+	case AppearancePresetForest:
+		return true
+	case AppearancePresetGraphite:
+		return true
+	case AppearancePresetOcean:
+		return true
+	case AppearancePresetRose:
+		return true
+	case AppearancePresetSunset:
+		return true
+	case AppearancePresetWorkspace:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppearanceTheme.
+const (
+	Dark   AppearanceTheme = "dark"
+	Light  AppearanceTheme = "light"
+	System AppearanceTheme = "system"
+)
+
+// Valid indicates whether the value is a known member of the AppearanceTheme enum.
+func (e AppearanceTheme) Valid() bool {
+	switch e {
+	case Dark:
+		return true
+	case Light:
+		return true
+	case System:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AttachmentColor.
 const (
 	Danger  AttachmentColor = "danger"
@@ -143,6 +308,36 @@ func (e DeliveryStatus) Valid() bool {
 	}
 }
 
+// Defines values for FontTemplate.
+const (
+	FontTemplateClassic   FontTemplate = "classic"
+	FontTemplateCorporate FontTemplate = "corporate"
+	FontTemplateLegible   FontTemplate = "legible"
+	FontTemplateModern    FontTemplate = "modern"
+	FontTemplateProduct   FontTemplate = "product"
+	FontTemplateReading   FontTemplate = "reading"
+)
+
+// Valid indicates whether the value is a known member of the FontTemplate enum.
+func (e FontTemplate) Valid() bool {
+	switch e {
+	case FontTemplateClassic:
+		return true
+	case FontTemplateCorporate:
+		return true
+	case FontTemplateLegible:
+		return true
+	case FontTemplateModern:
+		return true
+	case FontTemplateProduct:
+		return true
+	case FontTemplateReading:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GroupMappingRole.
 const (
 	GroupMappingRoleAdmin  GroupMappingRole = "admin"
@@ -251,6 +446,63 @@ func (e ScheduledMessageKind) Valid() bool {
 	case ScheduledMessageKindMessage:
 		return true
 	case ScheduledMessageKindReminder:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ThemePreset.
+const (
+	ThemePresetCenacle  ThemePreset = "cenacle"
+	ThemePresetContrast ThemePreset = "contrast"
+	ThemePresetForest   ThemePreset = "forest"
+	ThemePresetGraphite ThemePreset = "graphite"
+	ThemePresetOcean    ThemePreset = "ocean"
+	ThemePresetRose     ThemePreset = "rose"
+	ThemePresetSunset   ThemePreset = "sunset"
+)
+
+// Valid indicates whether the value is a known member of the ThemePreset enum.
+func (e ThemePreset) Valid() bool {
+	switch e {
+	case ThemePresetCenacle:
+		return true
+	case ThemePresetContrast:
+		return true
+	case ThemePresetForest:
+		return true
+	case ThemePresetGraphite:
+		return true
+	case ThemePresetOcean:
+		return true
+	case ThemePresetRose:
+		return true
+	case ThemePresetSunset:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UserFontFormat.
+const (
+	Opentype UserFontFormat = "opentype"
+	Truetype UserFontFormat = "truetype"
+	Woff     UserFontFormat = "woff"
+	Woff2    UserFontFormat = "woff2"
+)
+
+// Valid indicates whether the value is a known member of the UserFontFormat enum.
+func (e UserFontFormat) Valid() bool {
+	switch e {
+	case Opentype:
+		return true
+	case Truetype:
+		return true
+	case Woff:
+		return true
+	case Woff2:
 		return true
 	default:
 		return false
@@ -437,6 +689,24 @@ func (e SetPresenceJSONBodyStatus) Valid() bool {
 	}
 }
 
+// Defines values for SetUITextsJSONBodyLocale.
+const (
+	En SetUITextsJSONBodyLocale = "en"
+	Tr SetUITextsJSONBodyLocale = "tr"
+)
+
+// Valid indicates whether the value is a known member of the SetUITextsJSONBodyLocale enum.
+func (e SetUITextsJSONBodyLocale) Valid() bool {
+	switch e {
+	case En:
+		return true
+	case Tr:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetWorkspaceRoleJSONBodyRole.
 const (
 	SetWorkspaceRoleJSONBodyRoleAdmin  SetWorkspaceRoleJSONBodyRole = "admin"
@@ -460,6 +730,50 @@ func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
 		return false
 	}
 }
+
+// Appearance defines model for Appearance.
+type Appearance struct {
+	Code struct {
+		Ligatures   bool                `json:"ligatures"`
+		LineNumbers bool                `json:"line_numbers"`
+		Theme       AppearanceCodeTheme `json:"theme"`
+		Wrap        bool                `json:"wrap"`
+	} `json:"code"`
+	Density  AppearanceDensity `json:"density"`
+	FontSize int               `json:"font_size"`
+	Fonts    struct {
+		Code string `json:"code"`
+
+		// Template A FontTemplate, 'workspace' for the workspace's, or 'custom' (text and code below).
+		Template AppearanceFontsTemplate `json:"template"`
+
+		// Text A library font id, or 'user:<font id>' for one you uploaded.
+		Text string `json:"text"`
+	} `json:"fonts"`
+	LineHeight AppearanceLineHeight `json:"line_height"`
+
+	// Preset A ThemePreset, or 'workspace' for the workspace's.
+	Preset AppearancePreset `json:"preset"`
+	Theme  AppearanceTheme  `json:"theme"`
+}
+
+// AppearanceCodeTheme defines model for Appearance.Code.Theme.
+type AppearanceCodeTheme string
+
+// AppearanceDensity defines model for Appearance.Density.
+type AppearanceDensity string
+
+// AppearanceFontsTemplate A FontTemplate, 'workspace' for the workspace's, or 'custom' (text and code below).
+type AppearanceFontsTemplate string
+
+// AppearanceLineHeight defines model for Appearance.LineHeight.
+type AppearanceLineHeight string
+
+// AppearancePreset A ThemePreset, or 'workspace' for the workspace's.
+type AppearancePreset string
+
+// AppearanceTheme defines model for Appearance.Theme.
+type AppearanceTheme string
 
 // Attachment A card under a message, e.g. from a bot (an issue, an alert).
 type Attachment struct {
@@ -692,6 +1006,9 @@ type FileInfo struct {
 	Size         int64              `json:"size"`
 	Width        *int               `json:"width"`
 }
+
+// FontTemplate defines model for FontTemplate.
+type FontTemplate string
 
 // GroupMapping defines model for GroupMapping.
 type GroupMapping struct {
@@ -954,6 +1271,18 @@ type Subscription struct {
 	Url       string             `json:"url"`
 }
 
+// ThemePreset defines model for ThemePreset.
+type ThemePreset string
+
+// UITexts defines model for UITexts.
+type UITexts struct {
+	// Editable The keys administrators may replace.
+	Editable []string `json:"editable"`
+
+	// Texts Replaced texts, by language and key.
+	Texts map[string]map[string]string `json:"texts"`
+}
+
 // User defines model for User.
 type User struct {
 	DisplayName   string             `json:"display_name"`
@@ -961,6 +1290,18 @@ type User struct {
 	EmailVerified bool               `json:"email_verified"`
 	Id            openapi_types.UUID `json:"id"`
 }
+
+// UserFont defines model for UserFont.
+type UserFont struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Format    UserFontFormat     `json:"format"`
+	Id        openapi_types.UUID `json:"id"`
+	Name      string             `json:"name"`
+	Size      int                `json:"size"`
+}
+
+// UserFontFormat defines model for UserFont.Format.
+type UserFontFormat string
 
 // Webhook defines model for Webhook.
 type Webhook struct {
@@ -978,7 +1319,8 @@ type WebhookKind string
 
 // Workspace defines model for Workspace.
 type Workspace struct {
-	Description string `json:"description"`
+	Appearance  WorkspaceAppearance `json:"appearance"`
+	Description string              `json:"description"`
 
 	// IconUrl The workspace's icon, or null (the app shows its initials).
 	IconUrl *string            `json:"icon_url"`
@@ -994,6 +1336,12 @@ type Workspace struct {
 
 // WorkspaceRole Guests see only the channels they are in and the people in them.
 type WorkspaceRole string
+
+// WorkspaceAppearance defines model for WorkspaceAppearance.
+type WorkspaceAppearance struct {
+	FontTemplate FontTemplate `json:"font_template"`
+	Preset       ThemePreset  `json:"preset"`
+}
 
 // WorkspaceMember defines model for WorkspaceMember.
 type WorkspaceMember struct {
@@ -1178,6 +1526,11 @@ type GetFileContentParams struct {
 // PostWebhookJSONBody defines parameters for PostWebhook.
 type PostWebhookJSONBody map[string]interface{}
 
+// UploadFontParams defines parameters for UploadFont.
+type UploadFontParams struct {
+	Name string `form:"name" json:"name"`
+}
+
 // UpdateMyProfileJSONBody defines parameters for UpdateMyProfile.
 type UpdateMyProfileJSONBody struct {
 	ShowLastSeen *bool `json:"show_last_seen,omitempty"`
@@ -1212,6 +1565,15 @@ type GetProfilesParams struct {
 type EndAllSessionsJSONBody struct {
 	KeepCurrent bool `json:"keep_current"`
 }
+
+// SetUITextsJSONBody defines parameters for SetUITexts.
+type SetUITextsJSONBody struct {
+	Locale SetUITextsJSONBodyLocale `json:"locale"`
+	Texts  map[string]string        `json:"texts"`
+}
+
+// SetUITextsJSONBodyLocale defines parameters for SetUITexts.
+type SetUITextsJSONBodyLocale string
 
 // SearchUsersParams defines parameters for SearchUsers.
 type SearchUsersParams struct {
@@ -1329,6 +1691,9 @@ type ScheduleMessageJSONRequestBody ScheduleMessageJSONBody
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
 
+// SetMyAppearanceJSONRequestBody defines body for SetMyAppearance for application/json ContentType.
+type SetMyAppearanceJSONRequestBody = Appearance
+
 // UpdateMyProfileJSONRequestBody defines body for UpdateMyProfile for application/json ContentType.
 type UpdateMyProfileJSONRequestBody UpdateMyProfileJSONBody
 
@@ -1341,11 +1706,17 @@ type SetPresenceJSONRequestBody SetPresenceJSONBody
 // EndAllSessionsJSONRequestBody defines body for EndAllSessions for application/json ContentType.
 type EndAllSessionsJSONRequestBody EndAllSessionsJSONBody
 
+// SetUITextsJSONRequestBody defines body for SetUITexts for application/json ContentType.
+type SetUITextsJSONRequestBody SetUITextsJSONBody
+
 // CreateWorkspaceJSONRequestBody defines body for CreateWorkspace for application/json ContentType.
 type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
 
 // RenameWorkspaceJSONRequestBody defines body for RenameWorkspace for application/json ContentType.
 type RenameWorkspaceJSONRequestBody RenameWorkspaceJSONBody
+
+// SetWorkspaceAppearanceJSONRequestBody defines body for SetWorkspaceAppearance for application/json ContentType.
+type SetWorkspaceAppearanceJSONRequestBody = WorkspaceAppearance
 
 // CreateBotJSONRequestBody defines body for CreateBot for application/json ContentType.
 type CreateBotJSONRequestBody CreateBotJSONBody
@@ -1532,6 +1903,9 @@ type ServerInterface interface {
 	// GetFileThumbnail A small preview of an image (at most 480 pixels wide and high)
 	// (GET /api/files/{file_id}/thumbnail)
 	GetFileThumbnail(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID)
+	// GetFont A font you uploaded (only for you)
+	// (GET /api/fonts/{font_id})
+	GetFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID)
 	// PostWebhook Post into a channel through an incoming webhook
 	// (POST /api/hooks/{token})
 	PostWebhook(w http.ResponseWriter, r *http.Request, token string)
@@ -1541,12 +1915,27 @@ type ServerInterface interface {
 	// AcceptInvite Join the workspace of an invitation
 	// (POST /api/invites/{token}/accept)
 	AcceptInvite(w http.ResponseWriter, r *http.Request, token string)
+	// GetMyAppearance Your appearance settings
+	// (GET /api/me/appearance)
+	GetMyAppearance(w http.ResponseWriter, r *http.Request)
+	// SetMyAppearance Save your appearance settings (they follow you to every device)
+	// (PUT /api/me/appearance)
+	SetMyAppearance(w http.ResponseWriter, r *http.Request)
 	// DeleteAvatar Remove your profile picture
 	// (DELETE /api/me/avatar)
 	DeleteAvatar(w http.ResponseWriter, r *http.Request)
 	// SetAvatar Set your profile picture
 	// (PUT /api/me/avatar)
 	SetAvatar(w http.ResponseWriter, r *http.Request)
+	// ListMyFonts Fonts you uploaded
+	// (GET /api/me/fonts)
+	ListMyFonts(w http.ResponseWriter, r *http.Request)
+	// UploadFont Upload a font for yourself
+	// (POST /api/me/fonts)
+	UploadFont(w http.ResponseWriter, r *http.Request, params UploadFontParams)
+	// DeleteFont Remove a font you uploaded
+	// (DELETE /api/me/fonts/{font_id})
+	DeleteFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID)
 	// GetMyProfile Your profile and its settings
 	// (GET /api/me/profile)
 	GetMyProfile(w http.ResponseWriter, r *http.Request)
@@ -1586,6 +1975,12 @@ type ServerInterface interface {
 	// EndSession Sign out one device
 	// (DELETE /api/sessions/{session_id})
 	EndSession(w http.ResponseWriter, r *http.Request, sessionId openapi_types.UUID)
+	// GetUITexts Interface texts the administrators replaced
+	// (GET /api/ui-texts)
+	GetUITexts(w http.ResponseWriter, r *http.Request)
+	// SetUITexts Replace interface texts (instance administrators)
+	// (PUT /api/ui-texts)
+	SetUITexts(w http.ResponseWriter, r *http.Request)
 	// SearchUsers Find members of a workspace by name or e-mail address
 	// (GET /api/users)
 	SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams)
@@ -1598,6 +1993,9 @@ type ServerInterface interface {
 	// RenameWorkspace Change a workspace's name or description (owners and admins)
 	// (PATCH /api/workspaces/{workspace_id})
 	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetWorkspaceAppearance The workspace's default theme preset and font template (owners and admins)
+	// (PUT /api/workspaces/{workspace_id}/appearance)
+	SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListWorkspaceAudit The workspace's audit log (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/audit)
 	ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListWorkspaceAuditParams)
@@ -1994,6 +2392,12 @@ func (_ Unimplemented) GetFileThumbnail(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetFont A font you uploaded (only for you)
+// (GET /api/fonts/{font_id})
+func (_ Unimplemented) GetFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // PostWebhook Post into a channel through an incoming webhook
 // (POST /api/hooks/{token})
 func (_ Unimplemented) PostWebhook(w http.ResponseWriter, r *http.Request, token string) {
@@ -2012,6 +2416,18 @@ func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, toke
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetMyAppearance Your appearance settings
+// (GET /api/me/appearance)
+func (_ Unimplemented) GetMyAppearance(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetMyAppearance Save your appearance settings (they follow you to every device)
+// (PUT /api/me/appearance)
+func (_ Unimplemented) SetMyAppearance(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteAvatar Remove your profile picture
 // (DELETE /api/me/avatar)
 func (_ Unimplemented) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
@@ -2021,6 +2437,24 @@ func (_ Unimplemented) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 // SetAvatar Set your profile picture
 // (PUT /api/me/avatar)
 func (_ Unimplemented) SetAvatar(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMyFonts Fonts you uploaded
+// (GET /api/me/fonts)
+func (_ Unimplemented) ListMyFonts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UploadFont Upload a font for yourself
+// (POST /api/me/fonts)
+func (_ Unimplemented) UploadFont(w http.ResponseWriter, r *http.Request, params UploadFontParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteFont Remove a font you uploaded
+// (DELETE /api/me/fonts/{font_id})
+func (_ Unimplemented) DeleteFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2102,6 +2536,18 @@ func (_ Unimplemented) EndSession(w http.ResponseWriter, r *http.Request, sessio
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetUITexts Interface texts the administrators replaced
+// (GET /api/ui-texts)
+func (_ Unimplemented) GetUITexts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetUITexts Replace interface texts (instance administrators)
+// (PUT /api/ui-texts)
+func (_ Unimplemented) SetUITexts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SearchUsers Find members of a workspace by name or e-mail address
 // (GET /api/users)
 func (_ Unimplemented) SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams) {
@@ -2123,6 +2569,12 @@ func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 // RenameWorkspace Change a workspace's name or description (owners and admins)
 // (PATCH /api/workspaces/{workspace_id})
 func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWorkspaceAppearance The workspace's default theme preset and font template (owners and admins)
+// (PUT /api/workspaces/{workspace_id}/appearance)
+func (_ Unimplemented) SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3940,6 +4392,32 @@ func (siw *ServerInterfaceWrapper) GetFileThumbnail(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// GetFont operation middleware
+func (siw *ServerInterfaceWrapper) GetFont(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "font_id" -------------
+	var fontId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "font_id", chi.URLParam(r, "font_id"), &fontId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "font_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFont(w, r, fontId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PostWebhook operation middleware
 func (siw *ServerInterfaceWrapper) PostWebhook(w http.ResponseWriter, r *http.Request) {
 
@@ -4018,6 +4496,34 @@ func (siw *ServerInterfaceWrapper) AcceptInvite(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// GetMyAppearance operation middleware
+func (siw *ServerInterfaceWrapper) GetMyAppearance(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMyAppearance(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetMyAppearance operation middleware
+func (siw *ServerInterfaceWrapper) SetMyAppearance(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMyAppearance(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteAvatar operation middleware
 func (siw *ServerInterfaceWrapper) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 
@@ -4037,6 +4543,79 @@ func (siw *ServerInterfaceWrapper) SetAvatar(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetAvatar(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyFonts operation middleware
+func (siw *ServerInterfaceWrapper) ListMyFonts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyFonts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadFont operation middleware
+func (siw *ServerInterfaceWrapper) UploadFont(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UploadFontParams
+
+	// ------------- Required query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadFont(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteFont operation middleware
+func (siw *ServerInterfaceWrapper) DeleteFont(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "font_id" -------------
+	var fontId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "font_id", chi.URLParam(r, "font_id"), &fontId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "font_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteFont(w, r, fontId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4299,6 +4878,34 @@ func (siw *ServerInterfaceWrapper) EndSession(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// GetUITexts operation middleware
+func (siw *ServerInterfaceWrapper) GetUITexts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUITexts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetUITexts operation middleware
+func (siw *ServerInterfaceWrapper) SetUITexts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetUITexts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SearchUsers operation middleware
 func (siw *ServerInterfaceWrapper) SearchUsers(w http.ResponseWriter, r *http.Request) {
 
@@ -4403,6 +5010,32 @@ func (siw *ServerInterfaceWrapper) RenameWorkspace(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RenameWorkspace(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetWorkspaceAppearance operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspaceAppearance(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5099,6 +5732,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/pictures/{picture_id}", wrapper.GetPicture)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/appearance", wrapper.GetMyAppearance)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/appearance", wrapper.SetMyAppearance)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/fonts", wrapper.ListMyFonts)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/me/fonts", wrapper.UploadFont)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/fonts/{font_id}", wrapper.DeleteFont)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/fonts/{font_id}", wrapper.GetFont)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/ui-texts", wrapper.GetUITexts)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/ui-texts", wrapper.SetUITexts)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/appearance", wrapper.SetWorkspaceAppearance)
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/presence", wrapper.SetPresence)

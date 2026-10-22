@@ -474,6 +474,196 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/me/appearance:
+    get:
+      tags: [appearance]
+      operationId: getMyAppearance
+      summary: Your appearance settings
+      responses:
+        '200':
+          description: The settings (defaults filled in).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appearance' }
+        '401':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags: [appearance]
+      operationId: setMyAppearance
+      summary: Save your appearance settings (they follow you to every device)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Appearance' }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appearance' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/fonts:
+    get:
+      tags: [appearance]
+      operationId: listMyFonts
+      summary: Fonts you uploaded
+      responses:
+        '200':
+          description: Your fonts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [fonts]
+                properties:
+                  fonts:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserFont' }
+        '401':
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [appearance]
+      operationId: uploadFont
+      summary: Upload a font for yourself
+      description: WOFF2, WOFF, TrueType or OpenType, at most 2 MB; five per person.
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 60 }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: Uploaded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserFont' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /api/me/fonts/{font_id}:
+    parameters:
+      - name: font_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [appearance]
+      operationId: deleteFont
+      summary: Remove a font you uploaded
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/fonts/{font_id}:
+    parameters:
+      - name: font_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [appearance]
+      operationId: getFont
+      summary: A font you uploaded (only for you)
+      responses:
+        '200':
+          description: The font file.
+          content:
+            font/woff2:
+              schema: { type: string, format: binary }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/ui-texts:
+    get:
+      tags: [appearance]
+      operationId: getUITexts
+      summary: Interface texts the administrators replaced
+      description: Public (the sign-in page uses them too). Keys are those of the app's translations.
+      security: []
+      responses:
+        '200':
+          description: Texts by language and key.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UITexts' }
+    put:
+      tags: [appearance]
+      operationId: setUITexts
+      summary: Replace interface texts (instance administrators)
+      description: Only the keys in `editable` may be changed; an empty text restores the original.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locale, texts]
+              properties:
+                locale: { type: string, enum: [en, tr] }
+                texts:
+                  type: object
+                  additionalProperties: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UITexts' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/appearance:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [workspaces]
+      operationId: setWorkspaceAppearance
+      summary: The workspace's default theme preset and font template (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WorkspaceAppearance' }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/presence:
     put:
       tags: [realtime]
@@ -2779,7 +2969,7 @@ components:
           description: Seconds until the ticket expires.
     Workspace:
       type: object
-      required: [id, name, description, icon_url, is_default, role]
+      required: [id, name, description, icon_url, appearance, is_default, role]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -2788,6 +2978,7 @@ components:
           type: string
           nullable: true
           description: The workspace's icon, or null (the app shows its initials).
+        appearance: { $ref: '#/components/schemas/WorkspaceAppearance' }
         is_default:
           type: boolean
           description: Everyone who signs in belongs to the default workspace.
@@ -2909,6 +3100,74 @@ components:
       properties:
         user_id: { type: string, format: uuid }
         status: { type: string, enum: [online, away, dnd] }
+    ThemePreset:
+      type: string
+      enum: [cenacle, graphite, ocean, forest, sunset, rose, contrast]
+    FontTemplate:
+      type: string
+      enum: [corporate, classic, modern, product, reading, legible]
+    WorkspaceAppearance:
+      type: object
+      required: [preset, font_template]
+      properties:
+        preset: { $ref: '#/components/schemas/ThemePreset' }
+        font_template: { $ref: '#/components/schemas/FontTemplate' }
+    Appearance:
+      type: object
+      required: [theme, preset, density, fonts, font_size, line_height, code]
+      properties:
+        theme: { type: string, enum: [system, light, dark] }
+        preset:
+          type: string
+          description: "A ThemePreset, or 'workspace' for the workspace's."
+          enum: [workspace, cenacle, graphite, ocean, forest, sunset, rose, contrast]
+        density: { type: string, enum: [auto, compact, comfortable] }
+        fonts:
+          type: object
+          required: [template, text, code]
+          properties:
+            template:
+              type: string
+              description: "A FontTemplate, 'workspace' for the workspace's, or 'custom' (text and code below)."
+              enum: [workspace, corporate, classic, modern, product, reading, legible, custom]
+            text:
+              type: string
+              maxLength: 64
+              description: "A library font id, or 'user:<font id>' for one you uploaded."
+            code: { type: string, maxLength: 64 }
+        font_size: { type: integer, minimum: 12, maximum: 20 }
+        line_height: { type: string, enum: [compact, normal, relaxed] }
+        code:
+          type: object
+          required: [theme, line_numbers, wrap, ligatures]
+          properties:
+            theme: { type: string, enum: [github, github-soft, one, solarized, catppuccin, vitesse] }
+            line_numbers: { type: boolean }
+            wrap: { type: boolean }
+            ligatures: { type: boolean }
+    UserFont:
+      type: object
+      required: [id, name, format, size, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        format: { type: string, enum: [woff2, woff, truetype, opentype] }
+        size: { type: integer }
+        created_at: { type: string, format: date-time }
+    UITexts:
+      type: object
+      required: [texts, editable]
+      properties:
+        texts:
+          type: object
+          description: Replaced texts, by language and key.
+          additionalProperties:
+            type: object
+            additionalProperties: { type: string }
+        editable:
+          type: array
+          items: { type: string }
+          description: The keys administrators may replace.
     CustomStatus:
       type: object
       required: [emoji, text]

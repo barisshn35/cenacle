@@ -49,6 +49,7 @@ type Querier interface {
 	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
 	// CountUnsentFiles counts a person's uploads that no message carries yet.
 	CountUnsentFiles(ctx context.Context, uploaderID pgtype.UUID) (int64, error)
+	CountUserFonts(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
 	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)
@@ -92,7 +93,9 @@ type Querier interface {
 	DeleteSessionsBySubject(ctx context.Context, arg DeleteSessionsBySubjectParams) ([]pgtype.UUID, error)
 	DeleteSlashCommand(ctx context.Context, arg DeleteSlashCommandParams) (int64, error)
 	DeleteSubscription(ctx context.Context, arg DeleteSubscriptionParams) (int64, error)
+	DeleteUITexts(ctx context.Context, locale string) error
 	DeleteUnattachedFile(ctx context.Context, arg DeleteUnattachedFileParams) (File, error)
+	DeleteUserFont(ctx context.Context, arg DeleteUserFontParams) (int64, error)
 	DeleteUserSession(ctx context.Context, arg DeleteUserSessionParams) (int64, error)
 	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
@@ -118,6 +121,7 @@ type Querier interface {
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
 	// GetActiveWebhook returns a webhook of an enabled bot with the bot's user.
 	GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetActiveWebhookRow, error)
+	GetAppearance(ctx context.Context, userID pgtype.UUID) ([]byte, error)
 	GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
 	GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotToken, error)
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
@@ -143,6 +147,7 @@ type Querier interface {
 	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByAuth(ctx context.Context, arg GetUserByAuthParams) (User, error)
+	GetUserFont(ctx context.Context, id pgtype.UUID) (GetUserFontRow, error)
 	GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error)
 	GetWorkspaceCommand(ctx context.Context, arg GetWorkspaceCommandParams) (GetWorkspaceCommandRow, error)
 	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
@@ -157,6 +162,8 @@ type Querier interface {
 	// delivered when the transaction commits).
 	InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventParams) error
 	InsertPicture(ctx context.Context, arg InsertPictureParams) (pgtype.UUID, error)
+	InsertUIText(ctx context.Context, arg InsertUITextParams) error
+	InsertUserFont(ctx context.Context, arg InsertUserFontParams) (InsertUserFontRow, error)
 	// InstanceCounts summarizes the installation (support bundle, status).
 	InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
 	JoinChannelViaGroup(ctx context.Context, arg JoinChannelViaGroupParams) (int64, error)
@@ -222,6 +229,8 @@ type Querier interface {
 	// within a day, and files whose message was purged.
 	ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, error)
 	ListSubscriptions(ctx context.Context, botID pgtype.UUID) ([]EventSubscription, error)
+	ListUITexts(ctx context.Context) ([]ListUITextsRow, error)
+	ListUserFonts(ctx context.Context, userID pgtype.UUID) ([]ListUserFontsRow, error)
 	ListUserGroups(ctx context.Context, userID pgtype.UUID) ([]string, error)
 	// ListUserSessions returns a user's usable sessions, most recently used first.
 	ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error)
@@ -281,6 +290,7 @@ type Querier interface {
 	SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error)
 	SetAdmin(ctx context.Context, arg SetAdminParams) error
 	SetAdminByDirectory(ctx context.Context, arg SetAdminByDirectoryParams) error
+	SetAppearance(ctx context.Context, arg SetAppearanceParams) error
 	// SetAvatar changes the picture of a person and returns the previous one (to
 	// delete).
 	SetAvatar(ctx context.Context, arg SetAvatarParams) (pgtype.UUID, error)
@@ -302,6 +312,7 @@ type Querier interface {
 	// SetUserDeactivated deactivates or reactivates a person; it returns whether
 	// the state changed.
 	SetUserDeactivated(ctx context.Context, arg SetUserDeactivatedParams) (pgtype.UUID, error)
+	SetWorkspaceAppearance(ctx context.Context, arg SetWorkspaceAppearanceParams) error
 	SetWorkspaceIcon(ctx context.Context, arg SetWorkspaceIconParams) (pgtype.UUID, error)
 	SetWorkspaceMemberRole(ctx context.Context, arg SetWorkspaceMemberRoleParams) error
 	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)

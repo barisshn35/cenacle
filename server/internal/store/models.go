@@ -225,6 +225,13 @@ type SlashCommand struct {
 	CreatedAt   time.Time   `json:"created_at"`
 }
 
+type UiText struct {
+	Key       string    `json:"key"`
+	Locale    string    `json:"locale"`
+	Value     string    `json:"value"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type User struct {
 	ID                    pgtype.UUID        `json:"id"`
 	AuthService           string             `json:"auth_service"`
@@ -253,9 +260,24 @@ type User struct {
 	UsernameFromDirectory bool               `json:"username_from_directory"`
 }
 
+type UserFont struct {
+	ID        pgtype.UUID `json:"id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	Name      string      `json:"name"`
+	Format    string      `json:"format"`
+	Data      []byte      `json:"data"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
 type UserGroup struct {
 	UserID    pgtype.UUID `json:"user_id"`
 	GroupName string      `json:"group_name"`
+}
+
+type UserPreference struct {
+	UserID     pgtype.UUID `json:"user_id"`
+	Appearance []byte      `json:"appearance"`
+	UpdatedAt  time.Time   `json:"updated_at"`
 }
 
 type Workspace struct {
@@ -265,6 +287,7 @@ type Workspace struct {
 	CreatedAt   time.Time   `json:"created_at"`
 	Description string      `json:"description"`
 	IconID      pgtype.UUID `json:"icon_id"`
+	Appearance  []byte      `json:"appearance"`
 }
 
 type WorkspaceGroupMapping struct {
