@@ -1,11 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 version: 2
 updates:
-  - package-ecosystem: github-actions
-    directory: /
-    schedule: { interval: weekly }
-    groups:
-      actions: { patterns: ['*'] }
   - package-ecosystem: gomod
     directories: [/server, /deploy/caddy]
     schedule: { interval: weekly }
@@ -22,7 +17,7 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
   - package-ecosystem: docker
-    directories: [/server, /idp, /web, /deploy/compose/caddy, /deploy/compose/ldap]
+    directories: [/server, /idp, /web, /deploy/compose/caddy, /deploy/compose/ldap, /ci/image]
     schedule: { interval: weekly }
     ignore:
       # Go and Node lines are pinned with go.mod (toolchain) and .nvmrc and upgraded

@@ -1,0 +1,229 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Stages: prepare -> lint -> test -> licenses -> build.
+# Jobs run on the project's own runner (docs/operations/ci.md): in the CI
+# image (ci/image), sharing the network of the CI Docker engine, so test
+# services started with ci/services.sh answer on 127.0.0.1. Caches (Go,
+# pnpm, Playwright, image layers) live in /cache on the runner.
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v/
+  auto_cancel:
+    on_new_commit: interruptible
+
+stages: [prepare, lint, test, licenses, build]
+
+variables:
+  # Bump when ci/image/Dockerfile changes; the prepare stage builds it once.
+  CI_IMAGE: cenacle-ci:1
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+  BINFMT_IMAGE: tonistiigi/binfmt:qemu-v10.0.4
+  GOMODCACHE: /cache/go/mod
+  GOCACHE: /cache/go/build
+  GOLANGCI_LINT_CACHE: /cache/golangci
+  PLAYWRIGHT_BROWSERS_PATH: /cache/ms-playwright
+  PNPM_STORE: /cache/pnpm-store
+  FORCE_COLOR: '1'
+  GIT_DEPTH: '50'
+  # Development-only keys of the CI Garage (deploy/compose/garage/dev.toml).
+  CI_S3_ACCESS_KEY: GK0000000000000000000000c1
+  CI_S3_SECRET_KEY: 000000000000000000000000000000000000000000000000000000000000dec1
+
+default:
+  image: $CI_IMAGE
+  tags: [cenacle]
+  interruptible: true
+
+.tools-cache: &tools-cache
+  key:
+    files: [Makefile]
+  paths: [.bin/]
+
+.pnpm-install: &pnpm-install
+  - pnpm install --frozen-lockfile --store-dir "$PNPM_STORE"
+
+# ------------------------------------------------------------- prepare ---
+ci-image:
+  stage: prepare
+  image: docker:29.9.2-cli
+  script:
+    - docker image inspect "$CI_IMAGE" >/dev/null 2>&1 || docker build -t "$CI_IMAGE" ci/image
+
+# ---------------------------------------------------------------- lint ---
+lint-go:
+  stage: lint
+  cache: *tools-cache
+  script:
+    - make tools
+    - make lint-go
+    - make lint-helm
+    # Generated code is up to date (sqlc, oapi-codegen).
+    - cd server && ../.bin/sqlc generate
+    - (cd api && ../../.bin/oapi-codegen -config oapi-codegen.yaml openapi.yaml)
+    - git diff --exit-code -- internal/store internal/api
+
+lint-js:
+  stage: lint
+  script:
+    - *pnpm-install
+    - pnpm lint
+    - pnpm typecheck
+
+# ---------------------------------------------------------------- test ---
+test-go:
+  stage: test
+  needs: [lint-go]
+  cache: *tools-cache
+  variables:
+    CENACLE_TEST_DATABASE_URL: postgres://cenacle_chat:ci-only-password@127.0.0.1:5432/cenacle_chat_test?sslmode=disable
+    CENACLE_TEST_VALKEY_ADDR: 127.0.0.1:6379
+    CENACLE_TEST_S3_ENDPOINT: http://127.0.0.1:13900
+    CENACLE_TEST_S3_ACCESS_KEY: $CI_S3_ACCESS_KEY
+    CENACLE_TEST_S3_SECRET_KEY: $CI_S3_SECRET_KEY
+  before_script:
+    - ci/services.sh stop
+    - ci/services.sh postgres-chat:5432 valkey garage
+  script:
+    - make test-go
+    - make vuln
+  after_script:
+    - ci/services.sh stop
+
+test-js:
+  stage: test
+  needs: [lint-js]
+  parallel:
+    # 24 LTS today; 26 becomes LTS on 2026-10-28.
+    matrix:
+      - NODE: ['24', '26']
+  variables:
+    IDP_TEST_DATABASE_URL: postgres://cenacle_idp:ci-only-password@127.0.0.1:5432/cenacle_idp_test
+    IDP_TEST_LDAP_URL: ldap://127.0.0.1:13389
+    IDP_TEST_LDAP_PASSWORD: ci-only-password
+  before_script:
+    - export PATH="/opt/node$NODE/bin:$PATH" && node --version
+    - ci/services.sh stop
+    - ci/services.sh postgres-idp:5432 ldap
+  script:
+    - *pnpm-install
+    - pnpm test
+    - pnpm build
+  after_script:
+    - ci/services.sh stop
+
+test-e2e:
+  stage: test
+  needs: [lint-js]
+  timeout: 1h
+  variables:
+    IDP_TEST_DATABASE_URL: postgres://cenacle_idp:ci-only-password@127.0.0.1:5432/cenacle_idp_test
+    CENACLE_TEST_DATABASE_URL: postgres://cenacle_chat:ci-only-password@127.0.0.1:5433/cenacle_chat_test?sslmode=disable
+    IDP_TEST_LDAP_URL: ldap://127.0.0.1:13389
+    IDP_TEST_LDAP_PASSWORD: ci-only-password
+    CENACLE_VALKEY_ADDR: 127.0.0.1:6379
+    CENACLE_S3_ENDPOINT: http://127.0.0.1:13900
+    CENACLE_S3_ACCESS_KEY: $CI_S3_ACCESS_KEY
+    CENACLE_S3_SECRET_KEY: $CI_S3_SECRET_KEY
+  before_script:
+    - ci/services.sh stop
+    - ci/services.sh postgres-idp:5432 postgres-chat:5433 valkey garage ldap
+  script:
+    - *pnpm-install
+    - pnpm --filter @cenacle/web exec playwright install chromium
+    - pnpm --filter @cenacle/web test:e2e
+    - pnpm --filter @cenacle/idp test:e2e
+    - pnpm --filter @cenacle/web test:e2e-stack
+  after_script:
+    - ci/services.sh stop
+  artifacts:
+    when: on_failure
+    expire_in: 7 days
+    paths:
+      - web/playwright-report
+      - web/test-results
+      - idp/playwright-report
+      - idp/test-results
+
+security:
+  stage: test
+  needs: [lint-go, lint-js]
+  variables:
+    GIT_DEPTH: '0' # gitleaks scans the full history
+  script:
+    - docker run --rm -v "$PWD:/repo:ro" "$GITLEAKS_IMAGE" git /repo --no-banner --redact --exit-code 1
+    # Dependencies, secrets and Dockerfiles.
+    - >
+      docker run --rm -v "$PWD:/src:ro" -v /cache/trivy:/root/.cache/trivy "$TRIVY_IMAGE" fs --quiet
+      --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed
+      --ignorefile /src/.trivyignore.yaml --exit-code 1 /src
+
+# ------------------------------------------------------------ licenses ---
+licenses:
+  stage: licenses
+  needs: [test-go, test-js]
+  cache: *tools-cache
+  script:
+    - *pnpm-install
+    # Fails on any forbidden or unknown license (policy in docs/adr/0001).
+    - make licenses
+
+# --------------------------------------------------------------- build ---
+# Every pipeline builds and scans the images (amd64); a v* tag also builds
+# arm64 and publishes both to the project's registry, but only after every
+# check above has passed.
+images:
+  stage: build
+  needs: [licenses, test-e2e, security]
+  timeout: 2h
+  parallel:
+    matrix:
+      - IMAGE: server
+        DOCKERFILE: server/Dockerfile
+      - IMAGE: idp
+        DOCKERFILE: idp/Dockerfile
+      - IMAGE: web
+        DOCKERFILE: web/Dockerfile
+      - IMAGE: proxy
+        DOCKERFILE: deploy/compose/caddy/Dockerfile
+  variables:
+    BUILDX_CACHE: /cache/buildx/$IMAGE
+  before_script:
+    - docker buildx inspect cenacle >/dev/null 2>&1 ||
+      docker buildx create --name cenacle --driver docker-container --driver-opt network=host
+    - export VERSION="${CI_COMMIT_TAG:-$CI_COMMIT_SHA}"
+  script:
+    - docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$VERSION"
+      --platform linux/amd64 --load -t "cenacle-$IMAGE:ci"
+      --cache-from "type=local,src=$BUILDX_CACHE" --cache-to "type=local,dest=$BUILDX_CACHE.new,mode=max" .
+    - rm -rf "$BUILDX_CACHE" && mv "$BUILDX_CACHE.new" "$BUILDX_CACHE"
+    # The image runs as non-root.
+    - user="$(docker inspect -f '{{.Config.User}}' "cenacle-$IMAGE:ci")" && echo "user=$user"
+    - case "$user" in ''|root|0|0:*) echo "image must not run as root"; exit 1;; esac
+    - >
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /cache/trivy:/root/.cache/trivy
+      "$TRIVY_IMAGE" image --quiet --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "cenacle-$IMAGE:ci"
+    # ------------------------------------------------- publish (tags only) ---
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        version="${CI_COMMIT_TAG#v}"
+        minor="${version%.*}"
+        docker run --privileged --rm "$BINFMT_IMAGE" --install arm64 >/dev/null
+        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+        tags="-t $CI_REGISTRY_IMAGE/cenacle-$IMAGE:$version -t $CI_REGISTRY_IMAGE/cenacle-$IMAGE:$minor"
+        # Also to GitHub's registry when a token for it is set (CI/CD variable GHCR_TOKEN).
+        if [ -n "${GHCR_TOKEN:-}" ]; then
+          echo "$GHCR_TOKEN" | docker login -u "${GHCR_USER:-barisshn35}" --password-stdin ghcr.io
+          tags="$tags -t ghcr.io/${GHCR_USER:-barisshn35}/cenacle-$IMAGE:$version -t ghcr.io/${GHCR_USER:-barisshn35}/cenacle-$IMAGE:$minor"
+        fi
+        docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" \
+          --platform linux/amd64,linux/arm64 --push $tags \
+          --label org.opencontainers.image.title="cenacle-$IMAGE" \
+          --label org.opencontainers.image.licenses=Apache-2.0 \
+          --label org.opencontainers.image.version="$version" \
+          --provenance mode=max --sbom true \
+          --cache-from "type=local,src=$BUILDX_CACHE" .
+      fi

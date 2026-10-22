@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Exceptions to the trivy scans in CI (each one scoped and explained).
+misconfigurations:
+  - id: DS-0002
+    paths: ['ci/image/Dockerfile']
+    statement: >-
+      The CI image runs as root: jobs write the runner's root-owned build and cache
+      directories and use the CI engine's Docker socket. It is never deployed; product
+      images (server, idp, web, proxy) run as non-root and are checked in CI.
