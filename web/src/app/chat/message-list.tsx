@@ -13,7 +13,7 @@ import { BurnBody } from '../richer/burn';
 import { ForwardedQuote } from '../richer/forward';
 import { LinkPreviewCard } from '../richer/link-preview';
 import { StickerImage } from '../richer/stickers';
-import { useActiveWorkspace } from './active-workspace';
+import { useMessageEnv } from '../richer/message-env';
 import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
@@ -63,7 +63,7 @@ export function MessageRow({
   const self = useSession().user.id;
   const at = new Date(m.created_at);
   const editing = useEditing((s) => s.id === m.id);
-  const role = useActiveWorkspace().workspace?.role;
+  const { role } = useMessageEnv();
   // Mentions of many reach the reader too (not the one who wrote them).
   const reached =
     m.author.id !== self &&

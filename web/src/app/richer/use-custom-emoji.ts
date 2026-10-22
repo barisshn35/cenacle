@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useActiveWorkspace } from '../chat/active-workspace';
-import { customEmojiQuery, type CustomEmoji } from './richer';
+import { useMessageEnv } from './message-env';
+import type { CustomEmoji } from './richer';
 
-/** The active workspace's custom emoji by name. */
+/** The custom emoji of the workspace in view, by name. */
 export function useCustomEmoji(): Map<string, CustomEmoji> {
-  const ws = useActiveWorkspace().id;
-  const list = useQuery(customEmojiQuery(ws)).data;
-  return useMemo(() => new Map((list ?? []).map((e) => [e.name, e])), [list]);
+  return useMessageEnv().emoji;
 }

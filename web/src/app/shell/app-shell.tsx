@@ -11,6 +11,7 @@ import { SidebarProvider } from '@cenacle/ui/components/sidebar';
 import { Sheet, SheetContent, SheetTitle } from '@cenacle/ui/components/sheet';
 import { useLayout } from '../../stores/layout';
 import { useRememberWorkspace } from '../chat/active-workspace';
+import { MessageEnvProvider } from '../richer/message-env-provider';
 import { ChannelSidebar } from './channel-sidebar';
 import { ChannelView } from './channel-view';
 import { DetailsPanel } from './details-panel';
@@ -47,10 +48,12 @@ export function AppShell() {
   const isMobile = useIsMobile();
   useRememberWorkspace();
   return (
-    <SidebarProvider className="h-full min-h-0 overflow-hidden">
-      {isMobile ? <MobileShell /> : <DesktopShell />}
-      <OnboardingDialog />
-    </SidebarProvider>
+    <MessageEnvProvider>
+      <SidebarProvider className="h-full min-h-0 overflow-hidden">
+        {isMobile ? <MobileShell /> : <DesktopShell />}
+        <OnboardingDialog />
+      </SidebarProvider>
+    </MessageEnvProvider>
   );
 }
 
