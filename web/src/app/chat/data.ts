@@ -72,6 +72,8 @@ function patchChannel(
   channelId: string,
   patch: (c: Channel) => Channel,
 ): void {
+  // A reload on its way may predate the change (as for messages below).
+  refetchKeyIfInFlight(queryClient, ['channels']);
   queryClient.setQueryData<Channel[]>(['channels'], (list) =>
     list?.map((c) => (c.id === channelId ? patch(c) : c)),
   );
@@ -252,14 +254,16 @@ const refetchAfter = new WeakSet<object>();
  * not lost. (A first fetch cannot be restarted: TanStack Query joins it.)
  */
 function refetchIfInFlight(queryClient: QueryClient, channelId: string): void {
-  const query = queryClient
-    .getQueryCache()
-    .find({ queryKey: ['messages', channelId], exact: true });
+  refetchKeyIfInFlight(queryClient, ['messages', channelId]);
+}
+
+function refetchKeyIfInFlight(queryClient: QueryClient, queryKey: readonly unknown[]): void {
+  const query = queryClient.getQueryCache().find({ queryKey, exact: true });
   if (!query || query.state.fetchStatus !== 'fetching' || refetchAfter.has(query)) return;
   refetchAfter.add(query);
   void Promise.allSettled([query.promise]).then(() => {
     refetchAfter.delete(query);
-    return queryClient.refetchQueries({ queryKey: ['messages', channelId], exact: true });
+    return queryClient.refetchQueries({ queryKey, exact: true });
   });
 }
 
