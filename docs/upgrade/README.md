@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.17.0)
+### 0.17.0
 
 - Migration `00017_search_notifications` creates the `unaccent` extension (trusted: the
   database owner may create it) and builds search indexes over all messages; on large
