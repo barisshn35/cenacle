@@ -60,6 +60,13 @@ func Open(t *testing.T) *pgxpool.Pool {
 	if _, err := admin.Exec(ctx, "CREATE SCHEMA "+schema); err != nil {
 		t.Fatal(err)
 	}
+	// Extensions belong to the database, not to a schema: test packages that
+	// migrate at the same time on a fresh database would race to create them
+	// ("IF NOT EXISTS" does not guard against that), so one creates them first.
+	if _, err := admin.Exec(ctx, "BEGIN; SELECT pg_advisory_xact_lock(7419001); "+
+		"CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA public; COMMIT"); err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		_, _ = admin.Exec(context.Background(), "DROP SCHEMA "+schema+" CASCADE")
 		_ = admin.Close(context.Background())
