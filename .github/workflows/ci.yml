@@ -114,6 +114,8 @@ jobs:
           --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       IDP_TEST_DATABASE_URL: postgres://cenacle_idp:ci-only-password@127.0.0.1:5432/cenacle_idp_test
+      IDP_TEST_LDAP_URL: ldap://127.0.0.1:13389
+      IDP_TEST_LDAP_PASSWORD: ci-only-password
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +128,16 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
+      - name: Start the test directory (OpenLDAP with the dev seed)
+        run: |
+          docker build -t cenacle-ci-ldap deploy/compose/ldap
+          docker run -d --name ldap -p 127.0.0.1:13389:3389 -e LDAP_ADMIN_PASSWORD="$IDP_TEST_LDAP_PASSWORD" cenacle-ci-ldap
+          for _ in $(seq 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' ldap)" = healthy ] && exit 0
+            sleep 2
+          done
+          docker logs ldap
+          exit 1
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm build
@@ -165,6 +177,8 @@ jobs:
     env:
       IDP_TEST_DATABASE_URL: postgres://cenacle_idp:ci-only-password@127.0.0.1:5432/cenacle_idp_test
       CENACLE_TEST_DATABASE_URL: postgres://cenacle_chat:ci-only-password@127.0.0.1:5433/cenacle_chat_test?sslmode=disable
+      IDP_TEST_LDAP_URL: ldap://127.0.0.1:13389
+      IDP_TEST_LDAP_PASSWORD: ci-only-password
       CENACLE_VALKEY_ADDR: 127.0.0.1:6379
       CENACLE_S3_ENDPOINT: http://127.0.0.1:13900
       CENACLE_S3_ACCESS_KEY: GK0000000000000000000000c1
@@ -184,6 +198,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @cenacle/web exec playwright install --with-deps chromium
       - run: pnpm --filter @cenacle/web test:e2e
+      - name: Start the test directory (OpenLDAP with the dev seed)
+        run: |
+          docker build -t cenacle-ci-ldap deploy/compose/ldap
+          docker run -d --name ldap -p 127.0.0.1:13389:3389 -e LDAP_ADMIN_PASSWORD="$IDP_TEST_LDAP_PASSWORD" cenacle-ci-ldap
+          for _ in $(seq 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' ldap)" = healthy ] && exit 0
+            sleep 2
+          done
+          docker logs ldap
+          exit 1
       - run: pnpm --filter @cenacle/idp test:e2e
       - run: pnpm --filter @cenacle/web test:e2e-stack
       - if: failure()
