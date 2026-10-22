@@ -10,7 +10,6 @@ import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ApiError } from '@cenacle/core/api';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
-import { initials } from '../auth/sign-out';
 import {
   flatten,
   markRead,
@@ -21,6 +20,9 @@ import {
 } from './data';
 import { Attachments } from './attachments';
 import { MessageFiles } from './message-files';
+import { UserAvatar } from '../profile/avatar';
+import { PersonStatus } from '../profile/person-status';
+import { ProfileCard } from '../profile/profile-card';
 import { BotBadge } from './bot-badge';
 import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
@@ -101,17 +103,6 @@ function toRows(
   return rows;
 }
 
-function Avatar({ name }: { name: string }) {
-  return (
-    <span
-      aria-hidden
-      className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold"
-    >
-      {initials(name)}
-    </span>
-  );
-}
-
 function MessageRow({
   row,
   fmt,
@@ -166,12 +157,32 @@ function MessageRow({
         )}
         data-mentions-me={mentionsMe || undefined}
       >
-        {row.first ? <Avatar name={m.author.display_name} /> : <span className="w-9 shrink-0" />}
+        {row.first ? (
+          <ProfileCard userId={m.author.id} name={m.author.display_name}>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden
+              className="h-9 shrink-0 self-start rounded-full outline-none"
+            >
+              <UserAvatar userId={m.author.id} name={m.author.display_name} />
+            </button>
+          </ProfileCard>
+        ) : (
+          <span className="w-9 shrink-0" />
+        )}
         <div className="min-w-0 flex-1">
           <header className={cn('flex items-baseline gap-2', !row.first && 'sr-only')}>
-            <span id={`m-${m.id}-author`} className="text-sm font-semibold">
-              {m.author.display_name}
-            </span>
+            <ProfileCard userId={m.author.id} name={m.author.display_name}>
+              <button
+                type="button"
+                id={`m-${m.id}-author`}
+                className="inline-flex min-h-target items-center rounded-sm text-sm font-semibold outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {m.author.display_name}
+              </button>
+            </ProfileCard>
+            <PersonStatus userId={m.author.id} className="ml-0 text-xs" />
             {m.author.is_bot && <BotBadge />}
             <time
               dateTime={m.created_at}
@@ -230,7 +241,7 @@ function PendingRow({ p }: { p: PendingMessage }) {
       aria-label={name}
       className="flex gap-3 px-4 pt-3 pb-0.5"
     >
-      <Avatar name={name} />
+      <UserAvatar userId={user.id} name={name} />
       <div className="min-w-0 flex-1">
         <header className="flex items-baseline gap-2">
           <span className="text-sm font-semibold">{name}</span>

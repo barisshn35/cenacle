@@ -35,11 +35,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/
 import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
 import { SettingsDialog } from '../auth/settings-dialog';
-import { initials, useSignOut } from '../auth/sign-out';
+import { useSignOut } from '../auth/sign-out';
 import { categoriesQuery, channelsQuery, isConversation, type Channel } from '../chat/data';
 import { NewConversationDialog } from '../chat/new-conversation-dialog';
 import { usePresence, useWorkspacePresence } from '../chat/presence-state';
 import { StatusMenu } from '../chat/status-menu';
+import { ProfileDialogs } from '../profile/profile-dialogs';
+import { StatusLine } from '../profile/profile-card';
+import { useProfile } from '../profile/profiles';
 import { PresenceIndicator } from './presence';
 import { CategoriesDialog } from '../chat/categories-dialog';
 import { useActiveWorkspace } from '../chat/active-workspace';
@@ -302,16 +305,24 @@ function CurrentUser({ onSettings }: { onSettings: () => void }) {
   const { user } = useSession();
   const signOut = useSignOut();
   const name = user.display_name || user.email;
+  const profile = useProfile(user.id);
 
   return (
     <div className="flex items-center gap-2 px-1">
-      <StatusMenu initials={initials(name)} />
+      <StatusMenu name={name} />
       <div className="flex min-w-0 flex-1 flex-col leading-tight">
         <span className="truncate text-sm font-medium" data-testid="current-user">
           {name}
         </span>
-        <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+        {profile?.status ? (
+          <StatusLine status={profile.status} className="truncate text-xs" />
+        ) : (
+          <span className="truncate text-xs text-muted-foreground">
+            {profile?.username ? `@${profile.username}` : user.email}
+          </span>
+        )}
       </div>
+      <ProfileDialogs />
       <Button variant="ghost" size="icon-sm" aria-label={t('shell.settings')} onClick={onSettings}>
         <SettingsIcon strokeWidth={1.75} />
       </Button>

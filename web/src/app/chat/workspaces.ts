@@ -28,6 +28,16 @@ export const createWorkspace = (name: string) =>
   apiFetch<Workspace>('/api/workspaces', json({ name }));
 export const renameWorkspace = (id: string, name: string) =>
   apiFetch<Workspace>(`/api/workspaces/${id}`, json({ name }, 'PATCH'));
+export const updateWorkspace = (id: string, patch: { name?: string; description?: string }) =>
+  apiFetch<Workspace>(`/api/workspaces/${id}`, json(patch, 'PATCH'));
+export const setWorkspaceIcon = (id: string, file: Blob) =>
+  apiFetch<Workspace>(`/api/workspaces/${id}/icon`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: file,
+  });
+export const deleteWorkspaceIcon = (id: string) =>
+  apiFetch<void>(`/api/workspaces/${id}/icon`, { method: 'DELETE' });
 
 export const workspaceMembersQuery = (id: string) =>
   queryOptions({

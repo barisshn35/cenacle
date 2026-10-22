@@ -49,7 +49,7 @@ export function WorkspaceRail() {
                       aria-current={isActive ? 'page' : undefined}
                       aria-label={hasUnread ? t('shell.workspaceUnread', { name: w.name }) : w.name}
                       className={cn(
-                        'relative flex size-12 items-center justify-center rounded-2xl text-sm font-semibold transition-[border-radius,background-color] duration-(--duration-base) ease-(--ease-out) outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        'relative flex size-12 items-center justify-center overflow-hidden rounded-2xl text-sm font-semibold transition-[border-radius,background-color] duration-(--duration-base) ease-(--ease-out) outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         isActive
                           ? 'rounded-xl bg-primary text-primary-foreground'
                           : 'bg-sidebar-accent text-sidebar-accent-foreground hover:rounded-xl hover:bg-primary/85 hover:text-primary-foreground',
@@ -57,7 +57,16 @@ export function WorkspaceRail() {
                     />
                   }
                 >
-                  <span aria-hidden>{initials(w.name)}</span>
+                  {w.icon_url ? (
+                    <img
+                      src={w.icon_url}
+                      alt=""
+                      draggable={false}
+                      className="size-full overflow-hidden rounded-[inherit] object-cover"
+                    />
+                  ) : (
+                    <span aria-hidden>{initials(w.name)}</span>
+                  )}
                 </TooltipTrigger>
                 <TooltipContent side="right">{w.name}</TooltipContent>
               </Tooltip>

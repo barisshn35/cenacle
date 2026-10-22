@@ -22,6 +22,7 @@ import {
   type ReactionEvent,
 } from './data';
 import { usePending } from './pending';
+import { profileChanged } from '../profile/profiles';
 
 /**
  * Keeps the live connection open while signed in and applies its events to
@@ -64,6 +65,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (ev.type === 'categories.changed') {
           void queryClient.invalidateQueries({ queryKey: ['categories'] });
           void reloadChannels(queryClient);
+        } else if (ev.type === 'user.updated') {
+          const { user_id } = ev.data as { user_id: string };
+          void profileChanged(queryClient, user_id, selfId);
         } else if (ev.type === 'workspace.members_changed') {
           const { workspace_id } = ev.data as { workspace_id: string };
           void queryClient.invalidateQueries({ queryKey: ['workspace-members', workspace_id] });

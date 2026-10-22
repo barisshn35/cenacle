@@ -269,6 +269,43 @@ export const PEOPLE = [
 
 export type MockChannel = ReturnType<typeof channel>;
 
+export interface MockProfile {
+  id: string;
+  display_name: string;
+  username: string;
+  email: string;
+  is_bot: boolean;
+  avatar_url: string | null;
+  avatar_still_url: string | null;
+  timezone: string;
+  status: { emoji: string; text: string; expires_at?: string | null } | null;
+  last_seen_at: string | null;
+  deactivated: boolean;
+  guest: boolean;
+}
+
+/** The profile of one of PEOPLE. */
+export function mockProfile(person: (typeof PEOPLE)[number]): MockProfile {
+  return {
+    ...person,
+    username: person.email.split('@')[0]!,
+    is_bot: false,
+    avatar_url: null,
+    avatar_still_url: null,
+    timezone: 'Europe/Istanbul',
+    status: null,
+    last_seen_at: null,
+    deactivated: false,
+    guest: false,
+  };
+}
+
+/** A 1×1 PNG (for pictures). */
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
 export const CENTRAL = channel('01a15e50-1111-7d7d-bbee-8e7809fd8ad2', 'Central', {
   topic: 'Announcements for everyone.',
   kind: 'announcement',
@@ -335,6 +372,8 @@ export interface MockApi {
   statuses: string[];
   /** Requests to end sessions: an id, or "all"/"others". */
   ended: string[];
+  /** Profiles by id as the fake server keeps them (tests may change them). */
+  profiles: Record<string, MockProfile>;
   /** Closes the WebSocket from the server side. */
   closeSocket(code: number): void;
 }
@@ -368,7 +407,14 @@ export async function mockApi(
     },
   });
   const workspaces = [
-    { id: DEFAULT_WS, name: 'Cenacle', is_default: true, role: opts.admin ? 'owner' : 'member' },
+    {
+      id: DEFAULT_WS,
+      name: 'Cenacle',
+      description: '',
+      icon_url: null as string | null,
+      is_default: true,
+      role: opts.admin ? 'owner' : 'member',
+    },
   ];
   // The details panel lists the channel's files.
   await page.route(/\/api\/channels\/[0-9a-f-]{36}\/files$/, (route) =>
@@ -382,11 +428,20 @@ export async function mockApi(
     const ws = {
       id: `01a15e50-0000-7000-8000-0000000${String(workspaces.length).padStart(5, '0')}`,
       name,
+      description: '',
+      icon_url: null,
       is_default: false,
       role: 'owner',
     };
     workspaces.push(ws);
     return route.fulfill({ status: 201, json: ws });
+  });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}$/, (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    const id = route.request().url().split('/').pop()!;
+    const ws = workspaces.find((w) => w.id === id)!;
+    Object.assign(ws, route.request().postDataJSON());
+    return route.fulfill({ json: ws });
   });
   await page.route('**/api/workspaces/*/members', (route) =>
     route.fulfill({
@@ -397,6 +452,47 @@ export async function mockApi(
         })),
       },
     }),
+  );
+  // Profiles, one's own profile and pictures.
+  const recent: { emoji: string; text: string }[] = [];
+  const self = () => api.profiles[SESSION.user.id]!;
+  const myProfile = () => ({
+    ...self(),
+    username_editable: true,
+    show_last_seen: true,
+    recent_statuses: recent,
+    account_url: SESSION.account_url,
+  });
+  await page.route(/\/api\/profiles\?/, (route) => {
+    const ids = new URL(route.request().url()).searchParams.get('ids')?.split(',') ?? [];
+    return route.fulfill({
+      json: { profiles: ids.map((id) => api.profiles[id]).filter(Boolean) },
+    });
+  });
+  await page.route('**/api/me/profile', (route) => {
+    if (route.request().method() === 'PATCH') {
+      Object.assign(self(), route.request().postDataJSON());
+    }
+    return route.fulfill({ json: myProfile() });
+  });
+  await page.route('**/api/me/status', (route) => {
+    if (route.request().method() === 'DELETE') {
+      self().status = null;
+      return route.fulfill({ status: 204 });
+    }
+    const st = route.request().postDataJSON() as { emoji: string; text: string };
+    self().status = st;
+    recent.unshift({ emoji: st.emoji, text: st.text });
+    return route.fulfill({ json: myProfile() });
+  });
+  await page.route('**/api/me/avatar', (route) => {
+    self().avatar_url = route.request().method() === 'DELETE' ? null : '/api/pictures/me';
+    return route.request().method() === 'DELETE'
+      ? route.fulfill({ status: 204 })
+      : route.fulfill({ json: myProfile() });
+  });
+  await page.route('**/api/pictures/*', (route) =>
+    route.fulfill({ contentType: 'image/png', body: PIXEL }),
   );
   // A channel's directory groups.
   const channelGroups = new Map<string, { groups: string[]; managed: boolean }>();
@@ -460,6 +556,7 @@ export async function mockApi(
     typing: [],
     statuses: [],
     ended: [],
+    profiles: Object.fromEntries(PEOPLE.map((p) => [p.id, mockProfile(p)])),
     seq: 1,
     // Events sent before the app connected: delivered after the hello.
     pending: [],

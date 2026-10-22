@@ -19,8 +19,10 @@ import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { useSession } from '../auth/session';
+import { UserAvatar } from '../profile/avatar';
+import { PersonStatus } from '../profile/person-status';
+import { ProfileCard } from '../profile/profile-card';
 import { BotBadge } from './bot-badge';
-import { initials } from '../auth/sign-out';
 import {
   addMember,
   membersQuery,
@@ -31,18 +33,35 @@ import {
   type Person,
 } from './data';
 
-export function PersonLine({ person, badge }: { person: Person; badge?: string }) {
+export function PersonLine({
+  person,
+  badge,
+  card,
+}: {
+  person: Person;
+  badge?: string;
+  /** The name opens the person's card. */
+  card?: boolean;
+}) {
+  const name = person.display_name || person.email;
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      <span
-        aria-hidden
-        className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-[10px] font-semibold"
-      >
-        {initials(person.display_name || person.email)}
-      </span>
+      <UserAvatar userId={person.id} name={name} size="sm" />
       <div className="min-w-0 flex-1 leading-tight">
         <p className="truncate text-sm">
-          {person.display_name || person.email}
+          {card ? (
+            <ProfileCard userId={person.id} name={name}>
+              <button
+                type="button"
+                className="inline-flex min-h-target items-center rounded-sm text-left outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {name}
+              </button>
+            </ProfileCard>
+          ) : (
+            name
+          )}
+          <PersonStatus userId={person.id} />
           {person.is_bot && (
             <span className="ml-2 align-middle">
               <BotBadge />
@@ -137,6 +156,7 @@ export function MembersSection({ channel }: { channel: Channel }) {
               <PersonLine
                 person={m.user}
                 badge={m.role === 'manager' ? t('channels.manager') : undefined}
+                card
               />
               {channel.can_manage && m.user.id !== user.id && (
                 <Button

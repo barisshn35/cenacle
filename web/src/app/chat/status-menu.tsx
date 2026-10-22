@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, PencilIcon, SmileIcon } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -7,8 +7,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@cenacle/ui/components/dropdown-menu';
+import { Avatar } from '../profile/avatar';
+import { useProfileDialogs } from '../profile/dialogs-state';
+import { useProfile } from '../profile/profiles';
 import { useSession } from '../auth/session';
 import { PresenceIndicator } from '../shell/presence';
 import { setPresence, type PresenceStatus } from './data';
@@ -16,10 +20,12 @@ import { useLive, usePresence } from './presence-state';
 
 const CHOICES = ['online', 'away', 'dnd'] as const;
 
-/** The user's avatar with their status; it opens the status choices. */
-export function StatusMenu({ initials }: { initials: string }) {
+/** The user's picture with their status; it opens the status choices and the profile. */
+export function StatusMenu({ name }: { name: string }) {
   const { t } = useTranslation();
   const self = useSession().user.id;
+  const profile = useProfile(self);
+  const openDialog = useProfileDialogs((s) => s.open);
   const status = usePresence(self);
   const set = useMutation({
     mutationFn: (s: Exclude<PresenceStatus, 'offline'>) => setPresence(s),
@@ -38,11 +44,10 @@ export function StatusMenu({ initials }: { initials: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={t('presence.change', { status: t(`shell.presence.${status}`) })}
-        // The initials are drawn with CSS: they are decoration, and the
-        // button's name is the status (axe label-content-name-mismatch).
-        data-initials={initials}
-        className="hit-target flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground outline-none after:content-[attr(data-initials)] focus-visible:ring-2 focus-visible:ring-ring"
+        className="hit-target relative flex size-8 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
+        {/* Decoration: the button's name is the status. */}
+        <Avatar name={name} profile={profile} size="sm" className="size-8" cssInitials />
         <PresenceIndicator presence={status} className="absolute -right-1 -bottom-1" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" className="w-56">
@@ -53,6 +58,15 @@ export function StatusMenu({ initials }: { initials: string }) {
             {status === choice && <CheckIcon aria-hidden strokeWidth={1.75} />}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => openDialog('status')}>
+          <SmileIcon aria-hidden strokeWidth={1.75} />
+          {profile?.status ? t('profile.statusChange') : t('profile.statusSet')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openDialog('edit')}>
+          <PencilIcon aria-hidden strokeWidth={1.75} />
+          {t('profile.edit')}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

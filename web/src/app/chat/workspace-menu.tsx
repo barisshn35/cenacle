@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
@@ -36,6 +36,7 @@ import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { useSession } from '../auth/session';
 import { WorkspaceGroupsSection } from './directory-groups';
+import { WorkspaceDetailsForm } from './workspace-details';
 import { IntegrationsDialog } from './integrations';
 import { initials } from '../auth/sign-out';
 import { useLastWorkspace } from './active-workspace';
@@ -48,7 +49,6 @@ import {
   isWorkspaceAdmin,
   reloadWorkspaces,
   removeWorkspaceMember,
-  renameWorkspace,
   revokeInvite,
   setWorkspaceRole,
   workspaceMembersQuery,
@@ -163,7 +163,6 @@ function WorkspaceSettingsDialog({
   const { user } = useSession();
   const admin = isWorkspaceAdmin(workspace);
   const owner = workspace.role === 'owner';
-  const [name, setName] = useState(workspace.name);
   const members = useQuery(workspaceMembersQuery(workspace.id));
   const queryClient = useQueryClient();
   const refresh = () =>
@@ -175,11 +174,6 @@ function WorkspaceSettingsDialog({
         : t('channels.changeFailed'),
     );
 
-  const rename = useMutation({
-    mutationFn: () => renameWorkspace(workspace.id, name.trim()),
-    onSuccess: () => reloadWorkspaces(queryClient),
-    onError: failed,
-  });
   const setRole = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: Workspace['role'] }) =>
       setWorkspaceRole(workspace.id, userId, role),
@@ -192,11 +186,6 @@ function WorkspaceSettingsDialog({
     onError: failed,
   });
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (name.trim() && name.trim() !== workspace.name) rename.mutate();
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
@@ -206,22 +195,14 @@ function WorkspaceSettingsDialog({
             {admin ? t('workspaces.settingsDescription') : t('workspaces.membersDescription')}
           </DialogDescription>
         </DialogHeader>
-        {admin && (
-          <form onSubmit={submit} className="grid gap-2">
-            <Label htmlFor={nameId}>{t('workspaces.name')}</Label>
-            <div className="flex gap-2">
-              <Input
-                id={nameId}
-                value={name}
-                maxLength={80}
-                autoComplete="off"
-                onChange={(e) => setName(e.target.value)}
-              />
-              <Button type="submit" variant="outline" disabled={rename.isPending}>
-                {t('chat.save')}
-              </Button>
-            </div>
-          </form>
+        {admin ? (
+          <WorkspaceDetailsForm workspace={workspace} />
+        ) : (
+          workspace.description && (
+            <p className="text-sm whitespace-pre-line" data-testid="workspace-description">
+              {workspace.description}
+            </p>
+          )
         )}
         <section aria-labelledby={`${nameId}-members`} className="grid gap-2">
           <h3
