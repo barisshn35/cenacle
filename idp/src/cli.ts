@@ -20,12 +20,15 @@ commands:
   keys list             list token signing keys
   keys rotate           create a new active signing key (restart Cenacle ID afterwards)
   keys prune            delete retired keys older than the grace period
-  users create --email <e> --name <n> [--verified]
+  users create --email <e> --name <n> [--verified] [--admin]
                         create an account; the password is read from stdin
   users set-password --email <e>
                         set a new password (read from stdin)
   users disable|enable --email <e>
-                        block or allow sign-in for an account`;
+                        block or allow sign-in for an account
+  users admin|no-admin --email <e>
+                        give or take the administration of Cenacle ID
+                        (the admin panel at /account/admin)`;
 
 function flag(args: string[], name: string): string | undefined {
   const i = args.indexOf(name);
@@ -99,6 +102,7 @@ async function runUsers(args: string[]): Promise<void> {
           password: await readNewPassword(),
           emailVerified: args.includes('--verified'),
         });
+        if (args.includes('--admin')) await users.setAdmin(email, true);
         console.log(`created ${user.email} (${user.id})`);
         return;
       }
@@ -110,6 +114,15 @@ async function runUsers(args: string[]): Promise<void> {
       case 'enable':
         await users.setDisabled(email, action === 'disable');
         console.log(`${email} ${action}d`);
+        return;
+      case 'admin':
+      case 'no-admin':
+        await users.setAdmin(email, action === 'admin');
+        console.log(
+          action === 'admin'
+            ? `${email} administers Cenacle ID`
+            : `${email} no longer administers Cenacle ID`,
+        );
         return;
       default:
         throw new UsageError(USAGE);

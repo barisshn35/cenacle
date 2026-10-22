@@ -37,6 +37,8 @@ const clientSchema = z
     backchannel_logout_uri: backchannelUri.optional(),
     /** First-party clients (Cenacle itself) skip the consent screen. */
     first_party: z.boolean().default(false),
+    /** May read the directory feed (/directory/v1/changes) with its secret. */
+    directory_feed: z.boolean().default(false),
     scope: z.string().default('openid email profile'),
   })
   .strict();
@@ -55,6 +57,7 @@ export interface ClientMetadata {
   token_endpoint_auth_method: 'client_secret_basic';
   scope: string;
   cenacle_first_party: boolean;
+  cenacle_directory?: boolean;
   backchannel_logout_uri?: string;
   backchannel_logout_session_required?: boolean;
 }
@@ -96,6 +99,7 @@ export function loadClients(
       token_endpoint_auth_method: 'client_secret_basic',
       scope: c.scope,
       cenacle_first_party: c.first_party,
+      cenacle_directory: c.directory_feed,
       // Logout tokens name the session (sid), so only that sign-in ends.
       ...(c.backchannel_logout_uri
         ? {

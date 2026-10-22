@@ -9,27 +9,42 @@ import {
 
 export interface User {
   id: string;
-  email: string;
+  /** Directory accounts may have no address. */
+  email: string | null;
   emailVerified: boolean;
   displayName: string;
   locale: string | null;
   updatedAt: Date;
   disabled: boolean;
+  /** The sign-in name of a directory account. */
+  username: string | null;
+  title: string | null;
+  /** From a directory's admin and guest filters. */
+  directoryRole: 'admin' | 'guest' | null;
+  /** Administers Cenacle ID (the admin panel). */
+  isAdmin: boolean;
+  /** Comes from a directory: name and address are the directory's. */
+  fromDirectory: boolean;
 }
 
 interface UserRow {
   id: string;
-  email: string;
+  email: string | null;
   email_verified: boolean;
   display_name: string;
   locale: string | null;
   updated_at: Date;
   disabled_at: Date | null;
   password_hash: string | null;
+  username: string | null;
+  title: string | null;
+  directory_role: 'admin' | 'guest' | null;
+  is_admin: boolean;
+  source_id: string | null;
 }
 
 const COLUMNS =
-  'id, email, email_verified, display_name, locale, updated_at, disabled_at, password_hash';
+  'id, email, email_verified, display_name, locale, updated_at, disabled_at, password_hash, username, title, directory_role, is_admin, source_id';
 
 function toUser(r: UserRow): User {
   return {
@@ -40,6 +55,11 @@ function toUser(r: UserRow): User {
     locale: r.locale,
     updatedAt: r.updated_at,
     disabled: r.disabled_at !== null,
+    username: r.username,
+    title: r.title,
+    directoryRole: r.directory_role,
+    isAdmin: r.is_admin,
+    fromDirectory: r.source_id !== null,
   };
 }
 
@@ -127,6 +147,59 @@ export class UserStore {
       [email.trim(), await hashPassword(password)],
     );
     if (rowCount === 0) throw new UserError('not_found');
+  }
+
+  /**
+   * Accounts for the admin panel: by name, address or username, ordered by
+   * id, a page at a time (after: the last id of the previous page).
+   */
+  async search(query: string, after: string | undefined, limit: number) {
+    const pattern = `%${query.trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    const { rows } = await this.pool.query<UserRow & { two_step: boolean }>(
+      `SELECT ${COLUMNS}, totp_enabled_at IS NOT NULL AS two_step FROM users
+       WHERE ($1 = '%%' OR display_name ILIKE $1 OR email ILIKE $1 OR username ILIKE $1)
+         AND ($2::uuid IS NULL OR id > $2::uuid)
+       ORDER BY id LIMIT $3`,
+      [pattern, after && /^[0-9a-f-]{36}$/i.test(after) ? after : null, limit],
+    );
+    return rows.map((r) => ({ ...toUser(r), twoStep: r.two_step }));
+  }
+
+  /** Disables or enables an account by id (local accounts; directories manage their own). */
+  async setDisabledById(id: string, disabled: boolean): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `UPDATE users SET disabled_at = CASE WHEN $2 THEN now() ELSE NULL END, updated_at = now()
+       WHERE id = $1 AND source_id IS NULL`,
+      [id, disabled],
+    );
+    return rowCount === 1;
+  }
+
+  async setAdminById(id: string, admin: boolean): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `UPDATE users SET is_admin = $2, updated_at = now() WHERE id = $1`,
+      [id, admin],
+    );
+    return rowCount === 1;
+  }
+
+  /** Gives or takes the administration of Cenacle ID. */
+  async setAdmin(email: string, admin: boolean): Promise<void> {
+    const { rowCount } = await this.pool.query(
+      `UPDATE users SET is_admin = $2, updated_at = now() WHERE email = $1`,
+      [email.trim(), admin],
+    );
+    if (rowCount === 0) throw new UserError('not_found');
+  }
+
+  /** The groups an account is in (directory groups), by name. */
+  async groups(id: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ name: string }>(
+      `SELECT g.name FROM user_groups ug JOIN directory_groups g ON g.id = ug.group_id
+       WHERE ug.user_id = $1 ORDER BY g.name`,
+      [id],
+    );
+    return rows.map((r) => r.name);
   }
 
   async setDisabled(email: string, disabled: boolean): Promise<void> {

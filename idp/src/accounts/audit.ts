@@ -11,7 +11,15 @@ export type AuditAction =
   | 'two_step.disabled'
   | 'recovery_codes.regenerated'
   | 'account.signed_in'
-  | 'account.signed_out';
+  | 'account.signed_out'
+  | 'admin.account.disable'
+  | 'admin.account.enable'
+  | 'admin.account.reset_two_step'
+  | 'admin.account.make_admin'
+  | 'admin.account.remove_admin'
+  | 'admin.directory.created'
+  | 'admin.directory.updated'
+  | 'admin.directory.synced';
 
 export interface AuditEvent {
   id: string;

@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Test-only directory data. Passwords (development only): <uid>-dev-password,
-# e.g. alice / alice-dev-password. Groups map to Cenacle roles in v0.14.
+# e.g. alice / alice-dev-password. "staff" nests "engineering" and "design";
+# dave is disabled (description: disabled) and erin has no e-mail address; the
+# posixGroup "contractors" lists members by uid (memberUid).
 
 dn: dc=cenacle,dc=test
 objectClass: top
@@ -31,6 +33,8 @@ uidNumber: 10001
 gidNumber: 10000
 homeDirectory: /home/alice
 userPassword: {SSHA}mknPgOciFiRtQh1+ICc5B/j5kJhyFbskgQTp6Q==
+title: Platform Lead
+jpegPhoto:: /9j/2wCEAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk8BDg4OExETJhUVJk81LTVPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT//AABEIAAgACAMBIgACEQEDEQH/xAGiAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgsQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+gEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoLEQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/AM2iiivoT54//9k=
 
 dn: uid=bob,ou=people,dc=cenacle,dc=test
 objectClass: inetOrgPerson
@@ -75,3 +79,41 @@ dn: cn=design,ou=groups,dc=cenacle,dc=test
 objectClass: groupOfNames
 cn: design
 member: uid=carol,ou=people,dc=cenacle,dc=test
+
+dn: uid=dave,ou=people,dc=cenacle,dc=test
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: dave
+cn: Dave Former
+givenName: Dave
+sn: Former
+mail: dave@cenacle.test
+description: disabled
+uidNumber: 10004
+gidNumber: 10000
+homeDirectory: /home/dave
+userPassword: {SSHA}/eMvD7CPM6rgQ0dUb4iCCEo+xBxmshVc
+
+dn: uid=erin,ou=people,dc=cenacle,dc=test
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: erin
+cn: Erin Contractor
+givenName: Erin
+sn: Contractor
+uidNumber: 10005
+gidNumber: 10000
+homeDirectory: /home/erin
+userPassword: {SSHA}Fn1XqZH36OHpH8HgdifitSWnGdVsnpRB
+
+dn: cn=staff,ou=groups,dc=cenacle,dc=test
+objectClass: groupOfNames
+cn: staff
+member: cn=engineering,ou=groups,dc=cenacle,dc=test
+member: cn=design,ou=groups,dc=cenacle,dc=test
+
+dn: cn=contractors,ou=groups,dc=cenacle,dc=test
+objectClass: posixGroup
+cn: contractors
+gidNumber: 20001
+memberUid: erin

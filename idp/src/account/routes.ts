@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import QRCode from 'qrcode';
 import type { AuditLog } from '../accounts/audit.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
+import { checkPassword, usernamesAllowed, type DirectoryAccess } from '../accounts/signin.ts';
 import type { UserStore } from '../accounts/users.ts';
 import { isSameOriginPost, LOCALE_COOKIE, pageSecurityHeaders } from '../oidc/security.ts';
 import { isLocale, MESSAGES, pickLocale, type Locale } from '../ui/messages.ts';
@@ -37,6 +38,7 @@ export interface AccountOptions {
   formActionOrigins: string[];
   /** Sign-in attempts per address and minute. */
   rateLimit?: number;
+  directory?: DirectoryAccess;
 }
 
 type CodeBody = { code?: string; challenge?: string };
@@ -112,7 +114,12 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       }
       const loc = locale(request);
       const user = await current(request);
-      if (!user) return page(reply, 200, accountSigninPage({ locale: loc }));
+      if (!user)
+        return page(
+          reply,
+          200,
+          accountSigninPage({ locale: loc, usernames: await usernamesAllowed(opts.directory) }),
+        );
       const on = await mfa.enabled(user.id);
       const m = MESSAGES[loc].account;
       const done = (request.query as Record<string, string | undefined>).done;
@@ -122,11 +129,12 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
         accountPage({
           locale: loc,
           name: user.displayName,
-          email: user.email,
+          email: user.email ?? user.username ?? '',
           twoStep: on,
           recoveryLeft: on ? await mfa.remainingRecoveryCodes(user.id) : 0,
           events: await audit.forUser(user.id, 10),
           returnTo: returnTo(request),
+          isAdmin: user.isAdmin,
           notice: done === 'off' ? m.disabledNotice : done === 'on' ? m.enabledNotice : undefined,
         }),
       );
@@ -141,7 +149,13 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       const loc = locale(request);
       const email = (request.body?.email ?? '').trim();
       const password = request.body?.password ?? '';
-      const user = email && password ? await users.authenticate(email, password) : null;
+      const result =
+        email && password
+          ? await checkPassword(users, opts.directory, email, password, (err) =>
+              request.log.warn({ err }, 'directory sign-in failed'),
+            )
+          : null;
+      const user = result && 'user' in result ? result.user : null;
       if (!user) {
         await audit.record('signin.failed', null, request.ip, { email, where: 'account' });
         return page(
@@ -150,7 +164,8 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           accountSigninPage({
             locale: loc,
             email,
-            error: email && password ? 'invalid' : 'missing',
+            error: result && 'error' in result ? result.error : 'missing',
+            usernames: await usernamesAllowed(opts.directory),
           }),
         );
       }
@@ -208,7 +223,11 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
     return page(
       reply,
       200,
-      accountSigninPage({ locale: loc, notice: MESSAGES[loc].account.signedOut }),
+      accountSigninPage({
+        locale: loc,
+        notice: MESSAGES[loc].account.signedOut,
+        usernames: await usernamesAllowed(opts.directory),
+      }),
     );
   });
 
@@ -217,11 +236,13 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
   async function renderSetup(
     reply: FastifyReply,
     loc: Locale,
-    user: { id: string; email: string },
+    user: { id: string; email: string | null; username: string | null; displayName: string },
     error?: CodeError,
   ) {
+    // The authenticator shows the account by its address (or sign-in name).
+    const label = user.email ?? user.username ?? user.displayName;
     const setup =
-      (await mfa.pendingSecret(user.id, user.email)) ?? (await mfa.beginSetup(user.id, user.email));
+      (await mfa.pendingSecret(user.id, label)) ?? (await mfa.beginSetup(user.id, label));
     const qrSvg = await QRCode.toString(setup.uri, {
       type: 'svg',
       margin: 1,

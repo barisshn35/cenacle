@@ -30,9 +30,11 @@ interface LayoutOptions {
   body: SafeHtml;
   /** Path (without query) used for the language links; omit to hide them. */
   languagePath?: string;
+  /** Wide pages (the admin panel) instead of the narrow sign-in column. */
+  wide?: boolean;
 }
 
-export function layout({ locale, title, body, languagePath }: LayoutOptions): string {
+export function layout({ locale, title, body, languagePath, wide }: LayoutOptions): string {
   const m = MESSAGES[locale];
   const languages = languagePath
     ? html`<nav aria-label="${m.language}" class="flex justify-center gap-1 text-sm">
@@ -72,7 +74,13 @@ export function layout({ locale, title, body, languagePath }: LayoutOptions): st
         class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:inline-flex focus:min-h-target focus:items-center focus:rounded-md focus:bg-background focus:px-3 focus:ring-3 focus:ring-ring/50 focus:outline-none"
         >${m.skipToContent}</a
       >
-      <div class="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 px-4 py-10">
+      <div
+        class="${
+          wide
+            ? 'mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-8 px-4 py-8'
+            : 'mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 px-4 py-10'
+        }"
+      >
         <header class="flex items-center gap-3">
           ${logo}
           <span class="text-lg font-semibold">${m.productName}</span>
@@ -84,7 +92,7 @@ export function layout({ locale, title, body, languagePath }: LayoutOptions): st
   </html>`}`;
 }
 
-function alertBox(id: string, title: string, action?: string): SafeHtml {
+export function alertBox(id: string, title: string, action?: string): SafeHtml {
   return html`<div
     id="${id}"
     role="alert"
@@ -95,7 +103,7 @@ function alertBox(id: string, title: string, action?: string): SafeHtml {
   </div>`;
 }
 
-export type LoginError = 'invalid' | 'missing' | { rateLimited: number };
+export type LoginError = 'invalid' | 'missing' | 'unavailable' | { rateLimited: number };
 
 export function loginPage(opts: {
   locale: Locale;
@@ -103,6 +111,8 @@ export function loginPage(opts: {
   clientName: string;
   email?: string;
   error?: LoginError;
+  /** A directory is connected: people may sign in with their username. */
+  usernames?: boolean;
 }): string {
   const m = MESSAGES[opts.locale].login;
   return credentialsPage({
@@ -121,6 +131,7 @@ export function accountSigninPage(opts: {
   email?: string;
   error?: LoginError;
   notice?: string;
+  usernames?: boolean;
 }): string {
   const m = MESSAGES[opts.locale].account;
   return credentialsPage({
@@ -142,12 +153,17 @@ function credentialsPage(opts: {
   email?: string;
   error?: LoginError;
   notice?: string;
+  usernames?: boolean;
 }): string {
   const m = MESSAGES[opts.locale].login;
   const errorId = 'login-error';
   let error: SafeHtml | null = null;
-  if (opts.error === 'invalid') error = alertBox(errorId, m.invalid, m.invalidAction);
-  else if (opts.error === 'missing') error = alertBox(errorId, m.missing);
+  if (opts.error === 'invalid')
+    error = alertBox(errorId, opts.usernames ? m.invalidIdentifier : m.invalid, m.invalidAction);
+  else if (opts.error === 'missing')
+    error = alertBox(errorId, opts.usernames ? m.missingIdentifier : m.missing);
+  else if (opts.error === 'unavailable')
+    error = alertBox(errorId, m.unavailable, m.unavailableAction);
   else if (opts.error)
     error = alertBox(
       errorId,
@@ -164,12 +180,12 @@ function credentialsPage(opts: {
     ${opts.notice ? noticeBox(opts.notice) : null} ${error}
     <form method="post" action="${opts.action}" class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <label for="email" class="${label}">${m.email}</label>
+        <label for="email" class="${label}">${opts.usernames ? m.identifier : m.email}</label>
         <input
           id="email"
           name="email"
-          type="email"
-          inputmode="email"
+          type="${opts.usernames ? 'text' : 'email'}"
+          inputmode="${opts.usernames ? 'text' : 'email'}"
           autocomplete="username"
           autocapitalize="none"
           spellcheck="false"
@@ -276,7 +292,7 @@ export function loggedOutPage(opts: { locale: Locale }): string {
   return layout({ locale: opts.locale, title: m.doneTitle, body });
 }
 
-function noticeBox(text: string): SafeHtml {
+export function noticeBox(text: string): SafeHtml {
   return html`<p role="status" class="rounded-lg border px-3 py-2.5 text-sm">${text}</p>`;
 }
 
@@ -366,6 +382,8 @@ export interface AccountView {
   events: { at: Date; action: string; ip: string }[];
   returnTo?: string;
   notice?: string;
+  /** Administers Cenacle ID: show the way to the admin panel. */
+  isAdmin?: boolean;
 }
 
 /** The account page: two-step verification and recent activity. */
@@ -414,6 +432,7 @@ export function accountPage(opts: { locale: Locale } & AccountView): string {
     </section>
     <div class="flex flex-col gap-3">
       ${opts.returnTo ? html`<a href="${opts.returnTo}" class="${primary}">${m.back}</a>` : null}
+      ${opts.isAdmin ? html`<a href="/account/admin" class="${secondary}">${m.administration}</a>` : null}
       <form method="post" action="/account/signout">
         <button type="submit" class="${secondary}">${m.signOut}</button>
       </form>

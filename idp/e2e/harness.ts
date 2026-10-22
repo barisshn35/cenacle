@@ -14,6 +14,7 @@ import { AuditLog } from '../src/accounts/audit.ts';
 import { MfaStore } from '../src/accounts/mfa.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { buildApp } from '../src/app.ts';
+import { SourceStore } from '../src/directory/store.ts';
 import { migrate } from '../src/db/migrate.ts';
 import { KeyStore } from '../src/keys/store.ts';
 import type { ClientMetadata } from '../src/oidc/clients.ts';
@@ -50,11 +51,15 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-export async function startHarness(opts: { loginRateLimit?: number } = {}): Promise<Harness> {
+export async function startHarness(
+  opts: { loginRateLimit?: number; directory?: boolean; scope?: string } = {},
+): Promise<Harness> {
   if (!DATABASE_URL) throw new Error('IDP_TEST_DATABASE_URL is not set');
   await migrate({ databaseUrl: DATABASE_URL, direction: 'up' });
   const pool = new pg.Pool({ connectionString: DATABASE_URL, max: 4 });
-  await pool.query('TRUNCATE users, oidc_payloads, signing_keys, audit_events CASCADE');
+  await pool.query(
+    'TRUNCATE users, oidc_payloads, signing_keys, audit_events, identity_sources CASCADE',
+  );
 
   const users = new UserStore(pool);
   await users.create({
@@ -63,7 +68,10 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
     password: PASSWORD,
     emailVerified: true,
   });
+  // The test account administers Cenacle ID (the admin panel).
+  await users.setAdmin(EMAIL, true);
   const kek = randomBytes(32);
+  const sources = new SourceStore(pool, kek);
   const keys = new KeyStore(pool, kek);
   await keys.ensureActiveKey();
 
@@ -98,7 +106,7 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
     grant_types: ['authorization_code'],
     response_types: ['code'],
     token_endpoint_auth_method: 'client_secret_basic',
-    scope: 'openid email profile',
+    scope: opts.scope ?? 'openid email profile',
     cenacle_first_party: true,
     backchannel_logout_uri: `${rpOrigin}/backchannel`,
     backchannel_logout_session_required: true,
@@ -128,6 +136,7 @@ export async function startHarness(opts: { loginRateLimit?: number } = {}): Prom
         mfa: new MfaStore(pool, kek),
         audit: new AuditLog(pool),
         cookieKeys: ['e2e-cookie-key-0123456789abcdefghij'],
+        directory: opts.directory ? { pool, sources } : undefined,
       },
     });
     await app.listen({ host: '127.0.0.1', port });

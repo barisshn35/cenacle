@@ -63,7 +63,7 @@ export function createProvider(opts: ProviderOptions): Provider {
     },
     clients: opts.clients,
     // Custom client metadata: first-party clients skip consent.
-    extraClientMetadata: { properties: ['cenacle_first_party'] },
+    extraClientMetadata: { properties: ['cenacle_first_party', 'cenacle_directory'] },
 
     findAccount: async (_ctx, sub) => {
       const user = await opts.users.findById(sub);
@@ -72,11 +72,14 @@ export function createProvider(opts: ProviderOptions): Provider {
         accountId: user.id,
         claims: async () => ({
           sub: user.id,
-          email: user.email,
-          email_verified: user.emailVerified,
+          email: user.email ?? undefined,
+          email_verified: user.email ? user.emailVerified : undefined,
           name: user.displayName,
+          preferred_username: user.username ?? undefined,
           locale: user.locale ?? undefined,
           updated_at: Math.floor(user.updatedAt.getTime() / 1000),
+          groups: await opts.users.groups(user.id),
+          cenacle_role: user.directoryRole ?? undefined,
         }),
       };
     },
@@ -90,9 +93,12 @@ export function createProvider(opts: ProviderOptions): Provider {
       sid: null,
       openid: ['sub'],
       email: ['email', 'email_verified'],
-      profile: ['name', 'locale', 'updated_at'],
+      profile: ['name', 'preferred_username', 'locale', 'updated_at'],
+      // Directory groups and the directory role (admin, guest) for apps that
+      // map them to their own roles.
+      groups: ['groups', 'cenacle_role'],
     },
-    scopes: ['openid', 'email', 'profile'],
+    scopes: ['openid', 'email', 'profile', 'groups'],
 
     // RFC 9700 (OAuth 2.0 Security BCP): authorization code flow only, PKCE for
     // every client, exact redirect_uri matching, short-lived artifacts.

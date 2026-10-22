@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type Provider from 'oidc-provider';
 import type { AuditLog } from '../accounts/audit.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
+import { checkPassword, usernamesAllowed, type DirectoryAccess } from '../accounts/signin.ts';
 import type { UserStore } from '../accounts/users.ts';
 import { isLocale, pickLocale, type Locale } from '../ui/messages.ts';
 import {
@@ -25,6 +26,8 @@ export interface InteractionOptions {
   formActionOrigins: string[];
   /** Sign-in attempts per IP and minute. */
   loginRateLimit?: number;
+  /** Directories (LDAP / Active Directory) people may sign in with. */
+  directory?: DirectoryAccess;
 }
 
 interface Params {
@@ -54,6 +57,8 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
       .type('text/html; charset=utf-8')
       .send(body);
   }
+
+  const usernames = () => usernamesAllowed(opts.directory);
 
   function clientName(clientId: unknown): Promise<string> {
     return provider.Client.find(String(clientId)).then((c) => c?.clientName ?? String(clientId));
@@ -110,6 +115,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           uid: d.uid,
           clientName: await clientName(d.params.client_id),
           email: typeof d.params.login_hint === 'string' ? d.params.login_hint : undefined,
+          usernames: await usernames(),
         }),
       );
     },
@@ -137,6 +143,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
               uid: d.uid,
               clientName: await clientName(d.params.client_id),
               error: { rateLimited: retry },
+              usernames: await usernames(),
             }),
           );
         }
@@ -152,9 +159,16 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
       const email = (request.body?.email ?? '').trim();
       const password = request.body?.password ?? '';
       let error: LoginError | undefined;
-      const user = email && password ? await users.authenticate(email, password) : null;
+      const result =
+        email && password
+          ? await checkPassword(users, opts.directory, email, password, (err) =>
+              request.log.warn({ err }, 'directory sign-in failed'),
+            )
+          : null;
+      const user = result && 'user' in result ? result.user : null;
+      if (result && 'error' in result && result.error === 'unavailable') error = 'unavailable';
       if (!email || !password) error = 'missing';
-      else if (!user) error = 'invalid';
+      else if (!user && !error) error = 'invalid';
       if (error || !user) {
         request.log.info({ uid: d.uid }, 'sign-in failed');
         await opts.audit?.record('signin.failed', null, request.ip, {
@@ -170,6 +184,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
             clientName: await clientName(d.params.client_id),
             email,
             error,
+            usernames: await usernames(),
           }),
         );
       }

@@ -8,6 +8,7 @@
 @import '@cenacle/ui/tokens.css';
 
 @source './';
+@source '../admin';
 
 /* Inter (SIL OFL-1.1), served from our own origin: Latin and Latin Extended
    (Turkish ğ, ı, ş) subsets. Copied from @fontsource-variable/inter. */

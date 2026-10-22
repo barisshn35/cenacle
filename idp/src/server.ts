@@ -6,6 +6,8 @@ import { UserStore } from './accounts/users.ts';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
 import { createPool, poolCheck } from './db.ts';
+import { SourceStore } from './directory/store.ts';
+import { scheduleSync } from './directory/sync.ts';
 import { instrument, oidcEvents, registerPool, serveMetrics } from './metrics.ts';
 import { KeyStore } from './keys/store.ts';
 import { pruneExpired } from './oidc/adapter.ts';
@@ -37,6 +39,7 @@ async function main(): Promise<void> {
   const signingKeys = await keys.loadSigningKeys(config.retiredKeyGraceSeconds);
   const clients = loadClients(config.clientsFile);
   const users = new UserStore(pool);
+  const sources = new SourceStore(pool, config.keyEncryptionKey);
   const formActionOrigins = clientOrigins(clients);
 
   const provider = createProvider({
@@ -70,6 +73,8 @@ async function main(): Promise<void> {
       mfa: new MfaStore(pool, config.keyEncryptionKey),
       audit: new AuditLog(pool, (err) => console.error('audit log write failed', err)),
       cookieKeys: config.cookieKeys,
+      directory: { pool, sources },
+      clients,
     },
   });
 
@@ -96,6 +101,7 @@ async function main(): Promise<void> {
       .catch((err: unknown) => app.log.warn({ err }, 'pruning expired artifacts failed'));
   }, PRUNE_INTERVAL_MS);
   prune.unref();
+  const sync = scheduleSync(pool, sources, app.log);
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
@@ -108,6 +114,7 @@ async function main(): Promise<void> {
     }, config.shutdownTimeoutMs);
     timer.unref();
     clearInterval(prune);
+    clearInterval(sync);
     metrics?.close();
     await app.close();
     await pool.end();

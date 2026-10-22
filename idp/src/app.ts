@@ -14,6 +14,10 @@ import type { AuditLog } from './accounts/audit.ts';
 import type { MfaStore } from './accounts/mfa.ts';
 import type { UserStore } from './accounts/users.ts';
 import { registerAccount } from './account/routes.ts';
+import { registerAdmin } from './admin/routes.ts';
+import { registerDirectoryFeed } from './directory/feed.ts';
+import type { ClientMetadata } from './oidc/clients.ts';
+import type { DirectoryAccess } from './accounts/signin.ts';
 import { registerInteractions } from './oidc/interactions.ts';
 import { sendProblem } from './problem.ts';
 
@@ -52,6 +56,10 @@ export interface OidcOptions {
   mfa?: MfaStore;
   audit?: AuditLog;
   cookieKeys?: string[];
+  /** Directories (LDAP / Active Directory) people may sign in with. */
+  directory?: DirectoryAccess;
+  /** Registered apps (the directory feed authenticates them). */
+  clients?: ClientMetadata[];
 }
 
 export interface AppOptions {
@@ -204,7 +212,23 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
         issuer: opts.oidc.issuer,
         formActionOrigins: opts.oidc.formActionOrigins,
         rateLimit: opts.oidc.loginRateLimit,
+        directory: opts.oidc.directory,
       });
+      if (opts.oidc.directory && opts.oidc.clients) {
+        registerDirectoryFeed(app, { pool: opts.oidc.directory.pool, clients: opts.oidc.clients });
+      }
+      if (opts.oidc.directory) {
+        await registerAdmin(app, {
+          pool: opts.oidc.directory.pool,
+          users: opts.oidc.users,
+          mfa,
+          audit,
+          sources: opts.oidc.directory.sources,
+          issuer: opts.oidc.issuer,
+          cookieKeys,
+          formActionOrigins: opts.oidc.formActionOrigins,
+        });
+      }
     }
   }
 
