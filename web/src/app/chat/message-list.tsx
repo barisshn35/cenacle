@@ -9,6 +9,11 @@ import { useJump } from './jump';
 import { PinnedLine, RepliedToThread, ThreadSummaryButton } from '../threads/thread-summary';
 import { ReplyButton } from '../threads/reply-button';
 import { PollCard } from '../community/poll';
+import { BurnBody } from '../richer/burn';
+import { ForwardedQuote } from '../richer/forward';
+import { LinkPreviewCard } from '../richer/link-preview';
+import { StickerImage } from '../richer/stickers';
+import { useActiveWorkspace } from './active-workspace';
 import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
@@ -58,7 +63,18 @@ export function MessageRow({
   const self = useSession().user.id;
   const at = new Date(m.created_at);
   const editing = useEditing((s) => s.id === m.id);
-  const mentionsMe = m.mentions.some((p) => p.id === self);
+  const role = useActiveWorkspace().workspace?.role;
+  // Mentions of many reach the reader too (not the one who wrote them).
+  const reached =
+    m.author.id !== self &&
+    (m.broadcast ?? []).some(
+      (b) =>
+        b === 'channel' ||
+        b === 'here' ||
+        (b === 'role:admin' && (role === 'admin' || role === 'owner')) ||
+        (b === 'role:owner' && role === 'owner'),
+    );
+  const mentionsMe = m.mentions.some((p) => p.id === self) || reached;
   const highlighted = useJump((s) => s.highlighted === m.id);
   return (
     <div>
@@ -160,7 +176,20 @@ export function MessageRow({
                   ))}
                 </p>
               )}
-              {m.body && <MessageBody body={m.body} mentions={m.mentions} selfId={self} />}
+              {m.burn ? (
+                <BurnBody message={m} />
+              ) : (
+                m.body && (
+                  <MessageBody
+                    body={m.body}
+                    mentions={m.mentions}
+                    selfId={self}
+                    broadcast={m.broadcast}
+                  />
+                )
+              )}
+              {m.sticker && <StickerImage sticker={m.sticker} />}
+              <ForwardedQuote message={m} />
               {m.poll && <PollCard message={m} channel={channel} />}
               {m.edited_at && (
                 <span
@@ -172,6 +201,7 @@ export function MessageRow({
               )}
               <Attachments items={m.attachments} selfId={self} />
               <MessageFiles files={m.files} />
+              <LinkPreviewCard message={m} />
               <ReactionBar message={m} />
               {!inThread && <ThreadSummaryButton message={m} />}
             </>
@@ -216,6 +246,7 @@ export function PendingRow({ p }: { p: PendingMessage }) {
         </header>
         <div className={cn(!failed && 'text-muted-foreground')}>
           {p.body && <MessageBody body={p.body} mentions={p.mentions ?? []} selfId={user.id} />}
+          {p.sticker && <StickerImage sticker={p.sticker} />}
           {p.files && p.files.length > 0 && (
             <ul className="mt-1 flex flex-wrap gap-1.5 text-sm" aria-label={t('files.attached')}>
               {p.files.map((f) => (

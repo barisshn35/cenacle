@@ -13,7 +13,7 @@ export function useMessagePermissions(m: Message, channel: Channel) {
   const { user } = useSession();
   const own = m.author.id === user.id;
   return {
-    edit: own && !channel.archived,
+    edit: own && !channel.archived && !m.burn && !m.sticker,
     remove: own || channel.can_manage,
   };
 }

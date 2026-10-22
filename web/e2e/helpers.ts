@@ -321,7 +321,7 @@ export function mockProfile(person: (typeof PEOPLE)[number]): MockProfile {
 }
 
 /** A 1×1 PNG (for pictures). */
-const PIXEL = Buffer.from(
+export const PIXEL = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64',
 );
@@ -384,6 +384,24 @@ export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): 
   };
 }
 
+export const EMOJI = [
+  {
+    id: '01a15e50-e000-7000-8000-000000000001',
+    name: 'party',
+    url: '/api/pictures/01a15e50-e000-7000-8000-0000000000e1',
+    created_by: null as string | null,
+  },
+];
+
+export const STICKERS = [
+  {
+    id: '01a15e50-5000-7000-8000-000000000001',
+    name: 'Wave',
+    url: '/api/pictures/01a15e50-5000-7000-8000-0000000000e1',
+    created_by: null as string | null,
+  },
+];
+
 /** Handle to the fake chat server of a test. */
 export interface MockApi {
   /** Sends an event over the open WebSocket. */
@@ -439,6 +457,8 @@ export async function mockApi(
     presence?: { user_id: string; status: string }[];
     /** Whether the server stores files (default: yes). */
     files?: boolean;
+    emoji?: typeof EMOJI;
+    stickers?: typeof STICKERS;
   } = {},
 ): Promise<MockApi> {
   await mockSession(page, {
@@ -460,6 +480,17 @@ export async function mockApi(
       role: opts.admin ? 'owner' : 'member',
     },
   ];
+  // Custom emoji and stickers of the workspace (v0.20).
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/emoji$/, (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { emoji: opts.emoji ?? [] } })
+      : route.fallback(),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/stickers$/, (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { stickers: opts.stickers ?? [] } })
+      : route.fallback(),
+  );
   // The details panel lists the channel's files.
   await page.route(/\/api\/channels\/[0-9a-f-]{36}\/files$/, (route) =>
     route.request().method() === 'GET'
@@ -886,6 +917,8 @@ export async function mockApi(
       title?: string;
       tags?: string[];
       poll?: { options: string[]; multiple?: boolean; anonymous?: boolean };
+      sticker_id?: string;
+      burn_seconds?: number;
     };
     api.sent.push(input);
     const message = {
@@ -897,6 +930,16 @@ export async function mockApi(
         ? { root_id: input.root_id, also_in_channel: !!input.also_in_channel }
         : {}),
       ...(input.title ? { title: input.title, tags: input.tags ?? [] } : {}),
+      ...(input.sticker_id
+        ? {
+            sticker: {
+              ...(STICKERS.find((s) => s.id === input.sticker_id) ?? STICKERS[0]),
+            },
+          }
+        : {}),
+      ...(input.burn_seconds
+        ? { burn: { seconds: input.burn_seconds, revealed_at: null, hidden: false } }
+        : {}),
       ...(input.poll
         ? {
             poll: {

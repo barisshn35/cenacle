@@ -1132,5 +1132,88 @@
       "termsPublished": "Terms published",
       "failed": "Couldn't save. Try again."
     }
+  },
+  "richer": {
+    "preview": {
+      "remove": "Remove preview",
+      "failed": "The preview could not be removed."
+    },
+    "forward": {
+      "action": "Forward",
+      "title": "Forward message",
+      "hint": "A copy goes to the channel or conversation you choose, with where it came from.",
+      "to": "Send to",
+      "search": "Find a channel or person",
+      "none": "Nothing matches.",
+      "comment": "Add a comment (optional)",
+      "send": "Forward",
+      "done": "Message forwarded.",
+      "open": "Open",
+      "failed": "The message could not be forwarded.",
+      "from": "Forwarded from {{name}} in {{channel}} · {{when}}"
+    },
+    "link": {
+      "copy": "Copy link",
+      "copied": "Link copied.",
+      "failed": "The link could not be copied."
+    },
+    "burn": {
+      "choice": "Burn after reading",
+      "off": "Off",
+      "label": "Burn-on-read · {{time}}",
+      "left": "Burns in {{time}}",
+      "sent": "Burn-on-read · {{time}} per reader",
+      "reveal": "Show message",
+      "showOwn": "Show your message",
+      "gone": "This message has burned.",
+      "failed": "The message could not be shown."
+    },
+    "emoji": {
+      "workspace": "This workspace"
+    },
+    "stickers": {
+      "open": "Stickers",
+      "title": "Stickers"
+    },
+    "record": {
+      "voice": "Record a voice message",
+      "clip": "Record a video clip",
+      "recording": "Recording {{time}}",
+      "cancel": "Discard recording",
+      "done": "Add recording",
+      "noMicrophone": "The microphone is not available.",
+      "noCamera": "The camera is not available."
+    },
+    "voice": {
+      "play": "Play voice message",
+      "pause": "Pause voice message"
+    },
+    "clip": {
+      "label": "Video clip {{name}}"
+    },
+    "broadcast": {
+      "title": "Notify everyone?",
+      "confirm_one": "This notifies {{count}} person in this channel.",
+      "confirm_other": "This notifies {{count}} people in this channel.",
+      "send": "Send and notify"
+    },
+    "manage": {
+      "upload": "Upload",
+      "failed": "That did not work.",
+      "remove": "Remove {{name}}",
+      "emoji": {
+        "title": "Custom emoji",
+        "hint": "PNG, JPEG, GIF or WebP; use them as :name: in messages and reactions.",
+        "name": "Emoji name",
+        "added": "Emoji added.",
+        "code": "Type {{code}} to use it."
+      },
+      "stickers": {
+        "title": "Stickers",
+        "hint": "Pictures sent as a message of their own.",
+        "name": "Sticker name",
+        "added": "Sticker added."
+      }
+    }
   }
 }

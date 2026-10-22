@@ -1132,5 +1132,88 @@
       "termsPublished": "Koşullar yayımlandı",
       "failed": "Kaydedilemedi. Yeniden deneyin."
     }
+  },
+  "richer": {
+    "preview": {
+      "remove": "Önizlemeyi kaldır",
+      "failed": "Önizleme kaldırılamadı."
+    },
+    "forward": {
+      "action": "İlet",
+      "title": "Mesajı ilet",
+      "hint": "Seçtiğin kanala ya da konuşmaya, nereden geldiğiyle birlikte bir kopyası gider.",
+      "to": "Gönderilecek yer",
+      "search": "Kanal ya da kişi bul",
+      "none": "Eşleşen yok.",
+      "comment": "Yorum ekle (isteğe bağlı)",
+      "send": "İlet",
+      "done": "Mesaj iletildi.",
+      "open": "Aç",
+      "failed": "Mesaj iletilemedi.",
+      "from": "{{name}} tarafından {{channel}} içinde · {{when}} — iletildi"
+    },
+    "link": {
+      "copy": "Bağlantıyı kopyala",
+      "copied": "Bağlantı kopyalandı.",
+      "failed": "Bağlantı kopyalanamadı."
+    },
+    "burn": {
+      "choice": "Okununca sil",
+      "off": "Kapalı",
+      "label": "Okununca silinir · {{time}}",
+      "left": "{{time}} sonra silinecek",
+      "sent": "Okununca silinir · okuyan başına {{time}}",
+      "reveal": "Mesajı göster",
+      "showOwn": "Mesajını göster",
+      "gone": "Bu mesaj silindi.",
+      "failed": "Mesaj gösterilemedi."
+    },
+    "emoji": {
+      "workspace": "Bu çalışma alanı"
+    },
+    "stickers": {
+      "open": "Çıkartmalar",
+      "title": "Çıkartmalar"
+    },
+    "record": {
+      "voice": "Sesli mesaj kaydet",
+      "clip": "Video klip kaydet",
+      "recording": "Kaydediliyor {{time}}",
+      "cancel": "Kaydı at",
+      "done": "Kaydı ekle",
+      "noMicrophone": "Mikrofon kullanılamıyor.",
+      "noCamera": "Kamera kullanılamıyor."
+    },
+    "voice": {
+      "play": "Sesli mesajı oynat",
+      "pause": "Sesli mesajı duraklat"
+    },
+    "clip": {
+      "label": "Video klip {{name}}"
+    },
+    "broadcast": {
+      "title": "Herkese bildirilsin mi?",
+      "confirm_one": "Bu, kanaldaki {{count}} kişiye bildirim gönderir.",
+      "confirm_other": "Bu, kanaldaki {{count}} kişiye bildirim gönderir.",
+      "send": "Gönder ve bildir"
+    },
+    "manage": {
+      "upload": "Yükle",
+      "failed": "Bu işlem yapılamadı.",
+      "remove": "{{name}} kaldır",
+      "emoji": {
+        "title": "Özel emojiler",
+        "hint": "PNG, JPEG, GIF ya da WebP; mesajlarda ve tepkilerde :ad: olarak kullan.",
+        "name": "Emoji adı",
+        "added": "Emoji eklendi.",
+        "code": "Kullanmak için {{code}} yaz."
+      },
+      "stickers": {
+        "title": "Çıkartmalar",
+        "hint": "Kendi başına mesaj olarak gönderilen resimler.",
+        "name": "Çıkartma adı",
+        "added": "Çıkartma eklendi."
+      }
+    }
   }
 }

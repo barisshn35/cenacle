@@ -15,6 +15,10 @@ export interface PendingMessage {
   rootId?: string;
   /** A reply also sent to the channel. */
   alsoInChannel?: boolean;
+  /** A sticker sent as the message. */
+  sticker?: { id: string; name: string; url: string };
+  /** Burn-on-read: seconds each recipient can read it for. */
+  burnSeconds?: number;
   status: 'sending' | 'failed';
   /** Seconds to wait when the server said "too fast". */
   retryAfter?: number;

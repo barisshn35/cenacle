@@ -23,6 +23,7 @@ import {
   type ReactionEvent,
 } from './data';
 import { usePending } from './pending';
+import { applyLinkPreview, revealMessage } from '../richer/richer';
 import { profileChanged } from '../profile/profiles';
 import {
   applyPoll,
@@ -61,7 +62,14 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       onEvent(ev) {
         if (ev.type === 'message.created') {
           const message = ev.data as Message;
-          addMessage(queryClient, message);
+          // One's own burn-on-read message comes without its text: fetch it.
+          if (message.burn?.hidden && message.author.id === selfId) {
+            void revealMessage(message)
+              .then((m) => addMessage(queryClient, m))
+              .catch(() => undefined);
+          } else {
+            addMessage(queryClient, message);
+          }
           if (message.files?.length) {
             void queryClient.invalidateQueries({ queryKey: ['files', message.channel_id] });
           }
@@ -88,6 +96,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           const message = ev.data as Message;
           replaceMessage(queryClient, message);
           void queryClient.invalidateQueries({ queryKey: ['pins', message.channel_id] });
+        } else if (ev.type === 'message.preview') {
+          applyLinkPreview(queryClient, ev.data as Parameters<typeof applyLinkPreview>[1]);
+        } else if (ev.type === 'emoji.changed') {
+          const { workspace_id } = ev.data as { workspace_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['custom-emoji', workspace_id] });
+          void queryClient.invalidateQueries({ queryKey: ['stickers', workspace_id] });
         } else if (ev.type === 'message.deleted') {
           const ref = ev.data as Pick<Message, 'id' | 'channel_id'>;
           removeMessage(queryClient, ref);

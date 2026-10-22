@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
-import { memo, type ReactNode } from 'react';
+import { memo, useMemo, type ReactNode } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@cenacle/ui/lib/utils';
 import { CodeBlock } from './code-block';
 import { mentionId, toMarkdownMentions } from './mentions';
+import { broadcastLink, emojiLink, toMarkdownExtras } from './extras';
+import { CustomEmojiImage } from '../../richer/emoji';
+import { useCustomEmoji } from '../../richer/use-custom-emoji';
+import type { CustomEmoji } from '../../richer/richer';
 
 type Person = { id: string; display_name: string };
 
@@ -24,9 +28,13 @@ function MentionChip({ name, self }: { name: string; self: boolean }) {
   );
 }
 
-function components(selfId: string, people: Person[]): Components {
+function components(selfId: string, people: Person[], emoji: Map<string, CustomEmoji>): Components {
   return {
     a({ href, children }) {
+      const name = emojiLink(href);
+      if (name) return <CustomEmojiImage name={name} emoji={emoji} />;
+      const many = broadcastLink(href);
+      if (many) return <MentionChip name={many} self />;
       // Only links made from <@id> for people the server says are mentioned
       // become chips; a typed look-alike stays an ordinary link.
       const id = mentionId(href);
@@ -124,19 +132,24 @@ export const MessageBody = memo(function MessageBody({
   body,
   mentions,
   selfId,
+  broadcast,
 }: {
   body: string;
   mentions: Person[];
   selfId: string;
+  /** The message's mentions of many (@channel, @here), shown as chips. */
+  broadcast?: string[];
 }) {
+  const emoji = useCustomEmoji();
+  const names = useMemo(() => new Set(emoji.keys()), [emoji]);
   return (
     <div className="text-[0.9375rem] leading-(--line-height-base,1.625) break-words [&_li>p]:my-0">
       <Markdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize]}
-        components={components(selfId, mentions)}
+        components={components(selfId, mentions, emoji)}
       >
-        {toMarkdownMentions(body, mentions)}
+        {toMarkdownExtras(toMarkdownMentions(body, mentions), names, broadcast ?? [])}
       </Markdown>
     </div>
   );

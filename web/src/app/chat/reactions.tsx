@@ -15,6 +15,7 @@ import {
 import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
 import { addReaction, applyReaction, removeReaction, type Message } from './data';
+import { CustomEmojiGrid, ReactionEmoji } from '../richer/emoji';
 
 /** Adds or takes back the reader's reaction, showing it at once. */
 function useToggleReaction(message: Message) {
@@ -43,6 +44,7 @@ export function EmojiPickerPanel({ onPick }: { onPick: (emoji: string) => void }
       onEmojiSelect={({ emoji }) => onPick(emoji)}
       className="isolate flex h-80 w-72 flex-col"
     >
+      <CustomEmojiGrid onPick={onPick} />
       <EmojiPicker.Search
         aria-label={t('reactions.search')}
         placeholder={t('reactions.search')}
@@ -151,7 +153,9 @@ export function ReactionBar({ message }: { message: Message }) {
                 : 'border-border bg-background hover:bg-muted',
             )}
           >
-            <span aria-hidden>{r.emoji}</span>
+            <span aria-hidden className="inline-flex">
+              <ReactionEmoji emoji={r.emoji} />
+            </span>
             <span aria-hidden>{r.count}</span>
           </button>
         </li>

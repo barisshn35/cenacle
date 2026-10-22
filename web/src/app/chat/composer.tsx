@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClockIcon, PaperclipIcon, SendHorizontalIcon, BarChart3Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
 import { DraftStore } from '@cenacle/core/drafts';
 import { Button } from '@cenacle/ui/components/button';
+import { BroadcastConfirm } from '../richer/broadcast';
+import { BurnChoice } from '../richer/burn';
+import { StickerPicker } from '../richer/stickers';
+import { Recorder } from '../richer/voice';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useActiveWorkspace } from './active-workspace';
 import { CommandNotes } from './command-notes';
@@ -14,7 +18,7 @@ import { useCommandNotes } from './command-notes-state';
 import { useCommandPicker } from './command-picker';
 import { parseCommand, runCommand } from './commands';
 import { useConnection } from './connection';
-import { addMessage, sendTyping } from './data';
+import { addMessage, channelsQuery, isConversation, membersQuery, sendTyping } from './data';
 import { useMentionPicker } from './mention-picker';
 import { useSession } from '../auth/session';
 import { PollDialog } from '../community/poll';
@@ -33,6 +37,10 @@ const TYPING_EVERY = 3_000;
 const WORKSPACE = 'default';
 
 const drafts = new DraftStore();
+
+/** Mentions of many people; above this many members they are confirmed first. */
+const BROADCAST = /(^|[^\w@])@(channel|everyone|here)\b/i;
+const CONFIRM_ABOVE = 5;
 
 function ConnectionNotice() {
   const { t } = useTranslation();
@@ -76,6 +84,10 @@ export function Composer({
   const draftId = thread ? `${channelId}:${thread.rootId}` : channelId;
   const [also, setAlso] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
+  const [burn, setBurn] = useState<number | null>(null);
+  const [confirmMany, setConfirmMany] = useState<number | null>(null);
+  const channel = useQuery(channelsQuery).data?.find((c) => c.id === channelId);
+  const conversation = !!channel && isConversation(channel);
   const [body, setBody] = useState('');
   // The draft has been read; until then typing must not be overwritten by it,
   // and nothing is saved.
@@ -195,8 +207,18 @@ export function Composer({
       });
   };
 
-  const submit = () => {
+  const submit = (confirmed = false) => {
     if (!canSend) return;
+    // @channel / @here in a larger channel: say how many it reaches first.
+    if (!confirmed && !conversation && BROADCAST.test(trimmed)) {
+      void queryClient
+        .fetchQuery(membersQuery(channelId))
+        .then((members) =>
+          members.length - 1 > CONFIRM_ABOVE ? setConfirmMany(members.length - 1) : submit(true),
+        )
+        .catch(() => submit(true));
+      return;
+    }
     // "//text" sends "/text" as a message; commands run in the channel, not in threads.
     const command = trimmed.startsWith('//') || thread ? null : parseCommand(trimmed);
     if (command && uploads.items.length === 0) {
@@ -212,6 +234,7 @@ export function Composer({
       people,
       uploads.ready,
       thread ? { rootId: thread.rootId, alsoInChannel: also } : undefined,
+      conversation && burn ? { burnSeconds: burn } : {},
     );
     uploads.clear();
     setAlso(false);
@@ -240,6 +263,7 @@ export function Composer({
           e.preventDefault();
           submit();
         }}
+        data-burn={burn ?? undefined}
       >
         <label htmlFor={ids.input} className="sr-only">
           {label}
@@ -318,6 +342,23 @@ export function Composer({
                 </Button>
               </>
             )}
+            {permissions.upload_files && <Recorder onRecorded={(f) => addFiles([f])} />}
+            {!burn && (
+              <StickerPicker
+                onPick={(s) =>
+                  send(
+                    channelId,
+                    '',
+                    [],
+                    [],
+                    thread ? { rootId: thread.rootId, alsoInChannel: also } : undefined,
+                    {
+                      sticker: { id: s.id, name: s.name, url: s.url },
+                    },
+                  )
+                }
+              />
+            )}
             {!thread && (
               <Button
                 type="button"
@@ -362,6 +403,7 @@ export function Composer({
                 {t('threads.alsoInChannel', { channel: channelName })}
               </label>
             )}
+            {conversation && !thread && <BurnChoice value={burn} onChange={setBurn} />}
             <div id={ids.hint}>
               <ConnectionNotice />
               {slowMode > 0 && (
@@ -386,6 +428,14 @@ export function Composer({
         </div>
       </form>
       {!thread && <PollDialog channelId={channelId} open={pollOpen} onOpenChange={setPollOpen} />}
+      <BroadcastConfirm
+        count={confirmMany}
+        onCancel={() => setConfirmMany(null)}
+        onSend={() => {
+          setConfirmMany(null);
+          submit(true);
+        }}
+      />
       <SendLaterDialog
         open={later}
         onOpenChange={(open) => {

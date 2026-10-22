@@ -34,6 +34,16 @@ interface UploadStart {
   upload: { url: string; fields: Record<string, string> };
 }
 
+/** What the app recorded: a voice message (with its waveform) or a clip. */
+export interface Recording {
+  media_kind: 'voice' | 'clip';
+  duration_ms: number;
+  waveform?: number[];
+}
+
+/** Recordings made in the app, by their file (sent with the upload). */
+export const recordings = new WeakMap<File, Recording>();
+
 /**
  * Uploads a file into a channel: the server issues a form, the browser posts
  * the bytes straight to the object store, and the server checks the result.
@@ -53,6 +63,7 @@ export async function uploadFile(
       name: file.name,
       size: file.size,
       content_type: file.type || 'application/octet-stream',
+      ...recordings.get(file),
     }),
     signal,
   });

@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { buttonVariants } from '@cenacle/ui/components/button';
 import { fileUrl, formatSize, isImage, thumbnailUrl, type FileInfo } from './files';
 import { Lightbox } from './lightbox';
+import { ClipPlayer, VoicePlayer } from '../richer/voice';
 
 export function FileTypeIcon({
   file,
@@ -70,10 +71,18 @@ export function MessageFiles({ files }: { files: FileInfo[] | undefined }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState<number | null>(null);
   if (!files?.length) return null;
-  const images = files.filter(isImage);
-  const others = files.filter((f) => !isImage(f));
+  const media = files.filter((f) => f.media_kind);
+  const images = files.filter((f) => isImage(f) && !f.media_kind);
+  const others = files.filter((f) => !isImage(f) && !f.media_kind);
   return (
     <div className="mt-1 flex flex-col gap-1.5">
+      {media.map((f) =>
+        f.media_kind === 'voice' ? (
+          <VoicePlayer key={f.id} file={f} />
+        ) : (
+          <ClipPlayer key={f.id} file={f} />
+        ),
+      )}
       {images.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label={t('files.images')}>
           {images.map((f, i) => {

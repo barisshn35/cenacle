@@ -17,7 +17,14 @@ export function useSendMessage() {
     async (
       p: Pick<
         PendingMessage,
-        'nonce' | 'channelId' | 'body' | 'files' | 'rootId' | 'alsoInChannel'
+        | 'nonce'
+        | 'channelId'
+        | 'body'
+        | 'files'
+        | 'rootId'
+        | 'alsoInChannel'
+        | 'sticker'
+        | 'burnSeconds'
       >,
     ) => {
       const { update, remove } = usePending.getState();
@@ -31,6 +38,8 @@ export function useSendMessage() {
             nonce: p.nonce,
             ...(p.files?.length ? { file_ids: p.files.map((f) => f.id) } : {}),
             ...(p.rootId ? { root_id: p.rootId, also_in_channel: !!p.alsoInChannel } : {}),
+            ...(p.sticker ? { sticker_id: p.sticker.id } : {}),
+            ...(p.burnSeconds ? { burn_seconds: p.burnSeconds } : {}),
           }),
         });
         addMessage(queryClient, message);
@@ -66,6 +75,7 @@ export function useSendMessage() {
       mentions: PendingMessage['mentions'] = [],
       files: PendingMessage['files'] = [],
       reply?: { rootId: string; alsoInChannel: boolean },
+      extra: Pick<PendingMessage, 'sticker' | 'burnSeconds'> = {},
     ) => {
       const pending: PendingMessage = {
         nonce: newNonce(),
@@ -75,6 +85,7 @@ export function useSendMessage() {
         files,
         rootId: reply?.rootId,
         alsoInChannel: reply?.alsoInChannel,
+        ...extra,
         status: 'sending',
         createdAt: Date.now(),
       };

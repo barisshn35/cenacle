@@ -50,7 +50,7 @@ test.describe('workspaces', () => {
     await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
     const settings = page.getByRole('dialog', { name: 'Cenacle' });
     await expect(settings.getByLabel('Role of Ayşe Yılmaz')).toHaveValue('member');
-    await expect(settings.getByLabel('Name')).toHaveValue('Cenacle');
+    await expect(settings.getByLabel('Name', { exact: true })).toHaveValue('Cenacle');
   });
 
   test('admins map directory groups to the workspace', async ({ page }, testInfo) => {

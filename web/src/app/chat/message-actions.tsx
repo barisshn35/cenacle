@@ -5,6 +5,8 @@ import {
   BookmarkIcon,
   BookmarkMinusIcon,
   FlagIcon,
+  ForwardIcon,
+  LinkIcon,
   MessageSquareIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -25,6 +27,7 @@ import {
 import { useLayout } from '../../stores/layout';
 import { useSession } from '../auth/session';
 import { ReportDialog } from '../community/moderation';
+import { ForwardDialog } from '../richer/forward';
 import {
   applySaved,
   savedQuery,
@@ -69,6 +72,16 @@ export function MessageActions({
   const openThread = useLayout((s) => s.openThread);
   const { user } = useSession();
   const [reporting, setReporting] = useState(false);
+  const [forwarding, setForwarding] = useState(false);
+  // A burn-on-read message is read once: it is not kept, shared or linked.
+  const burn = !!message.burn;
+  const copyLink = () => {
+    const url = `${location.origin}/c/${message.channel_id}?m=${message.id}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast.success(t('richer.link.copied')),
+      () => toast.error(t('richer.link.failed')),
+    );
+  };
   const saved = useQuery(savedQuery).data?.some((s) => s.message.id === message.id) ?? false;
 
   const pin = useMutation({
@@ -147,11 +160,29 @@ export function MessageActions({
               {t('threads.reply')}
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={() => save.mutate()}>
-            {saved ? <BookmarkMinusIcon strokeWidth={1.75} /> : <BookmarkIcon strokeWidth={1.75} />}
-            {saved ? t('saved.remove') : t('saved.save')}
-          </DropdownMenuItem>
-          {channel.can_post && !channel.archived && (
+          {!burn && (
+            <DropdownMenuItem onClick={() => save.mutate()}>
+              {saved ? (
+                <BookmarkMinusIcon strokeWidth={1.75} />
+              ) : (
+                <BookmarkIcon strokeWidth={1.75} />
+              )}
+              {saved ? t('saved.remove') : t('saved.save')}
+            </DropdownMenuItem>
+          )}
+          {!burn && (
+            <DropdownMenuItem onClick={() => setForwarding(true)}>
+              <ForwardIcon strokeWidth={1.75} />
+              {t('richer.forward.action')}
+            </DropdownMenuItem>
+          )}
+          {!burn && (
+            <DropdownMenuItem onClick={copyLink}>
+              <LinkIcon strokeWidth={1.75} />
+              {t('richer.link.copy')}
+            </DropdownMenuItem>
+          )}
+          {channel.can_post && !channel.archived && !burn && (
             <DropdownMenuItem onClick={() => pin.mutate()}>
               {message.pinned_at ? (
                 <PinOffIcon strokeWidth={1.75} />
@@ -183,6 +214,7 @@ export function MessageActions({
         </DropdownMenuContent>
       </DropdownMenu>
       {reporting && <ReportDialog message={message} open onOpenChange={setReporting} />}
+      {forwarding && <ForwardDialog message={message} open onOpenChange={setForwarding} />}
     </>
   );
 }

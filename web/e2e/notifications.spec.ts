@@ -76,6 +76,8 @@ test.describe('search', () => {
   test('says when nothing matches', async ({ page }) => {
     await mockApi(page, { messages: [mockMessage(1, 'Hello')] });
     await page.goto(`/c/${GENERAL.id}`);
+    // The shortcut works once the app is up.
+    await expect(page.getByText('Hello')).toBeVisible();
     await page.keyboard.press('ControlOrMeta+Shift+F');
     const panel = page.getByTestId('search-panel');
     await panel.getByRole('searchbox', { name: 'Search for' }).fill('nothing');
