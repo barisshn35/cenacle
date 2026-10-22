@@ -8,6 +8,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-23
+
 Optional, self-hosted AI.
 
 ### Added
@@ -680,7 +682,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/barisshn35/cenacle/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/barisshn35/cenacle/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/barisshn35/cenacle/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/barisshn35/cenacle/compare/v0.20.1...v0.21.0
