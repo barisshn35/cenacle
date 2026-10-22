@@ -30,6 +30,7 @@ import { channelsQuery, markRead, setReadLocally, type Message } from '../chat/d
 import { openMessage } from './open-message';
 import { EventsList } from '../community/events';
 import { PlaybooksList } from '../community/playbooks';
+import { WorkflowsPage } from '../automation/workflows-page';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import {
@@ -44,7 +45,8 @@ import {
   type SavedItem,
 } from './threads';
 
-export type HomeView = 'threads' | 'activity' | 'saved' | 'unreads' | 'events' | 'playbooks';
+export type HomeView =
+  'threads' | 'activity' | 'saved' | 'unreads' | 'events' | 'playbooks' | 'workflows';
 
 function channelLabel(c: { name: string; kind: string }) {
   return c.kind === 'direct' || c.kind === 'group' ? c.name : `#${c.name}`;
@@ -121,6 +123,7 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
       {view === 'unreads' && <UnreadsList />}
       {view === 'events' && <EventsList />}
       {view === 'playbooks' && <PlaybooksList />}
+      {view === 'workflows' && <WorkflowsPage />}
     </Shell>
   );
 }

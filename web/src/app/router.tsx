@@ -77,7 +77,7 @@ const channelRoute = createRoute({
 // Views across channels, in the app shell: /threads, /activity, /saved, /unreads,
 // /events, /playbooks.
 const homeRoutes = (
-  ['threads', 'activity', 'saved', 'unreads', 'events', 'playbooks'] as const
+  ['threads', 'activity', 'saved', 'unreads', 'events', 'playbooks', 'workflows'] as const
 ).map((view) =>
   createRoute({
     getParentRoute: () => appRoute,

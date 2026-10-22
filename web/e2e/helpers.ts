@@ -480,6 +480,15 @@ export async function mockApi(
       role: opts.admin ? 'owner' : 'member',
     },
   ];
+  // Workflows and forms (v0.21): none unless a test adds them.
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/shortcuts$/, (route) =>
+    route.fulfill({ json: { workflows: [], forms: [] } }),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/(forms|workflows|tasks)$/, (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const kind = route.request().url().split('/').pop()!;
+    return route.fulfill({ json: { [kind]: [] } });
+  });
   // Custom emoji and stickers of the workspace (v0.20).
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/emoji$/, (route) =>
     route.request().method() === 'GET'

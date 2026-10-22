@@ -11,6 +11,7 @@ import { BroadcastConfirm } from '../richer/broadcast';
 import { BurnChoice } from '../richer/burn';
 import { StickerPicker } from '../richer/stickers';
 import { Recorder } from '../richer/voice';
+import { Shortcuts } from '../automation/shortcuts';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useActiveWorkspace } from './active-workspace';
 import { CommandNotes } from './command-notes';
@@ -342,6 +343,7 @@ export function Composer({
                 </Button>
               </>
             )}
+            {!thread && <Shortcuts channelId={channelId} />}
             {permissions.upload_files && <Recorder onRecorded={(f) => addFiles([f])} />}
             {!burn && (
               <StickerPicker

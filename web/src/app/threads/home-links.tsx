@@ -6,6 +6,7 @@ import {
   InboxIcon,
   ListChecksIcon,
   MessagesSquareIcon,
+  ZapIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from '@tanstack/react-router';
@@ -31,6 +32,7 @@ const LINKS = [
   { view: 'unreads', icon: InboxIcon },
   { view: 'events', icon: CalendarIcon },
   { view: 'playbooks', icon: ListChecksIcon },
+  { view: 'workflows', icon: ZapIcon },
 ] as const;
 
 /** At the top of the sidebar: views across the workspace's channels. */
@@ -38,7 +40,8 @@ export function HomeLinks() {
   const { t } = useTranslation();
   const path = useLocation({ select: (l) => l.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
-  const ws = useActiveWorkspace().id;
+  const active = useActiveWorkspace();
+  const ws = active.id;
   const threads = useQuery(unreadThreadsQuery(ws)).data;
   const unreadChannels =
     useQuery(channelsQuery).data?.filter((c) => c.workspace_id === ws && c.unread_count > 0)
@@ -47,48 +50,50 @@ export function HomeLinks() {
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu>
-          {LINKS.map(({ view, icon: Icon }) => {
-            const active = path === `/${view}`;
-            const count = view === 'threads' ? (threads?.threads ?? 0) : 0;
-            const mentions = view === 'threads' ? (threads?.mentions ?? 0) : 0;
-            const dot = view === 'unreads' && unreadChannels > 0;
-            return (
-              <SidebarMenuItem key={view}>
-                <SidebarMenuButton
-                  isActive={active}
-                  className={cn((count > 0 || dot) && 'pr-8 font-semibold text-unread')}
-                  render={
-                    <Link
-                      to={`/${view}`}
-                      aria-current={active ? 'page' : undefined}
-                      onClick={() => isMobile && setOpenMobile(false)}
-                    />
-                  }
-                >
-                  <Icon aria-hidden strokeWidth={1.75} />
-                  <span>{t(`home.${view}`)}</span>
-                  {count > 0 && (
-                    <span className="sr-only">
-                      {t('threads.unreadThreads', { count })}
-                      {mentions > 0 && `, ${t('mentions.unread', { count: mentions })}`}
-                    </span>
-                  )}
-                </SidebarMenuButton>
-                {mentions > 0 ? (
-                  <SidebarMenuBadge
-                    aria-hidden
-                    className="rounded-full bg-mention text-mention-foreground peer-data-active/menu-button:text-mention-foreground peer-hover/menu-button:text-mention-foreground"
+          {LINKS.filter(({ view }) => view !== 'workflows' || active.admin).map(
+            ({ view, icon: Icon }) => {
+              const active = path === `/${view}`;
+              const count = view === 'threads' ? (threads?.threads ?? 0) : 0;
+              const mentions = view === 'threads' ? (threads?.mentions ?? 0) : 0;
+              const dot = view === 'unreads' && unreadChannels > 0;
+              return (
+                <SidebarMenuItem key={view}>
+                  <SidebarMenuButton
+                    isActive={active}
+                    className={cn((count > 0 || dot) && 'pr-8 font-semibold text-unread')}
+                    render={
+                      <Link
+                        to={`/${view}`}
+                        aria-current={active ? 'page' : undefined}
+                        onClick={() => isMobile && setOpenMobile(false)}
+                      />
+                    }
                   >
-                    {mentions > 99 ? '99+' : mentions}
-                  </SidebarMenuBadge>
-                ) : count > 0 || dot ? (
-                  <SidebarMenuBadge aria-hidden>
-                    <span className="size-2 rounded-full bg-unread" />
-                  </SidebarMenuBadge>
-                ) : null}
-              </SidebarMenuItem>
-            );
-          })}
+                    <Icon aria-hidden strokeWidth={1.75} />
+                    <span>{t(`home.${view}`)}</span>
+                    {count > 0 && (
+                      <span className="sr-only">
+                        {t('threads.unreadThreads', { count })}
+                        {mentions > 0 && `, ${t('mentions.unread', { count: mentions })}`}
+                      </span>
+                    )}
+                  </SidebarMenuButton>
+                  {mentions > 0 ? (
+                    <SidebarMenuBadge
+                      aria-hidden
+                      className="rounded-full bg-mention text-mention-foreground peer-data-active/menu-button:text-mention-foreground peer-hover/menu-button:text-mention-foreground"
+                    >
+                      {mentions > 99 ? '99+' : mentions}
+                    </SidebarMenuBadge>
+                  ) : count > 0 || dot ? (
+                    <SidebarMenuBadge aria-hidden>
+                      <span className="size-2 rounded-full bg-unread" />
+                    </SidebarMenuBadge>
+                  ) : null}
+                </SidebarMenuItem>
+              );
+            },
+          )}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

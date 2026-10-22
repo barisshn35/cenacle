@@ -13,6 +13,7 @@ import { BurnBody } from '../richer/burn';
 import { ForwardedQuote } from '../richer/forward';
 import { LinkPreviewCard } from '../richer/link-preview';
 import { StickerImage } from '../richer/stickers';
+import { SubmissionCard, TaskCard } from '../automation/cards';
 import { useMessageEnv } from '../richer/message-env';
 import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
@@ -189,6 +190,8 @@ export function MessageRow({
                 )
               )}
               {m.sticker && <StickerImage sticker={m.sticker} />}
+              {m.task && <TaskCard task={m.task} />}
+              {m.submission && <SubmissionCard submission={m.submission} />}
               <ForwardedQuote message={m} />
               {m.poll && <PollCard message={m} channel={channel} />}
               {m.edited_at && (
