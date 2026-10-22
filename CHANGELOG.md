@@ -8,6 +8,16 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-10-22
+
+### Security
+
+- Cenacle ID runs on Node.js 24.22.1, which fixes an out-of-bounds write in the bundled
+  Brotli decoder (CVE-2026-111497, high): a malicious or compromised identity provider
+  could send a crafted Brotli response to Cenacle ID's outgoing requests (OpenID Connect
+  discovery, tokens, keys). The release also fixes Node.js's TLS hostname and DNS issues of
+  October 2026. The chat server, the web app and the proxy were not affected.
+
 ## [0.20.0] - 2026-10-22
 
 Richer communication.
@@ -606,7 +616,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.20.1...HEAD
+[0.20.1]: https://github.com/barisshn35/cenacle/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/barisshn35/cenacle/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/barisshn35/cenacle/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/barisshn35/cenacle/compare/v0.17.0...v0.18.0

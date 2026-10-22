@@ -4,7 +4,7 @@
 
 # Dependencies are pure JavaScript, so the build runs on the native build
 # platform (no emulation for arm64); only the node binary is target-specific.
-FROM --platform=$BUILDPLATFORM node:24.22.0-alpine3.24 AS build
+FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24 AS build
 RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
@@ -23,7 +23,7 @@ RUN pnpm --filter @cenacle/idp build \
  && rm -rf /out/src /out/test /out/tsconfig*.json /out/vitest.config.ts /out/Dockerfile
 
 # The node binary for the target platform.
-FROM node:24.22.0-alpine3.24 AS node
+FROM node:24.22.1-alpine3.24 AS node
 
 # Runtime: plain Alpine plus the node binary only (no npm/corepack/yarn):
 # smaller image and smaller attack surface.
