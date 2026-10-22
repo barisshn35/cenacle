@@ -88,8 +88,14 @@ export function setReadLocally(queryClient: QueryClient, channelId: string, mess
   );
 }
 
+/** The message shows in its channel's timeline (not a reply kept in its thread). */
+export const inChannel = (m: Pick<Message, 'root_id' | 'also_in_channel'>) =>
+  !m.root_id || !!m.also_in_channel;
+
 /** A message arrived: someone else's counts as unread (up to 100). */
 export function countIncoming(queryClient: QueryClient, message: Message, selfId: string) {
+  // Replies kept in their thread count in the thread (followed threads).
+  if (!inChannel(message)) return;
   if (message.author.id === selfId) {
     setReadLocally(queryClient, message.channel_id, message.id);
     return;
@@ -267,15 +273,15 @@ function refetchKeyIfInFlight(queryClient: QueryClient, queryKey: readonly unkno
   });
 }
 
-/** Changes one loaded message. */
-function patchMessage(
+/** Changes one loaded message, in its channel, in threads and on its own. */
+export function patchMessage(
   queryClient: QueryClient,
   channelId: string,
   id: string,
   patch: (m: Message) => Message,
 ): void {
   refetchIfInFlight(queryClient, channelId);
-  queryClient.setQueryData<MessageCache>(['messages', channelId], (data) =>
+  const pages = (data: MessageCache | undefined) =>
     data
       ? {
           ...data,
@@ -284,9 +290,46 @@ function patchMessage(
             messages: p.messages.map((m) => (m.id === id ? patch(m) : m)),
           })),
         }
-      : data,
-  );
+      : data;
+  queryClient.setQueryData<MessageCache>(['messages', channelId], pages);
+  queryClient.setQueriesData<MessageCache>({ queryKey: ['replies'] }, pages);
+  queryClient.setQueryData<Message>(['message', id], (m) => m && patch(m));
 }
+
+/**
+ * The replies of a thread. Page 0 is the newest; "next" pages are older. Live
+ * events keep it current.
+ */
+export const repliesQuery = (channelId: string, rootId: string) =>
+  // The root is unique across channels: the key leaves the channel out.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  infiniteQueryOptions({
+    queryKey: ['replies', rootId],
+    queryFn: ({ pageParam }) => {
+      const q = new URLSearchParams({ limit: String(PAGE) });
+      if (pageParam) q.set('before', pageParam);
+      return apiFetch<MessagePage>(
+        `/api/channels/${channelId}/messages/${rootId}/replies?${q.toString()}`,
+      );
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) => (page.has_more ? page.messages[0]?.id : undefined),
+    staleTime: Infinity,
+  });
+
+/** One message (a thread's first message), from a loaded list when there. */
+export const messageQuery = (queryClient: QueryClient, channelId: string, id: string) =>
+  // Message ids are unique across channels: the key leaves the channel out.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  queryOptions({
+    queryKey: ['message', id],
+    queryFn: () => apiFetch<Message>(`/api/channels/${channelId}/messages/${id}`),
+    initialData: () =>
+      flatten(queryClient.getQueryData<MessageCache>(['messages', channelId])).find(
+        (m) => m.id === id,
+      ),
+    staleTime: Infinity,
+  });
 
 /**
  * Replaces a message (after an edit) wherever it is loaded. Edits do not
@@ -347,7 +390,7 @@ export function removeMessage(
   ref: Pick<Message, 'id' | 'channel_id'>,
 ): void {
   refetchIfInFlight(queryClient, ref.channel_id);
-  queryClient.setQueryData<MessageCache>(['messages', ref.channel_id], (data) =>
+  const without = (data: MessageCache | undefined) =>
     data
       ? {
           ...data,
@@ -356,26 +399,32 @@ export function removeMessage(
             messages: p.messages.filter((m) => m.id !== ref.id),
           })),
         }
-      : data,
-  );
+      : data;
+  queryClient.setQueryData<MessageCache>(['messages', ref.channel_id], without);
+  queryClient.setQueriesData<MessageCache>({ queryKey: ['replies'] }, without);
 }
 
-/** Adds a message to the newest page unless it is there already. */
+/**
+ * Adds a message to the newest page of its channel (and of its thread, for a
+ * reply) unless it is there already.
+ */
 export function addMessage(queryClient: QueryClient, message: Message): void {
-  refetchIfInFlight(queryClient, message.channel_id);
-  queryClient.setQueryData<InfiniteData<MessagePage, string | undefined>>(
-    ['messages', message.channel_id],
-    (data) => {
-      if (!data) return data; // not loaded: it comes with the (restarted) first fetch
-      if (data.pages.some((p) => p.messages.some((m) => m.id === message.id))) return data;
-      const [newest, ...older] = data.pages;
-      const messages = [...(newest?.messages ?? []), message].sort((a, b) =>
-        a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
-      );
-      return {
-        ...data,
-        pages: [{ has_more: newest?.has_more ?? false, messages }, ...older],
-      };
-    },
-  );
+  if (message.root_id) addToList(queryClient, ['replies', message.root_id], message);
+  if (inChannel(message)) addToList(queryClient, ['messages', message.channel_id], message);
+}
+
+function addToList(queryClient: QueryClient, queryKey: readonly unknown[], message: Message) {
+  refetchKeyIfInFlight(queryClient, queryKey);
+  queryClient.setQueryData<InfiniteData<MessagePage, string | undefined>>(queryKey, (data) => {
+    if (!data) return data; // not loaded: it comes with the (restarted) first fetch
+    if (data.pages.some((p) => p.messages.some((m) => m.id === message.id))) return data;
+    const [newest, ...older] = data.pages;
+    const messages = [...(newest?.messages ?? []), message].sort((a, b) =>
+      a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+    );
+    return {
+      ...data,
+      pages: [{ has_more: newest?.has_more ?? false, messages }, ...older],
+    };
+  });
 }

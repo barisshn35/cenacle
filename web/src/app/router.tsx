@@ -60,11 +60,28 @@ const inviteRoute = createRoute({
   component: InvitePage,
 });
 
+export interface ChannelSearch {
+  /** A message to bring into view (a link to a message). */
+  m?: string;
+}
+
 const channelRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/c/$channelId',
+  validateSearch: (s: Record<string, unknown>): ChannelSearch => ({
+    m: typeof s.m === 'string' && /^[0-9a-f-]{36}$/.test(s.m) ? s.m : undefined,
+  }),
   component: AppShell,
 });
+
+// Views across channels, in the app shell: /threads, /activity, /saved, /unreads.
+const homeRoutes = (['threads', 'activity', 'saved', 'unreads'] as const).map((view) =>
+  createRoute({
+    getParentRoute: () => appRoute,
+    path: `/${view}`,
+    component: AppShell,
+  }),
+);
 
 const signinRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -98,7 +115,7 @@ const galleryRoute = createRoute({
 
 export const router = createRouter({
   routeTree: rootRoute.addChildren([
-    appRoute.addChildren([indexRoute, workspaceRoute, inviteRoute, channelRoute]),
+    appRoute.addChildren([indexRoute, workspaceRoute, inviteRoute, channelRoute, ...homeRoutes]),
     signinRoute,
     galleryRoute,
   ]),

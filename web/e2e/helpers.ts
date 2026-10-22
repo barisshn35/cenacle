@@ -332,6 +332,10 @@ export interface MockMessage {
   body: string;
   nonce: string;
   created_at: string;
+  root_id?: string;
+  also_in_channel?: boolean;
+  pinned_at?: string | null;
+  pinned_by?: string | null;
 }
 
 export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): MockMessage {
@@ -772,6 +776,27 @@ export async function mockApi(
   });
   // Messages of General, as stored; deleted ones keep a flag for restoring.
   const stored = (opts.messages ?? []).map((m) => ({ ...m, deleted: false }));
+  // As the server does: messages carry the summary of their replies.
+  const withThread = (m: (typeof stored)[number]) => {
+    const { deleted: _, ...out } = m;
+    const replies = stored.filter((r) => !r.deleted && r.root_id === m.id);
+    if (m.root_id || replies.length === 0) return out;
+    const authors = [...new Map(replies.toReversed().map((r) => [r.author.id, r.author])).values()];
+    return {
+      ...out,
+      thread: {
+        reply_count: replies.length,
+        last_reply_at: replies.at(-1)!.created_at,
+        participants: authors.slice(0, 3),
+      },
+    };
+  };
+  const follows = new Map<string, { following: boolean; last_read_id: string | null }>();
+  const saved: Record<string, unknown>[] = [];
+  const searchChannelOf = (id: string) => {
+    const c = all.find((x) => x.id === id)!;
+    return { id: c.id, name: c.name, kind: c.kind, workspace_id: c.workspace_id };
+  };
   await page.route(
     /\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}(\/restore)?$/,
     (route) => {
@@ -784,11 +809,12 @@ export async function mockApi(
       } else if (req.method() === 'DELETE') {
         m.deleted = true;
         return route.fulfill({ status: 204 });
+      } else if (req.method() === 'GET') {
+        return route.fulfill({ json: withThread(m) });
       } else {
         m.deleted = false;
       }
-      const { deleted: _, ...out } = m;
-      return route.fulfill({ json: out });
+      return route.fulfill({ json: withThread(m) });
     },
   );
   await page.route('**/api/channels/*/messages*', async (route) => {
@@ -797,25 +823,39 @@ export async function mockApi(
       const params = new URL(route.request().url()).searchParams;
       const before = params.get('before');
       const limit = Number(params.get('limit') ?? 50);
-      const all = stored
-        .filter((m) => !m.deleted && m.channel_id === channelId && (!before || m.id < before))
-        .map(({ deleted: _, ...m }) => m);
+      const page = stored
+        .filter(
+          (m) =>
+            !m.deleted &&
+            m.channel_id === channelId &&
+            (!m.root_id || m.also_in_channel) &&
+            (!before || m.id < before),
+        )
+        .map(withThread);
       // Oldest first; a page is the newest `limit` before the cursor.
       return route.fulfill({
-        json: { messages: all.slice(-limit), has_more: all.length > limit },
+        json: { messages: page.slice(-limit), has_more: page.length > limit },
       });
     }
     if (failures > 0) {
       failures--;
       return route.abort('internetdisconnected');
     }
-    const input = route.request().postDataJSON() as { body: string; nonce: string };
+    const input = route.request().postDataJSON() as {
+      body: string;
+      nonce: string;
+      root_id?: string;
+      also_in_channel?: boolean;
+    };
     api.sent.push(input);
     const message = {
       ...mockMessage(1000 + api.sent.length, input.body, SESSION.user.display_name),
       author: { id: SESSION.user.id, display_name: SESSION.user.display_name },
       channel_id: channelId,
       nonce: input.nonce,
+      ...(input.root_id
+        ? { root_id: input.root_id, also_in_channel: !!input.also_in_channel }
+        : {}),
       // As the server does: <@id> of known people become mentions.
       mentions: PEOPLE.filter((p) => input.body.includes(`<@${p.id}>`)).map((p) => ({
         id: p.id,
@@ -823,6 +863,10 @@ export async function mockApi(
       })),
     };
     stored.push({ ...message, deleted: false });
+    // Replying makes one follow the thread.
+    if (input.root_id && !follows.has(input.root_id)) {
+      follows.set(input.root_id, { following: true, last_read_id: message.id });
+    }
     return route.fulfill({ status: 201, json: message });
   });
   await page.route('**/api/workspaces/*/conversations', (route) => {
@@ -949,6 +993,90 @@ export async function mockApi(
   await page.route('**/api/search/files?**', (route) =>
     route.fulfill({ json: { results: [], has_more: false } }),
   );
+  // Threads, pins, saved messages, activity and unreads.
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}\/replies/, (route) => {
+    const root = route.request().url().split('/messages/')[1]!.split('/')[0]!;
+    const replies = stored.filter((m) => !m.deleted && m.root_id === root).map(withThread);
+    return route.fulfill({ json: { messages: replies, has_more: false } });
+  });
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}\/pin$/, (route) => {
+    const id = route.request().url().split('/messages/')[1]!.split('/')[0]!;
+    const m = stored.find((x) => x.id === id)!;
+    const pin = route.request().method() === 'PUT';
+    m.pinned_at = pin ? new Date().toISOString() : null;
+    m.pinned_by = pin ? SESSION.user.id : null;
+    return route.fulfill({ json: withThread(m) });
+  });
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/pins$/, (route) => {
+    const channelId = route.request().url().split('/api/channels/')[1]!.split('/')[0]!;
+    return route.fulfill({
+      json: {
+        messages: stored
+          .filter((m) => !m.deleted && m.channel_id === channelId && m.pinned_at)
+          .map(withThread),
+      },
+    });
+  });
+  await page.route(/\/api\/me\/threads(\?.*)?$/, (route) => {
+    const threads = stored
+      .filter((m) => !m.deleted && follows.get(m.id)?.following)
+      .map((m) => {
+        const replies = stored.filter((r) => !r.deleted && r.root_id === m.id);
+        const read = follows.get(m.id)!.last_read_id;
+        return {
+          root: withThread(m),
+          channel: searchChannelOf(m.channel_id),
+          unread_count: replies.filter(
+            (r) => r.author.id !== SESSION.user.id && (!read || r.id > read),
+          ).length,
+          mention_count: 0,
+          last_reply_id: replies.at(-1)?.id ?? m.id,
+        };
+      });
+    return route.fulfill({ json: { threads, has_more: false } });
+  });
+  await page.route(/\/api\/me\/threads\/unread/, (route) =>
+    route.fulfill({ json: { threads: 0, mentions: 0 } }),
+  );
+  await page.route(/\/api\/me\/threads\/[0-9a-f-]{36}(\/read)?$/, (route) => {
+    const req = route.request();
+    const id = req.url().split('/api/me/threads/')[1]!.split('/')[0]!;
+    const state = follows.get(id) ?? { following: false, last_read_id: null };
+    if (req.method() === 'PUT') {
+      state.following = (req.postDataJSON() as { following: boolean }).following;
+      follows.set(id, state);
+      return route.fulfill({ status: 204 });
+    }
+    if (req.method() === 'POST') {
+      state.last_read_id = (req.postDataJSON() as { message_id: string }).message_id;
+      follows.set(id, state);
+      return route.fulfill({ status: 204 });
+    }
+    return route.fulfill({ json: state });
+  });
+  await page.route('**/api/me/saved', (route) => route.fulfill({ json: { items: saved } }));
+  await page.route(/\/api\/me\/saved\/[0-9a-f-]{36}$/, (route) => {
+    const req = route.request();
+    const id = req.url().split('/').pop()!;
+    const at = saved.findIndex((s) => (s.message as { id: string }).id === id);
+    if (at >= 0) saved.splice(at, 1);
+    if (req.method() === 'DELETE') return route.fulfill({ status: 204 });
+    const m = stored.find((x) => x.id === id)!;
+    const state = req.postDataJSON() as { remind_at?: string | null; done?: boolean };
+    const item = {
+      message: withThread(m),
+      channel: searchChannelOf(m.channel_id),
+      saved_at: new Date().toISOString(),
+      remind_at: state.done ? null : (state.remind_at ?? null),
+      done_at: state.done ? new Date().toISOString() : null,
+    };
+    saved.unshift(item);
+    return route.fulfill({ json: item });
+  });
+  await page.route(/\/api\/me\/activity/, (route) =>
+    route.fulfill({ json: { items: [], has_more: false } }),
+  );
+  await page.route(/\/api\/me\/unreads/, (route) => route.fulfill({ json: { channels: [] } }));
   await page.route('**/api/ws/ticket', (route) =>
     route.fulfill({ status: 201, json: { ticket: 'test-ticket', expires_in: 30 } }),
   );

@@ -807,5 +807,80 @@
     "found_other": "{{count}} sonuç",
     "more": "Daha fazla göster",
     "notLoaded": "Bu mesaj burada gösterilemeyecek kadar eski."
+  },
+  "threads": {
+    "title": "Yanıt dizisi",
+    "close": "Yanıt dizisini kapat",
+    "reply": "Dizide yanıtla",
+    "replyPlaceholder": "Yanıtla…",
+    "alsoInChannel": "{{channel}} kanalına da gönder",
+    "follow": "Takip et",
+    "unfollow": "Takibi bırak",
+    "followFailed": "Takip değiştirilemedi. Yeniden deneyin.",
+    "replies_one": "{{count}} yanıt",
+    "replies_other": "{{count}} yanıt",
+    "lastReply": "Son yanıt {{when}}",
+    "newReplies_one": "{{count}} yeni yanıt",
+    "newReplies_other": "{{count}} yeni yanıt",
+    "older": "Eski yanıtları göster",
+    "readOnly": "Bu kanalda yanıt yazamazsınız.",
+    "repliedToThread": "Bir diziye yanıt verdi",
+    "repliesIn": "{{channel}} içindeki dizi",
+    "unavailable": "Bu yanıt dizisi artık yok.",
+    "unreadThreads_one": "Yeni yanıtı olan {{count}} dizi",
+    "unreadThreads_other": "Yeni yanıtı olan {{count}} dizi"
+  },
+  "pins": {
+    "title": "Sabitlenmiş mesajlar",
+    "none": "Henüz sabitlenmiş mesaj yok. Bir mesajı menüsünden sabitleyin.",
+    "pin": "Kanala sabitle",
+    "unpin": "Sabitlemeyi kaldır",
+    "pinned": "Sabitlendi",
+    "pinnedBy": "{{name}} sabitledi",
+    "done": "Mesaj sabitlendi",
+    "undone": "Sabitleme kaldırıldı",
+    "limit": "Bir kanalda en fazla 50 sabitlenmiş mesaj olabilir. Önce birini kaldırın.",
+    "failed": "Sabitleme değiştirilemedi. Yeniden deneyin."
+  },
+  "saved": {
+    "save": "Sonrası için kaydet",
+    "remove": "Kaydedilenlerden çıkar",
+    "added": "Sonrası için kaydedildi",
+    "removed": "Kaydedilenlerden çıkarıldı",
+    "limit": "En fazla 500 kaydedilmiş mesaj tutabilirsiniz. Önce bazılarını çıkarın.",
+    "failed": "Kaydedilen mesajlar değiştirilemedi. Yeniden deneyin.",
+    "tabs": {
+      "open": "Devam eden",
+      "done": "Tamamlanan"
+    },
+    "none": "Kaydedilen bir şey yok. Bir mesajı menüsünden kaydedip sonra dönebilirsiniz.",
+    "noneDone": "Henüz tamamlanan yok.",
+    "remind": "Bana hatırlat",
+    "remindAt": "Hatırlatma {{time}}",
+    "noReminder": "Hatırlatma yok",
+    "reminders": {
+      "20m": "20 dakika sonra",
+      "1h": "1 saat sonra",
+      "3h": "3 saat sonra",
+      "tomorrow": "Yarın 9:00'da",
+      "week": "Gelecek hafta"
+    },
+    "markDone": "Tamamlandı olarak işaretle",
+    "undoDone": "Devam edenlere geri al"
+  },
+  "home": {
+    "threads": "Yanıt dizileri",
+    "activity": "Etkinlik",
+    "saved": "Kaydedilenler",
+    "unreads": "Tüm okunmamışlar",
+    "more": "Daha fazla göster",
+    "noThreads": "Henüz yanıt dizisi yok. Başlattığınız, yanıt verdiğiniz ya da bahsedildiğiniz diziler burada görünür.",
+    "noActivity": "Yeni bir şey yok. Bahsedilmeler, dizilerinizdeki yanıtlar ve mesajlarınıza tepkiler burada görünür.",
+    "noUnreads": "Okunmamış bir şey kalmadı.",
+    "markRead": "Okundu olarak işaretle",
+    "readFailed": "Okundu olarak işaretlenemedi. Yeniden deneyin.",
+    "activity_mention": "{{name}}, {{channel}} içinde sizden bahsetti",
+    "activity_reply": "{{name}}, {{channel}} içindeki bir diziye yanıt verdi",
+    "activity_reaction": "{{name}}, {{channel}} içindeki mesajınıza {{emoji}} tepkisi verdi"
   }
 }

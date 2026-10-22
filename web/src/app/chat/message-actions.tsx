@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  BookmarkIcon,
+  BookmarkMinusIcon,
+  MessageSquareIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PinIcon,
+  PinOffIcon,
+  Trash2Icon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@cenacle/ui/components/button';
@@ -9,9 +18,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@cenacle/ui/components/dropdown-menu';
+import { useLayout } from '../../stores/layout';
+import {
+  applySaved,
+  savedQuery,
+  saveMessage,
+  setPinned,
+  unsaveMessage,
+  type SavedItem,
+} from '../threads/threads';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
+import { ApiError } from '@cenacle/core/api';
 import {
   addMessage,
   deleteMessage,
@@ -30,11 +50,51 @@ import { useEditing, useMessagePermissions } from './message-state';
  * Actions of a message. The button shows on hover and keyboard focus, and
  * always on touch screens (no hover there).
  */
-export function MessageActions({ message, channel }: { message: Message; channel: Channel }) {
+export function MessageActions({
+  message,
+  channel,
+  inThread = false,
+}: {
+  message: Message;
+  channel: Channel;
+  inThread?: boolean;
+}) {
   const { t } = useTranslation();
   const can = useMessagePermissions(message, channel);
   const startEdit = useEditing((s) => s.set);
   const queryClient = useQueryClient();
+  const openThread = useLayout((s) => s.openThread);
+  const saved = useQuery(savedQuery).data?.some((s) => s.message.id === message.id) ?? false;
+
+  const pin = useMutation({
+    mutationFn: () => setPinned(message, !message.pinned_at),
+    onSuccess: (m) => {
+      replaceMessage(queryClient, m);
+      void queryClient.invalidateQueries({ queryKey: ['pins', message.channel_id] });
+      toast.success(m.pinned_at ? t('pins.done') : t('pins.undone'));
+    },
+    onError: (err) =>
+      toast.error(
+        err instanceof ApiError && err.problem.code === 'pin_limit'
+          ? t('pins.limit')
+          : t('pins.failed'),
+      ),
+  });
+  const save = useMutation({
+    mutationFn: async (): Promise<SavedItem | null> =>
+      saved ? unsaveMessage(message.id).then(() => null) : saveMessage(message.id),
+    onSuccess: (item) => {
+      applySaved(queryClient, message.id, item);
+      if (!saved) void queryClient.invalidateQueries({ queryKey: savedQuery.queryKey });
+      toast.success(saved ? t('saved.removed') : t('saved.added'));
+    },
+    onError: (err) =>
+      toast.error(
+        err instanceof ApiError && err.problem.code === 'saved_limit'
+          ? t('saved.limit')
+          : t('saved.failed'),
+      ),
+  });
 
   const remove = useMutation({
     mutationFn: () => deleteMessage(message),
@@ -53,7 +113,6 @@ export function MessageActions({ message, channel }: { message: Message; channel
     },
   });
 
-  if (!can.edit && !can.remove) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -69,6 +128,30 @@ export function MessageActions({ message, channel }: { message: Message; channel
         <MoreHorizontalIcon strokeWidth={1.75} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        {!inThread && !channel.archived && (
+          <DropdownMenuItem
+            onClick={() =>
+              openThread({
+                channelId: message.channel_id,
+                rootId: message.root_id ?? message.id,
+              })
+            }
+          >
+            <MessageSquareIcon strokeWidth={1.75} />
+            {t('threads.reply')}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={() => save.mutate()}>
+          {saved ? <BookmarkMinusIcon strokeWidth={1.75} /> : <BookmarkIcon strokeWidth={1.75} />}
+          {saved ? t('saved.remove') : t('saved.save')}
+        </DropdownMenuItem>
+        {channel.can_post && !channel.archived && (
+          <DropdownMenuItem onClick={() => pin.mutate()}>
+            {message.pinned_at ? <PinOffIcon strokeWidth={1.75} /> : <PinIcon strokeWidth={1.75} />}
+            {message.pinned_at ? t('pins.unpin') : t('pins.pin')}
+          </DropdownMenuItem>
+        )}
+        {(can.edit || can.remove) && <DropdownMenuSeparator />}
         {can.edit && (
           <DropdownMenuItem onClick={() => startEdit(message.id)}>
             <PencilIcon strokeWidth={1.75} />

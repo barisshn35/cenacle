@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { toast } from 'sonner';
 import { useJump } from './jump';
+import { PinnedLine, RepliedToThread, ThreadSummaryButton } from '../threads/thread-summary';
+import { ReplyButton } from '../threads/reply-button';
 import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
@@ -32,87 +34,23 @@ import { AddReactionButton, ReactionBar } from './reactions';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
 import { useSendMessage } from './send';
-
-/** A row of the timeline: a confirmed or a pending message. */
-type Row =
-  | {
-      kind: 'message';
-      key: string;
-      message: Message;
-      first: boolean;
-      day?: string;
-      /** The first message that was unread when the channel opened. */
-      firstUnread?: boolean;
-    }
-  | { kind: 'pending'; key: string; pending: PendingMessage };
-
-/** Consecutive messages of one author within 5 minutes share a header. */
-const GROUP_MS = 5 * 60_000;
+import { toRows, useFormatters, type ReadMark, type Row } from './rows';
 
 // Virtuoso keeps the scroll position when older pages are prepended if the
 // index of the first item decreases by the number of items added.
 const START_INDEX = 1_000_000;
 
-function useFormatters() {
-  const { i18n } = useTranslation();
-  return useMemo(
-    () => ({
-      time: new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }),
-      day: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full' }),
-      full: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }),
-    }),
-    [i18n.language],
-  );
-}
-
-/** Where reading stood when the channel opened, if anything was unread then. */
-interface ReadMark {
-  after: string | null;
-  self: string;
-}
-
-function toRows(
-  messages: Message[],
-  pending: PendingMessage[],
-  dayFmt: Intl.DateTimeFormat,
-  mark: ReadMark | undefined,
-): Row[] {
-  const rows: Row[] = [];
-  let prev: Message | undefined;
-  let marked = !mark;
-  for (const m of messages) {
-    const firstUnread =
-      !marked && m.author.id !== mark!.self && (mark!.after === null || m.id > mark!.after);
-    if (firstUnread) marked = true;
-    const at = new Date(m.created_at);
-    const day = dayFmt.format(at);
-    const newDay = !prev || dayFmt.format(new Date(prev.created_at)) !== day;
-    const first =
-      newDay ||
-      prev!.author.id !== m.author.id ||
-      at.getTime() - new Date(prev!.created_at).getTime() > GROUP_MS;
-    rows.push({
-      kind: 'message',
-      key: m.id,
-      message: m,
-      first: first || firstUnread,
-      day: newDay ? day : undefined,
-      firstUnread,
-    });
-    prev = m;
-  }
-  for (const p of pending) rows.push({ kind: 'pending', key: p.nonce, pending: p });
-  return rows;
-}
-
-function MessageRow({
+export function MessageRow({
   row,
   fmt,
   channel,
+  inThread = false,
 }: {
   row: Extract<Row, { kind: 'message' }>;
   fmt: ReturnType<typeof useFormatters>;
   channel: Channel;
+  /** Shown in the thread panel: no thread summary or way into the thread. */
+  inThread?: boolean;
 }) {
   const { t } = useTranslation();
   const { message: m } = row;
@@ -178,6 +116,8 @@ function MessageRow({
           <span className="w-9 shrink-0" />
         )}
         <div className="min-w-0 flex-1">
+          <PinnedLine message={m} />
+          {!inThread && <RepliedToThread message={m} />}
           <header className={cn('flex items-baseline gap-2', !row.first && 'sr-only')}>
             <ProfileCard userId={m.author.id} name={m.author.display_name}>
               <button
@@ -214,6 +154,7 @@ function MessageRow({
               <Attachments items={m.attachments} selfId={self} />
               <MessageFiles files={m.files} />
               <ReactionBar message={m} />
+              {!inThread && <ThreadSummaryButton message={m} />}
             </>
           )}
         </div>
@@ -225,7 +166,8 @@ function MessageRow({
                 className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
               />
             )}
-            <MessageActions message={m} channel={channel} />
+            {!inThread && !channel.archived && <ReplyButton message={m} />}
+            <MessageActions message={m} channel={channel} inThread={inThread} />
           </div>
         )}
       </article>
@@ -234,7 +176,7 @@ function MessageRow({
 }
 
 /** A message of the current user that the server has not confirmed yet. */
-function PendingRow({ p }: { p: PendingMessage }) {
+export function PendingRow({ p }: { p: PendingMessage }) {
   const { t } = useTranslation();
   const { user } = useSession();
   const { retry, discard } = useSendMessage();
@@ -396,7 +338,7 @@ export function MessageList({ channel }: { channel: Channel }) {
   const query = useInfiniteQuery(messagesQuery(channelId));
   const allPending = usePending((s) => s.items);
   const pending = useMemo(
-    () => allPending.filter((p) => p.channelId === channelId),
+    () => allPending.filter((p) => p.channelId === channelId && (!p.rootId || p.alsoInChannel)),
     [allPending, channelId],
   );
   const messages = useMemo(() => flatten(query.data), [query.data]);

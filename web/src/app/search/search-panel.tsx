@@ -313,6 +313,7 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const jump = useJump((s) => s.jump);
+  const openThread = useLayout((s) => s.openThread);
   const nameOf = useChannelName();
   const results = useInfiniteQuery(searchMessagesQuery(q, filters));
   const terms = searchTerms(q);
@@ -329,8 +330,14 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
     );
   }
   const open = (m: SearchMessage) => {
-    jump({ channelId: m.channel.id, messageId: m.id });
     void navigate({ to: '/c/$channelId', params: { channelId: m.channel.id } });
+    // A reply opens its thread (the thread shows it highlighted).
+    if (m.root_id) {
+      openThread({ channelId: m.channel.id, rootId: m.root_id });
+      useJump.getState().done(m.id);
+      return;
+    }
+    jump({ channelId: m.channel.id, messageId: m.id });
   };
   return (
     <>

@@ -14,7 +14,12 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   const deliver = useCallback(
-    async (p: Pick<PendingMessage, 'nonce' | 'channelId' | 'body' | 'files'>) => {
+    async (
+      p: Pick<
+        PendingMessage,
+        'nonce' | 'channelId' | 'body' | 'files' | 'rootId' | 'alsoInChannel'
+      >,
+    ) => {
       const { update, remove } = usePending.getState();
       update(p.nonce, { status: 'sending', retryAfter: undefined });
       try {
@@ -25,9 +30,14 @@ export function useSendMessage() {
             body: p.body,
             nonce: p.nonce,
             ...(p.files?.length ? { file_ids: p.files.map((f) => f.id) } : {}),
+            ...(p.rootId ? { root_id: p.rootId, also_in_channel: !!p.alsoInChannel } : {}),
           }),
         });
         addMessage(queryClient, message);
+        // Replying makes one follow the thread (on the server).
+        if (message.root_id) {
+          void queryClient.invalidateQueries({ queryKey: ['thread-follow', message.root_id] });
+        }
         remove(p.nonce);
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
@@ -51,6 +61,7 @@ export function useSendMessage() {
       body: string,
       mentions: PendingMessage['mentions'] = [],
       files: PendingMessage['files'] = [],
+      reply?: { rootId: string; alsoInChannel: boolean },
     ) => {
       const pending: PendingMessage = {
         nonce: newNonce(),
@@ -58,6 +69,8 @@ export function useSendMessage() {
         body,
         mentions,
         files,
+        rootId: reply?.rootId,
+        alsoInChannel: reply?.alsoInChannel,
         status: 'sending',
         createdAt: Date.now(),
       };

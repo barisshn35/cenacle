@@ -13,6 +13,7 @@ import { ArchivedNotice } from '../chat/channel-settings';
 import { Composer } from '../chat/composer';
 import { channelsQuery } from '../chat/data';
 import { NotMember } from '../chat/not-member';
+import { usePermalink } from '../chat/permalink';
 import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { MessageList } from '../chat/message-list';
 import { useSaveAppearance } from '../appearance/use-save-appearance';
@@ -30,6 +31,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const toggle = (view: typeof rightView) => (showing(view) ? setDetailsOpen(false) : show(view));
   const name = channel?.name ?? '';
   const channelsLoaded = useQuery(channelsQuery).isSuccess;
+  usePermalink(channel ? id : undefined);
 
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="channel-title">

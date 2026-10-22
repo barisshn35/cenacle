@@ -15,6 +15,23 @@ import { ChannelSidebar } from './channel-sidebar';
 import { ChannelView } from './channel-view';
 import { DetailsPanel } from './details-panel';
 import { SearchPanel } from '../search/search-panel';
+import { ThreadPanel } from '../threads/thread-panel';
+import { HomeViewPage, type HomeView } from '../threads/views';
+import { useLocation } from '@tanstack/react-router';
+import type { RightView } from '../../stores/layout';
+
+/** A channel, or a view across channels (threads, activity, saved, unreads). */
+function MainView({ mobile = false }: { mobile?: boolean }) {
+  const path = useLocation({ select: (l) => l.pathname });
+  const view = /^\/(threads|activity|saved|unreads)$/.exec(path)?.[1] as HomeView | undefined;
+  return view ? <HomeViewPage view={view} mobile={mobile} /> : <ChannelView mobile={mobile} />;
+}
+
+function RightPanel({ view }: { view: RightView }) {
+  if (view === 'search') return <SearchPanel />;
+  if (view === 'thread') return <ThreadPanel />;
+  return <DetailsPanel />;
+}
 import { WorkspaceRail } from './workspace-rail';
 import { useTranslation } from 'react-i18next';
 
@@ -57,7 +74,7 @@ function DesktopShell() {
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel id="main" minSize={360}>
-          <ChannelView />
+          <MainView />
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel
@@ -74,7 +91,7 @@ function DesktopShell() {
           }}
         >
           {/* Collapsed content is not rendered, so it leaves the tab order and the a11y tree. */}
-          {detailsOpen && (rightView === 'search' ? <SearchPanel /> : <DetailsPanel />)}
+          {detailsOpen && <RightPanel view={rightView} />}
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
@@ -90,15 +107,19 @@ function MobileShell() {
     <>
       <ChannelSidebar mobile />
       <div className="flex h-full w-full">
-        <ChannelView mobile />
+        <MainView mobile />
       </div>
       {/* On small screens the details panel is a full-height sheet. */}
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
         <SheetContent side="right" showCloseButton={false} className="w-full p-0 sm:max-w-sm">
           <SheetTitle className="sr-only">
-            {rightView === 'search' ? t('search.title') : t('shell.details')}
+            {rightView === 'search'
+              ? t('search.title')
+              : rightView === 'thread'
+                ? t('threads.title')
+                : t('shell.details')}
           </SheetTitle>
-          {rightView === 'search' ? <SearchPanel /> : <DetailsPanel />}
+          <RightPanel view={rightView} />
         </SheetContent>
       </Sheet>
     </>

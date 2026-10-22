@@ -24,6 +24,13 @@ import {
 } from './data';
 import { usePending } from './pending';
 import { profileChanged } from '../profile/profiles';
+import {
+  applySaved,
+  applyThreadUpdated,
+  threadsChanged,
+  type SavedItem,
+  type ThreadSummary,
+} from '../threads/threads';
 import { notifyIncoming } from '../notifications/notifier';
 
 /**
@@ -51,6 +58,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
             void queryClient.invalidateQueries({ queryKey: ['files', message.channel_id] });
           }
           countIncoming(queryClient, message, selfId);
+          // A reply: followed threads may have something new.
+          if (message.root_id && message.author.id !== selfId) threadsChanged(queryClient);
           notifyIncoming(queryClient, message, selfId, (channelId) => {
             void navigateRef.current({ to: '/c/$channelId', params: { channelId } });
           });
@@ -68,11 +77,25 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           const { channel_id, message_id } = ev.data as { channel_id: string; message_id: string };
           setReadLocally(queryClient, channel_id, message_id);
         } else if (ev.type === 'message.updated') {
-          replaceMessage(queryClient, ev.data as Message);
+          const message = ev.data as Message;
+          replaceMessage(queryClient, message);
+          void queryClient.invalidateQueries({ queryKey: ['pins', message.channel_id] });
         } else if (ev.type === 'message.deleted') {
           const ref = ev.data as Pick<Message, 'id' | 'channel_id'>;
           removeMessage(queryClient, ref);
           void queryClient.invalidateQueries({ queryKey: ['files', ref.channel_id] });
+        } else if (ev.type === 'thread.updated') {
+          applyThreadUpdated(
+            queryClient,
+            ev.data as { channel_id: string; root_id: string; thread: ThreadSummary | null },
+          );
+        } else if (ev.type === 'thread.followed' || ev.type === 'thread.read') {
+          const { root_id } = ev.data as { root_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['thread-follow', root_id] });
+          threadsChanged(queryClient);
+        } else if (ev.type === 'saved.changed') {
+          const d = ev.data as { message_id: string; item: SavedItem | null };
+          applySaved(queryClient, d.message_id, d.item);
         } else if (ev.type === 'categories.changed') {
           void queryClient.invalidateQueries({ queryKey: ['categories'] });
           void reloadChannels(queryClient);

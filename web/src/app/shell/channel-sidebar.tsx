@@ -54,6 +54,7 @@ import { useActiveChannel } from '../chat/active-channel';
 import { ChannelDirectory } from '../chat/channel-directory';
 import { ChannelIcon } from '../chat/channel-icon';
 import { CreateChannelDialog } from '../chat/create-channel-dialog';
+import { HomeLinks } from '../threads/home-links';
 
 /** The icon of a conversation: the other person's presence, or a group icon. */
 function ConversationIcon({ channel }: { channel: Channel }) {
@@ -307,6 +308,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       </SidebarHeader>
 
       <SidebarContent>
+        <HomeLinks />
         <ChannelsGroups />
         <ConversationsGroup />
       </SidebarContent>

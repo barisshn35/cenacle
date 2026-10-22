@@ -11,6 +11,10 @@ export interface PendingMessage {
   mentions?: { id: string; display_name: string }[];
   /** Uploaded files the message carries. */
   files?: FileInfo[];
+  /** A reply: the thread's first message. */
+  rootId?: string;
+  /** A reply also sent to the channel. */
+  alsoInChannel?: boolean;
   status: 'sending' | 'failed';
   /** Seconds to wait when the server said "too fast". */
   retryAfter?: number;

@@ -807,5 +807,80 @@
     "found_other": "{{count}} results",
     "more": "Show more",
     "notLoaded": "That message is too far back to show here."
+  },
+  "threads": {
+    "title": "Thread",
+    "close": "Close thread",
+    "reply": "Reply in thread",
+    "replyPlaceholder": "Reply…",
+    "alsoInChannel": "Also send to {{channel}}",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "followFailed": "Couldn't change following. Try again.",
+    "replies_one": "{{count}} reply",
+    "replies_other": "{{count}} replies",
+    "lastReply": "Last reply {{when}}",
+    "newReplies_one": "{{count}} new reply",
+    "newReplies_other": "{{count}} new replies",
+    "older": "Show older replies",
+    "readOnly": "You can't reply in this channel.",
+    "repliedToThread": "Replied to a thread",
+    "repliesIn": "Thread in {{channel}}",
+    "unavailable": "This thread is no longer available.",
+    "unreadThreads_one": "{{count}} thread with new replies",
+    "unreadThreads_other": "{{count}} threads with new replies"
+  },
+  "pins": {
+    "title": "Pinned messages",
+    "none": "Nothing pinned yet. Pin a message from its menu.",
+    "pin": "Pin to channel",
+    "unpin": "Unpin",
+    "pinned": "Pinned",
+    "pinnedBy": "Pinned by {{name}}",
+    "done": "Message pinned",
+    "undone": "Message unpinned",
+    "limit": "A channel has up to 50 pinned messages. Unpin one first.",
+    "failed": "Couldn't change the pin. Try again."
+  },
+  "saved": {
+    "save": "Save for later",
+    "remove": "Remove from saved",
+    "added": "Saved for later",
+    "removed": "Removed from saved",
+    "limit": "You can keep up to 500 saved messages. Remove some first.",
+    "failed": "Couldn't change your saved messages. Try again.",
+    "tabs": {
+      "open": "In progress",
+      "done": "Done"
+    },
+    "none": "Nothing saved. Save a message from its menu to come back to it.",
+    "noneDone": "Nothing marked done yet.",
+    "remind": "Remind me",
+    "remindAt": "Reminder {{time}}",
+    "noReminder": "No reminder",
+    "reminders": {
+      "20m": "In 20 minutes",
+      "1h": "In 1 hour",
+      "3h": "In 3 hours",
+      "tomorrow": "Tomorrow at 9:00",
+      "week": "Next week"
+    },
+    "markDone": "Mark done",
+    "undoDone": "Back to in progress"
+  },
+  "home": {
+    "threads": "Threads",
+    "activity": "Activity",
+    "saved": "Saved",
+    "unreads": "All unreads",
+    "more": "Show more",
+    "noThreads": "No threads yet. Threads you start, reply to or are mentioned in show here.",
+    "noActivity": "Nothing new. Mentions, replies in your threads and reactions to your messages show here.",
+    "noUnreads": "You're all caught up.",
+    "markRead": "Mark as read",
+    "readFailed": "Couldn't mark as read. Try again.",
+    "activity_mention": "{{name}} mentioned you in {{channel}}",
+    "activity_reply": "{{name}} replied in a thread in {{channel}}",
+    "activity_reaction": "{{name}} reacted {{emoji}} to your message in {{channel}}"
   }
 }

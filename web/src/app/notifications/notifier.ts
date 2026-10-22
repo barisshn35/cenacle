@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-import type { QueryClient } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { myProfileQuery, type MyProfile } from '../profile/profiles';
-import type { Channel, Message } from '../chat/data';
+import { inChannel, type Channel, type Message } from '../chat/data';
+import type { FollowedThread } from '../threads/threads';
 import {
   kindOf,
   notificationsQuery,
@@ -10,6 +11,7 @@ import {
   type NotificationSettings,
 } from './notifications';
 import { playSound } from './sounds';
+import { useLayout } from '../../stores/layout';
 
 /** The channel in view, from the address (/c/<id>). */
 function viewedChannel(): string | undefined {
@@ -22,6 +24,15 @@ function excerpt(body: string, n = 140): string {
     .replace(/\s+/g, ' ')
     .trim();
   return text.length > n ? `${text.slice(0, n)}…` : text;
+}
+
+/** Whether the person follows a thread, as far as this page knows. */
+function follows(queryClient: QueryClient, rootId: string): boolean {
+  const own = queryClient.getQueryData<{ following: boolean }>(['thread-follow', rootId]);
+  if (own) return own.following;
+  return queryClient
+    .getQueriesData<InfiniteData<{ threads: FollowedThread[] }>>({ queryKey: ['me', 'threads'] })
+    .some(([, data]) => data?.pages.some((p) => p.threads.some((t) => t.root.id === rootId)));
 }
 
 /** Desktop notifications are possible and allowed by the person. */
@@ -46,13 +57,19 @@ export function notifyIncoming(
   const channels = queryClient.getQueryData<Channel[]>(['channels']);
   const channel = channels?.find((c) => c.id === message.channel_id);
   if (!settings || !channel) return;
-  const watching =
-    viewedChannel() === channel.id && document.visibilityState === 'visible' && document.hasFocus();
-  if (watching) return;
-  const kind = kindOf(
-    channel.kind,
-    message.mentions.some((p) => p.id === selfId),
-  );
+  const front = document.visibilityState === 'visible' && document.hasFocus();
+  const layout = useLayout.getState();
+  const threadOpen =
+    layout.detailsOpen &&
+    layout.rightView === 'thread' &&
+    layout.thread?.rootId === message.root_id;
+  const watching = inChannel(message) ? viewedChannel() === channel.id : threadOpen;
+  if (watching && front) return;
+  const mentioned = message.mentions.some((p) => p.id === selfId);
+  // A reply kept in its thread tells only those it mentions and its followers
+  // (as a mention).
+  if (!inChannel(message) && !mentioned && !follows(queryClient, message.root_id!)) return;
+  const kind = kindOf(channel.kind, mentioned || !inChannel(message));
   const me = queryClient.getQueryData<MyProfile>(myProfileQuery.queryKey);
   if (!notifies(settings, channel, kind, me?.timezone ?? '')) return;
 

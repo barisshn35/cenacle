@@ -48,12 +48,16 @@ test('deleting shows Undo, which brings the message back', async ({ page }) => {
   await expect(page.getByTestId('message').filter({ hasText: 'silinecek' })).toBeVisible();
 });
 
-test('others’ messages offer no actions to members', async ({ page }) => {
+test('others’ messages cannot be edited or deleted by members', async ({ page }) => {
   await mockApi(page, { messages: [mockMessage(1, 'başkasının mesajı')] });
   await page.goto('/');
   const msg = page.getByTestId('message').filter({ hasText: 'başkasının mesajı' });
   await expect(msg).toBeVisible();
-  await expect(msg.getByRole('button', { name: 'Message actions' })).toHaveCount(0);
+  await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
+  const menu = page.getByRole('menu');
+  await expect(menu.getByRole('menuitem', { name: 'Save for later' })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'Edit' })).toHaveCount(0);
+  await expect(menu.getByRole('menuitem', { name: 'Delete' })).toHaveCount(0);
 });
 
 test('live edits and deletions from others are applied', async ({ page }) => {
