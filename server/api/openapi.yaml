@@ -23,6 +23,8 @@ tags:
     description: Workflows, forms and approvals
   - name: collaboration
     description: Channel tabs, canvases and lists
+  - name: federation
+    description: Channels shared with other Cenacle servers
   - name: ai
     description: Optional AI features with a model the operator runs (off by default)
   - name: compliance
@@ -5244,6 +5246,256 @@ paths:
         '404': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/Problem' }
         '502': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/federation:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [federation]
+      operationId: getFederation
+      summary: Connections to other servers and channels they offered (owners and admins)
+      responses:
+        '200':
+          description: Connections and offers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [connections, offers]
+                properties:
+                  connections:
+                    type: array
+                    items: { $ref: '#/components/schemas/FederationConnection' }
+                  offers:
+                    type: array
+                    items: { $ref: '#/components/schemas/ChannelOffer' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/federation/invites:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [federation]
+      operationId: createFederationInvite
+      summary: An invitation code for another server's admins (owners and admins; shown once, valid a day)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80, description: What the other server is called here. }
+      responses:
+        '201':
+          description: The code.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code, expires_at]
+                properties:
+                  code: { type: string }
+                  expires_at: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/federation/connections:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [federation]
+      operationId: connectFederation
+      summary: Connect to another server with its invitation code (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string, maxLength: 2000 }
+                name: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        '201':
+          description: The connection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FederationConnection' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
+  /api/federation/connections/{connection_id}:
+    parameters:
+      - { name: connection_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [federation]
+      operationId: updateFederationConnection
+      summary: Pause or resume a connection (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: The connection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FederationConnection' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [federation]
+      operationId: deleteFederationConnection
+      summary: Remove a connection; its channels stop being shared (owners and admins)
+      responses:
+        '204': { description: Removed. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/federation/offers/{offer_id}/accept:
+    parameters:
+      - { name: offer_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [federation]
+      operationId: acceptChannelOffer
+      summary: Accept a shared channel as a new private channel here (owners and admins)
+      responses:
+        '201':
+          description: The channel.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Channel' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/federation/offers/{offer_id}:
+    parameters:
+      - { name: offer_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [federation]
+      operationId: declineChannelOffer
+      summary: Decline a shared channel (owners and admins)
+      responses:
+        '204': { description: Declined. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/shares:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [federation]
+      operationId: listChannelShares
+      summary: The servers a channel is shared with (members)
+      responses:
+        '200':
+          description: Shares.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [shares]
+                properties:
+                  shares:
+                    type: array
+                    items: { $ref: '#/components/schemas/ChannelShare' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [federation]
+      operationId: shareChannel
+      summary: Offer a channel to a connected server (workspace owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [connection_id]
+              properties:
+                connection_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: The share (offered until the other side accepts).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelShare' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/shares/{connection_id}:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: connection_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [federation]
+      operationId: unshareChannel
+      summary: Stop sharing a channel with a server (workspace owners and admins)
+      responses:
+        '204': { description: Stopped. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/federation/v1/connect:
+    post:
+      tags: [federation]
+      operationId: federationConnect
+      summary: 'Server to server: accept an invitation (signed with its secret)'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: This side's connection.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/federation/v1/events:
+    post:
+      tags: [federation]
+      operationId: federationEvents
+      summary: 'Server to server: events of shared channels (signed)'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '204': { description: Applied. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
 security:
   - cookie: []
   - bearer: []
@@ -5264,6 +5516,42 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    FederationConnection:
+      type: object
+      required: [id, name, url, status, last_error, shared]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        url: { type: string }
+        status: { type: string, enum: [pending, active, disabled] }
+        last_error: { type: string }
+        last_seen_at: { type: string, format: date-time, nullable: true }
+        shared:
+          type: array
+          items:
+            type: object
+            required: [channel_id, channel_name, status]
+            properties:
+              channel_id: { type: string, format: uuid }
+              channel_name: { type: string }
+              status: { type: string, enum: [offered, active] }
+    ChannelOffer:
+      type: object
+      required: [id, connection_id, connection_name, name, topic, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        connection_id: { type: string, format: uuid }
+        connection_name: { type: string }
+        name: { type: string }
+        topic: { type: string }
+        created_at: { type: string, format: date-time }
+    ChannelShare:
+      type: object
+      required: [connection_id, connection_name, status]
+      properties:
+        connection_id: { type: string, format: uuid }
+        connection_name: { type: string }
+        status: { type: string, enum: [offered, active] }
     AIAnswer:
       type: object
       required: [text, sources]

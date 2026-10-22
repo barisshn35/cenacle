@@ -12,7 +12,13 @@ import (
 )
 
 type Querier interface {
+	// AcceptSharedChannel records the id the other side gave a channel we offered.
+	AcceptSharedChannel(ctx context.Context, arg AcceptSharedChannelParams) (SharedChannel, error)
 	AcceptTerms(ctx context.Context, arg AcceptTermsParams) error
+	ActivateFederationConnection(ctx context.Context, arg ActivateFederationConnectionParams) (FederationConnection, error)
+	// ActiveSharesOfChannel returns where a channel's events go: active shares of
+	// active connections.
+	ActiveSharesOfChannel(ctx context.Context, channelID pgtype.UUID) ([]ActiveSharesOfChannelRow, error)
 	// AddAllUsers makes every member of the channel's workspace a member of it
 	// (guests are added where they work, like bots).
 	AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error)
@@ -54,6 +60,9 @@ type Querier interface {
 	// transaction (several servers never start the same one twice).
 	ClaimDueSchedules(ctx context.Context, rowLimit int32) ([]Workflow, error)
 	ClaimDueWorkflowRuns(ctx context.Context, rowLimit int32) ([]WorkflowRun, error)
+	// ClaimFederationDeliveries takes the oldest due events of a connection, in
+	// order, for the caller's transaction.
+	ClaimFederationDeliveries(ctx context.Context, arg ClaimFederationDeliveriesParams) ([]FederationDelivery, error)
 	// ClaimImportedUser gives an imported person's account to the identity that
 	// signs in with their verified address for the first time.
 	ClaimImportedUser(ctx context.Context, arg ClaimImportedUserParams) (User, error)
@@ -90,6 +99,7 @@ type Querier interface {
 	CountUserSounds(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountWorkflows(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
+	CreateActiveSharedChannel(ctx context.Context, arg CreateActiveSharedChannelParams) (SharedChannel, error)
 	CreateAutomodRule(ctx context.Context, arg CreateAutomodRuleParams) (AutomodRule, error)
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
 	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)
@@ -104,6 +114,8 @@ type Querier interface {
 	CreateCustomEmoji(ctx context.Context, arg CreateCustomEmojiParams) (CustomEmoji, error)
 	// ----------------------------------------------------------------- events ---
 	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
+	CreateFederationConnection(ctx context.Context, arg CreateFederationConnectionParams) (FederationConnection, error)
+	CreateFederationInvite(ctx context.Context, arg CreateFederationInviteParams) (FederationInvite, error)
 	CreateFile(ctx context.Context, arg CreateFileParams) (File, error)
 	CreateForm(ctx context.Context, arg CreateFormParams) (Form, error)
 	// CreateImportedUser creates (or renames) a person from an export. They sign
@@ -142,9 +154,12 @@ type Querier interface {
 	DeleteCanvas(ctx context.Context, id pgtype.UUID) error
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteChannelGroupMapping(ctx context.Context, arg DeleteChannelGroupMappingParams) (int64, error)
+	DeleteChannelOffer(ctx context.Context, id pgtype.UUID) error
 	DeleteChannelTab(ctx context.Context, id pgtype.UUID) error
 	DeleteCustomEmoji(ctx context.Context, id pgtype.UUID) error
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
+	DeleteFederationConnection(ctx context.Context, id pgtype.UUID) error
+	DeleteFederationDeliveries(ctx context.Context, ids []pgtype.UUID) error
 	DeleteFiles(ctx context.Context, ids []pgtype.UUID) error
 	DeleteList(ctx context.Context, id pgtype.UUID) error
 	DeleteListItem(ctx context.Context, id pgtype.UUID) error
@@ -175,6 +190,7 @@ type Querier interface {
 	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
 	DeleteWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) error
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
+	DueFederationConnections(ctx context.Context) ([]pgtype.UUID, error)
 	EditMessage(ctx context.Context, arg EditMessageParams) (Message, error)
 	// EmailRecipients are people who want e-mail about what they missed and have
 	// a verified address.
@@ -219,6 +235,7 @@ type Querier interface {
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
 	GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error)
+	GetChannelOffer(ctx context.Context, id pgtype.UUID) (ChannelOffer, error)
 	GetChannelTab(ctx context.Context, id pgtype.UUID) (ChannelTab, error)
 	GetClassification(ctx context.Context, id pgtype.UUID) (Classification, error)
 	GetCompliance(ctx context.Context, id pgtype.UUID) (GetComplianceRow, error)
@@ -228,6 +245,8 @@ type Querier interface {
 	GetDirectorySyncState(ctx context.Context) (DirectorySyncState, error)
 	GetEmailNotification(ctx context.Context, userID pgtype.UUID) (GetEmailNotificationRow, error)
 	GetEvent(ctx context.Context, id pgtype.UUID) (Event, error)
+	GetFederationConnection(ctx context.Context, id pgtype.UUID) (FederationConnection, error)
+	GetFederationInviteByHash(ctx context.Context, tokenHash []byte) (FederationInvite, error)
 	GetFile(ctx context.Context, id pgtype.UUID) (File, error)
 	// GetFileForReader returns a file with the message it belongs to (deleted
 	// messages hide their files).
@@ -256,10 +275,13 @@ type Querier interface {
 	// as none.
 	GetProfiles(ctx context.Context, ids []pgtype.UUID) ([]GetProfilesRow, error)
 	GetPushKeys(ctx context.Context) (GetPushKeysRow, error)
+	// GetRemoteAuthor returns the connection a user came over, if any.
+	GetRemoteAuthor(ctx context.Context, id pgtype.UUID) (string, error)
 	GetReport(ctx context.Context, id pgtype.UUID) (MessageReport, error)
 	GetRsvp(ctx context.Context, arg GetRsvpParams) (EventRsvp, error)
 	GetRun(ctx context.Context, id pgtype.UUID) (PlaybookRun, error)
 	GetSaved(ctx context.Context, arg GetSavedParams) (SavedMessage, error)
+	GetSharedChannel(ctx context.Context, arg GetSharedChannelParams) (SharedChannel, error)
 	GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, error)
 	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetTabByCanvas(ctx context.Context, canvasID pgtype.UUID) (ChannelTab, error)
@@ -346,7 +368,10 @@ type Querier interface {
 	ListChannelMemberAttributes(ctx context.Context, channelID pgtype.UUID) ([]ListChannelMemberAttributesRow, error)
 	ListChannelMemberIDs(ctx context.Context, channelID pgtype.UUID) ([]pgtype.UUID, error)
 	ListChannelNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]ListChannelNotificationPrefsRow, error)
+	ListChannelOffers(ctx context.Context, workspaceID pgtype.UUID) ([]ListChannelOffersRow, error)
 	ListChannelRuns(ctx context.Context, channelID pgtype.UUID) ([]PlaybookRun, error)
+	// ListChannelShares returns the active connections a channel is shared over.
+	ListChannelShares(ctx context.Context, channelID pgtype.UUID) ([]ListChannelSharesRow, error)
 	ListChannelTabs(ctx context.Context, channelID pgtype.UUID) ([]ChannelTab, error)
 	ListClassifications(ctx context.Context, workspaceID pgtype.UUID) ([]Classification, error)
 	// ListConversationParticipants returns, for each direct or group conversation
@@ -359,6 +384,7 @@ type Querier interface {
 	ListEventRsvps(ctx context.Context, eventIds []pgtype.UUID) ([]ListEventRsvpsRow, error)
 	// ListEvents returns a workspace's events that end after a moment, soonest first.
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error)
+	ListFederationConnections(ctx context.Context, workspaceID pgtype.UUID) ([]FederationConnection, error)
 	// ListFollowedThreads returns the threads a user follows in channels they
 	// belong to, the latest reply first, with unread replies and mentions.
 	ListFollowedThreads(ctx context.Context, arg ListFollowedThreadsParams) ([]ListFollowedThreadsRow, error)
@@ -419,6 +445,8 @@ type Querier interface {
 	// newest first.
 	ListSaved(ctx context.Context, userID pgtype.UUID) ([]ListSavedRow, error)
 	ListScheduledMessages(ctx context.Context, ownerID pgtype.UUID) ([]ListScheduledMessagesRow, error)
+	// ListSharedChannels returns the channels shared over a connection, with their names.
+	ListSharedChannels(ctx context.Context, connectionID pgtype.UUID) ([]ListSharedChannelsRow, error)
 	// ListStaleFiles finds files to remove: uploads never sent with a message
 	// within a day, and files whose message was purged.
 	ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, error)
@@ -454,6 +482,7 @@ type Querier interface {
 	ListWorkspaceGroupMappings(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceGroupMapping, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
 	ListWorkspaceNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]ListWorkspaceNotificationPrefsRow, error)
+	LocalMessageOf(ctx context.Context, arg LocalMessageOfParams) (pgtype.UUID, error)
 	// MarkChannelReadForAll makes the history of an imported channel read.
 	MarkChannelReadForAll(ctx context.Context, channelID pgtype.UUID) error
 	// MarkRead moves a member's read position forward (never back).
@@ -488,11 +517,14 @@ type Querier interface {
 	// QueueDeliveries records an event for every enabled subscription of a bot that is a
 	// member of the event's channel and wants this event, except the bot's own messages.
 	QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error)
+	QueueFederationDelivery(ctx context.Context, arg QueueFederationDeliveryParams) error
 	RecordAIRequest(ctx context.Context, arg RecordAIRequestParams) error
+	RecordFederatedMessage(ctx context.Context, arg RecordFederatedMessageParams) error
 	ReleaseLegalHold(ctx context.Context, arg ReleaseLegalHoldParams) (LegalHold, error)
 	// ReleaseUsername takes a @username from others when the directory gives it
 	// to someone (they get a new one).
 	ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error
+	RemoteMessageOf(ctx context.Context, arg RemoteMessageOfParams) (pgtype.UUID, error)
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
 	RemovePushEndpoint(ctx context.Context, endpoint string) error
 	RemovePushSubscription(ctx context.Context, arg RemovePushSubscriptionParams) error
@@ -508,6 +540,7 @@ type Querier interface {
 	ResolveReports(ctx context.Context, arg ResolveReportsParams) ([]MessageReport, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.
 	RestoreMessage(ctx context.Context, arg RestoreMessageParams) (Message, error)
+	RetryFederationDeliveries(ctx context.Context, ids []pgtype.UUID) error
 	// RevealBurn records when a reader first saw a burn-on-read message.
 	RevealBurn(ctx context.Context, arg RevealBurnParams) (time.Time, error)
 	// RevokeAdminUnlessEmail removes the administrator flag from a user whose
@@ -564,6 +597,8 @@ type Querier interface {
 	// SetDirectoryProfile keeps a chosen @username for people without a directory one.
 	SetDirectoryProfile(ctx context.Context, arg SetDirectoryProfileParams) error
 	SetEmailNotification(ctx context.Context, arg SetEmailNotificationParams) error
+	SetFederationConnectionStatus(ctx context.Context, arg SetFederationConnectionStatusParams) (FederationConnection, error)
+	SetFederationError(ctx context.Context, arg SetFederationErrorParams) error
 	// SetGuestRoles makes a person a guest wherever they are a member or an
 	// administrator (or takes it back when they are not a guest any more).
 	SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error
@@ -596,6 +631,7 @@ type Querier interface {
 	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)
 	// ---------------------------------------------------------------- welcome ---
 	SetWorkspaceWelcome(ctx context.Context, arg SetWorkspaceWelcomeParams) (Workspace, error)
+	ShareChannel(ctx context.Context, arg ShareChannelParams) (SharedChannel, error)
 	// TakeCanvasTurn gives the user the turn to edit when nobody else holds it;
 	// no row means someone else is editing.
 	TakeCanvasTurn(ctx context.Context, arg TakeCanvasTurnParams) (pgtype.UUID, error)
@@ -603,10 +639,12 @@ type Querier interface {
 	// repliers (newest first).
 	ThreadSummaries(ctx context.Context, rootIds []pgtype.UUID) ([]ThreadSummariesRow, error)
 	TouchBotToken(ctx context.Context, id pgtype.UUID) error
+	TouchFederationConnection(ctx context.Context, id pgtype.UUID) error
 	// TouchSession records use of a session at most once per minute, which keeps
 	// writes low while the idle timeout stays accurate to the minute.
 	TouchSession(ctx context.Context, arg TouchSessionParams) error
 	TouchWebhook(ctx context.Context, id pgtype.UUID) error
+	UnshareChannel(ctx context.Context, arg UnshareChannelParams) error
 	UpdateAutomodRule(ctx context.Context, arg UpdateAutomodRuleParams) (AutomodRule, error)
 	UpdateBot(ctx context.Context, arg UpdateBotParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (ChannelCategory, error)
@@ -621,12 +659,16 @@ type Querier interface {
 	// UpdateUserProfile follows a change of name or address at Cenacle ID.
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
 	UpdateWorkflow(ctx context.Context, arg UpdateWorkflowParams) (Workflow, error)
+	UpsertChannelOffer(ctx context.Context, arg UpsertChannelOfferParams) (ChannelOffer, error)
 	UpsertLinkPreview(ctx context.Context, arg UpsertLinkPreviewParams) (LinkPreview, error)
+	UpsertRemoteUser(ctx context.Context, arg UpsertRemoteUserParams) (User, error)
 	UpsertSaved(ctx context.Context, arg UpsertSavedParams) (SavedMessage, error)
 	// UpsertUserFromIdentity creates the user of an identity on first sign-in and
 	// refreshes the profile claims on every later one.
 	UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFromIdentityParams) (User, error)
 	UpsertWorkspaceGroupMapping(ctx context.Context, arg UpsertWorkspaceGroupMappingParams) (WorkspaceGroupMapping, error)
+	// UseFederationInvite takes an unused, unexpired invitation (once).
+	UseFederationInvite(ctx context.Context, tokenHash []byte) (FederationInvite, error)
 	// UseInvite counts one use of a valid invitation; no row when it is not valid.
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
 	UserExists(ctx context.Context, arg UserExistsParams) (bool, error)

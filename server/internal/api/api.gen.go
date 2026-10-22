@@ -507,6 +507,24 @@ func (e ChannelNotificationInputLevel) Valid() bool {
 	}
 }
 
+// Defines values for ChannelShareStatus.
+const (
+	ChannelShareStatusActive  ChannelShareStatus = "active"
+	ChannelShareStatusOffered ChannelShareStatus = "offered"
+)
+
+// Valid indicates whether the value is a known member of the ChannelShareStatus enum.
+func (e ChannelShareStatus) Valid() bool {
+	switch e {
+	case ChannelShareStatusActive:
+		return true
+	case ChannelShareStatusOffered:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ChannelUpdateVisibility.
 const (
 	ChannelUpdateVisibilityPrivate ChannelUpdateVisibility = "private"
@@ -609,6 +627,45 @@ func (e EventMe) Valid() bool {
 	case EventMeGoing:
 		return true
 	case EventMeMaybe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FederationConnectionSharedStatus.
+const (
+	FederationConnectionSharedStatusActive  FederationConnectionSharedStatus = "active"
+	FederationConnectionSharedStatusOffered FederationConnectionSharedStatus = "offered"
+)
+
+// Valid indicates whether the value is a known member of the FederationConnectionSharedStatus enum.
+func (e FederationConnectionSharedStatus) Valid() bool {
+	switch e {
+	case FederationConnectionSharedStatusActive:
+		return true
+	case FederationConnectionSharedStatusOffered:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FederationConnectionStatus.
+const (
+	FederationConnectionStatusActive   FederationConnectionStatus = "active"
+	FederationConnectionStatusDisabled FederationConnectionStatus = "disabled"
+	FederationConnectionStatusPending  FederationConnectionStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the FederationConnectionStatus enum.
+func (e FederationConnectionStatus) Valid() bool {
+	switch e {
+	case FederationConnectionStatusActive:
+		return true
+	case FederationConnectionStatusDisabled:
+		return true
+	case FederationConnectionStatusPending:
 		return true
 	default:
 		return false
@@ -920,16 +977,16 @@ func (e ReportStatus) Valid() bool {
 
 // Defines values for RunStatus.
 const (
-	Active   RunStatus = "active"
-	Finished RunStatus = "finished"
+	RunStatusActive   RunStatus = "active"
+	RunStatusFinished RunStatus = "finished"
 )
 
 // Valid indicates whether the value is a known member of the RunStatus enum.
 func (e RunStatus) Valid() bool {
 	switch e {
-	case Active:
+	case RunStatusActive:
 		return true
-	case Finished:
+	case RunStatusFinished:
 		return true
 	default:
 		return false
@@ -1999,6 +2056,26 @@ type ChannelNotificationInput struct {
 // ChannelNotificationInputLevel defines model for ChannelNotificationInput.Level.
 type ChannelNotificationInputLevel string
 
+// ChannelOffer defines model for ChannelOffer.
+type ChannelOffer struct {
+	ConnectionId   openapi_types.UUID `json:"connection_id"`
+	ConnectionName string             `json:"connection_name"`
+	CreatedAt      time.Time          `json:"created_at"`
+	Id             openapi_types.UUID `json:"id"`
+	Name           string             `json:"name"`
+	Topic          string             `json:"topic"`
+}
+
+// ChannelShare defines model for ChannelShare.
+type ChannelShare struct {
+	ConnectionId   openapi_types.UUID `json:"connection_id"`
+	ConnectionName string             `json:"connection_name"`
+	Status         ChannelShareStatus `json:"status"`
+}
+
+// ChannelShareStatus defines model for ChannelShare.Status.
+type ChannelShareStatus string
+
 // ChannelUpdate defines model for ChannelUpdate.
 type ChannelUpdate struct {
 	ForumTags       *[]string                `json:"forum_tags,omitempty"`
@@ -2137,6 +2214,27 @@ type EventInput struct {
 	StartsAt    time.Time           `json:"starts_at"`
 	Title       string              `json:"title"`
 }
+
+// FederationConnection defines model for FederationConnection.
+type FederationConnection struct {
+	Id         openapi_types.UUID `json:"id"`
+	LastError  string             `json:"last_error"`
+	LastSeenAt *time.Time         `json:"last_seen_at,omitempty"`
+	Name       string             `json:"name"`
+	Shared     []struct {
+		ChannelId   openapi_types.UUID               `json:"channel_id"`
+		ChannelName string                           `json:"channel_name"`
+		Status      FederationConnectionSharedStatus `json:"status"`
+	} `json:"shared"`
+	Status FederationConnectionStatus `json:"status"`
+	Url    string                     `json:"url"`
+}
+
+// FederationConnectionSharedStatus defines model for FederationConnection.Shared.Status.
+type FederationConnectionSharedStatus string
+
+// FederationConnectionStatus defines model for FederationConnection.Status.
+type FederationConnectionStatus string
 
 // FileInfo defines model for FileInfo.
 type FileInfo struct {
@@ -3382,6 +3480,11 @@ type ScheduleMessageJSONBody struct {
 	SendAt time.Time `json:"send_at"`
 }
 
+// ShareChannelJSONBody defines parameters for ShareChannel.
+type ShareChannelJSONBody struct {
+	ConnectionId openapi_types.UUID `json:"connection_id"`
+}
+
 // RsvpEventJSONBody defines parameters for RsvpEvent.
 type RsvpEventJSONBody struct {
 	Status *RsvpEventJSONBodyStatus `json:"status"`
@@ -3389,6 +3492,17 @@ type RsvpEventJSONBody struct {
 
 // RsvpEventJSONBodyStatus defines parameters for RsvpEvent.
 type RsvpEventJSONBodyStatus string
+
+// UpdateFederationConnectionJSONBody defines parameters for UpdateFederationConnection.
+type UpdateFederationConnectionJSONBody struct {
+	Enabled bool `json:"enabled"`
+}
+
+// FederationConnectJSONBody defines parameters for FederationConnect.
+type FederationConnectJSONBody map[string]interface{}
+
+// FederationEventsJSONBody defines parameters for FederationEvents.
+type FederationEventsJSONBody map[string]interface{}
 
 // GetFileContentParams defines parameters for GetFileContent.
 type GetFileContentParams struct {
@@ -3693,6 +3807,18 @@ type ExportMessagesParams struct {
 	Q          *string               `form:"q,omitempty" json:"q,omitempty"`
 }
 
+// ConnectFederationJSONBody defines parameters for ConnectFederation.
+type ConnectFederationJSONBody struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+// CreateFederationInviteJSONBody defines parameters for CreateFederationInvite.
+type CreateFederationInviteJSONBody struct {
+	// Name What the other server is called here.
+	Name string `json:"name"`
+}
+
 // CreateInviteJSONBody defines parameters for CreateInvite.
 type CreateInviteJSONBody struct {
 	ExpiresInHours *int `json:"expires_in_hours,omitempty"`
@@ -3825,6 +3951,9 @@ type MarkReadJSONRequestBody MarkReadJSONBody
 // ScheduleMessageJSONRequestBody defines body for ScheduleMessage for application/json ContentType.
 type ScheduleMessageJSONRequestBody ScheduleMessageJSONBody
 
+// ShareChannelJSONRequestBody defines body for ShareChannel for application/json ContentType.
+type ShareChannelJSONRequestBody ShareChannelJSONBody
+
 // CreateChannelTabJSONRequestBody defines body for CreateChannelTab for application/json ContentType.
 type CreateChannelTabJSONRequestBody = TabInput
 
@@ -3833,6 +3962,15 @@ type UpdateEventJSONRequestBody = EventInput
 
 // RsvpEventJSONRequestBody defines body for RsvpEvent for application/json ContentType.
 type RsvpEventJSONRequestBody RsvpEventJSONBody
+
+// UpdateFederationConnectionJSONRequestBody defines body for UpdateFederationConnection for application/json ContentType.
+type UpdateFederationConnectionJSONRequestBody UpdateFederationConnectionJSONBody
+
+// FederationConnectJSONRequestBody defines body for FederationConnect for application/json ContentType.
+type FederationConnectJSONRequestBody FederationConnectJSONBody
+
+// FederationEventsJSONRequestBody defines body for FederationEvents for application/json ContentType.
+type FederationEventsJSONRequestBody FederationEventsJSONBody
 
 // UpdateFormJSONRequestBody defines body for UpdateForm for application/json ContentType.
 type UpdateFormJSONRequestBody = FormInput
@@ -3959,6 +4097,12 @@ type OpenConversationJSONRequestBody OpenConversationJSONBody
 
 // CreateEventJSONRequestBody defines body for CreateEvent for application/json ContentType.
 type CreateEventJSONRequestBody = EventInput
+
+// ConnectFederationJSONRequestBody defines body for ConnectFederation for application/json ContentType.
+type ConnectFederationJSONRequestBody ConnectFederationJSONBody
+
+// CreateFederationInviteJSONRequestBody defines body for CreateFederationInvite for application/json ContentType.
+type CreateFederationInviteJSONRequestBody CreateFederationInviteJSONBody
 
 // CreateFormJSONRequestBody defines body for CreateForm for application/json ContentType.
 type CreateFormJSONRequestBody = FormInput
@@ -4282,6 +4426,15 @@ type ServerInterface interface {
 	// ScheduleMessage Send a message later
 	// (POST /api/channels/{channel_id}/scheduled)
 	ScheduleMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListChannelShares The servers a channel is shared with (members)
+	// (GET /api/channels/{channel_id}/shares)
+	ListChannelShares(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ShareChannel Offer a channel to a connected server (workspace owners and admins)
+	// (POST /api/channels/{channel_id}/shares)
+	ShareChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// UnshareChannel Stop sharing a channel with a server (workspace owners and admins)
+	// (DELETE /api/channels/{channel_id}/shares/{connection_id})
+	UnshareChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, connectionId openapi_types.UUID)
 	// ListShortcuts Workflows and forms people can start in a channel
 	// (GET /api/channels/{channel_id}/shortcuts)
 	ListShortcuts(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -4309,6 +4462,24 @@ type ServerInterface interface {
 	// RsvpEvent Answer an event; "going" schedules a reminder 15 minutes before it
 	// (PUT /api/events/{event_id}/rsvp)
 	RsvpEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// DeleteFederationConnection Remove a connection; its channels stop being shared (owners and admins)
+	// (DELETE /api/federation/connections/{connection_id})
+	DeleteFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID)
+	// UpdateFederationConnection Pause or resume a connection (owners and admins)
+	// (PATCH /api/federation/connections/{connection_id})
+	UpdateFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID)
+	// DeclineChannelOffer Decline a shared channel (owners and admins)
+	// (DELETE /api/federation/offers/{offer_id})
+	DeclineChannelOffer(w http.ResponseWriter, r *http.Request, offerId openapi_types.UUID)
+	// AcceptChannelOffer Accept a shared channel as a new private channel here (owners and admins)
+	// (POST /api/federation/offers/{offer_id}/accept)
+	AcceptChannelOffer(w http.ResponseWriter, r *http.Request, offerId openapi_types.UUID)
+	// FederationConnect Server to server: accept an invitation (signed with its secret)
+	// (POST /api/federation/v1/connect)
+	FederationConnect(w http.ResponseWriter, r *http.Request)
+	// FederationEvents Server to server: events of shared channels (signed)
+	// (POST /api/federation/v1/events)
+	FederationEvents(w http.ResponseWriter, r *http.Request)
 	// DeleteUpload Remove an uploaded file that no message carries yet
 	// (DELETE /api/files/{file_id})
 	DeleteUpload(w http.ResponseWriter, r *http.Request, fileId openapi_types.UUID)
@@ -4630,6 +4801,15 @@ type ServerInterface interface {
 	// ExportMessages eDiscovery export of messages, deleted ones included (owners)
 	// (GET /api/workspaces/{workspace_id}/export)
 	ExportMessages(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ExportMessagesParams)
+	// GetFederation Connections to other servers and channels they offered (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/federation)
+	GetFederation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ConnectFederation Connect to another server with its invitation code (owners and admins)
+	// (POST /api/workspaces/{workspace_id}/federation/connections)
+	ConnectFederation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateFederationInvite An invitation code for another server's admins (owners and admins; shown once, valid a day)
+	// (POST /api/workspaces/{workspace_id}/federation/invites)
+	CreateFederationInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListForms Forms of a workspace
 	// (GET /api/workspaces/{workspace_id}/forms)
 	ListForms(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -5176,6 +5356,24 @@ func (_ Unimplemented) ScheduleMessage(w http.ResponseWriter, r *http.Request, c
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListChannelShares The servers a channel is shared with (members)
+// (GET /api/channels/{channel_id}/shares)
+func (_ Unimplemented) ListChannelShares(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ShareChannel Offer a channel to a connected server (workspace owners and admins)
+// (POST /api/channels/{channel_id}/shares)
+func (_ Unimplemented) ShareChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UnshareChannel Stop sharing a channel with a server (workspace owners and admins)
+// (DELETE /api/channels/{channel_id}/shares/{connection_id})
+func (_ Unimplemented) UnshareChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, connectionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListShortcuts Workflows and forms people can start in a channel
 // (GET /api/channels/{channel_id}/shortcuts)
 func (_ Unimplemented) ListShortcuts(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -5227,6 +5425,42 @@ func (_ Unimplemented) UpdateEvent(w http.ResponseWriter, r *http.Request, event
 // RsvpEvent Answer an event; "going" schedules a reminder 15 minutes before it
 // (PUT /api/events/{event_id}/rsvp)
 func (_ Unimplemented) RsvpEvent(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteFederationConnection Remove a connection; its channels stop being shared (owners and admins)
+// (DELETE /api/federation/connections/{connection_id})
+func (_ Unimplemented) DeleteFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateFederationConnection Pause or resume a connection (owners and admins)
+// (PATCH /api/federation/connections/{connection_id})
+func (_ Unimplemented) UpdateFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeclineChannelOffer Decline a shared channel (owners and admins)
+// (DELETE /api/federation/offers/{offer_id})
+func (_ Unimplemented) DeclineChannelOffer(w http.ResponseWriter, r *http.Request, offerId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AcceptChannelOffer Accept a shared channel as a new private channel here (owners and admins)
+// (POST /api/federation/offers/{offer_id}/accept)
+func (_ Unimplemented) AcceptChannelOffer(w http.ResponseWriter, r *http.Request, offerId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// FederationConnect Server to server: accept an invitation (signed with its secret)
+// (POST /api/federation/v1/connect)
+func (_ Unimplemented) FederationConnect(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// FederationEvents Server to server: events of shared channels (signed)
+// (POST /api/federation/v1/events)
+func (_ Unimplemented) FederationEvents(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5869,6 +6103,24 @@ func (_ Unimplemented) CreateEvent(w http.ResponseWriter, r *http.Request, works
 // ExportMessages eDiscovery export of messages, deleted ones included (owners)
 // (GET /api/workspaces/{workspace_id}/export)
 func (_ Unimplemented) ExportMessages(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ExportMessagesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetFederation Connections to other servers and channels they offered (owners and admins)
+// (GET /api/workspaces/{workspace_id}/federation)
+func (_ Unimplemented) GetFederation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ConnectFederation Connect to another server with its invitation code (owners and admins)
+// (POST /api/workspaces/{workspace_id}/federation/connections)
+func (_ Unimplemented) ConnectFederation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateFederationInvite An invitation code for another server's admins (owners and admins; shown once, valid a day)
+// (POST /api/workspaces/{workspace_id}/federation/invites)
+func (_ Unimplemented) CreateFederationInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8305,6 +8557,93 @@ func (siw *ServerInterfaceWrapper) ScheduleMessage(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListChannelShares operation middleware
+func (siw *ServerInterfaceWrapper) ListChannelShares(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannelShares(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ShareChannel operation middleware
+func (siw *ServerInterfaceWrapper) ShareChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ShareChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnshareChannel operation middleware
+func (siw *ServerInterfaceWrapper) UnshareChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnshareChannel(w, r, channelId, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListShortcuts operation middleware
 func (siw *ServerInterfaceWrapper) ListShortcuts(w http.ResponseWriter, r *http.Request) {
 
@@ -8530,6 +8869,138 @@ func (siw *ServerInterfaceWrapper) RsvpEvent(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RsvpEvent(w, r, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteFederationConnection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteFederationConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteFederationConnection(w, r, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateFederationConnection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateFederationConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateFederationConnection(w, r, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeclineChannelOffer operation middleware
+func (siw *ServerInterfaceWrapper) DeclineChannelOffer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "offer_id" -------------
+	var offerId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "offer_id", chi.URLParam(r, "offer_id"), &offerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offer_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeclineChannelOffer(w, r, offerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcceptChannelOffer operation middleware
+func (siw *ServerInterfaceWrapper) AcceptChannelOffer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "offer_id" -------------
+	var offerId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "offer_id", chi.URLParam(r, "offer_id"), &offerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offer_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcceptChannelOffer(w, r, offerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FederationConnect operation middleware
+func (siw *ServerInterfaceWrapper) FederationConnect(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FederationConnect(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FederationEvents operation middleware
+func (siw *ServerInterfaceWrapper) FederationEvents(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FederationEvents(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11453,6 +11924,84 @@ func (siw *ServerInterfaceWrapper) ExportMessages(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// GetFederation operation middleware
+func (siw *ServerInterfaceWrapper) GetFederation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFederation(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ConnectFederation operation middleware
+func (siw *ServerInterfaceWrapper) ConnectFederation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ConnectFederation(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateFederationInvite operation middleware
+func (siw *ServerInterfaceWrapper) CreateFederationInvite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateFederationInvite(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListForms operation middleware
 func (siw *ServerInterfaceWrapper) ListForms(w http.ResponseWriter, r *http.Request) {
 
@@ -13137,6 +13686,42 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/ai/ask", wrapper.AskAI)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/federation", wrapper.GetFederation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/federation/invites", wrapper.CreateFederationInvite)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/federation/connections", wrapper.ConnectFederation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/federation/connections/{connection_id}", wrapper.DeleteFederationConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/federation/connections/{connection_id}", wrapper.UpdateFederationConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/federation/offers/{offer_id}/accept", wrapper.AcceptChannelOffer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/federation/offers/{offer_id}", wrapper.DeclineChannelOffer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/shares", wrapper.ListChannelShares)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/shares", wrapper.ShareChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/shares/{connection_id}", wrapper.UnshareChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/federation/v1/connect", wrapper.FederationConnect)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/federation/v1/events", wrapper.FederationEvents)
 	})
 
 	return r

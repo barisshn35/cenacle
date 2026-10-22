@@ -189,6 +189,15 @@ func (PurgeExpiredArgs) Kind() string { return "purge_expired_messages" }
 // RetentionInterval is how often expired messages are deleted (in batches).
 var RetentionInterval = time.Minute
 
+// SendFederationArgs sends shared channels' events to other servers.
+type SendFederationArgs struct{}
+
+// Kind implements river.JobArgs.
+func (SendFederationArgs) Kind() string { return "send_federation" }
+
+// FederationInterval is how often events go to other servers.
+var FederationInterval = 2 * time.Second
+
 // EmailNotificationsArgs e-mails people about what they missed.
 type EmailNotificationsArgs struct{}
 
@@ -307,7 +316,9 @@ type Deps struct {
 	Workflows Runner
 	// Retention is optional.
 	Retention Runner
-	Log       *slog.Logger
+	// Federation is optional.
+	Federation Runner
+	Log        *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -346,6 +357,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Workflows != nil {
 		river.AddWorker(workers, &runnerWorker[RunWorkflowsArgs]{r: d.Workflows, what: "workflow steps run", log: d.Log})
 		jobs = append(jobs, periodic(WorkflowsInterval, RunWorkflowsArgs{}))
+	}
+	if d.Federation != nil {
+		river.AddWorker(workers, &runnerWorker[SendFederationArgs]{r: d.Federation, what: "federated events sent", log: d.Log})
+		jobs = append(jobs, periodic(FederationInterval, SendFederationArgs{}))
 	}
 	if d.Retention != nil {
 		river.AddWorker(workers, &runnerWorker[PurgeExpiredArgs]{r: d.Retention, what: "expired messages deleted", log: d.Log})

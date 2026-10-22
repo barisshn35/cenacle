@@ -49,6 +49,8 @@ type stack struct {
 	links *chat.LinkFetcher
 	// workflows runs workflows' steps (tests run it by hand).
 	workflows *chat.WorkflowRunner
+	// federation sends shared channels' events to other servers (by hand).
+	federation *chat.FederationSender
 	// defaultWS is the default workspace, used by calls that name none.
 	defaultWS string
 }
@@ -162,9 +164,10 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	client := &http.Client{Transport: &http.Transport{DisableKeepAlives: o.httpTimeout > 0}}
 	t.Cleanup(client.CloseIdleConnections)
 	s := &stack{t: t, srv: srv, pool: sh.pool, sessions: sessions, hub: hub, client: client,
-		bg:        &chat.Background{DB: sh.pool, Queries: queries, Egress: egressClient, Files: files, Log: log},
-		links:     &chat.LinkFetcher{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log},
-		workflows: &chat.WorkflowRunner{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log}}
+		bg:         &chat.Background{DB: sh.pool, Queries: queries, Egress: egressClient, Files: files, Log: log},
+		links:      &chat.LinkFetcher{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log},
+		workflows:  &chat.WorkflowRunner{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log},
+		federation: &chat.FederationSender{DB: sh.pool, Queries: queries, Egress: egressClient, Log: log}}
 	if err := sh.pool.QueryRow(context.Background(), "SELECT id::text FROM workspaces WHERE is_default").Scan(&s.defaultWS); err != nil {
 		t.Fatal(err)
 	}

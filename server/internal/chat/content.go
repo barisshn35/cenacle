@@ -264,6 +264,9 @@ func emit(ctx context.Context, q store.Querier, typ string, data any) error {
 	if err := q.InsertOutboxEvent(ctx, store.InsertOutboxEventParams{Type: typ, Data: raw}); err != nil {
 		return err
 	}
+	if err := queueFederation(ctx, q, typ, raw); err != nil {
+		return err
+	}
 	return queueDeliveries(ctx, q, typ, raw)
 }
 

@@ -71,6 +71,7 @@ const (
 	LegalHoldChanged        = "legal_hold.changed"
 	MessagesExported        = "messages.exported"
 	AIChanged               = "ai.changed"
+	FederationChanged       = "federation.changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

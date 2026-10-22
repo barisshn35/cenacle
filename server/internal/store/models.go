@@ -139,6 +139,15 @@ type ChannelNotificationPref struct {
 	Sound      string             `json:"sound"`
 }
 
+type ChannelOffer struct {
+	ID              pgtype.UUID `json:"id"`
+	ConnectionID    pgtype.UUID `json:"connection_id"`
+	RemoteChannelID pgtype.UUID `json:"remote_channel_id"`
+	Name            string      `json:"name"`
+	Topic           string      `json:"topic"`
+	CreatedAt       time.Time   `json:"created_at"`
+}
+
 type ChannelTab struct {
 	ID        pgtype.UUID `json:"id"`
 	ChannelID pgtype.UUID `json:"channel_id"`
@@ -234,6 +243,46 @@ type EventSubscription struct {
 	CreatedBy  pgtype.UUID        `json:"created_by"`
 	CreatedAt  time.Time          `json:"created_at"`
 	DisabledAt pgtype.Timestamptz `json:"disabled_at"`
+}
+
+type FederatedMessage struct {
+	MessageID       pgtype.UUID `json:"message_id"`
+	ConnectionID    pgtype.UUID `json:"connection_id"`
+	RemoteMessageID pgtype.UUID `json:"remote_message_id"`
+}
+
+type FederationConnection struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	Url         string             `json:"url"`
+	Secret      string             `json:"secret"`
+	RemoteID    pgtype.UUID        `json:"remote_id"`
+	Status      string             `json:"status"`
+	LastError   string             `json:"last_error"`
+	LastSeenAt  pgtype.Timestamptz `json:"last_seen_at"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+}
+
+type FederationDelivery struct {
+	ID            pgtype.UUID `json:"id"`
+	ConnectionID  pgtype.UUID `json:"connection_id"`
+	Event         []byte      `json:"event"`
+	Attempts      int32       `json:"attempts"`
+	NextAttemptAt time.Time   `json:"next_attempt_at"`
+	CreatedAt     time.Time   `json:"created_at"`
+}
+
+type FederationInvite struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	TokenHash   []byte             `json:"token_hash"`
+	Secret      string             `json:"secret"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	ExpiresAt   time.Time          `json:"expires_at"`
+	UsedAt      pgtype.Timestamptz `json:"used_at"`
 }
 
 type File struct {
@@ -514,6 +563,14 @@ type Session struct {
 	UserAgent  string      `json:"user_agent"`
 	IpAddress  string      `json:"ip_address"`
 	IdpSid     string      `json:"idp_sid"`
+}
+
+type SharedChannel struct {
+	ChannelID       pgtype.UUID `json:"channel_id"`
+	ConnectionID    pgtype.UUID `json:"connection_id"`
+	RemoteChannelID pgtype.UUID `json:"remote_channel_id"`
+	Status          string      `json:"status"`
+	CreatedAt       time.Time   `json:"created_at"`
 }
 
 type SlashCommand struct {
