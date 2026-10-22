@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.19.0)
+### 0.19.0
 
 - Migration `00019_community_moderation` adds forum, poll, event, moderation, playbook,
   banner and terms tables and columns. Nothing to configure.

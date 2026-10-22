@@ -8,6 +8,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-22
+
 Community and moderation.
 
 ### Added
@@ -582,7 +584,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/barisshn35/cenacle/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/barisshn35/cenacle/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/barisshn35/cenacle/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/barisshn35/cenacle/compare/v0.15.0...v0.16.0
