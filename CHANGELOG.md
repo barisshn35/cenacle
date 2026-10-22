@@ -8,6 +8,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-22
+
 Identity: company directories, other identity providers, passkeys, an admin panel and
 guests.
 
@@ -33,7 +35,7 @@ guests.
 
 ### Upgrade notes
 
-- See [docs/upgrade](docs/upgrade/README.md#unreleased-0140).
+- See [docs/upgrade](docs/upgrade/README.md#0140).
 
 ## [0.13.0] - 2026-10-22
 
@@ -468,7 +470,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/barisshn35/cenacle/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/barisshn35/cenacle/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/barisshn35/cenacle/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/barisshn35/cenacle/compare/v0.10.1...v0.11.0

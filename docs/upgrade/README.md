@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.14.0)
+### 0.14.0
 
 - Migrations: Cenacle ID `0003_directory`, `0004_passkeys`, `0005_federation`; chat
   `00014_directory_groups_guests`. They run on start as usual.

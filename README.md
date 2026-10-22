@@ -12,11 +12,12 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.13.** Sign in with Cenacle ID (with two-step verification), chat live in
-> channels and direct conversations, share files, connect bots and schedule messages; run
-> several instances, monitor, back up with point-in-time recovery, install on Kubernetes
-> or offline, and import from Mattermost or Slack. Identity federation (LDAP/AD, SAML)
-> comes next (see the [roadmap](#roadmap)).
+> **Status: v0.14.** Sign in with Cenacle ID (passwords with two-step verification,
+> passkeys, Active Directory/LDAP or your OpenID Connect or SAML provider), chat live in
+> channels and direct conversations with directory groups and guests, share files, connect
+> bots and schedule messages; run several instances, monitor, back up, install on
+> Kubernetes or offline, and import from Mattermost or Slack. Profiles and settings come
+> next (see the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -158,41 +159,41 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 
 ## Roadmap
 
-| Version   | Scope                                                                                     |
-| --------- | ----------------------------------------------------------------------------------------- |
-| v0.1      | Skeleton: services, design system foundations, infrastructure, CI                         |
-| v0.2      | Cenacle ID core (OIDC provider)                                                           |
-| v0.3      | OIDC sign-in in chat, sessions                                                            |
-| v0.4      | Live chat, WebSocket tickets, channel membership, public and private channels             |
-| v0.5      | Editing and deleting messages, channel settings, categories, quick switcher               |
-| v0.6      | Workspaces, roles, invitations                                                            |
-| v0.7      | Direct messages, unread, presence, typing                                                 |
-| v0.8      | TOTP MFA, session management, back-channel logout, audit log                              |
-| v0.9      | Markdown, reactions, mentions, attachments, transactional outbox                          |
-| v0.10     | Bot foundation, Jira to chat                                                              |
-| v0.11     | Slash commands, event subscriptions, scheduled messages and reminders, GitLab, alerts     |
-| v0.12     | Files (S3-compatible object store), previews, viewer, virus scanning                      |
-| **v0.13** | **Scaling and operations (multiple instances, OpenTelemetry, backups, Helm, air-gapped)** |
-| v0.14     | Identity federation (LDAP/AD, SAML and OIDC, WebAuthn), admin console, guests             |
-| v0.15     | Profiles, profile cards, custom status, channel and workspace settings                    |
-| v0.16     | Appearance: theme presets, typography, fonts, code blocks                                 |
-| v0.17     | Search and notifications (sounds, muting, web push, e-mail)                               |
-| v0.18     | Threads, pins, saved items, activity                                                      |
-| v0.19     | Community and moderation: forums, polls, events, AutoMod, playbooks                       |
-| v0.20     | Link previews, voice messages, forwarding, custom emoji                                   |
-| v0.21     | Automation: workflows, approvals, forms                                                   |
-| v0.22     | Collaboration: canvases, lists, boards, tasks                                             |
-| v0.23     | Compliance: retention, legal hold, eDiscovery, export, access control                     |
-| v0.24     | Optional, self-hosted AI (off by default)                                                 |
-| v0.25     | Federation between servers                                                                |
-| v0.26     | Security testing and hardening                                                            |
-| v0.27     | Optimization and load tests                                                               |
-| v0.28     | Release candidate                                                                         |
-| v0.99     | Interface rewrite                                                                         |
-| v1.0      | Stable                                                                                    |
-| v1.1      | Desktop app                                                                               |
-| v1.2      | Voice and video                                                                           |
-| v1.3      | Mobile apps                                                                               |
+| Version   | Scope                                                                                 |
+| --------- | ------------------------------------------------------------------------------------- |
+| v0.1      | Skeleton: services, design system foundations, infrastructure, CI                     |
+| v0.2      | Cenacle ID core (OIDC provider)                                                       |
+| v0.3      | OIDC sign-in in chat, sessions                                                        |
+| v0.4      | Live chat, WebSocket tickets, channel membership, public and private channels         |
+| v0.5      | Editing and deleting messages, channel settings, categories, quick switcher           |
+| v0.6      | Workspaces, roles, invitations                                                        |
+| v0.7      | Direct messages, unread, presence, typing                                             |
+| v0.8      | TOTP MFA, session management, back-channel logout, audit log                          |
+| v0.9      | Markdown, reactions, mentions, attachments, transactional outbox                      |
+| v0.10     | Bot foundation, Jira to chat                                                          |
+| v0.11     | Slash commands, event subscriptions, scheduled messages and reminders, GitLab, alerts |
+| v0.12     | Files (S3-compatible object store), previews, viewer, virus scanning                  |
+| v0.13     | Scaling and operations (multiple instances, OpenTelemetry, backups, Helm, air-gapped) |
+| **v0.14** | **Identity federation (LDAP/AD, SAML and OIDC, WebAuthn), admin console, guests**     |
+| v0.15     | Profiles, profile cards, custom status, channel and workspace settings                |
+| v0.16     | Appearance: theme presets, typography, fonts, code blocks                             |
+| v0.17     | Search and notifications (sounds, muting, web push, e-mail)                           |
+| v0.18     | Threads, pins, saved items, activity                                                  |
+| v0.19     | Community and moderation: forums, polls, events, AutoMod, playbooks                   |
+| v0.20     | Link previews, voice messages, forwarding, custom emoji                               |
+| v0.21     | Automation: workflows, approvals, forms                                               |
+| v0.22     | Collaboration: canvases, lists, boards, tasks                                         |
+| v0.23     | Compliance: retention, legal hold, eDiscovery, export, access control                 |
+| v0.24     | Optional, self-hosted AI (off by default)                                             |
+| v0.25     | Federation between servers                                                            |
+| v0.26     | Security testing and hardening                                                        |
+| v0.27     | Optimization and load tests                                                           |
+| v0.28     | Release candidate                                                                     |
+| v0.99     | Interface rewrite                                                                     |
+| v1.0      | Stable                                                                                |
+| v1.1      | Desktop app                                                                           |
+| v1.2      | Voice and video                                                                       |
+| v1.3      | Mobile apps                                                                           |
 
 ### Self-hosted installation roadmap
 
