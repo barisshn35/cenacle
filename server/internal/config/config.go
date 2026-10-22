@@ -116,6 +116,13 @@ type Config struct {
 	// SMTPSecurity is starttls (port 587), tls (port 465) or none (a local relay).
 	SMTPSecurity string
 
+	// AIURL is an OpenAI-compatible API of a model the operator runs (e.g.
+	// http://ollama:11434/v1); with AIModel it turns on the optional AI
+	// features, which workspaces still enable themselves. Empty: no AI at all.
+	AIURL     string
+	AIModel   string
+	AIAPIKey  string
+	AITimeout time.Duration
 	// WebPush turns on web push (through the browsers' push services).
 	WebPush bool
 	// WebPushSubject is the contact the push services see (mailto: or https:).
@@ -214,6 +221,18 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	}
 	if cfg.SMTPHost != "" && cfg.SMTPFrom == "" {
 		l.fail("CENACLE_SMTP_FROM: the sender address is needed with CENACLE_SMTP_HOST")
+	}
+	cfg.AIURL = strings.TrimRight(strings.TrimSpace(l.str("CENACLE_AI_URL", "")), "/")
+	cfg.AIModel = strings.TrimSpace(l.str("CENACLE_AI_MODEL", ""))
+	cfg.AIAPIKey = l.str("CENACLE_AI_API_KEY", "")
+	cfg.AITimeout = l.duration("CENACLE_AI_TIMEOUT", 2*time.Minute)
+	if cfg.AIURL != "" {
+		if u, err := url.Parse(cfg.AIURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			l.fail("CENACLE_AI_URL: an http(s) address of an OpenAI-compatible API")
+		}
+		if cfg.AIModel == "" {
+			l.fail("CENACLE_AI_MODEL: the model to use is needed with CENACLE_AI_URL")
+		}
 	}
 	cfg.WebPush = l.boolean("CENACLE_WEB_PUSH", false)
 	cfg.WebPushSubject = strings.TrimSpace(l.str("CENACLE_WEB_PUSH_SUBJECT", ""))

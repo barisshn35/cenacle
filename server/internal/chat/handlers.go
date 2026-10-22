@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
+	"github.com/barisshn35/cenacle/server/internal/ai"
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
@@ -41,6 +42,8 @@ type RateLimiter interface {
 
 // Handlers implements the chat operations of the API.
 type Handlers struct {
+	// AI is the model the operator configured; nil: no AI features.
+	AI *ai.Client
 	// Presence tells who is online (for @here); optional.
 	Presence PresenceReader
 	// LinkPreviews: the server fetches previews of links in messages.

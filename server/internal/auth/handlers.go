@@ -76,7 +76,9 @@ type Handlers struct {
 	Ephemeral *events.Ephemeral
 	// MaxFileSize is the largest file in bytes; 0 when files are off.
 	MaxFileSize int64
-	Log         *slog.Logger
+	// AI: the operator configured a model (workspaces may turn AI on).
+	AI  bool
+	Log *slog.Logger
 }
 
 func randomString() string {
@@ -316,7 +318,7 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
 			DisplayName:   p.User.DisplayName,
 		},
 		Permissions: api.Permissions{
-			CreateWorkspaces: p.User.IsAdmin, UploadFiles: h.MaxFileSize > 0, MaxFileSize: h.MaxFileSize,
+			CreateWorkspaces: p.User.IsAdmin, UploadFiles: h.MaxFileSize > 0, MaxFileSize: h.MaxFileSize, Ai: &h.AI,
 		},
 		CreatedAt:          p.Session.CreatedAt,
 		ExpiresAt:          p.Session.ExpiresAt,

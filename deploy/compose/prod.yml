@@ -98,6 +98,9 @@ services:
       CENACLE_EGRESS_ALLOW: ${CENACLE_EGRESS_ALLOW:-}
       # Previews of links in messages; turn off for servers without internet access.
       CENACLE_LINK_PREVIEWS: ${CENACLE_LINK_PREVIEWS:-true}
+      CENACLE_AI_URL: ${CENACLE_AI_URL:-}
+      CENACLE_AI_MODEL: ${CENACLE_AI_MODEL:-}
+      CENACLE_AI_API_KEY: ${CENACLE_AI_API_KEY:-}
       # Files: the bundled Garage (or set an S3 service of your own).
       CENACLE_S3_ENDPOINT: ${CENACLE_S3_ENDPOINT:-http://garage:3900}
       CENACLE_S3_REGION: ${CENACLE_S3_REGION:-garage}

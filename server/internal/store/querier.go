@@ -77,6 +77,7 @@ type Querier interface {
 	CountPollVoters(ctx context.Context, messageIds []pgtype.UUID) ([]CountPollVotersRow, error)
 	CountPushSubscriptions(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
+	CountRecentAIRequests(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountRecentWorkflowRuns(ctx context.Context, workflowID pgtype.UUID) (int32, error)
 	CountSaved(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountStickers(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
@@ -274,6 +275,7 @@ type Querier interface {
 	GetWorkflowRunForUpdate(ctx context.Context, id pgtype.UUID) (WorkflowRun, error)
 	GetWorkflowTaskForUpdate(ctx context.Context, id pgtype.UUID) (WorkflowTask, error)
 	GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error)
+	GetWorkspaceAI(ctx context.Context, id pgtype.UUID) (bool, error)
 	GetWorkspaceCommand(ctx context.Context, arg GetWorkspaceCommandParams) (GetWorkspaceCommandRow, error)
 	// GetWorkspaceMemberName returns the name of a member of a workspace.
 	GetWorkspaceMemberName(ctx context.Context, arg GetWorkspaceMemberNameParams) (string, error)
@@ -385,6 +387,9 @@ type Querier interface {
 	// the cursor (all when before is NULL), newest first, with their authors.
 	// Deleted messages and replies kept in their thread are left out.
 	ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error)
+	// ListMessagesForAI returns the newest readable messages of a channel (or of
+	// a thread: its root and replies), newest first.
+	ListMessagesForAI(ctx context.Context, arg ListMessagesForAIParams) ([]ListMessagesForAIRow, error)
 	// ListOpenWorkflowTasks returns the open tasks of a person in a workspace, newest first.
 	ListOpenWorkflowTasks(ctx context.Context, arg ListOpenWorkflowTasksParams) ([]ListOpenWorkflowTasksRow, error)
 	ListOutboxEvents(ctx context.Context, rowLimit int32) ([]EventOutbox, error)
@@ -483,6 +488,7 @@ type Querier interface {
 	// QueueDeliveries records an event for every enabled subscription of a bot that is a
 	// member of the event's channel and wants this event, except the bot's own messages.
 	QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error)
+	RecordAIRequest(ctx context.Context, arg RecordAIRequestParams) error
 	ReleaseLegalHold(ctx context.Context, arg ReleaseLegalHoldParams) (LegalHold, error)
 	// ReleaseUsername takes a @username from others when the directory gives it
 	// to someone (they get a new one).
@@ -523,6 +529,9 @@ type Querier interface {
 	// SearchMessages finds messages of the channels and conversations the user is
 	// in, newest first, with filters; before is the cursor (a message id).
 	SearchMessages(ctx context.Context, arg SearchMessagesParams) ([]SearchMessagesRow, error)
+	// SearchMessagesForAI finds the messages of a workspace's channels a person
+	// is in that best match any of the words (never encrypted channels).
+	SearchMessagesForAI(ctx context.Context, arg SearchMessagesForAIParams) ([]SearchMessagesForAIRow, error)
 	SearchQueryValid(ctx context.Context, query string) (bool, error)
 	// SearchUsers finds members of a workspace by name or e-mail address
 	// (pattern: a LIKE pattern with % and _ escaped by the caller).
@@ -578,6 +587,7 @@ type Querier interface {
 	SetUserDeactivated(ctx context.Context, arg SetUserDeactivatedParams) (pgtype.UUID, error)
 	SetWorkflowNextRun(ctx context.Context, arg SetWorkflowNextRunParams) error
 	SetWorkflowWebhook(ctx context.Context, arg SetWorkflowWebhookParams) error
+	SetWorkspaceAI(ctx context.Context, arg SetWorkspaceAIParams) (Workspace, error)
 	SetWorkspaceAppearance(ctx context.Context, arg SetWorkspaceAppearanceParams) error
 	SetWorkspaceCompliance(ctx context.Context, arg SetWorkspaceComplianceParams) error
 	SetWorkspaceIcon(ctx context.Context, arg SetWorkspaceIconParams) (pgtype.UUID, error)

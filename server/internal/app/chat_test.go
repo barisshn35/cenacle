@@ -21,6 +21,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/barisshn35/cenacle/server/internal/ai"
 	"github.com/barisshn35/cenacle/server/internal/app"
 	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
@@ -85,6 +86,8 @@ type options struct {
 	httpTimeout time.Duration
 	// pushKey turns on web push (subscriptions) with this public key.
 	pushKey string
+	// ai turns on the AI features with this model.
+	ai *ai.Client
 }
 
 func newStack(t *testing.T, sh shared, o options) *stack {
@@ -139,7 +142,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 		Auth: &auth.Handlers{
 			IdP:      &auth.IdentityProvider{Issuer: "http://127.0.0.1:1", HTTPClient: http.DefaultClient},
 			Sessions: sessions, Users: queries, Flows: sh.valkey, Cookies: cookies, PublicURL: public,
-			Audit: auditLog, Ephemeral: ephemeral, Log: log, MaxFileSize: maxFileSize,
+			Audit: auditLog, Ephemeral: ephemeral, Log: log, MaxFileSize: maxFileSize, AI: o.ai != nil,
 		},
 		Chat: &chat.Handlers{
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
@@ -147,7 +150,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			AccountURL:        "http://id.test/account",
 			PushPublicKey:     pushKeyFunc(o.pushKey),
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
-			Presence: presence, LinkPreviews: true,
+			Presence: presence, LinkPreviews: true, AI: o.ai,
 		},
 		Realtime: &realtime.Handler{
 			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Presence: presence, Cookies: cookies, PublicURL: public,

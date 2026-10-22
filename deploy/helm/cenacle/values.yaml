@@ -52,6 +52,10 @@ files:
 egressAllow: ''
 # Previews of links in messages (public addresses only); false for air-gapped installs.
 linkPreviews: true
+# Optional AI: an OpenAI-compatible API of a model you run (empty: no AI).
+ai:
+  url: ''
+  model: ''
 
 # E-mail about missed mentions and direct messages; empty host: no e-mail.
 # The password is the "smtp-password" key of existingSecret (optional).

@@ -23,6 +23,8 @@ tags:
     description: Workflows, forms and approvals
   - name: collaboration
     description: Channel tabs, canvases and lists
+  - name: ai
+    description: Optional AI features with a model the operator runs (off by default)
   - name: compliance
     description: Retention, legal holds, eDiscovery, classifications and access rules
   - name: auth
@@ -5129,6 +5131,119 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/ai:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [ai]
+      operationId: setWorkspaceAI
+      summary: Turn the AI features of a workspace on or off (owners and admins)
+      description: Only where the operator configured a model (the session's permissions.ai); off by default.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: The workspace.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/ai/summary:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [ai]
+      operationId: summarizeChannel
+      summary: Summarize a channel's recent messages, or a thread (members; shown only to the asker)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                root_id: { type: string, format: uuid, description: A thread to summarize instead. }
+                language: { type: string, maxLength: 10, description: 'The language to answer in (e.g. en, tr).' }
+      responses:
+        '200':
+          description: The summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AIAnswer' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/ai/compose:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [ai]
+      operationId: composeWithAI
+      summary: Rewrite a draft (clearer, shorter, more formal, friendlier, or in another language)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text, action]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 4000 }
+                action: { type: string, enum: [improve, shorter, formal, friendly, translate] }
+                language: { type: string, maxLength: 10, description: 'translate: the target language (e.g. en, tr).' }
+      responses:
+        '200':
+          description: The rewritten text.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AIAnswer' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/ai/ask:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [ai]
+      operationId: askAI
+      summary: Answer a question from the messages the asker can read
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string, minLength: 3, maxLength: 500 }
+                language: { type: string, maxLength: 10 }
+      responses:
+        '200':
+          description: The answer and the messages it used.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AIAnswer' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
 security:
   - cookie: []
   - bearer: []
@@ -5149,6 +5264,24 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    AIAnswer:
+      type: object
+      required: [text, sources]
+      properties:
+        text: { type: string, description: Markdown written by the model. }
+        sources:
+          type: array
+          description: Messages the answer was made from.
+          items: { $ref: '#/components/schemas/AISource' }
+    AISource:
+      type: object
+      required: [message_id, channel_id, channel_name, author_name, created_at]
+      properties:
+        message_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        channel_name: { type: string }
+        author_name: { type: string }
+        created_at: { type: string, format: date-time }
     Classification:
       type: object
       required: [name, description, color]
@@ -5973,6 +6106,7 @@ components:
         is_default:
           type: boolean
           description: Everyone who signs in belongs to the default workspace.
+        ai_enabled: { type: boolean, description: The workspace turned on the AI features. }
         role:
           type: string
           enum: [owner, admin, member, guest]
@@ -6677,6 +6811,7 @@ components:
           type: boolean
           description: Files can be shared (an object store is configured).
         max_file_size: { type: integer, format: int64 }
+        ai: { type: boolean, description: The operator configured a model (workspaces can turn AI on). }
     Logout:
       type: object
       required: [end_session_url]

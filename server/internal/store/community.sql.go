@@ -1316,7 +1316,7 @@ func (q *Queries) SetRunChecklists(ctx context.Context, arg SetRunChecklistsPara
 
 const setWorkspaceWelcome = `-- name: SetWorkspaceWelcome :one
 
-UPDATE workspaces SET welcome = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id
+UPDATE workspaces SET welcome = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled
 `
 
 type SetWorkspaceWelcomeParams struct {
@@ -1339,6 +1339,7 @@ func (q *Queries) SetWorkspaceWelcome(ctx context.Context, arg SetWorkspaceWelco
 		&i.Welcome,
 		&i.RetentionDays,
 		&i.ClassificationID,
+		&i.AiEnabled,
 	)
 	return i, err
 }

@@ -1506,6 +1506,33 @@ func (e SetUITextsJSONBodyLocale) Valid() bool {
 	}
 }
 
+// Defines values for ComposeWithAIJSONBodyAction.
+const (
+	Formal    ComposeWithAIJSONBodyAction = "formal"
+	Friendly  ComposeWithAIJSONBodyAction = "friendly"
+	Improve   ComposeWithAIJSONBodyAction = "improve"
+	Shorter   ComposeWithAIJSONBodyAction = "shorter"
+	Translate ComposeWithAIJSONBodyAction = "translate"
+)
+
+// Valid indicates whether the value is a known member of the ComposeWithAIJSONBodyAction enum.
+func (e ComposeWithAIJSONBodyAction) Valid() bool {
+	switch e {
+	case Formal:
+		return true
+	case Friendly:
+		return true
+	case Improve:
+		return true
+	case Shorter:
+		return true
+	case Translate:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetWorkspaceRoleJSONBodyRole.
 const (
 	SetWorkspaceRoleJSONBodyRoleAdmin  SetWorkspaceRoleJSONBodyRole = "admin"
@@ -1546,6 +1573,24 @@ func (e ListReportsParamsStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// AIAnswer defines model for AIAnswer.
+type AIAnswer struct {
+	// Sources Messages the answer was made from.
+	Sources []AISource `json:"sources"`
+
+	// Text Markdown written by the model.
+	Text string `json:"text"`
+}
+
+// AISource defines model for AISource.
+type AISource struct {
+	AuthorName  string             `json:"author_name"`
+	ChannelId   openapi_types.UUID `json:"channel_id"`
+	ChannelName string             `json:"channel_name"`
+	CreatedAt   time.Time          `json:"created_at"`
+	MessageId   openapi_types.UUID `json:"message_id"`
 }
 
 // AccessRule defines model for AccessRule.
@@ -2533,6 +2578,8 @@ type NotificationSound = string
 // Permissions What the user may do across the instance. Rights inside a workspace follow
 // the role there (see Workspace).
 type Permissions struct {
+	// Ai The operator configured a model (workspaces can turn AI on).
+	Ai               *bool `json:"ai,omitempty"`
 	CreateWorkspaces bool  `json:"create_workspaces"`
 	MaxFileSize      int64 `json:"max_file_size"`
 
@@ -3077,6 +3124,8 @@ type WorkflowTriggerKind string
 
 // Workspace defines model for Workspace.
 type Workspace struct {
+	// AiEnabled The workspace turned on the AI features.
+	AiEnabled   *bool               `json:"ai_enabled,omitempty"`
 	Appearance  WorkspaceAppearance `json:"appearance"`
 	Description string              `json:"description"`
 
@@ -3229,6 +3278,15 @@ type UpdateCategoryJSONBody struct {
 // ListChannelDirectoryParams defines parameters for ListChannelDirectory.
 type ListChannelDirectoryParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
+}
+
+// SummarizeChannelJSONBody defines parameters for SummarizeChannel.
+type SummarizeChannelJSONBody struct {
+	// Language The language to answer in (e.g. en, tr).
+	Language *string `json:"language,omitempty"`
+
+	// RootId A thread to summarize instead.
+	RootId *openapi_types.UUID `json:"root_id,omitempty"`
 }
 
 // SetChannelCategoryJSONBody defines parameters for SetChannelCategory.
@@ -3575,6 +3633,29 @@ type RenameWorkspaceJSONBody struct {
 	Name        *string `json:"name,omitempty"`
 }
 
+// SetWorkspaceAIJSONBody defines parameters for SetWorkspaceAI.
+type SetWorkspaceAIJSONBody struct {
+	Enabled bool `json:"enabled"`
+}
+
+// AskAIJSONBody defines parameters for AskAI.
+type AskAIJSONBody struct {
+	Language *string `json:"language,omitempty"`
+	Question string  `json:"question"`
+}
+
+// ComposeWithAIJSONBody defines parameters for ComposeWithAI.
+type ComposeWithAIJSONBody struct {
+	Action ComposeWithAIJSONBodyAction `json:"action"`
+
+	// Language translate: the target language (e.g. en, tr).
+	Language *string `json:"language,omitempty"`
+	Text     string  `json:"text"`
+}
+
+// ComposeWithAIJSONBodyAction defines parameters for ComposeWithAI.
+type ComposeWithAIJSONBodyAction string
+
 // ListWorkspaceAuditParams defines parameters for ListWorkspaceAudit.
 type ListWorkspaceAuditParams struct {
 	// Before Events older than this one (cursor).
@@ -3695,6 +3776,9 @@ type CreateChannelJSONRequestBody = NewChannel
 
 // UpdateChannelJSONRequestBody defines body for UpdateChannel for application/json ContentType.
 type UpdateChannelJSONRequestBody = ChannelUpdate
+
+// SummarizeChannelJSONRequestBody defines body for SummarizeChannel for application/json ContentType.
+type SummarizeChannelJSONRequestBody SummarizeChannelJSONBody
 
 // SetChannelCategoryJSONRequestBody defines body for SetChannelCategory for application/json ContentType.
 type SetChannelCategoryJSONRequestBody SetChannelCategoryJSONBody
@@ -3848,6 +3932,15 @@ type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
 
 // RenameWorkspaceJSONRequestBody defines body for RenameWorkspace for application/json ContentType.
 type RenameWorkspaceJSONRequestBody RenameWorkspaceJSONBody
+
+// SetWorkspaceAIJSONRequestBody defines body for SetWorkspaceAI for application/json ContentType.
+type SetWorkspaceAIJSONRequestBody SetWorkspaceAIJSONBody
+
+// AskAIJSONRequestBody defines body for AskAI for application/json ContentType.
+type AskAIJSONRequestBody AskAIJSONBody
+
+// ComposeWithAIJSONRequestBody defines body for ComposeWithAI for application/json ContentType.
+type ComposeWithAIJSONRequestBody ComposeWithAIJSONBody
 
 // SetWorkspaceAppearanceJSONRequestBody defines body for SetWorkspaceAppearance for application/json ContentType.
 type SetWorkspaceAppearanceJSONRequestBody = WorkspaceAppearance
@@ -4078,6 +4171,9 @@ type ServerInterface interface {
 	// UpdateChannel Rename, change visibility or topic (channel managers)
 	// (PATCH /api/channels/{channel_id})
 	UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// SummarizeChannel Summarize a channel's recent messages, or a thread (members; shown only to the asker)
+	// (POST /api/channels/{channel_id}/ai/summary)
+	SummarizeChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// ArchiveChannel Archive a channel (channel managers)
 	// (POST /api/channels/{channel_id}/archive)
 	ArchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -4474,6 +4570,15 @@ type ServerInterface interface {
 	// RenameWorkspace Change a workspace's name or description (owners and admins)
 	// (PATCH /api/workspaces/{workspace_id})
 	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetWorkspaceAI Turn the AI features of a workspace on or off (owners and admins)
+	// (PUT /api/workspaces/{workspace_id}/ai)
+	SetWorkspaceAI(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// AskAI Answer a question from the messages the asker can read
+	// (POST /api/workspaces/{workspace_id}/ai/ask)
+	AskAI(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ComposeWithAI Rewrite a draft (clearer, shorter, more formal, friendlier, or in another language)
+	// (POST /api/workspaces/{workspace_id}/ai/compose)
+	ComposeWithAI(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// SetWorkspaceAppearance The workspace's default theme preset and font template (owners and admins)
 	// (PUT /api/workspaces/{workspace_id}/appearance)
 	SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -4846,6 +4951,12 @@ func (_ Unimplemented) ListChannelDirectory(w http.ResponseWriter, r *http.Reque
 // UpdateChannel Rename, change visibility or topic (channel managers)
 // (PATCH /api/channels/{channel_id})
 func (_ Unimplemented) UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SummarizeChannel Summarize a channel's recent messages, or a thread (members; shown only to the asker)
+// (POST /api/channels/{channel_id}/ai/summary)
+func (_ Unimplemented) SummarizeChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5638,6 +5749,24 @@ func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 // RenameWorkspace Change a workspace's name or description (owners and admins)
 // (PATCH /api/workspaces/{workspace_id})
 func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWorkspaceAI Turn the AI features of a workspace on or off (owners and admins)
+// (PUT /api/workspaces/{workspace_id}/ai)
+func (_ Unimplemented) SetWorkspaceAI(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AskAI Answer a question from the messages the asker can read
+// (POST /api/workspaces/{workspace_id}/ai/ask)
+func (_ Unimplemented) AskAI(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ComposeWithAI Rewrite a draft (clearer, shorter, more formal, friendlier, or in another language)
+// (POST /api/workspaces/{workspace_id}/ai/compose)
+func (_ Unimplemented) ComposeWithAI(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6960,6 +7089,32 @@ func (siw *ServerInterfaceWrapper) UpdateChannel(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SummarizeChannel operation middleware
+func (siw *ServerInterfaceWrapper) SummarizeChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SummarizeChannel(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10649,6 +10804,84 @@ func (siw *ServerInterfaceWrapper) RenameWorkspace(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// SetWorkspaceAI operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspaceAI(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspaceAI(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AskAI operation middleware
+func (siw *ServerInterfaceWrapper) AskAI(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AskAI(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ComposeWithAI operation middleware
+func (siw *ServerInterfaceWrapper) ComposeWithAI(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ComposeWithAI(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetWorkspaceAppearance operation middleware
 func (siw *ServerInterfaceWrapper) SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request) {
 
@@ -12892,6 +13125,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/export", wrapper.ExportMessages)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/ai", wrapper.SetWorkspaceAI)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/ai/summary", wrapper.SummarizeChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/ai/compose", wrapper.ComposeWithAI)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/ai/ask", wrapper.AskAI)
 	})
 
 	return r

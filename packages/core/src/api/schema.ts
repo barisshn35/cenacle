@@ -3270,10 +3270,105 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/ai': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Turn the AI features of a workspace on or off (owners and admins)
+     * @description Only where the operator configured a model (the session's permissions.ai); off by default.
+     */
+    put: operations['setWorkspaceAI'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/ai/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Summarize a channel's recent messages, or a thread (members; shown only to the asker) */
+    post: operations['summarizeChannel'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/ai/compose': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Rewrite a draft (clearer, shorter, more formal, friendlier, or in another language) */
+    post: operations['composeWithAI'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/ai/ask': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Answer a question from the messages the asker can read */
+    post: operations['askAI'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    AIAnswer: {
+      /** @description Markdown written by the model. */
+      text: string;
+      /** @description Messages the answer was made from. */
+      sources: components['schemas']['AISource'][];
+    };
+    AISource: {
+      /** Format: uuid */
+      message_id: string;
+      /** Format: uuid */
+      channel_id: string;
+      channel_name: string;
+      author_name: string;
+      /** Format: date-time */
+      created_at: string;
+    };
     Classification: {
       /**
        * Format: uuid
@@ -4001,6 +4096,8 @@ export interface components {
       appearance: components['schemas']['WorkspaceAppearance'];
       /** @description Everyone who signs in belongs to the default workspace. */
       is_default: boolean;
+      /** @description The workspace turned on the AI features. */
+      ai_enabled?: boolean;
       /**
        * @description Guests see only the channels they are in and the people in them.
        * @enum {string}
@@ -4580,6 +4677,8 @@ export interface components {
       upload_files: boolean;
       /** Format: int64 */
       max_file_size: number;
+      /** @description The operator configured a model (workspaces can turn AI on). */
+      ai?: boolean;
     };
     Logout: {
       /** @description Sign-out page of Cenacle ID; empty if it is not known. */
@@ -10704,6 +10803,150 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  setWorkspaceAI: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          enabled: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description The workspace. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workspace'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  summarizeChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /**
+           * Format: uuid
+           * @description A thread to summarize instead.
+           */
+          root_id?: string;
+          /** @description The language to answer in (e.g. en, tr). */
+          language?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The summary. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIAnswer'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      429: components['responses']['Problem'];
+      502: components['responses']['Problem'];
+    };
+  };
+  composeWithAI: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          text: string;
+          /** @enum {string} */
+          action: 'improve' | 'shorter' | 'formal' | 'friendly' | 'translate';
+          /** @description translate: the target language (e.g. en, tr). */
+          language?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The rewritten text. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIAnswer'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      429: components['responses']['Problem'];
+      502: components['responses']['Problem'];
+    };
+  };
+  askAI: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          question: string;
+          language?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The answer and the messages it used. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIAnswer'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      429: components['responses']['Problem'];
+      502: components['responses']['Problem'];
     };
   };
 }

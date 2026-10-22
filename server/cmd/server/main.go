@@ -39,6 +39,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/barisshn35/cenacle/server/internal/admin"
+	"github.com/barisshn35/cenacle/server/internal/ai"
 	"github.com/barisshn35/cenacle/server/internal/app"
 	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/auth"
@@ -298,9 +299,11 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Audit:       auditLog,
 			Ephemeral:   ephemeral,
 			MaxFileSize: maxFileSize,
+			AI:          cfg.AIURL != "",
 			Log:         log,
 		},
 		Chat: &chat.Handlers{
+			AI:                ai.New(cfg.AIURL, cfg.AIModel, cfg.AIAPIKey, cfg.AITimeout),
 			Queries:           queries,
 			DB:                pool,
 			Egress:            egressClient,

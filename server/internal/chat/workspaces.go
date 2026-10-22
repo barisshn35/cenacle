@@ -39,7 +39,7 @@ type WorkspaceEvent struct {
 func workspaceAPI(w store.Workspace, role string) api.Workspace {
 	return api.Workspace{Id: uuid(w.ID), Name: w.Name, Description: w.Description,
 		IconUrl: pictureURL(w.IconID, false), Appearance: workspaceAppearance(w.Appearance),
-		IsDefault: w.IsDefault, Role: api.WorkspaceRole(role)}
+		IsDefault: w.IsDefault, Role: api.WorkspaceRole(role), AiEnabled: ptr(w.AiEnabled)}
 }
 
 // ListWorkspaces implements api.ServerInterface.

@@ -10,6 +10,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AiRequest struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	UserID      pgtype.UUID `json:"user_id"`
+	Kind        string      `json:"kind"`
+	InputChars  int32       `json:"input_chars"`
+	OutputChars int32       `json:"output_chars"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
 type AuditEvent struct {
 	ID          pgtype.UUID `json:"id"`
 	At          time.Time   `json:"at"`
@@ -671,6 +681,7 @@ type Workspace struct {
 	Welcome          []byte      `json:"welcome"`
 	RetentionDays    pgtype.Int4 `json:"retention_days"`
 	ClassificationID pgtype.UUID `json:"classification_id"`
+	AiEnabled        bool        `json:"ai_enabled"`
 }
 
 type WorkspaceAttribute struct {
