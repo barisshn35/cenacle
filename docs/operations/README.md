@@ -87,6 +87,15 @@ needs virus signatures: point it at a local mirror.
 
 AI features are off until a model you run is configured; see the [AI guide](ai.md).
 
+## Federation
+
+A workspace can share channels with a workspace of another Cenacle server (Federation, at
+the top of the sidebar, for owners and admins): one side creates an invitation code, the
+other connects with it, then channels are offered and accepted. Both servers must reach
+each other at their public address; the connection shows when the other side was last
+heard from and the last delivery error. Pausing a connection keeps events queued until it
+resumes.
+
 ## Moving from Mattermost or Slack
 
 Cenacle imports the history of another chat once, from its export files (it never

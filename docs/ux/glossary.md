@@ -78,6 +78,7 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Classification       | Classification                  | Sınıflandırma                         | `compliance.classes.title`                | A channel's banner                            |
 | Encrypted channel    | Encrypted end to end            | Uçtan uca şifreli                     | `e2e.info`                                | Readable only with the passphrase             |
 | AI                   | AI / Written by AI              | Yapay zekâ / Yapay zekâ yazdı         | `ai.written`                              | Off unless operator and workspace allow it    |
+| Federation           | Connected server / Share        | Bağlı sunucu / Paylaş                 | `federation.connections.title`            | Channels shared with another Cenacle          |
 | Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
 ## Rules

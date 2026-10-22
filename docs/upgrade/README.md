@@ -39,6 +39,16 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.25.0
+
+- Migration `00025_federation` adds connections to other servers, shared channels and their
+  delivery queue. Nothing is shared until admins connect two servers.
+- Servers that federate must reach each other: `https` on the public network, or private
+  networks listed in `CENACLE_EGRESS_ALLOW`. The `/api/federation/v1/*` paths must be
+  reachable through your proxy (they are under `/api`, as everything else).
+- Rolling back to 0.24 needs `migrate down` once; connections and shares are removed, the
+  messages exchanged stay.
+
 ### 0.24.0
 
 - Migration `00024_ai` adds the workspace AI switch and a log of AI requests (no content).

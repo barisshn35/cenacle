@@ -8,6 +8,15 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Federation between Cenacle servers.
+
+### Added
+
+- Connect a workspace to a workspace of another Cenacle server with an invitation code, and
+  share channels with it: messages, replies, edits, deletions and reactions go both ways,
+  signed with the connection's secret (ADR 0030).
+- People of the other server appear as guests named after their server.
+
 ## [0.24.0] - 2026-10-23
 
 Optional, self-hosted AI.
