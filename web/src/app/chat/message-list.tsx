@@ -306,6 +306,8 @@ function useJumpTo(
       // The index is in `rows` (not counted from firstItemIndex). The list may
       // still move to keep its place after pages were prepended, so scroll
       // again until the message is in view (a few tries).
+      // The highlight starts once the message is in view, so it is seen in full.
+      useJump.setState({ target: null });
       let tries = 0;
       const bring = () => {
         list.current?.scrollToIndex({ index, align: 'center' });
@@ -313,13 +315,16 @@ function useJumpTo(
         const box = el?.closest('[role="log"]')?.getBoundingClientRect();
         const r = el?.getBoundingClientRect();
         const inView = !!r && !!box && r.top >= box.top && r.bottom <= box.bottom;
-        if (!inView && ++tries < 20) setTimeout(bring, 100);
+        if (!inView && ++tries < 20) {
+          setTimeout(bring, 100);
+          return;
+        }
+        done(target);
+        setTimeout(() => {
+          if (useJump.getState().highlighted === target) useJump.getState().done(null);
+        }, 2600);
       };
       setTimeout(bring, 50);
-      done(target);
-      setTimeout(() => {
-        if (useJump.getState().highlighted === target) useJump.getState().done(null);
-      }, 2600);
       return;
     }
     if (hasNextPage && pages < JUMP_PAGES) {
