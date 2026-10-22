@@ -19,7 +19,9 @@ services:
     privileged: true
     restart: unless-stopped
     environment: { DOCKER_TLS_CERTDIR: '' }
-    command: ['dockerd', '--host=unix:///run/ci-docker/docker.sock']
+    # The second socket serves jobs that mount /var/run/docker.sock into containers.
+    command:
+      ['dockerd', '--host=unix:///run/ci-docker/docker.sock', '--host=unix:///var/run/docker.sock']
     volumes:
       - /var/lib/cenacle-ci/docker:/var/lib/docker
       - /var/lib/cenacle-ci/builds:/builds
