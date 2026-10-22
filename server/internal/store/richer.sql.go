@@ -415,26 +415,34 @@ func (q *Queries) ListStickersByID(ctx context.Context, ids []pgtype.UUID) ([]St
 	return items, nil
 }
 
-const purgeBurned = `-- name: PurgeBurned :execrows
-DELETE FROM messages m
-WHERE m.burn_seconds IS NOT NULL
-  AND (m.created_at < now() - interval '7 days'
-       OR (NOT EXISTS (
-               SELECT 1 FROM channel_members cm
-               WHERE cm.channel_id = m.channel_id AND cm.user_id <> m.author_id
-                 AND NOT EXISTS (SELECT 1 FROM burn_reveals b
-                                 WHERE b.message_id = m.id AND b.user_id = cm.user_id
-                                   AND b.revealed_at + make_interval(secs => m.burn_seconds) < now()))))
+const purgeBurned = `-- name: PurgeBurned :one
+WITH due AS (
+    SELECT m.id, message_held(m.channel_id, m.author_id, m.created_at) AS held
+    FROM messages m
+    WHERE m.burn_seconds IS NOT NULL AND m.deleted_at IS NULL
+      AND (m.created_at < now() - interval '7 days'
+           OR (NOT EXISTS (
+                   SELECT 1 FROM channel_members cm
+                   WHERE cm.channel_id = m.channel_id AND cm.user_id <> m.author_id
+                     AND NOT EXISTS (SELECT 1 FROM burn_reveals b
+                                     WHERE b.message_id = m.id AND b.user_id = cm.user_id
+                                       AND b.revealed_at + make_interval(secs => m.burn_seconds) < now()))))
+), gone AS (
+    DELETE FROM messages WHERE id IN (SELECT id FROM due WHERE NOT held) RETURNING 1
+), kept AS (
+    UPDATE messages SET deleted_at = now() WHERE id IN (SELECT id FROM due WHERE held) RETURNING 1
+)
+SELECT ((SELECT count(*) FROM gone) + (SELECT count(*) FROM kept))::bigint
 `
 
 // PurgeBurned removes burn-on-read messages every other member has read and
-// whose time is up, and any older than a week.
+// whose time is up, and any older than a week. Messages a legal hold keeps are
+// deleted for people instead (and stay for eDiscovery).
 func (q *Queries) PurgeBurned(ctx context.Context) (int64, error) {
-	result, err := q.db.Exec(ctx, purgeBurned)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	row := q.db.QueryRow(ctx, purgeBurned)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const revealBurn = `-- name: RevealBurn :one

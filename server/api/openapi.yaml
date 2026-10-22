@@ -23,6 +23,8 @@ tags:
     description: Workflows, forms and approvals
   - name: collaboration
     description: Channel tabs, canvases and lists
+  - name: compliance
+    description: Retention, legal holds, eDiscovery, classifications and access rules
   - name: auth
     description: Sign-in with Cenacle ID and sessions
   - name: chat
@@ -4891,6 +4893,242 @@ paths:
                     items: { $ref: '#/components/schemas/AssignedItem' }
         '401': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/compliance:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: getCompliance
+      summary: Retention, classifications and member attributes of a workspace (owners and admins)
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compliance' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [compliance]
+      operationId: setCompliance
+      summary: Change retention, classifications and member attributes (owners and admins)
+      description: Classifications without an id are created; ones left out are deleted (their channels lose them).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Compliance' }
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Compliance' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/classifications:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: listClassifications
+      summary: Classifications of a workspace and its default (members)
+      responses:
+        '200':
+          description: Classifications.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [classifications, default_id]
+                properties:
+                  classifications:
+                    type: array
+                    items: { $ref: '#/components/schemas/Classification' }
+                  default_id: { type: string, format: uuid, nullable: true }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/member-attributes:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: listMemberAttributes
+      summary: Every member's attributes (owners and admins)
+      responses:
+        '200':
+          description: Attributes by member.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [members]
+                properties:
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      required: [user_id, attributes]
+                      properties:
+                        user_id: { type: string, format: uuid }
+                        attributes: { $ref: '#/components/schemas/Attributes' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/member-attributes/{user_id}:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [compliance]
+      operationId: setMemberAttributes
+      summary: Set a member's attributes (owners and admins); channels whose rules they no longer meet remove them
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Attributes' }
+      responses:
+        '200':
+          description: Channels the member left.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Removed' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/compliance:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [compliance]
+      operationId: setChannelCompliance
+      summary: A channel's retention, classification and access rules (workspace owners and admins)
+      description: Members who do not meet the new access rules are removed from the channel.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChannelCompliance' }
+      responses:
+        '200':
+          description: How many members left.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Removed' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/legal-holds:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: listLegalHolds
+      summary: Legal holds, active first (owners)
+      responses:
+        '200':
+          description: Holds.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [holds]
+                properties:
+                  holds:
+                    type: array
+                    items: { $ref: '#/components/schemas/LegalHold' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [compliance]
+      operationId: createLegalHold
+      summary: Keep the messages of people or channels from deletion (owners)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LegalHoldInput' }
+      responses:
+        '201':
+          description: The hold.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalHold' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/legal-holds/{hold_id}:
+    parameters:
+      - { name: hold_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [compliance]
+      operationId: updateLegalHold
+      summary: Change an active hold (owners)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LegalHoldInput' }
+      responses:
+        '200':
+          description: The hold.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalHold' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/legal-holds/{hold_id}/release:
+    parameters:
+      - { name: hold_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [compliance]
+      operationId: releaseLegalHold
+      summary: Release a hold; retention applies again to its messages (owners)
+      responses:
+        '200':
+          description: The hold.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LegalHold' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/export:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: exportMessages
+      summary: eDiscovery export of messages, deleted ones included (owners)
+      description: |
+        One JSON object per line (application/x-ndjson), oldest first. Encrypted
+        channels export their envelopes. Every export is recorded in the audit log.
+      parameters:
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: until, in: query, schema: { type: string, format: date-time } }
+        - { name: channel_ids, in: query, style: form, explode: false, schema: { type: array, items: { type: string, format: uuid } } }
+        - { name: user_ids, in: query, style: form, explode: false, schema: { type: array, items: { type: string, format: uuid } } }
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+      responses:
+        '200':
+          description: The messages.
+          content:
+            application/x-ndjson:
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
 security:
   - cookie: []
   - bearer: []
@@ -4911,6 +5149,97 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    Classification:
+      type: object
+      required: [name, description, color]
+      properties:
+        id: { type: string, format: uuid, description: Left out for a new one. }
+        name: { type: string, minLength: 1, maxLength: 60 }
+        description: { type: string, maxLength: 300, description: Shown in the banner. }
+        color: { type: string, enum: [neutral, info, success, warning, danger] }
+    AttributeDef:
+      type: object
+      required: [key, name]
+      properties:
+        key: { type: string, pattern: '^[a-z0-9_]{1,32}$' }
+        name: { type: string, minLength: 1, maxLength: 60 }
+    Attributes:
+      type: object
+      description: A member's attributes by key.
+      additionalProperties: { type: string, maxLength: 100 }
+    AccessRule:
+      type: object
+      required: [key, values]
+      properties:
+        key: { type: string }
+        values:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 100 }
+    Compliance:
+      type: object
+      required: [retention_days, default_classification, classifications, attributes]
+      properties:
+        retention_days: { type: integer, nullable: true, minimum: 1, maximum: 36500, description: Days messages are kept; null keeps them. }
+        default_classification: { type: string, nullable: true, description: 'The name of the classification channels show by default (names are unique).' }
+        classifications:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/Classification' }
+        attributes:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/AttributeDef' }
+    ChannelCompliance:
+      type: object
+      required: [retention_days, classification_id, access_rules]
+      properties:
+        retention_days: { type: integer, nullable: true, minimum: 1, maximum: 36500, description: null follows the workspace. }
+        classification_id: { type: string, format: uuid, nullable: true, description: null follows the workspace. }
+        access_rules:
+          type: array
+          maxItems: 10
+          items: { $ref: '#/components/schemas/AccessRule' }
+    Removed:
+      type: object
+      required: [removed]
+      properties:
+        removed: { type: integer, description: Memberships ended by access rules. }
+    LegalHoldInput:
+      type: object
+      required: [name, user_ids, channel_ids]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 1000 }
+        user_ids:
+          type: array
+          maxItems: 500
+          items: { type: string, format: uuid }
+        channel_ids:
+          type: array
+          maxItems: 500
+          items: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time, nullable: true }
+        ends_at: { type: string, format: date-time, nullable: true }
+    LegalHold:
+      type: object
+      required: [id, name, description, user_ids, channel_ids, created_at, message_count]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        user_ids:
+          type: array
+          items: { type: string, format: uuid }
+        channel_ids:
+          type: array
+          items: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time, nullable: true }
+        ends_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        released_at: { type: string, format: date-time, nullable: true }
+        message_count: { type: integer, description: Messages the hold covers now. }
     TabInput:
       type: object
       required: [kind, title]
@@ -5705,6 +6034,13 @@ components:
           participants,
         ]
       properties:
+        encrypted: { type: boolean, description: End-to-end encrypted; bodies are envelopes only members can open. }
+        key_check: { type: string, description: 'Encrypted channels: lets members check their passphrase.' }
+        classification_id: { type: string, format: uuid, nullable: true, description: The channel's own classification (null follows the workspace). }
+        retention_days: { type: integer, nullable: true, description: The channel's own retention (null follows the workspace). }
+        access_rules:
+          type: array
+          items: { $ref: '#/components/schemas/AccessRule' }
         id: { type: string, format: uuid }
         workspace_id: { type: string, format: uuid }
         name: { type: string }
@@ -6088,6 +6424,11 @@ components:
           type: boolean
           default: false
           description: Make every user, now and later, a member.
+        encrypted:
+          type: boolean
+          default: false
+          description: End-to-end encrypted with a passphrase its members share; cannot change later.
+        key_check: { type: string, maxLength: 400, description: 'Encrypted channels: the key''s salt and a known text sealed with the key ("s:<salt>:e2e:v1:…").' }
     Author:
       type: object
       required: [id, display_name]

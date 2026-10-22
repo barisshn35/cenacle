@@ -4,6 +4,7 @@ package chat
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -291,7 +292,7 @@ func (h *Handlers) StartRun(w http.ResponseWriter, r *http.Request, playbookID o
 			return err
 		}
 		body := fmt.Sprintf("▶️ Started **%s** (playbook “%s”).", name, pb.Name)
-		if _, err := postMessage(r.Context(), q, c, p.User, body, "run-"+uuid(run.ID).String(), []byte("[]")); err != nil {
+		if _, err := postMessage(r.Context(), q, c, p.User, body, "run-"+uuid(run.ID).String(), []byte("[]")); err != nil && !errors.Is(err, errEncrypted) { // encrypted channels get no notice
 			return err
 		}
 		return emit(r.Context(), q, events.RunUpdated, RunEvent{ChannelID: uuid(c.ID).String(), Run: runAPI(run, p.User.DisplayName)})
@@ -454,7 +455,7 @@ func (h *Handlers) FinishRun(w http.ResponseWriter, r *http.Request, runID opena
 			return err
 		}
 		body := fmt.Sprintf("✅ Finished **%s**.", run.Name)
-		if _, err := postMessage(r.Context(), q, c, p.User, body, "run-done-"+uuid(run.ID).String(), []byte("[]")); err != nil {
+		if _, err := postMessage(r.Context(), q, c, p.User, body, "run-done-"+uuid(run.ID).String(), []byte("[]")); err != nil && !errors.Is(err, errEncrypted) { // encrypted channels get no notice
 			return err
 		}
 		return emit(r.Context(), q, events.RunUpdated, RunEvent{ChannelID: uuid(c.ID).String(), Run: runAPI(finished, h.ownerName(r, finished))})

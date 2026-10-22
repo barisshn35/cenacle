@@ -180,6 +180,15 @@ var WorkflowsInterval = 2 * time.Second
 // LinksInterval is how often new links are looked for.
 var LinksInterval = 3 * time.Second
 
+// PurgeExpiredArgs deletes messages older than their retention.
+type PurgeExpiredArgs struct{}
+
+// Kind implements river.JobArgs.
+func (PurgeExpiredArgs) Kind() string { return "purge_expired_messages" }
+
+// RetentionInterval is how often expired messages are deleted (in batches).
+var RetentionInterval = time.Minute
+
 // EmailNotificationsArgs e-mails people about what they missed.
 type EmailNotificationsArgs struct{}
 
@@ -296,6 +305,8 @@ type Deps struct {
 	Links Runner
 	// Workflows is optional.
 	Workflows Runner
+	// Retention is optional.
+	Retention Runner
 	Log       *slog.Logger
 }
 
@@ -335,6 +346,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Workflows != nil {
 		river.AddWorker(workers, &runnerWorker[RunWorkflowsArgs]{r: d.Workflows, what: "workflow steps run", log: d.Log})
 		jobs = append(jobs, periodic(WorkflowsInterval, RunWorkflowsArgs{}))
+	}
+	if d.Retention != nil {
+		river.AddWorker(workers, &runnerWorker[PurgeExpiredArgs]{r: d.Retention, what: "expired messages deleted", log: d.Log})
+		jobs = append(jobs, periodic(RetentionInterval, PurgeExpiredArgs{}))
 	}
 	if d.Links != nil {
 		river.AddWorker(workers, &runnerWorker[FetchLinkPreviewsArgs]{r: d.Links, what: "link previews settled", log: d.Log})

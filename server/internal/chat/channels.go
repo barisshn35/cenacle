@@ -110,6 +110,18 @@ func toAPI(c store.Channel, a access) api.Channel {
 		Participants:    []api.Person{},
 		SlowModeSeconds: ptr(int(c.SlowModeSeconds)),
 		ForumTags:       ptr(append([]string{}, c.ForumTags...)),
+		Encrypted:       ptr(c.Encrypted),
+		AccessRules:     ptr(accessRules(c)),
+	}
+	if c.Encrypted {
+		out.KeyCheck = &c.KeyCheck
+	}
+	if c.ClassificationID.Valid {
+		id := uuid(c.ClassificationID)
+		out.ClassificationId = &id
+	}
+	if c.RetentionDays.Valid {
+		out.RetentionDays = ptr(int(c.RetentionDays.Int32))
 	}
 	if c.CategoryID.Valid {
 		id := uuid(c.CategoryID)
@@ -251,6 +263,7 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		visibility = string(*in.Visibility)
 	}
 	isDefault := in.IsDefault != nil && *in.IsDefault
+	encrypted, keyCheck := in.Encrypted != nil && *in.Encrypted, deref1(in.KeyCheck)
 	switch {
 	case problem != "":
 	case kind != KindStandard && kind != KindAnnouncement && kind != KindForum:
@@ -259,6 +272,12 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		problem = "visibility must be public or private."
 	case isDefault && visibility == Private:
 		problem = "A channel for everyone cannot be private."
+	case encrypted && kind == KindForum:
+		problem = "Forums cannot be encrypted: their titles are not."
+	case encrypted && !isKeyCheck(keyCheck):
+		problem = "An encrypted channel needs its key check."
+	case !encrypted && keyCheck != "":
+		problem = "Only an encrypted channel has a key check."
 	}
 	if problem != "" {
 		badRequest(w, r, problem)
@@ -267,7 +286,7 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 
 	c, err := h.Queries.CreateChannel(r.Context(), store.CreateChannelParams{
 		WorkspaceID: pgUUID(in.WorkspaceId), Name: name, Topic: topic, Kind: kind, IsDefault: isDefault,
-		Visibility: visibility, CreatedBy: p.User.ID,
+		Visibility: visibility, CreatedBy: p.User.ID, Encrypted: encrypted, KeyCheck: keyCheck,
 	})
 	if isUniqueViolation(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
@@ -289,7 +308,7 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	}
 	out := toAPI(c, access{ch: RoleManager, ws: wsRole})
 	h.record(r, c.WorkspaceID, audit.ChannelCreated, "channel", uuid(c.ID).String(),
-		map[string]any{"channel": c.Name, "visibility": c.Visibility, "kind": c.Kind, "everyone": isDefault})
+		map[string]any{"channel": c.Name, "visibility": c.Visibility, "kind": c.Kind, "everyone": isDefault, "encrypted": encrypted})
 	if isDefault {
 		h.publish(r.Context(), events.ChannelCreated, ChannelEvent{Channel: toAPI(c, access{ch: RoleMember})})
 	} else {
@@ -388,6 +407,9 @@ func (h *Handlers) JoinChannel(w http.ResponseWriter, r *http.Request, channelID
 	}
 	if c.GroupManaged {
 		forbidden(w, r, CodeGroupManaged, "Membership of this channel follows directory groups.")
+		return
+	}
+	if !h.mayJoin(w, r, c, p.User.ID) {
 		return
 	}
 	if _, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: p.User.ID, Role: RoleMember}); err != nil {
@@ -596,6 +618,9 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 	}
 	if targetWs == "" {
 		badRequest(w, r, "This person is not a member of the workspace.")
+		return
+	}
+	if !h.mayJoin(w, r, c, u.ID) {
 		return
 	}
 	n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: u.ID, Role: RoleMember})

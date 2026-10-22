@@ -8,7 +8,7 @@ FROM messages m
 JOIN channel_members cm ON cm.channel_id = m.channel_id AND cm.user_id = @user_id
 JOIN channels c ON c.id = m.channel_id
 JOIN users u ON u.id = m.author_id
-WHERE m.deleted_at IS NULL AND m.burn_seconds IS NULL
+WHERE m.deleted_at IS NULL AND m.burn_seconds IS NULL AND NOT c.encrypted
   AND cenacle_search_vector(m.body) @@ cenacle_search_query(@query)
   AND (sqlc.narg(workspace_id)::uuid IS NULL OR c.workspace_id = sqlc.narg(workspace_id)::uuid)
   AND (sqlc.narg(channel_id)::uuid IS NULL OR m.channel_id = sqlc.narg(channel_id)::uuid)

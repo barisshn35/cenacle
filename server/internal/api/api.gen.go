@@ -525,6 +525,33 @@ func (e ChannelUpdateVisibility) Valid() bool {
 	}
 }
 
+// Defines values for ClassificationColor.
+const (
+	ClassificationColorDanger  ClassificationColor = "danger"
+	ClassificationColorInfo    ClassificationColor = "info"
+	ClassificationColorNeutral ClassificationColor = "neutral"
+	ClassificationColorSuccess ClassificationColor = "success"
+	ClassificationColorWarning ClassificationColor = "warning"
+)
+
+// Valid indicates whether the value is a known member of the ClassificationColor enum.
+func (e ClassificationColor) Valid() bool {
+	switch e {
+	case ClassificationColorDanger:
+		return true
+	case ClassificationColorInfo:
+		return true
+	case ClassificationColorNeutral:
+		return true
+	case ClassificationColorSuccess:
+		return true
+	case ClassificationColorWarning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CommandResultResponseType.
 const (
 	CommandResultResponseTypeEphemeral CommandResultResponseType = "ephemeral"
@@ -1521,6 +1548,12 @@ func (e ListReportsParamsStatus) Valid() bool {
 	}
 }
 
+// AccessRule defines model for AccessRule.
+type AccessRule struct {
+	Key    string   `json:"key"`
+	Values []string `json:"values"`
+}
+
 // ActivityItem defines model for ActivityItem.
 type ActivityItem struct {
 	Actor   Author        `json:"actor"`
@@ -1612,6 +1645,15 @@ type Attachment struct {
 
 // AttachmentColor The stripe on the card's edge (meaning is never the color alone).
 type AttachmentColor string
+
+// AttributeDef defines model for AttributeDef.
+type AttributeDef struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
+// Attributes A member's attributes by key.
+type Attributes map[string]string
 
 // AuditEvent defines model for AuditEvent.
 type AuditEvent struct {
@@ -1768,6 +1810,8 @@ type Category struct {
 
 // Channel defines model for Channel.
 type Channel struct {
+	AccessRules *[]AccessRule `json:"access_rules,omitempty"`
+
 	// Archived Archived channels are read-only.
 	Archived bool `json:"archived"`
 
@@ -1777,6 +1821,12 @@ type Channel struct {
 	// CanPost Whether this user can send messages here.
 	CanPost    bool                `json:"can_post"`
 	CategoryId *openapi_types.UUID `json:"category_id"`
+
+	// ClassificationId The channel's own classification (null follows the workspace).
+	ClassificationId *openapi_types.UUID `json:"classification_id,omitempty"`
+
+	// Encrypted End-to-end encrypted; bodies are envelopes only members can open.
+	Encrypted *bool `json:"encrypted,omitempty"`
 
 	// ForumTags Tags a forum's posts may carry.
 	ForumTags *[]string `json:"forum_tags,omitempty"`
@@ -1792,6 +1842,9 @@ type Channel struct {
 	IsMandatory bool `json:"is_mandatory"`
 	IsMember    bool `json:"is_member"`
 
+	// KeyCheck Encrypted channels: lets members check their passphrase.
+	KeyCheck *string `json:"key_check,omitempty"`
+
 	// Kind In announcement channels only workspace owners and admins send. Direct and
 	// group conversations have participants instead of a name. A forum's messages
 	// are posts with titles; people answer in their threads.
@@ -1804,6 +1857,9 @@ type Channel struct {
 
 	// Participants The other people of a direct or group conversation (empty for channels).
 	Participants []Person `json:"participants"`
+
+	// RetentionDays The channel's own retention (null follows the workspace).
+	RetentionDays *int `json:"retention_days,omitempty"`
 
 	// SlowModeSeconds Seconds a member waits between messages (0 off; managers are exempt).
 	SlowModeSeconds *int   `json:"slow_mode_seconds,omitempty"`
@@ -1824,6 +1880,17 @@ type ChannelKind string
 
 // ChannelVisibility Private channels are visible to their members only.
 type ChannelVisibility string
+
+// ChannelCompliance defines model for ChannelCompliance.
+type ChannelCompliance struct {
+	AccessRules []AccessRule `json:"access_rules"`
+
+	// ClassificationId null follows the workspace.
+	ClassificationId *openapi_types.UUID `json:"classification_id"`
+
+	// RetentionDays null follows the workspace.
+	RetentionDays *int `json:"retention_days"`
+}
 
 // ChannelFile defines model for ChannelFile.
 type ChannelFile struct {
@@ -1899,6 +1966,21 @@ type ChannelUpdate struct {
 // ChannelUpdateVisibility defines model for ChannelUpdate.Visibility.
 type ChannelUpdateVisibility string
 
+// Classification defines model for Classification.
+type Classification struct {
+	Color ClassificationColor `json:"color"`
+
+	// Description Shown in the banner.
+	Description string `json:"description"`
+
+	// Id Left out for a new one.
+	Id   *openapi_types.UUID `json:"id,omitempty"`
+	Name string              `json:"name"`
+}
+
+// ClassificationColor defines model for Classification.Color.
+type ClassificationColor string
+
 // CommandInfo defines model for CommandInfo.
 type CommandInfo struct {
 	Builtin     bool   `json:"builtin"`
@@ -1919,6 +2001,18 @@ type CommandResult struct {
 
 // CommandResultResponseType ephemeral is shown only to the caller; in_channel was posted as a message.
 type CommandResultResponseType string
+
+// Compliance defines model for Compliance.
+type Compliance struct {
+	Attributes      []AttributeDef   `json:"attributes"`
+	Classifications []Classification `json:"classifications"`
+
+	// DefaultClassification The name of the classification channels show by default (names are unique).
+	DefaultClassification *string `json:"default_classification"`
+
+	// RetentionDays Days messages are kept; null keeps them.
+	RetentionDays *int `json:"retention_days"`
+}
 
 // CustomEmoji defines model for CustomEmoji.
 type CustomEmoji struct {
@@ -2136,6 +2230,32 @@ type ItemList struct {
 	Title       string             `json:"title"`
 }
 
+// LegalHold defines model for LegalHold.
+type LegalHold struct {
+	ChannelIds  []openapi_types.UUID `json:"channel_ids"`
+	CreatedAt   time.Time            `json:"created_at"`
+	Description string               `json:"description"`
+	EndsAt      *time.Time           `json:"ends_at,omitempty"`
+	Id          openapi_types.UUID   `json:"id"`
+
+	// MessageCount Messages the hold covers now.
+	MessageCount int                  `json:"message_count"`
+	Name         string               `json:"name"`
+	ReleasedAt   *time.Time           `json:"released_at,omitempty"`
+	StartsAt     *time.Time           `json:"starts_at,omitempty"`
+	UserIds      []openapi_types.UUID `json:"user_ids"`
+}
+
+// LegalHoldInput defines model for LegalHoldInput.
+type LegalHoldInput struct {
+	ChannelIds  []openapi_types.UUID `json:"channel_ids"`
+	Description *string              `json:"description,omitempty"`
+	EndsAt      *time.Time           `json:"ends_at,omitempty"`
+	Name        string               `json:"name"`
+	StartsAt    *time.Time           `json:"starts_at,omitempty"`
+	UserIds     []openapi_types.UUID `json:"user_ids"`
+}
+
 // LinkPreview defines model for LinkPreview.
 type LinkPreview struct {
 	Description string `json:"description"`
@@ -2292,9 +2412,15 @@ type MyProfile struct {
 
 // NewChannel defines model for NewChannel.
 type NewChannel struct {
+	// Encrypted End-to-end encrypted with a passphrase its members share; cannot change later.
+	Encrypted *bool `json:"encrypted,omitempty"`
+
 	// IsDefault Make every user, now and later, a member.
-	IsDefault *bool           `json:"is_default,omitempty"`
-	Kind      *NewChannelKind `json:"kind,omitempty"`
+	IsDefault *bool `json:"is_default,omitempty"`
+
+	// KeyCheck Encrypted channels: the key's salt and a known text sealed with the key ("s:<salt>:e2e:v1:…").
+	KeyCheck *string         `json:"key_check,omitempty"`
+	Kind     *NewChannelKind `json:"kind,omitempty"`
 
 	// Name Display name, unique regardless of case; surrounding spaces are removed.
 	Name        string                `json:"name"`
@@ -2537,6 +2663,12 @@ type Reaction struct {
 	Count int    `json:"count"`
 	Emoji string `json:"emoji"`
 	Me    bool   `json:"me"`
+}
+
+// Removed defines model for Removed.
+type Removed struct {
+	// Removed Memberships ended by access rules.
+	Removed int `json:"removed"`
 }
 
 // Report defines model for Report.
@@ -3471,6 +3603,15 @@ type ListEventsParams struct {
 	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
 }
 
+// ExportMessagesParams defines parameters for ExportMessages.
+type ExportMessagesParams struct {
+	Since      *time.Time            `form:"since,omitempty" json:"since,omitempty"`
+	Until      *time.Time            `form:"until,omitempty" json:"until,omitempty"`
+	ChannelIds *[]openapi_types.UUID `form:"channel_ids,omitempty" json:"channel_ids,omitempty"`
+	UserIds    *[]openapi_types.UUID `form:"user_ids,omitempty" json:"user_ids,omitempty"`
+	Q          *string               `form:"q,omitempty" json:"q,omitempty"`
+}
+
 // CreateInviteJSONBody defines parameters for CreateInvite.
 type CreateInviteJSONBody struct {
 	ExpiresInHours *int `json:"expires_in_hours,omitempty"`
@@ -3561,6 +3702,9 @@ type SetChannelCategoryJSONRequestBody SetChannelCategoryJSONBody
 // RunCommandJSONRequestBody defines body for RunCommand for application/json ContentType.
 type RunCommandJSONRequestBody RunCommandJSONBody
 
+// SetChannelComplianceJSONRequestBody defines body for SetChannelCompliance for application/json ContentType.
+type SetChannelComplianceJSONRequestBody = ChannelCompliance
+
 // CreateUploadJSONRequestBody defines body for CreateUpload for application/json ContentType.
 type CreateUploadJSONRequestBody CreateUploadJSONBody
 
@@ -3614,6 +3758,9 @@ type SubmitFormJSONRequestBody SubmitFormJSONBody
 
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
+
+// UpdateLegalHoldJSONRequestBody defines body for UpdateLegalHold for application/json ContentType.
+type UpdateLegalHoldJSONRequestBody = LegalHoldInput
 
 // UpdateListItemJSONRequestBody defines body for UpdateListItem for application/json ContentType.
 type UpdateListItemJSONRequestBody UpdateListItemJSONBody
@@ -3711,6 +3858,9 @@ type CreateAutomodRuleJSONRequestBody = AutomodRuleInput
 // CreateBotJSONRequestBody defines body for CreateBot for application/json ContentType.
 type CreateBotJSONRequestBody CreateBotJSONBody
 
+// SetComplianceJSONRequestBody defines body for SetCompliance for application/json ContentType.
+type SetComplianceJSONRequestBody = Compliance
+
 // OpenConversationJSONRequestBody defines body for OpenConversation for application/json ContentType.
 type OpenConversationJSONRequestBody OpenConversationJSONBody
 
@@ -3725,6 +3875,12 @@ type SetWorkspaceGroupJSONRequestBody = GroupMapping
 
 // CreateInviteJSONRequestBody defines body for CreateInvite for application/json ContentType.
 type CreateInviteJSONRequestBody CreateInviteJSONBody
+
+// CreateLegalHoldJSONRequestBody defines body for CreateLegalHold for application/json ContentType.
+type CreateLegalHoldJSONRequestBody = LegalHoldInput
+
+// SetMemberAttributesJSONRequestBody defines body for SetMemberAttributes for application/json ContentType.
+type SetMemberAttributesJSONRequestBody = Attributes
 
 // SetWorkspaceRoleJSONRequestBody defines body for SetWorkspaceRole for application/json ContentType.
 type SetWorkspaceRoleJSONRequestBody SetWorkspaceRoleJSONBody
@@ -3931,6 +4087,9 @@ type ServerInterface interface {
 	// RunCommand Run a slash command in a channel
 	// (POST /api/channels/{channel_id}/commands)
 	RunCommand(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// SetChannelCompliance A channel's retention, classification and access rules (workspace owners and admins)
+	// (PUT /api/channels/{channel_id}/compliance)
+	SetChannelCompliance(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// ListChannelFiles Files shared in a channel, newest first
 	// (GET /api/channels/{channel_id}/files)
 	ListChannelFiles(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListChannelFilesParams)
@@ -4090,6 +4249,12 @@ type ServerInterface interface {
 	// AcceptInvite Join the workspace of an invitation
 	// (POST /api/invites/{token}/accept)
 	AcceptInvite(w http.ResponseWriter, r *http.Request, token string)
+	// UpdateLegalHold Change an active hold (owners)
+	// (PUT /api/legal-holds/{hold_id})
+	UpdateLegalHold(w http.ResponseWriter, r *http.Request, holdId openapi_types.UUID)
+	// ReleaseLegalHold Release a hold; retention applies again to its messages (owners)
+	// (POST /api/legal-holds/{hold_id}/release)
+	ReleaseLegalHold(w http.ResponseWriter, r *http.Request, holdId openapi_types.UUID)
 	// DeleteListItem Delete a row
 	// (DELETE /api/list-items/{item_id})
 	DeleteListItem(w http.ResponseWriter, r *http.Request, itemId openapi_types.UUID)
@@ -4330,9 +4495,18 @@ type ServerInterface interface {
 	// CreateBot Create a bot (owners and admins)
 	// (POST /api/workspaces/{workspace_id}/bots)
 	CreateBot(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListClassifications Classifications of a workspace and its default (members)
+	// (GET /api/workspaces/{workspace_id}/classifications)
+	ListClassifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListCommands Slash commands available in a workspace (for suggestions)
 	// (GET /api/workspaces/{workspace_id}/commands)
 	ListCommands(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// GetCompliance Retention, classifications and member attributes of a workspace (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/compliance)
+	GetCompliance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetCompliance Change retention, classifications and member attributes (owners and admins)
+	// (PUT /api/workspaces/{workspace_id}/compliance)
+	SetCompliance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// OpenConversation Open a direct or group conversation
 	// (POST /api/workspaces/{workspace_id}/conversations)
 	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -4348,6 +4522,9 @@ type ServerInterface interface {
 	// CreateEvent Plan an event (members; announced in its channel when it has one)
 	// (POST /api/workspaces/{workspace_id}/events)
 	CreateEvent(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ExportMessages eDiscovery export of messages, deleted ones included (owners)
+	// (GET /api/workspaces/{workspace_id}/export)
+	ExportMessages(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ExportMessagesParams)
 	// ListForms Forms of a workspace
 	// (GET /api/workspaces/{workspace_id}/forms)
 	ListForms(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -4378,6 +4555,18 @@ type ServerInterface interface {
 	// RevokeInvite Revoke an invitation (owners and admins)
 	// (DELETE /api/workspaces/{workspace_id}/invites/{invite_id})
 	RevokeInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, inviteId openapi_types.UUID)
+	// ListLegalHolds Legal holds, active first (owners)
+	// (GET /api/workspaces/{workspace_id}/legal-holds)
+	ListLegalHolds(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateLegalHold Keep the messages of people or channels from deletion (owners)
+	// (POST /api/workspaces/{workspace_id}/legal-holds)
+	CreateLegalHold(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListMemberAttributes Every member's attributes (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/member-attributes)
+	ListMemberAttributes(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetMemberAttributes Set a member's attributes (owners and admins); channels whose rules they no longer meet remove them
+	// (PUT /api/workspaces/{workspace_id}/member-attributes/{user_id})
+	SetMemberAttributes(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
 	// ListWorkspaceMembers Members of a workspace with their roles
 	// (GET /api/workspaces/{workspace_id}/members)
 	ListWorkspaceMembers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -4675,6 +4864,12 @@ func (_ Unimplemented) SetChannelCategory(w http.ResponseWriter, r *http.Request
 // RunCommand Run a slash command in a channel
 // (POST /api/channels/{channel_id}/commands)
 func (_ Unimplemented) RunCommand(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetChannelCompliance A channel's retention, classification and access rules (workspace owners and admins)
+// (PUT /api/channels/{channel_id}/compliance)
+func (_ Unimplemented) SetChannelCompliance(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4993,6 +5188,18 @@ func (_ Unimplemented) GetInvite(w http.ResponseWriter, r *http.Request, token s
 // AcceptInvite Join the workspace of an invitation
 // (POST /api/invites/{token}/accept)
 func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateLegalHold Change an active hold (owners)
+// (PUT /api/legal-holds/{hold_id})
+func (_ Unimplemented) UpdateLegalHold(w http.ResponseWriter, r *http.Request, holdId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReleaseLegalHold Release a hold; retention applies again to its messages (owners)
+// (POST /api/legal-holds/{hold_id}/release)
+func (_ Unimplemented) ReleaseLegalHold(w http.ResponseWriter, r *http.Request, holdId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5476,9 +5683,27 @@ func (_ Unimplemented) CreateBot(w http.ResponseWriter, r *http.Request, workspa
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListClassifications Classifications of a workspace and its default (members)
+// (GET /api/workspaces/{workspace_id}/classifications)
+func (_ Unimplemented) ListClassifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListCommands Slash commands available in a workspace (for suggestions)
 // (GET /api/workspaces/{workspace_id}/commands)
 func (_ Unimplemented) ListCommands(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCompliance Retention, classifications and member attributes of a workspace (owners and admins)
+// (GET /api/workspaces/{workspace_id}/compliance)
+func (_ Unimplemented) GetCompliance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetCompliance Change retention, classifications and member attributes (owners and admins)
+// (PUT /api/workspaces/{workspace_id}/compliance)
+func (_ Unimplemented) SetCompliance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5509,6 +5734,12 @@ func (_ Unimplemented) ListEvents(w http.ResponseWriter, r *http.Request, worksp
 // CreateEvent Plan an event (members; announced in its channel when it has one)
 // (POST /api/workspaces/{workspace_id}/events)
 func (_ Unimplemented) CreateEvent(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ExportMessages eDiscovery export of messages, deleted ones included (owners)
+// (GET /api/workspaces/{workspace_id}/export)
+func (_ Unimplemented) ExportMessages(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ExportMessagesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5569,6 +5800,30 @@ func (_ Unimplemented) CreateInvite(w http.ResponseWriter, r *http.Request, work
 // RevokeInvite Revoke an invitation (owners and admins)
 // (DELETE /api/workspaces/{workspace_id}/invites/{invite_id})
 func (_ Unimplemented) RevokeInvite(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, inviteId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListLegalHolds Legal holds, active first (owners)
+// (GET /api/workspaces/{workspace_id}/legal-holds)
+func (_ Unimplemented) ListLegalHolds(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateLegalHold Keep the messages of people or channels from deletion (owners)
+// (POST /api/workspaces/{workspace_id}/legal-holds)
+func (_ Unimplemented) CreateLegalHold(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMemberAttributes Every member's attributes (owners and admins)
+// (GET /api/workspaces/{workspace_id}/member-attributes)
+func (_ Unimplemented) ListMemberAttributes(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetMemberAttributes Set a member's attributes (owners and admins); channels whose rules they no longer meet remove them
+// (PUT /api/workspaces/{workspace_id}/member-attributes/{user_id})
+func (_ Unimplemented) SetMemberAttributes(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6783,6 +7038,32 @@ func (siw *ServerInterfaceWrapper) RunCommand(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RunCommand(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetChannelCompliance operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelCompliance(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelCompliance(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8438,6 +8719,58 @@ func (siw *ServerInterfaceWrapper) AcceptInvite(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AcceptInvite(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateLegalHold operation middleware
+func (siw *ServerInterfaceWrapper) UpdateLegalHold(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "hold_id" -------------
+	var holdId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hold_id", chi.URLParam(r, "hold_id"), &holdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "hold_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateLegalHold(w, r, holdId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReleaseLegalHold operation middleware
+func (siw *ServerInterfaceWrapper) ReleaseLegalHold(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "hold_id" -------------
+	var holdId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "hold_id", chi.URLParam(r, "hold_id"), &holdId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "hold_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReleaseLegalHold(w, r, holdId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10527,6 +10860,32 @@ func (siw *ServerInterfaceWrapper) CreateBot(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ListClassifications operation middleware
+func (siw *ServerInterfaceWrapper) ListClassifications(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListClassifications(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListCommands operation middleware
 func (siw *ServerInterfaceWrapper) ListCommands(w http.ResponseWriter, r *http.Request) {
 
@@ -10544,6 +10903,58 @@ func (siw *ServerInterfaceWrapper) ListCommands(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListCommands(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCompliance operation middleware
+func (siw *ServerInterfaceWrapper) GetCompliance(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCompliance(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetCompliance operation middleware
+func (siw *ServerInterfaceWrapper) SetCompliance(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetCompliance(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10706,6 +11117,100 @@ func (siw *ServerInterfaceWrapper) CreateEvent(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateEvent(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportMessages operation middleware
+func (siw *ServerInterfaceWrapper) ExportMessages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportMessagesParams
+
+	// ------------- Optional query parameter "since" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "since", r.URL.Query(), &params.Since, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "since"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "since", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "until" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "until", r.URL.Query(), &params.Until, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "until"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "until", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "channel_ids" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "channel_ids", r.URL.Query(), &params.ChannelIds, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "channel_ids"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_ids", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "user_ids" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "user_ids", r.URL.Query(), &params.UserIds, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user_ids"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_ids", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportMessages(w, r, workspaceId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10984,6 +11489,119 @@ func (siw *ServerInterfaceWrapper) RevokeInvite(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeInvite(w, r, workspaceId, inviteId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListLegalHolds operation middleware
+func (siw *ServerInterfaceWrapper) ListLegalHolds(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListLegalHolds(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateLegalHold operation middleware
+func (siw *ServerInterfaceWrapper) CreateLegalHold(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLegalHold(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMemberAttributes operation middleware
+func (siw *ServerInterfaceWrapper) ListMemberAttributes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMemberAttributes(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetMemberAttributes operation middleware
+func (siw *ServerInterfaceWrapper) SetMemberAttributes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMemberAttributes(w, r, workspaceId, userId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -12241,6 +12859,39 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/assigned-items", wrapper.ListAssignedItems)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/compliance", wrapper.GetCompliance)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/compliance", wrapper.SetCompliance)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/classifications", wrapper.ListClassifications)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/member-attributes", wrapper.ListMemberAttributes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/member-attributes/{user_id}", wrapper.SetMemberAttributes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/compliance", wrapper.SetChannelCompliance)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/legal-holds", wrapper.ListLegalHolds)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/legal-holds", wrapper.CreateLegalHold)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/legal-holds/{hold_id}", wrapper.UpdateLegalHold)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/legal-holds/{hold_id}/release", wrapper.ReleaseLegalHold)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/export", wrapper.ExportMessages)
 	})
 
 	return r

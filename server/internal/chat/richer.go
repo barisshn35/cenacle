@@ -149,7 +149,7 @@ func (h *Handlers) richExtras(r *http.Request, c store.Channel, in api.NewMessag
 		out.burn = pgtype.Int4{Int32: int32(*in.BurnSeconds), Valid: true} //nolint:gosec // checked above
 		return ""
 	}
-	if link := firstLink(body); link != "" && h.LinkPreviews {
+	if link := firstLink(body); link != "" && h.LinkPreviews && !c.Encrypted {
 		out.link = pgtype.Text{String: link, Valid: true}
 	}
 	return ""
@@ -293,6 +293,10 @@ func (h *Handlers) ForwardMessage(w http.ResponseWriter, r *http.Request, channe
 	}
 	to, role, ok := h.memberChannel(w, r, in.ChannelId, p.User)
 	if !ok {
+		return
+	}
+	if from.Encrypted || to.Encrypted { // the text would leave (or enter) unreadable
+		refuseEncrypted(w, r)
 		return
 	}
 	if !canPost(to, role) {

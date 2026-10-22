@@ -552,6 +552,10 @@ func (h *Handlers) PostWebhook(w http.ResponseWriter, r *http.Request, token str
 		forbidden(w, r, CodeReadOnlyChannel, "Only the workspace's owners and admins can send messages in this channel.")
 		return
 	}
+	if c.Encrypted {
+		forbidden(w, r, CodeEncrypted, "The channel is encrypted end to end: bots cannot write in it.")
+		return
+	}
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
 		if _, err := postMessage(r.Context(), q, c, bot, body, "hook-"+randomNonce(), raw); err != nil {
 			return err

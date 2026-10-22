@@ -225,7 +225,9 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		}
 	}
 	body := strings.TrimSpace(in.Body)
-	if problem == "" && (body != "" || (len(attachments) == 0 && len(files) == 0 && in.StickerId == nil)) {
+	if problem == "" && strings.HasPrefix(body, "e2e:v1:") {
+		// An envelope: checked with its channel below.
+	} else if problem == "" && (body != "" || (len(attachments) == 0 && len(files) == 0 && in.StickerId == nil)) {
 		body, problem = validBody(in.Body)
 	}
 	if problem == "" && (len(in.Nonce) < 8 || len(in.Nonce) > 64) {
@@ -248,6 +250,10 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 
+	if !encryptedBody(c, body) || (c.Encrypted && (len(attachments) > 0 || len(files) > 0 || in.Poll != nil)) {
+		refuseEncrypted(w, r)
+		return
+	}
 	if h.timedOut(w, r, c.WorkspaceID, p.User) || h.slowedDown(w, r, c, role, p.User) {
 		return
 	}
@@ -275,9 +281,11 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	if !h.allowMessage(w, r, p.User) {
 		return
 	}
-	flags, ok := h.automod(w, r, c, role, strings.TrimSpace(extra.titleText()+"\n"+body))
-	if !ok {
-		return
+	var flags []string
+	if !c.Encrypted { // AutoMod cannot read encrypted messages
+		if flags, ok = h.automod(w, r, c, role, strings.TrimSpace(extra.titleText()+"\n"+body)); !ok {
+			return
+		}
 	}
 
 	// The message, its mentions, the author's read position and the event are
@@ -292,7 +300,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		if err := flagMessage(r.Context(), q, c, out.Id, flags); err != nil {
 			return err
 		}
-		if extra.burn.Valid || body == "" {
+		if extra.burn.Valid || body == "" || c.Encrypted {
 			return nil
 		}
 		lower := strings.ToLower(body)
@@ -304,6 +312,10 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 	if errors.Is(err, errFilesUnavailable) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: CodeFilesUnavailable,
 			Detail: "Some files are not ready, not yours, in another channel or already sent."})
+		return
+	}
+	if errors.Is(err, errEncrypted) {
+		refuseEncrypted(w, r)
 		return
 	}
 	if errors.Is(err, errNonceReused) {
@@ -337,6 +349,9 @@ func (r replyTo) isReply() bool { return r.root.ID.Valid }
 // postMessageTo is postMessage, in a thread when reply has a root: the
 // author, the root's author and the people mentioned follow the thread.
 func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, reply replyTo, extra postExtras, files ...pgtype.UUID) (api.Message, error) {
+	if !encryptedBody(c, body) || (c.Encrypted && (len(files) > 0 || (len(rawAttachments) > 0 && string(rawAttachments) != "[]"))) {
+		return api.Message{}, errEncrypted
+	}
 	msg, err := q.CreateMessage(ctx, store.CreateMessageParams{
 		ChannelID: c.ID, AuthorID: author.ID, Body: body, Nonce: nonce, Attachments: rawAttachments,
 		HasFiles: len(files) > 0, RootID: reply.root.ID, AlsoInChannel: reply.isReply() && reply.also,

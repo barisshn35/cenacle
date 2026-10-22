@@ -152,6 +152,10 @@ func (h *Handlers) postAsCommand(w http.ResponseWriter, r *http.Request, c store
 		ephemeral(w, "You cannot send messages in this channel.")
 		return
 	}
+	if c.Encrypted {
+		ephemeral(w, "This channel is encrypted end to end: commands cannot write in it.")
+		return
+	}
 	if rawAttachments == nil {
 		rawAttachments = []byte("[]")
 	}
@@ -340,6 +344,10 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 	// Posted in the caller's channel, under the caller's rights, as the bot.
 	if c.ArchivedAt.Valid || !canPost(c, role) {
 		ephemeral(w, "You cannot send messages in this channel.")
+		return
+	}
+	if c.Encrypted {
+		ephemeral(w, "This channel is encrypted end to end: bots cannot write in it.")
 		return
 	}
 	var posted api.Message

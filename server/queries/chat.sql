@@ -88,8 +88,8 @@ RETURNING *;
 DELETE FROM channel_categories WHERE id = @id;
 
 -- name: CreateChannel :one
-INSERT INTO channels (workspace_id, name, topic, kind, is_default, visibility, created_by)
-VALUES (@workspace_id, @name, @topic, @kind, @is_default, @visibility, @created_by)
+INSERT INTO channels (workspace_id, name, topic, kind, is_default, visibility, created_by, encrypted, key_check)
+VALUES (@workspace_id, @name, @topic, @kind, @is_default, @visibility, @created_by, @encrypted, @key_check)
 RETURNING *;
 
 -- name: EnsureChannel :one
@@ -189,7 +189,9 @@ RETURNING *;
 
 -- name: PurgeDeletedMessages :execrows
 -- PurgeDeletedMessages removes messages that can no longer be restored.
-DELETE FROM messages WHERE deleted_at <= now() - sqlc.arg(restore_window)::interval;
+-- Messages a legal hold keeps stay (for eDiscovery).
+DELETE FROM messages WHERE deleted_at <= now() - sqlc.arg(restore_window)::interval
+    AND NOT message_held(channel_id, author_id, created_at);
 
 -- name: GetChannelByName :one
 SELECT * FROM channels WHERE workspace_id = @workspace_id AND lower(name) = lower(@name);

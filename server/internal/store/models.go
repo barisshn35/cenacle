@@ -76,21 +76,26 @@ type Canvase struct {
 }
 
 type Channel struct {
-	ID              pgtype.UUID        `json:"id"`
-	Name            string             `json:"name"`
-	Topic           string             `json:"topic"`
-	CreatedAt       time.Time          `json:"created_at"`
-	Kind            string             `json:"kind"`
-	IsDefault       bool               `json:"is_default"`
-	IsMandatory     bool               `json:"is_mandatory"`
-	CreatedBy       pgtype.UUID        `json:"created_by"`
-	Visibility      string             `json:"visibility"`
-	ArchivedAt      pgtype.Timestamptz `json:"archived_at"`
-	CategoryID      pgtype.UUID        `json:"category_id"`
-	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
-	GroupManaged    bool               `json:"group_managed"`
-	ForumTags       []string           `json:"forum_tags"`
-	SlowModeSeconds int32              `json:"slow_mode_seconds"`
+	ID               pgtype.UUID        `json:"id"`
+	Name             string             `json:"name"`
+	Topic            string             `json:"topic"`
+	CreatedAt        time.Time          `json:"created_at"`
+	Kind             string             `json:"kind"`
+	IsDefault        bool               `json:"is_default"`
+	IsMandatory      bool               `json:"is_mandatory"`
+	CreatedBy        pgtype.UUID        `json:"created_by"`
+	Visibility       string             `json:"visibility"`
+	ArchivedAt       pgtype.Timestamptz `json:"archived_at"`
+	CategoryID       pgtype.UUID        `json:"category_id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	GroupManaged     bool               `json:"group_managed"`
+	ForumTags        []string           `json:"forum_tags"`
+	SlowModeSeconds  int32              `json:"slow_mode_seconds"`
+	RetentionDays    pgtype.Int4        `json:"retention_days"`
+	ClassificationID pgtype.UUID        `json:"classification_id"`
+	AccessRules      []byte             `json:"access_rules"`
+	Encrypted        bool               `json:"encrypted"`
+	KeyCheck         string             `json:"key_check"`
 }
 
 type ChannelCategory struct {
@@ -135,6 +140,15 @@ type ChannelTab struct {
 	Position  int32       `json:"position"`
 	CreatedBy pgtype.UUID `json:"created_by"`
 	CreatedAt time.Time   `json:"created_at"`
+}
+
+type Classification struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Color       string      `json:"color"`
+	Position    int32       `json:"position"`
 }
 
 type CustomEmoji struct {
@@ -272,6 +286,21 @@ type InstanceBanner struct {
 	Level       string    `json:"level"`
 	Dismissible bool      `json:"dismissible"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type LegalHold struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	UserIds     []pgtype.UUID      `json:"user_ids"`
+	ChannelIds  []pgtype.UUID      `json:"channel_ids"`
+	StartsAt    pgtype.Timestamptz `json:"starts_at"`
+	EndsAt      pgtype.Timestamptz `json:"ends_at"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	ReleasedAt  pgtype.Timestamptz `json:"released_at"`
+	ReleasedBy  pgtype.UUID        `json:"released_by"`
 }
 
 type LinkPreview struct {
@@ -632,14 +661,22 @@ type WorkflowTask struct {
 }
 
 type Workspace struct {
-	ID          pgtype.UUID `json:"id"`
+	ID               pgtype.UUID `json:"id"`
+	Name             string      `json:"name"`
+	IsDefault        bool        `json:"is_default"`
+	CreatedAt        time.Time   `json:"created_at"`
+	Description      string      `json:"description"`
+	IconID           pgtype.UUID `json:"icon_id"`
+	Appearance       []byte      `json:"appearance"`
+	Welcome          []byte      `json:"welcome"`
+	RetentionDays    pgtype.Int4 `json:"retention_days"`
+	ClassificationID pgtype.UUID `json:"classification_id"`
+}
+
+type WorkspaceAttribute struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Key         string      `json:"key"`
 	Name        string      `json:"name"`
-	IsDefault   bool        `json:"is_default"`
-	CreatedAt   time.Time   `json:"created_at"`
-	Description string      `json:"description"`
-	IconID      pgtype.UUID `json:"icon_id"`
-	Appearance  []byte      `json:"appearance"`
-	Welcome     []byte      `json:"welcome"`
 }
 
 type WorkspaceGroupMapping struct {
@@ -669,6 +706,7 @@ type WorkspaceMember struct {
 	ViaGroup     bool               `json:"via_group"`
 	TimeoutUntil pgtype.Timestamptz `json:"timeout_until"`
 	OnboardedAt  pgtype.Timestamptz `json:"onboarded_at"`
+	Attributes   []byte             `json:"attributes"`
 }
 
 type WorkspaceNotificationPref struct {

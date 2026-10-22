@@ -344,13 +344,20 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 	if !decode(w, r, &in) {
 		return
 	}
-	body, problem := validBody(in.Body)
+	body, problem := strings.TrimSpace(in.Body), ""
+	if !strings.HasPrefix(body, "e2e:v1:") {
+		body, problem = validBody(in.Body)
+	}
 	if problem != "" {
 		badRequest(w, r, problem)
 		return
 	}
 	c, _, m, ok := h.message(w, r, channelID, messageID, p.User)
 	if !ok {
+		return
+	}
+	if !encryptedBody(c, body) || body == "" {
+		refuseEncrypted(w, r)
 		return
 	}
 	switch {

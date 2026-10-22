@@ -3086,10 +3086,268 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/compliance': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Retention, classifications and member attributes of a workspace (owners and admins) */
+    get: operations['getCompliance'];
+    /**
+     * Change retention, classifications and member attributes (owners and admins)
+     * @description Classifications without an id are created; ones left out are deleted (their channels lose them).
+     */
+    put: operations['setCompliance'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/classifications': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Classifications of a workspace and its default (members) */
+    get: operations['listClassifications'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/member-attributes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Every member's attributes (owners and admins) */
+    get: operations['listMemberAttributes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/member-attributes/{user_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Set a member's attributes (owners and admins); channels whose rules they no longer meet remove them */
+    put: operations['setMemberAttributes'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/compliance': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * A channel's retention, classification and access rules (workspace owners and admins)
+     * @description Members who do not meet the new access rules are removed from the channel.
+     */
+    put: operations['setChannelCompliance'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/legal-holds': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Legal holds, active first (owners) */
+    get: operations['listLegalHolds'];
+    put?: never;
+    /** Keep the messages of people or channels from deletion (owners) */
+    post: operations['createLegalHold'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/legal-holds/{hold_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        hold_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Change an active hold (owners) */
+    put: operations['updateLegalHold'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/legal-holds/{hold_id}/release': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        hold_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Release a hold; retention applies again to its messages (owners) */
+    post: operations['releaseLegalHold'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * eDiscovery export of messages, deleted ones included (owners)
+     * @description One JSON object per line (application/x-ndjson), oldest first. Encrypted
+     *     channels export their envelopes. Every export is recorded in the audit log.
+     */
+    get: operations['exportMessages'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    Classification: {
+      /**
+       * Format: uuid
+       * @description Left out for a new one.
+       */
+      id?: string;
+      name: string;
+      /** @description Shown in the banner. */
+      description: string;
+      /** @enum {string} */
+      color: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+    };
+    AttributeDef: {
+      key: string;
+      name: string;
+    };
+    /** @description A member's attributes by key. */
+    Attributes: {
+      [key: string]: string;
+    };
+    AccessRule: {
+      key: string;
+      values: string[];
+    };
+    Compliance: {
+      /** @description Days messages are kept; null keeps them. */
+      retention_days: number | null;
+      /** @description The name of the classification channels show by default (names are unique). */
+      default_classification: string | null;
+      classifications: components['schemas']['Classification'][];
+      attributes: components['schemas']['AttributeDef'][];
+    };
+    ChannelCompliance: {
+      /** @description null follows the workspace. */
+      retention_days: number | null;
+      /**
+       * Format: uuid
+       * @description null follows the workspace.
+       */
+      classification_id: string | null;
+      access_rules: components['schemas']['AccessRule'][];
+    };
+    Removed: {
+      /** @description Memberships ended by access rules. */
+      removed: number;
+    };
+    LegalHoldInput: {
+      name: string;
+      description?: string;
+      user_ids: string[];
+      channel_ids: string[];
+      /** Format: date-time */
+      starts_at?: string | null;
+      /** Format: date-time */
+      ends_at?: string | null;
+    };
+    LegalHold: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      description: string;
+      user_ids: string[];
+      channel_ids: string[];
+      /** Format: date-time */
+      starts_at?: string | null;
+      /** Format: date-time */
+      ends_at?: string | null;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      released_at?: string | null;
+      /** @description Messages the hold covers now. */
+      message_count: number;
+    };
     TabInput: {
       /** @enum {string} */
       kind: 'canvas' | 'list' | 'link';
@@ -3780,6 +4038,18 @@ export interface components {
       is_member: boolean;
     };
     Channel: {
+      /** @description End-to-end encrypted; bodies are envelopes only members can open. */
+      encrypted?: boolean;
+      /** @description Encrypted channels: lets members check their passphrase. */
+      key_check?: string;
+      /**
+       * Format: uuid
+       * @description The channel's own classification (null follows the workspace).
+       */
+      classification_id?: string | null;
+      /** @description The channel's own retention (null follows the workspace). */
+      retention_days?: number | null;
+      access_rules?: components['schemas']['AccessRule'][];
       /** Format: uuid */
       id: string;
       /** Format: uuid */
@@ -4104,6 +4374,13 @@ export interface components {
        * @default false
        */
       is_default: boolean;
+      /**
+       * @description End-to-end encrypted with a passphrase its members share; cannot change later.
+       * @default false
+       */
+      encrypted: boolean;
+      /** @description Encrypted channels: the key's salt and a known text sealed with the key ("s:<salt>:e2e:v1:…"). */
+      key_check?: string;
     };
     Author: {
       /** @description Sent by a bot. */
@@ -10107,6 +10384,325 @@ export interface operations {
         };
       };
       401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getCompliance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The settings. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Compliance'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setCompliance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Compliance'];
+      };
+    };
+    responses: {
+      /** @description The settings. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Compliance'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listClassifications: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Classifications. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            classifications: components['schemas']['Classification'][];
+            /** Format: uuid */
+            default_id: string | null;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listMemberAttributes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Attributes by member. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            members: {
+              /** Format: uuid */
+              user_id: string;
+              attributes: components['schemas']['Attributes'];
+            }[];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setMemberAttributes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Attributes'];
+      };
+    };
+    responses: {
+      /** @description Channels the member left. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Removed'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setChannelCompliance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChannelCompliance'];
+      };
+    };
+    responses: {
+      /** @description How many members left. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Removed'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listLegalHolds: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Holds. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            holds: components['schemas']['LegalHold'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createLegalHold: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LegalHoldInput'];
+      };
+    };
+    responses: {
+      /** @description The hold. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LegalHold'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateLegalHold: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        hold_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LegalHoldInput'];
+      };
+    };
+    responses: {
+      /** @description The hold. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LegalHold'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  releaseLegalHold: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        hold_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The hold. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LegalHold'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  exportMessages: {
+    parameters: {
+      query?: {
+        since?: string;
+        until?: string;
+        channel_ids?: string[];
+        user_ids?: string[];
+        q?: string;
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/x-ndjson': string;
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };

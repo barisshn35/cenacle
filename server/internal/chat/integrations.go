@@ -464,7 +464,10 @@ func (h *Handlers) ScheduleMessage(w http.ResponseWriter, r *http.Request, chann
 	if !decode(w, r, &in) {
 		return
 	}
-	body, problem := validBody(in.Body)
+	body, problem := strings.TrimSpace(in.Body), ""
+	if !strings.HasPrefix(body, "e2e:v1:") { // envelopes are checked with their channel
+		body, problem = validBody(in.Body)
+	}
 	now := time.Now()
 	switch {
 	case problem != "":
@@ -483,6 +486,10 @@ func (h *Handlers) ScheduleMessage(w http.ResponseWriter, r *http.Request, chann
 	}
 	if !canPost(c, role) {
 		forbidden(w, r, CodeReadOnlyChannel, "You cannot send messages in this channel.")
+		return
+	}
+	if !encryptedBody(c, body) || body == "" {
+		refuseEncrypted(w, r)
 		return
 	}
 	if !h.belowScheduledLimit(w, r, p.User) {

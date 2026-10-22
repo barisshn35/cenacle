@@ -471,7 +471,7 @@ func (h *Handlers) CreateEvent(w http.ResponseWriter, r *http.Request, workspace
 			if e.Description != "" {
 				body += "\n\n" + e.Description
 			}
-			if _, err := postMessage(r.Context(), q, c, p.User, body, "event-"+uuid(e.ID).String(), []byte("[]")); err != nil {
+			if _, err := postMessage(r.Context(), q, c, p.User, body, "event-"+uuid(e.ID).String(), []byte("[]")); err != nil && !errors.Is(err, errEncrypted) { // encrypted channels get no notice
 				return err
 			}
 		}

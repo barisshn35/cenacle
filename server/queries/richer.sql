@@ -73,18 +73,27 @@ RETURNING revealed_at;
 SELECT message_id, revealed_at FROM burn_reveals
 WHERE user_id = @user_id AND message_id = ANY(@message_ids::uuid[]);
 
--- name: PurgeBurned :execrows
+-- name: PurgeBurned :one
 -- PurgeBurned removes burn-on-read messages every other member has read and
--- whose time is up, and any older than a week.
-DELETE FROM messages m
-WHERE m.burn_seconds IS NOT NULL
-  AND (m.created_at < now() - interval '7 days'
-       OR (NOT EXISTS (
-               SELECT 1 FROM channel_members cm
-               WHERE cm.channel_id = m.channel_id AND cm.user_id <> m.author_id
-                 AND NOT EXISTS (SELECT 1 FROM burn_reveals b
-                                 WHERE b.message_id = m.id AND b.user_id = cm.user_id
-                                   AND b.revealed_at + make_interval(secs => m.burn_seconds) < now()))));
+-- whose time is up, and any older than a week. Messages a legal hold keeps are
+-- deleted for people instead (and stay for eDiscovery).
+WITH due AS (
+    SELECT m.id, message_held(m.channel_id, m.author_id, m.created_at) AS held
+    FROM messages m
+    WHERE m.burn_seconds IS NOT NULL AND m.deleted_at IS NULL
+      AND (m.created_at < now() - interval '7 days'
+           OR (NOT EXISTS (
+                   SELECT 1 FROM channel_members cm
+                   WHERE cm.channel_id = m.channel_id AND cm.user_id <> m.author_id
+                     AND NOT EXISTS (SELECT 1 FROM burn_reveals b
+                                     WHERE b.message_id = m.id AND b.user_id = cm.user_id
+                                       AND b.revealed_at + make_interval(secs => m.burn_seconds) < now()))))
+), gone AS (
+    DELETE FROM messages WHERE id IN (SELECT id FROM due WHERE NOT held) RETURNING 1
+), kept AS (
+    UPDATE messages SET deleted_at = now() WHERE id IN (SELECT id FROM due WHERE held) RETURNING 1
+)
+SELECT ((SELECT count(*) FROM gone) + (SELECT count(*) FROM kept))::bigint;
 
 -- name: ListMemberIDs :many
 SELECT user_id FROM channel_members WHERE channel_id = @channel_id;
