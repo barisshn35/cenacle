@@ -1235,6 +1235,74 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/groups': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Directory groups that give membership of the workspace (owners and admins) */
+    get: operations['listWorkspaceGroups'];
+    /** Give the members of a directory group membership of the workspace */
+    put: operations['setWorkspaceGroup'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/groups/{group}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        group: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Stop giving membership to a directory group
+     * @description People who are in the workspace only through this group leave it.
+     */
+    delete: operations['deleteWorkspaceGroup'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/groups': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** Directory groups of a channel (its managers) */
+    get: operations['getChannelGroups'];
+    /**
+     * Set the directory groups of a channel
+     * @description Members of the groups (in the channel's workspace) join. With `managed`, the
+     *     members are exactly the people of the groups: others are removed and nobody
+     *     is added or leaves by hand.
+     */
+    put: operations['setChannelGroups'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/files': {
     parameters: {
       query?: never;
@@ -1565,13 +1633,16 @@ export interface components {
       name: string;
       /** @description Everyone who signs in belongs to the default workspace. */
       is_default: boolean;
-      /** @enum {string} */
-      role: 'owner' | 'admin' | 'member';
+      /**
+       * @description Guests see only the channels they are in and the people in them.
+       * @enum {string}
+       */
+      role: 'owner' | 'admin' | 'member' | 'guest';
     };
     WorkspaceMember: {
       user: components['schemas']['Person'];
       /** @enum {string} */
-      role: 'owner' | 'admin' | 'member';
+      role: 'owner' | 'admin' | 'member' | 'guest';
     };
     Invite: {
       /** Format: uuid */
@@ -1620,6 +1691,8 @@ export interface components {
       can_manage: boolean;
       /** @description Archived channels are read-only. */
       archived: boolean;
+      /** @description Members are exactly the people of the channel's directory groups. */
+      group_managed: boolean;
       /** @description Messages of others after the read position, counted up to 100. */
       unread_count: number;
       /** @description Unread messages that mention the user, counted up to 100. */
@@ -1711,6 +1784,15 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       edited_at: string | null;
+    };
+    GroupMapping: {
+      group: string;
+      /** @enum {string} */
+      role: 'admin' | 'member' | 'guest';
+    };
+    ChannelGroups: {
+      groups: string[];
+      managed: boolean;
     };
     FileInfo: {
       /** Format: uuid */
@@ -1955,7 +2037,7 @@ export interface operations {
       content: {
         'application/json': {
           /** @enum {string} */
-          role: 'owner' | 'admin' | 'member';
+          role: 'owner' | 'admin' | 'member' | 'guest';
         };
       };
     };
@@ -3864,6 +3946,142 @@ export interface operations {
         };
         content?: never;
       };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listWorkspaceGroups: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The mappings and the group names people of the instance are in. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            mappings: components['schemas']['GroupMapping'][];
+            groups: string[];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setWorkspaceGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GroupMapping'];
+      };
+    };
+    responses: {
+      /** @description Saved; people of the group join now. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GroupMapping'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  deleteWorkspaceGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+        group: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getChannelGroups: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The channel's groups. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChannelGroups'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setChannelGroups: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChannelGroups'];
+      };
+    };
+    responses: {
+      /** @description Saved and applied. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChannelGroups'];
+        };
+      };
+      400: components['responses']['Problem'];
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];

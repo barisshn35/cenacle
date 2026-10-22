@@ -38,7 +38,7 @@ type providerMetadata struct {
 
 // scopes requested at sign-in. The ID token carries the subject; e-mail and
 // name come from userinfo (see ADR 0002).
-var scopes = []string{oidc.ScopeOpenID, "email", "profile"}
+var scopes = []string{oidc.ScopeOpenID, "email", "profile", "groups"}
 
 func (p *IdentityProvider) clientContext(ctx context.Context) context.Context {
 	return oidc.ClientContext(ctx, p.HTTPClient)

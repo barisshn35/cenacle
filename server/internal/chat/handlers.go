@@ -52,6 +52,9 @@ type Handlers struct {
 	Egress *egress.Client
 	// Files is the object store for files; nil or without a store: files are off.
 	Files *Files
+	// AdminEmail is the configured instance administrator's address (group
+	// mappings re-apply roles).
+	AdminEmail string
 	// PublicURL is the app's origin, for webhook addresses.
 	PublicURL string
 	Limiter   RateLimiter

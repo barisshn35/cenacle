@@ -125,6 +125,31 @@ func (w *pruneDeliveriesWorker) Work(ctx context.Context, _ *river.Job[PruneDeli
 	return err
 }
 
+// Directory follows Cenacle ID's directory feed.
+type Directory interface {
+	Sync(ctx context.Context) (int, error)
+}
+
+// SyncDirectoryArgs applies the changes of Cenacle ID's directory.
+type SyncDirectoryArgs struct{}
+
+// Kind implements river.JobArgs.
+func (SyncDirectoryArgs) Kind() string { return "sync_directory" }
+
+type directoryWorker struct {
+	river.WorkerDefaults[SyncDirectoryArgs]
+	dir Directory
+	log *slog.Logger
+}
+
+func (w *directoryWorker) Work(ctx context.Context, _ *river.Job[SyncDirectoryArgs]) error {
+	n, err := w.dir.Sync(ctx)
+	if n > 0 {
+		w.log.Info("directory changes applied", "people", n)
+	}
+	return err
+}
+
 // PurgeMessagesArgs is the periodic purge of deleted messages.
 type PurgeMessagesArgs struct{}
 
@@ -177,7 +202,9 @@ type Deps struct {
 	Sessions SessionCleaner
 	// Integrations is optional (tests of other parts leave it out).
 	Integrations Integrations
-	Log          *slog.Logger
+	// Directory is optional: the chat follows Cenacle ID's directory feed.
+	Directory Directory
+	Log       *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -204,6 +231,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 			periodic(ScheduledInterval, SendScheduledArgs{}),
 			periodic(24*time.Hour, PruneDeliveriesArgs{}),
 			periodic(time.Hour, PruneFilesArgs{}))
+	}
+	if d.Directory != nil {
+		river.AddWorker(workers, &directoryWorker{dir: d.Directory, log: d.Log})
+		jobs = append(jobs, periodic(time.Minute, SyncDirectoryArgs{}))
 	}
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 		Queues:       map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},

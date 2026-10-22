@@ -16,14 +16,13 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	guuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/oauth2"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/audit"
 	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/barisshn35/cenacle/server/internal/groups"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
@@ -234,7 +233,10 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 		return signedIn{}, errors.New("userinfo subject differs from id token")
 	}
 	var profile struct {
-		Name string `json:"name"`
+		Name     string   `json:"name"`
+		Username string   `json:"preferred_username"`
+		Groups   []string `json:"groups"`
+		Role     string   `json:"cenacle_role"`
 	}
 	if err := info.Claims(&profile); err != nil {
 		return signedIn{}, err
@@ -266,7 +268,9 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 	if err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
-	if err := h.applyRoles(ctx, user); err != nil {
+	if err := groups.Apply(ctx, h.Users, user, groups.Profile{
+		Username: profile.Username, Role: profile.Role, Groups: profile.Groups,
+	}, h.AdminEmail); err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
 	sessionToken, session, err := h.Sessions.Create(ctx, user.ID, client, idSession.SID)
@@ -274,66 +278,6 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 		return signedIn{}, errUnavailable{err}
 	}
 	return signedIn{token: sessionToken, session: session}, nil
-}
-
-// emit records an event in the outbox.
-func (h *Handlers) emit(ctx context.Context, typ string, data any) error {
-	raw, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	return h.Users.InsertOutboxEvent(ctx, store.InsertOutboxEventParams{Type: typ, Data: raw})
-}
-
-func uuidString(id pgtype.UUID) string { return guuid.UUID(id.Bytes).String() }
-
-// applyRoles makes a signed-in user a member of the default workspace and of
-// the default channels of their workspaces, and gives or takes the instance
-// administrator flag according to the configured address (only a verified
-// address counts; there is at most one). The administrator owns the default
-// workspace.
-func (h *Handlers) applyRoles(ctx context.Context, user store.User) error {
-	workspaces, err := h.Users.JoinDefaultWorkspace(ctx, user.ID)
-	if err != nil {
-		return err
-	}
-	channels, err := h.Users.JoinDefaultChannels(ctx, user.ID)
-	if err != nil {
-		return err
-	}
-	// Open sessions of the others refresh their member lists.
-	for _, ws := range workspaces {
-		if err := h.emit(ctx, events.WorkspaceMembersChanged, map[string]string{"workspace_id": uuidString(ws)}); err != nil {
-			return err
-		}
-	}
-	for _, c := range channels {
-		if err := h.emit(ctx, events.ChannelMembersChanged, map[string]string{"channel_id": uuidString(c)}); err != nil {
-			return err
-		}
-	}
-	admin := h.AdminEmail != "" && user.EmailVerified && strings.EqualFold(user.Email, h.AdminEmail)
-	if admin != user.IsAdmin {
-		if admin {
-			if err := h.Users.ClearAdminExcept(ctx, user.ID); err != nil {
-				return err
-			}
-		}
-		if err := h.Users.SetAdmin(ctx, store.SetAdminParams{ID: user.ID, IsAdmin: admin}); err != nil {
-			return err
-		}
-	}
-	if !admin {
-		return nil
-	}
-	def, err := h.Users.GetDefaultWorkspace(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = h.Users.SetWorkspaceRole(ctx, store.SetWorkspaceRoleParams{
-		WorkspaceID: def.ID, UserID: user.ID, Role: "owner",
-	})
-	return err
 }
 
 // Logout implements api.ServerInterface. It succeeds without a session too,

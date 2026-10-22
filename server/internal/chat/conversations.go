@@ -72,6 +72,10 @@ func (h *Handlers) OpenConversation(w http.ResponseWriter, r *http.Request, work
 		return
 	}
 	ws := pgUUID(workspaceID)
+	visible, ok := h.visiblePeople(w, r, workspaceID, p.User, wsRole)
+	if !ok {
+		return
+	}
 	people := make([]api.Person, 0, len(others))
 	ids := []string{self.String()}
 	for _, id := range others {
@@ -80,7 +84,7 @@ func (h *Handlers) OpenConversation(w http.ResponseWriter, r *http.Request, work
 			h.unavailable(w, r, "get workspace role", err)
 			return
 		}
-		if role == "" {
+		if role == "" || (visible != nil && !visible[pgUUID(id)]) {
 			badRequest(w, r, "Everyone must be a member of the workspace.")
 			return
 		}

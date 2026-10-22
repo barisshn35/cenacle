@@ -27,9 +27,11 @@ UPDATE users SET is_admin = @is_admin WHERE id = @id;
 
 -- name: RevokeAdminUnlessEmail :exec
 -- RevokeAdminUnlessEmail removes the administrator flag from a user whose
--- e-mail address is no longer the configured one ('' revokes it from all).
+-- e-mail address is no longer the configured one ('' revokes it from all),
+-- unless the directory makes them an administrator.
 UPDATE users SET is_admin = false
-WHERE is_admin AND (@email::text = '' OR lower(email) <> lower(@email::text));
+WHERE is_admin AND (@email::text = '' OR lower(email) <> lower(@email::text))
+  AND directory_role IS DISTINCT FROM 'admin';
 
 -- name: SearchUsers :many
 -- SearchUsers finds members of a workspace by name or e-mail address

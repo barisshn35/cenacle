@@ -47,6 +47,7 @@ const (
 	CodeReadOnlyChannel  = "read_only_channel"
 	CodeChannelMandatory = "channel_mandatory"
 	CodeNameTaken        = "channel_name_taken"
+	CodeGroupManaged     = "group_managed"
 	CodeChannelArchived  = "channel_archived"
 	CodeConfiguredName   = "channel_configured"
 )
@@ -67,6 +68,8 @@ const (
 	WorkspaceOwner  = "owner"
 	WorkspaceAdmin  = "admin"
 	WorkspaceMember = "member"
+	// WorkspaceGuest sees only the channels they are added to and the people in them.
+	WorkspaceGuest = "guest"
 )
 
 // access is what a user is in a channel ("" when not a member) and in its
@@ -102,6 +105,7 @@ func toAPI(c store.Channel, a access) api.Channel {
 		CanPost:      member && canPost(c, a),
 		CanManage:    canManage(c, a),
 		Archived:     c.ArchivedAt.Valid,
+		GroupManaged: c.GroupManaged,
 		Participants: []api.Person{},
 	}
 	if c.CategoryID.Valid {
@@ -167,6 +171,9 @@ func (h *Handlers) ListChannelDirectory(w http.ResponseWriter, r *http.Request, 
 	}
 	out := make([]api.Channel, 0, len(rows))
 	for _, row := range rows {
+		if wsRole == WorkspaceGuest && row.Role == "" {
+			continue // guests see their own channels only
+		}
 		out = append(out, toAPI(row.Channel, access{ch: row.Role, ws: wsRole}))
 	}
 	writeChannels(w, out)
@@ -337,7 +344,9 @@ func (h *Handlers) visibleChannel(w http.ResponseWriter, r *http.Request, id ope
 		return c, access{}, false
 	}
 	a := access{ch: ch, ws: ws}
-	if ws == "" || (c.Visibility == Private && ch == "" && (!a.admin() || isConversation(c))) {
+	// Guests see their own channels only, public ones included.
+	hidden := c.Visibility == Private || ws == WorkspaceGuest
+	if ws == "" || (hidden && ch == "" && (!a.admin() || isConversation(c))) {
 		channelNotFound(w, r)
 		return c, access{}, false
 	}
@@ -374,6 +383,10 @@ func (h *Handlers) JoinChannel(w http.ResponseWriter, r *http.Request, channelID
 		channelNotFound(w, r)
 		return
 	}
+	if c.GroupManaged {
+		forbidden(w, r, CodeGroupManaged, "Membership of this channel follows directory groups.")
+		return
+	}
 	if _, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: p.User.ID, Role: RoleMember}); err != nil {
 		h.unavailable(w, r, "join channel", err)
 		return
@@ -395,6 +408,10 @@ func (h *Handlers) LeaveChannel(w http.ResponseWriter, r *http.Request, channelI
 	}
 	if c.IsMandatory {
 		forbidden(w, r, CodeChannelMandatory, "Everyone is a member of this channel.")
+		return
+	}
+	if c.GroupManaged {
+		forbidden(w, r, CodeGroupManaged, "Membership of this channel follows directory groups.")
 		return
 	}
 	n, err := h.Queries.RemoveMember(r.Context(), store.RemoveMemberParams{ChannelID: c.ID, UserID: p.User.ID})
@@ -537,6 +554,10 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 	if !ok {
 		return
 	}
+	if c.GroupManaged {
+		forbidden(w, r, CodeGroupManaged, "Membership of this channel follows directory groups.")
+		return
+	}
 	u, err := h.Queries.GetUser(r.Context(), pgUUID(in.UserID))
 	if isNoRows(err) {
 		badRequest(w, r, "No user with this id.")
@@ -586,6 +607,10 @@ func (h *Handlers) RemoveChannelMember(w http.ResponseWriter, r *http.Request, c
 	if !ok {
 		return
 	}
+	if c.GroupManaged {
+		forbidden(w, r, CodeGroupManaged, "Membership of this channel follows directory groups.")
+		return
+	}
 	switch {
 	case c.IsMandatory:
 		forbidden(w, r, CodeChannelMandatory, "Everyone is a member of this channel.")
@@ -613,7 +638,8 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 	if !ok {
 		return
 	}
-	if _, ok := h.workspaceRole(w, r, params.WorkspaceId, p.User); !ok {
+	wsRole, ok := h.workspaceRole(w, r, params.WorkspaceId, p.User)
+	if !ok {
 		return
 	}
 	q := strings.TrimSpace(params.Q)
@@ -634,13 +660,38 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 		h.unavailable(w, r, "search users", err)
 		return
 	}
+	visible, ok := h.visiblePeople(w, r, params.WorkspaceId, p.User, wsRole)
+	if !ok {
+		return
+	}
 	out := make([]api.Person, 0, len(rows))
 	for _, u := range rows {
+		if visible != nil && !visible[u.ID] {
+			continue
+		}
 		out = append(out, personAPI(u.ID, u.DisplayName, u.Email, u.IsBot))
 	}
 	httpx.WriteJSON(w, http.StatusOK, struct {
 		Users []api.Person `json:"users"`
 	}{out})
+}
+
+// visiblePeople is who a guest may see in a workspace (people sharing a
+// channel with them); nil for everyone else (no limit).
+func (h *Handlers) visiblePeople(w http.ResponseWriter, r *http.Request, ws openapi_types.UUID, user store.User, wsRole string) (map[pgtype.UUID]bool, bool) {
+	if wsRole != WorkspaceGuest {
+		return nil, true
+	}
+	ids, err := h.Queries.PeopleSharingChannels(r.Context(), store.PeopleSharingChannelsParams{WorkspaceID: pgUUID(ws), UserID: user.ID})
+	if err != nil {
+		h.unavailable(w, r, "people sharing channels", err)
+		return nil, false
+	}
+	out := map[pgtype.UUID]bool{user.ID: true}
+	for _, id := range ids {
+		out[id] = true
+	}
+	return out, true
 }
 
 // publish records an event in the outbox (outside a transaction: the change

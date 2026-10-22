@@ -38,18 +38,21 @@ const (
 	ChannelRoleChanged   = "channel.role_changed"
 	MessageRemoved       = "message.removed_by_manager"
 
-	BotCreated      = "bot.created"
-	BotDisabled     = "bot.disabled"
-	BotEnabled      = "bot.enabled"
-	BotTokenCreated = "bot.token_created" //nolint:gosec // an event name, not a credential
-	BotTokenRevoked = "bot.token_revoked" //nolint:gosec // an event name, not a credential
-	WebhookCreated  = "bot.webhook_created"
-	WebhookDeleted  = "bot.webhook_deleted"
-	BotTokenRotated = "bot.token_rotated" //nolint:gosec // an event name, not a credential
-	CommandCreated  = "bot.command_created"
-	CommandDeleted  = "bot.command_deleted"
-	SubscribedTo    = "bot.subscription_created"
-	Unsubscribed    = "bot.subscription_deleted"
+	BotCreated          = "bot.created"
+	BotDisabled         = "bot.disabled"
+	BotEnabled          = "bot.enabled"
+	BotTokenCreated     = "bot.token_created" //nolint:gosec // an event name, not a credential
+	BotTokenRevoked     = "bot.token_revoked" //nolint:gosec // an event name, not a credential
+	WebhookCreated      = "bot.webhook_created"
+	WebhookDeleted      = "bot.webhook_deleted"
+	BotTokenRotated     = "bot.token_rotated" //nolint:gosec // an event name, not a credential
+	CommandCreated      = "bot.command_created"
+	CommandDeleted      = "bot.command_deleted"
+	SubscribedTo        = "bot.subscription_created"
+	GroupMappingSet     = "workspace.group_mapping_set"
+	GroupMappingDeleted = "workspace.group_mapping_deleted"
+	ChannelGroupsSet    = "channel.groups_set"
+	Unsubscribed        = "bot.subscription_deleted"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

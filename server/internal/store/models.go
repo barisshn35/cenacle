@@ -47,18 +47,19 @@ type BotToken struct {
 }
 
 type Channel struct {
-	ID          pgtype.UUID        `json:"id"`
-	Name        string             `json:"name"`
-	Topic       string             `json:"topic"`
-	CreatedAt   time.Time          `json:"created_at"`
-	Kind        string             `json:"kind"`
-	IsDefault   bool               `json:"is_default"`
-	IsMandatory bool               `json:"is_mandatory"`
-	CreatedBy   pgtype.UUID        `json:"created_by"`
-	Visibility  string             `json:"visibility"`
-	ArchivedAt  pgtype.Timestamptz `json:"archived_at"`
-	CategoryID  pgtype.UUID        `json:"category_id"`
-	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ID           pgtype.UUID        `json:"id"`
+	Name         string             `json:"name"`
+	Topic        string             `json:"topic"`
+	CreatedAt    time.Time          `json:"created_at"`
+	Kind         string             `json:"kind"`
+	IsDefault    bool               `json:"is_default"`
+	IsMandatory  bool               `json:"is_mandatory"`
+	CreatedBy    pgtype.UUID        `json:"created_by"`
+	Visibility   string             `json:"visibility"`
+	ArchivedAt   pgtype.Timestamptz `json:"archived_at"`
+	CategoryID   pgtype.UUID        `json:"category_id"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	GroupManaged bool               `json:"group_managed"`
 }
 
 type ChannelCategory struct {
@@ -69,12 +70,25 @@ type ChannelCategory struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
 }
 
+type ChannelGroupMapping struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	GroupName string      `json:"group_name"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
 type ChannelMember struct {
 	ChannelID  pgtype.UUID `json:"channel_id"`
 	UserID     pgtype.UUID `json:"user_id"`
 	JoinedAt   time.Time   `json:"joined_at"`
 	Role       string      `json:"role"`
 	LastReadID pgtype.UUID `json:"last_read_id"`
+	ViaGroup   bool        `json:"via_group"`
+}
+
+type DirectorySyncState struct {
+	ID       bool               `json:"id"`
+	Cursor   string             `json:"cursor"`
+	SyncedAt pgtype.Timestamptz `json:"synced_at"`
 }
 
 type EventDelivery struct {
@@ -215,6 +229,14 @@ type User struct {
 	LastLoginAt   pgtype.Timestamptz `json:"last_login_at"`
 	IsAdmin       bool               `json:"is_admin"`
 	IsBot         bool               `json:"is_bot"`
+	Username      pgtype.Text        `json:"username"`
+	DirectoryRole pgtype.Text        `json:"directory_role"`
+	DeactivatedAt pgtype.Timestamptz `json:"deactivated_at"`
+}
+
+type UserGroup struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	GroupName string      `json:"group_name"`
 }
 
 type Workspace struct {
@@ -222,6 +244,13 @@ type Workspace struct {
 	Name      string      `json:"name"`
 	IsDefault bool        `json:"is_default"`
 	CreatedAt time.Time   `json:"created_at"`
+}
+
+type WorkspaceGroupMapping struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	GroupName   string      `json:"group_name"`
+	Role        string      `json:"role"`
+	CreatedAt   time.Time   `json:"created_at"`
 }
 
 type WorkspaceInvite struct {
@@ -241,4 +270,5 @@ type WorkspaceMember struct {
 	UserID      pgtype.UUID `json:"user_id"`
 	Role        string      `json:"role"`
 	JoinedAt    time.Time   `json:"joined_at"`
+	ViaGroup    bool        `json:"via_group"`
 }

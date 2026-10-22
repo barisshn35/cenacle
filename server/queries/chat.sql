@@ -108,11 +108,12 @@ ON CONFLICT DO NOTHING;
 DELETE FROM channel_members WHERE channel_id = @channel_id AND user_id = @user_id;
 
 -- name: AddAllUsers :execrows
--- AddAllUsers makes every member of the channel's workspace a member of it.
+-- AddAllUsers makes every member of the channel's workspace a member of it
+-- (guests are added where they work, like bots).
 INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, wm.user_id
 FROM channels c
-JOIN workspace_members wm ON wm.workspace_id = c.workspace_id
+JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.role <> 'guest'
 JOIN users u ON u.id = wm.user_id AND NOT u.is_bot -- bots are added where they work
 WHERE c.id = @channel_id
 ON CONFLICT DO NOTHING;
@@ -123,7 +124,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, @user_id
 FROM channels c
-JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id
+JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id AND wm.role <> 'guest'
 WHERE c.is_default
 ON CONFLICT DO NOTHING
 RETURNING channel_id;

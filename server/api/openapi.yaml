@@ -156,7 +156,7 @@ paths:
               type: object
               required: [role]
               properties:
-                role: { type: string, enum: [owner, admin, member] }
+                role: { type: string, enum: [owner, admin, member, guest] }
       responses:
         '200':
           description: Changed.
@@ -1988,6 +1988,131 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/groups:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [workspaces]
+      operationId: listWorkspaceGroups
+      summary: Directory groups that give membership of the workspace (owners and admins)
+      responses:
+        '200':
+          description: The mappings and the group names people of the instance are in.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mappings, groups]
+                properties:
+                  mappings:
+                    type: array
+                    items: { $ref: '#/components/schemas/GroupMapping' }
+                  groups:
+                    type: array
+                    items: { type: string }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags: [workspaces]
+      operationId: setWorkspaceGroup
+      summary: Give the members of a directory group membership of the workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GroupMapping' }
+      responses:
+        '200':
+          description: Saved; people of the group join now.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GroupMapping' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/groups/{group}:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: group
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [workspaces]
+      operationId: deleteWorkspaceGroup
+      summary: Stop giving membership to a directory group
+      description: People who are in the workspace only through this group leave it.
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/groups:
+    parameters:
+      - name: channel_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [chat]
+      operationId: getChannelGroups
+      summary: Directory groups of a channel (its managers)
+      responses:
+        '200':
+          description: The channel's groups.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelGroups' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+    put:
+      tags: [chat]
+      operationId: setChannelGroups
+      summary: Set the directory groups of a channel
+      description: |
+        Members of the groups (in the channel's workspace) join. With `managed`, the
+        members are exactly the people of the groups: others are removed and nobody
+        is added or leaves by hand.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChannelGroups' }
+      responses:
+        '200':
+          description: Saved and applied.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelGroups' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/channels/{channel_id}/files:
     parameters:
       - name: channel_id
@@ -2444,13 +2569,16 @@ components:
         is_default:
           type: boolean
           description: Everyone who signs in belongs to the default workspace.
-        role: { type: string, enum: [owner, admin, member] }
+        role:
+          type: string
+          enum: [owner, admin, member, guest]
+          description: Guests see only the channels they are in and the people in them.
     WorkspaceMember:
       type: object
       required: [user, role]
       properties:
         user: { $ref: '#/components/schemas/Person' }
-        role: { type: string, enum: [owner, admin, member] }
+        role: { type: string, enum: [owner, admin, member, guest] }
     Invite:
       type: object
       required: [id, created_at, expires_at, max_uses, uses]
@@ -2486,6 +2614,7 @@ components:
           can_post,
           can_manage,
           archived,
+          group_managed,
           category_id,
           unread_count,
           mention_count,
@@ -2523,6 +2652,9 @@ components:
         archived:
           type: boolean
           description: Archived channels are read-only.
+        group_managed:
+          type: boolean
+          description: Members are exactly the people of the channel's directory groups.
         unread_count:
           type: integer
           description: Messages of others after the read position, counted up to 100.
@@ -2643,6 +2775,21 @@ components:
           type: string
           format: date-time
           nullable: true
+    GroupMapping:
+      type: object
+      required: [group, role]
+      properties:
+        group: { type: string, minLength: 1, maxLength: 200 }
+        role: { type: string, enum: [admin, member, guest] }
+    ChannelGroups:
+      type: object
+      required: [groups, managed]
+      properties:
+        groups:
+          type: array
+          maxItems: 50
+          items: { type: string, minLength: 1, maxLength: 200 }
+        managed: { type: boolean }
     FileInfo:
       type: object
       required: [id, name, content_type, size, width, height, has_thumbnail]

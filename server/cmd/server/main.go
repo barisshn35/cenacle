@@ -47,6 +47,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/db"
 	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/barisshn35/cenacle/server/internal/groups"
 	"github.com/barisshn35/cenacle/server/internal/health"
 	"github.com/barisshn35/cenacle/server/internal/importer"
 	"github.com/barisshn35/cenacle/server/internal/jobs"
@@ -225,6 +226,10 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	jobClient, err := jobs.NewClient(pool, jobs.Deps{
 		Purger: chat.Purger{Queries: queries}, Sessions: sessions, Log: log,
 		Integrations: &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Files: files, Log: log},
+		Directory: &groups.Feed{
+			HTTP: idpClient, Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
+			DB: pool, Queries: queries, Ephemeral: ephemeral, AdminEmail: cfg.AdminEmail, Log: log,
+		},
 	})
 	if err != nil {
 		return err
@@ -262,6 +267,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			DB:                pool,
 			Egress:            egressClient,
 			Files:             files,
+			AdminEmail:        cfg.AdminEmail,
 			PublicURL:         cfg.PublicURL.String(),
 			Ephemeral:         ephemeral,
 			Audit:             auditLog,

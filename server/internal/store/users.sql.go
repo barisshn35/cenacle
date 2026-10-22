@@ -23,7 +23,7 @@ func (q *Queries) ClearAdminExcept(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot FROM users WHERE id = $1
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -41,6 +41,9 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.LastLoginAt,
 		&i.IsAdmin,
 		&i.IsBot,
+		&i.Username,
+		&i.DirectoryRole,
+		&i.DeactivatedAt,
 	)
 	return i, err
 }
@@ -48,10 +51,12 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 const revokeAdminUnlessEmail = `-- name: RevokeAdminUnlessEmail :exec
 UPDATE users SET is_admin = false
 WHERE is_admin AND ($1::text = '' OR lower(email) <> lower($1::text))
+  AND directory_role IS DISTINCT FROM 'admin'
 `
 
 // RevokeAdminUnlessEmail removes the administrator flag from a user whose
-// e-mail address is no longer the configured one (” revokes it from all).
+// e-mail address is no longer the configured one (” revokes it from all),
+// unless the directory makes them an administrator.
 func (q *Queries) RevokeAdminUnlessEmail(ctx context.Context, email string) error {
 	_, err := q.db.Exec(ctx, revokeAdminUnlessEmail, email)
 	return err
@@ -132,7 +137,7 @@ SET email          = EXCLUDED.email,
         WHEN (users.email, users.email_verified, users.display_name)
              IS DISTINCT FROM (EXCLUDED.email, EXCLUDED.email_verified, EXCLUDED.display_name)
         THEN now() ELSE users.updated_at END
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at
 `
 
 type UpsertUserFromIdentityParams struct {
@@ -166,6 +171,9 @@ func (q *Queries) UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFrom
 		&i.LastLoginAt,
 		&i.IsAdmin,
 		&i.IsBot,
+		&i.Username,
+		&i.DirectoryRole,
+		&i.DeactivatedAt,
 	)
 	return i, err
 }

@@ -143,6 +143,27 @@ func (e DeliveryStatus) Valid() bool {
 	}
 }
 
+// Defines values for GroupMappingRole.
+const (
+	GroupMappingRoleAdmin  GroupMappingRole = "admin"
+	GroupMappingRoleGuest  GroupMappingRole = "guest"
+	GroupMappingRoleMember GroupMappingRole = "member"
+)
+
+// Valid indicates whether the value is a known member of the GroupMappingRole enum.
+func (e GroupMappingRole) Valid() bool {
+	switch e {
+	case GroupMappingRoleAdmin:
+		return true
+	case GroupMappingRoleGuest:
+		return true
+	case GroupMappingRoleMember:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MemberRole.
 const (
 	MemberRoleManager MemberRole = "manager"
@@ -263,6 +284,7 @@ func (e WebhookKind) Valid() bool {
 // Defines values for WorkspaceRole.
 const (
 	WorkspaceRoleAdmin  WorkspaceRole = "admin"
+	WorkspaceRoleGuest  WorkspaceRole = "guest"
 	WorkspaceRoleMember WorkspaceRole = "member"
 	WorkspaceRoleOwner  WorkspaceRole = "owner"
 )
@@ -271,6 +293,8 @@ const (
 func (e WorkspaceRole) Valid() bool {
 	switch e {
 	case WorkspaceRoleAdmin:
+		return true
+	case WorkspaceRoleGuest:
 		return true
 	case WorkspaceRoleMember:
 		return true
@@ -284,6 +308,7 @@ func (e WorkspaceRole) Valid() bool {
 // Defines values for WorkspaceMemberRole.
 const (
 	WorkspaceMemberRoleAdmin  WorkspaceMemberRole = "admin"
+	WorkspaceMemberRoleGuest  WorkspaceMemberRole = "guest"
 	WorkspaceMemberRoleMember WorkspaceMemberRole = "member"
 	WorkspaceMemberRoleOwner  WorkspaceMemberRole = "owner"
 )
@@ -292,6 +317,8 @@ const (
 func (e WorkspaceMemberRole) Valid() bool {
 	switch e {
 	case WorkspaceMemberRoleAdmin:
+		return true
+	case WorkspaceMemberRoleGuest:
 		return true
 	case WorkspaceMemberRoleMember:
 		return true
@@ -413,6 +440,7 @@ func (e SetPresenceJSONBodyStatus) Valid() bool {
 // Defines values for SetWorkspaceRoleJSONBodyRole.
 const (
 	SetWorkspaceRoleJSONBodyRoleAdmin  SetWorkspaceRoleJSONBodyRole = "admin"
+	SetWorkspaceRoleJSONBodyRoleGuest  SetWorkspaceRoleJSONBodyRole = "guest"
 	SetWorkspaceRoleJSONBodyRoleMember SetWorkspaceRoleJSONBodyRole = "member"
 	SetWorkspaceRoleJSONBodyRoleOwner  SetWorkspaceRoleJSONBodyRole = "owner"
 )
@@ -421,6 +449,8 @@ const (
 func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
 	switch e {
 	case SetWorkspaceRoleJSONBodyRoleAdmin:
+		return true
+	case SetWorkspaceRoleJSONBodyRoleGuest:
 		return true
 	case SetWorkspaceRoleJSONBodyRoleMember:
 		return true
@@ -516,7 +546,10 @@ type Channel struct {
 	// CanPost Whether this user can send messages here.
 	CanPost    bool                `json:"can_post"`
 	CategoryId *openapi_types.UUID `json:"category_id"`
-	Id         openapi_types.UUID  `json:"id"`
+
+	// GroupManaged Members are exactly the people of the channel's directory groups.
+	GroupManaged bool               `json:"group_managed"`
+	Id           openapi_types.UUID `json:"id"`
 
 	// IsDefault Every user is a member.
 	IsDefault bool `json:"is_default"`
@@ -565,6 +598,12 @@ type ChannelFile struct {
 	Size         int64              `json:"size"`
 	Uploader     Author             `json:"uploader"`
 	Width        *int               `json:"width"`
+}
+
+// ChannelGroups defines model for ChannelGroups.
+type ChannelGroups struct {
+	Groups  []string `json:"groups"`
+	Managed bool     `json:"managed"`
 }
 
 // ChannelList defines model for ChannelList.
@@ -643,6 +682,15 @@ type FileInfo struct {
 	Size         int64              `json:"size"`
 	Width        *int               `json:"width"`
 }
+
+// GroupMapping defines model for GroupMapping.
+type GroupMapping struct {
+	Group string           `json:"group"`
+	Role  GroupMappingRole `json:"role"`
+}
+
+// GroupMappingRole defines model for GroupMapping.Role.
+type GroupMappingRole string
 
 // Invite defines model for Invite.
 type Invite struct {
@@ -865,12 +913,14 @@ type Workspace struct {
 	Id openapi_types.UUID `json:"id"`
 
 	// IsDefault Everyone who signs in belongs to the default workspace.
-	IsDefault bool          `json:"is_default"`
-	Name      string        `json:"name"`
-	Role      WorkspaceRole `json:"role"`
+	IsDefault bool   `json:"is_default"`
+	Name      string `json:"name"`
+
+	// Role Guests see only the channels they are in and the people in them.
+	Role WorkspaceRole `json:"role"`
 }
 
-// WorkspaceRole defines model for Workspace.Role.
+// WorkspaceRole Guests see only the channels they are in and the people in them.
 type WorkspaceRole string
 
 // WorkspaceMember defines model for WorkspaceMember.
@@ -1160,6 +1210,9 @@ type RunCommandJSONRequestBody RunCommandJSONBody
 // CreateUploadJSONRequestBody defines body for CreateUpload for application/json ContentType.
 type CreateUploadJSONRequestBody CreateUploadJSONBody
 
+// SetChannelGroupsJSONRequestBody defines body for SetChannelGroups for application/json ContentType.
+type SetChannelGroupsJSONRequestBody = ChannelGroups
+
 // AddChannelMemberJSONRequestBody defines body for AddChannelMember for application/json ContentType.
 type AddChannelMemberJSONRequestBody AddChannelMemberJSONBody
 
@@ -1198,6 +1251,9 @@ type CreateBotJSONRequestBody CreateBotJSONBody
 
 // OpenConversationJSONRequestBody defines body for OpenConversation for application/json ContentType.
 type OpenConversationJSONRequestBody OpenConversationJSONBody
+
+// SetWorkspaceGroupJSONRequestBody defines body for SetWorkspaceGroup for application/json ContentType.
+type SetWorkspaceGroupJSONRequestBody = GroupMapping
 
 // CreateInviteJSONRequestBody defines body for CreateInvite for application/json ContentType.
 type CreateInviteJSONRequestBody CreateInviteJSONBody
@@ -1306,6 +1362,12 @@ type ServerInterface interface {
 	// CreateUpload Start uploading a file into a channel
 	// (POST /api/channels/{channel_id}/files)
 	CreateUpload(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// GetChannelGroups Directory groups of a channel (its managers)
+	// (GET /api/channels/{channel_id}/groups)
+	GetChannelGroups(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// SetChannelGroups Set the directory groups of a channel
+	// (PUT /api/channels/{channel_id}/groups)
+	SetChannelGroups(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// JoinChannel Join a public channel
 	// (POST /api/channels/{channel_id}/join)
 	JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -1426,6 +1488,15 @@ type ServerInterface interface {
 	// OpenConversation Open a direct or group conversation
 	// (POST /api/workspaces/{workspace_id}/conversations)
 	OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListWorkspaceGroups Directory groups that give membership of the workspace (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/groups)
+	ListWorkspaceGroups(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetWorkspaceGroup Give the members of a directory group membership of the workspace
+	// (PUT /api/workspaces/{workspace_id}/groups)
+	SetWorkspaceGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// DeleteWorkspaceGroup Stop giving membership to a directory group
+	// (DELETE /api/workspaces/{workspace_id}/groups/{group})
+	DeleteWorkspaceGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, group string)
 	// ListInvites Invitations that can still be used (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/invites)
 	ListInvites(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -1651,6 +1722,18 @@ func (_ Unimplemented) ListChannelFiles(w http.ResponseWriter, r *http.Request, 
 // CreateUpload Start uploading a file into a channel
 // (POST /api/channels/{channel_id}/files)
 func (_ Unimplemented) CreateUpload(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetChannelGroups Directory groups of a channel (its managers)
+// (GET /api/channels/{channel_id}/groups)
+func (_ Unimplemented) GetChannelGroups(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetChannelGroups Set the directory groups of a channel
+// (PUT /api/channels/{channel_id}/groups)
+func (_ Unimplemented) SetChannelGroups(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1891,6 +1974,24 @@ func (_ Unimplemented) ListCommands(w http.ResponseWriter, r *http.Request, work
 // OpenConversation Open a direct or group conversation
 // (POST /api/workspaces/{workspace_id}/conversations)
 func (_ Unimplemented) OpenConversation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWorkspaceGroups Directory groups that give membership of the workspace (owners and admins)
+// (GET /api/workspaces/{workspace_id}/groups)
+func (_ Unimplemented) ListWorkspaceGroups(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWorkspaceGroup Give the members of a directory group membership of the workspace
+// (PUT /api/workspaces/{workspace_id}/groups)
+func (_ Unimplemented) SetWorkspaceGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteWorkspaceGroup Stop giving membership to a directory group
+// (DELETE /api/workspaces/{workspace_id}/groups/{group})
+func (_ Unimplemented) DeleteWorkspaceGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, group string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2915,6 +3016,58 @@ func (siw *ServerInterfaceWrapper) CreateUpload(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateUpload(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetChannelGroups operation middleware
+func (siw *ServerInterfaceWrapper) GetChannelGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetChannelGroups(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetChannelGroups operation middleware
+func (siw *ServerInterfaceWrapper) SetChannelGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetChannelGroups(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4068,6 +4221,93 @@ func (siw *ServerInterfaceWrapper) OpenConversation(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListWorkspaceGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkspaceGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkspaceGroups(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetWorkspaceGroup operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspaceGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspaceGroup(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteWorkspaceGroup operation middleware
+func (siw *ServerInterfaceWrapper) DeleteWorkspaceGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "group" -------------
+	var group string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group", chi.URLParam(r, "group"), &group, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteWorkspaceGroup(w, r, workspaceId, group)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListInvites operation middleware
 func (siw *ServerInterfaceWrapper) ListInvites(w http.ResponseWriter, r *http.Request) {
 
@@ -4622,6 +4862,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/leave", wrapper.LeaveChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/groups", wrapper.ListWorkspaceGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/groups", wrapper.SetWorkspaceGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/workspaces/{workspace_id}/groups/{group}", wrapper.DeleteWorkspaceGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/groups", wrapper.GetChannelGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/groups", wrapper.SetChannelGroups)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/files", wrapper.ListChannelFiles)

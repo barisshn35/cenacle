@@ -17,7 +17,7 @@ UPDATE users SET auth_service = $1, auth_data = $2, email_verified = true,
     display_name = $3, last_login_at = now(), updated_at = now()
 WHERE id = (SELECT u.id FROM users u WHERE u.auth_service = 'import' AND u.email <> ''
             AND lower(u.email) = lower($4) ORDER BY u.created_at LIMIT 1)
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at
 `
 
 type ClaimImportedUserParams struct {
@@ -49,6 +49,9 @@ func (q *Queries) ClaimImportedUser(ctx context.Context, arg ClaimImportedUserPa
 		&i.LastLoginAt,
 		&i.IsAdmin,
 		&i.IsBot,
+		&i.Username,
+		&i.DirectoryRole,
+		&i.DeactivatedAt,
 	)
 	return i, err
 }
@@ -57,7 +60,7 @@ const createImportedUser = `-- name: CreateImportedUser :one
 INSERT INTO users (auth_service, auth_data, email, display_name)
 VALUES ('import', $1, $2, $3)
 ON CONFLICT ON CONSTRAINT users_auth_key DO UPDATE SET display_name = EXCLUDED.display_name
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at
 `
 
 type CreateImportedUserParams struct {
@@ -83,12 +86,15 @@ func (q *Queries) CreateImportedUser(ctx context.Context, arg CreateImportedUser
 		&i.LastLoginAt,
 		&i.IsAdmin,
 		&i.IsBot,
+		&i.Username,
+		&i.DirectoryRole,
+		&i.DeactivatedAt,
 	)
 	return i, err
 }
 
 const findUserByEmail = `-- name: FindUserByEmail :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot FROM users WHERE email <> '' AND lower(email) = lower($1)
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at FROM users WHERE email <> '' AND lower(email) = lower($1)
 ORDER BY (auth_service = 'import') LIMIT 1
 `
 
@@ -109,6 +115,9 @@ func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, erro
 		&i.LastLoginAt,
 		&i.IsAdmin,
 		&i.IsBot,
+		&i.Username,
+		&i.DirectoryRole,
+		&i.DeactivatedAt,
 	)
 	return i, err
 }
@@ -130,7 +139,7 @@ func (q *Queries) FindWorkspaceByName(ctx context.Context, name string) (Workspa
 }
 
 const getInstanceAdmin = `-- name: GetInstanceAdmin :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot FROM users WHERE is_admin ORDER BY created_at LIMIT 1
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at FROM users WHERE is_admin ORDER BY created_at LIMIT 1
 `
 
 func (q *Queries) GetInstanceAdmin(ctx context.Context) (User, error) {
@@ -148,6 +157,9 @@ func (q *Queries) GetInstanceAdmin(ctx context.Context) (User, error) {
 		&i.LastLoginAt,
 		&i.IsAdmin,
 		&i.IsBot,
+		&i.Username,
+		&i.DirectoryRole,
+		&i.DeactivatedAt,
 	)
 	return i, err
 }

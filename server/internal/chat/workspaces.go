@@ -169,7 +169,12 @@ func (h *Handlers) ListWorkspaceMembers(w http.ResponseWriter, r *http.Request, 
 	if !ok {
 		return
 	}
-	if _, ok := h.workspaceRole(w, r, workspaceID, p.User); !ok {
+	wsRole, ok := h.workspaceRole(w, r, workspaceID, p.User)
+	if !ok {
+		return
+	}
+	visible, ok := h.visiblePeople(w, r, workspaceID, p.User, wsRole)
+	if !ok {
 		return
 	}
 	rows, err := h.Queries.ListWorkspaceMembers(r.Context(), pgUUID(workspaceID))
@@ -179,6 +184,9 @@ func (h *Handlers) ListWorkspaceMembers(w http.ResponseWriter, r *http.Request, 
 	}
 	out := make([]api.WorkspaceMember, 0, len(rows))
 	for _, m := range rows {
+		if visible != nil && !visible[m.ID] {
+			continue
+		}
 		out = append(out, api.WorkspaceMember{
 			User: personAPI(m.ID, m.DisplayName, m.Email, m.IsBot), Role: api.WorkspaceMemberRole(m.Role),
 		})

@@ -173,7 +173,7 @@ func TestSignInCreatesUserAndSession(t *testing.T) {
 	auth := e.idp.LastAuth
 	if auth.Get("code_challenge_method") != "S256" || auth.Get("code_challenge") == "" ||
 		auth.Get("nonce") == "" || auth.Get("response_type") != "code" ||
-		auth.Get("scope") != "openid email profile" {
+		auth.Get("scope") != "openid email profile groups" {
 		t.Errorf("authorization request = %v", auth)
 	}
 
