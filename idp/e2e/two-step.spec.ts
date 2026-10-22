@@ -175,3 +175,16 @@ test('turning it off needs a current code', async ({ page }) => {
   await expect(page.getByRole('status')).toHaveText('Two-step verification is off.');
   await expect(page.getByTestId('two-step-state')).toContainText('Off');
 });
+
+test('changing the name on the account page', async ({ page }) => {
+  await signInToAccount(page);
+  await page.getByLabel('Your name').fill('Ayşe Y. Demir');
+  await page.getByRole('button', { name: 'Save name' }).click();
+  await expect(page.getByRole('status')).toContainText('Your name is saved');
+  await expect(page.getByText('Ayşe Y. Demir ·')).toBeVisible();
+  await axe(page);
+  await page.getByLabel('Your name').fill('   ');
+  await page.getByLabel('Your name').evaluate((el) => el.removeAttribute('required'));
+  await page.getByRole('button', { name: 'Save name' }).click();
+  await expect(page.getByRole('alert')).toContainText('Enter a name');
+});

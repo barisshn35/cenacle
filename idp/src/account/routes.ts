@@ -146,6 +146,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
         on: m.enabledNotice,
         'passkey-added': m.passkeyAdded,
         'passkey-removed': m.passkeyRemoved,
+        name: m.nameSaved,
       };
       const failed = request.query.passkey_error;
       return page(
@@ -163,6 +164,8 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           notice: done ? notices[done] : undefined,
           passkeys: opts.passkeys ? await opts.passkeys.list(user.id) : [],
           passkeyError: failed === 'limit' || failed === 'failed' ? failed : undefined,
+          nameEditable: !user.fromDirectory && !user.fromProvider,
+          nameInvalid: request.query.name_error !== undefined,
         }),
       );
     },
@@ -240,6 +243,24 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       await audit.record('recovery_code.used', challenge.userId, request.ip);
     await audit.record('account.signed_in', challenge.userId, request.ip, { second_step: factor });
     return signedIn(reply, challenge.userId);
+  });
+
+  app.post<{ Body: { name?: string } }>('/account/name', async (request, reply) => {
+    if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+    const user = await current(request);
+    if (!user) return reply.redirect('/account', 303);
+    const name = (request.body?.name ?? '').replace(/\s+/g, ' ').trim();
+    if (
+      !name ||
+      name.length > 100 ||
+      [...name].some((c) => c.charCodeAt(0) < 32 || c === '\u007f')
+    ) {
+      return reply.redirect('/account?name_error=1', 303);
+    }
+    if (await users.setDisplayName(user.id, name)) {
+      await audit.record('account.name_changed', user.id, request.ip);
+    }
+    return reply.redirect('/account?done=name', 303);
   });
 
   // --- identity providers ---------------------------------------------------

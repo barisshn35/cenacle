@@ -9,6 +9,7 @@ export type AuditAction =
   | 'signin.passkey_failed'
   | 'signin.federation_failed'
   | 'passkey.added'
+  | 'account.name_changed'
   | 'passkey.removed'
   | 'recovery_code.used'
   | 'two_step.enabled'

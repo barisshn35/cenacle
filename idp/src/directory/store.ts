@@ -273,15 +273,23 @@ export async function upsertPerson(
     ({ rows } = await upsert(null));
   }
   const row = rows[0]!;
-  if (person.photo) {
-    await db.query(
-      `INSERT INTO user_photos (user_id, origin, content_type, data) VALUES ($1, 'directory', $2, $3)
-       ON CONFLICT (user_id, origin) DO UPDATE SET content_type = EXCLUDED.content_type, data = EXCLUDED.data,
-         updated_at = CASE WHEN user_photos.data = EXCLUDED.data THEN user_photos.updated_at ELSE now() END`,
-      [row.id, sniffImage(person.photo), person.photo],
-    );
-  } else {
-    await db.query(`DELETE FROM user_photos WHERE user_id = $1 AND origin = 'directory'`, [row.id]);
+  // A new or removed photo is a change of the account (the chat follows it).
+  const photo = person.photo
+    ? await db.query(
+        `WITH old AS (SELECT data FROM user_photos WHERE user_id = $1 AND origin = 'directory')
+         INSERT INTO user_photos (user_id, origin, content_type, data) VALUES ($1, 'directory', $2, $3)
+         ON CONFLICT (user_id, origin) DO UPDATE SET content_type = EXCLUDED.content_type, data = EXCLUDED.data,
+           updated_at = CASE WHEN user_photos.data = EXCLUDED.data THEN user_photos.updated_at ELSE now() END
+         RETURNING (SELECT data FROM old) IS DISTINCT FROM $3 AS changed`,
+        [row.id, sniffImage(person.photo), person.photo],
+      )
+    : await db.query(
+        `DELETE FROM user_photos WHERE user_id = $1 AND origin = 'directory' RETURNING true AS changed`,
+        [row.id],
+      );
+  if (photo.rows[0]?.changed && !row.created) {
+    await db.query('UPDATE users SET updated_at = now() WHERE id = $1', [row.id]);
+    row.changed = true;
   }
   if (groupIds) {
     const { rows: changed } = await db.query<{ n: number }>(

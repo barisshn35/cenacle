@@ -503,6 +503,9 @@ export interface AccountView {
   }[];
   /** Why adding a passkey failed, if it just did. */
   passkeyError?: 'failed' | 'limit';
+  /** The name can be changed here (local accounts). */
+  nameEditable?: boolean;
+  nameInvalid?: boolean;
 }
 
 /** The account page: two-step verification and recent activity. */
@@ -514,6 +517,30 @@ export function accountPage(opts: { locale: Locale } & AccountView): string {
       <p class="text-sm text-muted-foreground">${opts.name} · ${opts.email}</p>
     </div>
     ${opts.notice ? noticeBox(opts.notice) : null}
+    ${
+      opts.nameEditable
+        ? html`<section aria-labelledby="profile" class="flex flex-col gap-3 rounded-xl border p-4">
+            <h2 id="profile" class="font-semibold">${m.profile}</h2>
+            ${opts.nameInvalid ? alertBox('name-error', m.nameInvalid) : null}
+            <form method="post" action="/account/name" class="flex flex-col gap-3">
+              <div class="flex flex-col gap-1.5">
+                <label for="display-name" class="${label}">${m.displayName}</label>
+                <input
+                  id="display-name"
+                  name="name"
+                  required
+                  maxlength="100"
+                  autocomplete="name"
+                  value="${opts.name}"
+                  class="${input}"
+                  ${raw(opts.nameInvalid ? 'aria-invalid="true" aria-describedby="name-error"' : '')}
+                />
+              </div>
+              <button type="submit" class="${secondary}">${m.saveName}</button>
+            </form>
+          </section>`
+        : null
+    }
     <section aria-labelledby="two-step" class="flex flex-col gap-3 rounded-xl border p-4">
       <h2 id="two-step" class="font-semibold">${m.twoStep}</h2>
       <p class="text-sm" data-testid="two-step-state">

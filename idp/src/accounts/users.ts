@@ -184,6 +184,16 @@ export class UserStore {
     return rowCount === 1;
   }
 
+  /** Changes the name of a local account (directories and providers own theirs). */
+  async setDisplayName(id: string, name: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `UPDATE users SET display_name = $2, updated_at = now()
+       WHERE id = $1 AND source_id IS NULL AND display_name IS DISTINCT FROM $2`,
+      [id, name],
+    );
+    return rowCount === 1;
+  }
+
   async setAdminById(id: string, admin: boolean): Promise<boolean> {
     const { rowCount } = await this.pool.query(
       `UPDATE users SET is_admin = $2, updated_at = now() WHERE id = $1`,

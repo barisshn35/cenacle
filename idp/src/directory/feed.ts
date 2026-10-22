@@ -28,6 +28,24 @@ export function registerDirectoryFeed(
   app: FastifyInstance,
   opts: { pool: pg.Pool; clients: ClientMetadata[] },
 ) {
+  app.get<{ Params: { sub: string } }>('/directory/v1/photos/:sub', async (request, reply) => {
+    if (!authorized(request.headers.authorization, opts.clients)) {
+      return reply.code(401).header('www-authenticate', 'Basic realm="cenacle-id"').send();
+    }
+    if (!/^[0-9a-f-]{36}$/i.test(request.params.sub)) return reply.code(404).send();
+    const { rows } = await opts.pool.query<{ content_type: string; data: Buffer }>(
+      `SELECT content_type, data FROM user_photos WHERE user_id = $1 AND origin = 'directory'`,
+      [request.params.sub],
+    );
+    const photo = rows[0];
+    if (!photo) return reply.code(404).send();
+    return reply
+      .header('cache-control', 'no-store')
+      .header('x-content-type-options', 'nosniff')
+      .type(photo.content_type)
+      .send(photo.data);
+  });
+
   app.get<{ Querystring: { after?: string } }>('/directory/v1/changes', async (request, reply) => {
     if (!authorized(request.headers.authorization, opts.clients)) {
       return reply.code(401).header('www-authenticate', 'Basic realm="cenacle-id"').send();
@@ -40,6 +58,8 @@ export function registerDirectoryFeed(
     const { rows } = await opts.pool.query(
       `SELECT u.id, u.updated_at::text AS cursor_at, u.display_name, u.email, u.email_verified, u.username,
               u.directory_role, u.disabled_at IS NOT NULL AS disabled,
+              coalesce((SELECT encode(sha256(p.data), 'hex') FROM user_photos p
+                        WHERE p.user_id = u.id AND p.origin = 'directory'), '') AS picture,
               coalesce((SELECT array_agg(g.name ORDER BY g.name) FROM user_groups ug
                         JOIN directory_groups g ON g.id = ug.group_id WHERE ug.user_id = u.id), '{}') AS groups
        FROM users u
@@ -61,6 +81,8 @@ export function registerDirectoryFeed(
         groups: r.groups,
         cenacle_role: r.directory_role ?? '',
         disabled: r.disabled,
+        // The directory's photo (SHA-256), read at /directory/v1/photos/<sub>.
+        picture: r.picture,
       })),
       next: last ? `${last.cursor_at}|${last.id}` : (request.query.after ?? ''),
       more: rows.length > PAGE,
