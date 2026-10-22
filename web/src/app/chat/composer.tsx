@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ClockIcon, PaperclipIcon, SendHorizontalIcon } from 'lucide-react';
+import { ClockIcon, PaperclipIcon, SendHorizontalIcon, BarChart3Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
@@ -17,6 +17,7 @@ import { useConnection } from './connection';
 import { addMessage, sendTyping } from './data';
 import { useMentionPicker } from './mention-picker';
 import { useSession } from '../auth/session';
+import { PollDialog } from '../community/poll';
 import { SendLaterDialog } from './send-later';
 import { UploadList } from './uploads';
 import { useUploads } from './use-uploads';
@@ -58,11 +59,14 @@ export function Composer({
   channelId,
   channelName,
   thread,
+  slowMode = 0,
 }: {
   channelId: string;
   channelName: string;
   /** Replies in this thread (the right panel) instead of the channel. */
   thread?: { rootId: string };
+  /** The channel's slow mode in seconds (0: none), shown under the text. */
+  slowMode?: number;
 }) {
   const { t } = useTranslation();
   const ids = thread
@@ -71,6 +75,7 @@ export function Composer({
   // Drafts of a thread are kept apart from the channel's.
   const draftId = thread ? `${channelId}:${thread.rootId}` : channelId;
   const [also, setAlso] = useState(false);
+  const [pollOpen, setPollOpen] = useState(false);
   const [body, setBody] = useState('');
   // The draft has been read; until then typing must not be overwritten by it,
   // and nothing is saved.
@@ -318,6 +323,17 @@ export function Composer({
                 type="button"
                 size="icon"
                 variant="ghost"
+                aria-label={t('community.poll.create')}
+                onClick={() => setPollOpen(true)}
+              >
+                <BarChart3Icon strokeWidth={1.75} />
+              </Button>
+            )}
+            {!thread && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
                 aria-label={t('scheduled.open')}
                 onClick={() => setLater(true)}
               >
@@ -348,6 +364,11 @@ export function Composer({
             )}
             <div id={ids.hint}>
               <ConnectionNotice />
+              {slowMode > 0 && (
+                <p className="px-1 text-xs text-muted-foreground" data-testid="slow-mode">
+                  {t('community.moderation.slowModeHint', { count: slowMode })}
+                </p>
+              )}
             </div>
             {!thread && <TypingIndicator channelId={channelId} />}
           </div>
@@ -364,6 +385,7 @@ export function Composer({
           )}
         </div>
       </form>
+      {!thread && <PollDialog channelId={channelId} open={pollOpen} onOpenChange={setPollOpen} />}
       <SendLaterDialog
         open={later}
         onOpenChange={(open) => {

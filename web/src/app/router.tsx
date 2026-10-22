@@ -74,8 +74,11 @@ const channelRoute = createRoute({
   component: AppShell,
 });
 
-// Views across channels, in the app shell: /threads, /activity, /saved, /unreads.
-const homeRoutes = (['threads', 'activity', 'saved', 'unreads'] as const).map((view) =>
+// Views across channels, in the app shell: /threads, /activity, /saved, /unreads,
+// /events, /playbooks.
+const homeRoutes = (
+  ['threads', 'activity', 'saved', 'unreads', 'events', 'playbooks'] as const
+).map((view) =>
   createRoute({
     getParentRoute: () => appRoute,
     path: `/${view}`,

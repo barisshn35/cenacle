@@ -28,6 +28,8 @@ import { useLayout } from '../../stores/layout';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { channelsQuery, markRead, setReadLocally, type Message } from '../chat/data';
 import { openMessage } from './open-message';
+import { EventsList } from '../community/events';
+import { PlaybooksList } from '../community/playbooks';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import {
@@ -42,7 +44,7 @@ import {
   type SavedItem,
 } from './threads';
 
-export type HomeView = 'threads' | 'activity' | 'saved' | 'unreads';
+export type HomeView = 'threads' | 'activity' | 'saved' | 'unreads' | 'events' | 'playbooks';
 
 function channelLabel(c: { name: string; kind: string }) {
   return c.kind === 'direct' || c.kind === 'group' ? c.name : `#${c.name}`;
@@ -117,6 +119,8 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
       {view === 'activity' && <ActivityList />}
       {view === 'saved' && <SavedList />}
       {view === 'unreads' && <UnreadsList />}
+      {view === 'events' && <EventsList />}
+      {view === 'playbooks' && <PlaybooksList />}
     </Shell>
   );
 }

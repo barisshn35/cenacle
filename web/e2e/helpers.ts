@@ -194,7 +194,27 @@ export const DEVICES = [
  * Answers the session API in the browser, so app tests run without the chat
  * server: signed in (default) or signed out (null).
  */
+/** The instance-wide banner and terms a test can set (see mockSession). */
+export const instance: {
+  banner: Record<string, unknown> | null;
+  terms: { id: string; text: string; created_at: string } | null;
+  accepted: boolean;
+} = { banner: null, terms: null, accepted: true };
+
 export async function mockSession(page: Page, session: typeof SESSION | null = SESSION) {
+  instance.banner = null;
+  instance.terms = null;
+  instance.accepted = true;
+  await page.route('**/api/banner', (route) =>
+    route.fulfill({ json: { banner: instance.banner } }),
+  );
+  await page.route('**/api/terms', (route) =>
+    route.fulfill({ json: { terms: instance.terms, accepted: instance.accepted } }),
+  );
+  await page.route('**/api/terms/accept', (route) => {
+    instance.accepted = true;
+    return route.fulfill({ status: 204 });
+  });
   await page.unroute('**/api/session');
   await page.route('**/api/session', (route) =>
     session
@@ -220,7 +240,7 @@ const channel = (id: string, name: string, extra: Record<string, unknown> = {}) 
   workspace_id: DEFAULT_WS,
   name,
   topic: '',
-  kind: 'standard' as 'standard' | 'announcement' | 'direct' | 'group',
+  kind: 'standard' as 'standard' | 'announcement' | 'direct' | 'group' | 'forum',
   visibility: 'public' as 'public' | 'private',
   is_default: true,
   is_mandatory: false,
@@ -315,6 +335,12 @@ export const CENTRAL = channel('01a15e50-1111-7d7d-bbee-8e7809fd8ad2', 'Central'
 export const GENERAL = channel('01a15e50-2335-7d7d-bbee-8e7809fd8ad2', 'General', {
   topic: 'Anything and everything.',
 });
+/** A forum (not in the default lists; pass it with `channels`). */
+export const FORUM = channel('01a15e50-4444-7d7d-bbee-8e7809fd8ad2', 'Ideas', {
+  kind: 'forum',
+  is_default: false,
+  forum_tags: ['UX', 'Backend'],
+});
 export const RANDOM = channel('01a15e50-3333-7d7d-bbee-8e7809fd8ad2', 'Random', {
   is_default: false,
   is_member: false,
@@ -380,6 +406,13 @@ export interface MockApi {
   profiles: Record<string, MockProfile>;
   /** Closes the WebSocket from the server side. */
   closeSocket(code: number): void;
+  /** Reasons of reported messages. */
+  reports: string[];
+  /** Events, playbooks and AutoMod rules as the fake server keeps them. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  events: any[];
+  playbooks: Record<string, unknown>[];
+  automod: Record<string, unknown>[];
   /** Notification settings as the fake server keeps them. */
   notifications?: {
     prefs: Record<string, unknown>;
@@ -632,6 +665,10 @@ export async function mockApi(
     typing: [],
     statuses: [],
     ended: [],
+    reports: [],
+    events: [],
+    playbooks: [],
+    automod: [],
     profiles: Object.fromEntries(PEOPLE.map((p) => [p.id, mockProfile(p)])),
     seq: 1,
     // Events sent before the app connected: delivered after the hello.
@@ -846,6 +883,9 @@ export async function mockApi(
       nonce: string;
       root_id?: string;
       also_in_channel?: boolean;
+      title?: string;
+      tags?: string[];
+      poll?: { options: string[]; multiple?: boolean; anonymous?: boolean };
     };
     api.sent.push(input);
     const message = {
@@ -855,6 +895,25 @@ export async function mockApi(
       nonce: input.nonce,
       ...(input.root_id
         ? { root_id: input.root_id, also_in_channel: !!input.also_in_channel }
+        : {}),
+      ...(input.title ? { title: input.title, tags: input.tags ?? [] } : {}),
+      ...(input.poll
+        ? {
+            poll: {
+              options: input.poll.options.map((text, i) => ({
+                id: `01a15e50-0000-7000-9000-${String(i).padStart(12, '0')}`,
+                text,
+                votes: 0,
+                me: false,
+                voters: [],
+              })),
+              multiple: !!input.poll.multiple,
+              anonymous: !!input.poll.anonymous,
+              closes_at: null,
+              closed: false,
+              voters: 0,
+            },
+          }
         : {}),
       // As the server does: <@id> of known people become mentions.
       mentions: PEOPLE.filter((p) => input.body.includes(`<@${p.id}>`)).map((p) => ({
@@ -1077,6 +1136,101 @@ export async function mockApi(
     route.fulfill({ json: { items: [], has_more: false } }),
   );
   await page.route(/\/api\/me\/unreads/, (route) => route.fulfill({ json: { channels: [] } }));
+  // Community and moderation.
+  await page.route(
+    /\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}\/poll\/votes$/,
+    (route) => {
+      const id = route.request().url().split('/messages/')[1]!.split('/')[0]!;
+      const m = stored.find((x) => x.id === id) as unknown as {
+        poll: Record<string, unknown> & { options: { id: string; votes: number; me: boolean }[] };
+      };
+      const chosen = (route.request().postDataJSON() as { option_ids: string[] }).option_ids;
+      m.poll.options = m.poll.options.map((o) => {
+        const was = o.me ? 1 : 0;
+        const now = chosen.includes(o.id) ? 1 : 0;
+        return { ...o, me: now === 1, votes: o.votes - was + now };
+      });
+      m.poll.voters = chosen.length ? 1 : 0;
+      return route.fulfill({ json: m.poll });
+    },
+  );
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}\/report$/, (route) => {
+    api.reports.push((route.request().postDataJSON() as { reason: string }).reason);
+    return route.fulfill({ status: 204 });
+  });
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/runs$/, (route) =>
+    route.fulfill({ json: { runs: [] } }),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/welcome$/, (route) =>
+    route.fulfill({ json: { message: '', rules: [], channel_ids: [] } }),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/events$/, (route) => {
+    if (route.request().method() === 'POST') {
+      const input = route.request().postDataJSON() as Record<string, unknown>;
+      const e = {
+        id: `01a15e50-eeee-7000-8000-${String(api.events.length).padStart(12, '0')}`,
+        workspace_id: DEFAULT_WS,
+        channel_id: input.channel_id ?? null,
+        title: input.title,
+        description: input.description ?? '',
+        location: input.location ?? '',
+        starts_at: input.starts_at,
+        ends_at: input.ends_at,
+        created_by: { id: SESSION.user.id, display_name: SESSION.user.display_name },
+        canceled: false,
+        going: [],
+        maybe: 0,
+        me: null,
+        can_edit: true,
+      };
+      api.events.push(e);
+      return route.fulfill({ status: 201, json: e });
+    }
+    return route.fulfill({ json: { events: api.events } });
+  });
+  await page.route(/\/api\/events\/[0-9a-f-]{36}\/rsvp$/, (route) => {
+    const id = route.request().url().split('/api/events/')[1]!.split('/')[0]!;
+    const e = api.events.find((x) => x.id === id)!;
+    const status = (route.request().postDataJSON() as { status: string | null }).status;
+    e.me = status;
+    e.going =
+      status === 'going' ? [{ id: SESSION.user.id, display_name: SESSION.user.display_name }] : [];
+    return route.fulfill({ json: e });
+  });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/playbooks$/, (route) => {
+    if (route.request().method() === 'POST') {
+      const input = route.request().postDataJSON() as Record<string, unknown>;
+      const p = {
+        id: `01a15e50-bbbb-7000-8000-${String(api.playbooks.length).padStart(12, '0')}`,
+        description: '',
+        updated_at: new Date().toISOString(),
+        runs_active: 0,
+        ...input,
+      };
+      api.playbooks.push(p);
+      return route.fulfill({ status: 201, json: p });
+    }
+    return route.fulfill({ json: { playbooks: api.playbooks } });
+  });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/reports/, (route) =>
+    route.fulfill({ json: { reports: [] } }),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/automod$/, (route) => {
+    if (route.request().method() === 'POST') {
+      const rule = {
+        id: '01a15e50-aaaa-7000-8000-00000000a001',
+        words: [],
+        max_mentions: 5,
+        allowed_domains: [],
+        exempt_roles: ['owner', 'admin'],
+        enabled: true,
+        ...(route.request().postDataJSON() as object),
+      };
+      api.automod.push(rule);
+      return route.fulfill({ status: 201, json: rule });
+    }
+    return route.fulfill({ json: { rules: api.automod } });
+  });
   await page.route('**/api/ws/ticket', (route) =>
     route.fulfill({ status: 201, json: { ticket: 'test-ticket', expires_in: 30 } }),
   );

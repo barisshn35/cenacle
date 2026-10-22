@@ -25,6 +25,14 @@ import {
 import { usePending } from './pending';
 import { profileChanged } from '../profile/profiles';
 import {
+  applyPoll,
+  applyRun,
+  bannerQuery,
+  termsQuery,
+  type Poll,
+  type Run,
+} from '../community/community';
+import {
   applySaved,
   applyThreadUpdated,
   threadsChanged,
@@ -96,6 +104,24 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (ev.type === 'saved.changed') {
           const d = ev.data as { message_id: string; item: SavedItem | null };
           applySaved(queryClient, d.message_id, d.item);
+        } else if (ev.type === 'poll.updated') {
+          applyPoll(
+            queryClient,
+            ev.data as { channel_id: string; message_id: string; user_id: string; poll: Poll },
+            selfId,
+          );
+        } else if (ev.type === 'run.updated') {
+          applyRun(queryClient, (ev.data as { run: Run }).run);
+        } else if (ev.type === 'report.created') {
+          const { workspace_id } = ev.data as { workspace_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['reports', workspace_id] });
+        } else if (ev.type === 'event.changed') {
+          const { workspace_id } = ev.data as { workspace_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['events', workspace_id] });
+        } else if (ev.type === 'banner.changed') {
+          void queryClient.invalidateQueries({ queryKey: bannerQuery.queryKey });
+        } else if (ev.type === 'terms.changed') {
+          void queryClient.invalidateQueries({ queryKey: termsQuery.queryKey });
         } else if (ev.type === 'categories.changed') {
           void queryClient.invalidateQueries({ queryKey: ['categories'] });
           void reloadChannels(queryClient);

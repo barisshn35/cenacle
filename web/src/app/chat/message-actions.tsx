@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BookmarkIcon,
   BookmarkMinusIcon,
+  FlagIcon,
   MessageSquareIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -22,6 +23,8 @@ import {
   DropdownMenuTrigger,
 } from '@cenacle/ui/components/dropdown-menu';
 import { useLayout } from '../../stores/layout';
+import { useSession } from '../auth/session';
+import { ReportDialog } from '../community/moderation';
 import {
   applySaved,
   savedQuery,
@@ -64,6 +67,8 @@ export function MessageActions({
   const startEdit = useEditing((s) => s.set);
   const queryClient = useQueryClient();
   const openThread = useLayout((s) => s.openThread);
+  const { user } = useSession();
+  const [reporting, setReporting] = useState(false);
   const saved = useQuery(savedQuery).data?.some((s) => s.message.id === message.id) ?? false;
 
   const pin = useMutation({
@@ -114,58 +119,71 @@ export function MessageActions({
   });
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('chat.actions')}
-            className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
-          />
-        }
-      >
-        <MoreHorizontalIcon strokeWidth={1.75} />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        {!inThread && !channel.archived && (
-          <DropdownMenuItem
-            onClick={() =>
-              openThread({
-                channelId: message.channel_id,
-                rootId: message.root_id ?? message.id,
-              })
-            }
-          >
-            <MessageSquareIcon strokeWidth={1.75} />
-            {t('threads.reply')}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('chat.actions')}
+              className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
+            />
+          }
+        >
+          <MoreHorizontalIcon strokeWidth={1.75} />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {!inThread && !channel.archived && (
+            <DropdownMenuItem
+              onClick={() =>
+                openThread({
+                  channelId: message.channel_id,
+                  rootId: message.root_id ?? message.id,
+                })
+              }
+            >
+              <MessageSquareIcon strokeWidth={1.75} />
+              {t('threads.reply')}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={() => save.mutate()}>
+            {saved ? <BookmarkMinusIcon strokeWidth={1.75} /> : <BookmarkIcon strokeWidth={1.75} />}
+            {saved ? t('saved.remove') : t('saved.save')}
           </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={() => save.mutate()}>
-          {saved ? <BookmarkMinusIcon strokeWidth={1.75} /> : <BookmarkIcon strokeWidth={1.75} />}
-          {saved ? t('saved.remove') : t('saved.save')}
-        </DropdownMenuItem>
-        {channel.can_post && !channel.archived && (
-          <DropdownMenuItem onClick={() => pin.mutate()}>
-            {message.pinned_at ? <PinOffIcon strokeWidth={1.75} /> : <PinIcon strokeWidth={1.75} />}
-            {message.pinned_at ? t('pins.unpin') : t('pins.pin')}
-          </DropdownMenuItem>
-        )}
-        {(can.edit || can.remove) && <DropdownMenuSeparator />}
-        {can.edit && (
-          <DropdownMenuItem onClick={() => startEdit(message.id)}>
-            <PencilIcon strokeWidth={1.75} />
-            {t('chat.edit')}
-          </DropdownMenuItem>
-        )}
-        {can.remove && (
-          <DropdownMenuItem variant="destructive" onClick={() => remove.mutate()}>
-            <Trash2Icon strokeWidth={1.75} />
-            {t('glossary.delete')}
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {channel.can_post && !channel.archived && (
+            <DropdownMenuItem onClick={() => pin.mutate()}>
+              {message.pinned_at ? (
+                <PinOffIcon strokeWidth={1.75} />
+              ) : (
+                <PinIcon strokeWidth={1.75} />
+              )}
+              {message.pinned_at ? t('pins.unpin') : t('pins.pin')}
+            </DropdownMenuItem>
+          )}
+          {message.author.id !== user.id && (
+            <DropdownMenuItem onClick={() => setReporting(true)}>
+              <FlagIcon strokeWidth={1.75} />
+              {t('community.report.action')}
+            </DropdownMenuItem>
+          )}
+          {(can.edit || can.remove) && <DropdownMenuSeparator />}
+          {can.edit && (
+            <DropdownMenuItem onClick={() => startEdit(message.id)}>
+              <PencilIcon strokeWidth={1.75} />
+              {t('chat.edit')}
+            </DropdownMenuItem>
+          )}
+          {can.remove && (
+            <DropdownMenuItem variant="destructive" onClick={() => remove.mutate()}>
+              <Trash2Icon strokeWidth={1.75} />
+              {t('glossary.delete')}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {reporting && <ReportDialog message={message} open onOpenChange={setReporting} />}
+    </>
   );
 }
 

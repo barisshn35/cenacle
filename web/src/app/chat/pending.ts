@@ -18,6 +18,8 @@ export interface PendingMessage {
   status: 'sending' | 'failed';
   /** Seconds to wait when the server said "too fast". */
   retryAfter?: number;
+  /** Why the workspace did not take it (AutoMod, a timeout, slow mode). */
+  reason?: string;
   createdAt: number;
 }
 

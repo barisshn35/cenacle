@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useJump } from './jump';
 import { PinnedLine, RepliedToThread, ThreadSummaryButton } from '../threads/thread-summary';
 import { ReplyButton } from '../threads/reply-button';
+import { PollCard } from '../community/poll';
 import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
@@ -142,7 +143,25 @@ export function MessageRow({
             <MessageEditor message={m} />
           ) : (
             <>
+              {m.title && (
+                <p className="text-[0.9375rem] font-semibold" data-testid="post-title">
+                  {m.title}
+                </p>
+              )}
+              {!!m.tags?.length && (
+                <p className="flex flex-wrap gap-1 py-0.5">
+                  {m.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border px-2 text-xs text-muted-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </p>
+              )}
               {m.body && <MessageBody body={m.body} mentions={m.mentions} selfId={self} />}
+              {m.poll && <PollCard message={m} channel={channel} />}
               {m.edited_at && (
                 <span
                   className="text-xs text-muted-foreground"
@@ -211,7 +230,8 @@ export function PendingRow({ p }: { p: PendingMessage }) {
           <div role="alert" className="mt-1 flex flex-wrap items-center gap-2 text-sm">
             <CircleAlertIcon aria-hidden className="size-4 text-destructive" strokeWidth={1.75} />
             <span>
-              {p.retryAfter ? t('chat.tooFast', { seconds: p.retryAfter }) : t('chat.notSent')}
+              {p.reason ??
+                (p.retryAfter ? t('chat.tooFast', { seconds: p.retryAfter }) : t('chat.notSent'))}
             </span>
             <Button size="sm" variant="outline" onClick={() => void retry(p)}>
               {t('chat.retry')}

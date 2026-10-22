@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { AnnouncementsPanel } from '../community/admin-panels';
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLinkIcon, LaptopIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
@@ -92,7 +93,7 @@ function DeviceRow({ device }: { device: DeviceSession }) {
  * Settings of the signed-in user: signed-in devices with "sign out
  * everywhere" (S3) and the way to two-step verification in Cenacle ID.
  */
-type Tab = 'account' | 'appearance' | 'notifications' | 'texts';
+type Tab = 'account' | 'appearance' | 'notifications' | 'texts' | 'announcements';
 
 export function SettingsDialog({
   open,
@@ -110,7 +111,7 @@ export function SettingsDialog({
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const tabs: Tab[] = session.permissions.create_workspaces
-    ? ['account', 'appearance', 'notifications', 'texts']
+    ? ['account', 'appearance', 'notifications', 'texts', 'announcements']
     : ['account', 'appearance', 'notifications'];
   const [tab, setTab] = useState<Tab>('account');
 
@@ -173,6 +174,15 @@ export function SettingsDialog({
               aria-labelledby="settings-tab-notifications"
             >
               <NotificationsPanel />
+            </div>
+          )}
+          {tab === 'announcements' && (
+            <div
+              role="tabpanel"
+              id="settings-panel-announcements"
+              aria-labelledby="settings-tab-announcements"
+            >
+              <AnnouncementsPanel />
             </div>
           )}
           {tab === 'texts' && (

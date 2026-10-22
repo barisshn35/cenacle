@@ -21,7 +21,7 @@ export function useSendMessage() {
       >,
     ) => {
       const { update, remove } = usePending.getState();
-      update(p.nonce, { status: 'sending', retryAfter: undefined });
+      update(p.nonce, { status: 'sending', retryAfter: undefined, reason: undefined });
       try {
         const message = await apiFetch<Message>(`/api/channels/${p.channelId}/messages`, {
           method: 'POST',
@@ -46,9 +46,13 @@ export function useSendMessage() {
           void queryClient.invalidateQueries({ queryKey: ['session'] });
           return;
         }
+        const moderated =
+          err instanceof ApiError &&
+          ['automod_blocked', 'timed_out', 'slow_mode'].includes(err.problem.code ?? '');
         update(p.nonce, {
           status: 'failed',
           retryAfter: err instanceof ApiError ? err.retryAfter : undefined,
+          reason: moderated ? (err as ApiError).problem.detail : undefined,
         });
       }
     },

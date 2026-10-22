@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { LockIcon, MegaphoneIcon, MessagesSquareIcon, UserIcon, UsersIcon } from 'lucide-react';
+import {
+  LockIcon,
+  MegaphoneIcon,
+  MessagesSquareIcon,
+  NewspaperIcon,
+  UserIcon,
+  UsersIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Channel } from './data';
 
@@ -25,9 +32,11 @@ export function ChannelIcon({
         ? [UserIcon, t('channels.kinds.direct')]
         : channel.kind === 'group'
           ? [UsersIcon, t('channels.kinds.group')]
-          : channel.visibility === 'private'
-            ? [LockIcon, t('channels.kinds.private')]
-            : [MessagesSquareIcon, t('channels.kinds.standard')];
+          : channel.kind === 'forum'
+            ? [NewspaperIcon, t('channels.kinds.forum')]
+            : channel.visibility === 'private'
+              ? [LockIcon, t('channels.kinds.private')]
+              : [MessagesSquareIcon, t('channels.kinds.standard')];
   return labelled ? (
     <Icon aria-label={label} role="img" strokeWidth={1.75} className={className} />
   ) : (

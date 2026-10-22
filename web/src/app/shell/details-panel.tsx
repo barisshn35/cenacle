@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { ChannelNotificationsSection } from '../notifications/channel-notifications';
 import { PinsSection } from '../threads/pins-section';
+import { RunsSection } from '../community/playbooks';
 import { LogOutIcon, SettingsIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -93,6 +94,11 @@ export function DetailsPanel() {
       {channel && (
         <div className="border-t p-4">
           <PinsSection channelId={channel.id} />
+        </div>
+      )}
+      {channel && !isConversation(channel) && (
+        <div className="border-t p-4 empty:hidden">
+          <RunsSection channelId={channel.id} canPost={channel.can_post} />
         </div>
       )}
       {channel && (

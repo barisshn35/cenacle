@@ -180,7 +180,8 @@
       "announcement": "Announcement channel",
       "private": "Private channel",
       "direct": "Direct conversation",
-      "group": "Group conversation"
+      "group": "Group conversation",
+      "forum": "Forum"
     },
     "createTitle": "Create a channel",
     "createDescription": "Channels are where people talk about one topic.",
@@ -387,7 +388,8 @@
       "account": "Account",
       "appearance": "Appearance",
       "texts": "Interface texts",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "announcements": "Announcements"
     }
   },
   "reactions": {
@@ -881,6 +883,254 @@
     "readFailed": "Couldn't mark as read. Try again.",
     "activity_mention": "{{name}} mentioned you in {{channel}}",
     "activity_reply": "{{name}} replied in a thread in {{channel}}",
-    "activity_reaction": "{{name}} reacted {{emoji}} to your message in {{channel}}"
+    "activity_reaction": "{{name}} reacted {{emoji}} to your message in {{channel}}",
+    "events": "Events",
+    "playbooks": "Playbooks"
+  },
+  "community": {
+    "banner": {
+      "dismiss": "Dismiss the announcement"
+    },
+    "terms": {
+      "title": "Terms of service",
+      "intro": "Please read and accept the terms of service to continue.",
+      "accept": "I accept",
+      "signOut": "Sign out",
+      "failed": "Couldn't accept the terms. Try again."
+    },
+    "welcome": {
+      "title": "Welcome to {{workspace}}",
+      "description": "What this workspace asks of you, and channels to join.",
+      "rules": "Rules",
+      "channels": "Channels to join",
+      "start": "Get started",
+      "failed": "Couldn't save. Try again.",
+      "settingsTitle": "Welcome",
+      "settingsHint": "New members see this once. Leave the message and rules empty to show nothing.",
+      "message": "Message",
+      "rulesLabel": "Rules",
+      "rulesHint": "One rule per line.",
+      "suggest": "Suggest channels to join",
+      "save": "Save welcome",
+      "saved": "Welcome saved"
+    },
+    "poll": {
+      "legend": "Poll",
+      "single": "Choose one",
+      "multiple": "Choose any",
+      "anonymous": "anonymous",
+      "votes_one": "{{count}} vote",
+      "votes_other": "{{count}} votes",
+      "voters_one": "{{count}} person voted",
+      "voters_other": "{{count}} people voted",
+      "closed": "Closed",
+      "closedNow": "The poll has closed.",
+      "closesAt": "Closes {{time}}",
+      "close": "Close poll",
+      "failed": "Couldn't update the poll. Try again.",
+      "create": "Create poll",
+      "createHint": "Ask a question with 2 to 10 options.",
+      "question": "Question",
+      "options": "Options",
+      "option": "Option {{n}}",
+      "removeOption": "Remove option {{n}}",
+      "addOption": "Add option",
+      "allowMultiple": "Allow choosing more than one",
+      "makeAnonymous": "Hide who voted for what",
+      "closes": "Close automatically",
+      "closesIn": {
+        "never": "Never",
+        "1h": "In 1 hour",
+        "1d": "In 1 day",
+        "1w": "In 1 week"
+      },
+      "send": "Send poll"
+    },
+    "report": {
+      "action": "Report",
+      "title": "Report message",
+      "hint": "The workspace's moderators will see this message and your reason. The author is not told who reported it.",
+      "reason": "Reason (optional)",
+      "send": "Report",
+      "sent": "Reported to the moderators",
+      "failed": "Couldn't report the message. Try again."
+    },
+    "moderation": {
+      "open": "Moderation",
+      "title": "Moderation · {{workspace}}",
+      "description": "Reports from members and AutoMod, and AutoMod's rules.",
+      "tabs": {
+        "queue": "Open reports",
+        "closed": "Resolved",
+        "automod": "AutoMod"
+      },
+      "empty": "No open reports.",
+      "emptyClosed": "Nothing resolved yet.",
+      "reportedBy": "Reported by {{name}}",
+      "flaggedBy": "Flagged by AutoMod ({{rule}})",
+      "more_one": "{{count}} report",
+      "more_other": "{{count}} reports",
+      "dismiss": "Dismiss",
+      "deleteMessage": "Delete message",
+      "timeoutFor": "Time out for",
+      "timeoutAuthor": "Time out author",
+      "resolved": {
+        "dismiss": "Report dismissed",
+        "delete": "Message deleted",
+        "timeout": "Author timed out"
+      },
+      "outcome": {
+        "none": "Dismissed",
+        "deleted": "Message deleted",
+        "timeout": "Author timed out"
+      },
+      "durations": {
+        "10": "10 minutes",
+        "60": "1 hour",
+        "1440": "1 day",
+        "10080": "1 week"
+      },
+      "timeout": "Time out…",
+      "timeoutOf": "Time out {{name}}",
+      "endTimeout": "End timeout",
+      "timedOut": "{{name}} is timed out",
+      "timeoutEnded": "{{name}}'s timeout ended",
+      "failed": "Couldn't apply that. Try again.",
+      "timedOutNotice": "A moderator has paused your messages in this workspace until {{time}}.",
+      "slowMode": "Slow mode",
+      "slowModeExplained": "Members wait this long between messages; managers don't.",
+      "slowModeHint_one": "Slow mode: one message every {{count}} second",
+      "slowModeHint_other": "Slow mode: one message every {{count}} seconds",
+      "slowModes": {
+        "0": "Off",
+        "10": "10 seconds",
+        "30": "30 seconds",
+        "60": "1 minute",
+        "300": "5 minutes",
+        "900": "15 minutes",
+        "3600": "1 hour"
+      }
+    },
+    "automod": {
+      "hint": "Rules check messages before they are sent. Owners and admins are exempt.",
+      "off": "off",
+      "add": "Add rule",
+      "edit": "Edit {{name}}",
+      "remove": "Remove {{name}}",
+      "name": "Name",
+      "kind": "Checks for",
+      "action": "Then",
+      "kinds": {
+        "keywords": "Words",
+        "mentions": "Too many mentions",
+        "links": "Links to other sites"
+      },
+      "actions": {
+        "block": "Don't send it",
+        "flag": "Send it and report it"
+      },
+      "words": "Words",
+      "wordsHint": "One per line. Case and accents don't matter; end with * to match the beginning of words.",
+      "domains": "Allowed sites",
+      "domainsHint": "One domain per line (subdomains are allowed too). Links elsewhere match.",
+      "maxMentions": "Most people one message may mention",
+      "exemptMembers": "Members are exempt too (only guests are checked)",
+      "enabled": "Rule is on",
+      "save": "Save rule"
+    },
+    "forum": {
+      "kind": "Forum",
+      "kindHint": "Posts with titles and tags; people answer in each post's thread.",
+      "filter": "Filter by tag",
+      "all": "All",
+      "newPost": "New post",
+      "newPostHint": "Start a discussion in {{channel}}.",
+      "empty": "No posts yet. Start the first discussion.",
+      "title": "Title",
+      "body": "Post",
+      "tags": "Tags",
+      "tagsHint": "Separate tags with commas; posts can carry up to 5.",
+      "publish": "Publish",
+      "failed": "Couldn't publish the post. Try again."
+    },
+    "events": {
+      "new": "New event",
+      "edit": "Edit",
+      "cancel": "Cancel event",
+      "canceled": "Event canceled",
+      "none": "No events coming up.",
+      "hint": "Plan a meeting or gathering; people answer and get reminded 15 minutes before.",
+      "answer": "Your answer",
+      "rsvp": {
+        "going": "Going",
+        "maybe": "Maybe",
+        "declined": "Can't go"
+      },
+      "going_one": "{{count}} going",
+      "going_other": "{{count}} going",
+      "maybeCount": "{{count}} maybe",
+      "title": "Title",
+      "starts": "Starts",
+      "ends": "Ends",
+      "location": "Location",
+      "channel": "Announce in",
+      "noChannel": "Don't announce",
+      "description": "Description",
+      "save": "Save event",
+      "failed": "Couldn't save the event. Try again."
+    },
+    "playbooks": {
+      "hint": "Checklists your team runs again and again, like an incident or an onboarding.",
+      "new": "New playbook",
+      "none": "No playbooks yet.",
+      "summary": "{{lists}} checklists · {{items}} items · {{runs}} running",
+      "start": "Start run",
+      "edit": "Edit",
+      "archive": "Archive",
+      "failed": "Couldn't save. Try again.",
+      "editorHint": "Each checklist has a title and its items, one per line.",
+      "name": "Name",
+      "description": "Description",
+      "checklist": "Checklist {{n}}",
+      "checklistTitle": "Title of checklist {{n}}",
+      "checklistTitlePlaceholder": "For example: Triage",
+      "items": "Items of checklist {{n}}",
+      "itemsPlaceholder": "One item per line",
+      "removeChecklist": "Remove checklist",
+      "addChecklist": "Add checklist",
+      "save": "Save playbook",
+      "startTitle": "Start “{{name}}”",
+      "startHint": "The run's checklists show in the channel's details; the channel is told it started.",
+      "runName": "Run name",
+      "channel": "Channel",
+      "runs": "Runs",
+      "progress": "{{done}} of {{total}}",
+      "finished": "Finished",
+      "finish": "Finish run"
+    },
+    "admin": {
+      "banner": "Announcement banner",
+      "bannerHint": "Shown above the app to everyone.",
+      "bannerText": "Text",
+      "level": "Level",
+      "levels": {
+        "info": "Information",
+        "warning": "Warning",
+        "critical": "Critical"
+      },
+      "dismissible": "People can dismiss it",
+      "showBanner": "Show banner",
+      "removeBanner": "Remove banner",
+      "bannerSaved": "Banner shown",
+      "terms": "Terms of service",
+      "termsHint": "Everyone accepts the published terms before using Cenacle. Publishing a new version asks everyone again.",
+      "termsText": "Terms (Markdown)",
+      "publishTerms": "Publish terms",
+      "withdrawTerms": "Withdraw terms",
+      "publishConfirmTitle": "Publish new terms?",
+      "publishConfirm": "Everyone will have to accept them before they can continue.",
+      "termsPublished": "Terms published",
+      "failed": "Couldn't save. Try again."
+    }
   }
 }

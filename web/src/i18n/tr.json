@@ -180,7 +180,8 @@
       "announcement": "Duyuru kanalı",
       "private": "Özel kanal",
       "direct": "Birebir konuşma",
-      "group": "Grup konuşması"
+      "group": "Grup konuşması",
+      "forum": "Forum"
     },
     "createTitle": "Kanal oluştur",
     "createDescription": "Kanallar, bir konu hakkında konuşulan yerlerdir.",
@@ -387,7 +388,8 @@
       "account": "Hesap",
       "appearance": "Görünüm",
       "texts": "Arayüz metinleri",
-      "notifications": "Bildirimler"
+      "notifications": "Bildirimler",
+      "announcements": "Duyurular"
     }
   },
   "reactions": {
@@ -881,6 +883,254 @@
     "readFailed": "Okundu olarak işaretlenemedi. Yeniden deneyin.",
     "activity_mention": "{{name}}, {{channel}} içinde sizden bahsetti",
     "activity_reply": "{{name}}, {{channel}} içindeki bir diziye yanıt verdi",
-    "activity_reaction": "{{name}}, {{channel}} içindeki mesajınıza {{emoji}} tepkisi verdi"
+    "activity_reaction": "{{name}}, {{channel}} içindeki mesajınıza {{emoji}} tepkisi verdi",
+    "events": "Etkinlikler",
+    "playbooks": "Playbook'lar"
+  },
+  "community": {
+    "banner": {
+      "dismiss": "Duyuruyu kapat"
+    },
+    "terms": {
+      "title": "Kullanım koşulları",
+      "intro": "Devam etmek için lütfen kullanım koşullarını okuyup kabul edin.",
+      "accept": "Kabul ediyorum",
+      "signOut": "Oturumu kapat",
+      "failed": "Koşullar kabul edilemedi. Yeniden deneyin."
+    },
+    "welcome": {
+      "title": "{{workspace}} çalışma alanına hoş geldiniz",
+      "description": "Bu çalışma alanının sizden beklentileri ve katılabileceğiniz kanallar.",
+      "rules": "Kurallar",
+      "channels": "Katılabileceğiniz kanallar",
+      "start": "Başlayalım",
+      "failed": "Kaydedilemedi. Yeniden deneyin.",
+      "settingsTitle": "Karşılama",
+      "settingsHint": "Yeni üyeler bunu bir kez görür. Hiçbir şey göstermemek için mesajı ve kuralları boş bırakın.",
+      "message": "Mesaj",
+      "rulesLabel": "Kurallar",
+      "rulesHint": "Her satıra bir kural.",
+      "suggest": "Katılmaları için kanal öner",
+      "save": "Karşılamayı kaydet",
+      "saved": "Karşılama kaydedildi"
+    },
+    "poll": {
+      "legend": "Anket",
+      "single": "Birini seçin",
+      "multiple": "İstediklerinizi seçin",
+      "anonymous": "anonim",
+      "votes_one": "{{count}} oy",
+      "votes_other": "{{count}} oy",
+      "voters_one": "{{count}} kişi oy verdi",
+      "voters_other": "{{count}} kişi oy verdi",
+      "closed": "Kapandı",
+      "closedNow": "Anket kapandı.",
+      "closesAt": "{{time}} tarihinde kapanır",
+      "close": "Anketi kapat",
+      "failed": "Anket güncellenemedi. Yeniden deneyin.",
+      "create": "Anket oluştur",
+      "createHint": "2 ile 10 seçenekli bir soru sorun.",
+      "question": "Soru",
+      "options": "Seçenekler",
+      "option": "{{n}}. seçenek",
+      "removeOption": "{{n}}. seçeneği kaldır",
+      "addOption": "Seçenek ekle",
+      "allowMultiple": "Birden fazla seçime izin ver",
+      "makeAnonymous": "Kimin neye oy verdiğini gizle",
+      "closes": "Kendiliğinden kapansın",
+      "closesIn": {
+        "never": "Hiçbir zaman",
+        "1h": "1 saat sonra",
+        "1d": "1 gün sonra",
+        "1w": "1 hafta sonra"
+      },
+      "send": "Anketi gönder"
+    },
+    "report": {
+      "action": "Şikâyet et",
+      "title": "Mesajı şikâyet et",
+      "hint": "Çalışma alanının moderatörleri bu mesajı ve gerekçenizi görür. Yazarına kimin şikâyet ettiği söylenmez.",
+      "reason": "Gerekçe (isteğe bağlı)",
+      "send": "Şikâyet et",
+      "sent": "Moderatörlere bildirildi",
+      "failed": "Mesaj şikâyet edilemedi. Yeniden deneyin."
+    },
+    "moderation": {
+      "open": "Moderasyon",
+      "title": "Moderasyon · {{workspace}}",
+      "description": "Üyelerin ve AutoMod'un şikâyetleri ile AutoMod kuralları.",
+      "tabs": {
+        "queue": "Açık şikâyetler",
+        "closed": "Çözülenler",
+        "automod": "AutoMod"
+      },
+      "empty": "Açık şikâyet yok.",
+      "emptyClosed": "Henüz çözülen yok.",
+      "reportedBy": "{{name}} şikâyet etti",
+      "flaggedBy": "AutoMod işaretledi ({{rule}})",
+      "more_one": "{{count}} şikâyet",
+      "more_other": "{{count}} şikâyet",
+      "dismiss": "Yok say",
+      "deleteMessage": "Mesajı sil",
+      "timeoutFor": "Susturma süresi",
+      "timeoutAuthor": "Yazarı sustur",
+      "resolved": {
+        "dismiss": "Şikâyet yok sayıldı",
+        "delete": "Mesaj silindi",
+        "timeout": "Yazar susturuldu"
+      },
+      "outcome": {
+        "none": "Yok sayıldı",
+        "deleted": "Mesaj silindi",
+        "timeout": "Yazar susturuldu"
+      },
+      "durations": {
+        "10": "10 dakika",
+        "60": "1 saat",
+        "1440": "1 gün",
+        "10080": "1 hafta"
+      },
+      "timeout": "Sustur…",
+      "timeoutOf": "{{name}} kişisini sustur",
+      "endTimeout": "Susturmayı kaldır",
+      "timedOut": "{{name}} susturuldu",
+      "timeoutEnded": "{{name}} için susturma kaldırıldı",
+      "failed": "Uygulanamadı. Yeniden deneyin.",
+      "timedOutNotice": "Bir moderatör bu çalışma alanındaki mesajlarınızı {{time}} tarihine kadar durdurdu.",
+      "slowMode": "Yavaş mod",
+      "slowModeExplained": "Üyeler mesajlar arasında bu kadar bekler; yöneticiler beklemez.",
+      "slowModeHint_one": "Yavaş mod: {{count}} saniyede bir mesaj",
+      "slowModeHint_other": "Yavaş mod: {{count}} saniyede bir mesaj",
+      "slowModes": {
+        "0": "Kapalı",
+        "10": "10 saniye",
+        "30": "30 saniye",
+        "60": "1 dakika",
+        "300": "5 dakika",
+        "900": "15 dakika",
+        "3600": "1 saat"
+      }
+    },
+    "automod": {
+      "hint": "Kurallar mesajları gönderilmeden önce denetler. Sahipler ve yöneticiler muaftır.",
+      "off": "kapalı",
+      "add": "Kural ekle",
+      "edit": "{{name}} kuralını düzenle",
+      "remove": "{{name}} kuralını kaldır",
+      "name": "Ad",
+      "kind": "Denetlenen",
+      "action": "Sonra",
+      "kinds": {
+        "keywords": "Sözcükler",
+        "mentions": "Çok fazla bahsetme",
+        "links": "Başka sitelere bağlantılar"
+      },
+      "actions": {
+        "block": "Gönderilmesin",
+        "flag": "Gönderilsin ve şikâyet edilsin"
+      },
+      "words": "Sözcükler",
+      "wordsHint": "Her satıra bir tane. Büyük-küçük harf ve aksan fark etmez; sözcük başlarını eşlemek için sonuna * koyun.",
+      "domains": "İzin verilen siteler",
+      "domainsHint": "Her satıra bir alan adı (alt alan adları da geçerli). Başka yerlere bağlantılar eşleşir.",
+      "maxMentions": "Bir mesajda en fazla bahsedilecek kişi",
+      "exemptMembers": "Üyeler de muaf olsun (yalnızca misafirler denetlenir)",
+      "enabled": "Kural açık",
+      "save": "Kuralı kaydet"
+    },
+    "forum": {
+      "kind": "Forum",
+      "kindHint": "Başlıklı ve etiketli gönderiler; herkes her gönderinin dizisinde yanıt verir.",
+      "filter": "Etikete göre süz",
+      "all": "Tümü",
+      "newPost": "Yeni gönderi",
+      "newPostHint": "{{channel}} içinde bir tartışma başlatın.",
+      "empty": "Henüz gönderi yok. İlk tartışmayı siz başlatın.",
+      "title": "Başlık",
+      "body": "Gönderi",
+      "tags": "Etiketler",
+      "tagsHint": "Etiketleri virgülle ayırın; bir gönderi en fazla 5 etiket taşır.",
+      "publish": "Yayımla",
+      "failed": "Gönderi yayımlanamadı. Yeniden deneyin."
+    },
+    "events": {
+      "new": "Yeni etkinlik",
+      "edit": "Düzenle",
+      "cancel": "Etkinliği iptal et",
+      "canceled": "Etkinlik iptal edildi",
+      "none": "Yaklaşan etkinlik yok.",
+      "hint": "Bir toplantı ya da buluşma planlayın; katılımcılar yanıtlar ve 15 dakika önce hatırlatılır.",
+      "answer": "Yanıtınız",
+      "rsvp": {
+        "going": "Katılıyorum",
+        "maybe": "Belki",
+        "declined": "Katılamıyorum"
+      },
+      "going_one": "{{count}} katılıyor",
+      "going_other": "{{count}} katılıyor",
+      "maybeCount": "{{count}} belki",
+      "title": "Başlık",
+      "starts": "Başlangıç",
+      "ends": "Bitiş",
+      "location": "Yer",
+      "channel": "Duyurulacağı kanal",
+      "noChannel": "Duyurma",
+      "description": "Açıklama",
+      "save": "Etkinliği kaydet",
+      "failed": "Etkinlik kaydedilemedi. Yeniden deneyin."
+    },
+    "playbooks": {
+      "hint": "Ekibinizin tekrar tekrar uyguladığı kontrol listeleri; örneğin bir olay müdahalesi ya da işe alışma.",
+      "new": "Yeni playbook",
+      "none": "Henüz playbook yok.",
+      "summary": "{{lists}} kontrol listesi · {{items}} madde · {{runs}} çalışan",
+      "start": "Çalıştır",
+      "edit": "Düzenle",
+      "archive": "Arşivle",
+      "failed": "Kaydedilemedi. Yeniden deneyin.",
+      "editorHint": "Her kontrol listesinin bir başlığı ve her satıra bir maddesi olur.",
+      "name": "Ad",
+      "description": "Açıklama",
+      "checklist": "{{n}}. kontrol listesi",
+      "checklistTitle": "{{n}}. kontrol listesinin başlığı",
+      "checklistTitlePlaceholder": "Örneğin: İlk değerlendirme",
+      "items": "{{n}}. kontrol listesinin maddeleri",
+      "itemsPlaceholder": "Her satıra bir madde",
+      "removeChecklist": "Kontrol listesini kaldır",
+      "addChecklist": "Kontrol listesi ekle",
+      "save": "Playbook'u kaydet",
+      "startTitle": "“{{name}}” çalıştır",
+      "startHint": "Kontrol listeleri kanalın ayrıntılarında görünür; kanala başladığı bildirilir.",
+      "runName": "Çalıştırma adı",
+      "channel": "Kanal",
+      "runs": "Çalıştırmalar",
+      "progress": "{{total}} maddeden {{done}}",
+      "finished": "Bitti",
+      "finish": "Çalıştırmayı bitir"
+    },
+    "admin": {
+      "banner": "Duyuru şeridi",
+      "bannerHint": "Uygulamanın üstünde herkese gösterilir.",
+      "bannerText": "Metin",
+      "level": "Önem",
+      "levels": {
+        "info": "Bilgi",
+        "warning": "Uyarı",
+        "critical": "Kritik"
+      },
+      "dismissible": "Kişiler kapatabilsin",
+      "showBanner": "Şeridi göster",
+      "removeBanner": "Şeridi kaldır",
+      "bannerSaved": "Şerit gösteriliyor",
+      "terms": "Kullanım koşulları",
+      "termsHint": "Herkes Cenacle'ı kullanmadan önce yayımlanan koşulları kabul eder. Yeni bir sürüm yayımlamak herkese yeniden sorar.",
+      "termsText": "Koşullar (Markdown)",
+      "publishTerms": "Koşulları yayımla",
+      "withdrawTerms": "Koşulları geri çek",
+      "publishConfirmTitle": "Yeni koşullar yayımlansın mı?",
+      "publishConfirm": "Herkesin devam edebilmek için bunları kabul etmesi gerekecek.",
+      "termsPublished": "Koşullar yayımlandı",
+      "failed": "Kaydedilemedi. Yeniden deneyin."
+    }
   }
 }

@@ -35,6 +35,9 @@ import { isWorkspaceAdmin, workspacesQuery } from './workspaces';
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60';
 
+/** Slow mode choices, in seconds. */
+const SLOW_MODES = [0, 10, 30, 60, 300, 900, 3600] as const;
+
 /** Channel settings for its managers: name, topic, visibility, category; archiving. */
 export function ChannelSettingsDialog({
   channel,
@@ -53,8 +56,12 @@ export function ChannelSettingsDialog({
     topic: useId(),
     visibility: useId(),
     category: useId(),
+    slow: useId(),
+    tags: useId(),
     error: useId(),
   };
+  const [slow, setSlow] = useState(channel.slow_mode_seconds ?? 0);
+  const [tags, setTags] = useState((channel.forum_tags ?? []).join(', '));
   const [name, setName] = useState(channel.name);
   const [topic, setTopic] = useState(channel.topic);
   const [visibility, setVisibility] = useState(channel.visibility);
@@ -67,7 +74,20 @@ export function ChannelSettingsDialog({
 
   const save = useMutation({
     mutationFn: async () => {
-      await updateChannel(channel.id, { name: name.trim(), topic: topic.trim(), visibility });
+      await updateChannel(channel.id, {
+        name: name.trim(),
+        topic: topic.trim(),
+        visibility,
+        slow_mode_seconds: slow,
+        ...(channel.kind === 'forum'
+          ? {
+              forum_tags: tags
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean),
+            }
+          : {}),
+      });
       if (wsAdmin && (category || null) !== (channel.category_id ?? null)) {
         await setChannelCategory(channel.id, category || null);
       }
@@ -154,6 +174,38 @@ export function ChannelSettingsDialog({
                   : t(`channels.visibility.${visibility}Hint`)}
               </p>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor={ids.slow}>{t('community.moderation.slowMode')}</Label>
+              <select
+                id={ids.slow}
+                className={selectClass}
+                value={slow}
+                onChange={(e) => setSlow(Number(e.target.value))}
+              >
+                {SLOW_MODES.map((s) => (
+                  <option key={s} value={s}>
+                    {t(`community.moderation.slowModes.${s}`)}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                {t('community.moderation.slowModeExplained')}
+              </p>
+            </div>
+            {channel.kind === 'forum' && (
+              <div className="grid gap-2">
+                <Label htmlFor={ids.tags}>{t('community.forum.tags')}</Label>
+                <Input
+                  id={ids.tags}
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  aria-describedby={`${ids.tags}-hint`}
+                />
+                <p id={`${ids.tags}-hint`} className="text-xs text-muted-foreground">
+                  {t('community.forum.tagsHint')}
+                </p>
+              </div>
+            )}
             {wsAdmin && (
               <div className="grid gap-2">
                 <Label htmlFor={ids.category}>{t('channels.category')}</Label>

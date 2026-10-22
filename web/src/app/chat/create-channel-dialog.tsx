@@ -39,6 +39,7 @@ export function CreateChannelDialog({
   const [topic, setTopic] = useState('');
   const [everyone, setEveryone] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
+  const [forum, setForum] = useState(false);
   const { id: workspaceId } = useActiveWorkspace();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ export function CreateChannelDialog({
       setTopic('');
       setEveryone(false);
       setVisibility('public');
+      setForum(false);
       void navigate({ to: '/c/$channelId', params: { channelId: channel.id } });
     },
   });
@@ -66,7 +68,7 @@ export function CreateChannelDialog({
       workspace_id: workspaceId,
       name: name.trim(),
       topic: topic.trim(),
-      kind: 'standard',
+      kind: forum ? 'forum' : 'standard',
       visibility,
       is_default: visibility === 'public' && everyone,
     });
@@ -126,6 +128,19 @@ export function CreateChannelDialog({
               </div>
             ))}
           </fieldset>
+          <div className="flex items-start gap-2">
+            <input
+              id={`${ids.everyone}-forum`}
+              type="checkbox"
+              checked={forum}
+              onChange={(e) => setForum(e.target.checked)}
+              className="size-6 shrink-0 accent-primary"
+            />
+            <div className="grid gap-0.5">
+              <Label htmlFor={`${ids.everyone}-forum`}>{t('community.forum.kind')}</Label>
+              <p className="text-xs text-muted-foreground">{t('community.forum.kindHint')}</p>
+            </div>
+          </div>
           <div className="flex items-start gap-2">
             <input
               id={ids.everyone}

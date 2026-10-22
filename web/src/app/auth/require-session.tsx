@@ -11,6 +11,8 @@ import { SessionContext, sessionQuery, signinSearchFor } from './session';
 import { AppearanceSync } from '../appearance/appearance-sync';
 import { NotificationsSync } from '../notifications/notifications-sync';
 import { RealtimeProvider } from '../chat/realtime';
+import { InstanceBanner } from '../community/banner';
+import { TermsGate } from '../community/terms-gate';
 
 /**
  * Renders the app for signed-in users. When the session ends while the app
@@ -42,11 +44,18 @@ export function RequireSession() {
   if (session.data && !ended) {
     return (
       <SessionContext.Provider value={session.data}>
-        <RealtimeProvider>
-          <AppearanceSync />
-          <NotificationsSync />
-          <Outlet />
-        </RealtimeProvider>
+        <TermsGate>
+          <RealtimeProvider>
+            <AppearanceSync />
+            <NotificationsSync />
+            <div className="flex h-svh flex-col">
+              <InstanceBanner />
+              <div className="min-h-0 flex-1">
+                <Outlet />
+              </div>
+            </div>
+          </RealtimeProvider>
+        </TermsGate>
       </SessionContext.Provider>
     );
   }

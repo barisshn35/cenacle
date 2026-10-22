@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router';
 import {
   ChevronDownIcon,
   BellIcon,
+  ShieldIcon,
   BellOffIcon,
   CopyIcon,
   LogOutIcon,
@@ -62,6 +63,8 @@ import {
   workspaceMembersQuery,
   type Workspace,
 } from './workspaces';
+import { ModerationDialog, TimeoutSelect } from '../community/moderation';
+import { WelcomeForm } from '../community/admin-panels';
 
 const selectClass =
   'min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60';
@@ -69,9 +72,9 @@ const selectClass =
 /** The workspace name in the sidebar header opens this menu. */
 export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation();
-  const [dialog, setDialog] = useState<'settings' | 'invite' | 'integrations' | 'leave' | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<
+    'settings' | 'invite' | 'integrations' | 'leave' | 'moderation' | null
+  >(null);
   const admin = isWorkspaceAdmin(workspace);
   const queryClient = useQueryClient();
   const notifications = useQuery(notificationsQuery);
@@ -116,6 +119,12 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
             <SettingsIcon strokeWidth={1.75} />
             {admin ? t('workspaces.settings') : t('workspaces.members')}
           </DropdownMenuItem>
+          {admin && (
+            <DropdownMenuItem onClick={() => setDialog('moderation')}>
+              <ShieldIcon strokeWidth={1.75} />
+              {t('community.moderation.open')}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => toggleMute()}>
             {wsMuted ? <BellIcon strokeWidth={1.75} /> : <BellOffIcon strokeWidth={1.75} />}
             {wsMuted ? t('notifications.unmuteWorkspace') : t('notifications.muteWorkspace')}
@@ -141,6 +150,9 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
         <WorkspaceSettingsDialog workspace={workspace} open onOpenChange={close} />
       )}
       {dialog === 'invite' && <InviteDialog workspace={workspace} open onOpenChange={close} />}
+      {dialog === 'moderation' && (
+        <ModerationDialog workspace={workspace} open onOpenChange={close} />
+      )}
       {dialog === 'integrations' && (
         <IntegrationsDialog workspace={workspace} open onOpenChange={close} />
       )}
@@ -221,6 +233,7 @@ function WorkspaceSettingsDialog({
           <>
             <WorkspaceDetailsForm workspace={workspace} />
             <WorkspaceAppearanceForm workspace={workspace} />
+            <WelcomeForm workspace={workspace} />
           </>
         ) : (
           workspace.description && (
@@ -279,6 +292,9 @@ function WorkspaceSettingsDialog({
                         <option value="admin">{t('workspaces.roles.admin')}</option>
                         <option value="member">{t('workspaces.roles.member')}</option>
                       </select>
+                      {m.role !== 'owner' && m.role !== 'admin' && (
+                        <TimeoutSelect workspace={workspace} userId={m.user.id} name={name} />
+                      )}
                       {!workspace.is_default && (
                         <Button
                           size="icon-sm"

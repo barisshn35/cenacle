@@ -16,6 +16,7 @@ import { ChannelView } from './channel-view';
 import { DetailsPanel } from './details-panel';
 import { SearchPanel } from '../search/search-panel';
 import { ThreadPanel } from '../threads/thread-panel';
+import { OnboardingDialog } from '../community/onboarding';
 import { HomeViewPage, type HomeView } from '../threads/views';
 import { useLocation } from '@tanstack/react-router';
 import type { RightView } from '../../stores/layout';
@@ -23,7 +24,8 @@ import type { RightView } from '../../stores/layout';
 /** A channel, or a view across channels (threads, activity, saved, unreads). */
 function MainView({ mobile = false }: { mobile?: boolean }) {
   const path = useLocation({ select: (l) => l.pathname });
-  const view = /^\/(threads|activity|saved|unreads)$/.exec(path)?.[1] as HomeView | undefined;
+  const view = /^\/(threads|activity|saved|unreads|events|playbooks)$/.exec(path)?.[1] as
+    HomeView | undefined;
   return view ? <HomeViewPage view={view} mobile={mobile} /> : <ChannelView mobile={mobile} />;
 }
 
@@ -45,8 +47,9 @@ export function AppShell() {
   const isMobile = useIsMobile();
   useRememberWorkspace();
   return (
-    <SidebarProvider className="h-svh min-h-0 overflow-hidden">
+    <SidebarProvider className="h-full min-h-0 overflow-hidden">
       {isMobile ? <MobileShell /> : <DesktopShell />}
+      <OnboardingDialog />
     </SidebarProvider>
   );
 }

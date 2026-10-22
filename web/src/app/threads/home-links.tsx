@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { AtSignIcon, BookmarkIcon, InboxIcon, MessagesSquareIcon } from 'lucide-react';
+import {
+  AtSignIcon,
+  BookmarkIcon,
+  CalendarIcon,
+  InboxIcon,
+  ListChecksIcon,
+  MessagesSquareIcon,
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +29,8 @@ const LINKS = [
   { view: 'activity', icon: AtSignIcon },
   { view: 'saved', icon: BookmarkIcon },
   { view: 'unreads', icon: InboxIcon },
+  { view: 'events', icon: CalendarIcon },
+  { view: 'playbooks', icon: ListChecksIcon },
 ] as const;
 
 /** At the top of the sidebar: views across the workspace's channels. */
