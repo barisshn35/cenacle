@@ -39,6 +39,13 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### Unreleased (0.18.0)
+
+- Migration `00018_threads_pins_saved` adds columns to `messages` (thread, pins) with
+  indexes, and the tables for followed threads and saved messages. Nothing to configure.
+- Rolling back to 0.17 needs `migrate down` once; replies then become ordinary messages of
+  their channel.
+
 ### 0.17.0
 
 - Migration `00017_search_notifications` creates the `unaccent` extension (trusted: the

@@ -8,6 +8,27 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Threads, pins and saved messages.
+
+### Added
+
+- Threads: reply to a message in the right panel, optionally also in the channel; replies
+  show under the message with who replied and when. Follow or stop following threads.
+- Threads view with new replies and mentions, Activity (mentions, replies, reactions) and
+  All unreads across a workspace's channels.
+- Pin messages to a channel (listed in the channel details).
+- Save messages for later, with reminders from the Cenacle bot, and mark them done.
+- Links to messages (`/c/<channel>?m=<message>`) open the message, or its thread.
+
+### Changed
+
+- Others' messages now have a menu too (reply, save, pin).
+- Replies in followed threads notify like mentions.
+
+### Upgrade notes
+
+- See [docs/upgrade](docs/upgrade/README.md#unreleased-0180).
+
 ## [0.17.0] - 2026-10-22
 
 Search and notifications.

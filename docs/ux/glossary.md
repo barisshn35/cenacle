@@ -50,6 +50,9 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Mute                 | Mute / Unmute                   | Sessize al / Sesini aç                | `notifications.muteChannel`               | Until a time or until unmuted                 |
 | Pause notifications  | Pause notifications             | Bildirimleri duraklat                 | `notifications.pause`                     | All notifications, for a while                |
 | Quiet hours          | Quiet hours                     | Sessiz saatler                        | `notifications.quietHours`                | Daily, in one's own time zone                 |
+| Thread               | Thread                          | Yanıt dizisi                          | `threads.title`                           | One level of replies to a message             |
+| Pin                  | Pin / Unpin                     | Sabitle / Sabitlemeyi kaldır          | `pins.pin`                                | Up to 50 per channel                          |
+| Save for later       | Save for later                  | Sonrası için kaydet                   | `saved.save`                              | Personal; reminder optional                   |
 | Search               | Search                          | Ara                                   | `search.title`                            | Messages and files                            |
 | Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
