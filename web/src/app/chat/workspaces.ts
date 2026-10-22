@@ -42,6 +42,31 @@ export const setWorkspaceRole = (id: string, userId: string, role: Workspace['ro
 export const removeWorkspaceMember = (id: string, userId: string) =>
   apiFetch<void>(`/api/workspaces/${id}/members/${userId}`, { method: 'DELETE' });
 
+export type GroupMapping = components['schemas']['GroupMapping'];
+export type ChannelGroups = components['schemas']['ChannelGroups'];
+
+/** Directory groups mapped to the workspace, and the group names seen so far. */
+export const workspaceGroupsQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['workspace-groups', id],
+    queryFn: () =>
+      apiFetch<{ mappings: GroupMapping[]; groups: string[] }>(`/api/workspaces/${id}/groups`),
+  });
+export const setWorkspaceGroup = (id: string, mapping: GroupMapping) =>
+  apiFetch<GroupMapping>(`/api/workspaces/${id}/groups`, json(mapping, 'PUT'));
+export const deleteWorkspaceGroup = (id: string, group: string) =>
+  apiFetch<void>(`/api/workspaces/${id}/groups/${encodeURIComponent(group)}`, {
+    method: 'DELETE',
+  });
+
+export const channelGroupsQuery = (channelId: string) =>
+  queryOptions({
+    queryKey: ['channel-groups', channelId],
+    queryFn: () => apiFetch<ChannelGroups>(`/api/channels/${channelId}/groups`),
+  });
+export const setChannelGroups = (channelId: string, groups: ChannelGroups) =>
+  apiFetch<ChannelGroups>(`/api/channels/${channelId}/groups`, json(groups, 'PUT'));
+
 export const invitesQuery = (id: string) =>
   queryOptions({
     queryKey: ['invites', id],

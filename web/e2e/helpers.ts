@@ -227,6 +227,7 @@ const channel = (id: string, name: string, extra: Record<string, unknown> = {}) 
   is_member: true,
   can_post: true,
   can_manage: false,
+  group_managed: false,
   archived: false,
   category_id: null as string | null,
   unread_count: 0,
@@ -397,6 +398,37 @@ export async function mockApi(
       },
     }),
   );
+  // A channel's directory groups.
+  const channelGroups = new Map<string, { groups: string[]; managed: boolean }>();
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/groups$/, (route) => {
+    const req = route.request();
+    const id = req.url().split('/').at(-2)!;
+    if (req.method() === 'PUT') {
+      channelGroups.set(id, req.postDataJSON() as { groups: string[]; managed: boolean });
+    }
+    return route.fulfill({ json: channelGroups.get(id) ?? { groups: [], managed: false } });
+  });
+  // Directory groups mapped to workspaces (Cenacle ID's groups).
+  const mappings: { group: string; role: string }[] = [];
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/groups(\/[^/]+)?$/, (route) => {
+    const req = route.request();
+    if (req.method() === 'GET') {
+      return route.fulfill({ json: { mappings, groups: ['design', 'engineering', 'staff'] } });
+    }
+    if (req.method() === 'DELETE') {
+      const name = decodeURIComponent(req.url().split('/').pop()!);
+      mappings.splice(
+        mappings.findIndex((m) => m.group === name),
+        1,
+      );
+      return route.fulfill({ status: 204 });
+    }
+    const m = req.postDataJSON() as { group: string; role: string };
+    const at = mappings.findIndex((x) => x.group === m.group);
+    if (at >= 0) mappings[at] = m;
+    else mappings.push(m);
+    return route.fulfill({ json: m });
+  });
   const invites: {
     id: string;
     created_at: string;
@@ -417,7 +449,11 @@ export async function mockApi(
     invites.push(invite);
     return route.fulfill({ status: 201, json: { invite, token: `token${invites.length}` } });
   });
-  const api: MockApi & { socket?: import('@playwright/test').WebSocketRoute; seq: number } = {
+  const api: MockApi & {
+    socket?: import('@playwright/test').WebSocketRoute;
+    seq: number;
+    pending: string[];
+  } = {
     sent: [],
     reads: new Map(),
     reacted: [],
@@ -425,6 +461,8 @@ export async function mockApi(
     statuses: [],
     ended: [],
     seq: 1,
+    // Events sent before the app connected: delivered after the hello.
+    pending: [],
     emit(type, data) {
       if (type === 'channel.read') {
         // As the server would: a reload after this shows the channel read.
@@ -433,7 +471,9 @@ export async function mockApi(
         if (c) c.unread_count = 0;
       }
       this.seq++;
-      this.socket?.send(JSON.stringify({ op: 'event', id: `${this.seq}-0`, type, data }));
+      const frame = JSON.stringify({ op: 'event', id: `${this.seq}-0`, type, data });
+      if (this.socket) this.socket.send(frame);
+      else this.pending.push(frame);
     },
     closeSocket(code) {
       void this.socket?.close({ code, reason: '' });
@@ -671,6 +711,7 @@ export async function mockApi(
   await page.routeWebSocket('**/ws?*', (ws) => {
     api.socket = ws;
     ws.send(JSON.stringify({ op: 'hello', last_event_id: '1-0', heartbeat_ms: 25000 }));
+    for (const frame of api.pending.splice(0)) ws.send(frame);
   });
   return api;
 }

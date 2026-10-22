@@ -53,6 +53,22 @@ test.describe('workspaces', () => {
     await expect(settings.getByLabel('Name')).toHaveValue('Cenacle');
   });
 
+  test('admins map directory groups to the workspace', async ({ page }, testInfo) => {
+    await mockApi(page, { admin: true });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Workspace menu: Cenacle' }).click();
+    await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
+    const groups = page.getByRole('dialog').getByTestId('workspace-groups');
+    await groups.getByLabel('Group', { exact: true }).fill('engineering');
+    await groups.getByLabel('Role', { exact: true }).selectOption('admin');
+    await groups.getByRole('button', { name: 'Add group' }).click();
+    await expect(groups.getByLabel('Role of the group engineering')).toHaveValue('admin');
+    await expectTargetSizes(page, testInfo, '[role="dialog"]');
+    await expectNoAxeViolations(page, '[role="dialog"]');
+    await groups.getByRole('button', { name: 'Remove the group engineering' }).click();
+    await expect(groups.getByLabel('Role of the group engineering')).toHaveCount(0);
+  });
+
   test('the instance administrator creates a workspace', async ({ page }) => {
     await mockApi(page, { admin: true });
     await page.goto('/');

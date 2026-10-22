@@ -182,7 +182,8 @@
     "archiveDescription": "Members can still read it, but no one can post, and it leaves the sidebar.",
     "archiveImpact": "Its managers can unarchive it at any time; nothing is deleted.",
     "archiveConfirm": "Archive channel",
-    "managerToggle": "Channel manager: {{person}}"
+    "managerToggle": "Channel manager: {{person}}",
+    "groupManaged": "Members come from directory groups."
   },
   "categories": {
     "manage": "Edit categories",
@@ -227,7 +228,8 @@
     "roles": {
       "owner": "Owner",
       "admin": "Admin",
-      "member": "Member"
+      "member": "Member",
+      "guest": "Guest"
     },
     "removeNamed": "Remove {{person}} from the workspace",
     "addTitle": "Add a workspace",
@@ -515,5 +517,19 @@
       "rate_limited": "Too fast. Try again in a moment.",
       "too_many_uploads": "You have 50 unsent files; send or remove some first."
     }
+  },
+  "groups": {
+    "title": "Directory groups",
+    "workspaceHint": "People in these Cenacle ID groups join the workspace with the role you choose, at sign-in and when the directory changes.",
+    "group": "Group",
+    "role": "Role",
+    "add": "Add group",
+    "remove": "Remove the group {{group}}",
+    "roleOf": "Role of the group {{group}}",
+    "channelGroups": "Groups (separated by commas)",
+    "channelHint": "People of these groups in the workspace join the channel.",
+    "managed": "Members are exactly the people of these groups",
+    "saveChannel": "Save groups",
+    "saved": "Directory groups saved."
   }
 }

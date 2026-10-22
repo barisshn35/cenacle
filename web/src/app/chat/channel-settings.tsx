@@ -29,6 +29,7 @@ import {
   updateChannel,
   type Channel,
 } from './data';
+import { ChannelGroupsSection } from './directory-groups';
 import { isWorkspaceAdmin, workspacesQuery } from './workspaces';
 
 const selectClass =
@@ -193,6 +194,9 @@ export function ChannelSettingsDialog({
               </div>
             </DialogFooter>
           </form>
+          {channel.visibility === 'private' && !channel.is_default && (
+            <ChannelGroupsSection channel={channel} />
+          )}
         </DialogContent>
       </Dialog>
       <ConfirmDialog

@@ -79,6 +79,8 @@ export function DetailsPanel() {
             <dd>
               {channel.is_mandatory ? (
                 <p className="text-muted-foreground">{t('channels.mandatory')}</p>
+              ) : channel.group_managed ? (
+                <p className="text-muted-foreground">{t('channels.groupManaged')}</p>
               ) : (
                 <LeaveButton channel={channel} />
               )}

@@ -199,6 +199,34 @@ test.describe('private channels', () => {
     await expect(details.getByTestId('members')).toContainText('Ayşe Yılmaz');
   });
 
+  test('a channel managed by directory groups keeps its members', async ({ page }, testInfo) => {
+    const managed = { ...GENERAL, id: '01a15e50-6666-7d7d-bbee-8e7809fd8ad2', name: 'Builds' };
+    await mockApi(page, {
+      admin: true,
+      channels: [
+        {
+          ...managed,
+          visibility: 'private',
+          is_default: false,
+          group_managed: true,
+        },
+      ],
+    });
+    await page.goto(`/c/${managed.id}`);
+    const details = page.getByRole('complementary');
+    await expect(details).toContainText('Members come from directory groups.');
+    await expect(details.getByRole('button', { name: 'Leave channel' })).toHaveCount(0);
+    await expect(details.getByRole('button', { name: 'Add people' })).toHaveCount(0);
+
+    await details.getByRole('button', { name: 'Channel settings' }).click();
+    const groups = page.getByRole('dialog').getByTestId('channel-groups');
+    await groups.getByLabel('Groups (separated by commas)').fill('engineering, design');
+    await groups.getByRole('button', { name: 'Save groups' }).click();
+    await expect(page.getByText('Directory groups saved.')).toBeVisible();
+    await expectTargetSizes(page, testInfo, '[role="dialog"]');
+    await expectNoAxeViolations(page, '[role="dialog"]');
+  });
+
   test('members who do not manage the channel cannot add people or change it', async ({ page }) => {
     await mockApi(page);
     await page.goto(`/c/${GENERAL.id}`);

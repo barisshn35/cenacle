@@ -35,6 +35,7 @@ import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { useSession } from '../auth/session';
+import { WorkspaceGroupsSection } from './directory-groups';
 import { IntegrationsDialog } from './integrations';
 import { initials } from '../auth/sign-out';
 import { useLastWorkspace } from './active-workspace';
@@ -198,7 +199,7 @@ function WorkspaceSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('workspaces.settingsTitle', { workspace: workspace.name })}</DialogTitle>
           <DialogDescription>
@@ -235,7 +236,9 @@ function WorkspaceSettingsDialog({
             {members.data?.map((m) => {
               const self = m.user.id === user.id;
               // Admins manage members and admins; only owners touch owners.
-              const editable = admin && !self && (owner || m.role !== 'owner');
+              // Guests come from the directory: their role is not changed here.
+              const editable =
+                admin && !self && m.role !== 'guest' && (owner || m.role !== 'owner');
               const name = m.user.display_name || m.user.email;
               return (
                 <li key={m.user.id} className="flex items-center gap-2">
@@ -292,6 +295,7 @@ function WorkspaceSettingsDialog({
             })}
           </ul>
         </section>
+        {admin && <WorkspaceGroupsSection workspace={workspace} />}
       </DialogContent>
     </Dialog>
   );

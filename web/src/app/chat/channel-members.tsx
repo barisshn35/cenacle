@@ -76,7 +76,8 @@ export function MembersSection({ channel }: { channel: Channel }) {
   const members = useQuery(membersQuery(channel.id));
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
-  const canEdit = channel.can_manage && !channel.is_mandatory;
+  // A group-managed channel's members are the people of its directory groups.
+  const canEdit = channel.can_manage && !channel.is_mandatory && !channel.group_managed;
 
   const appoint = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: 'member' | 'manager' }) =>

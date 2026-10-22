@@ -182,7 +182,8 @@
     "archiveDescription": "Üyeler okumaya devam edebilir ama kimse yazamaz ve kanal kenar çubuğundan kalkar.",
     "archiveImpact": "Yöneticileri istediği zaman arşivden çıkarabilir; hiçbir şey silinmez.",
     "archiveConfirm": "Kanalı arşivle",
-    "managerToggle": "Kanal yöneticisi: {{person}}"
+    "managerToggle": "Kanal yöneticisi: {{person}}",
+    "groupManaged": "Üyeler dizin gruplarından gelir."
   },
   "categories": {
     "manage": "Kategorileri düzenle",
@@ -227,7 +228,8 @@
     "roles": {
       "owner": "Sahip",
       "admin": "Yönetici",
-      "member": "Üye"
+      "member": "Üye",
+      "guest": "Misafir"
     },
     "removeNamed": "{{person}} kişisini çalışma alanından çıkar",
     "addTitle": "Çalışma alanı ekle",
@@ -515,5 +517,19 @@
       "rate_limited": "Çok hızlı. Birazdan yeniden dene.",
       "too_many_uploads": "Gönderilmemiş 50 dosyan var; önce bazılarını gönder ya da kaldır."
     }
+  },
+  "groups": {
+    "title": "Dizin grupları",
+    "workspaceHint": "Bu Cenacle ID gruplarındaki kişiler, oturum açtıklarında ve dizin değiştiğinde seçtiğiniz rolle çalışma alanına katılır.",
+    "group": "Grup",
+    "role": "Rol",
+    "add": "Grubu ekle",
+    "remove": "{{group}} grubunu kaldır",
+    "roleOf": "{{group}} grubunun rolü",
+    "channelGroups": "Gruplar (virgülle ayırın)",
+    "channelHint": "Bu gruplardaki çalışma alanı kişileri kanala katılır.",
+    "managed": "Üyeler tam olarak bu grupların kişileridir",
+    "saveChannel": "Grupları kaydet",
+    "saved": "Dizin grupları kaydedildi."
   }
 }
