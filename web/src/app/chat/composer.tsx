@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { RewriteMenu } from '../ai/ai-ui';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClockIcon, PaperclipIcon, SendHorizontalIcon, BarChart3Icon } from 'lucide-react';
@@ -286,7 +287,8 @@ export function Composer({
           {mentions.popup}
           {!thread && commands.popup}
           <UploadList uploads={uploads} />
-          <div className="flex items-end gap-2">
+          {/* The buttons wrap below the text on narrow screens rather than squeeze it. */}
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
             <textarea
               id={ids.input}
               ref={input}
@@ -316,7 +318,7 @@ export function Composer({
               }
               aria-invalid={tooLong || undefined}
               placeholder={label}
-              className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[0.9375rem]"
+              className="block min-h-target min-w-40 flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[0.9375rem]"
             />
             {permissions.upload_files && (
               <>
@@ -344,6 +346,7 @@ export function Composer({
               </>
             )}
             {!thread && <Shortcuts channelId={channelId} />}
+            {!channel?.encrypted && <RewriteMenu text={body} onUse={change} />}
             {permissions.upload_files && <Recorder onRecorded={(f) => addFiles([f])} />}
             {!burn && (
               <StickerPicker

@@ -122,6 +122,16 @@ export async function expectTargetSizes(page: Page, testInfo: TestInfo, scope?: 
 
 /** axe-core with WCAG 2.2 AA rules; target-size is disabled by default in axe, so enable it. */
 export async function expectNoAxeViolations(page: Page, include?: string) {
+  // Colors are checked once enter animations (fades) have finished: halfway
+  // through, a button is still partly transparent.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished.catch(() => {})),
+    ),
+  );
   // Note: .options() replaces runOnly, so the tags are passed here as well.
   let builder = new AxeBuilder({ page }).options({
     runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
@@ -459,6 +469,8 @@ export async function mockApi(
     files?: boolean;
     emoji?: typeof EMOJI;
     stickers?: typeof STICKERS;
+    /** The operator configured a model and the workspace turned AI on. */
+    ai?: boolean;
   } = {},
 ): Promise<MockApi> {
   await mockSession(page, {
@@ -467,6 +479,7 @@ export async function mockApi(
       create_workspaces: opts.admin ?? false,
       upload_files: opts.files ?? true,
       max_file_size: 104857600,
+      ...(opts.ai ? { ai: true } : {}),
     },
   });
   const workspaces = [
@@ -478,6 +491,7 @@ export async function mockApi(
       appearance: { preset: 'cenacle', font_template: 'corporate' },
       is_default: true,
       role: opts.admin ? 'owner' : 'member',
+      ...(opts.ai ? { ai_enabled: true } : {}),
     },
   ];
   // Workflows and forms (v0.21): none unless a test adds them.

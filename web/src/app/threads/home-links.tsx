@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { useAI } from '../ai/ai';
 import {
   AtSignIcon,
   BookmarkIcon,
@@ -7,6 +8,7 @@ import {
   ListChecksIcon,
   MessagesSquareIcon,
   ShieldCheckIcon,
+  SparklesIcon,
   SquareCheckBigIcon,
   ZapIcon,
 } from 'lucide-react';
@@ -37,6 +39,7 @@ const LINKS = [
   { view: 'playbooks', icon: ListChecksIcon },
   { view: 'workflows', icon: ZapIcon },
   { view: 'compliance', icon: ShieldCheckIcon },
+  { view: 'ask', icon: SparklesIcon },
 ] as const;
 
 /** At the top of the sidebar: views across the workspace's channels. */
@@ -45,6 +48,7 @@ export function HomeLinks() {
   const path = useLocation({ select: (l) => l.pathname });
   const { isMobile, setOpenMobile } = useSidebar();
   const active = useActiveWorkspace();
+  const ai = useAI();
   const ws = active.id;
   const threads = useQuery(unreadThreadsQuery(ws)).data;
   const unreadChannels =
@@ -54,8 +58,8 @@ export function HomeLinks() {
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu>
-          {LINKS.filter(
-            ({ view }) => (view !== 'workflows' && view !== 'compliance') || active.admin,
+          {LINKS.filter(({ view }) =>
+            view === 'ask' ? ai : (view !== 'workflows' && view !== 'compliance') || active.admin,
           ).map(({ view, icon: Icon }) => {
             const active = path === `/${view}`;
             const count = view === 'threads' ? (threads?.threads ?? 0) : 0;

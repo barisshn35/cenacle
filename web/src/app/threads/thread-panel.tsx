@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { SummarizeButton } from '../ai/ai-ui';
 import { useEffect, useMemo, useRef } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BellIcon, BellOffIcon, XIcon } from 'lucide-react';
@@ -41,6 +42,9 @@ export function ThreadPanel() {
             </span>
           )}
         </div>
+        {target && channel && !channel.encrypted && (
+          <SummarizeButton channelId={channel.id} rootId={target.rootId} />
+        )}
         {target && <FollowButton rootId={target.rootId} />}
         <Button
           variant="ghost"

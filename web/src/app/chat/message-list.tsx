@@ -343,6 +343,11 @@ function useJumpTo(
   const target = useJump((s) => (s.target?.channelId === channelId ? s.target.messageId : null));
   const done = useJump((s) => s.done);
   const { loading, hasNextPage, pages, fetchNextPage } = state;
+  // The rows as they are now: pages may still arrive while scrolling.
+  const latestRows = useRef(rows);
+  useEffect(() => {
+    latestRows.current = rows;
+  }, [rows]);
   useEffect(() => {
     if (!target || loading) return;
     const index = rows.findIndex((r) => r.kind === 'message' && r.message.id === target);
@@ -354,12 +359,16 @@ function useJumpTo(
       useJump.setState({ target: null });
       let tries = 0;
       const bring = () => {
-        list.current?.scrollToIndex({ index, align: 'center' });
+        const now = latestRows.current.findIndex(
+          (r) => r.kind === 'message' && r.message.id === target,
+        );
+        list.current?.scrollToIndex({ index: now >= 0 ? now : index, align: 'center' });
         const el = document.querySelector(`[data-message-id="${target}"]`);
         const box = el?.closest('[role="log"]')?.getBoundingClientRect();
         const r = el?.getBoundingClientRect();
         const inView = !!r && !!box && r.top >= box.top && r.bottom <= box.bottom;
-        if (!inView && ++tries < 20) {
+        // A busy device lays the list out slowly: keep trying for up to 5 s.
+        if (!inView && ++tries < 50) {
           setTimeout(bring, 100);
           return;
         }

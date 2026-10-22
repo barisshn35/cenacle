@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { AskPage } from '../ai/ai-ui';
 import { useState, type ReactNode } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -56,7 +57,8 @@ export type HomeView =
   | 'events'
   | 'playbooks'
   | 'workflows'
-  | 'compliance';
+  | 'compliance'
+  | 'ask';
 
 function channelLabel(c: { name: string; kind: string }) {
   return c.kind === 'direct' || c.kind === 'group' ? c.name : `#${c.name}`;
@@ -136,6 +138,7 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
       {view === 'playbooks' && <PlaybooksList />}
       {view === 'workflows' && <WorkflowsPage />}
       {view === 'compliance' && <CompliancePage />}
+      {view === 'ask' && <AskPage />}
     </Shell>
   );
 }

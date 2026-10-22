@@ -888,7 +888,8 @@
     "events": "Etkinlikler",
     "playbooks": "Playbook'lar",
     "workflows": "İş akışları",
-    "compliance": "Uyumluluk"
+    "compliance": "Uyumluluk",
+    "ask": "Yapay zekâya sor"
   },
   "community": {
     "banner": {
@@ -1601,5 +1602,37 @@
     "info": "Uçtan uca şifreli",
     "infoHint": "Mesajlar yalnızca kanalın parolasıyla okunabilir. Anahtarı bu cihazda tutulur.",
     "forget": "Bu cihazdaki anahtarı unut"
+  },
+  "ai": {
+    "written": "Yapay zekâ yazdı. Güvenmeden önce kontrol edin.",
+    "sources_one": "{{count}} mesajdan üretildi",
+    "sources_other": "{{count}} mesajdan üretildi",
+    "failed": "Yapay zekâ yanıt veremedi.",
+    "working": "Yapay zekâ yazıyor…",
+    "summarize": "Kanalı özetle",
+    "summarizeThread": "Yanıt dizisini özetle",
+    "summaryHint": "Bu özeti yalnızca siz görürsünüz; hiçbir şey gönderilmez.",
+    "rewrite": "Yapay zekâyla yeniden yaz",
+    "rewriteHint": "Yeni metni kullanmayı seçmezseniz taslağınız olduğu gibi kalır.",
+    "actions": {
+      "improve": "Yazımı iyileştir",
+      "shorter": "Kısalt",
+      "formal": "Daha resmî",
+      "friendly": "Daha samimi"
+    },
+    "translateTo": "{{language}} diline çevir",
+    "languages": {
+      "en": "İngilizce",
+      "tr": "Türkçe"
+    },
+    "keepMine": "Benimkini koru",
+    "useThis": "Bu metni kullan",
+    "askLabel": "Konuşmalarınız hakkında sorun",
+    "ask": "Sor",
+    "askHint": "Yanıt yalnızca okuyabildiğiniz mesajları kullanır, şifreli kanalları asla.",
+    "noSources": "Bu soruyla eşleşen, okuyabildiğiniz bir mesaj yok.",
+    "settingsTitle": "Yapay zekâ",
+    "turnOn": "Bu çalışma alanında yapay zekâyı aç",
+    "settingsHint": "Özetler, yeniden yazma ve sorular; bu sunucunun yöneticisinin çalıştırdığı modelle. Mesajlar yalnızca ona gönderilir."
   }
 }

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { SummarizeButton } from '../ai/ai-ui';
 import { PanelRightIcon, SearchIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
@@ -82,6 +83,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           )}
         </div>
         {!mobile && <AppearanceControls onSave={(change) => saveAppearance.mutate(change)} />}
+        {id && channel && !channel.encrypted && <SummarizeButton channelId={id} />}
         <Button
           variant="ghost"
           size="icon"

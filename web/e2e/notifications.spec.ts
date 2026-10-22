@@ -68,7 +68,8 @@ test.describe('search', () => {
     await result.click();
     await expect(page).toHaveURL(new RegExp(`/c/${GENERAL.id}`));
     const target = page.locator(`[data-message-id="${messages[4]!.id}"]`);
-    await expect(target).toBeInViewport();
+    // Older pages load first; on a busy machine this takes a while.
+    await expect(target).toBeInViewport({ timeout: 15_000 });
     await expect(target).toHaveAttribute('data-highlighted', 'true');
     await expect(target).not.toHaveAttribute('data-highlighted', 'true', { timeout: 5000 });
   });

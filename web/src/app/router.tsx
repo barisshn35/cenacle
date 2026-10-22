@@ -90,6 +90,7 @@ const homeRoutes = (
     'playbooks',
     'workflows',
     'compliance',
+    'ask',
   ] as const
 ).map((view) =>
   createRoute({

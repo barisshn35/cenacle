@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { WorkspaceAIForm } from '../ai/ai-ui';
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -235,6 +236,7 @@ function WorkspaceSettingsDialog({
             <WorkspaceDetailsForm workspace={workspace} />
             <WorkspaceAppearanceForm workspace={workspace} />
             <WelcomeForm workspace={workspace} />
+            <WorkspaceAIForm workspace={workspace} />
           </>
         ) : (
           workspace.description && (

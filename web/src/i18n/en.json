@@ -888,7 +888,8 @@
     "events": "Events",
     "playbooks": "Playbooks",
     "workflows": "Workflows",
-    "compliance": "Compliance"
+    "compliance": "Compliance",
+    "ask": "Ask AI"
   },
   "community": {
     "banner": {
@@ -1601,5 +1602,37 @@
     "info": "Encrypted end to end",
     "infoHint": "Messages are readable only with the channel's passphrase. Its key is kept on this device.",
     "forget": "Forget the key on this device"
+  },
+  "ai": {
+    "written": "Written by AI. Check it before you rely on it.",
+    "sources_one": "Made from {{count}} message",
+    "sources_other": "Made from {{count}} messages",
+    "failed": "The AI could not answer.",
+    "working": "The AI is writing…",
+    "summarize": "Summarize the channel",
+    "summarizeThread": "Summarize the thread",
+    "summaryHint": "Only you see this summary; nothing is posted.",
+    "rewrite": "Rewrite with AI",
+    "rewriteHint": "Your draft stays as it is unless you choose to use the new text.",
+    "actions": {
+      "improve": "Improve writing",
+      "shorter": "Make shorter",
+      "formal": "More formal",
+      "friendly": "Friendlier"
+    },
+    "translateTo": "Translate to {{language}}",
+    "languages": {
+      "en": "English",
+      "tr": "Turkish"
+    },
+    "keepMine": "Keep mine",
+    "useThis": "Use this text",
+    "askLabel": "Ask about your conversations",
+    "ask": "Ask",
+    "askHint": "The answer uses only messages you can read, never encrypted channels.",
+    "noSources": "No messages you can read match this question.",
+    "settingsTitle": "AI",
+    "turnOn": "Turn on AI for this workspace",
+    "settingsHint": "Summaries, rewriting and questions, with the model this server's operator runs. Messages are sent only to it."
   }
 }
