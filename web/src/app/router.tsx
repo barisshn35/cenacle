@@ -63,6 +63,8 @@ const inviteRoute = createRoute({
 export interface ChannelSearch {
   /** A message to bring into view (a link to a message). */
   m?: string;
+  /** The open tab (a canvas or a list) instead of the messages. */
+  tab?: string;
 }
 
 const channelRoute = createRoute({
@@ -70,6 +72,7 @@ const channelRoute = createRoute({
   path: '/c/$channelId',
   validateSearch: (s: Record<string, unknown>): ChannelSearch => ({
     m: typeof s.m === 'string' && /^[0-9a-f-]{36}$/.test(s.m) ? s.m : undefined,
+    tab: typeof s.tab === 'string' && /^[0-9a-f-]{36}$/.test(s.tab) ? s.tab : undefined,
   }),
   component: AppShell,
 });
@@ -77,7 +80,7 @@ const channelRoute = createRoute({
 // Views across channels, in the app shell: /threads, /activity, /saved, /unreads,
 // /events, /playbooks.
 const homeRoutes = (
-  ['threads', 'activity', 'saved', 'unreads', 'events', 'playbooks', 'workflows'] as const
+  ['threads', 'activity', 'saved', 'unreads', 'tasks', 'events', 'playbooks', 'workflows'] as const
 ).map((view) =>
   createRoute({
     getParentRoute: () => appRoute,

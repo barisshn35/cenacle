@@ -875,6 +875,7 @@
     "activity": "Activity",
     "saved": "Saved",
     "unreads": "All unreads",
+    "tasks": "Tasks",
     "more": "Show more",
     "noThreads": "No threads yet. Threads you start, reply to or are mentioned in show here.",
     "noActivity": "Nothing new. Mentions, replies in your threads and reactions to your messages show here.",
@@ -1374,6 +1375,120 @@
       "copy": "Copy",
       "copied": "Copied.",
       "failed": "That did not work."
+    }
+  },
+  "collab": {
+    "cancel": "Cancel",
+    "tabs": {
+      "label": "Channel tabs",
+      "messages": "Messages",
+      "opensElsewhere": "(opens in a new tab)",
+      "options": "Options for {{title}}",
+      "rename": "Rename",
+      "moveLeft": "Move left",
+      "moveRight": "Move right",
+      "delete": "Delete tab",
+      "add": "Add a tab",
+      "newCanvas": "Canvas",
+      "newList": "List",
+      "newTasks": "Task list",
+      "newLink": "Link",
+      "newTitle": {
+        "canvas": "New canvas",
+        "list": "New list",
+        "tasks": "New task list",
+        "link": "New link"
+      },
+      "renameTitle": "Rename tab",
+      "title": "Title",
+      "url": "Address",
+      "create": "Add tab",
+      "save": "Save",
+      "saveFailed": "Couldn't save the tab.",
+      "deleteTitle": "Delete “{{title}}”?",
+      "deleteHint": {
+        "canvas": "The canvas and its text are deleted for everyone in the channel.",
+        "list": "The list and all its rows are deleted for everyone in the channel.",
+        "link": "The link is removed from the channel's tabs."
+      }
+    },
+    "canvas": {
+      "edit": "Edit",
+      "save": "Save",
+      "preview": "Preview",
+      "text": "Canvas text",
+      "hint": "Markdown: # heading, **bold**, - list, - [ ] to-do, [link](https://…)",
+      "editingBy": "{{name}} is editing",
+      "editedBy": "Edited by {{name}}, {{when}}",
+      "empty": "This canvas is empty.",
+      "emptyEdit": "This canvas is empty. Choose Edit to start writing.",
+      "loadFailed": "Couldn't load the canvas.",
+      "editFailed": "Couldn't start editing.",
+      "saveFailed": "Couldn't save the canvas.",
+      "turnLost": "Your turn to edit ended.",
+      "changedReason": "Someone saved it while you were editing.",
+      "busyReason": "Someone else is editing it; try again when they finish.",
+      "loadLatest": "Load their version (copies your text)",
+      "copied": "Your text is on the clipboard."
+    },
+    "list": {
+      "view": "View",
+      "table": "Table",
+      "board": "Board",
+      "columns": "Columns",
+      "title": "Title",
+      "actions": "Actions",
+      "empty": "No rows yet.",
+      "addRow": "Add a row",
+      "addCard": "Add a card to {{lane}}",
+      "add": "Add",
+      "rowOptions": "Options for {{title}}",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "moveTo": "Move to {{lane}}",
+      "deleteRow": "Delete row",
+      "deleted": "“{{title}}” deleted.",
+      "noValue": "No value",
+      "changeFailed": "Couldn't change the list. Try again.",
+      "loadFailed": "Couldn't load the list.",
+      "columnsTitle": "Columns",
+      "columnsHint": "Rows keep the values their columns still take; values of removed columns are deleted.",
+      "columnName": "Name",
+      "columnKind": "Kind",
+      "options": "Options (one per line)",
+      "removeColumn": "Remove column {{name}}",
+      "newColumn": "New column",
+      "addColumn": "Add column",
+      "boardBy": "Board groups by",
+      "noBoard": "No board",
+      "columnsFailed": "Couldn't save the columns.",
+      "saveColumns": "Save columns",
+      "template": {
+        "status": "Status",
+        "owner": "Assignee",
+        "due": "Due date"
+      }
+    },
+    "kind": {
+      "text": "Text",
+      "number": "Number",
+      "select": "Choice",
+      "status": "Status",
+      "person": "Person",
+      "date": "Date",
+      "checkbox": "Checkbox"
+    },
+    "status": {
+      "todo": "To do",
+      "doing": "In progress",
+      "done": "Done"
+    },
+    "tasks": {
+      "none": "Nothing waits for you. Approvals, forms and list rows assigned to you show here.",
+      "waiting": "Waiting for you",
+      "assigned": "Assigned to you",
+      "due": "Due {{date}}",
+      "overdue": "Overdue since {{date}}"
     }
   }
 }

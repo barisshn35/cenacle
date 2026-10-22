@@ -31,6 +31,7 @@ import { openMessage } from './open-message';
 import { EventsList } from '../community/events';
 import { PlaybooksList } from '../community/playbooks';
 import { WorkflowsPage } from '../automation/workflows-page';
+import { MyTasks } from '../collab/my-tasks';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import {
@@ -46,7 +47,7 @@ import {
 } from './threads';
 
 export type HomeView =
-  'threads' | 'activity' | 'saved' | 'unreads' | 'events' | 'playbooks' | 'workflows';
+  'threads' | 'activity' | 'saved' | 'unreads' | 'tasks' | 'events' | 'playbooks' | 'workflows';
 
 function channelLabel(c: { name: string; kind: string }) {
   return c.kind === 'direct' || c.kind === 'group' ? c.name : `#${c.name}`;
@@ -121,6 +122,7 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
       {view === 'activity' && <ActivityList />}
       {view === 'saved' && <SavedList />}
       {view === 'unreads' && <UnreadsList />}
+      {view === 'tasks' && <MyTasks />}
       {view === 'events' && <EventsList />}
       {view === 'playbooks' && <PlaybooksList />}
       {view === 'workflows' && <WorkflowsPage />}

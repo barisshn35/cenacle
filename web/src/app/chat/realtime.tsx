@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { applyCollabEvent } from '../collab/collab';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '../auth/session';
@@ -60,7 +61,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     const live = useLive.getState();
     const client = new RealtimeClient({
       onEvent(ev) {
-        if (ev.type === 'message.created') {
+        if (applyCollabEvent(queryClient, ev.type, ev.data)) {
+          // tabs, canvases and lists
+        } else if (ev.type === 'message.created') {
           const message = ev.data as Message;
           // One's own burn-on-read message comes without its text: fetch it.
           if (message.burn?.hidden && message.author.id === selfId) {

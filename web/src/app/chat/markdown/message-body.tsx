@@ -28,7 +28,12 @@ function MentionChip({ name, self }: { name: string; self: boolean }) {
   );
 }
 
-function components(selfId: string, people: Person[], emoji: Map<string, CustomEmoji>): Components {
+function components(
+  selfId: string,
+  people: Person[],
+  emoji: Map<string, CustomEmoji>,
+  asDocument: boolean,
+): Components {
   return {
     a({ href, children }) {
       const name = emojiLink(href);
@@ -107,12 +112,17 @@ function components(selfId: string, people: Person[], emoji: Map<string, CustomE
     td({ children }) {
       return <td className="border px-2 py-1">{children}</td>;
     },
-    h1: Heading,
-    h2: Heading,
-    h3: Heading,
-    h4: Heading,
-    h5: Heading,
-    h6: Heading,
+    ...(asDocument
+      ? {
+          // Under the document's own title (h2): # is h3, ## is h4, the rest h5.
+          h1: ({ children }) => <h3 className="mt-4 text-xl font-semibold">{children}</h3>,
+          h2: ({ children }) => <h4 className="mt-3 text-lg font-semibold">{children}</h4>,
+          h3: DocHeading,
+          h4: DocHeading,
+          h5: DocHeading,
+          h6: DocHeading,
+        }
+      : { h1: Heading, h2: Heading, h3: Heading, h4: Heading, h5: Heading, h6: Heading }),
     hr() {
       return <hr className="my-2" />;
     },
@@ -124,6 +134,10 @@ function Heading({ children }: { children?: ReactNode }) {
   return <p className="my-0.5 font-semibold">{children}</p>;
 }
 
+function DocHeading({ children }: { children?: ReactNode }) {
+  return <h5 className="mt-2 font-semibold">{children}</h5>;
+}
+
 /**
  * A message body: Markdown (GitHub flavour) without raw HTML, sanitized,
  * links opening elsewhere, mentions as chips, code highlighted.
@@ -133,12 +147,15 @@ export const MessageBody = memo(function MessageBody({
   mentions,
   selfId,
   broadcast,
+  document = false,
 }: {
   body: string;
   mentions: Person[];
   selfId: string;
   /** The message's mentions of many (@channel, @here), shown as chips. */
   broadcast?: string[];
+  /** A document (a canvas): headings are headings. */
+  document?: boolean;
 }) {
   const emoji = useCustomEmoji();
   const names = useMemo(() => new Set(emoji.keys()), [emoji]);
@@ -147,7 +164,7 @@ export const MessageBody = memo(function MessageBody({
       <Markdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize]}
-        components={components(selfId, mentions, emoji)}
+        components={components(selfId, mentions, emoji, document)}
       >
         {toMarkdownExtras(toMarkdownMentions(body, mentions), names, broadcast ?? [])}
       </Markdown>

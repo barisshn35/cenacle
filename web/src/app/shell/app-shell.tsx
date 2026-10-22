@@ -25,8 +25,9 @@ import type { RightView } from '../../stores/layout';
 /** A channel, or a view across channels (threads, activity, saved, unreads). */
 function MainView({ mobile = false }: { mobile?: boolean }) {
   const path = useLocation({ select: (l) => l.pathname });
-  const view = /^\/(threads|activity|saved|unreads|events|playbooks|workflows)$/.exec(path)?.[1] as
-    HomeView | undefined;
+  const view = /^\/(threads|activity|saved|unreads|tasks|events|playbooks|workflows)$/.exec(
+    path,
+  )?.[1] as HomeView | undefined;
   return view ? <HomeViewPage view={view} mobile={mobile} /> : <ChannelView mobile={mobile} />;
 }
 

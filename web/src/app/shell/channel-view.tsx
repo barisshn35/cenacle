@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { PanelRightIcon, SearchIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
 import { Separator } from '@cenacle/ui/components/separator';
@@ -21,6 +22,10 @@ import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { MessageList } from '../chat/message-list';
 import { useSaveAppearance } from '../appearance/use-save-appearance';
 import { AppearanceControls } from './appearance-controls';
+import { CanvasView } from '../collab/canvas-view';
+import { ChannelTabs } from '../collab/channel-tabs';
+import { tabsQuery } from '../collab/collab';
+import { ListView } from '../collab/list-view';
 
 export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
@@ -36,6 +41,9 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const channelsLoaded = useQuery(channelsQuery).isSuccess;
   const { workspace } = useActiveWorkspace();
   usePermalink(channel ? id : undefined);
+  const { tab: tabId } = useSearch({ strict: false }) as { tab?: string };
+  const tabs = useQuery({ ...tabsQuery(id ?? ''), enabled: !!channel && !!tabId });
+  const tab = tabId ? tabs.data?.find((x) => x.id === tabId) : undefined;
 
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="channel-title">
@@ -90,8 +98,13 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           <PanelRightIcon strokeWidth={1.75} />
         </Button>
       </header>
+      {id && channel && <ChannelTabs channel={channel} active={tab?.id} />}
 
-      {id && channel?.kind === 'forum' ? (
+      {tab?.canvas_id ? (
+        <CanvasView key={tab.canvas_id} canvasId={tab.canvas_id} />
+      ) : tab?.list_id ? (
+        <ListView key={tab.list_id} listId={tab.list_id} />
+      ) : id && channel?.kind === 'forum' ? (
         <ForumView key={`forum-${id}`} channel={channel} />
       ) : id && channel ? (
         <>

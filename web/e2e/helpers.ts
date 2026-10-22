@@ -489,6 +489,13 @@ export async function mockApi(
     const kind = route.request().url().split('/').pop()!;
     return route.fulfill({ json: { [kind]: [] } });
   });
+  // Channel tabs and rows assigned to the user (v0.22): none unless a test adds them.
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/tabs$/, (route) =>
+    route.request().method() === 'GET' ? route.fulfill({ json: { tabs: [] } }) : route.fallback(),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/assigned-items$/, (route) =>
+    route.fulfill({ json: { items: [] } }),
+  );
   // Custom emoji and stickers of the workspace (v0.20).
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/emoji$/, (route) =>
     route.request().method() === 'GET'

@@ -875,6 +875,7 @@
     "activity": "Etkinlik",
     "saved": "Kaydedilenler",
     "unreads": "Tüm okunmamışlar",
+    "tasks": "Görevler",
     "more": "Daha fazla göster",
     "noThreads": "Henüz yanıt dizisi yok. Başlattığınız, yanıt verdiğiniz ya da bahsedildiğiniz diziler burada görünür.",
     "noActivity": "Yeni bir şey yok. Bahsedilmeler, dizilerinizdeki yanıtlar ve mesajlarınıza tepkiler burada görünür.",
@@ -1374,6 +1375,120 @@
       "copy": "Kopyala",
       "copied": "Kopyalandı.",
       "failed": "Bu işlem yapılamadı."
+    }
+  },
+  "collab": {
+    "cancel": "Vazgeç",
+    "tabs": {
+      "label": "Kanal sekmeleri",
+      "messages": "Mesajlar",
+      "opensElsewhere": "(yeni sekmede açılır)",
+      "options": "{{title}} seçenekleri",
+      "rename": "Yeniden adlandır",
+      "moveLeft": "Sola taşı",
+      "moveRight": "Sağa taşı",
+      "delete": "Sekmeyi sil",
+      "add": "Sekme ekle",
+      "newCanvas": "Tuval",
+      "newList": "Liste",
+      "newTasks": "Görev listesi",
+      "newLink": "Bağlantı",
+      "newTitle": {
+        "canvas": "Yeni tuval",
+        "list": "Yeni liste",
+        "tasks": "Yeni görev listesi",
+        "link": "Yeni bağlantı"
+      },
+      "renameTitle": "Sekmeyi yeniden adlandır",
+      "title": "Başlık",
+      "url": "Adres",
+      "create": "Sekme ekle",
+      "save": "Kaydet",
+      "saveFailed": "Sekme kaydedilemedi.",
+      "deleteTitle": "“{{title}}” silinsin mi?",
+      "deleteHint": {
+        "canvas": "Tuval ve metni kanaldaki herkes için silinir.",
+        "list": "Liste ve tüm satırları kanaldaki herkes için silinir.",
+        "link": "Bağlantı kanalın sekmelerinden kaldırılır."
+      }
+    },
+    "canvas": {
+      "edit": "Düzenle",
+      "save": "Kaydet",
+      "preview": "Önizleme",
+      "text": "Tuval metni",
+      "hint": "Markdown: # başlık, **kalın**, - liste, - [ ] yapılacak, [bağlantı](https://…)",
+      "editingBy": "{{name}} düzenliyor",
+      "editedBy": "{{name}} düzenledi, {{when}}",
+      "empty": "Bu tuval boş.",
+      "emptyEdit": "Bu tuval boş. Yazmaya başlamak için Düzenle'yi seçin.",
+      "loadFailed": "Tuval yüklenemedi.",
+      "editFailed": "Düzenlemeye başlanamadı.",
+      "saveFailed": "Tuval kaydedilemedi.",
+      "turnLost": "Düzenleme sıranız sona erdi.",
+      "changedReason": "Siz düzenlerken başka biri kaydetti.",
+      "busyReason": "Şu an başka biri düzenliyor; bitirince tekrar deneyin.",
+      "loadLatest": "Onun sürümünü yükle (metniniz kopyalanır)",
+      "copied": "Metniniz panoya kopyalandı."
+    },
+    "list": {
+      "view": "Görünüm",
+      "table": "Tablo",
+      "board": "Pano",
+      "columns": "Sütunlar",
+      "title": "Başlık",
+      "actions": "İşlemler",
+      "empty": "Henüz satır yok.",
+      "addRow": "Satır ekle",
+      "addCard": "{{lane}} sütununa kart ekle",
+      "add": "Ekle",
+      "rowOptions": "{{title}} seçenekleri",
+      "moveUp": "Yukarı taşı",
+      "moveDown": "Aşağı taşı",
+      "moveTo": "{{lane}} sütununa taşı",
+      "deleteRow": "Satırı sil",
+      "deleted": "“{{title}}” silindi.",
+      "noValue": "Değer yok",
+      "changeFailed": "Liste değiştirilemedi. Tekrar deneyin.",
+      "loadFailed": "Liste yüklenemedi.",
+      "columnsTitle": "Sütunlar",
+      "columnsHint": "Satırlar, sütunlarının hâlâ kabul ettiği değerleri korur; kaldırılan sütunların değerleri silinir.",
+      "columnName": "Ad",
+      "columnKind": "Tür",
+      "options": "Seçenekler (her satıra bir tane)",
+      "removeColumn": "{{name}} sütununu kaldır",
+      "newColumn": "Yeni sütun",
+      "addColumn": "Sütun ekle",
+      "boardBy": "Pano gruplaması",
+      "noBoard": "Pano yok",
+      "columnsFailed": "Sütunlar kaydedilemedi.",
+      "saveColumns": "Sütunları kaydet",
+      "template": {
+        "status": "Durum",
+        "owner": "Sorumlu",
+        "due": "Bitiş tarihi"
+      }
+    },
+    "kind": {
+      "text": "Metin",
+      "number": "Sayı",
+      "select": "Seçim",
+      "status": "Durum",
+      "person": "Kişi",
+      "date": "Tarih",
+      "checkbox": "Onay kutusu"
+    },
+    "status": {
+      "todo": "Yapılacak",
+      "doing": "Sürüyor",
+      "done": "Bitti"
+    },
+    "tasks": {
+      "none": "Sizi bekleyen bir şey yok. Onaylar, formlar ve size atanan liste satırları burada görünür.",
+      "waiting": "Sizi bekleyenler",
+      "assigned": "Size atananlar",
+      "due": "Bitiş: {{date}}",
+      "overdue": "{{date}} tarihinden beri gecikmiş"
     }
   }
 }

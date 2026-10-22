@@ -6,6 +6,7 @@ import {
   InboxIcon,
   ListChecksIcon,
   MessagesSquareIcon,
+  SquareCheckBigIcon,
   ZapIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -30,6 +31,7 @@ const LINKS = [
   { view: 'activity', icon: AtSignIcon },
   { view: 'saved', icon: BookmarkIcon },
   { view: 'unreads', icon: InboxIcon },
+  { view: 'tasks', icon: SquareCheckBigIcon },
   { view: 'events', icon: CalendarIcon },
   { view: 'playbooks', icon: ListChecksIcon },
   { view: 'workflows', icon: ZapIcon },
