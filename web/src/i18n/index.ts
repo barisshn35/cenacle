@@ -47,5 +47,45 @@ export function initI18n(lng: Language = detectLanguage()) {
     defaultNS: 'app',
     interpolation: { escapeValue: false },
     returnNull: false,
+    // Texts the administrators replaced arrive after start: show them at once.
+    react: { bindI18nStore: 'added' },
   });
+}
+
+/** The bundled text of a key (what an administrator's text replaces). */
+export function originalText(lng: Language, key: string): string {
+  const value = key
+    .split('.')
+    .reduce<unknown>(
+      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
+      resources[lng].app,
+    );
+  return typeof value === 'string' ? value : '';
+}
+
+/**
+ * Applies the interface texts the administrators replaced (GET /api/ui-texts,
+ * public, so the sign-in page uses them too); keys without one get their
+ * bundled text back.
+ */
+export function applyUITexts(texts: Record<string, Record<string, string>>, keys: string[]) {
+  for (const lng of LANGUAGES) {
+    for (const key of keys) {
+      i18next.addResource(lng, 'app', key, texts[lng]?.[key] || originalText(lng, key));
+    }
+  }
+}
+
+export async function loadUITexts(): Promise<void> {
+  try {
+    const res = await fetch('/api/ui-texts', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const body = (await res.json()) as {
+      texts: Record<string, Record<string, string>>;
+      editable: string[];
+    };
+    applyUITexts(body.texts, body.editable);
+  } catch {
+    // The bundled texts stay.
+  }
 }

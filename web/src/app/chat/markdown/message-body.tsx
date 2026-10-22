@@ -130,7 +130,7 @@ export const MessageBody = memo(function MessageBody({
   selfId: string;
 }) {
   return (
-    <div className="text-[15px] leading-relaxed break-words [&_li>p]:my-0">
+    <div className="text-[0.9375rem] leading-(--line-height-base,1.625) break-words [&_li>p]:my-0">
       <Markdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize]}

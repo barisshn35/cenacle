@@ -116,6 +116,9 @@ test('slash commands: suggestions, answers only for you, messages in the channel
 });
 
 test('a message can be sent later and cancelled', async ({ page }, testInfo) => {
+  // Two dialogs with accessibility scans: under the load of the whole suite on
+  // the touch project it came close to the default 30 s.
+  test.slow();
   await mockApi(page);
   await mockCommands(page);
   await page.goto('/');

@@ -8,6 +8,7 @@ import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Logo } from '@cenacle/ui/brand';
 import { SessionContext, sessionQuery, signinSearchFor } from './session';
+import { AppearanceSync } from '../appearance/appearance-sync';
 import { RealtimeProvider } from '../chat/realtime';
 
 /**
@@ -41,6 +42,7 @@ export function RequireSession() {
     return (
       <SessionContext.Provider value={session.data}>
         <RealtimeProvider>
+          <AppearanceSync />
           <Outlet />
         </RealtimeProvider>
       </SessionContext.Provider>

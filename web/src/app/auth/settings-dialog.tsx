@@ -3,6 +3,9 @@ import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLinkIcon, LaptopIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@cenacle/ui/lib/utils';
+import { AppearancePanel } from '../appearance/appearance-panel';
+import { UITextsPanel } from '../appearance/ui-texts-panel';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@cenacle/ui/components/button';
 import { ConfirmDialog } from '@cenacle/ui/components/confirm-dialog';
@@ -88,6 +91,8 @@ function DeviceRow({ device }: { device: DeviceSession }) {
  * Settings of the signed-in user: signed-in devices with "sign out
  * everywhere" (S3) and the way to two-step verification in Cenacle ID.
  */
+type Tab = 'account' | 'appearance' | 'texts';
+
 export function SettingsDialog({
   open,
   onOpenChange,
@@ -103,68 +108,129 @@ export function SettingsDialog({
   const [keepCurrent, setKeepCurrent] = useState(true);
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
+  const tabs: Tab[] = session.permissions.create_workspaces
+    ? ['account', 'appearance', 'texts']
+    : ['account', 'appearance'];
+  const [tab, setTab] = useState<Tab>('account');
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t('settings.title')}</DialogTitle>
             <DialogDescription>{t('settings.description')}</DialogDescription>
           </DialogHeader>
-
-          <section aria-labelledby="settings-security" className="flex flex-col gap-2">
-            <h3 id="settings-security" className="text-sm font-semibold">
-              {t('settings.security')}
-            </h3>
-            <p className="text-sm text-muted-foreground">{t('settings.securityHint')}</p>
-            <a
-              href={session.account_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonVariants({ variant: 'outline', className: 'self-start' })}
+          <div role="tablist" aria-label={t('settings.title')} className="flex gap-1 border-b">
+            {tabs.map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="tab"
+                id={`settings-tab-${k}`}
+                aria-selected={tab === k}
+                aria-controls={`settings-panel-${k}`}
+                tabIndex={tab === k ? 0 : -1}
+                onClick={() => setTab(k)}
+                onKeyDown={(e) => {
+                  const i = tabs.indexOf(k);
+                  const next =
+                    e.key === 'ArrowRight'
+                      ? tabs[(i + 1) % tabs.length]
+                      : e.key === 'ArrowLeft'
+                        ? tabs[(i + tabs.length - 1) % tabs.length]
+                        : undefined;
+                  if (next) {
+                    setTab(next);
+                    document.getElementById(`settings-tab-${next}`)?.focus();
+                  }
+                }}
+                className={cn(
+                  '-mb-px inline-flex min-h-target items-center border-b-2 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                  tab === k
+                    ? 'border-primary font-medium'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {t(`settings.tabs.${k}`)}
+              </button>
+            ))}
+          </div>
+          {tab === 'appearance' && (
+            <div
+              role="tabpanel"
+              id="settings-panel-appearance"
+              aria-labelledby="settings-tab-appearance"
             >
-              <ShieldCheckIcon aria-hidden strokeWidth={1.75} />
-              {t('settings.openAccount')}
-              <ExternalLinkIcon aria-hidden strokeWidth={1.75} />
-              <span className="sr-only">{t('settings.newTab')}</span>
-            </a>
-          </section>
-
-          <section aria-labelledby="settings-devices" className="flex flex-col gap-1">
-            <h3 id="settings-devices" className="text-sm font-semibold">
-              {t('settings.devices')}
-            </h3>
-            {devices.isPending ? (
-              <div aria-hidden className="flex flex-col gap-2 py-2">
-                <Skeleton className="h-9" />
-                <Skeleton className="h-9" />
-              </div>
-            ) : devices.isError ? (
-              <ErrorState
-                problem={
-                  devices.error instanceof ApiError ? devices.error.problem : { status: 500 }
-                }
-                actions={
-                  <Button onClick={() => void devices.refetch()}>{t('ui:errors.retry')}</Button>
-                }
-              />
-            ) : (
-              <ul className="flex max-h-[40svh] flex-col divide-y overflow-y-auto">
-                {devices.data.map((d) => (
-                  <DeviceRow key={d.id} device={d} />
-                ))}
-              </ul>
-            )}
-            <Button
-              variant="outline"
-              className="mt-2 self-start text-destructive"
-              onClick={() => setConfirm(true)}
+              <AppearancePanel />
+            </div>
+          )}
+          {tab === 'texts' && (
+            <div role="tabpanel" id="settings-panel-texts" aria-labelledby="settings-tab-texts">
+              <UITextsPanel />
+            </div>
+          )}
+          {tab === 'account' && (
+            <div
+              role="tabpanel"
+              id="settings-panel-account"
+              aria-labelledby="settings-tab-account"
+              className="flex flex-col gap-4"
             >
-              <LogOutIcon aria-hidden strokeWidth={1.75} />
-              {t('settings.endAll')}
-            </Button>
-          </section>
+              <section aria-labelledby="settings-security" className="flex flex-col gap-2">
+                <h3 id="settings-security" className="text-sm font-semibold">
+                  {t('settings.security')}
+                </h3>
+                <p className="text-sm text-muted-foreground">{t('settings.securityHint')}</p>
+                <a
+                  href={session.account_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: 'outline', className: 'self-start' })}
+                >
+                  <ShieldCheckIcon aria-hidden strokeWidth={1.75} />
+                  {t('settings.openAccount')}
+                  <ExternalLinkIcon aria-hidden strokeWidth={1.75} />
+                  <span className="sr-only">{t('settings.newTab')}</span>
+                </a>
+              </section>
+
+              <section aria-labelledby="settings-devices" className="flex flex-col gap-1">
+                <h3 id="settings-devices" className="text-sm font-semibold">
+                  {t('settings.devices')}
+                </h3>
+                {devices.isPending ? (
+                  <div aria-hidden className="flex flex-col gap-2 py-2">
+                    <Skeleton className="h-9" />
+                    <Skeleton className="h-9" />
+                  </div>
+                ) : devices.isError ? (
+                  <ErrorState
+                    problem={
+                      devices.error instanceof ApiError ? devices.error.problem : { status: 500 }
+                    }
+                    actions={
+                      <Button onClick={() => void devices.refetch()}>{t('ui:errors.retry')}</Button>
+                    }
+                  />
+                ) : (
+                  <ul className="flex max-h-[40svh] flex-col divide-y overflow-y-auto">
+                    {devices.data.map((d) => (
+                      <DeviceRow key={d.id} device={d} />
+                    ))}
+                  </ul>
+                )}
+                <Button
+                  variant="outline"
+                  className="mt-2 self-start text-destructive"
+                  onClick={() => setConfirm(true)}
+                >
+                  <LogOutIcon aria-hidden strokeWidth={1.75} />
+                  {t('settings.endAll')}
+                </Button>
+              </section>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       <ConfirmDialog

@@ -62,17 +62,26 @@ export function languageOf(name: string | undefined): string | undefined {
 
 let highlighter: Promise<HighlighterCore> | undefined;
 
+/** Shiki themes, loaded when a code theme (Appearance) needs them. */
+const THEMES: Record<string, () => Promise<unknown>> = {
+  'github-light-high-contrast': () => import('@shikijs/themes/github-light-high-contrast'),
+  'github-dark-high-contrast': () => import('@shikijs/themes/github-dark-high-contrast'),
+  'github-light': () => import('@shikijs/themes/github-light'),
+  'github-dark': () => import('@shikijs/themes/github-dark'),
+  'one-light': () => import('@shikijs/themes/one-light'),
+  'one-dark-pro': () => import('@shikijs/themes/one-dark-pro'),
+  'solarized-light': () => import('@shikijs/themes/solarized-light'),
+  'solarized-dark': () => import('@shikijs/themes/solarized-dark'),
+  'catppuccin-latte': () => import('@shikijs/themes/catppuccin-latte'),
+  'catppuccin-mocha': () => import('@shikijs/themes/catppuccin-mocha'),
+  'vitesse-light': () => import('@shikijs/themes/vitesse-light'),
+  'vitesse-dark': () => import('@shikijs/themes/vitesse-dark'),
+};
+
 function getHighlighter(): Promise<HighlighterCore> {
   highlighter ??= Promise.all([import('shiki/core'), import('shiki/engine/javascript')]).then(
     ([{ createHighlighterCore }, { createJavaScriptRegexEngine }]) =>
-      createHighlighterCore({
-        themes: [
-          import('@shikijs/themes/github-light-high-contrast'),
-          import('@shikijs/themes/github-dark-high-contrast'),
-        ],
-        langs: [],
-        engine: createJavaScriptRegexEngine(),
-      }),
+      createHighlighterCore({ themes: [], langs: [], engine: createJavaScriptRegexEngine() }),
   );
   return highlighter;
 }
@@ -81,16 +90,26 @@ export interface Line {
   tokens: { content: string; light?: string; dark?: string }[];
 }
 
-/** Tokens of code in both themes (the page picks the colors). */
-export async function highlight(code: string, lang: string): Promise<Line[]> {
+/** Tokens of code in both themes of a code theme (the page picks the colors). */
+export async function highlight(
+  code: string,
+  lang: string,
+  themes: readonly [string, string] = ['github-light-high-contrast', 'github-dark-high-contrast'],
+): Promise<Line[]> {
   const h = await getHighlighter();
   if (!h.getLoadedLanguages().includes(lang)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await h.loadLanguage((await LANGUAGES[lang]!()) as any);
   }
+  for (const theme of themes) {
+    if (!h.getLoadedThemes().includes(theme)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await h.loadTheme((await THEMES[theme]!()) as any);
+    }
+  }
   const { tokens } = h.codeToTokens(code, {
     lang,
-    themes: { light: 'github-light-high-contrast', dark: 'github-dark-high-contrast' },
+    themes: { light: themes[0], dark: themes[1] },
   });
   return tokens.map((line: ThemedToken[]) => ({
     tokens: line.map((t) => ({

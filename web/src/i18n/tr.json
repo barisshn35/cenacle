@@ -25,7 +25,65 @@
     "densityAuto": "Otomatik",
     "densityCompact": "Sıkı",
     "densityComfortable": "Rahat",
-    "language": "Dil"
+    "language": "Dil",
+    "preset": "Tema",
+    "presets": {
+      "workspace": "Çalışma alanınınki",
+      "cenacle": "Cenacle",
+      "graphite": "Grafit",
+      "ocean": "Okyanus",
+      "forest": "Orman",
+      "sunset": "Gün batımı",
+      "rose": "Gül",
+      "contrast": "Yüksek karşıtlık"
+    },
+    "fontTemplate": "Yazı tipleri",
+    "templates": {
+      "workspace": "Çalışma alanınınki",
+      "corporate": "Kurumsal (Inter, JetBrains Mono)",
+      "classic": "Klasik kurumsal (IBM Plex)",
+      "modern": "Modern (Geist)",
+      "product": "Ürün (Manrope, Fira Code)",
+      "reading": "Okuma (Source Sans 3, Source Code Pro)",
+      "legible": "Okunaklı (Atkinson Hyperlegible Next, Red Hat Mono)",
+      "custom": "Kendi seçimim"
+    },
+    "textFont": "Metin yazı tipi",
+    "codeFont": "Kod yazı tipi",
+    "fontSize": "Yazı boyutu",
+    "fontSizeDefault": "{{size}} px (varsayılan)",
+    "lineHeight": "Satır aralığı",
+    "lineHeights": {
+      "compact": "Sık",
+      "normal": "Normal",
+      "relaxed": "Geniş"
+    },
+    "codeBlocks": "Kod blokları",
+    "codeTheme": "Renkler",
+    "codeThemes": {
+      "github": "GitHub yüksek karşıtlık",
+      "github-soft": "GitHub",
+      "one": "One",
+      "solarized": "Solarized",
+      "catppuccin": "Catppuccin",
+      "vitesse": "Vitesse"
+    },
+    "code": {
+      "line_numbers": "Satır numaralarını göster",
+      "wrap": "Uzun satırları kaydır",
+      "ligatures": "Bitişik harfleri kullan (=> tek işaret olur)"
+    },
+    "preview": "Önizleme",
+    "previewText": "Cenacle mesajlarını böyle gösterir: sakin, okunaklı, senin.",
+    "yourFonts": "Senin yazı tiplerin",
+    "fontsHint": "WOFF2, WOFF, TrueType ya da OpenType; en çok 2 MB ve en çok beş tane. Yalnızca sen görürsün; yazı tipinin lisansının buna izin verdiğinden emin ol.",
+    "fontRemove": "{{name}} yazı tipini kaldır",
+    "fontName": "Ad (isteğe bağlı)",
+    "fontUpload": "Yazı tipi yükle",
+    "fontAdded": "Yazı tipi eklendi. Kendi seçimim altından seçebilirsin.",
+    "fontLimit": "Beş yazı tipin var; önce birini kaldır.",
+    "fontInvalid": "En çok 2 MB'lık WOFF2, WOFF, TrueType ya da OpenType yazı tipi kullan.",
+    "saveFailed": "Görünümün kaydedilemedi."
   },
   "shell": {
     "workspaceNav": "Çalışma alanları",
@@ -243,7 +301,9 @@
     "iconChange": "Simgeyi değiştir",
     "iconUpload": "Simge yükle",
     "iconRemove": "Simgeyi kaldır",
-    "description": "Açıklama (isteğe bağlı)"
+    "description": "Açıklama (isteğe bağlı)",
+    "appearance": "Varsayılan görünüm",
+    "appearanceHint": "Çalışma alanındaki kişiler kendi seçimlerini yapmadıkça bunu görür."
   },
   "invites": {
     "title": "{{workspace}} alanına katıl",
@@ -322,7 +382,12 @@
     "endAllImpact_other": "Giriş yapılmış {{count}} başka cihaz var.",
     "keepThisDevice": "Bu cihazda oturumum açık kalsın",
     "endedOthers_one": "{{count}} cihazdan çıkış yapıldı.",
-    "endedOthers_other": "{{count}} cihazdan çıkış yapıldı."
+    "endedOthers_other": "{{count}} cihazdan çıkış yapıldı.",
+    "tabs": {
+      "account": "Hesap",
+      "appearance": "Görünüm",
+      "texts": "Arayüz metinleri"
+    }
   },
   "reactions": {
     "label": "Tepkiler",
@@ -597,5 +662,19 @@
     "timezone": "Saat dilimi",
     "timezoneHere": "Bu cihazınkini kullan ({{zone}})",
     "showLastSeen": "Son çevrimiçi olduğum zamanı başkalarına göster"
+  },
+  "uiTexts": {
+    "description": "Arayüzün birkaç metnini herkes için değiştir (örneğin kurumunun adını yazmak için). Boş alanlar özgün metni korur.",
+    "saved": "Metinler kaydedildi.",
+    "failed": "Metinler kaydedilemedi.",
+    "hint": "Her boş alanda özgün metin görünür. {{channel}} kanalın adının yerini tutar.",
+    "keys": {
+      "auth_title": "Giriş sayfası başlığı",
+      "auth_subtitle": "Giriş sayfası alt başlığı",
+      "auth_continue": "Giriş düğmesi",
+      "auth_help": "Giriş sayfası yardımı",
+      "shell_channelStart": "Kanalın başlangıcı",
+      "shell_composerPlaceholder": "Mesaj kutusu ipucu"
+    }
   }
 }

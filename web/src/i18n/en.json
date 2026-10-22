@@ -25,7 +25,65 @@
     "densityAuto": "Automatic",
     "densityCompact": "Compact",
     "densityComfortable": "Comfortable",
-    "language": "Language"
+    "language": "Language",
+    "preset": "Theme",
+    "presets": {
+      "workspace": "Workspace's",
+      "cenacle": "Cenacle",
+      "graphite": "Graphite",
+      "ocean": "Ocean",
+      "forest": "Forest",
+      "sunset": "Sunset",
+      "rose": "Rose",
+      "contrast": "High contrast"
+    },
+    "fontTemplate": "Fonts",
+    "templates": {
+      "workspace": "Workspace's",
+      "corporate": "Corporate (Inter, JetBrains Mono)",
+      "classic": "Classic corporate (IBM Plex)",
+      "modern": "Modern (Geist)",
+      "product": "Product (Manrope, Fira Code)",
+      "reading": "Reading (Source Sans 3, Source Code Pro)",
+      "legible": "Legible (Atkinson Hyperlegible Next, Red Hat Mono)",
+      "custom": "My own combination"
+    },
+    "textFont": "Text font",
+    "codeFont": "Code font",
+    "fontSize": "Text size",
+    "fontSizeDefault": "{{size}} px (default)",
+    "lineHeight": "Line spacing",
+    "lineHeights": {
+      "compact": "Compact",
+      "normal": "Normal",
+      "relaxed": "Relaxed"
+    },
+    "codeBlocks": "Code blocks",
+    "codeTheme": "Colors",
+    "codeThemes": {
+      "github": "GitHub high contrast",
+      "github-soft": "GitHub",
+      "one": "One",
+      "solarized": "Solarized",
+      "catppuccin": "Catppuccin",
+      "vitesse": "Vitesse"
+    },
+    "code": {
+      "line_numbers": "Show line numbers",
+      "wrap": "Wrap long lines",
+      "ligatures": "Use ligatures (=> becomes one sign)"
+    },
+    "preview": "Preview",
+    "previewText": "Cenacle shows your messages like this: calm, readable, yours.",
+    "yourFonts": "Your fonts",
+    "fontsHint": "WOFF2, WOFF, TrueType or OpenType, up to 2 MB, five at most. Only you see them; check the font's license allows it.",
+    "fontRemove": "Remove {{name}}",
+    "fontName": "Name (optional)",
+    "fontUpload": "Upload a font",
+    "fontAdded": "The font is added. Choose it under My own combination.",
+    "fontLimit": "You have five fonts; remove one first.",
+    "fontInvalid": "Use a WOFF2, WOFF, TrueType or OpenType font of up to 2 MB.",
+    "saveFailed": "Your appearance could not be saved."
   },
   "shell": {
     "workspaceNav": "Workspaces",
@@ -243,7 +301,9 @@
     "iconChange": "Change icon",
     "iconUpload": "Upload an icon",
     "iconRemove": "Remove icon",
-    "description": "Description (optional)"
+    "description": "Description (optional)",
+    "appearance": "Default appearance",
+    "appearanceHint": "What people of the workspace see unless they choose their own."
   },
   "invites": {
     "title": "Join {{workspace}}",
@@ -322,7 +382,12 @@
     "endAllImpact_other": "{{count}} other devices are signed in.",
     "keepThisDevice": "Keep me signed in on this device",
     "endedOthers_one": "{{count}} device was signed out.",
-    "endedOthers_other": "{{count}} devices were signed out."
+    "endedOthers_other": "{{count}} devices were signed out.",
+    "tabs": {
+      "account": "Account",
+      "appearance": "Appearance",
+      "texts": "Interface texts"
+    }
   },
   "reactions": {
     "label": "Reactions",
@@ -597,5 +662,19 @@
     "timezone": "Time zone",
     "timezoneHere": "Use this device's ({{zone}})",
     "showLastSeen": "Show others when I was last online"
+  },
+  "uiTexts": {
+    "description": "Replace a few texts of the interface for everyone (for example to name your organisation). Empty fields keep the original.",
+    "saved": "The texts are saved.",
+    "failed": "The texts could not be saved.",
+    "hint": "The original is shown in each empty field. {{channel}} stands for the channel's name.",
+    "keys": {
+      "auth_title": "Sign-in page heading",
+      "auth_subtitle": "Sign-in page subtitle",
+      "auth_continue": "Sign-in button",
+      "auth_help": "Sign-in page help",
+      "shell_channelStart": "Start of a channel",
+      "shell_composerPlaceholder": "Message box placeholder"
+    }
   }
 }

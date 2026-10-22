@@ -1,14 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDensity, useTheme, isDensityPreference, isThemePreference } from '@cenacle/ui/theme';
+import {
+  isDensityPreference,
+  isThemePreference,
+  useDensity,
+  useTheme,
+  type DensityPreference,
+  type ThemePreference,
+} from '@cenacle/ui/theme';
 import { LANGUAGES, setLanguage, type Language } from '../../i18n';
 
 const selectClass =
   'min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
 /** Theme, density and language. Native selects: keyboard, touch and screen reader friendly. */
-export function AppearanceControls() {
+export function AppearanceControls({
+  onSave,
+}: {
+  /** Signed in: the choice is also saved for the person's other devices. */
+  onSave?: (change: { theme?: ThemePreference; density?: DensityPreference }) => void;
+} = {}) {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
   const { density, setDensity } = useDensity();
@@ -23,7 +35,12 @@ export function AppearanceControls() {
         id={ids.theme}
         className={selectClass}
         value={theme}
-        onChange={(e) => isThemePreference(e.target.value) && setTheme(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (!isThemePreference(v)) return;
+          setTheme(v);
+          onSave?.({ theme: v });
+        }}
       >
         <option value="system">{t('appearance.themeSystem')}</option>
         <option value="light">{t('appearance.themeLight')}</option>
@@ -37,7 +54,12 @@ export function AppearanceControls() {
         id={ids.density}
         className={selectClass}
         value={density}
-        onChange={(e) => isDensityPreference(e.target.value) && setDensity(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (!isDensityPreference(v)) return;
+          setDensity(v);
+          onSave?.({ density: v });
+        }}
       >
         <option value="auto">{t('appearance.densityAuto')}</option>
         <option value="compact">{t('appearance.densityCompact')}</option>

@@ -262,7 +262,7 @@ export function Composer({ channelId, channelName }: { channelId: string; channe
               }
               aria-invalid={tooLong || undefined}
               placeholder={label}
-              className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[15px]"
+              className="block min-h-target flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[0.9375rem]"
             />
             {permissions.upload_files && (
               <>

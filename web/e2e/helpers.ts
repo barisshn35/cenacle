@@ -412,6 +412,7 @@ export async function mockApi(
       name: 'Cenacle',
       description: '',
       icon_url: null as string | null,
+      appearance: { preset: 'cenacle', font_template: 'corporate' },
       is_default: true,
       role: opts.admin ? 'owner' : 'member',
     },
@@ -430,6 +431,7 @@ export async function mockApi(
       name,
       description: '',
       icon_url: null,
+      appearance: { preset: 'cenacle', font_template: 'corporate' },
       is_default: false,
       role: 'owner',
     };
@@ -453,6 +455,70 @@ export async function mockApi(
       },
     }),
   );
+  // Appearance, uploaded fonts and the interface texts administrators replaced.
+  let appearance: Record<string, unknown> = {
+    theme: 'system',
+    preset: 'workspace',
+    density: 'auto',
+    fonts: { template: 'workspace', text: 'inter', code: 'jetbrains-mono' },
+    font_size: 14,
+    line_height: 'normal',
+    code: { theme: 'github', line_numbers: false, wrap: false, ligatures: true },
+  };
+  await page.route('**/api/me/appearance', (route) => {
+    if (route.request().method() === 'PUT') appearance = route.request().postDataJSON();
+    return route.fulfill({ json: appearance });
+  });
+  const fonts: { id: string; name: string; format: string; size: number; created_at: string }[] =
+    [];
+  await page.route('**/api/me/fonts**', (route) => {
+    const req = route.request();
+    if (req.method() === 'POST') {
+      const font = {
+        id: `01a15e50-f0f0-7000-8000-${String(fonts.length).padStart(12, '0')}`,
+        name: new URL(req.url()).searchParams.get('name') ?? 'Font',
+        format: 'woff2',
+        size: 100,
+        created_at: new Date().toISOString(),
+      };
+      fonts.push(font);
+      return route.fulfill({ status: 201, json: font });
+    }
+    if (req.method() === 'DELETE') {
+      fonts.splice(0, 1);
+      return route.fulfill({ status: 204 });
+    }
+    return route.fulfill({ json: { fonts } });
+  });
+  const uiTexts: Record<string, Record<string, string>> = {};
+  await page.route('**/api/ui-texts', (route) => {
+    if (route.request().method() === 'PUT') {
+      const { locale, texts } = route.request().postDataJSON() as {
+        locale: string;
+        texts: Record<string, string>;
+      };
+      uiTexts[locale] = Object.fromEntries(Object.entries(texts).filter(([, v]) => v));
+    }
+    return route.fulfill({
+      json: {
+        texts: uiTexts,
+        editable: [
+          'auth.title',
+          'auth.subtitle',
+          'auth.continue',
+          'auth.help',
+          'shell.channelStart',
+          'shell.composerPlaceholder',
+        ],
+      },
+    });
+  });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/appearance$/, (route) => {
+    const id = route.request().url().split('/').at(-2)!;
+    const ws = workspaces.find((w) => w.id === id)!;
+    ws.appearance = route.request().postDataJSON();
+    return route.fulfill({ json: ws });
+  });
   // Profiles, one's own profile and pictures.
   const recent: { emoji: string; text: string }[] = [];
   const self = () => api.profiles[SESSION.user.id]!;

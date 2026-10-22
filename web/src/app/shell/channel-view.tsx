@@ -15,10 +15,12 @@ import { channelsQuery } from '../chat/data';
 import { NotMember } from '../chat/not-member';
 import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { MessageList } from '../chat/message-list';
+import { useSaveAppearance } from '../appearance/use-save-appearance';
 import { AppearanceControls } from './appearance-controls';
 
 export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
+  const saveAppearance = useSaveAppearance();
   const { id, channel } = useActiveChannel();
   const detailsOpen = useLayout((s) => s.detailsOpen);
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
@@ -44,7 +46,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           )}
           <h1
             id="channel-title"
-            className="max-w-[60%] shrink-0 truncate text-[15px] font-semibold"
+            className="max-w-[60%] shrink-0 truncate text-[0.9375rem] font-semibold"
           >
             {name}
           </h1>
@@ -57,7 +59,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
             </>
           )}
         </div>
-        {!mobile && <AppearanceControls />}
+        {!mobile && <AppearanceControls onSave={(change) => saveAppearance.mutate(change)} />}
         <Button
           variant="ghost"
           size="icon"

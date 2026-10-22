@@ -8,6 +8,8 @@ import { ApiError } from '@cenacle/core/api';
 import { Button } from '@cenacle/ui/components/button';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
+import { FONT_TEMPLATES, THEME_PRESETS } from '@cenacle/ui/theme';
+import { setWorkspaceAppearance } from '../appearance/appearance';
 import { initials } from '../auth/sign-out';
 import {
   deleteWorkspaceIcon,
@@ -18,6 +20,9 @@ import {
 } from './workspaces';
 
 const MAX_UPLOAD = 5 * 1024 * 1024;
+
+const selectClass =
+  'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
 /** Icon, name and description of a workspace (owners and admins). */
 export function WorkspaceDetailsForm({ workspace }: { workspace: Workspace }) {
@@ -136,5 +141,69 @@ export function WorkspaceDetailsForm({ workspace }: { workspace: Workspace }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+/** The workspace's default theme preset and font template (owners and admins). */
+export function WorkspaceAppearanceForm({ workspace }: { workspace: Workspace }) {
+  const { t } = useTranslation();
+  const ids = { preset: useId(), template: useId() };
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: (a: Workspace['appearance']) => setWorkspaceAppearance(workspace.id, a),
+    onSuccess: () => reloadWorkspaces(queryClient),
+    onError: () => toast.error(t('channels.changeFailed')),
+  });
+  const a = workspace.appearance;
+  return (
+    <section
+      aria-labelledby={`${ids.preset}-title`}
+      className="grid gap-2"
+      data-testid="workspace-appearance"
+    >
+      <h3
+        id={`${ids.preset}-title`}
+        className="text-xs font-medium text-muted-foreground uppercase"
+      >
+        {t('workspaces.appearance')}
+      </h3>
+      <p className="text-xs text-muted-foreground">{t('workspaces.appearanceHint')}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-1">
+          <Label htmlFor={ids.preset}>{t('appearance.preset')}</Label>
+          <select
+            id={ids.preset}
+            className={selectClass}
+            value={a.preset}
+            disabled={save.isPending}
+            onChange={(e) => save.mutate({ ...a, preset: e.target.value as typeof a.preset })}
+          >
+            {THEME_PRESETS.map((p) => (
+              <option key={p} value={p}>
+                {t(`appearance.presets.${p}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor={ids.template}>{t('appearance.fontTemplate')}</Label>
+          <select
+            id={ids.template}
+            className={selectClass}
+            value={a.font_template}
+            disabled={save.isPending}
+            onChange={(e) =>
+              save.mutate({ ...a, font_template: e.target.value as typeof a.font_template })
+            }
+          >
+            {Object.keys(FONT_TEMPLATES).map((k) => (
+              <option key={k} value={k}>
+                {t(`appearance.templates.${k}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </section>
   );
 }

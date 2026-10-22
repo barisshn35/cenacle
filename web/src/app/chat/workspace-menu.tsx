@@ -36,7 +36,7 @@ import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { useSession } from '../auth/session';
 import { WorkspaceGroupsSection } from './directory-groups';
-import { WorkspaceDetailsForm } from './workspace-details';
+import { WorkspaceAppearanceForm, WorkspaceDetailsForm } from './workspace-details';
 import { IntegrationsDialog } from './integrations';
 import { initials } from '../auth/sign-out';
 import { useLastWorkspace } from './active-workspace';
@@ -79,7 +79,7 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
           render={
             <Button
               variant="ghost"
-              className="w-full justify-between px-2 text-[15px] font-semibold"
+              className="w-full justify-between px-2 text-[0.9375rem] font-semibold"
               aria-label={t('workspaces.menu', { workspace: workspace.name })}
             />
           }
@@ -196,7 +196,10 @@ function WorkspaceSettingsDialog({
           </DialogDescription>
         </DialogHeader>
         {admin ? (
-          <WorkspaceDetailsForm workspace={workspace} />
+          <>
+            <WorkspaceDetailsForm workspace={workspace} />
+            <WorkspaceAppearanceForm workspace={workspace} />
+          </>
         ) : (
           workspace.description && (
             <p className="text-sm whitespace-pre-line" data-testid="workspace-description">
