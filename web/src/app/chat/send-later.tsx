@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { plainOf } from '../compliance/e2e';
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -84,7 +85,7 @@ function ScheduledList() {
               className="flex items-center gap-2 px-3 py-2 text-sm"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate">{s.body}</p>
+                <p className="truncate">{plainOf(s.body) ?? '🔒'}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {s.kind === 'reminder'
                     ? t('scheduled.reminder')

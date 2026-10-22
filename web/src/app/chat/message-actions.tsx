@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { plainOf } from '../compliance/e2e';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -223,7 +224,7 @@ export function MessageActions({
 export function MessageEditor({ message }: { message: Message }) {
   const { t } = useTranslation();
   // Mentions are edited as @Name and become <@id> again when saved.
-  const original = mentionsToText(message.body, message.mentions);
+  const original = mentionsToText(plainOf(message.body) ?? '', message.mentions);
   const [body, setBody] = useState(original);
   const stop = useEditing((s) => s.set);
   const queryClient = useQueryClient();

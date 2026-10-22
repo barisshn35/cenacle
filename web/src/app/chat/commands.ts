@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { sealFor } from '../compliance/e2e';
 import { queryOptions } from '@tanstack/react-query';
 import { apiFetch, type components } from '@cenacle/core/api';
 
@@ -43,10 +44,10 @@ export const scheduledQuery = queryOptions({
   queryFn: () =>
     apiFetch<{ scheduled: ScheduledMessage[] }>('/api/scheduled').then((r) => r.scheduled),
 });
-export const scheduleMessage = (channelId: string, body: string, sendAt: Date) =>
+export const scheduleMessage = async (channelId: string, body: string, sendAt: Date) =>
   apiFetch<ScheduledMessage>(
     `/api/channels/${channelId}/scheduled`,
-    json({ body, send_at: sendAt.toISOString() }),
+    json({ body: await sealFor(channelId, body), send_at: sendAt.toISOString() }),
   );
 export const cancelScheduled = (id: string) =>
   apiFetch<void>(`/api/scheduled/${id}`, { method: 'DELETE' });

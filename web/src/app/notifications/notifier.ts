@@ -11,6 +11,7 @@ import {
   type NotificationSettings,
 } from './notifications';
 import { playSound } from './sounds';
+import { plainOf } from '../compliance/e2e';
 import { useLayout } from '../../stores/layout';
 
 /** The channel in view, from the address (/c/<id>). */
@@ -19,7 +20,8 @@ function viewedChannel(): string | undefined {
 }
 
 function excerpt(body: string, n = 140): string {
-  const text = body
+  // An encrypted message this page has not opened shows as a lock.
+  const text = (plainOf(body) ?? '🔒')
     .replace(/<@[0-9a-f-]{36}>/g, '@…')
     .replace(/\s+/g, ' ')
     .trim();

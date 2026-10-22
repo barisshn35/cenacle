@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { sealFor } from '../compliance/e2e';
 import {
   infiniteQueryOptions,
   queryOptions,
@@ -171,8 +172,11 @@ export const deleteCategory = (id: string) =>
 
 const messageUrl = (m: Pick<Message, 'id' | 'channel_id'>) =>
   `/api/channels/${m.channel_id}/messages/${m.id}`;
-export const editMessage = (m: Message, body: string) =>
-  apiFetch<Message>(messageUrl(m), { ...json({ body }), method: 'PATCH' });
+export const editMessage = async (m: Message, body: string) =>
+  apiFetch<Message>(messageUrl(m), {
+    ...json({ body: await sealFor(m.channel_id, body) }),
+    method: 'PATCH',
+  });
 export const deleteMessage = (m: Message) => apiFetch<void>(messageUrl(m), { method: 'DELETE' });
 export const restoreMessage = (m: Message) =>
   apiFetch<Message>(`${messageUrl(m)}/restore`, { method: 'POST' });

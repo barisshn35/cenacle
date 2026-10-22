@@ -26,6 +26,9 @@ import { CanvasView } from '../collab/canvas-view';
 import { ChannelTabs } from '../collab/channel-tabs';
 import { tabsQuery } from '../collab/collab';
 import { ListView } from '../collab/list-view';
+import { ClassificationBanner } from '../compliance/classification';
+import { UnlockPanel } from '../compliance/encrypted';
+import { useCanWrite } from '../compliance/e2e';
 
 export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
@@ -44,6 +47,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const { tab: tabId } = useSearch({ strict: false }) as { tab?: string };
   const tabs = useQuery({ ...tabsQuery(id ?? ''), enabled: !!channel && !!tabId });
   const tab = tabId ? tabs.data?.find((x) => x.id === tabId) : undefined;
+  const canWrite = useCanWrite(channel);
 
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="channel-title">
@@ -99,6 +103,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
         </Button>
       </header>
       {id && channel && <ChannelTabs channel={channel} active={tab?.id} />}
+      {channel && <ClassificationBanner channel={channel} />}
 
       {tab?.canvas_id ? (
         <CanvasView key={tab.canvas_id} canvasId={tab.canvas_id} />
@@ -126,6 +131,8 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
                 })}
               </p>
             </footer>
+          ) : channel.can_post && channel.encrypted && !canWrite ? (
+            <UnlockPanel channel={channel} />
           ) : channel.can_post ? (
             <Composer
               key={`composer-${id}`}

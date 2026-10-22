@@ -887,7 +887,8 @@
     "activity_reaction": "{{name}}, {{channel}} içindeki mesajınıza {{emoji}} tepkisi verdi",
     "events": "Etkinlikler",
     "playbooks": "Playbook'lar",
-    "workflows": "İş akışları"
+    "workflows": "İş akışları",
+    "compliance": "Uyumluluk"
   },
   "community": {
     "banner": {
@@ -1490,5 +1491,115 @@
       "due": "Bitiş: {{date}}",
       "overdue": "{{date}} tarihinden beri gecikmiş"
     }
+  },
+  "compliance": {
+    "loadFailed": "Uyumluluk ayarları yüklenemedi.",
+    "save": "Kaydet",
+    "saved": "Kaydedildi.",
+    "saveFailed": "Kaydedilemedi. Tekrar deneyin.",
+    "retention": {
+      "title": "Saklama süresi",
+      "hint": "Bundan eski mesajlar, yasal saklamadakiler dışında, her dakika parti parti kalıcı olarak silinir. Kanallar kendi süresini koyabilir.",
+      "forever": "Mesajları süresiz sakla",
+      "days": "Saklanacak gün sayısı"
+    },
+    "classes": {
+      "title": "Sınıflandırma bantları",
+      "hint": "Kanalın üstündeki bant, içeriğin nasıl ele alınacağını söyler. Kendi sınıflandırması olmayan kanallar varsayılanı gösterir.",
+      "name": "Ad",
+      "banner": "Bant metni",
+      "color": "Renk",
+      "remove": "{{name}} kaldır",
+      "add": "Sınıflandırma ekle",
+      "default": "Kanallar için varsayılan",
+      "none": "Yok"
+    },
+    "colors": {
+      "neutral": "Nötr",
+      "info": "Mavi",
+      "success": "Yeşil",
+      "warning": "Kehribar",
+      "danger": "Kırmızı"
+    },
+    "attrs": {
+      "title": "Üye öznitelikleri",
+      "hint": "Departman, konum gibi öznitelikler. Kanallar bunları şart koşabilir; bir kanalın kurallarını artık karşılamayan üyeler kanaldan çıkar.",
+      "name": "Ad",
+      "newName": "Departman",
+      "remove": "{{name}} kaldır",
+      "add": "Öznitelik ekle"
+    },
+    "members": {
+      "title": "Üyelerin öznitelikleri",
+      "hint": "Bir değeri değiştirmek, kişiyi kurallarını artık karşılamadığı kanallardan çıkarabilir.",
+      "person": "Kişi",
+      "actions": "İşlemler",
+      "save": "{{name}} kaydet",
+      "savedRemoved_one": "Kaydedildi. {{count}} kanaldan çıktı.",
+      "savedRemoved_other": "Kaydedildi. {{count}} kanaldan çıktı."
+    },
+    "holds": {
+      "title": "Yasal saklama",
+      "hint": "Yasal saklama, kişilerin veya kanalların mesajlarını, silinenler dahil, kaldırılana kadar saklama süresinden ve her türlü silmeden korur.",
+      "none": "Yasal saklama yok.",
+      "keeps_one": "{{count}} mesajı koruyor",
+      "keeps_other": "{{count}} mesajı koruyor",
+      "released": "{{date}} tarihinde kaldırıldı",
+      "scope": "{{people}} kişi, {{channels}} kanal",
+      "release": "Kaldır",
+      "releaseTitle": "“{{name}}” kaldırılsın mı?",
+      "releaseHint": "Mesajlarına saklama süresi yeniden uygulanır; süresi dolanlar dakikalar içinde silinir.",
+      "add": "Yasal saklama başlat",
+      "addHint": "Kişileri, kanalları ya da ikisini seçin; her şeyi korumak için tarihleri boş bırakın.",
+      "name": "Ad",
+      "description": "Açıklama (isteğe bağlı)",
+      "people": "Kişiler",
+      "channels": "Kanallar",
+      "from": "Başlangıç",
+      "to": "Bitiş",
+      "place": "Saklamayı başlat"
+    },
+    "export": {
+      "title": "eDiscovery dışa aktarma",
+      "hint": "Mesajları, silinenler dahil, JSON satırları olarak indirir. Her dışa aktarma denetim kaydına girer.",
+      "words": "Kelimeler (isteğe bağlı)",
+      "people": "Yalnızca bu kişiler (isteğe bağlı)",
+      "channels": "Yalnızca bu kanallar (isteğe bağlı)",
+      "download": "Dışa aktarmayı indir",
+      "done": "Dışa aktarma indirildi.",
+      "failed": "Dışa aktarılamadı. Tekrar deneyin."
+    },
+    "channel": {
+      "open": "Uyumluluk",
+      "title": "#{{name}} uyumluluğu",
+      "hint": "Saklama süresi, sınıflandırma bandı ve kimlerin üye olabileceği.",
+      "followWorkspace": "Çalışma alanındaki gibi",
+      "classification": "Sınıflandırma",
+      "rules": "Erişim kuralları",
+      "rulesHint": "Üyeler her kuralın değerlerinden birine sahip olmalıdır (virgülle ayrılmış). Kuralları karşılamayan üyeler kanaldan çıkar.",
+      "attribute": "Öznitelik",
+      "values": "Değerler",
+      "removeRule": "Kuralı kaldır",
+      "addRule": "Kural ekle",
+      "savedRemoved_one": "Kaydedildi. {{count}} üye kanaldan çıktı.",
+      "savedRemoved_other": "Kaydedildi. {{count}} üye kanaldan çıktı."
+    }
+  },
+  "e2e": {
+    "create": "Uçtan uca şifrele",
+    "createHint": "Yalnızca parolayı bilen üyeler okuyabilir; sunucu okuyamaz. Botlar, arama, bağlantı önizlemeleri ve dosyalar bu kanalda kullanılamaz.",
+    "passphrase": "Parola",
+    "passphraseHint": "En az 12 karakter. Üyelerle Cenacle dışında paylaşın; kurtarılamaz.",
+    "again": "Parola (tekrar)",
+    "mismatch": "Parolalar aynı değil.",
+    "locked": "Şifreli mesaj",
+    "opening": "Açılıyor…",
+    "unlockLabel": "Bu kanal uçtan uca şifreli",
+    "unlockHint": "Okumak ve yazmak için parolasını girin. Bu cihazda kalır.",
+    "unlock": "Kilidi aç",
+    "wrong": "Bu parola bu kanalı açmıyor.",
+    "info": "Uçtan uca şifreli",
+    "infoHint": "Mesajlar yalnızca kanalın parolasıyla okunabilir. Anahtarı bu cihazda tutulur.",
+    "forget": "Bu cihazdaki anahtarı unut"
   }
 }

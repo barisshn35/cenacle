@@ -22,11 +22,15 @@ import {
 } from '../chat/data';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
+import { useActiveWorkspace } from '../chat/active-workspace';
+import { ChannelComplianceButton } from '../compliance/channel-compliance';
+import { EncryptionInfo } from '../compliance/encrypted';
 
 export function DetailsPanel() {
   const { t } = useTranslation();
   const { channel } = useActiveChannel();
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
+  const admin = useActiveWorkspace().admin;
 
   return (
     <aside
@@ -47,10 +51,12 @@ export function DetailsPanel() {
         </Button>
       </header>
       {channel?.can_manage && (
-        <div className="px-4 pt-4">
+        <div className="flex flex-wrap gap-2 px-4 pt-4">
           <SettingsButton channel={channel} />
+          {admin && <ChannelComplianceButton channel={channel} />}
         </div>
       )}
+      {channel?.encrypted && <EncryptionInfo channel={channel} />}
       {channel && isConversation(channel) && (
         <div className="flex flex-col gap-3 p-4 text-sm">
           <p className="text-muted-foreground">{t(`dm.about.${channel.kind}`)}</p>

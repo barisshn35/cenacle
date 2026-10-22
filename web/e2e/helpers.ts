@@ -489,6 +489,10 @@ export async function mockApi(
     const kind = route.request().url().split('/').pop()!;
     return route.fulfill({ json: { [kind]: [] } });
   });
+  // Classification banners (v0.23): none unless a test adds them.
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/classifications$/, (route) =>
+    route.fulfill({ json: { classifications: [], default_id: null } }),
+  );
   // Channel tabs and rows assigned to the user (v0.22): none unless a test adds them.
   await page.route(/\/api\/channels\/[0-9a-f-]{36}\/tabs$/, (route) =>
     route.request().method() === 'GET' ? route.fulfill({ json: { tabs: [] } }) : route.fallback(),

@@ -2,6 +2,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { ApiError, apiFetch } from '@cenacle/core/api';
+import { sealFor } from '../compliance/e2e';
 import { addMessage, type Message } from './data';
 import { newNonce, usePending, type PendingMessage } from './pending';
 
@@ -34,7 +35,8 @@ export function useSendMessage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            body: p.body,
+            // Encrypted channels get the body sealed with their key.
+            body: await sealFor(p.channelId, p.body),
             nonce: p.nonce,
             ...(p.files?.length ? { file_ids: p.files.map((f) => f.id) } : {}),
             ...(p.rootId ? { root_id: p.rootId, also_in_channel: !!p.alsoInChannel } : {}),

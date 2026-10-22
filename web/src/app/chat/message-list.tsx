@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { Body } from '../compliance/encrypted';
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { CircleAlertIcon } from 'lucide-react';
@@ -177,18 +178,7 @@ export function MessageRow({
                   ))}
                 </p>
               )}
-              {m.burn ? (
-                <BurnBody message={m} />
-              ) : (
-                m.body && (
-                  <MessageBody
-                    body={m.body}
-                    mentions={m.mentions}
-                    selfId={self}
-                    broadcast={m.broadcast}
-                  />
-                )
-              )}
+              {m.burn ? <BurnBody message={m} /> : m.body && <Body message={m} selfId={self} />}
               {m.sticker && <StickerImage sticker={m.sticker} />}
               {m.task && <TaskCard task={m.task} />}
               {m.submission && <SubmissionCard submission={m.submission} />}

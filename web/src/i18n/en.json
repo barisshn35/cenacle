@@ -887,7 +887,8 @@
     "activity_reaction": "{{name}} reacted {{emoji}} to your message in {{channel}}",
     "events": "Events",
     "playbooks": "Playbooks",
-    "workflows": "Workflows"
+    "workflows": "Workflows",
+    "compliance": "Compliance"
   },
   "community": {
     "banner": {
@@ -1490,5 +1491,115 @@
       "due": "Due {{date}}",
       "overdue": "Overdue since {{date}}"
     }
+  },
+  "compliance": {
+    "loadFailed": "Couldn't load the compliance settings.",
+    "save": "Save",
+    "saved": "Saved.",
+    "saveFailed": "Couldn't save. Try again.",
+    "retention": {
+      "title": "Retention",
+      "hint": "Messages older than this are deleted for good, every minute in batches, except those a legal hold keeps. Channels can keep their own.",
+      "forever": "Keep messages forever",
+      "days": "Days to keep messages"
+    },
+    "classes": {
+      "title": "Classification banners",
+      "hint": "A banner at the top of a channel says how its content is to be handled. Channels show the default unless they have their own.",
+      "name": "Name",
+      "banner": "Banner text",
+      "color": "Color",
+      "remove": "Remove {{name}}",
+      "add": "Add classification",
+      "default": "Default for channels",
+      "none": "None"
+    },
+    "colors": {
+      "neutral": "Neutral",
+      "info": "Blue",
+      "success": "Green",
+      "warning": "Amber",
+      "danger": "Red"
+    },
+    "attrs": {
+      "title": "Member attributes",
+      "hint": "Attributes such as department or location. Channels can require them; members who no longer meet a channel's rules leave it.",
+      "name": "Name",
+      "newName": "Department",
+      "remove": "Remove {{name}}",
+      "add": "Add attribute"
+    },
+    "members": {
+      "title": "Attributes of members",
+      "hint": "Changing a value can take a person out of channels whose rules they no longer meet.",
+      "person": "Person",
+      "actions": "Actions",
+      "save": "Save {{name}}",
+      "savedRemoved_one": "Saved. They left {{count}} channel.",
+      "savedRemoved_other": "Saved. They left {{count}} channels."
+    },
+    "holds": {
+      "title": "Legal holds",
+      "hint": "A hold keeps the messages of people or channels, deleted ones too, from retention and every deletion until it is released.",
+      "none": "No legal holds.",
+      "keeps_one": "Keeps {{count}} message",
+      "keeps_other": "Keeps {{count}} messages",
+      "released": "Released on {{date}}",
+      "scope": "{{people}} people, {{channels}} channels",
+      "release": "Release",
+      "releaseTitle": "Release “{{name}}”?",
+      "releaseHint": "Retention applies to its messages again; expired ones are deleted within minutes.",
+      "add": "Place a legal hold",
+      "addHint": "Pick people, channels or both; leave the dates empty to keep everything.",
+      "name": "Name",
+      "description": "Description (optional)",
+      "people": "People",
+      "channels": "Channels",
+      "from": "From",
+      "to": "Until",
+      "place": "Place hold"
+    },
+    "export": {
+      "title": "eDiscovery export",
+      "hint": "Downloads messages as JSON lines, deleted ones included. Every export is in the audit log.",
+      "words": "Words (optional)",
+      "people": "Only these people (optional)",
+      "channels": "Only these channels (optional)",
+      "download": "Download export",
+      "done": "Export downloaded.",
+      "failed": "Couldn't export. Try again."
+    },
+    "channel": {
+      "open": "Compliance",
+      "title": "Compliance of #{{name}}",
+      "hint": "Retention, the classification banner and who may be a member.",
+      "followWorkspace": "As the workspace",
+      "classification": "Classification",
+      "rules": "Access rules",
+      "rulesHint": "Members need one of the values of every rule (comma-separated). Members who do not meet them leave the channel.",
+      "attribute": "Attribute",
+      "values": "Values",
+      "removeRule": "Remove rule",
+      "addRule": "Add rule",
+      "savedRemoved_one": "Saved. {{count}} member left the channel.",
+      "savedRemoved_other": "Saved. {{count}} members left the channel."
+    }
+  },
+  "e2e": {
+    "create": "Encrypt end to end",
+    "createHint": "Only members who know the passphrase can read it; the server cannot. Bots, search, link previews and files are not available in it.",
+    "passphrase": "Passphrase",
+    "passphraseHint": "At least 12 characters. Share it with members outside Cenacle; it cannot be recovered.",
+    "again": "Passphrase again",
+    "mismatch": "The passphrases differ.",
+    "locked": "Encrypted message",
+    "opening": "Opening…",
+    "unlockLabel": "This channel is encrypted end to end",
+    "unlockHint": "Enter its passphrase to read and write here. It stays on this device.",
+    "unlock": "Unlock",
+    "wrong": "That passphrase does not open this channel.",
+    "info": "Encrypted end to end",
+    "infoHint": "Messages are readable only with the channel's passphrase. Its key is kept on this device.",
+    "forget": "Forget the key on this device"
   }
 }
