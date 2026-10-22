@@ -168,6 +168,15 @@ type FetchLinkPreviewsArgs struct{}
 // Kind implements river.JobArgs.
 func (FetchLinkPreviewsArgs) Kind() string { return "fetch_link_previews" }
 
+// RunWorkflowsArgs runs workflows' due steps and starts scheduled workflows.
+type RunWorkflowsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (RunWorkflowsArgs) Kind() string { return "run_workflows" }
+
+// WorkflowsInterval is how often workflows' due steps run.
+var WorkflowsInterval = 2 * time.Second
+
 // LinksInterval is how often new links are looked for.
 var LinksInterval = 3 * time.Second
 
@@ -285,7 +294,9 @@ type Deps struct {
 	Email Runner
 	// Links is optional (link previews may be turned off).
 	Links Runner
-	Log   *slog.Logger
+	// Workflows is optional.
+	Workflows Runner
+	Log       *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -320,6 +331,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Email != nil {
 		river.AddWorker(workers, &runnerWorker[EmailNotificationsArgs]{r: d.Email, what: "notification e-mails sent", log: d.Log})
 		jobs = append(jobs, periodic(time.Minute, EmailNotificationsArgs{}))
+	}
+	if d.Workflows != nil {
+		river.AddWorker(workers, &runnerWorker[RunWorkflowsArgs]{r: d.Workflows, what: "workflow steps run", log: d.Log})
+		jobs = append(jobs, periodic(WorkflowsInterval, RunWorkflowsArgs{}))
 	}
 	if d.Links != nil {
 		river.AddWorker(workers, &runnerWorker[FetchLinkPreviewsArgs]{r: d.Links, what: "link previews settled", log: d.Log})

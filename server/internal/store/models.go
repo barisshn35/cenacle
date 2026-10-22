@@ -208,6 +208,28 @@ type File struct {
 	Waveform     []byte             `json:"waveform"`
 }
 
+type Form struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Fields      []byte             `json:"fields"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+	ArchivedAt  pgtype.Timestamptz `json:"archived_at"`
+}
+
+type FormSubmission struct {
+	ID          pgtype.UUID `json:"id"`
+	FormID      pgtype.UUID `json:"form_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	UserID      pgtype.UUID `json:"user_id"`
+	FormName    string      `json:"form_name"`
+	Answers     []byte      `json:"answers"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
 type IncomingWebhook struct {
 	ID         pgtype.UUID        `json:"id"`
 	BotID      pgtype.UUID        `json:"bot_id"`
@@ -261,6 +283,8 @@ type Message struct {
 	Forward       []byte             `json:"forward"`
 	StickerID     pgtype.UUID        `json:"sticker_id"`
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
+	TaskID        pgtype.UUID        `json:"task_id"`
+	SubmissionID  pgtype.UUID        `json:"submission_id"`
 }
 
 type MessageMention struct {
@@ -507,6 +531,58 @@ type UserSound struct {
 	ContentType string      `json:"content_type"`
 	Data        []byte      `json:"data"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type Workflow struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Enabled     bool               `json:"enabled"`
+	Trigger     []byte             `json:"trigger"`
+	TriggerKind string             `json:"trigger_kind"`
+	ChannelID   pgtype.UUID        `json:"channel_id"`
+	Steps       []byte             `json:"steps"`
+	NextRunAt   pgtype.Timestamptz `json:"next_run_at"`
+	WebhookHash []byte             `json:"webhook_hash"`
+	Secret      string             `json:"secret"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+	ArchivedAt  pgtype.Timestamptz `json:"archived_at"`
+}
+
+type WorkflowRun struct {
+	ID            pgtype.UUID        `json:"id"`
+	WorkflowID    pgtype.UUID        `json:"workflow_id"`
+	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
+	WorkflowName  string             `json:"workflow_name"`
+	Steps         []byte             `json:"steps"`
+	Step          int32              `json:"step"`
+	Status        string             `json:"status"`
+	Vars          []byte             `json:"vars"`
+	WakeAt        time.Time          `json:"wake_at"`
+	TriggerUserID pgtype.UUID        `json:"trigger_user_id"`
+	ChannelID     pgtype.UUID        `json:"channel_id"`
+	Error         string             `json:"error"`
+	CreatedAt     time.Time          `json:"created_at"`
+	FinishedAt    pgtype.Timestamptz `json:"finished_at"`
+}
+
+type WorkflowTask struct {
+	ID           pgtype.UUID        `json:"id"`
+	RunID        pgtype.UUID        `json:"run_id"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	Kind         string             `json:"kind"`
+	Title        string             `json:"title"`
+	Assignees    []pgtype.UUID      `json:"assignees"`
+	FormID       pgtype.UUID        `json:"form_id"`
+	Status       string             `json:"status"`
+	DoneBy       pgtype.UUID        `json:"done_by"`
+	DoneAt       pgtype.Timestamptz `json:"done_at"`
+	Comment      string             `json:"comment"`
+	SubmissionID pgtype.UUID        `json:"submission_id"`
+	CreatedAt    time.Time          `json:"created_at"`
 }
 
 type Workspace struct {

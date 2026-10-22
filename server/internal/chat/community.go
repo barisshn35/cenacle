@@ -48,6 +48,9 @@ type postExtras struct {
 	burn    pgtype.Int4
 	// presence tells who @here reaches.
 	presence PresenceReader
+	// A workflow's task card or a form's answers.
+	task       pgtype.UUID
+	submission pgtype.UUID
 }
 
 func (e postExtras) titleText() string { return e.title.String }

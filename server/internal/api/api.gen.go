@@ -4,6 +4,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -547,19 +548,19 @@ func (e CommandResultResponseType) Valid() bool {
 
 // Defines values for DeliveryStatus.
 const (
-	Failed    DeliveryStatus = "failed"
-	Pending   DeliveryStatus = "pending"
-	Succeeded DeliveryStatus = "succeeded"
+	DeliveryStatusFailed    DeliveryStatus = "failed"
+	DeliveryStatusPending   DeliveryStatus = "pending"
+	DeliveryStatusSucceeded DeliveryStatus = "succeeded"
 )
 
 // Valid indicates whether the value is a known member of the DeliveryStatus enum.
 func (e DeliveryStatus) Valid() bool {
 	switch e {
-	case Failed:
+	case DeliveryStatusFailed:
 		return true
-	case Pending:
+	case DeliveryStatusPending:
 		return true
-	case Succeeded:
+	case DeliveryStatusSucceeded:
 		return true
 	default:
 		return false
@@ -629,6 +630,42 @@ func (e FontTemplate) Valid() bool {
 	case FontTemplateProduct:
 		return true
 	case FontTemplateReading:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FormFieldKind.
+const (
+	FormFieldKindCheckbox    FormFieldKind = "checkbox"
+	FormFieldKindDate        FormFieldKind = "date"
+	FormFieldKindMultiselect FormFieldKind = "multiselect"
+	FormFieldKindNumber      FormFieldKind = "number"
+	FormFieldKindPerson      FormFieldKind = "person"
+	FormFieldKindSelect      FormFieldKind = "select"
+	FormFieldKindText        FormFieldKind = "text"
+	FormFieldKindTextarea    FormFieldKind = "textarea"
+)
+
+// Valid indicates whether the value is a known member of the FormFieldKind enum.
+func (e FormFieldKind) Valid() bool {
+	switch e {
+	case FormFieldKindCheckbox:
+		return true
+	case FormFieldKindDate:
+		return true
+	case FormFieldKindMultiselect:
+		return true
+	case FormFieldKindNumber:
+		return true
+	case FormFieldKindPerson:
+		return true
+	case FormFieldKindSelect:
+		return true
+	case FormFieldKindText:
+		return true
+	case FormFieldKindTextarea:
 		return true
 	default:
 		return false
@@ -881,6 +918,51 @@ func (e SearchChannelKind) Valid() bool {
 	}
 }
 
+// Defines values for TaskKind.
+const (
+	TaskKindApproval TaskKind = "approval"
+	TaskKindForm     TaskKind = "form"
+)
+
+// Valid indicates whether the value is a known member of the TaskKind enum.
+func (e TaskKind) Valid() bool {
+	switch e {
+	case TaskKindApproval:
+		return true
+	case TaskKindForm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskStatus.
+const (
+	TaskStatusApproved  TaskStatus = "approved"
+	TaskStatusCancelled TaskStatus = "cancelled"
+	TaskStatusDone      TaskStatus = "done"
+	TaskStatusOpen      TaskStatus = "open"
+	TaskStatusRejected  TaskStatus = "rejected"
+)
+
+// Valid indicates whether the value is a known member of the TaskStatus enum.
+func (e TaskStatus) Valid() bool {
+	switch e {
+	case TaskStatusApproved:
+		return true
+	case TaskStatusCancelled:
+		return true
+	case TaskStatusDone:
+		return true
+	case TaskStatusOpen:
+		return true
+	case TaskStatusRejected:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ThemePreset.
 const (
 	ThemePresetCenacle  ThemePreset = "cenacle"
@@ -956,6 +1038,114 @@ func (e WebhookKind) Valid() bool {
 	case WebhookKindGitlab:
 		return true
 	case WebhookKindJira:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowRunStatus.
+const (
+	WorkflowRunStatusCancelled WorkflowRunStatus = "cancelled"
+	WorkflowRunStatusDone      WorkflowRunStatus = "done"
+	WorkflowRunStatusFailed    WorkflowRunStatus = "failed"
+	WorkflowRunStatusRunning   WorkflowRunStatus = "running"
+	WorkflowRunStatusWaiting   WorkflowRunStatus = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowRunStatus enum.
+func (e WorkflowRunStatus) Valid() bool {
+	switch e {
+	case WorkflowRunStatusCancelled:
+		return true
+	case WorkflowRunStatusDone:
+		return true
+	case WorkflowRunStatusFailed:
+		return true
+	case WorkflowRunStatusRunning:
+		return true
+	case WorkflowRunStatusWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowScheduleEvery.
+const (
+	Day     WorkflowScheduleEvery = "day"
+	Week    WorkflowScheduleEvery = "week"
+	Weekday WorkflowScheduleEvery = "weekday"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowScheduleEvery enum.
+func (e WorkflowScheduleEvery) Valid() bool {
+	switch e {
+	case Day:
+		return true
+	case Week:
+		return true
+	case Weekday:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowStepKind.
+const (
+	WorkflowStepKindApproval WorkflowStepKind = "approval"
+	WorkflowStepKindDelay    WorkflowStepKind = "delay"
+	WorkflowStepKindDm       WorkflowStepKind = "dm"
+	WorkflowStepKindForm     WorkflowStepKind = "form"
+	WorkflowStepKindHttp     WorkflowStepKind = "http"
+	WorkflowStepKindMessage  WorkflowStepKind = "message"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowStepKind enum.
+func (e WorkflowStepKind) Valid() bool {
+	switch e {
+	case WorkflowStepKindApproval:
+		return true
+	case WorkflowStepKindDelay:
+		return true
+	case WorkflowStepKindDm:
+		return true
+	case WorkflowStepKindForm:
+		return true
+	case WorkflowStepKindHttp:
+		return true
+	case WorkflowStepKindMessage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowTriggerKind.
+const (
+	WorkflowTriggerKindKeyword      WorkflowTriggerKind = "keyword"
+	WorkflowTriggerKindManual       WorkflowTriggerKind = "manual"
+	WorkflowTriggerKindMemberJoined WorkflowTriggerKind = "member_joined"
+	WorkflowTriggerKindReaction     WorkflowTriggerKind = "reaction"
+	WorkflowTriggerKindSchedule     WorkflowTriggerKind = "schedule"
+	WorkflowTriggerKindWebhook      WorkflowTriggerKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowTriggerKind enum.
+func (e WorkflowTriggerKind) Valid() bool {
+	switch e {
+	case WorkflowTriggerKindKeyword:
+		return true
+	case WorkflowTriggerKindManual:
+		return true
+	case WorkflowTriggerKindMemberJoined:
+		return true
+	case WorkflowTriggerKindReaction:
+		return true
+	case WorkflowTriggerKindSchedule:
+		return true
+	case WorkflowTriggerKindWebhook:
 		return true
 	default:
 		return false
@@ -1743,6 +1933,61 @@ type FollowedThread struct {
 // FontTemplate defines model for FontTemplate.
 type FontTemplate string
 
+// Form defines model for Form.
+type Form struct {
+	Description string             `json:"description"`
+	Fields      []FormField        `json:"fields"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+}
+
+// FormAnswer defines model for FormAnswer.
+type FormAnswer struct {
+	Id    string `json:"id"`
+	Kind  string `json:"kind"`
+	Label string `json:"label"`
+
+	// Value As shown: options joined with commas, a person by name.
+	Value string `json:"value"`
+}
+
+// FormField defines model for FormField.
+type FormField struct {
+	Help *string `json:"help,omitempty"`
+
+	// Id Used in workflows as {{form.<id>}}.
+	Id       string        `json:"id"`
+	Kind     FormFieldKind `json:"kind"`
+	Label    string        `json:"label"`
+	Options  *[]string     `json:"options,omitempty"`
+	Required bool          `json:"required"`
+}
+
+// FormFieldKind defines model for FormField.Kind.
+type FormFieldKind string
+
+// FormInput defines model for FormInput.
+type FormInput struct {
+	Description *string     `json:"description,omitempty"`
+	Fields      []FormField `json:"fields"`
+	Name        string      `json:"name"`
+}
+
+// FormValues Answers by field id: text, a number as text, YYYY-MM-DD, "true"/"false", a user id, or a list for multiselect.
+type FormValues map[string]FormValues_AdditionalProperties
+
+// FormValues0 defines model for FormValues.0.
+type FormValues0 = string
+
+// FormValues1 defines model for FormValues.1.
+type FormValues1 = []string
+
+// FormValues_AdditionalProperties defines model for FormValues.AdditionalProperties.
+type FormValues_AdditionalProperties struct {
+	union json.RawMessage
+}
+
 // ForwardInfo defines model for ForwardInfo.
 type ForwardInfo struct {
 	Author      Author             `json:"author"`
@@ -1842,9 +2087,11 @@ type Message struct {
 	Reactions []Reaction `json:"reactions"`
 
 	// RootId The thread's first message when this is a reply.
-	RootId  *openapi_types.UUID `json:"root_id,omitempty"`
-	Sticker *Sticker            `json:"sticker,omitempty"`
-	Tags    *[]string           `json:"tags,omitempty"`
+	RootId     *openapi_types.UUID `json:"root_id,omitempty"`
+	Sticker    *Sticker            `json:"sticker,omitempty"`
+	Submission *Submission         `json:"submission,omitempty"`
+	Tags       *[]string           `json:"tags,omitempty"`
+	Task       *Task               `json:"task,omitempty"`
 
 	// Thread The replies of a message (absent when it has none).
 	Thread *ThreadSummary `json:"thread,omitempty"`
@@ -2291,6 +2538,16 @@ type Sticker struct {
 	Url       string              `json:"url"`
 }
 
+// Submission defines model for Submission.
+type Submission struct {
+	Answers   []FormAnswer        `json:"answers"`
+	CreatedAt time.Time           `json:"created_at"`
+	FormId    *openapi_types.UUID `json:"form_id,omitempty"`
+	FormName  string              `json:"form_name"`
+	Id        openapi_types.UUID  `json:"id"`
+	User      *Author             `json:"user,omitempty"`
+}
+
 // Subscription defines model for Subscription.
 type Subscription struct {
 	CreatedAt time.Time          `json:"created_at"`
@@ -2299,6 +2556,26 @@ type Subscription struct {
 	Id        openapi_types.UUID `json:"id"`
 	Url       string             `json:"url"`
 }
+
+// Task defines model for Task.
+type Task struct {
+	Assignees []openapi_types.UUID `json:"assignees"`
+	Comment   string               `json:"comment"`
+	CreatedAt time.Time            `json:"created_at"`
+	DoneAt    *time.Time           `json:"done_at,omitempty"`
+	DoneBy    *Author              `json:"done_by,omitempty"`
+	Form      *Form                `json:"form,omitempty"`
+	Id        openapi_types.UUID   `json:"id"`
+	Kind      TaskKind             `json:"kind"`
+	Status    TaskStatus           `json:"status"`
+	Title     string               `json:"title"`
+}
+
+// TaskKind defines model for Task.Kind.
+type TaskKind string
+
+// TaskStatus defines model for Task.Status.
+type TaskStatus string
 
 // Terms defines model for Terms.
 type Terms struct {
@@ -2382,6 +2659,105 @@ type Welcome struct {
 	Message string   `json:"message"`
 	Rules   []string `json:"rules"`
 }
+
+// Workflow defines model for Workflow.
+type Workflow struct {
+	Description string             `json:"description"`
+	Enabled     bool               `json:"enabled"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+	NextRunAt   *time.Time         `json:"next_run_at,omitempty"`
+
+	// Secret Signs its outgoing requests; only when created.
+	Secret    *string         `json:"secret,omitempty"`
+	Steps     []WorkflowStep  `json:"steps"`
+	Trigger   WorkflowTrigger `json:"trigger"`
+	UpdatedAt time.Time       `json:"updated_at"`
+
+	// WebhookUrl Only when created or rotated.
+	WebhookUrl *string `json:"webhook_url,omitempty"`
+}
+
+// WorkflowInput defines model for WorkflowInput.
+type WorkflowInput struct {
+	Description *string         `json:"description,omitempty"`
+	Enabled     *bool           `json:"enabled,omitempty"`
+	Name        string          `json:"name"`
+	Steps       []WorkflowStep  `json:"steps"`
+	Trigger     WorkflowTrigger `json:"trigger"`
+}
+
+// WorkflowRun defines model for WorkflowRun.
+type WorkflowRun struct {
+	ChannelId  *openapi_types.UUID `json:"channel_id,omitempty"`
+	CreatedAt  time.Time           `json:"created_at"`
+	Error      string              `json:"error"`
+	FinishedAt *time.Time          `json:"finished_at,omitempty"`
+	Id         openapi_types.UUID  `json:"id"`
+	Status     WorkflowRunStatus   `json:"status"`
+
+	// Step Steps done so far.
+	Step         int                 `json:"step"`
+	Steps        int                 `json:"steps"`
+	TriggerUser  *Author             `json:"trigger_user,omitempty"`
+	WorkflowId   *openapi_types.UUID `json:"workflow_id,omitempty"`
+	WorkflowName string              `json:"workflow_name"`
+}
+
+// WorkflowRunStatus defines model for WorkflowRun.Status.
+type WorkflowRunStatus string
+
+// WorkflowSchedule defines model for WorkflowSchedule.
+type WorkflowSchedule struct {
+	Every    WorkflowScheduleEvery `json:"every"`
+	Time     string                `json:"time"`
+	TimeZone string                `json:"time_zone"`
+
+	// Weekday 0 is Sunday; for every week.
+	Weekday *int `json:"weekday,omitempty"`
+}
+
+// WorkflowScheduleEvery defines model for WorkflowSchedule.Every.
+type WorkflowScheduleEvery string
+
+// WorkflowShortcut defines model for WorkflowShortcut.
+type WorkflowShortcut struct {
+	Description string             `json:"description"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+}
+
+// WorkflowStep defines model for WorkflowStep.
+type WorkflowStep struct {
+	Approvers *[]openapi_types.UUID `json:"approvers,omitempty"`
+
+	// ChannelId message: where; empty: the trigger's channel.
+	ChannelId *openapi_types.UUID `json:"channel_id,omitempty"`
+	FormId    *openapi_types.UUID `json:"form_id,omitempty"`
+	Id        string              `json:"id"`
+	Kind      WorkflowStepKind    `json:"kind"`
+	Minutes   *int                `json:"minutes,omitempty"`
+	Text      *string             `json:"text,omitempty"`
+
+	// To dm: a user id; empty: the person who started the run.
+	To  *string `json:"to,omitempty"`
+	Url *string `json:"url,omitempty"`
+}
+
+// WorkflowStepKind defines model for WorkflowStep.Kind.
+type WorkflowStepKind string
+
+// WorkflowTrigger defines model for WorkflowTrigger.
+type WorkflowTrigger struct {
+	ChannelId *openapi_types.UUID `json:"channel_id,omitempty"`
+	Emoji     *string             `json:"emoji,omitempty"`
+	Keyword   *string             `json:"keyword,omitempty"`
+	Kind      WorkflowTriggerKind `json:"kind"`
+	Schedule  *WorkflowSchedule   `json:"schedule,omitempty"`
+}
+
+// WorkflowTriggerKind defines model for WorkflowTrigger.Kind.
+type WorkflowTriggerKind string
 
 // Workspace defines model for Workspace.
 type Workspace struct {
@@ -2639,6 +3015,19 @@ type GetFileContentParams struct {
 	Download *bool `form:"download,omitempty" json:"download,omitempty"`
 }
 
+// ListFormSubmissionsParams defines parameters for ListFormSubmissions.
+type ListFormSubmissionsParams struct {
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+}
+
+// SubmitFormJSONBody defines parameters for SubmitForm.
+type SubmitFormJSONBody struct {
+	ChannelId openapi_types.UUID `json:"channel_id"`
+
+	// Values Answers by field id: text, a number as text, YYYY-MM-DD, "true"/"false", a user id, or a list for multiselect.
+	Values FormValues `json:"values"`
+}
+
 // PostWebhookJSONBody defines parameters for PostWebhook.
 type PostWebhookJSONBody map[string]interface{}
 
@@ -2786,6 +3175,18 @@ type EndAllSessionsJSONBody struct {
 	KeepCurrent bool `json:"keep_current"`
 }
 
+// DecideTaskJSONBody defines parameters for DecideTask.
+type DecideTaskJSONBody struct {
+	Approve bool    `json:"approve"`
+	Comment *string `json:"comment,omitempty"`
+}
+
+// SubmitTaskJSONBody defines parameters for SubmitTask.
+type SubmitTaskJSONBody struct {
+	// Values Answers by field id: text, a number as text, YYYY-MM-DD, "true"/"false", a user id, or a list for multiselect.
+	Values FormValues `json:"values"`
+}
+
 // SetTermsJSONBody defines parameters for SetTerms.
 type SetTermsJSONBody struct {
 	Text string `json:"text"`
@@ -2810,6 +3211,14 @@ type SearchUsersParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
 	Q           string             `form:"q" json:"q"`
 	Limit       *int               `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// TriggerWorkflowWebhookJSONBody defines parameters for TriggerWorkflowWebhook.
+type TriggerWorkflowWebhookJSONBody map[string]interface{}
+
+// StartWorkflowJSONBody defines parameters for StartWorkflow.
+type StartWorkflowJSONBody struct {
+	ChannelId openapi_types.UUID `json:"channel_id"`
 }
 
 // CreateWorkspaceJSONBody defines parameters for CreateWorkspace.
@@ -2980,6 +3389,12 @@ type UpdateEventJSONRequestBody = EventInput
 // RsvpEventJSONRequestBody defines body for RsvpEvent for application/json ContentType.
 type RsvpEventJSONRequestBody RsvpEventJSONBody
 
+// UpdateFormJSONRequestBody defines body for UpdateForm for application/json ContentType.
+type UpdateFormJSONRequestBody = FormInput
+
+// SubmitFormJSONRequestBody defines body for SubmitForm for application/json ContentType.
+type SubmitFormJSONRequestBody SubmitFormJSONBody
+
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
 
@@ -3028,6 +3443,12 @@ type UpdateRunItemJSONRequestBody UpdateRunItemJSONBody
 // EndAllSessionsJSONRequestBody defines body for EndAllSessions for application/json ContentType.
 type EndAllSessionsJSONRequestBody EndAllSessionsJSONBody
 
+// DecideTaskJSONRequestBody defines body for DecideTask for application/json ContentType.
+type DecideTaskJSONRequestBody DecideTaskJSONBody
+
+// SubmitTaskJSONRequestBody defines body for SubmitTask for application/json ContentType.
+type SubmitTaskJSONRequestBody SubmitTaskJSONBody
+
 // SetTermsJSONRequestBody defines body for SetTerms for application/json ContentType.
 type SetTermsJSONRequestBody SetTermsJSONBody
 
@@ -3036,6 +3457,15 @@ type AcceptTermsJSONRequestBody AcceptTermsJSONBody
 
 // SetUITextsJSONRequestBody defines body for SetUITexts for application/json ContentType.
 type SetUITextsJSONRequestBody SetUITextsJSONBody
+
+// TriggerWorkflowWebhookJSONRequestBody defines body for TriggerWorkflowWebhook for application/json ContentType.
+type TriggerWorkflowWebhookJSONRequestBody TriggerWorkflowWebhookJSONBody
+
+// UpdateWorkflowJSONRequestBody defines body for UpdateWorkflow for application/json ContentType.
+type UpdateWorkflowJSONRequestBody = WorkflowInput
+
+// StartWorkflowJSONRequestBody defines body for StartWorkflow for application/json ContentType.
+type StartWorkflowJSONRequestBody StartWorkflowJSONBody
 
 // CreateWorkspaceJSONRequestBody defines body for CreateWorkspace for application/json ContentType.
 type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
@@ -3057,6 +3487,9 @@ type OpenConversationJSONRequestBody OpenConversationJSONBody
 
 // CreateEventJSONRequestBody defines body for CreateEvent for application/json ContentType.
 type CreateEventJSONRequestBody = EventInput
+
+// CreateFormJSONRequestBody defines body for CreateForm for application/json ContentType.
+type CreateFormJSONRequestBody = FormInput
 
 // SetWorkspaceGroupJSONRequestBody defines body for SetWorkspaceGroup for application/json ContentType.
 type SetWorkspaceGroupJSONRequestBody = GroupMapping
@@ -3081,6 +3514,71 @@ type CreatePlaybookJSONRequestBody = PlaybookInput
 
 // SetWelcomeJSONRequestBody defines body for SetWelcome for application/json ContentType.
 type SetWelcomeJSONRequestBody = Welcome
+
+// CreateWorkflowJSONRequestBody defines body for CreateWorkflow for application/json ContentType.
+type CreateWorkflowJSONRequestBody = WorkflowInput
+
+// AsFormValues0 returns the union data inside the FormValues_AdditionalProperties as a FormValues0
+func (t FormValues_AdditionalProperties) AsFormValues0() (FormValues0, error) {
+	var body FormValues0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFormValues0 overwrites any union data inside the FormValues_AdditionalProperties as the provided FormValues0
+func (t *FormValues_AdditionalProperties) FromFormValues0(v FormValues0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeFormValues0 performs a merge with any union data inside the FormValues_AdditionalProperties, using the provided FormValues0
+func (t *FormValues_AdditionalProperties) MergeFormValues0(v FormValues0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsFormValues1 returns the union data inside the FormValues_AdditionalProperties as a FormValues1
+func (t FormValues_AdditionalProperties) AsFormValues1() (FormValues1, error) {
+	var body FormValues1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFormValues1 overwrites any union data inside the FormValues_AdditionalProperties as the provided FormValues1
+func (t *FormValues_AdditionalProperties) FromFormValues1(v FormValues1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeFormValues1 performs a merge with any union data inside the FormValues_AdditionalProperties, using the provided FormValues1
+func (t *FormValues_AdditionalProperties) MergeFormValues1(v FormValues1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t FormValues_AdditionalProperties) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *FormValues_AdditionalProperties) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -3288,6 +3786,9 @@ type ServerInterface interface {
 	// ScheduleMessage Send a message later
 	// (POST /api/channels/{channel_id}/scheduled)
 	ScheduleMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListShortcuts Workflows and forms people can start in a channel
+	// (GET /api/channels/{channel_id}/shortcuts)
+	ListShortcuts(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// SendTyping Tell the channel you are typing (every few seconds while typing)
 	// (POST /api/channels/{channel_id}/typing)
 	SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -3321,6 +3822,18 @@ type ServerInterface interface {
 	// GetFont A font you uploaded (only for you)
 	// (GET /api/fonts/{font_id})
 	GetFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID)
+	// ArchiveForm Archive a form (its submissions stay)
+	// (DELETE /api/forms/{form_id})
+	ArchiveForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID)
+	// UpdateForm Change a form (submissions keep their answers)
+	// (PUT /api/forms/{form_id})
+	UpdateForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID)
+	// ListFormSubmissions A form's submissions, newest first (owners and admins)
+	// (GET /api/forms/{form_id}/submissions)
+	ListFormSubmissions(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID, params ListFormSubmissionsParams)
+	// SubmitForm Fill in a form; the answers are posted in a channel
+	// (POST /api/forms/{form_id}/submissions)
+	SubmitForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID)
 	// PostWebhook Post into a channel through an incoming webhook
 	// (POST /api/hooks/{token})
 	PostWebhook(w http.ResponseWriter, r *http.Request, token string)
@@ -3471,6 +3984,15 @@ type ServerInterface interface {
 	// DeleteSticker Remove a sticker (who added it, or a workspace admin)
 	// (DELETE /api/stickers/{sticker_id})
 	DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
+	// GetTask A task (for its form, the form's fields)
+	// (GET /api/tasks/{task_id})
+	GetTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID)
+	// DecideTask Approve or reject
+	// (POST /api/tasks/{task_id}/decide)
+	DecideTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID)
+	// SubmitTask Fill in a workflow's form
+	// (POST /api/tasks/{task_id}/submit)
+	SubmitTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID)
 	// WithdrawTerms Withdraw the terms (instance administrators)
 	// (DELETE /api/terms)
 	WithdrawTerms(w http.ResponseWriter, r *http.Request)
@@ -3492,6 +4014,24 @@ type ServerInterface interface {
 	// SearchUsers Find members of a workspace by name or e-mail address
 	// (GET /api/users)
 	SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams)
+	// TriggerWorkflowWebhook Start a webhook workflow
+	// (POST /api/workflow-hooks/{token})
+	TriggerWorkflowWebhook(w http.ResponseWriter, r *http.Request, token string)
+	// ArchiveWorkflow Archive a workflow (runs in progress finish)
+	// (DELETE /api/workflows/{workflow_id})
+	ArchiveWorkflow(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID)
+	// UpdateWorkflow Change a workflow (runs already started keep their steps)
+	// (PUT /api/workflows/{workflow_id})
+	UpdateWorkflow(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID)
+	// ListWorkflowRuns Recent runs of a workflow (owners and admins)
+	// (GET /api/workflows/{workflow_id}/runs)
+	ListWorkflowRuns(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID)
+	// StartWorkflow Start a manual workflow in a channel
+	// (POST /api/workflows/{workflow_id}/runs)
+	StartWorkflow(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID)
+	// RotateWorkflowWebhook Give a webhook workflow a new address (the old one stops working)
+	// (POST /api/workflows/{workflow_id}/webhook)
+	RotateWorkflowWebhook(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID)
 	// ListWorkspaces The user's workspaces, the default one first
 	// (GET /api/workspaces)
 	ListWorkspaces(w http.ResponseWriter, r *http.Request)
@@ -3537,6 +4077,12 @@ type ServerInterface interface {
 	// CreateEvent Plan an event (members; announced in its channel when it has one)
 	// (POST /api/workspaces/{workspace_id}/events)
 	CreateEvent(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListForms Forms of a workspace
+	// (GET /api/workspaces/{workspace_id}/forms)
+	ListForms(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateForm Create a form (owners and admins)
+	// (POST /api/workspaces/{workspace_id}/forms)
+	CreateForm(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListWorkspaceGroups Directory groups that give membership of the workspace (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/groups)
 	ListWorkspaceGroups(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -3597,12 +4143,21 @@ type ServerInterface interface {
 	// AddSticker Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace)
 	// (POST /api/workspaces/{workspace_id}/stickers)
 	AddSticker(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params AddStickerParams)
+	// ListMyTasks Forms and approvals waiting for me
+	// (GET /api/workspaces/{workspace_id}/tasks)
+	ListMyTasks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// GetWelcome The welcome a workspace shows new members
 	// (GET /api/workspaces/{workspace_id}/welcome)
 	GetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// SetWelcome Set the welcome (owners and admins); empty message and rules turn it off
 	// (PUT /api/workspaces/{workspace_id}/welcome)
 	SetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListWorkflows Workflows of a workspace (owners and admins)
+	// (GET /api/workspaces/{workspace_id}/workflows)
+	ListWorkflows(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateWorkflow Create a workflow (owners and admins)
+	// (POST /api/workspaces/{workspace_id}/workflows)
+	CreateWorkflow(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// CreateWsTicket Ticket for opening the WebSocket
 	// (POST /api/ws/ticket)
 	CreateWsTicket(w http.ResponseWriter, r *http.Request)
@@ -4020,6 +4575,12 @@ func (_ Unimplemented) ScheduleMessage(w http.ResponseWriter, r *http.Request, c
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListShortcuts Workflows and forms people can start in a channel
+// (GET /api/channels/{channel_id}/shortcuts)
+func (_ Unimplemented) ListShortcuts(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SendTyping Tell the channel you are typing (every few seconds while typing)
 // (POST /api/channels/{channel_id}/typing)
 func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -4083,6 +4644,30 @@ func (_ Unimplemented) GetFileThumbnail(w http.ResponseWriter, r *http.Request, 
 // GetFont A font you uploaded (only for you)
 // (GET /api/fonts/{font_id})
 func (_ Unimplemented) GetFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ArchiveForm Archive a form (its submissions stay)
+// (DELETE /api/forms/{form_id})
+func (_ Unimplemented) ArchiveForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateForm Change a form (submissions keep their answers)
+// (PUT /api/forms/{form_id})
+func (_ Unimplemented) UpdateForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListFormSubmissions A form's submissions, newest first (owners and admins)
+// (GET /api/forms/{form_id}/submissions)
+func (_ Unimplemented) ListFormSubmissions(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID, params ListFormSubmissionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SubmitForm Fill in a form; the answers are posted in a channel
+// (POST /api/forms/{form_id}/submissions)
+func (_ Unimplemented) SubmitForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4386,6 +4971,24 @@ func (_ Unimplemented) DeleteSticker(w http.ResponseWriter, r *http.Request, sti
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetTask A task (for its form, the form's fields)
+// (GET /api/tasks/{task_id})
+func (_ Unimplemented) GetTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DecideTask Approve or reject
+// (POST /api/tasks/{task_id}/decide)
+func (_ Unimplemented) DecideTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SubmitTask Fill in a workflow's form
+// (POST /api/tasks/{task_id}/submit)
+func (_ Unimplemented) SubmitTask(w http.ResponseWriter, r *http.Request, taskId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // WithdrawTerms Withdraw the terms (instance administrators)
 // (DELETE /api/terms)
 func (_ Unimplemented) WithdrawTerms(w http.ResponseWriter, r *http.Request) {
@@ -4425,6 +5028,42 @@ func (_ Unimplemented) SetUITexts(w http.ResponseWriter, r *http.Request) {
 // SearchUsers Find members of a workspace by name or e-mail address
 // (GET /api/users)
 func (_ Unimplemented) SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TriggerWorkflowWebhook Start a webhook workflow
+// (POST /api/workflow-hooks/{token})
+func (_ Unimplemented) TriggerWorkflowWebhook(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ArchiveWorkflow Archive a workflow (runs in progress finish)
+// (DELETE /api/workflows/{workflow_id})
+func (_ Unimplemented) ArchiveWorkflow(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateWorkflow Change a workflow (runs already started keep their steps)
+// (PUT /api/workflows/{workflow_id})
+func (_ Unimplemented) UpdateWorkflow(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWorkflowRuns Recent runs of a workflow (owners and admins)
+// (GET /api/workflows/{workflow_id}/runs)
+func (_ Unimplemented) ListWorkflowRuns(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// StartWorkflow Start a manual workflow in a channel
+// (POST /api/workflows/{workflow_id}/runs)
+func (_ Unimplemented) StartWorkflow(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RotateWorkflowWebhook Give a webhook workflow a new address (the old one stops working)
+// (POST /api/workflows/{workflow_id}/webhook)
+func (_ Unimplemented) RotateWorkflowWebhook(w http.ResponseWriter, r *http.Request, workflowId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4515,6 +5154,18 @@ func (_ Unimplemented) ListEvents(w http.ResponseWriter, r *http.Request, worksp
 // CreateEvent Plan an event (members; announced in its channel when it has one)
 // (POST /api/workspaces/{workspace_id}/events)
 func (_ Unimplemented) CreateEvent(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListForms Forms of a workspace
+// (GET /api/workspaces/{workspace_id}/forms)
+func (_ Unimplemented) ListForms(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateForm Create a form (owners and admins)
+// (POST /api/workspaces/{workspace_id}/forms)
+func (_ Unimplemented) CreateForm(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4638,6 +5289,12 @@ func (_ Unimplemented) AddSticker(w http.ResponseWriter, r *http.Request, worksp
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListMyTasks Forms and approvals waiting for me
+// (GET /api/workspaces/{workspace_id}/tasks)
+func (_ Unimplemented) ListMyTasks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetWelcome The welcome a workspace shows new members
 // (GET /api/workspaces/{workspace_id}/welcome)
 func (_ Unimplemented) GetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
@@ -4647,6 +5304,18 @@ func (_ Unimplemented) GetWelcome(w http.ResponseWriter, r *http.Request, worksp
 // SetWelcome Set the welcome (owners and admins); empty message and rules turn it off
 // (PUT /api/workspaces/{workspace_id}/welcome)
 func (_ Unimplemented) SetWelcome(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWorkflows Workflows of a workspace (owners and admins)
+// (GET /api/workspaces/{workspace_id}/workflows)
+func (_ Unimplemented) ListWorkflows(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateWorkflow Create a workflow (owners and admins)
+// (POST /api/workspaces/{workspace_id}/workflows)
+func (_ Unimplemented) CreateWorkflow(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6741,6 +7410,32 @@ func (siw *ServerInterfaceWrapper) ScheduleMessage(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListShortcuts operation middleware
+func (siw *ServerInterfaceWrapper) ListShortcuts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListShortcuts(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SendTyping operation middleware
 func (siw *ServerInterfaceWrapper) SendTyping(w http.ResponseWriter, r *http.Request) {
 
@@ -7034,6 +7729,126 @@ func (siw *ServerInterfaceWrapper) GetFont(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetFont(w, r, fontId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ArchiveForm operation middleware
+func (siw *ServerInterfaceWrapper) ArchiveForm(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "form_id" -------------
+	var formId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "form_id", chi.URLParam(r, "form_id"), &formId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "form_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchiveForm(w, r, formId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateForm operation middleware
+func (siw *ServerInterfaceWrapper) UpdateForm(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "form_id" -------------
+	var formId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "form_id", chi.URLParam(r, "form_id"), &formId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "form_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateForm(w, r, formId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFormSubmissions operation middleware
+func (siw *ServerInterfaceWrapper) ListFormSubmissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "form_id" -------------
+	var formId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "form_id", chi.URLParam(r, "form_id"), &formId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "form_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFormSubmissionsParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFormSubmissions(w, r, formId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitForm operation middleware
+func (siw *ServerInterfaceWrapper) SubmitForm(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "form_id" -------------
+	var formId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "form_id", chi.URLParam(r, "form_id"), &formId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "form_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitForm(w, r, formId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8377,6 +9192,84 @@ func (siw *ServerInterfaceWrapper) DeleteSticker(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetTask operation middleware
+func (siw *ServerInterfaceWrapper) GetTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "task_id" -------------
+	var taskId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "task_id", chi.URLParam(r, "task_id"), &taskId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "task_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTask(w, r, taskId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DecideTask operation middleware
+func (siw *ServerInterfaceWrapper) DecideTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "task_id" -------------
+	var taskId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "task_id", chi.URLParam(r, "task_id"), &taskId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "task_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DecideTask(w, r, taskId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitTask operation middleware
+func (siw *ServerInterfaceWrapper) SubmitTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "task_id" -------------
+	var taskId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "task_id", chi.URLParam(r, "task_id"), &taskId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "task_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitTask(w, r, taskId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // WithdrawTerms operation middleware
 func (siw *ServerInterfaceWrapper) WithdrawTerms(w http.ResponseWriter, r *http.Request) {
 
@@ -8511,6 +9404,162 @@ func (siw *ServerInterfaceWrapper) SearchUsers(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SearchUsers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TriggerWorkflowWebhook operation middleware
+func (siw *ServerInterfaceWrapper) TriggerWorkflowWebhook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", chi.URLParam(r, "token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TriggerWorkflowWebhook(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ArchiveWorkflow operation middleware
+func (siw *ServerInterfaceWrapper) ArchiveWorkflow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workflow_id" -------------
+	var workflowId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workflow_id", chi.URLParam(r, "workflow_id"), &workflowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workflow_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchiveWorkflow(w, r, workflowId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateWorkflow operation middleware
+func (siw *ServerInterfaceWrapper) UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workflow_id" -------------
+	var workflowId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workflow_id", chi.URLParam(r, "workflow_id"), &workflowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workflow_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateWorkflow(w, r, workflowId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWorkflowRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkflowRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workflow_id" -------------
+	var workflowId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workflow_id", chi.URLParam(r, "workflow_id"), &workflowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workflow_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkflowRuns(w, r, workflowId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartWorkflow operation middleware
+func (siw *ServerInterfaceWrapper) StartWorkflow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workflow_id" -------------
+	var workflowId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workflow_id", chi.URLParam(r, "workflow_id"), &workflowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workflow_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartWorkflow(w, r, workflowId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RotateWorkflowWebhook operation middleware
+func (siw *ServerInterfaceWrapper) RotateWorkflowWebhook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workflow_id" -------------
+	var workflowId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workflow_id", chi.URLParam(r, "workflow_id"), &workflowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workflow_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RotateWorkflowWebhook(w, r, workflowId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8938,6 +9987,58 @@ func (siw *ServerInterfaceWrapper) CreateEvent(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateEvent(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListForms operation middleware
+func (siw *ServerInterfaceWrapper) ListForms(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListForms(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateForm operation middleware
+func (siw *ServerInterfaceWrapper) CreateForm(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateForm(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9544,6 +10645,32 @@ func (siw *ServerInterfaceWrapper) AddSticker(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ListMyTasks operation middleware
+func (siw *ServerInterfaceWrapper) ListMyTasks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyTasks(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetWelcome operation middleware
 func (siw *ServerInterfaceWrapper) GetWelcome(w http.ResponseWriter, r *http.Request) {
 
@@ -9587,6 +10714,58 @@ func (siw *ServerInterfaceWrapper) SetWelcome(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetWelcome(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListWorkflows operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkflows(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkflows(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateWorkflow operation middleware
+func (siw *ServerInterfaceWrapper) CreateWorkflow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateWorkflow(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10244,6 +11423,63 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/stickers/{sticker_id}", wrapper.DeleteSticker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/forms", wrapper.ListForms)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/forms", wrapper.CreateForm)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/forms/{form_id}", wrapper.ArchiveForm)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/forms/{form_id}", wrapper.UpdateForm)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/forms/{form_id}/submissions", wrapper.ListFormSubmissions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/forms/{form_id}/submissions", wrapper.SubmitForm)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/workflows", wrapper.ListWorkflows)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/workflows", wrapper.CreateWorkflow)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/workflows/{workflow_id}", wrapper.ArchiveWorkflow)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workflows/{workflow_id}", wrapper.UpdateWorkflow)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workflows/{workflow_id}/webhook", wrapper.RotateWorkflowWebhook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workflows/{workflow_id}/runs", wrapper.ListWorkflowRuns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workflows/{workflow_id}/runs", wrapper.StartWorkflow)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/shortcuts", wrapper.ListShortcuts)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workflow-hooks/{token}", wrapper.TriggerWorkflowWebhook)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/tasks", wrapper.ListMyTasks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/tasks/{task_id}", wrapper.GetTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/tasks/{task_id}/submit", wrapper.SubmitTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/tasks/{task_id}/decide", wrapper.DecideTask)
 	})
 
 	return r

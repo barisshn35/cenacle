@@ -396,6 +396,7 @@ func (h *Handlers) JoinChannel(w http.ResponseWriter, r *http.Request, channelID
 	}
 	out := toAPI(c, access{ch: RoleMember, ws: role.ws})
 	h.membersChanged(r.Context(), c, p.User.ID, events.ChannelJoined, out)
+	h.memberJoined(r.Context(), c, p.User)
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
@@ -609,6 +610,7 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, u.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember, ws: targetWs}))
+		h.memberJoined(r.Context(), c, u)
 		h.record(r, c.WorkspaceID, audit.ChannelMemberAdded, "channel", uuid(c.ID).String(),
 			map[string]any{"channel": c.Name, "user_id": uuid(u.ID).String(), "user": u.DisplayName})
 	}

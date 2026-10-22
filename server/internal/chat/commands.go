@@ -195,6 +195,10 @@ func (h *Handlers) commandJoin(w http.ResponseWriter, r *http.Request, user stor
 
 // systemBot returns the workspace's "Cenacle" bot, creating it on first use.
 func (h *Handlers) systemBot(ctx context.Context, q *store.Queries, workspace pgtype.UUID) (store.User, error) {
+	return systemBot(ctx, q, workspace)
+}
+
+func systemBot(ctx context.Context, q *store.Queries, workspace pgtype.UUID) (store.User, error) {
 	row, err := q.GetSystemBot(ctx, workspace)
 	if err == nil {
 		return row.User, nil
@@ -360,14 +364,10 @@ func (h *Handlers) commandFailed(w http.ResponseWriter, r *http.Request, trigger
 	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadGateway, Code: CodeCommandFailed, Detail: detail})
 }
 
-// scheduleReminder schedules a message from the workspace's system bot to a
-// person, in their conversation with it (created when needed).
-func (h *Handlers) scheduleReminder(ctx context.Context, q *store.Queries, workspace pgtype.UUID, user store.User, body string, when time.Time) (store.ScheduledMessage, error) {
-	bot, err := h.systemBot(ctx, q, workspace)
-	if err != nil {
-		return store.ScheduledMessage{}, err
-	}
-	kind, key := conversationKey([]string{uuid(user.ID).String(), uuid(bot.ID).String()})
+// botConversation returns a person's conversation with the workspace's system
+// bot, created when needed.
+func botConversation(ctx context.Context, q *store.Queries, workspace pgtype.UUID, bot store.User, user pgtype.UUID) (store.Channel, error) {
+	kind, key := conversationKey([]string{uuid(user).String(), uuid(bot.ID).String()})
 	dm, err := q.GetChannelByName(ctx, store.GetChannelByNameParams{WorkspaceID: workspace, Name: key})
 	if isNoRows(err) {
 		dm, err = q.CreateConversation(ctx, store.CreateConversationParams{
@@ -375,18 +375,32 @@ func (h *Handlers) scheduleReminder(ctx context.Context, q *store.Queries, works
 		})
 	}
 	if err != nil {
-		return store.ScheduledMessage{}, err
+		return dm, err
 	}
-	for _, id := range []pgtype.UUID{user.ID, bot.ID} {
+	for _, id := range []pgtype.UUID{user, bot.ID} {
 		n, err := q.AddMember(ctx, store.AddMemberParams{ChannelID: dm.ID, UserID: id, Role: RoleMember})
 		if err != nil {
-			return store.ScheduledMessage{}, err
+			return dm, err
 		}
-		if n > 0 && id == user.ID {
+		if n > 0 && id == user {
 			if err := emit(ctx, q, events.ChannelJoined, ChannelEvent{Channel: toAPI(dm, access{ch: RoleMember}), UserID: uuid(id).String()}); err != nil {
-				return store.ScheduledMessage{}, err
+				return dm, err
 			}
 		}
+	}
+	return dm, nil
+}
+
+// scheduleReminder schedules a message from the workspace's system bot to a
+// person, in their conversation with it (created when needed).
+func (h *Handlers) scheduleReminder(ctx context.Context, q *store.Queries, workspace pgtype.UUID, user store.User, body string, when time.Time) (store.ScheduledMessage, error) {
+	bot, err := h.systemBot(ctx, q, workspace)
+	if err != nil {
+		return store.ScheduledMessage{}, err
+	}
+	dm, err := botConversation(ctx, q, workspace, bot, user.ID)
+	if err != nil {
+		return store.ScheduledMessage{}, err
 	}
 	return q.CreateScheduledMessage(ctx, store.CreateScheduledMessageParams{
 		Kind: "reminder", ChannelID: dm.ID, AuthorID: bot.ID, OwnerID: user.ID,

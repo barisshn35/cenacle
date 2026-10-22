@@ -202,7 +202,7 @@ LIMIT @row_limit;
 -- messages, its 20 latest unread messages of others.
 SELECT x.id, x.channel_id, x.author_id, x.body, x.nonce, x.created_at, x.edited_at, x.attachments,
        x.root_id, x.also_in_channel, x.pinned_at, x.pinned_by, x.title, x.tags,
-       x.link_url, x.link_state, x.forward, x.sticker_id, x.burn_seconds,
+       x.link_url, x.link_state, x.forward, x.sticker_id, x.burn_seconds, x.task_id, x.submission_id,
        u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM channel_members cm
 JOIN channels c ON c.id = cm.channel_id AND c.archived_at IS NULL AND c.workspace_id = @workspace_id

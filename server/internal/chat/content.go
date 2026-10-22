@@ -199,6 +199,9 @@ func decorate(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs []a
 	if err := richMessages(ctx, q, reader, msgs, index, ids); err != nil {
 		return err
 	}
+	if err := automationMessages(ctx, q, msgs); err != nil {
+		return err
+	}
 	polls, err := pollsFor(ctx, q, reader, ids)
 	if err != nil {
 		return err

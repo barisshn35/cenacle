@@ -125,7 +125,7 @@ func (q *Queries) FollowThread(ctx context.Context, arg FollowThreadParams) erro
 }
 
 const getMessagesByIDs = `-- name: GetMessagesByIDs :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, u.display_name AS author_name, u.is_bot AS author_is_bot,
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
 FROM messages m
 JOIN users u ON u.id = m.author_id
@@ -156,6 +156,8 @@ type GetMessagesByIDsRow struct {
 	Forward       []byte             `json:"forward"`
 	StickerID     pgtype.UUID        `json:"sticker_id"`
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
+	TaskID        pgtype.UUID        `json:"task_id"`
+	SubmissionID  pgtype.UUID        `json:"submission_id"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 	ChannelName   string             `json:"channel_name"`
@@ -196,6 +198,8 @@ func (q *Queries) GetMessagesByIDs(ctx context.Context, ids []pgtype.UUID) ([]Ge
 			&i.Forward,
 			&i.StickerID,
 			&i.BurnSeconds,
+			&i.TaskID,
+			&i.SubmissionID,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 			&i.ChannelName,
@@ -495,7 +499,7 @@ func (q *Queries) ListFollowedThreads(ctx context.Context, arg ListFollowedThrea
 }
 
 const listPins = `-- name: ListPins :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = $1 AND m.pinned_at IS NOT NULL AND m.deleted_at IS NULL
@@ -526,6 +530,8 @@ type ListPinsRow struct {
 	Forward       []byte             `json:"forward"`
 	StickerID     pgtype.UUID        `json:"sticker_id"`
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
+	TaskID        pgtype.UUID        `json:"task_id"`
+	SubmissionID  pgtype.UUID        `json:"submission_id"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -562,6 +568,8 @@ func (q *Queries) ListPins(ctx context.Context, channelID pgtype.UUID) ([]ListPi
 			&i.Forward,
 			&i.StickerID,
 			&i.BurnSeconds,
+			&i.TaskID,
+			&i.SubmissionID,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -576,7 +584,7 @@ func (q *Queries) ListPins(ctx context.Context, channelID pgtype.UUID) ([]ListPi
 }
 
 const listReplies = `-- name: ListReplies :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.root_id = $1
@@ -615,6 +623,8 @@ type ListRepliesRow struct {
 	Forward       []byte             `json:"forward"`
 	StickerID     pgtype.UUID        `json:"sticker_id"`
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
+	TaskID        pgtype.UUID        `json:"task_id"`
+	SubmissionID  pgtype.UUID        `json:"submission_id"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -653,6 +663,8 @@ func (q *Queries) ListReplies(ctx context.Context, arg ListRepliesParams) ([]Lis
 			&i.Forward,
 			&i.StickerID,
 			&i.BurnSeconds,
+			&i.TaskID,
+			&i.SubmissionID,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -713,12 +725,12 @@ func (q *Queries) ListSaved(ctx context.Context, userID pgtype.UUID) ([]ListSave
 const listUnreadMessages = `-- name: ListUnreadMessages :many
 SELECT x.id, x.channel_id, x.author_id, x.body, x.nonce, x.created_at, x.edited_at, x.attachments,
        x.root_id, x.also_in_channel, x.pinned_at, x.pinned_by, x.title, x.tags,
-       x.link_url, x.link_state, x.forward, x.sticker_id, x.burn_seconds,
+       x.link_url, x.link_state, x.forward, x.sticker_id, x.burn_seconds, x.task_id, x.submission_id,
        u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM channel_members cm
 JOIN channels c ON c.id = cm.channel_id AND c.archived_at IS NULL AND c.workspace_id = $1
 CROSS JOIN LATERAL (
-    SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds FROM messages m
+    SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id FROM messages m
     WHERE m.channel_id = c.id AND m.deleted_at IS NULL AND m.author_id <> $2
       AND (m.root_id IS NULL OR m.also_in_channel)
       AND (cm.last_read_id IS NULL OR m.id > cm.last_read_id)
@@ -753,6 +765,8 @@ type ListUnreadMessagesRow struct {
 	Forward       []byte             `json:"forward"`
 	StickerID     pgtype.UUID        `json:"sticker_id"`
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
+	TaskID        pgtype.UUID        `json:"task_id"`
+	SubmissionID  pgtype.UUID        `json:"submission_id"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -788,6 +802,8 @@ func (q *Queries) ListUnreadMessages(ctx context.Context, arg ListUnreadMessages
 			&i.Forward,
 			&i.StickerID,
 			&i.BurnSeconds,
+			&i.TaskID,
+			&i.SubmissionID,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -827,7 +843,7 @@ UPDATE messages
 SET pinned_at = CASE WHEN $1::boolean THEN now() END,
     pinned_by = CASE WHEN $1::boolean THEN $2::uuid END
 WHERE id = $3 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id
 `
 
 type SetPinnedParams struct {
@@ -862,6 +878,8 @@ func (q *Queries) SetPinned(ctx context.Context, arg SetPinnedParams) (Message, 
 		&i.Forward,
 		&i.StickerID,
 		&i.BurnSeconds,
+		&i.TaskID,
+		&i.SubmissionID,
 	)
 	return i, err
 }

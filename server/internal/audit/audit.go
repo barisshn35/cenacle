@@ -63,6 +63,8 @@ const (
 	BannerChanged      = "instance.banner_changed"
 	TermsChanged       = "instance.terms_changed"
 	PlaybookChanged    = "playbook.changed"
+	FormChanged        = "form.changed"
+	WorkflowChanged    = "workflow.changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

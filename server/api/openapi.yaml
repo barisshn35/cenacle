@@ -19,6 +19,8 @@ servers:
 tags:
   - name: workspaces
     description: Workspaces, their members and invitations
+  - name: automation
+    description: Workflows, forms and approvals
   - name: auth
     description: Sign-in with Cenacle ID and sessions
   - name: chat
@@ -4230,6 +4232,400 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/forms:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [automation]
+      operationId: listForms
+      summary: Forms of a workspace
+      responses:
+        '200':
+          description: Forms.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [forms]
+                properties:
+                  forms:
+                    type: array
+                    items: { $ref: '#/components/schemas/Form' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [automation]
+      operationId: createForm
+      summary: Create a form (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FormInput' }
+      responses:
+        '201':
+          description: The form.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Form' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/forms/{form_id}:
+    parameters:
+      - { name: form_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [automation]
+      operationId: updateForm
+      summary: Change a form (submissions keep their answers)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FormInput' }
+      responses:
+        '200':
+          description: The form.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Form' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [automation]
+      operationId: archiveForm
+      summary: Archive a form (its submissions stay)
+      responses:
+        '204': { description: Archived. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/forms/{form_id}/submissions:
+    parameters:
+      - { name: form_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [automation]
+      operationId: listFormSubmissions
+      summary: A form's submissions, newest first (owners and admins)
+      parameters:
+        - { name: before, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Submissions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [submissions, has_more]
+                properties:
+                  submissions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Submission' }
+                  has_more: { type: boolean }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [automation]
+      operationId: submitForm
+      summary: Fill in a form; the answers are posted in a channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id, values]
+              properties:
+                channel_id: { type: string, format: uuid }
+                values: { $ref: '#/components/schemas/FormValues' }
+      responses:
+        '201':
+          description: The message with the answers.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/workflows:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [automation]
+      operationId: listWorkflows
+      summary: Workflows of a workspace (owners and admins)
+      responses:
+        '200':
+          description: Workflows.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [workflows]
+                properties:
+                  workflows:
+                    type: array
+                    items: { $ref: '#/components/schemas/Workflow' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [automation]
+      operationId: createWorkflow
+      summary: Create a workflow (owners and admins)
+      description: A webhook workflow's address is in `webhook_url`, shown only here and when rotated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WorkflowInput' }
+      responses:
+        '201':
+          description: The workflow.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/workflows/{workflow_id}:
+    parameters:
+      - { name: workflow_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [automation]
+      operationId: updateWorkflow
+      summary: Change a workflow (runs already started keep their steps)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WorkflowInput' }
+      responses:
+        '200':
+          description: The workflow.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [automation]
+      operationId: archiveWorkflow
+      summary: Archive a workflow (runs in progress finish)
+      responses:
+        '204': { description: Archived. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workflows/{workflow_id}/webhook:
+    parameters:
+      - { name: workflow_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [automation]
+      operationId: rotateWorkflowWebhook
+      summary: Give a webhook workflow a new address (the old one stops working)
+      responses:
+        '200':
+          description: The workflow with its new address.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workflow' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workflows/{workflow_id}/runs:
+    parameters:
+      - { name: workflow_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [automation]
+      operationId: listWorkflowRuns
+      summary: Recent runs of a workflow (owners and admins)
+      responses:
+        '200':
+          description: Runs, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runs]
+                properties:
+                  runs:
+                    type: array
+                    items: { $ref: '#/components/schemas/WorkflowRun' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [automation]
+      operationId: startWorkflow
+      summary: Start a manual workflow in a channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: The run; `task` is the form the starter fills in first, if any.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [run]
+                properties:
+                  run: { $ref: '#/components/schemas/WorkflowRun' }
+                  task: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/shortcuts:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [automation]
+      operationId: listShortcuts
+      summary: Workflows and forms people can start in a channel
+      responses:
+        '200':
+          description: Shortcuts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [workflows, forms]
+                properties:
+                  workflows:
+                    type: array
+                    items: { $ref: '#/components/schemas/WorkflowShortcut' }
+                  forms:
+                    type: array
+                    items: { $ref: '#/components/schemas/Form' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workflow-hooks/{token}:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [automation]
+      operationId: triggerWorkflowWebhook
+      summary: Start a webhook workflow
+      description: |
+        No session: the URL is the secret. The JSON object's top-level fields are the
+        workflow's `{{webhook.<field>}}` variables (strings, numbers and booleans).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '202': { description: Started. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/tasks:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [automation]
+      operationId: listMyTasks
+      summary: Forms and approvals waiting for me
+      responses:
+        '200':
+          description: Open tasks, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tasks]
+                properties:
+                  tasks:
+                    type: array
+                    items: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/tasks/{task_id}:
+    parameters:
+      - { name: task_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [automation]
+      operationId: getTask
+      summary: A task (for its form, the form's fields)
+      responses:
+        '200':
+          description: The task.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/tasks/{task_id}/submit:
+    parameters:
+      - { name: task_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [automation]
+      operationId: submitTask
+      summary: Fill in a workflow's form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [values]
+              properties:
+                values: { $ref: '#/components/schemas/FormValues' }
+      responses:
+        '200':
+          description: The task, done.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/tasks/{task_id}/decide:
+    parameters:
+      - { name: task_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [automation]
+      operationId: decideTask
+      summary: Approve or reject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approve]
+              properties:
+                approve: { type: boolean }
+                comment: { type: string, maxLength: 1000 }
+      responses:
+        '200':
+          description: The task, decided.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
 security:
   - cookie: []
   - bearer: []
@@ -4250,6 +4646,174 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    FormField:
+      type: object
+      required: [id, label, kind, required]
+      properties:
+        id: { type: string, pattern: '^[a-z0-9_]{1,32}$', description: 'Used in workflows as {{form.<id>}}.' }
+        label: { type: string, minLength: 1, maxLength: 200 }
+        kind:
+          type: string
+          enum: [text, textarea, number, select, multiselect, date, checkbox, person]
+        required: { type: boolean }
+        options:
+          type: array
+          maxItems: 50
+          items: { type: string, minLength: 1, maxLength: 100 }
+        help: { type: string, maxLength: 300 }
+    FormInput:
+      type: object
+      required: [name, fields]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 1000 }
+        fields:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items: { $ref: '#/components/schemas/FormField' }
+    Form:
+      type: object
+      required: [id, name, description, fields, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        fields:
+          type: array
+          items: { $ref: '#/components/schemas/FormField' }
+        updated_at: { type: string, format: date-time }
+    FormValues:
+      type: object
+      description: 'Answers by field id: text, a number as text, YYYY-MM-DD, "true"/"false", a user id, or a list for multiselect.'
+      additionalProperties:
+        oneOf:
+          - { type: string, maxLength: 4000 }
+          - { type: array, items: { type: string, maxLength: 100 } }
+    FormAnswer:
+      type: object
+      required: [id, label, kind, value]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        kind: { type: string }
+        value: { type: string, description: 'As shown: options joined with commas, a person by name.' }
+    Submission:
+      type: object
+      required: [id, form_name, answers, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        form_id: { type: string, format: uuid, nullable: true }
+        form_name: { type: string }
+        user: { $ref: '#/components/schemas/Author' }
+        answers:
+          type: array
+          items: { $ref: '#/components/schemas/FormAnswer' }
+        created_at: { type: string, format: date-time }
+    WorkflowSchedule:
+      type: object
+      required: [every, time, time_zone]
+      properties:
+        every: { type: string, enum: [day, weekday, week] }
+        weekday: { type: integer, minimum: 0, maximum: 6, description: '0 is Sunday; for every week.' }
+        time: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        time_zone: { type: string, maxLength: 64 }
+    WorkflowTrigger:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [manual, member_joined, reaction, keyword, schedule, webhook]
+        channel_id: { type: string, format: uuid, nullable: true }
+        emoji: { type: string, maxLength: 64 }
+        keyword: { type: string, maxLength: 100 }
+        schedule: { $ref: '#/components/schemas/WorkflowSchedule' }
+    WorkflowStep:
+      type: object
+      required: [id, kind]
+      properties:
+        id: { type: string, pattern: '^[a-z0-9_]{1,32}$' }
+        kind:
+          type: string
+          enum: [message, dm, form, approval, delay, http]
+        channel_id: { type: string, format: uuid, nullable: true, description: 'message: where; empty: the trigger''s channel.' }
+        to: { type: string, nullable: true, description: 'dm: a user id; empty: the person who started the run.' }
+        text: { type: string, maxLength: 4000 }
+        form_id: { type: string, format: uuid, nullable: true }
+        approvers:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uuid }
+        minutes: { type: integer, minimum: 1, maximum: 10080 }
+        url: { type: string, maxLength: 2048 }
+    WorkflowInput:
+      type: object
+      required: [name, trigger, steps]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 1000 }
+        enabled: { type: boolean, default: true }
+        trigger: { $ref: '#/components/schemas/WorkflowTrigger' }
+        steps:
+          type: array
+          minItems: 1
+          maxItems: 25
+          items: { $ref: '#/components/schemas/WorkflowStep' }
+    Workflow:
+      type: object
+      required: [id, name, description, enabled, trigger, steps, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        enabled: { type: boolean }
+        trigger: { $ref: '#/components/schemas/WorkflowTrigger' }
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/WorkflowStep' }
+        next_run_at: { type: string, format: date-time, nullable: true }
+        webhook_url: { type: string, description: 'Only when created or rotated.' }
+        secret: { type: string, description: 'Signs its outgoing requests; only when created.' }
+        updated_at: { type: string, format: date-time }
+    WorkflowShortcut:
+      type: object
+      required: [id, name, description]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+    WorkflowRun:
+      type: object
+      required: [id, workflow_name, status, step, steps, error, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        workflow_id: { type: string, format: uuid, nullable: true }
+        workflow_name: { type: string }
+        status: { type: string, enum: [running, waiting, done, failed, cancelled] }
+        step: { type: integer, description: 'Steps done so far.' }
+        steps: { type: integer }
+        error: { type: string }
+        trigger_user: { $ref: '#/components/schemas/Author' }
+        channel_id: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time, nullable: true }
+    Task:
+      type: object
+      required: [id, kind, title, status, assignees, comment, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [form, approval] }
+        title: { type: string }
+        status: { type: string, enum: [open, done, approved, rejected, cancelled] }
+        assignees:
+          type: array
+          items: { type: string, format: uuid }
+        form: { $ref: '#/components/schemas/Form' }
+        done_by: { $ref: '#/components/schemas/Author' }
+        done_at: { type: string, format: date-time, nullable: true }
+        comment: { type: string }
+        created_at: { type: string, format: date-time }
     LinkPreview:
       type: object
       required: [url, title, description, site_name, image_url]
@@ -5217,6 +5781,8 @@ components:
         forward: { $ref: '#/components/schemas/ForwardInfo' }
         sticker: { $ref: '#/components/schemas/Sticker' }
         burn: { $ref: '#/components/schemas/BurnInfo' }
+        task: { $ref: '#/components/schemas/Task' }
+        submission: { $ref: '#/components/schemas/Submission' }
         broadcast:
           type: array
           description: 'Mentions of many: channel (also @everyone), here, or role:owner / role:admin.'

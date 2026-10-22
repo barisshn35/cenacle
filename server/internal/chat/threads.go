@@ -151,6 +151,7 @@ func (h *Handlers) ListReplies(w http.ResponseWriter, r *http.Request, channelID
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
+			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -452,6 +453,7 @@ func (h *Handlers) ListPins(w http.ResponseWriter, r *http.Request, channelID op
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
+			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {
@@ -470,6 +472,7 @@ func messageOf(m store.GetMessagesByIDsRow) api.Message {
 		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 		Title: m.Title, Tags: m.Tags,
 		LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
+		TaskID: m.TaskID, SubmissionID: m.SubmissionID,
 	}, m.AuthorName, m.AuthorIsBot)
 }
 
@@ -754,6 +757,7 @@ func (h *Handlers) ListUnreads(w http.ResponseWriter, r *http.Request, params ap
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
+			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {

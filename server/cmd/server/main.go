@@ -237,6 +237,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			DB: pool, Queries: queries, Ephemeral: ephemeral, AdminEmail: cfg.AdminEmail, Log: log,
 		},
 	}
+	deps.Workflows = &chat.WorkflowRunner{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	if cfg.LinkPreviews {
 		// Anyone can post a link: no allow list, https only.
 		deps.Links = &chat.LinkFetcher{

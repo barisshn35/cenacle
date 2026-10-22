@@ -153,6 +153,7 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 			RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
+			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -288,7 +289,17 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		if err != nil {
 			return err
 		}
-		return flagMessage(r.Context(), q, c, out.Id, flags)
+		if err := flagMessage(r.Context(), q, c, out.Id, flags); err != nil {
+			return err
+		}
+		if extra.burn.Valid || body == "" {
+			return nil
+		}
+		lower := strings.ToLower(body)
+		return triggerWorkflows(r.Context(), q, TriggerKeyword, c, p.User,
+			func(t api.WorkflowTrigger) bool {
+				return t.Keyword != nil && strings.Contains(lower, strings.ToLower(*t.Keyword))
+			}, runVars{"trigger.message": body})
 	})
 	if errors.Is(err, errFilesUnavailable) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: CodeFilesUnavailable,
@@ -330,7 +341,7 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 		ChannelID: c.ID, AuthorID: author.ID, Body: body, Nonce: nonce, Attachments: rawAttachments,
 		HasFiles: len(files) > 0, RootID: reply.root.ID, AlsoInChannel: reply.isReply() && reply.also,
 		Title: extra.title, Tags: extra.tags, LinkUrl: extra.link, Forward: extra.forward,
-		StickerID: extra.sticker, BurnSeconds: extra.burn,
+		StickerID: extra.sticker, BurnSeconds: extra.burn, TaskID: extra.task, SubmissionID: extra.submission,
 	})
 	if isNoRows(err) {
 		msg, err = q.GetMessageByNonce(ctx, store.GetMessageByNonceParams{AuthorID: author.ID, Nonce: nonce})
@@ -449,6 +460,12 @@ func messageAPI(m store.Message, authorName string, authorIsBot bool) api.Messag
 	}
 	if b := broadcasts(m.Body); len(b) > 0 {
 		out.Broadcast = &b
+	}
+	if m.TaskID.Valid {
+		out.Task = &api.Task{Id: uuid(m.TaskID)}
+	}
+	if m.SubmissionID.Valid {
+		out.Submission = &api.Submission{Id: uuid(m.SubmissionID)}
 	}
 	if len(m.Tags) > 0 {
 		out.Tags = &m.Tags

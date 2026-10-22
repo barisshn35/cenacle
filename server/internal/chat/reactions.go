@@ -7,6 +7,7 @@ import (
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
+	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
@@ -94,7 +95,15 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 			tooMany = true
 			return errRollback
 		}
-		return emit(r.Context(), q, events.ReactionAdded, ev)
+		if err := emit(r.Context(), q, events.ReactionAdded, ev); err != nil {
+			return err
+		}
+		if m.BurnSeconds.Valid {
+			return nil
+		}
+		return triggerWorkflows(r.Context(), q, TriggerReaction, c, p.User,
+			func(t api.WorkflowTrigger) bool { return t.Emoji != nil && *t.Emoji == emoji },
+			runVars{"trigger.emoji": emoji, "trigger.message": m.Body})
 	})
 	if tooMany {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: CodeTooManyReactions,

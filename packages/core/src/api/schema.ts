@@ -2662,10 +2662,420 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/forms': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Forms of a workspace */
+    get: operations['listForms'];
+    put?: never;
+    /** Create a form (owners and admins) */
+    post: operations['createForm'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/forms/{form_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Change a form (submissions keep their answers) */
+    put: operations['updateForm'];
+    post?: never;
+    /** Archive a form (its submissions stay) */
+    delete: operations['archiveForm'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/forms/{form_id}/submissions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    /** A form's submissions, newest first (owners and admins) */
+    get: operations['listFormSubmissions'];
+    put?: never;
+    /** Fill in a form; the answers are posted in a channel */
+    post: operations['submitForm'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/workflows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Workflows of a workspace (owners and admins) */
+    get: operations['listWorkflows'];
+    put?: never;
+    /**
+     * Create a workflow (owners and admins)
+     * @description A webhook workflow's address is in `webhook_url`, shown only here and when rotated.
+     */
+    post: operations['createWorkflow'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workflows/{workflow_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Change a workflow (runs already started keep their steps) */
+    put: operations['updateWorkflow'];
+    post?: never;
+    /** Archive a workflow (runs in progress finish) */
+    delete: operations['archiveWorkflow'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workflows/{workflow_id}/webhook': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Give a webhook workflow a new address (the old one stops working) */
+    post: operations['rotateWorkflowWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workflows/{workflow_id}/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    /** Recent runs of a workflow (owners and admins) */
+    get: operations['listWorkflowRuns'];
+    put?: never;
+    /** Start a manual workflow in a channel */
+    post: operations['startWorkflow'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/shortcuts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** Workflows and forms people can start in a channel */
+    get: operations['listShortcuts'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workflow-hooks/{token}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start a webhook workflow
+     * @description No session: the URL is the secret. The JSON object's top-level fields are the
+     *     workflow's `{{webhook.<field>}}` variables (strings, numbers and booleans).
+     */
+    post: operations['triggerWorkflowWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/tasks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Forms and approvals waiting for me */
+    get: operations['listMyTasks'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/tasks/{task_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    /** A task (for its form, the form's fields) */
+    get: operations['getTask'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/tasks/{task_id}/submit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Fill in a workflow's form */
+    post: operations['submitTask'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/tasks/{task_id}/decide': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Approve or reject */
+    post: operations['decideTask'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    FormField: {
+      /** @description Used in workflows as {{form.<id>}}. */
+      id: string;
+      label: string;
+      /** @enum {string} */
+      kind:
+        'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'date' | 'checkbox' | 'person';
+      required: boolean;
+      options?: string[];
+      help?: string;
+    };
+    FormInput: {
+      name: string;
+      description?: string;
+      fields: components['schemas']['FormField'][];
+    };
+    Form: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      description: string;
+      fields: components['schemas']['FormField'][];
+      /** Format: date-time */
+      updated_at: string;
+    };
+    /** @description Answers by field id: text, a number as text, YYYY-MM-DD, "true"/"false", a user id, or a list for multiselect. */
+    FormValues: {
+      [key: string]: string | string[];
+    };
+    FormAnswer: {
+      id: string;
+      label: string;
+      kind: string;
+      /** @description As shown: options joined with commas, a person by name. */
+      value: string;
+    };
+    Submission: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      form_id?: string | null;
+      form_name: string;
+      user?: components['schemas']['Author'];
+      answers: components['schemas']['FormAnswer'][];
+      /** Format: date-time */
+      created_at: string;
+    };
+    WorkflowSchedule: {
+      /** @enum {string} */
+      every: 'day' | 'weekday' | 'week';
+      /** @description 0 is Sunday; for every week. */
+      weekday?: number;
+      time: string;
+      time_zone: string;
+    };
+    WorkflowTrigger: {
+      /** @enum {string} */
+      kind: 'manual' | 'member_joined' | 'reaction' | 'keyword' | 'schedule' | 'webhook';
+      /** Format: uuid */
+      channel_id?: string | null;
+      emoji?: string;
+      keyword?: string;
+      schedule?: components['schemas']['WorkflowSchedule'];
+    };
+    WorkflowStep: {
+      id: string;
+      /** @enum {string} */
+      kind: 'message' | 'dm' | 'form' | 'approval' | 'delay' | 'http';
+      /**
+       * Format: uuid
+       * @description message: where; empty: the trigger's channel.
+       */
+      channel_id?: string | null;
+      /** @description dm: a user id; empty: the person who started the run. */
+      to?: string | null;
+      text?: string;
+      /** Format: uuid */
+      form_id?: string | null;
+      approvers?: string[];
+      minutes?: number;
+      url?: string;
+    };
+    WorkflowInput: {
+      name: string;
+      description?: string;
+      /** @default true */
+      enabled: boolean;
+      trigger: components['schemas']['WorkflowTrigger'];
+      steps: components['schemas']['WorkflowStep'][];
+    };
+    Workflow: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      description: string;
+      enabled: boolean;
+      trigger: components['schemas']['WorkflowTrigger'];
+      steps: components['schemas']['WorkflowStep'][];
+      /** Format: date-time */
+      next_run_at?: string | null;
+      /** @description Only when created or rotated. */
+      webhook_url?: string;
+      /** @description Signs its outgoing requests; only when created. */
+      secret?: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    WorkflowShortcut: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      description: string;
+    };
+    WorkflowRun: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      workflow_id?: string | null;
+      workflow_name: string;
+      /** @enum {string} */
+      status: 'running' | 'waiting' | 'done' | 'failed' | 'cancelled';
+      /** @description Steps done so far. */
+      step: number;
+      steps: number;
+      error: string;
+      trigger_user?: components['schemas']['Author'];
+      /** Format: uuid */
+      channel_id?: string | null;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      finished_at?: string | null;
+    };
+    Task: {
+      /** Format: uuid */
+      id: string;
+      /** @enum {string} */
+      kind: 'form' | 'approval';
+      title: string;
+      /** @enum {string} */
+      status: 'open' | 'done' | 'approved' | 'rejected' | 'cancelled';
+      assignees: string[];
+      form?: components['schemas']['Form'];
+      done_by?: components['schemas']['Author'];
+      /** Format: date-time */
+      done_at?: string | null;
+      comment: string;
+      /** Format: date-time */
+      created_at: string;
+    };
     LinkPreview: {
       url: string;
       title: string;
@@ -3485,6 +3895,8 @@ export interface components {
       forward?: components['schemas']['ForwardInfo'];
       sticker?: components['schemas']['Sticker'];
       burn?: components['schemas']['BurnInfo'];
+      task?: components['schemas']['Task'];
+      submission?: components['schemas']['Submission'];
       /** @description Mentions of many: channel (also @everyone), here, or role:owner / role:admin. */
       broadcast?: string[];
     };
@@ -8493,6 +8905,550 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  listForms: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Forms. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            forms: components['schemas']['Form'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createForm: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FormInput'];
+      };
+    };
+    responses: {
+      /** @description The form. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Form'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  updateForm: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FormInput'];
+      };
+    };
+    responses: {
+      /** @description The form. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Form'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  archiveForm: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Archived. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listFormSubmissions: {
+    parameters: {
+      query?: {
+        before?: string;
+      };
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Submissions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            submissions: components['schemas']['Submission'][];
+            has_more: boolean;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  submitForm: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        form_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          channel_id: string;
+          values: components['schemas']['FormValues'];
+        };
+      };
+    };
+    responses: {
+      /** @description The message with the answers. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listWorkflows: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflows. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            workflows: components['schemas']['Workflow'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WorkflowInput'];
+      };
+    };
+    responses: {
+      /** @description The workflow. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workflow'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  updateWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WorkflowInput'];
+      };
+    };
+    responses: {
+      /** @description The workflow. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workflow'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  archiveWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Archived. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  rotateWorkflowWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The workflow with its new address. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workflow'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listWorkflowRuns: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Runs, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            runs: components['schemas']['WorkflowRun'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  startWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workflow_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          channel_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The run; `task` is the form the starter fills in first, if any. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            run: components['schemas']['WorkflowRun'];
+            task?: components['schemas']['Task'];
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listShortcuts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Shortcuts. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            workflows: components['schemas']['WorkflowShortcut'][];
+            forms: components['schemas']['Form'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  triggerWorkflowWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Started. */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      429: components['responses']['Problem'];
+    };
+  };
+  listMyTasks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Open tasks, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            tasks: components['schemas']['Task'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getTask: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The task. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Task'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  submitTask: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          values: components['schemas']['FormValues'];
+        };
+      };
+    };
+    responses: {
+      /** @description The task, done. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Task'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  decideTask: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          approve: boolean;
+          comment?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The task, decided. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Task'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
     };
   };
 }
