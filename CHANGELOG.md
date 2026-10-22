@@ -8,6 +8,18 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Collaboration.
+
+### Added
+
+- Channel tabs next to the messages: canvases, lists and links, added by people who can
+  post (ADR 0027).
+- Canvases: pages of Markdown written together, one editor at a time, with a warning
+  instead of overwriting someone's save.
+- Lists with typed columns (text, number, choice, status, person, date, checkbox), as a
+  table or as a board; cards move by dragging or with "Move to".
+- Task lists, and a **Tasks** view with your approvals, forms and the rows assigned to you.
+
 ## [0.21.0] - 2026-10-22
 
 Automation.

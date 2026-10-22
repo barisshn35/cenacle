@@ -69,6 +69,10 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Workflow             | Workflow                        | İş akışı                              | `automation.admin.workflows`              | A trigger and steps, without code             |
 | Form                 | Form                            | Form                                  | `automation.admin.forms`                  | Same questions every time                     |
 | Approve / Reject     | Approve / Reject                | Onayla / Reddet                       | `automation.card.approve`                 | One of the approvers decides                  |
+| Tab                  | Tab                             | Sekme                                 | `collab.tabs.label`                       | A canvas, list or link of a channel           |
+| Canvas               | Canvas                          | Tuval                                 | `collab.tabs.newCanvas`                   | A page of Markdown; one editor at a time      |
+| List / Board         | List / Board                    | Liste / Pano                          | `collab.list.board`                       | A board is a list grouped by a column         |
+| Tasks                | Tasks                           | Görevler                              | `home.tasks`                              | Approvals, forms and rows assigned to me      |
 | Interface texts      | Interface texts                 | Arayüz metinleri                      | `settings.tabs.texts`                     | Administrators replace a few texts            |
 
 ## Rules

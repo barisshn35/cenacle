@@ -39,6 +39,13 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.22.0
+
+- Migration `00022_collaboration` adds channel tabs, canvases, lists and their rows. Nothing
+  to configure.
+- Rolling back to 0.21 needs `migrate down` once; tabs, canvases and lists are removed with
+  it.
+
 ### 0.21.0
 
 - Migration `00021_automation` adds forms, form submissions, workflows, workflow runs and
