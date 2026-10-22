@@ -38,8 +38,10 @@ type Presence struct {
 	Valkey     events.ValkeyClient
 	Ephemeral  *events.Ephemeral
 	Workspaces func(ctx context.Context, user pgtype.UUID) ([]string, error)
-	Log        *slog.Logger
-	now        func() time.Time
+	// Offline is told when a user goes offline (their "last seen"); optional.
+	Offline func(ctx context.Context, user pgtype.UUID)
+	Log     *slog.Logger
+	now     func() time.Time
 }
 
 const (
@@ -148,6 +150,9 @@ func (p *Presence) maybeOffline(ctx context.Context, vc valkey.Client, user pgty
 		return
 	}
 	if removed, err := vc.Do(ctx, vc.B().Zrem().Key(keyOnline).Member(u).Build()).AsInt64(); err == nil && removed == 1 {
+		if p.Offline != nil {
+			p.Offline(ctx, user)
+		}
 		p.publish(ctx, user, StatusOffline)
 	}
 }

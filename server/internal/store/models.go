@@ -178,6 +178,14 @@ type MessageReaction struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+type Picture struct {
+	ID          pgtype.UUID `json:"id"`
+	ContentType string      `json:"content_type"`
+	Data        []byte      `json:"data"`
+	Still       []byte      `json:"still"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
 type ScheduledMessage struct {
 	ID        pgtype.UUID `json:"id"`
 	Kind      string      `json:"kind"`
@@ -218,20 +226,31 @@ type SlashCommand struct {
 }
 
 type User struct {
-	ID            pgtype.UUID        `json:"id"`
-	AuthService   string             `json:"auth_service"`
-	AuthData      string             `json:"auth_data"`
-	Email         string             `json:"email"`
-	EmailVerified bool               `json:"email_verified"`
-	DisplayName   string             `json:"display_name"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
-	LastLoginAt   pgtype.Timestamptz `json:"last_login_at"`
-	IsAdmin       bool               `json:"is_admin"`
-	IsBot         bool               `json:"is_bot"`
-	Username      pgtype.Text        `json:"username"`
-	DirectoryRole pgtype.Text        `json:"directory_role"`
-	DeactivatedAt pgtype.Timestamptz `json:"deactivated_at"`
+	ID                    pgtype.UUID        `json:"id"`
+	AuthService           string             `json:"auth_service"`
+	AuthData              string             `json:"auth_data"`
+	Email                 string             `json:"email"`
+	EmailVerified         bool               `json:"email_verified"`
+	DisplayName           string             `json:"display_name"`
+	CreatedAt             time.Time          `json:"created_at"`
+	UpdatedAt             time.Time          `json:"updated_at"`
+	LastLoginAt           pgtype.Timestamptz `json:"last_login_at"`
+	IsAdmin               bool               `json:"is_admin"`
+	IsBot                 bool               `json:"is_bot"`
+	Username              pgtype.Text        `json:"username"`
+	DirectoryRole         pgtype.Text        `json:"directory_role"`
+	DeactivatedAt         pgtype.Timestamptz `json:"deactivated_at"`
+	AvatarID              pgtype.UUID        `json:"avatar_id"`
+	AvatarFromDirectory   bool               `json:"avatar_from_directory"`
+	DirectoryPhoto        string             `json:"directory_photo"`
+	Timezone              string             `json:"timezone"`
+	ShowLastSeen          bool               `json:"show_last_seen"`
+	LastSeenAt            pgtype.Timestamptz `json:"last_seen_at"`
+	StatusEmoji           string             `json:"status_emoji"`
+	StatusText            string             `json:"status_text"`
+	StatusExpiresAt       pgtype.Timestamptz `json:"status_expires_at"`
+	RecentStatuses        []byte             `json:"recent_statuses"`
+	UsernameFromDirectory bool               `json:"username_from_directory"`
 }
 
 type UserGroup struct {
@@ -240,10 +259,12 @@ type UserGroup struct {
 }
 
 type Workspace struct {
-	ID        pgtype.UUID `json:"id"`
-	Name      string      `json:"name"`
-	IsDefault bool        `json:"is_default"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID          pgtype.UUID `json:"id"`
+	Name        string      `json:"name"`
+	IsDefault   bool        `json:"is_default"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Description string      `json:"description"`
+	IconID      pgtype.UUID `json:"icon_id"`
 }
 
 type WorkspaceGroupMapping struct {

@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -36,7 +37,8 @@ type WorkspaceEvent struct {
 }
 
 func workspaceAPI(w store.Workspace, role string) api.Workspace {
-	return api.Workspace{Id: uuid(w.ID), Name: w.Name, IsDefault: w.IsDefault, Role: api.WorkspaceRole(role)}
+	return api.Workspace{Id: uuid(w.ID), Name: w.Name, Description: w.Description,
+		IconUrl: pictureURL(w.IconID, false), IsDefault: w.IsDefault, Role: api.WorkspaceRole(role)}
 }
 
 // ListWorkspaces implements api.ServerInterface.
@@ -131,7 +133,8 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 		return
 	}
 	var in struct {
-		Name string `json:"name"`
+		Name        *string `json:"name"`
+		Description *string `json:"description"`
 	}
 	if !decode(w, r, &in) {
 		return
@@ -140,18 +143,36 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 	if !ok {
 		return
 	}
-	name, problem := cleanName(in.Name)
-	if problem != "" {
-		badRequest(w, r, "The workspace name is empty, longer than 80 characters or contains invalid characters.")
+	params := store.RenameWorkspaceParams{ID: ws.ID}
+	if in.Name != nil {
+		name, problem := cleanName(*in.Name)
+		if problem != "" {
+			badRequest(w, r, "The workspace name is empty, longer than 80 characters or contains invalid characters.")
+			return
+		}
+		params.Name = pgtype.Text{String: name, Valid: true}
+	}
+	if in.Description != nil {
+		d := strings.TrimSpace(*in.Description)
+		if len([]rune(d)) > 500 {
+			badRequest(w, r, "The description is longer than 500 characters.")
+			return
+		}
+		params.Description = pgtype.Text{String: d, Valid: true}
+	}
+	if !params.Name.Valid && !params.Description.Valid {
+		badRequest(w, r, "Change the name, the description or both.")
 		return
 	}
-	ws, err := h.Queries.RenameWorkspace(r.Context(), store.RenameWorkspaceParams{ID: ws.ID, Name: name})
+	ws, err := h.Queries.RenameWorkspace(r.Context(), params)
 	if err != nil {
 		h.unavailable(w, r, "rename workspace", err)
 		return
 	}
 	h.publish(r.Context(), events.WorkspaceUpdated, WorkspaceEvent{WorkspaceID: uuid(ws.ID).String()})
-	h.record(r, ws.ID, audit.WorkspaceRenamed, "workspace", uuid(ws.ID).String(), map[string]any{"name": ws.Name})
+	if in.Name != nil {
+		h.record(r, ws.ID, audit.WorkspaceRenamed, "workspace", uuid(ws.ID).String(), map[string]any{"name": ws.Name})
+	}
 	httpx.WriteJSON(w, http.StatusOK, workspaceAPI(ws, role))
 }
 

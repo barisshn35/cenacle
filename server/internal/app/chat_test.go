@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/coder/websocket"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -101,7 +103,8 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	go hub.Run(ctx)
 	go hub.RunEphemeral(ctx)
 	go (&events.Relay{Pool: sh.pool, Log: eventLog, Logger: log, Idle: 100 * time.Millisecond}).Run(ctx)
-	presence := &realtime.Presence{Valkey: sh.valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(store.New(sh.pool)), Log: log}
+	presence := &realtime.Presence{Valkey: sh.valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(store.New(sh.pool)), Log: log,
+		Offline: func(ctx context.Context, user pgtype.UUID) { _ = store.New(sh.pool).SetLastSeen(ctx, user) }}
 
 	var router http.Handler
 	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -135,6 +138,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 		Chat: &chat.Handlers{
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
 			Audit: auditLog, PublicURL: public.String(), Egress: egressClient, Files: files,
+			AccountURL:        "http://id.test/account",
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
 		},
 		Realtime: &realtime.Handler{

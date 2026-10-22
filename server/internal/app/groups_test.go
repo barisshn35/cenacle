@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
@@ -193,13 +194,19 @@ func fakeFeed(t *testing.T, users []map[string]any) (*httptest.Server, *int) {
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, secret, ok := r.BasicAuth()
-		if !ok || id != "cenacle-chat" || secret != "feed-secret" || r.URL.Path != "/directory/v1/changes" {
+		if !ok || id != "cenacle-chat" || secret != "feed-secret" ||
+			(r.URL.Path != "/directory/v1/changes" && !strings.HasPrefix(r.URL.Path, "/directory/v1/photos/")) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		mu.Lock()
 		calls++
 		mu.Unlock()
+		if strings.HasPrefix(r.URL.Path, "/directory/v1/photos/") {
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write(pngImage(t, 300, 300))
+			return
+		}
 		page := map[string]any{"users": users, "next": "c1", "more": false}
 		if r.URL.Query().Get("after") == "c1" {
 			page = map[string]any{"users": []any{}, "next": "c1", "more": false}
@@ -219,7 +226,8 @@ func TestDirectoryFeed(t *testing.T) {
 	gone := s.user("sub-gone", "Gone")
 	srv, _ := fakeFeed(t, []map[string]any{
 		{"sub": "sub-bob", "name": "Bob Builder", "email": "bob@example.com", "email_verified": true,
-			"preferred_username": "bob", "groups": []string{"engineering"}, "cenacle_role": "", "disabled": false},
+			"preferred_username": "bob", "groups": []string{"engineering"}, "cenacle_role": "", "disabled": false,
+			"picture": "0f1e2d"},
 		{"sub": "sub-gone", "name": "Gone", "disabled": true},
 		{"sub": "sub-never-signed-in", "name": "Nobody", "disabled": false},
 	})
@@ -241,6 +249,10 @@ func TestDirectoryFeed(t *testing.T) {
 	s.call(http.MethodGet, "/api/session", bob, nil, &session)
 	if session.User.DisplayName != "Bob Builder" || len(s.workspaces(bob)) != 2 {
 		t.Errorf("bob = %+v, %d workspaces", session.User, len(s.workspaces(bob)))
+	}
+	// The directory's photo is Bob's picture.
+	if me := s.me(bob); me.AvatarUrl == nil || me.Username != "bob" {
+		t.Errorf("bob's profile = %+v", me)
 	}
 	// Gone: deactivated, signed out everywhere.
 	if res := s.call(http.MethodGet, "/api/session", gone, nil, nil); res.StatusCode != http.StatusUnauthorized {

@@ -22,6 +22,9 @@ type Querier interface {
 	AddMentions(ctx context.Context, arg AddMentionsParams) error
 	AddReaction(ctx context.Context, arg AddReactionParams) (int64, error)
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
+	// AssignUsername gives someone without a @username one made from their
+	// address or name (with a random suffix when it is taken).
+	AssignUsername(ctx context.Context, id pgtype.UUID) error
 	// AttachFiles gives a new message the uploader's ready files of the channel
 	// that no message carries yet.
 	AttachFiles(ctx context.Context, arg AttachFilesParams) (int64, error)
@@ -39,6 +42,9 @@ type Querier interface {
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
+	ClearCustomStatus(ctx context.Context, id pgtype.UUID) error
+	// ClearExpiredStatuses empties custom statuses whose time is up.
+	ClearExpiredStatuses(ctx context.Context) ([]pgtype.UUID, error)
 	CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID) (int64, error)
 	CountReactionKinds(ctx context.Context, messageID pgtype.UUID) (int32, error)
 	// CountUnsentFiles counts a person's uploads that no message carries yet.
@@ -78,6 +84,7 @@ type Querier interface {
 	// DeleteOutboxEvents removes exactly the events that were relayed: a lower id
 	// that committed later must stay for the next round.
 	DeleteOutboxEvents(ctx context.Context, ids []int64) error
+	DeletePicture(ctx context.Context, id pgtype.UUID) error
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
 	// DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
 	DeleteSessionsByIdpSid(ctx context.Context, arg DeleteSessionsByIdpSidParams) ([]pgtype.UUID, error)
@@ -117,6 +124,7 @@ type Querier interface {
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
 	GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error)
 	GetDefaultWorkspace(ctx context.Context) (Workspace, error)
+	GetDirectoryPhoto(ctx context.Context, id pgtype.UUID) (GetDirectoryPhotoRow, error)
 	GetDirectorySyncState(ctx context.Context) (DirectorySyncState, error)
 	GetFile(ctx context.Context, id pgtype.UUID) (File, error)
 	// GetFileForReader returns a file with the message it belongs to (deleted
@@ -128,6 +136,10 @@ type Querier interface {
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
 	GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error)
 	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
+	GetPicture(ctx context.Context, id pgtype.UUID) (GetPictureRow, error)
+	// GetProfiles reads the profiles of people; an expired custom status reads
+	// as none.
+	GetProfiles(ctx context.Context, ids []pgtype.UUID) ([]GetProfilesRow, error)
 	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByAuth(ctx context.Context, arg GetUserByAuthParams) (User, error)
@@ -144,6 +156,7 @@ type Querier interface {
 	// InsertOutboxEvent records an event and wakes the relay (notifications are
 	// delivered when the transaction commits).
 	InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventParams) error
+	InsertPicture(ctx context.Context, arg InsertPictureParams) (pgtype.UUID, error)
 	// InstanceCounts summarizes the installation (support bundle, status).
 	InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
 	JoinChannelViaGroup(ctx context.Context, arg JoinChannelViaGroupParams) (int64, error)
@@ -235,6 +248,9 @@ type Querier interface {
 	// QueueDeliveries records an event for every enabled subscription of a bot that is a
 	// member of the event's channel and wants this event, except the bot's own messages.
 	QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error)
+	// ReleaseUsername takes a @username from others when the directory gives it
+	// to someone (they get a new one).
+	ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
 	RemoveReaction(ctx context.Context, arg RemoveReactionParams) (int64, error)
 	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) (int64, error)
@@ -265,18 +281,28 @@ type Querier interface {
 	SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error)
 	SetAdmin(ctx context.Context, arg SetAdminParams) error
 	SetAdminByDirectory(ctx context.Context, arg SetAdminByDirectoryParams) error
+	// SetAvatar changes the picture of a person and returns the previous one (to
+	// delete).
+	SetAvatar(ctx context.Context, arg SetAvatarParams) (pgtype.UUID, error)
 	SetBotDescription(ctx context.Context, arg SetBotDescriptionParams) error
 	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
 	SetChannelGroupManaged(ctx context.Context, arg SetChannelGroupManagedParams) error
 	SetChannelMemberRole(ctx context.Context, arg SetChannelMemberRoleParams) (int64, error)
+	// SetCustomStatus sets the custom status and puts it first in the recent
+	// ones (five, without duplicates).
+	SetCustomStatus(ctx context.Context, arg SetCustomStatusParams) error
+	SetDirectoryPhoto(ctx context.Context, arg SetDirectoryPhotoParams) error
+	// SetDirectoryProfile keeps a chosen @username for people without a directory one.
 	SetDirectoryProfile(ctx context.Context, arg SetDirectoryProfileParams) error
 	// SetGuestRoles makes a person a guest wherever they are a member or an
 	// administrator (or takes it back when they are not a guest any more).
 	SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error
+	SetLastSeen(ctx context.Context, id pgtype.UUID) error
 	// SetUserDeactivated deactivates or reactivates a person; it returns whether
 	// the state changed.
 	SetUserDeactivated(ctx context.Context, arg SetUserDeactivatedParams) (pgtype.UUID, error)
+	SetWorkspaceIcon(ctx context.Context, arg SetWorkspaceIconParams) (pgtype.UUID, error)
 	SetWorkspaceMemberRole(ctx context.Context, arg SetWorkspaceMemberRoleParams) error
 	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)
 	TouchBotToken(ctx context.Context, id pgtype.UUID) error
@@ -287,6 +313,7 @@ type Querier interface {
 	UpdateBot(ctx context.Context, arg UpdateBotParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (ChannelCategory, error)
 	UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error)
+	UpdateProfileSettings(ctx context.Context, arg UpdateProfileSettingsParams) error
 	// UpdateUserProfile follows a change of name or address at Cenacle ID.
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
 	// UpsertUserFromIdentity creates the user of an identity on first sign-in and
@@ -296,10 +323,19 @@ type Querier interface {
 	// UseInvite counts one use of a valid invitation; no row when it is not valid.
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
 	UserExists(ctx context.Context, arg UserExistsParams) (bool, error)
+	UsernameTaken(ctx context.Context, arg UsernameTakenParams) (bool, error)
 	UsersInGroup(ctx context.Context, groupName string) ([]User, error)
+	UsersWithoutUsername(ctx context.Context) ([]pgtype.UUID, error)
+	// VisibleProfileIDs keeps the people a viewer may see: themselves, bots,
+	// people of their workspaces (guests: only of their channels) and people of
+	// their channels and conversations.
+	VisibleProfileIDs(ctx context.Context, arg VisibleProfileIDsParams) ([]pgtype.UUID, error)
 	// WorkspaceRolesFromGroups is, per workspace, the strongest role a person's
 	// groups give them there.
 	WorkspaceRolesFromGroups(ctx context.Context, userID pgtype.UUID) ([]WorkspaceRolesFromGroupsRow, error)
+	// WorkspacesSharedWith lists the workspaces of a person (their profile
+	// changes go to everyone there).
+	WorkspacesSharedWith(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
 }
 
 var _ Querier = (*Queries)(nil)

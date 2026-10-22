@@ -642,6 +642,16 @@ type CommandResult struct {
 // CommandResultResponseType ephemeral is shown only to the caller; in_channel was posted as a message.
 type CommandResultResponseType string
 
+// CustomStatus defines model for CustomStatus.
+type CustomStatus struct {
+	// Emoji One emoji, or empty.
+	Emoji string `json:"emoji"`
+
+	// ExpiresAt When it clears itself; null keeps it until cleared.
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	Text      string     `json:"text"`
+}
+
 // Delivery defines model for Delivery.
 type Delivery struct {
 	Attempts      int                `json:"attempts"`
@@ -756,6 +766,39 @@ type MessagePage struct {
 	Messages []Message `json:"messages"`
 }
 
+// MyProfile defines model for MyProfile.
+type MyProfile struct {
+	// AccountUrl Where to change the name (Cenacle ID's account page).
+	AccountUrl string `json:"account_url"`
+
+	// AvatarStillUrl The first frame of an animated picture (for reduced motion).
+	AvatarStillUrl *string `json:"avatar_still_url"`
+	AvatarUrl      *string `json:"avatar_url"`
+
+	// Deactivated Left the organisation; messages stay.
+	Deactivated bool               `json:"deactivated"`
+	DisplayName string             `json:"display_name"`
+	Email       string             `json:"email"`
+	Guest       bool               `json:"guest"`
+	Id          openapi_types.UUID `json:"id"`
+	IsBot       bool               `json:"is_bot"`
+
+	// LastSeenAt When they were last online (null when unknown or hidden by them).
+	LastSeenAt     *time.Time     `json:"last_seen_at"`
+	RecentStatuses []CustomStatus `json:"recent_statuses"`
+	ShowLastSeen   bool           `json:"show_last_seen"`
+	Status         *CustomStatus  `json:"status"`
+
+	// Timezone IANA time zone, '' when unknown.
+	Timezone string `json:"timezone"`
+
+	// Username Shown as @username.
+	Username string `json:"username"`
+
+	// UsernameEditable False when the @username is the directory's sign-in name.
+	UsernameEditable bool `json:"username_editable"`
+}
+
 // NewChannel defines model for NewChannel.
 type NewChannel struct {
 	// IsDefault Make every user, now and later, a member.
@@ -826,6 +869,31 @@ type Problem struct {
 	Status    int     `json:"status"`
 	Title     string  `json:"title"`
 	Type      string  `json:"type"`
+}
+
+// Profile defines model for Profile.
+type Profile struct {
+	// AvatarStillUrl The first frame of an animated picture (for reduced motion).
+	AvatarStillUrl *string `json:"avatar_still_url"`
+	AvatarUrl      *string `json:"avatar_url"`
+
+	// Deactivated Left the organisation; messages stay.
+	Deactivated bool               `json:"deactivated"`
+	DisplayName string             `json:"display_name"`
+	Email       string             `json:"email"`
+	Guest       bool               `json:"guest"`
+	Id          openapi_types.UUID `json:"id"`
+	IsBot       bool               `json:"is_bot"`
+
+	// LastSeenAt When they were last online (null when unknown or hidden by them).
+	LastSeenAt *time.Time    `json:"last_seen_at"`
+	Status     *CustomStatus `json:"status"`
+
+	// Timezone IANA time zone, '' when unknown.
+	Timezone string `json:"timezone"`
+
+	// Username Shown as @username.
+	Username string `json:"username"`
 }
 
 // Reaction defines model for Reaction.
@@ -910,7 +978,11 @@ type WebhookKind string
 
 // Workspace defines model for Workspace.
 type Workspace struct {
-	Id openapi_types.UUID `json:"id"`
+	Description string `json:"description"`
+
+	// IconUrl The workspace's icon, or null (the app shows its initials).
+	IconUrl *string            `json:"icon_url"`
+	Id      openapi_types.UUID `json:"id"`
 
 	// IsDefault Everyone who signs in belongs to the default workspace.
 	IsDefault bool   `json:"is_default"`
@@ -1106,6 +1178,23 @@ type GetFileContentParams struct {
 // PostWebhookJSONBody defines parameters for PostWebhook.
 type PostWebhookJSONBody map[string]interface{}
 
+// UpdateMyProfileJSONBody defines parameters for UpdateMyProfile.
+type UpdateMyProfileJSONBody struct {
+	ShowLastSeen *bool `json:"show_last_seen,omitempty"`
+
+	// Timezone An IANA time zone such as Europe/Istanbul.
+	Timezone *string `json:"timezone,omitempty"`
+
+	// Username Not for accounts whose @username is the directory's.
+	Username *string `json:"username,omitempty"`
+}
+
+// GetPictureParams defines parameters for GetPicture.
+type GetPictureParams struct {
+	// Still The first frame of an animated picture.
+	Still *bool `form:"still,omitempty" json:"still,omitempty"`
+}
+
 // SetPresenceJSONBody defines parameters for SetPresence.
 type SetPresenceJSONBody struct {
 	Status SetPresenceJSONBodyStatus `json:"status"`
@@ -1113,6 +1202,11 @@ type SetPresenceJSONBody struct {
 
 // SetPresenceJSONBodyStatus defines parameters for SetPresence.
 type SetPresenceJSONBodyStatus string
+
+// GetProfilesParams defines parameters for GetProfiles.
+type GetProfilesParams struct {
+	Ids []openapi_types.UUID `form:"ids" json:"ids"`
+}
 
 // EndAllSessionsJSONBody defines parameters for EndAllSessions.
 type EndAllSessionsJSONBody struct {
@@ -1133,7 +1227,8 @@ type CreateWorkspaceJSONBody struct {
 
 // RenameWorkspaceJSONBody defines parameters for RenameWorkspace.
 type RenameWorkspaceJSONBody struct {
-	Name string `json:"name"`
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
 }
 
 // ListWorkspaceAuditParams defines parameters for ListWorkspaceAudit.
@@ -1233,6 +1328,12 @@ type ScheduleMessageJSONRequestBody ScheduleMessageJSONBody
 
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
+
+// UpdateMyProfileJSONRequestBody defines body for UpdateMyProfile for application/json ContentType.
+type UpdateMyProfileJSONRequestBody UpdateMyProfileJSONBody
+
+// SetCustomStatusJSONRequestBody defines body for SetCustomStatus for application/json ContentType.
+type SetCustomStatusJSONRequestBody = CustomStatus
 
 // SetPresenceJSONRequestBody defines body for SetPresence for application/json ContentType.
 type SetPresenceJSONRequestBody SetPresenceJSONBody
@@ -1440,9 +1541,33 @@ type ServerInterface interface {
 	// AcceptInvite Join the workspace of an invitation
 	// (POST /api/invites/{token}/accept)
 	AcceptInvite(w http.ResponseWriter, r *http.Request, token string)
+	// DeleteAvatar Remove your profile picture
+	// (DELETE /api/me/avatar)
+	DeleteAvatar(w http.ResponseWriter, r *http.Request)
+	// SetAvatar Set your profile picture
+	// (PUT /api/me/avatar)
+	SetAvatar(w http.ResponseWriter, r *http.Request)
+	// GetMyProfile Your profile and its settings
+	// (GET /api/me/profile)
+	GetMyProfile(w http.ResponseWriter, r *http.Request)
+	// UpdateMyProfile Change your @username, time zone or who sees when you were last online
+	// (PATCH /api/me/profile)
+	UpdateMyProfile(w http.ResponseWriter, r *http.Request)
+	// ClearCustomStatus Clear your custom status
+	// (DELETE /api/me/status)
+	ClearCustomStatus(w http.ResponseWriter, r *http.Request)
+	// SetCustomStatus Set your custom status
+	// (PUT /api/me/status)
+	SetCustomStatus(w http.ResponseWriter, r *http.Request)
+	// GetPicture A profile picture or workspace icon
+	// (GET /api/pictures/{picture_id})
+	GetPicture(w http.ResponseWriter, r *http.Request, pictureId openapi_types.UUID, params GetPictureParams)
 	// SetPresence Set your own status
 	// (PUT /api/presence)
 	SetPresence(w http.ResponseWriter, r *http.Request)
+	// GetProfiles Profiles of people
+	// (GET /api/profiles)
+	GetProfiles(w http.ResponseWriter, r *http.Request, params GetProfilesParams)
 	// ListScheduled Your scheduled messages and reminders that are still to come
 	// (GET /api/scheduled)
 	ListScheduled(w http.ResponseWriter, r *http.Request)
@@ -1470,7 +1595,7 @@ type ServerInterface interface {
 	// CreateWorkspace Create a workspace (the instance administrator)
 	// (POST /api/workspaces)
 	CreateWorkspace(w http.ResponseWriter, r *http.Request)
-	// RenameWorkspace Rename a workspace (owners and admins)
+	// RenameWorkspace Change a workspace's name or description (owners and admins)
 	// (PATCH /api/workspaces/{workspace_id})
 	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListWorkspaceAudit The workspace's audit log (owners and admins)
@@ -1497,6 +1622,12 @@ type ServerInterface interface {
 	// DeleteWorkspaceGroup Stop giving membership to a directory group
 	// (DELETE /api/workspaces/{workspace_id}/groups/{group})
 	DeleteWorkspaceGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, group string)
+	// DeleteWorkspaceIcon Remove the workspace's icon (owners and admins)
+	// (DELETE /api/workspaces/{workspace_id}/icon)
+	DeleteWorkspaceIcon(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetWorkspaceIcon Set the workspace's icon (owners and admins)
+	// (PUT /api/workspaces/{workspace_id}/icon)
+	SetWorkspaceIcon(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListInvites Invitations that can still be used (owners and admins)
 	// (GET /api/workspaces/{workspace_id}/invites)
 	ListInvites(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -1881,9 +2012,57 @@ func (_ Unimplemented) AcceptInvite(w http.ResponseWriter, r *http.Request, toke
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteAvatar Remove your profile picture
+// (DELETE /api/me/avatar)
+func (_ Unimplemented) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetAvatar Set your profile picture
+// (PUT /api/me/avatar)
+func (_ Unimplemented) SetAvatar(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetMyProfile Your profile and its settings
+// (GET /api/me/profile)
+func (_ Unimplemented) GetMyProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateMyProfile Change your @username, time zone or who sees when you were last online
+// (PATCH /api/me/profile)
+func (_ Unimplemented) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ClearCustomStatus Clear your custom status
+// (DELETE /api/me/status)
+func (_ Unimplemented) ClearCustomStatus(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetCustomStatus Set your custom status
+// (PUT /api/me/status)
+func (_ Unimplemented) SetCustomStatus(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPicture A profile picture or workspace icon
+// (GET /api/pictures/{picture_id})
+func (_ Unimplemented) GetPicture(w http.ResponseWriter, r *http.Request, pictureId openapi_types.UUID, params GetPictureParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SetPresence Set your own status
 // (PUT /api/presence)
 func (_ Unimplemented) SetPresence(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetProfiles Profiles of people
+// (GET /api/profiles)
+func (_ Unimplemented) GetProfiles(w http.ResponseWriter, r *http.Request, params GetProfilesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1941,7 +2120,7 @@ func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// RenameWorkspace Rename a workspace (owners and admins)
+// RenameWorkspace Change a workspace's name or description (owners and admins)
 // (PATCH /api/workspaces/{workspace_id})
 func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -1992,6 +2171,18 @@ func (_ Unimplemented) SetWorkspaceGroup(w http.ResponseWriter, r *http.Request,
 // DeleteWorkspaceGroup Stop giving membership to a directory group
 // (DELETE /api/workspaces/{workspace_id}/groups/{group})
 func (_ Unimplemented) DeleteWorkspaceGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, group string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteWorkspaceIcon Remove the workspace's icon (owners and admins)
+// (DELETE /api/workspaces/{workspace_id}/icon)
+func (_ Unimplemented) DeleteWorkspaceIcon(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWorkspaceIcon Set the workspace's icon (owners and admins)
+// (PUT /api/workspaces/{workspace_id}/icon)
+func (_ Unimplemented) SetWorkspaceIcon(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3827,11 +4018,170 @@ func (siw *ServerInterfaceWrapper) AcceptInvite(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteAvatar operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAvatar(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAvatar operation middleware
+func (siw *ServerInterfaceWrapper) SetAvatar(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAvatar(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMyProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetMyProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMyProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMyProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMyProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClearCustomStatus operation middleware
+func (siw *ServerInterfaceWrapper) ClearCustomStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearCustomStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetCustomStatus operation middleware
+func (siw *ServerInterfaceWrapper) SetCustomStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetCustomStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPicture operation middleware
+func (siw *ServerInterfaceWrapper) GetPicture(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "picture_id" -------------
+	var pictureId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "picture_id", chi.URLParam(r, "picture_id"), &pictureId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "picture_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPictureParams
+
+	// ------------- Optional query parameter "still" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "still", r.URL.Query(), &params.Still, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "still"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "still", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPicture(w, r, pictureId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetPresence operation middleware
 func (siw *ServerInterfaceWrapper) SetPresence(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetPresence(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetProfiles operation middleware
+func (siw *ServerInterfaceWrapper) GetProfiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetProfilesParams
+
+	// ------------- Required query parameter "ids" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, true, "ids", r.URL.Query(), &params.Ids, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ids"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ids", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProfiles(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4308,6 +4658,58 @@ func (siw *ServerInterfaceWrapper) DeleteWorkspaceGroup(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteWorkspaceIcon operation middleware
+func (siw *ServerInterfaceWrapper) DeleteWorkspaceIcon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteWorkspaceIcon(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetWorkspaceIcon operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspaceIcon(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspaceIcon(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListInvites operation middleware
 func (siw *ServerInterfaceWrapper) ListInvites(w http.ResponseWriter, r *http.Request) {
 
@@ -4654,6 +5056,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/workspaces/{workspace_id}", wrapper.RenameWorkspace)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/workspaces/{workspace_id}/icon", wrapper.DeleteWorkspaceIcon)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/icon", wrapper.SetWorkspaceIcon)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/members", wrapper.ListWorkspaceMembers)
 	})
 	r.Group(func(r chi.Router) {
@@ -4667,6 +5075,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/presence", wrapper.ListPresence)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/profiles", wrapper.GetProfiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/profile", wrapper.GetMyProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/me/profile", wrapper.UpdateMyProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/status", wrapper.ClearCustomStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/status", wrapper.SetCustomStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/avatar", wrapper.DeleteAvatar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/avatar", wrapper.SetAvatar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/pictures/{picture_id}", wrapper.GetPicture)
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/presence", wrapper.SetPresence)

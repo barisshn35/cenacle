@@ -62,7 +62,17 @@ func Apply(ctx context.Context, q Querier, user store.User, p Profile, adminEmai
 	if p.Role == "admin" || p.Role == "guest" {
 		role = pgtype.Text{String: p.Role, Valid: true}
 	}
+	if username.Valid {
+		// The directory's sign-in name is theirs: someone who chose it gets another.
+		if err := q.ReleaseUsername(ctx, store.ReleaseUsernameParams{Username: username.String, ID: user.ID}); err != nil {
+			return err
+		}
+	}
 	if err := q.SetDirectoryProfile(ctx, store.SetDirectoryProfileParams{ID: user.ID, Username: username, DirectoryRole: role}); err != nil {
+		return err
+	}
+	// Everyone has a @username (people outside a directory get one made up).
+	if err := q.AssignUsername(ctx, user.ID); err != nil {
 		return err
 	}
 	if err := q.ReplaceUserGroups(ctx, store.ReplaceUserGroupsParams{UserID: user.ID, Names: cleanGroups(p.Groups)}); err != nil {

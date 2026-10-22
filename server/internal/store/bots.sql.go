@@ -91,7 +91,7 @@ func (q *Queries) CreateBotToken(ctx context.Context, arg CreateBotTokenParams) 
 const createBotUser = `-- name: CreateBotUser :one
 INSERT INTO users (auth_service, auth_data, display_name, is_bot)
 VALUES ('bot', $1, $2, true)
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory
 `
 
 type CreateBotUserParams struct {
@@ -117,6 +117,17 @@ func (q *Queries) CreateBotUser(ctx context.Context, arg CreateBotUserParams) (U
 		&i.Username,
 		&i.DirectoryRole,
 		&i.DeactivatedAt,
+		&i.AvatarID,
+		&i.AvatarFromDirectory,
+		&i.DirectoryPhoto,
+		&i.Timezone,
+		&i.ShowLastSeen,
+		&i.LastSeenAt,
+		&i.StatusEmoji,
+		&i.StatusText,
+		&i.StatusExpiresAt,
+		&i.RecentStatuses,
+		&i.UsernameFromDirectory,
 	)
 	return i, err
 }
@@ -238,7 +249,7 @@ func (q *Queries) ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) 
 }
 
 const getActiveBotToken = `-- name: GetActiveBotToken :one
-SELECT t.id, t.bot_id, t.name, t.token_hash, t.scopes, t.created_by, t.created_at, t.last_used_at, t.expires_at, t.revoked_at, b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at
+SELECT t.id, t.bot_id, t.name, t.token_hash, t.scopes, t.created_by, t.created_at, t.last_used_at, t.expires_at, t.revoked_at, b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory
 FROM bot_tokens t
 JOIN bots b ON b.id = t.bot_id
 JOIN users u ON u.id = b.user_id
@@ -289,12 +300,23 @@ func (q *Queries) GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetA
 		&i.User.Username,
 		&i.User.DirectoryRole,
 		&i.User.DeactivatedAt,
+		&i.User.AvatarID,
+		&i.User.AvatarFromDirectory,
+		&i.User.DirectoryPhoto,
+		&i.User.Timezone,
+		&i.User.ShowLastSeen,
+		&i.User.LastSeenAt,
+		&i.User.StatusEmoji,
+		&i.User.StatusText,
+		&i.User.StatusExpiresAt,
+		&i.User.RecentStatuses,
+		&i.User.UsernameFromDirectory,
 	)
 	return i, err
 }
 
 const getActiveWebhook = `-- name: GetActiveWebhook :one
-SELECT w.id, w.bot_id, w.channel_id, w.kind, w.name, w.token_hash, w.created_by, w.created_at, w.last_used_at, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at
+SELECT w.id, w.bot_id, w.channel_id, w.kind, w.name, w.token_hash, w.created_by, w.created_at, w.last_used_at, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory
 FROM incoming_webhooks w
 JOIN bots b ON b.id = w.bot_id
 JOIN users u ON u.id = b.user_id
@@ -334,6 +356,17 @@ func (q *Queries) GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetAc
 		&i.User.Username,
 		&i.User.DirectoryRole,
 		&i.User.DeactivatedAt,
+		&i.User.AvatarID,
+		&i.User.AvatarFromDirectory,
+		&i.User.DirectoryPhoto,
+		&i.User.Timezone,
+		&i.User.ShowLastSeen,
+		&i.User.LastSeenAt,
+		&i.User.StatusEmoji,
+		&i.User.StatusText,
+		&i.User.StatusExpiresAt,
+		&i.User.RecentStatuses,
+		&i.User.UsernameFromDirectory,
 	)
 	return i, err
 }
@@ -394,7 +427,7 @@ func (q *Queries) GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotTo
 }
 
 const getSystemBot = `-- name: GetSystemBot :one
-SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at
+SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory
 FROM bots b JOIN users u ON u.id = b.user_id
 WHERE b.workspace_id = $1 AND b.is_system
 `
@@ -430,6 +463,17 @@ func (q *Queries) GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (Ge
 		&i.User.Username,
 		&i.User.DirectoryRole,
 		&i.User.DeactivatedAt,
+		&i.User.AvatarID,
+		&i.User.AvatarFromDirectory,
+		&i.User.DirectoryPhoto,
+		&i.User.Timezone,
+		&i.User.ShowLastSeen,
+		&i.User.LastSeenAt,
+		&i.User.StatusEmoji,
+		&i.User.StatusText,
+		&i.User.StatusExpiresAt,
+		&i.User.RecentStatuses,
+		&i.User.UsernameFromDirectory,
 	)
 	return i, err
 }

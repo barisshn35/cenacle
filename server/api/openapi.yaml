@@ -81,24 +81,70 @@ paths:
     patch:
       tags: [workspaces]
       operationId: renameWorkspace
-      summary: Rename a workspace (owners and admins)
+      summary: Change a workspace's name or description (owners and admins)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [name]
+              minProperties: 1
               properties:
                 name: { type: string, minLength: 1, maxLength: 80 }
+                description: { type: string, maxLength: 500 }
       responses:
         '200':
-          description: Renamed.
+          description: Changed.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Workspace' }
         '400':
           $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/icon:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [workspaces]
+      operationId: setWorkspaceIcon
+      summary: Set the workspace's icon (owners and admins)
+      description: A PNG, JPEG, GIF or WebP image of at most 5 MB; it is cut to a square.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [workspaces]
+      operationId: deleteWorkspaceIcon
+      summary: Remove the workspace's icon (owners and admins)
+      responses:
+        '204':
+          description: Removed.
         '401':
           $ref: '#/components/responses/Problem'
         '403':
@@ -253,6 +299,177 @@ paths:
                   presence:
                     type: array
                     items: { $ref: '#/components/schemas/Presence' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/profiles:
+    get:
+      tags: [profiles]
+      operationId: getProfiles
+      summary: Profiles of people
+      description: Up to 100 ids; people the caller may not see are left out.
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 100
+            items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Profiles.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profiles]
+                properties:
+                  profiles:
+                    type: array
+                    items: { $ref: '#/components/schemas/Profile' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/profile:
+    get:
+      tags: [profiles]
+      operationId: getMyProfile
+      summary: Your profile and its settings
+      responses:
+        '200':
+          description: Your profile.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '401':
+          $ref: '#/components/responses/Problem'
+    patch:
+      tags: [profiles]
+      operationId: updateMyProfile
+      summary: Change your @username, time zone or who sees when you were last online
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                username:
+                  type: string
+                  pattern: '^[a-z0-9][a-z0-9._-]{1,29}$'
+                  description: Not for accounts whose @username is the directory's.
+                timezone:
+                  type: string
+                  maxLength: 64
+                  description: An IANA time zone such as Europe/Istanbul.
+                show_last_seen: { type: boolean }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/me/status:
+    put:
+      tags: [profiles]
+      operationId: setCustomStatus
+      summary: Set your custom status
+      description: An emoji, a text or both; it clears itself at `expires_at`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomStatus' }
+      responses:
+        '200':
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [profiles]
+      operationId: clearCustomStatus
+      summary: Clear your custom status
+      responses:
+        '204':
+          description: Cleared.
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/me/avatar:
+    put:
+      tags: [profiles]
+      operationId: setAvatar
+      summary: Set your profile picture
+      description: |
+        A PNG, JPEG, GIF or WebP image of at most 5 MB. It is cut to a square; an
+        animated GIF (at most 2 MB) keeps moving, with a still first frame for people
+        who reduce motion.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '401':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [profiles]
+      operationId: deleteAvatar
+      summary: Remove your profile picture
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/pictures/{picture_id}:
+    parameters:
+      - name: picture_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [profiles]
+      operationId: getPicture
+      summary: A profile picture or workspace icon
+      description: Cached for good (a new picture gets a new id).
+      parameters:
+        - name: still
+          in: query
+          description: The first frame of an animated picture.
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: PNG or GIF.
+          content:
+            image/png:
+              schema: { type: string, format: binary }
         '401':
           $ref: '#/components/responses/Problem'
         '404':
@@ -2562,10 +2779,15 @@ components:
           description: Seconds until the ticket expires.
     Workspace:
       type: object
-      required: [id, name, is_default, role]
+      required: [id, name, description, icon_url, is_default, role]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
+        description: { type: string }
+        icon_url:
+          type: string
+          nullable: true
+          description: The workspace's icon, or null (the app shows its initials).
         is_default:
           type: boolean
           description: Everyone who signs in belongs to the default workspace.
@@ -2687,6 +2909,60 @@ components:
       properties:
         user_id: { type: string, format: uuid }
         status: { type: string, enum: [online, away, dnd] }
+    CustomStatus:
+      type: object
+      required: [emoji, text]
+      properties:
+        emoji: { type: string, maxLength: 64, description: 'One emoji, or empty.' }
+        text: { type: string, maxLength: 100 }
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When it clears itself; null keeps it until cleared.
+    Profile:
+      type: object
+      required:
+        [id, display_name, username, email, is_bot, avatar_url, avatar_still_url, timezone,
+         status, last_seen_at, deactivated, guest]
+      properties:
+        id: { type: string, format: uuid }
+        display_name: { type: string }
+        username: { type: string, description: 'Shown as @username.' }
+        email: { type: string }
+        is_bot: { type: boolean }
+        avatar_url: { type: string, nullable: true }
+        avatar_still_url:
+          type: string
+          nullable: true
+          description: The first frame of an animated picture (for reduced motion).
+        timezone: { type: string, description: "IANA time zone, '' when unknown." }
+        status:
+          nullable: true
+          allOf: [{ $ref: '#/components/schemas/CustomStatus' }]
+        last_seen_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When they were last online (null when unknown or hidden by them).
+        deactivated: { type: boolean, description: Left the organisation; messages stay. }
+        guest: { type: boolean }
+    MyProfile:
+      allOf:
+        - $ref: '#/components/schemas/Profile'
+        - type: object
+          required: [username_editable, show_last_seen, recent_statuses, account_url]
+          properties:
+            username_editable:
+              type: boolean
+              description: False when the @username is the directory's sign-in name.
+            show_last_seen: { type: boolean }
+            recent_statuses:
+              type: array
+              items: { $ref: '#/components/schemas/CustomStatus' }
+            account_url:
+              type: string
+              description: Where to change the name (Cenacle ID's account page).
     Person:
       type: object
       required: [id, display_name, email]

@@ -178,7 +178,7 @@ func (q *Queries) DeleteUserSession(ctx context.Context, arg DeleteUserSessionPa
 }
 
 const getActiveSession = `-- name: GetActiveSession :one
-SELECT s.id, s.user_id, s.token_hash, s.created_at, s.last_seen_at, s.expires_at, s.user_agent, s.ip_address, s.idp_sid, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at
+SELECT s.id, s.user_id, s.token_hash, s.created_at, s.last_seen_at, s.expires_at, s.user_agent, s.ip_address, s.idp_sid, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1
@@ -225,6 +225,17 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 		&i.User.Username,
 		&i.User.DirectoryRole,
 		&i.User.DeactivatedAt,
+		&i.User.AvatarID,
+		&i.User.AvatarFromDirectory,
+		&i.User.DirectoryPhoto,
+		&i.User.Timezone,
+		&i.User.ShowLastSeen,
+		&i.User.LastSeenAt,
+		&i.User.StatusEmoji,
+		&i.User.StatusText,
+		&i.User.StatusExpiresAt,
+		&i.User.RecentStatuses,
+		&i.User.UsernameFromDirectory,
 	)
 	return i, err
 }

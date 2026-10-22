@@ -357,7 +357,7 @@ func (q *Queries) FinishScheduled(ctx context.Context, arg FinishScheduledParams
 }
 
 const getWorkspaceCommand = `-- name: GetWorkspaceCommand :one
-SELECT c.id, c.bot_id, c.workspace_id, c.trigger, c.url, c.description, c.hint, c.secret, c.created_by, c.created_at, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at
+SELECT c.id, c.bot_id, c.workspace_id, c.trigger, c.url, c.description, c.hint, c.secret, c.created_by, c.created_at, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory
 FROM slash_commands c JOIN bots b ON b.id = c.bot_id JOIN users u ON u.id = b.user_id
 WHERE c.workspace_id = $1 AND c.trigger = $2 AND b.disabled_at IS NULL
 `
@@ -400,6 +400,17 @@ func (q *Queries) GetWorkspaceCommand(ctx context.Context, arg GetWorkspaceComma
 		&i.User.Username,
 		&i.User.DirectoryRole,
 		&i.User.DeactivatedAt,
+		&i.User.AvatarID,
+		&i.User.AvatarFromDirectory,
+		&i.User.DirectoryPhoto,
+		&i.User.Timezone,
+		&i.User.ShowLastSeen,
+		&i.User.LastSeenAt,
+		&i.User.StatusEmoji,
+		&i.User.StatusText,
+		&i.User.StatusExpiresAt,
+		&i.User.RecentStatuses,
+		&i.User.UsernameFromDirectory,
 	)
 	return i, err
 }

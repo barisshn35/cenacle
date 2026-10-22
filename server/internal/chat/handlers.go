@@ -57,9 +57,11 @@ type Handlers struct {
 	AdminEmail string
 	// PublicURL is the app's origin, for webhook addresses.
 	PublicURL string
-	Limiter   RateLimiter
-	Cookies   auth.Cookies
-	Log       *slog.Logger
+	// AccountURL is Cenacle ID's account page (where people change their name).
+	AccountURL string
+	Limiter    RateLimiter
+	Cookies    auth.Cookies
+	Log        *slog.Logger
 	// Configured lists the channels of the installation settings, which keep
 	// their names.
 	Configured []string

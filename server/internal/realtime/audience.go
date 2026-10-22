@@ -67,7 +67,10 @@ func (a *audience) allows(ev events.Event) bool {
 		return d.UserID != a.user && a.inChannel(d.ChannelID)
 	case events.ChannelRead, events.SessionsEnded: // about the user only
 		return d.UserID == a.user
-	case events.PresenceChanged:
+	case events.PresenceChanged, events.UserUpdated:
+		if ev.Type == events.UserUpdated && d.UserID == a.user {
+			return true
+		}
 		for _, ws := range d.WorkspaceIDs {
 			if a.workspaces[ws] {
 				return true

@@ -24,6 +24,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/groups"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/profiles"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -271,6 +272,10 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 	if err := groups.Apply(ctx, h.Users, user, groups.Profile{
 		Username: profile.Username, Role: profile.Role, Groups: profile.Groups,
 	}, h.AdminEmail); err != nil {
+		return signedIn{}, errUnavailable{err}
+	}
+	// The name or address may have changed at Cenacle ID.
+	if err := profiles.Updated(ctx, h.Users, user.ID); err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
 	sessionToken, session, err := h.Sessions.Create(ctx, user.ID, client, idSession.SID)

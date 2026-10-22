@@ -17,7 +17,7 @@ UPDATE users SET auth_service = $1, auth_data = $2, email_verified = true,
     display_name = $3, last_login_at = now(), updated_at = now()
 WHERE id = (SELECT u.id FROM users u WHERE u.auth_service = 'import' AND u.email <> ''
             AND lower(u.email) = lower($4) ORDER BY u.created_at LIMIT 1)
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory
 `
 
 type ClaimImportedUserParams struct {
@@ -52,6 +52,17 @@ func (q *Queries) ClaimImportedUser(ctx context.Context, arg ClaimImportedUserPa
 		&i.Username,
 		&i.DirectoryRole,
 		&i.DeactivatedAt,
+		&i.AvatarID,
+		&i.AvatarFromDirectory,
+		&i.DirectoryPhoto,
+		&i.Timezone,
+		&i.ShowLastSeen,
+		&i.LastSeenAt,
+		&i.StatusEmoji,
+		&i.StatusText,
+		&i.StatusExpiresAt,
+		&i.RecentStatuses,
+		&i.UsernameFromDirectory,
 	)
 	return i, err
 }
@@ -60,7 +71,7 @@ const createImportedUser = `-- name: CreateImportedUser :one
 INSERT INTO users (auth_service, auth_data, email, display_name)
 VALUES ('import', $1, $2, $3)
 ON CONFLICT ON CONSTRAINT users_auth_key DO UPDATE SET display_name = EXCLUDED.display_name
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory
 `
 
 type CreateImportedUserParams struct {
@@ -89,12 +100,23 @@ func (q *Queries) CreateImportedUser(ctx context.Context, arg CreateImportedUser
 		&i.Username,
 		&i.DirectoryRole,
 		&i.DeactivatedAt,
+		&i.AvatarID,
+		&i.AvatarFromDirectory,
+		&i.DirectoryPhoto,
+		&i.Timezone,
+		&i.ShowLastSeen,
+		&i.LastSeenAt,
+		&i.StatusEmoji,
+		&i.StatusText,
+		&i.StatusExpiresAt,
+		&i.RecentStatuses,
+		&i.UsernameFromDirectory,
 	)
 	return i, err
 }
 
 const findUserByEmail = `-- name: FindUserByEmail :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at FROM users WHERE email <> '' AND lower(email) = lower($1)
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory FROM users WHERE email <> '' AND lower(email) = lower($1)
 ORDER BY (auth_service = 'import') LIMIT 1
 `
 
@@ -118,12 +140,23 @@ func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, erro
 		&i.Username,
 		&i.DirectoryRole,
 		&i.DeactivatedAt,
+		&i.AvatarID,
+		&i.AvatarFromDirectory,
+		&i.DirectoryPhoto,
+		&i.Timezone,
+		&i.ShowLastSeen,
+		&i.LastSeenAt,
+		&i.StatusEmoji,
+		&i.StatusText,
+		&i.StatusExpiresAt,
+		&i.RecentStatuses,
+		&i.UsernameFromDirectory,
 	)
 	return i, err
 }
 
 const findWorkspaceByName = `-- name: FindWorkspaceByName :one
-SELECT id, name, is_default, created_at FROM workspaces WHERE lower(name) = lower($1) ORDER BY created_at LIMIT 1
+SELECT id, name, is_default, created_at, description, icon_id FROM workspaces WHERE lower(name) = lower($1) ORDER BY created_at LIMIT 1
 `
 
 func (q *Queries) FindWorkspaceByName(ctx context.Context, name string) (Workspace, error) {
@@ -134,12 +167,14 @@ func (q *Queries) FindWorkspaceByName(ctx context.Context, name string) (Workspa
 		&i.Name,
 		&i.IsDefault,
 		&i.CreatedAt,
+		&i.Description,
+		&i.IconID,
 	)
 	return i, err
 }
 
 const getInstanceAdmin = `-- name: GetInstanceAdmin :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at FROM users WHERE is_admin ORDER BY created_at LIMIT 1
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory FROM users WHERE is_admin ORDER BY created_at LIMIT 1
 `
 
 func (q *Queries) GetInstanceAdmin(ctx context.Context) (User, error) {
@@ -160,6 +195,17 @@ func (q *Queries) GetInstanceAdmin(ctx context.Context) (User, error) {
 		&i.Username,
 		&i.DirectoryRole,
 		&i.DeactivatedAt,
+		&i.AvatarID,
+		&i.AvatarFromDirectory,
+		&i.DirectoryPhoto,
+		&i.Timezone,
+		&i.ShowLastSeen,
+		&i.LastSeenAt,
+		&i.StatusEmoji,
+		&i.StatusText,
+		&i.StatusExpiresAt,
+		&i.RecentStatuses,
+		&i.UsernameFromDirectory,
 	)
 	return i, err
 }

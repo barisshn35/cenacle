@@ -17,6 +17,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/barisshn35/cenacle/server/internal/preview"
+	"github.com/barisshn35/cenacle/server/internal/profiles"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -57,6 +59,8 @@ type feedUser struct {
 	Groups        []string `json:"groups"`
 	Role          string   `json:"cenacle_role"`
 	Disabled      bool     `json:"disabled"`
+	// Picture is the SHA-256 of the directory's photo ('' for none).
+	Picture string `json:"picture"`
 }
 
 type feedPage struct {
@@ -160,10 +164,19 @@ func (f *Feed) apply(ctx context.Context, u feedUser) (bool, error) {
 			return err
 		}
 		user.Email, user.EmailVerified, user.DisplayName = u.Email, u.EmailVerified, name
-		return Apply(ctx, q, user, Profile{Username: u.Username, Role: u.Role, Groups: u.Groups}, f.AdminEmail)
+		if err := Apply(ctx, q, user, Profile{Username: u.Username, Role: u.Role, Groups: u.Groups}, f.AdminEmail); err != nil {
+			return err
+		}
+		return profiles.Updated(ctx, q, user.ID)
 	})
 	if err != nil {
 		return false, err
+	}
+	if !u.Disabled {
+		if err := f.photo(ctx, user.ID, u); err != nil {
+			// A photo that cannot be read is not worth holding the feed for.
+			f.Log.WarnContext(ctx, "directory photo", "error", err)
+		}
 	}
 	if ended && f.Ephemeral != nil {
 		if err := f.Ephemeral.Publish(ctx, events.SessionsEnded, map[string]string{"user_id": id(user.ID)}); err != nil {
@@ -171,6 +184,60 @@ func (f *Feed) apply(ctx context.Context, u feedUser) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// photo follows the directory's photo of a person: it becomes their profile
+// picture unless they chose one themselves.
+func (f *Feed) photo(ctx context.Context, user pgtype.UUID, u feedUser) error {
+	cur, err := f.Queries.GetDirectoryPhoto(ctx, user)
+	if err != nil {
+		return err
+	}
+	if cur.DirectoryPhoto == u.Picture {
+		return nil
+	}
+	ownChoice := cur.AvatarID.Valid && !cur.AvatarFromDirectory
+	if !ownChoice {
+		var pic *preview.Picture
+		if u.Picture != "" {
+			data, err := f.fetchPhoto(ctx, u.Sub)
+			if err != nil {
+				return err
+			}
+			if p, err := preview.MakePicture(data); err == nil {
+				pic = &p
+			}
+		}
+		if pic != nil || cur.AvatarFromDirectory {
+			if err := inTx(ctx, f.DB, func(q *store.Queries) error {
+				if err := profiles.ReplaceAvatar(ctx, q, user, pic, true); err != nil {
+					return err
+				}
+				return profiles.Updated(ctx, q, user)
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	return f.Queries.SetDirectoryPhoto(ctx, store.SetDirectoryPhotoParams{ID: user, DirectoryPhoto: u.Picture})
+}
+
+func (f *Feed) fetchPhoto(ctx context.Context, sub string) ([]byte, error) {
+	u := strings.TrimSuffix(f.Issuer, "/") + "/directory/v1/photos/" + url.PathEscape(sub)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(url.QueryEscape(f.ClientID), url.QueryEscape(f.ClientSecret))
+	res, err := f.HTTP.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("directory photo: status %d", res.StatusCode)
+	}
+	return io.ReadAll(io.LimitReader(res.Body, preview.MaxUpload))
 }
 
 func inTx(ctx context.Context, db DB, fn func(q *store.Queries) error) error {

@@ -125,6 +125,30 @@ func (w *pruneDeliveriesWorker) Work(ctx context.Context, _ *river.Job[PruneDeli
 	return err
 }
 
+// Profiles keeps profiles tidy: expired custom statuses, missing @usernames.
+type Profiles interface {
+	TidyProfiles(ctx context.Context) (int, error)
+}
+
+// TidyProfilesArgs is the periodic tidying of profiles.
+type TidyProfilesArgs struct{}
+
+// Kind implements river.JobArgs.
+func (TidyProfilesArgs) Kind() string { return "tidy_profiles" }
+
+type profilesWorker struct {
+	river.WorkerDefaults[TidyProfilesArgs]
+	p Profiles
+}
+
+func (w *profilesWorker) Work(ctx context.Context, _ *river.Job[TidyProfilesArgs]) error {
+	_, err := w.p.TidyProfiles(ctx)
+	return err
+}
+
+// ProfilesInterval is how often expired custom statuses are cleared.
+var ProfilesInterval = 30 * time.Second
+
 // Directory follows Cenacle ID's directory feed.
 type Directory interface {
 	Sync(ctx context.Context) (int, error)
@@ -204,7 +228,9 @@ type Deps struct {
 	Integrations Integrations
 	// Directory is optional: the chat follows Cenacle ID's directory feed.
 	Directory Directory
-	Log       *slog.Logger
+	// Profiles is optional.
+	Profiles Profiles
+	Log      *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -231,6 +257,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 			periodic(ScheduledInterval, SendScheduledArgs{}),
 			periodic(24*time.Hour, PruneDeliveriesArgs{}),
 			periodic(time.Hour, PruneFilesArgs{}))
+	}
+	if d.Profiles != nil {
+		river.AddWorker(workers, &profilesWorker{p: d.Profiles})
+		jobs = append(jobs, periodic(ProfilesInterval, TidyProfilesArgs{}))
 	}
 	if d.Directory != nil {
 		river.AddWorker(workers, &directoryWorker{dir: d.Directory, log: d.Log})

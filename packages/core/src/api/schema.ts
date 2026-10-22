@@ -40,8 +40,31 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Rename a workspace (owners and admins) */
+    /** Change a workspace's name or description (owners and admins) */
     patch: operations['renameWorkspace'];
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/icon': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set the workspace's icon (owners and admins)
+     * @description A PNG, JPEG, GIF or WebP image of at most 5 MB; it is cut to a square.
+     */
+    put: operations['setWorkspaceIcon'];
+    post?: never;
+    /** Remove the workspace's icon (owners and admins) */
+    delete: operations['deleteWorkspaceIcon'];
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/api/workspaces/{workspace_id}/members': {
@@ -129,6 +152,110 @@ export interface paths {
      * @description Members not listed are offline. Changes arrive as `presence.changed`.
      */
     get: operations['listPresence'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/profiles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Profiles of people
+     * @description Up to 100 ids; people the caller may not see are left out.
+     */
+    get: operations['getProfiles'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/profile': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Your profile and its settings */
+    get: operations['getMyProfile'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Change your @username, time zone or who sees when you were last online */
+    patch: operations['updateMyProfile'];
+    trace?: never;
+  };
+  '/api/me/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set your custom status
+     * @description An emoji, a text or both; it clears itself at `expires_at`.
+     */
+    put: operations['setCustomStatus'];
+    post?: never;
+    /** Clear your custom status */
+    delete: operations['clearCustomStatus'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/avatar': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set your profile picture
+     * @description A PNG, JPEG, GIF or WebP image of at most 5 MB. It is cut to a square; an
+     *     animated GIF (at most 2 MB) keeps moving, with a still first frame for people
+     *     who reduce motion.
+     */
+    put: operations['setAvatar'];
+    post?: never;
+    /** Remove your profile picture */
+    delete: operations['deleteAvatar'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/pictures/{picture_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        picture_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * A profile picture or workspace icon
+     * @description Cached for good (a new picture gets a new id).
+     */
+    get: operations['getPicture'];
     put?: never;
     post?: never;
     delete?: never;
@@ -1631,6 +1758,9 @@ export interface components {
       /** Format: uuid */
       id: string;
       name: string;
+      description: string;
+      /** @description The workspace's icon, or null (the app shows its initials). */
+      icon_url: string | null;
       /** @description Everyone who signs in belongs to the default workspace. */
       is_default: boolean;
       /**
@@ -1715,6 +1845,47 @@ export interface components {
       user_id: string;
       /** @enum {string} */
       status: 'online' | 'away' | 'dnd';
+    };
+    CustomStatus: {
+      /** @description One emoji, or empty. */
+      emoji: string;
+      text: string;
+      /**
+       * Format: date-time
+       * @description When it clears itself; null keeps it until cleared.
+       */
+      expires_at?: string | null;
+    };
+    Profile: {
+      /** Format: uuid */
+      id: string;
+      display_name: string;
+      /** @description Shown as @username. */
+      username: string;
+      email: string;
+      is_bot: boolean;
+      avatar_url: string | null;
+      /** @description The first frame of an animated picture (for reduced motion). */
+      avatar_still_url: string | null;
+      /** @description IANA time zone, '' when unknown. */
+      timezone: string;
+      status: components['schemas']['CustomStatus'] | null;
+      /**
+       * Format: date-time
+       * @description When they were last online (null when unknown or hidden by them).
+       */
+      last_seen_at: string | null;
+      /** @description Left the organisation; messages stay. */
+      deactivated: boolean;
+      guest: boolean;
+    };
+    MyProfile: components['schemas']['Profile'] & {
+      /** @description False when the @username is the directory's sign-in name. */
+      username_editable: boolean;
+      show_last_seen: boolean;
+      recent_statuses: components['schemas']['CustomStatus'][];
+      /** @description Where to change the name (Cenacle ID's account page). */
+      account_url: string;
     };
     Person: {
       /** @description A bot (shows a badge). */
@@ -1953,12 +2124,13 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          name: string;
+          name?: string;
+          description?: string;
         };
       };
     };
     responses: {
-      /** @description Renamed. */
+      /** @description Changed. */
       200: {
         headers: {
           [name: string]: unknown;
@@ -1968,6 +2140,60 @@ export interface operations {
         };
       };
       400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setWorkspaceIcon: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Set. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workspace'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+      422: components['responses']['Problem'];
+    };
+  };
+  deleteWorkspaceIcon: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
@@ -2117,6 +2343,205 @@ export interface operations {
           'application/json': {
             presence: components['schemas']['Presence'][];
           };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getProfiles: {
+    parameters: {
+      query: {
+        ids: string[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Profiles. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            profiles: components['schemas']['Profile'][];
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  getMyProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Your profile. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MyProfile'];
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  updateMyProfile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Not for accounts whose @username is the directory's. */
+          username?: string;
+          /** @description An IANA time zone such as Europe/Istanbul. */
+          timezone?: string;
+          show_last_seen?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MyProfile'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  setCustomStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CustomStatus'];
+      };
+    };
+    responses: {
+      /** @description Set. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MyProfile'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  clearCustomStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cleared. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setAvatar: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/octet-stream': string;
+      };
+    };
+    responses: {
+      /** @description Set. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MyProfile'];
+        };
+      };
+      401: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+      422: components['responses']['Problem'];
+    };
+  };
+  deleteAvatar: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  getPicture: {
+    parameters: {
+      query?: {
+        /** @description The first frame of an animated picture. */
+        still?: boolean;
+      };
+      header?: never;
+      path: {
+        picture_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description PNG or GIF. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/png': string;
         };
       };
       401: components['responses']['Problem'];

@@ -1,5 +1,12 @@
 -- name: SetDirectoryProfile :exec
-UPDATE users SET username = sqlc.narg(username), directory_role = sqlc.narg(directory_role) WHERE id = @id;
+-- SetDirectoryProfile keeps a chosen @username for people without a directory one.
+UPDATE users SET
+    username = CASE WHEN sqlc.narg(username)::text IS NULL
+                    THEN (CASE WHEN username_from_directory THEN NULL ELSE username END)
+                    ELSE sqlc.narg(username)::text END,
+    username_from_directory = sqlc.narg(username)::text IS NOT NULL,
+    directory_role = sqlc.narg(directory_role)
+WHERE id = @id;
 
 -- name: ReplaceUserGroups :exec
 -- ReplaceUserGroups sets the directory groups of a person.

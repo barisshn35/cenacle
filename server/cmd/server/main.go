@@ -31,6 +31,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/lock"
@@ -177,6 +179,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	go (&events.Relay{Pool: pool, Log: eventLog, Logger: log}).Run(ctx)
 	presence := &realtime.Presence{
 		Valkey: valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(queries), Log: log,
+		Offline: func(ctx context.Context, user pgtype.UUID) { _ = queries.SetLastSeen(ctx, user) },
 	}
 	go presence.RunSweeper(ctx, 10*time.Second)
 	cookies := auth.NewCookies(cfg.PublicURL)
@@ -223,9 +226,11 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	})
 
 	// Background jobs; River's tables come with `migrate up`.
+	background := &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Files: files, Log: log}
 	jobClient, err := jobs.NewClient(pool, jobs.Deps{
 		Purger: chat.Purger{Queries: queries}, Sessions: sessions, Log: log,
-		Integrations: &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Files: files, Log: log},
+		Integrations: background,
+		Profiles:     background,
 		Directory: &groups.Feed{
 			HTTP: idpClient, Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
 			DB: pool, Queries: queries, Ephemeral: ephemeral, AdminEmail: cfg.AdminEmail, Log: log,
@@ -269,6 +274,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Files:             files,
 			AdminEmail:        cfg.AdminEmail,
 			PublicURL:         cfg.PublicURL.String(),
+			AccountURL:        auth.AccountURL(cfg.OIDCIssuer, cfg.PublicURL.String()),
 			Ephemeral:         ephemeral,
 			Audit:             auditLog,
 			Limiter:           valkey,

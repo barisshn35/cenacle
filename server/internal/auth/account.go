@@ -23,8 +23,11 @@ import (
 )
 
 // accountURL is Cenacle ID's account page, returning to the web app.
-func (h *Handlers) accountURL() string {
-	return h.IdP.Issuer + "/account?return_to=" + url.QueryEscape(h.PublicURL.String()+"/")
+func (h *Handlers) accountURL() string { return AccountURL(h.IdP.Issuer, h.PublicURL.String()) }
+
+// AccountURL is Cenacle ID's account page with a way back to the app.
+func AccountURL(issuer, app string) string {
+	return issuer + "/account?return_to=" + url.QueryEscape(app+"/")
 }
 
 func (h *Handlers) unavailable(w http.ResponseWriter, r *http.Request, msg string, err error) {

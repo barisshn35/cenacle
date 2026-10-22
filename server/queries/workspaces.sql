@@ -16,7 +16,9 @@ SELECT * FROM workspaces WHERE is_default;
 INSERT INTO workspaces (name, is_default) VALUES (@name, @is_default) RETURNING *;
 
 -- name: RenameWorkspace :one
-UPDATE workspaces SET name = @name WHERE id = @id RETURNING *;
+UPDATE workspaces SET name = coalesce(sqlc.narg(name), name),
+    description = coalesce(sqlc.narg(description), description)
+WHERE id = @id RETURNING *;
 
 -- name: GetWorkspaceRole :one
 -- GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
