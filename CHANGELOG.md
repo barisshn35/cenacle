@@ -606,7 +606,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/barisshn35/cenacle/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/barisshn35/cenacle/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/barisshn35/cenacle/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/barisshn35/cenacle/compare/v0.16.0...v0.17.0

@@ -12,15 +12,16 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.19.** Sign in with Cenacle ID (passwords with two-step verification,
+> **Status: v0.20.** Sign in with Cenacle ID (passwords with two-step verification,
 > passkeys, Active Directory/LDAP or your OpenID Connect or SAML provider), chat live in
 > channels, forums, threads and direct conversations with profiles and custom statuses,
-> polls, events and playbooks, moderation with AutoMod, pin and save messages, search
+> link previews, voice messages, forwarding, custom emoji and stickers, burn-on-read
+> messages, polls, events and playbooks, moderation with AutoMod, pin and save messages, search
 > messages and files, choose what notifies you (sounds, muting, quiet hours, web push,
 > e-mail), make Cenacle yours with theme presets and fonts, share files, connect bots and
 > schedule messages; run several instances, monitor, back up, install on Kubernetes or
 > offline.
-> Richer communication comes next (see the [roadmap](#roadmap)).
+> Automation comes next (see the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -182,8 +183,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.16     | Appearance: theme presets, typography, fonts, code blocks                             |
 | v0.17     | Search and notifications (sounds, muting, web push, e-mail)                           |
 | v0.18     | Threads, pins, saved items, activity                                                  |
-| **v0.19** | **Community and moderation: forums, polls, events, AutoMod, playbooks**               |
-| v0.20     | Link previews, voice messages, forwarding, custom emoji                               |
+| v0.19     | Community and moderation: forums, polls, events, AutoMod, playbooks                   |
+| **v0.20** | **Link previews, voice messages, forwarding, custom emoji**                           |
 | v0.21     | Automation: workflows, approvals, forms                                               |
 | v0.22     | Collaboration: canvases, lists, boards, tasks                                         |
 | v0.23     | Compliance: retention, legal hold, eDiscovery, export, access control                 |
