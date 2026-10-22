@@ -2,6 +2,7 @@
 import { fileURLToPath } from 'node:url';
 import { AuditLog } from './accounts/audit.ts';
 import { MfaStore } from './accounts/mfa.ts';
+import { PasskeyStore } from './accounts/passkeys.ts';
 import { UserStore } from './accounts/users.ts';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
       audit: new AuditLog(pool, (err) => console.error('audit log write failed', err)),
       cookieKeys: config.cookieKeys,
       directory: { pool, sources },
+      passkeys: new PasskeyStore(pool, config.issuer),
       clients,
     },
   });

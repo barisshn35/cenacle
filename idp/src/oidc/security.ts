@@ -18,6 +18,8 @@ export function pageSecurityHeaders(formActionOrigins: string[]): Record<string,
       "style-src 'self'",
       "img-src 'self' data:",
       "font-src 'self'",
+      // Passkeys: the pages fetch their WebAuthn options from us.
+      "connect-src 'self'",
       `form-action ${formAction}`,
       "base-uri 'none'",
       "frame-ancestors 'none'",

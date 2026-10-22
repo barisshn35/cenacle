@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Builds public/assets for the Cenacle ID pages: compiled CSS (Tailwind with
-// the shared Cenacle tokens), the bundled Geist fonts and static files.
+// the shared Cenacle tokens), the bundled fonts, the WebAuthn browser library
+// and static files.
 
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, cpSync, mkdirSync, rmSync } from 'node:fs';
@@ -26,6 +27,10 @@ for (const file of ['fraunces-latin-full-normal.woff2', 'fraunces-latin-ext-full
   copyFileSync(join(fraunces, 'files', file), join(out, 'fonts', file));
 }
 cpSync(join(root, 'assets'), out, { recursive: true });
+// The browser half of SimpleWebAuthn (MIT), served by us (no CDN).
+// The package exports only its entry point (script/index.js): its root is one up.
+const webauthn = dirname(dirname(require.resolve('@simplewebauthn/browser')));
+copyFileSync(join(webauthn, 'dist', 'bundle', 'index.umd.min.js'), join(out, 'simplewebauthn.js'));
 
 execFileSync(
   join(root, 'node_modules', '.bin', 'tailwindcss'),

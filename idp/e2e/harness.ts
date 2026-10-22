@@ -12,6 +12,7 @@ import type { FastifyInstance } from 'fastify';
 import pg from 'pg';
 import { AuditLog } from '../src/accounts/audit.ts';
 import { MfaStore } from '../src/accounts/mfa.ts';
+import { PasskeyStore } from '../src/accounts/passkeys.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { buildApp } from '../src/app.ts';
 import { SourceStore } from '../src/directory/store.ts';
@@ -52,13 +53,19 @@ export interface Harness {
 }
 
 export async function startHarness(
-  opts: { loginRateLimit?: number; directory?: boolean; scope?: string } = {},
+  opts: {
+    loginRateLimit?: number;
+    directory?: boolean;
+    scope?: string;
+    /** Host of the issuer: passkeys need a domain name (localhost), not an IP address. */
+    host?: string;
+  } = {},
 ): Promise<Harness> {
   if (!DATABASE_URL) throw new Error('IDP_TEST_DATABASE_URL is not set');
   await migrate({ databaseUrl: DATABASE_URL, direction: 'up' });
   const pool = new pg.Pool({ connectionString: DATABASE_URL, max: 4 });
   await pool.query(
-    'TRUNCATE users, oidc_payloads, signing_keys, audit_events, identity_sources CASCADE',
+    'TRUNCATE users, oidc_payloads, signing_keys, audit_events, identity_sources, webauthn_challenges CASCADE',
   );
 
   const users = new UserStore(pool);
@@ -96,7 +103,8 @@ export async function startHarness(
   const postLogoutUrl = `${rpOrigin}/signed-out`;
 
   const port = await freePort();
-  const issuer = `http://127.0.0.1:${port}`;
+  const host = opts.host ?? '127.0.0.1';
+  const issuer = `http://${host}:${port}`;
   const client: ClientMetadata = {
     client_id: CLIENT_ID,
     client_name: 'Cenacle Test',
@@ -137,9 +145,10 @@ export async function startHarness(
         audit: new AuditLog(pool),
         cookieKeys: ['e2e-cookie-key-0123456789abcdefghij'],
         directory: opts.directory ? { pool, sources } : undefined,
+        passkeys: new PasskeyStore(pool, issuer),
       },
     });
-    await app.listen({ host: '127.0.0.1', port });
+    await app.listen({ host, port });
   };
   await start();
 

@@ -32,9 +32,18 @@ interface LayoutOptions {
   languagePath?: string;
   /** Wide pages (the admin panel) instead of the narrow sign-in column. */
   wide?: boolean;
+  /** The page uses passkeys (WebAuthn): load their scripts. */
+  passkeys?: boolean;
 }
 
-export function layout({ locale, title, body, languagePath, wide }: LayoutOptions): string {
+export function layout({
+  locale,
+  title,
+  body,
+  languagePath,
+  wide,
+  passkeys,
+}: LayoutOptions): string {
   const m = MESSAGES[locale];
   const languages = languagePath
     ? html`<nav aria-label="${m.language}" class="flex justify-center gap-1 text-sm">
@@ -67,6 +76,12 @@ export function layout({ locale, title, body, languagePath, wide }: LayoutOption
       <link rel="stylesheet" href="/assets/cenacle-id.css" />
       <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
       <script src="/assets/theme.js"></script>
+      ${
+        passkeys
+          ? html`<script src="/assets/simplewebauthn.js" defer></script>
+              <script src="/assets/passkey.js" defer></script>`
+          : null
+      }
     </head>
     <body class="min-h-svh bg-background text-foreground antialiased">
       <a
@@ -103,7 +118,8 @@ export function alertBox(id: string, title: string, action?: string): SafeHtml {
   </div>`;
 }
 
-export type LoginError = 'invalid' | 'missing' | 'unavailable' | { rateLimited: number };
+export type LoginError =
+  'invalid' | 'missing' | 'unavailable' | 'passkey' | { rateLimited: number };
 
 export function loginPage(opts: {
   locale: Locale;
@@ -122,6 +138,7 @@ export function loginPage(opts: {
     action: `/interaction/${opts.uid}/login`,
     cancelAction: `/interaction/${opts.uid}/abort`,
     languagePath: `/interaction/${opts.uid}`,
+    passkey: `/interaction/${opts.uid}/passkey`,
   });
 }
 
@@ -140,6 +157,7 @@ export function accountSigninPage(opts: {
     subtitle: m.signinSubtitle,
     action: '/account/signin',
     languagePath: '/account',
+    passkey: '/account/passkey',
   });
 }
 
@@ -150,6 +168,8 @@ function credentialsPage(opts: {
   action: string;
   cancelAction?: string;
   languagePath: string;
+  /** Where a passkey sign-in posts (its options at `${passkey}/options`). */
+  passkey: string;
   email?: string;
   error?: LoginError;
   notice?: string;
@@ -164,6 +184,8 @@ function credentialsPage(opts: {
     error = alertBox(errorId, opts.usernames ? m.missingIdentifier : m.missing);
   else if (opts.error === 'unavailable')
     error = alertBox(errorId, m.unavailable, m.unavailableAction);
+  else if (opts.error === 'passkey')
+    error = alertBox(errorId, m.passkeyFailed, m.passkeyFailedAction);
   else if (opts.error)
     error = alertBox(
       errorId,
@@ -215,6 +237,13 @@ function credentialsPage(opts: {
       </div>
       <button type="submit" class="${primary}">${m.submit}</button>
     </form>
+    ${passkeyButton({
+      action: opts.passkey,
+      text: m.passkey,
+      or: m.or,
+      cancelled: m.passkeyCancelled,
+      failed: `${m.passkeyFailed} ${m.passkeyFailedAction}`,
+    })}
     ${
       opts.cancelAction
         ? html`<form method="post" action="${opts.cancelAction}">
@@ -227,7 +256,55 @@ function credentialsPage(opts: {
     title: opts.title,
     body,
     languagePath: opts.languagePath,
+    passkeys: true,
   });
+}
+
+// Own artwork: a key (no icon library needed).
+const keyIcon = raw(
+  '<svg aria-hidden="true" viewBox="0 0 16 16" class="size-4 shrink-0 fill-none stroke-current" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="10.5" r="3"/><path d="m7.6 8.4 6-6M11.5 4.5l1.5 1.5M10 6l1 1"/></svg>',
+);
+
+/**
+ * The passkey sign-in: shown by passkey.js where the browser supports
+ * WebAuthn (hidden otherwise). The script fetches the options, asks the
+ * browser and posts the answer with the form.
+ */
+function passkeyButton(o: {
+  action: string;
+  text: string;
+  or: string;
+  cancelled: string;
+  failed: string;
+}): SafeHtml {
+  return html`<div data-passkey-block hidden class="flex flex-col gap-4">
+    <p class="flex items-center gap-3 text-xs text-muted-foreground uppercase">
+      <span aria-hidden="true" class="h-px flex-1 bg-border"></span>${o.or}<span
+        aria-hidden="true"
+        class="h-px flex-1 bg-border"
+      ></span>
+    </p>
+    <form id="passkey-form" method="post" action="${o.action}">
+      <input type="hidden" name="challenge" />
+      <input type="hidden" name="response" />
+      <button
+        type="button"
+        class="${secondary}"
+        data-passkey="signin"
+        data-options="${o.action}/options"
+        data-status="passkey-status"
+      >
+        ${keyIcon}${o.text}
+      </button>
+    </form>
+    <p
+      id="passkey-status"
+      aria-live="polite"
+      class="text-sm text-muted-foreground"
+      data-cancelled="${o.cancelled}"
+      data-failed="${o.failed}"
+    ></p>
+  </div>`;
 }
 
 export function errorPage(opts: {
@@ -384,6 +461,15 @@ export interface AccountView {
   notice?: string;
   /** Administers Cenacle ID: show the way to the admin panel. */
   isAdmin?: boolean;
+  passkeys: {
+    id: string;
+    name: string;
+    createdAt: Date;
+    lastUsedAt: Date | null;
+    synced: boolean;
+  }[];
+  /** Why adding a passkey failed, if it just did. */
+  passkeyError?: 'failed' | 'limit';
 }
 
 /** The account page: two-step verification and recent activity. */
@@ -409,6 +495,95 @@ export function accountPage(opts: { locale: Locale } & AccountView): string {
               <a href="/account/two-step/off" class="${secondary}">${m.turnOff}</a>`
           : html`<a href="/account/two-step/setup" class="${primary}">${m.setUp}</a>`
       }
+    </section>
+    <section aria-labelledby="passkeys" class="flex flex-col gap-3 rounded-xl border p-4">
+      <h2 id="passkeys" class="font-semibold">${m.passkeys}</h2>
+      <p class="text-sm text-muted-foreground">${m.passkeysBody}</p>
+      ${
+        opts.passkeyError
+          ? alertBox(
+              'passkey-error',
+              opts.passkeyError === 'limit' ? m.passkeyLimit : m.passkeyFailed,
+              opts.passkeyError === 'limit' ? undefined : m.passkeyFailedAction,
+            )
+          : null
+      }
+      ${
+        opts.passkeys.length === 0
+          ? html`<p class="text-sm" data-testid="no-passkeys">${m.noPasskeys}</p>`
+          : html`<ul
+              class="flex flex-col divide-y rounded-lg border text-sm"
+              data-testid="passkeys"
+            >
+              ${opts.passkeys.map(
+                (p) =>
+                  html`<li class="flex items-center gap-2 py-1.5 pr-1.5 pl-3">
+                    <div class="flex min-w-0 flex-1 flex-col">
+                      <span class="truncate font-medium">${p.name}</span>
+                      <span class="text-xs text-muted-foreground"
+                        >${format(m.passkeyCreated, { date: when.format(p.createdAt) })}${
+                          p.lastUsedAt
+                            ? html` · ${format(m.passkeyUsed, { date: when.format(p.lastUsedAt) })}`
+                            : null
+                        }${p.synced ? html` · ${m.passkeySynced}` : null}</span
+                      >
+                    </div>
+                    <form
+                      method="post"
+                      action="/account/passkeys/${encodeURIComponent(p.id)}/delete"
+                    >
+                      <button
+                        type="submit"
+                        class="inline-flex min-h-target items-center rounded-md px-3 text-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                        aria-label="${format(m.removePasskey, { name: p.name })}"
+                      >
+                        ${m.remove}
+                      </button>
+                    </form>
+                  </li>`,
+              )}
+            </ul>`
+      }
+      <form
+        id="passkey-add"
+        method="post"
+        action="/account/passkeys"
+        data-passkey-block
+        hidden
+        class="flex flex-col gap-3"
+      >
+        <input type="hidden" name="challenge" />
+        <input type="hidden" name="response" />
+        <div class="flex flex-col gap-1.5">
+          <label for="passkey-name" class="${label}">${m.passkeyName}</label>
+          <input
+            id="passkey-name"
+            name="name"
+            required
+            maxlength="80"
+            autocomplete="off"
+            aria-describedby="passkey-name-hint"
+            class="${input}"
+          />
+          <p id="passkey-name-hint" class="text-xs text-muted-foreground">${m.passkeyNameHint}</p>
+        </div>
+        <button
+          type="button"
+          class="${secondary}"
+          data-passkey="register"
+          data-options="/account/passkeys/options"
+          data-status="passkey-add-status"
+        >
+          ${keyIcon}${m.addPasskey}
+        </button>
+        <p
+          id="passkey-add-status"
+          aria-live="polite"
+          class="text-sm text-muted-foreground"
+          data-cancelled="${m.passkeyCancelled}"
+          data-failed="${m.passkeyFailed} ${m.passkeyFailedAction}"
+        ></p>
+      </form>
     </section>
     <section aria-labelledby="activity" class="flex flex-col gap-2">
       <h2 id="activity" class="font-semibold">${m.activity}</h2>
@@ -437,7 +612,13 @@ export function accountPage(opts: { locale: Locale } & AccountView): string {
         <button type="submit" class="${secondary}">${m.signOut}</button>
       </form>
     </div>`;
-  return layout({ locale: opts.locale, title: m.title, body, languagePath: '/account' });
+  return layout({
+    locale: opts.locale,
+    title: m.title,
+    body,
+    languagePath: '/account',
+    passkeys: true,
+  });
 }
 
 /** Setting up TOTP: QR code, the key for typing in, and the first code. */

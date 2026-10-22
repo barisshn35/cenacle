@@ -39,12 +39,12 @@ test('too many sign-in attempts are rate limited, also for correct passwords', a
   for (let i = 0; i < 3; i++) {
     await page.getByLabel('E-mail address').fill(EMAIL);
     await page.getByLabel('Password').fill(`wrong passphrase number ${i}`);
-    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('incorrect');
   }
   await page.getByLabel('E-mail address').fill(EMAIL);
   await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Too many attempts.');
   await expect(page.getByRole('alert')).toContainText(/Wait \d+ seconds/);
   expect(page.url().startsWith(h.callbackUrl)).toBe(false);

@@ -47,7 +47,7 @@ test('an administrator connects a directory, tests, previews and synchronizes it
   await page.goto(`${h.issuer}/account`);
   await page.getByLabel('E-mail address').fill(EMAIL);
   await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.getByRole('link', { name: 'Administration' }).click();
   await expect(page.getByRole('cell', { name: /Ayşe Yılmaz/ })).toBeVisible();
   await axe(page);
@@ -112,12 +112,12 @@ test('people sign in to apps with their directory password and get groups', asyn
   // With a directory, the field takes a username too.
   await page.getByLabel('E-mail address or username').fill('carol');
   await page.getByLabel('Password').fill('wrong password');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText(
     'The username, e-mail address or password is incorrect.',
   );
   await page.getByLabel('Password').fill('carol-dev-password');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect.poll(() => h.callbacks.length).toBeGreaterThan(0);
   const tokens = await client.authorizationCodeGrant(
     config,

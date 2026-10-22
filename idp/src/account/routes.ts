@@ -3,7 +3,13 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import QRCode from 'qrcode';
 import type { AuditLog } from '../accounts/audit.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
-import { checkPassword, usernamesAllowed, type DirectoryAccess } from '../accounts/signin.ts';
+import type { PasskeyStore } from '../accounts/passkeys.ts';
+import {
+  checkPasskey,
+  checkPassword,
+  usernamesAllowed,
+  type DirectoryAccess,
+} from '../accounts/signin.ts';
 import type { UserStore } from '../accounts/users.ts';
 import { isSameOriginPost, LOCALE_COOKIE, pageSecurityHeaders } from '../oidc/security.ts';
 import { isLocale, MESSAGES, pickLocale, type Locale } from '../ui/messages.ts';
@@ -39,6 +45,7 @@ export interface AccountOptions {
   /** Sign-in attempts per address and minute. */
   rateLimit?: number;
   directory?: DirectoryAccess;
+  passkeys?: PasskeyStore;
 }
 
 type CodeBody = { code?: string; challenge?: string };
@@ -123,6 +130,13 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       const on = await mfa.enabled(user.id);
       const m = MESSAGES[loc].account;
       const done = (request.query as Record<string, string | undefined>).done;
+      const notices: Record<string, string> = {
+        off: m.disabledNotice,
+        on: m.enabledNotice,
+        'passkey-added': m.passkeyAdded,
+        'passkey-removed': m.passkeyRemoved,
+      };
+      const failed = request.query.passkey_error;
       return page(
         reply,
         200,
@@ -135,7 +149,9 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           events: await audit.forUser(user.id, 10),
           returnTo: returnTo(request),
           isAdmin: user.isAdmin,
-          notice: done === 'off' ? m.disabledNotice : done === 'on' ? m.enabledNotice : undefined,
+          notice: done ? notices[done] : undefined,
+          passkeys: opts.passkeys ? await opts.passkeys.list(user.id) : [],
+          passkeyError: failed === 'limit' || failed === 'failed' ? failed : undefined,
         }),
       );
     },
@@ -212,6 +228,98 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       await audit.record('recovery_code.used', challenge.userId, request.ip);
     await audit.record('account.signed_in', challenge.userId, request.ip, { second_step: factor });
     return signedIn(reply, challenge.userId);
+  });
+
+  // --- passkeys -------------------------------------------------------------
+
+  app.post('/account/passkey/options', limited, async (request, reply) => {
+    if (!opts.passkeys) return reply.code(404).send();
+    if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+    return reply
+      .header('cache-control', 'no-store')
+      .send(await opts.passkeys.authenticationOptions('account'));
+  });
+
+  app.post<{ Body: { challenge?: string; response?: string } }>(
+    '/account/passkey',
+    limited,
+    async (request, reply) => {
+      if (!opts.passkeys) return reply.code(404).send();
+      if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+      const result = await checkPasskey(users, opts.passkeys, 'account', request.body);
+      if (!result) {
+        await audit.record('signin.passkey_failed', null, request.ip, { where: 'account' });
+        return page(
+          reply,
+          401,
+          accountSigninPage({
+            locale: locale(request),
+            error: 'passkey',
+            usernames: await usernamesAllowed(opts.directory),
+          }),
+        );
+      }
+      // A passkey is two factors on its own: no second step.
+      await audit.record('account.signed_in', result.user.id, request.ip, { method: 'passkey' });
+      return signedIn(reply, result.user.id);
+    },
+  );
+
+  app.post('/account/passkeys/options', limited, async (request, reply) => {
+    if (!opts.passkeys) return reply.code(404).send();
+    if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+    const user = await current(request);
+    if (!user) return reply.code(401).send();
+    return reply
+      .header('cache-control', 'no-store')
+      .send(await opts.passkeys.registrationOptions(user));
+  });
+
+  app.post<{ Body: { challenge?: string; response?: string; name?: string } }>(
+    '/account/passkeys',
+    limited,
+    async (request, reply) => {
+      if (!opts.passkeys) return reply.code(404).send();
+      if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+      const user = await current(request);
+      if (!user) return reply.redirect('/account', 303);
+      let response: unknown;
+      try {
+        response = JSON.parse(request.body?.response ?? '');
+      } catch {
+        response = null;
+      }
+      const outcome =
+        typeof response === 'object' && response !== null
+          ? await opts.passkeys.register(
+              user.id,
+              request.body?.challenge ?? '',
+              response as Parameters<PasskeyStore['register']>[2],
+              request.body?.name ?? '',
+            )
+          : 'invalid';
+      if (outcome !== 'ok') {
+        return reply.redirect(
+          `/account?passkey_error=${outcome === 'limit' ? 'limit' : 'failed'}`,
+          303,
+        );
+      }
+      await audit.record('passkey.added', user.id, request.ip, {
+        name: (request.body?.name ?? '').trim().slice(0, 80),
+      });
+      return reply.redirect('/account?done=passkey-added', 303);
+    },
+  );
+
+  app.post<{ Params: { id: string } }>('/account/passkeys/:id/delete', async (request, reply) => {
+    if (!opts.passkeys) return reply.code(404).send();
+    if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+    const user = await current(request);
+    if (!user) return reply.redirect('/account', 303);
+    if (await opts.passkeys.remove(user.id, request.params.id)) {
+      await audit.record('passkey.removed', user.id, request.ip);
+    }
+    return reply.redirect('/account?done=passkey-removed', 303);
   });
 
   app.post('/account/signout', async (request, reply) => {

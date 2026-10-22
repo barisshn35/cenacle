@@ -52,7 +52,7 @@ async function signInAtIdP(page: Page, email = EMAIL) {
   await page.waitForURL(`${IDP_URL}/**`);
   await page.getByLabel('E-mail address').fill(email);
   await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 
 test('signing in with Cenacle ID and out again', async ({ page }) => {
@@ -379,7 +379,7 @@ test('with two-step verification, signing in asks for a code', async ({ page }) 
   await page.goto(`${IDP_URL}/account`);
   await page.getByLabel('E-mail address').fill(THIRD.email);
   await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.getByRole('link', { name: 'Set up two-step verification' }).click();
   const secret = ((await page.getByTestId('totp-secret').textContent()) ?? '').replace(/\s/g, '');
   const step = Math.floor(Date.now() / 30_000);

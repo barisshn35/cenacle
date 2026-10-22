@@ -3,7 +3,13 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type Provider from 'oidc-provider';
 import type { AuditLog } from '../accounts/audit.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
-import { checkPassword, usernamesAllowed, type DirectoryAccess } from '../accounts/signin.ts';
+import type { PasskeyStore } from '../accounts/passkeys.ts';
+import {
+  checkPasskey,
+  checkPassword,
+  usernamesAllowed,
+  type DirectoryAccess,
+} from '../accounts/signin.ts';
 import type { UserStore } from '../accounts/users.ts';
 import { isLocale, pickLocale, type Locale } from '../ui/messages.ts';
 import {
@@ -28,6 +34,8 @@ export interface InteractionOptions {
   loginRateLimit?: number;
   /** Directories (LDAP / Active Directory) people may sign in with. */
   directory?: DirectoryAccess;
+  /** Passkeys (WebAuthn); without them the passkey sign-in answers 404. */
+  passkeys?: PasskeyStore;
 }
 
 interface Params {
@@ -268,6 +276,72 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
             amr: factor === 'totp' ? ['pwd', 'otp', 'mfa'] : ['pwd', 'mfa'],
           },
         },
+        { mergeWithLastSubmission: false },
+      );
+    },
+  );
+
+  const limited = {
+    config: { rateLimit: { max: opts.loginRateLimit ?? 10, timeWindow: '1 minute' } },
+  };
+
+  app.post<{ Params: Params }>(
+    '/interaction/:uid/passkey/options',
+    limited,
+    async (request, reply) => {
+      if (!opts.passkeys) return reply.code(404).send();
+      if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+      const d = await details(request, reply);
+      if (!d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
+        return reply.code(400).send();
+      }
+      return reply
+        .header('cache-control', 'no-store')
+        .send(await opts.passkeys.authenticationOptions('login', d.uid));
+    },
+  );
+
+  app.post<{ Params: Params; Body: { challenge?: string; response?: string } }>(
+    '/interaction/:uid/passkey',
+    limited,
+    async (request, reply) => {
+      if (!opts.passkeys) return reply.code(404).send();
+      if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+      const d = await details(request, reply);
+      if (!d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
+        return expired(request, reply);
+      }
+      const result = await checkPasskey(users, opts.passkeys, 'login', request.body, d.uid);
+      if (!result) {
+        request.log.info({ uid: d.uid }, 'passkey sign-in failed');
+        await opts.audit?.record('signin.passkey_failed', null, request.ip, {
+          client: d.params.client_id,
+        });
+        return page(
+          reply,
+          401,
+          loginPage({
+            locale: locale(request, d.params.ui_locales),
+            uid: d.uid,
+            clientName: await clientName(d.params.client_id),
+            error: 'passkey',
+            usernames: await usernames(),
+          }),
+        );
+      }
+      const { user, synced } = result;
+      request.log.info({ uid: d.uid, sub: user.id }, 'sign-in succeeded');
+      await opts.audit?.record('signin.succeeded', user.id, request.ip, {
+        client: d.params.client_id,
+        method: 'passkey',
+      });
+      reply.hijack();
+      // A passkey is possession of a key plus user verification: two factors
+      // (RFC 8176: hwk for a device-bound key, swk for a synced one).
+      await provider.interactionFinished(
+        request.raw,
+        reply.raw,
+        { login: { accountId: user.id, amr: [synced ? 'swk' : 'hwk', 'mfa'] } },
         { mergeWithLastSubmission: false },
       );
     },

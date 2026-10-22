@@ -14,6 +14,7 @@ import type { AuditLog } from './accounts/audit.ts';
 import type { MfaStore } from './accounts/mfa.ts';
 import type { UserStore } from './accounts/users.ts';
 import { registerAccount } from './account/routes.ts';
+import type { PasskeyStore } from './accounts/passkeys.ts';
 import { registerAdmin } from './admin/routes.ts';
 import { registerDirectoryFeed } from './directory/feed.ts';
 import type { ClientMetadata } from './oidc/clients.ts';
@@ -58,6 +59,8 @@ export interface OidcOptions {
   cookieKeys?: string[];
   /** Directories (LDAP / Active Directory) people may sign in with. */
   directory?: DirectoryAccess;
+  /** Passkeys (WebAuthn) for signing in. */
+  passkeys?: PasskeyStore;
   /** Registered apps (the directory feed authenticates them). */
   clients?: ClientMetadata[];
 }
@@ -213,6 +216,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
         formActionOrigins: opts.oidc.formActionOrigins,
         rateLimit: opts.oidc.loginRateLimit,
         directory: opts.oidc.directory,
+        passkeys: opts.oidc.passkeys,
       });
       if (opts.oidc.directory && opts.oidc.clients) {
         registerDirectoryFeed(app, { pool: opts.oidc.directory.pool, clients: opts.oidc.clients });

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
+import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 import type pg from 'pg';
 import type { SourceStore } from '../directory/store.ts';
 import { signInWithDirectory } from '../directory/sync.ts';
+import type { PasskeyStore, SignInPurpose } from './passkeys.ts';
 import type { User, UserStore } from './users.ts';
 
 /** Directories people may sign in with (LDAP / Active Directory). */
@@ -41,4 +43,38 @@ export async function checkPassword(
 export async function usernamesAllowed(directory: DirectoryAccess | undefined): Promise<boolean> {
   if (!directory) return false;
   return (await directory.sources.list()).some((s) => s.enabled);
+}
+
+/**
+ * Checks a passkey sign-in posted by the sign-in form (`challenge` and the
+ * browser's `response` as JSON). The passkey's account must be active.
+ */
+export async function checkPasskey(
+  users: UserStore,
+  passkeys: PasskeyStore,
+  purpose: SignInPurpose,
+  body: { challenge?: string; response?: string } | undefined,
+  interaction?: string,
+): Promise<{ user: User; synced: boolean } | null> {
+  let response: unknown;
+  try {
+    response = JSON.parse(body?.response ?? '');
+  } catch {
+    return null;
+  }
+  if (!isAssertion(response)) return null;
+  const result = await passkeys.authenticate(purpose, body?.challenge ?? '', response, interaction);
+  const user = result ? await users.findById(result.userId) : null;
+  return user && !user.disabled ? { user, synced: result!.synced } : null;
+}
+
+function isAssertion(value: unknown): value is AuthenticationResponseJSON {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as { id?: unknown; response?: unknown };
+  return (
+    typeof v.id === 'string' &&
+    v.id.length <= 1024 &&
+    typeof v.response === 'object' &&
+    v.response !== null
+  );
 }

@@ -49,7 +49,7 @@ async function signInToAccount(page: Page) {
   await page.goto(`${h.issuer}/account`);
   await page.getByLabel('E-mail address').fill(EMAIL);
   await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 }
 
 async function rp() {
@@ -76,7 +76,7 @@ async function startAuthorization(page: Page) {
   await page.goto(url.href);
   await page.getByLabel('E-mail address').fill(EMAIL);
   await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   return { config, verifier, state };
 }
 
