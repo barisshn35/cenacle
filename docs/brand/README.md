@@ -43,6 +43,20 @@ as the logo bubble**, never as text, links, outlines or buttons. On light UI use
   `tone="brand" | "mono"`). Its colours come from `--logo-ink` and `--logo-accent`, so it
   follows the theme. Mark it `decorative` when the word "Cenacle" is visible next to it.
 
+### Logo motion
+
+On the project website the lockup may come in once, when the page opens:
+
+1. the arch is drawn along its stroke (0.7 s),
+2. the bubble settles inside it (scale 0.4 → 1, 0.24 s),
+3. the letters of the wordmark appear one after another, C to e (0.3 s each, 70 ms
+   apart, rising 4 units).
+
+Easing `cubic-bezier(0.23, 1, 0.32, 1)`. The shapes, colours and proportions never change;
+no glow, blur, bounce or loop. It plays once per page load, never on hover, and not at all
+with `prefers-reduced-motion` or without JavaScript (the logo then simply shows). The app
+itself does not animate the logo.
+
 ### Do not
 
 - recolour the logo outside this palette, or use bright brass for the arch on light;
@@ -52,6 +66,13 @@ as the logo bubble**, never as text, links, outlines or buttons. On light UI use
 - place it on busy images or low-contrast backgrounds.
 
 ## Files
+
+The lockup, icon and favicon files are animation-ready: `<g id="icon">` holds
+`<path id="arch">` (one open stroke, drawn from the left foot over the top to the right
+foot) and `<path id="bubble">`; `<g id="wordmark">` holds one path per letter (`C`, `e1`,
+`n1`, `a`, `c`, `l`, `e2`). The editable master with the 48-unit grid and construction
+guides is `docs/brand/cenacle-source.svg`. The wordmark is Fraunces Medium (opsz 72, SOFT 50,
+WONK 0, tracking −1.5 %), outlined.
 
 All files are plain-path SVGs (no fonts, scripts or external references). Embedded C2PA
 provenance metadata from the design export is removed from the served copies.

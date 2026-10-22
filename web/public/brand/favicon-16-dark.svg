@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="2.25 2.75 43.5 43.5" width="43.5" height="43.5"><path fill="none" stroke="#F3EEE2" stroke-width="7.5" stroke-linecap="round" d="M10 41V22A14 14 0 0 1 38 22V41"></path><path fill="#C9A24B" d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"></path></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="2.25 2.75 43.5 43.5" width="43.5" height="43.5">
+  <g id="icon">
+    <path id="arch" fill="none" stroke="#F3EEE2" stroke-width="7.5" stroke-linecap="round" d="M10 41L10 22A14 14 0 0 1 38 22L38 41"></path>
+    <path id="bubble" fill="#C9A24B" d="M17.5 33L17.5 25.5A5.5 5.5 0 0 1 23 20L25 20A5.5 5.5 0 0 1 30.5 25.5L30.5 27.5A5.5 5.5 0 0 1 25 33Z"></path>
+  </g>
+</svg>
