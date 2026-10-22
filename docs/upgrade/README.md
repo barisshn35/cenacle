@@ -39,7 +39,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
-### Unreleased (0.18.0)
+### 0.18.0
 
 - Migration `00018_threads_pins_saved` adds columns to `messages` (thread, pins) with
   indexes, and the tables for followed threads and saved messages. Nothing to configure.
