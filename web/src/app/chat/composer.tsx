@@ -2,7 +2,13 @@
 import { RewriteMenu } from '../ai/ai-ui';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClockIcon, PaperclipIcon, SendHorizontalIcon, BarChart3Icon } from 'lucide-react';
+import {
+  BarChart3Icon,
+  BellRingIcon,
+  ClockIcon,
+  PaperclipIcon,
+  SendHorizontalIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
@@ -170,6 +176,9 @@ export function Composer({
   }, [body]);
 
   const trimmed = body.trim();
+  // @channel / @here: say whom it reaches while typing, not only on sending.
+  const broadcast = !conversation && BROADCAST.test(trimmed);
+  const reach = useQuery({ ...membersQuery(channelId), enabled: broadcast });
   const tooLong = body.length > MAX_LENGTH;
   const canSend =
     (trimmed !== '' || uploads.ready.length > 0) && !tooLong && !uploads.busy && !uploads.failed;
@@ -423,6 +432,15 @@ export function Composer({
             {conversation && !thread && <BurnChoice value={burn} onChange={setBurn} />}
             <div id={ids.hint}>
               <ConnectionNotice />
+              {broadcast && reach.data && (
+                <p
+                  className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground"
+                  data-testid="broadcast-reach"
+                >
+                  <BellRingIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  {t('richer.broadcast.reach', { count: Math.max(reach.data.length - 1, 0) })}
+                </p>
+              )}
               {slowMode > 0 && (
                 <p className="px-1 text-xs text-muted-foreground" data-testid="slow-mode">
                   {t('community.moderation.slowModeHint', { count: slowMode })}

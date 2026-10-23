@@ -44,6 +44,12 @@ async function mockFiles(page: Page) {
               uploader: { id: 'u1', display_name: 'Ayşe Yılmaz' },
               created_at: '2026-10-21T09:05:00Z',
             },
+            {
+              ...IMAGE,
+              message_id: mockMessage(6, '').id,
+              uploader: { id: 'u1', display_name: 'Ayşe Yılmaz' },
+              created_at: '2026-10-21T09:04:00Z',
+            },
           ],
         },
       });
@@ -180,6 +186,15 @@ test('the details panel lists the channel files', async ({ page, isMobile }) => 
   const toggle = page.getByRole('button', { name: 'Channel details', exact: true });
   if ((await toggle.getAttribute('aria-pressed')) !== 'true') await toggle.click();
   const files = page.getByRole('region', { name: 'Files' });
-  await expect(files.getByTestId('channel-file')).toContainText('rapor.pdf');
-  await expect(files.getByTestId('channel-file')).toContainText('Ayşe Yılmaz');
+  const rows = files.getByTestId('channel-file');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toContainText('rapor.pdf');
+  await expect(rows.first()).toContainText('Ayşe Yılmaz');
+  // Filter by kind.
+  await files.getByRole('radio', { name: /^Documents/ }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows).toContainText('rapor.pdf');
+  await files.getByRole('radio', { name: /^Images/ }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows).not.toContainText('rapor.pdf');
 });

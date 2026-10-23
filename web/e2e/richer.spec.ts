@@ -168,6 +168,8 @@ test('@channel in a larger channel asks first', async ({ page }) => {
   );
   await page.goto(`/c/${GENERAL.id}`);
   await page.getByRole('textbox', { name: /Message/ }).fill('@channel standup now');
+  // While typing, the composer says whom it reaches.
+  await expect(page.getByTestId('broadcast-reach')).toHaveText('Notifies 7 people in this channel');
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'Notify everyone?' });
   await expect(dialog).toContainText('This notifies 7 people in this channel.');

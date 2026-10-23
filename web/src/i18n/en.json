@@ -665,6 +665,14 @@
       "files_disabled": "Files are not set up on this server.",
       "rate_limited": "Too fast. Try again in a moment.",
       "too_many_uploads": "You have 50 unsent files; send or remove some first."
+    },
+    "filter": "Show files",
+    "kinds": {
+      "all": "All",
+      "image": "Images",
+      "document": "Documents",
+      "media": "Audio and video",
+      "other": "Other"
     }
   },
   "groups": {
@@ -1351,7 +1359,9 @@
       "title": "Notify everyone?",
       "confirm_one": "This notifies {{count}} person in this channel.",
       "confirm_other": "This notifies {{count}} people in this channel.",
-      "send": "Send and notify"
+      "send": "Send and notify",
+      "reach_one": "Notifies {{count}} person in this channel",
+      "reach_other": "Notifies {{count}} people in this channel"
     },
     "manage": {
       "upload": "Upload",

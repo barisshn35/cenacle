@@ -665,6 +665,14 @@
       "files_disabled": "Bu sunucuda dosyalar ayarlanmamış.",
       "rate_limited": "Çok hızlı. Birazdan yeniden dene.",
       "too_many_uploads": "Gönderilmemiş 50 dosyan var; önce bazılarını gönder ya da kaldır."
+    },
+    "filter": "Dosyaları göster",
+    "kinds": {
+      "all": "Tümü",
+      "image": "Görseller",
+      "document": "Belgeler",
+      "media": "Ses ve video",
+      "other": "Diğer"
     }
   },
   "groups": {
@@ -1351,7 +1359,9 @@
       "title": "Herkese bildirilsin mi?",
       "confirm_one": "Bu, kanaldaki {{count}} kişiye bildirim gönderir.",
       "confirm_other": "Bu, kanaldaki {{count}} kişiye bildirim gönderir.",
-      "send": "Gönder ve bildir"
+      "send": "Gönder ve bildir",
+      "reach_one": "Bu kanalda {{count}} kişiye bildirim gider",
+      "reach_other": "Bu kanalda {{count}} kişiye bildirim gider"
     },
     "manage": {
       "upload": "Yükle",
