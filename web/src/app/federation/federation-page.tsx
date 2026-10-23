@@ -24,6 +24,7 @@ import {
   setConnectionEnabled,
   type FederationConnection,
 } from './federation';
+import { dateLocale } from '../../i18n/time-format';
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   const id = useId();
@@ -133,7 +134,10 @@ function Connections({ ws, connections }: { ws: string; connections: FederationC
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<FederationConnection | null>(null);
   const reload = () => queryClient.invalidateQueries({ queryKey: federationQuery(ws).queryKey });
-  const time = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   return (
     <Section title={t('federation.connections.title')} hint={t('federation.connections.hint')}>
       {connections.length === 0 ? (

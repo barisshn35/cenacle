@@ -15,6 +15,7 @@ import {
 } from './files';
 import { Lightbox } from './lightbox';
 import { FileTypeIcon } from './message-files';
+import { dateLocale } from '../../i18n/time-format';
 
 /** The files shared in a channel, newest first (details panel). */
 export function ChannelFiles({ channelId }: { channelId: string }) {
@@ -23,7 +24,7 @@ export function ChannelFiles({ channelId }: { channelId: string }) {
   const [open, setOpen] = useState<number | null>(null);
   const list: ChannelFile[] = files.data?.pages.flatMap((p) => p.files) ?? [];
   const images = list.filter(isImage);
-  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' });
   return (
     <section aria-labelledby="channel-files-title" className="flex flex-col gap-2">
       <h3 id="channel-files-title" className="text-[13px] font-semibold text-foreground">

@@ -439,14 +439,34 @@
     "endedOthers_one": "{{count}} device was signed out.",
     "endedOthers_other": "{{count}} devices were signed out.",
     "tabs": {
-      "account": "Account",
+      "account": "Account and devices",
       "appearance": "Appearance",
       "texts": "Interface texts",
       "notifications": "Notifications",
       "announcements": "Announcements",
-      "language": "Language",
+      "language": "Language and region",
       "signIn": "Sign-in"
-    }
+    },
+    "adminGroup": "Workspace · admin",
+    "cenacleId": "Cenacle ID account",
+    "sections": {
+      "account": "Your Cenacle ID account and the devices signed in to it.",
+      "appearance": "Theme, density, type and code blocks on your devices.",
+      "notifications": "What reaches you, how it sounds, and when Cenacle stays quiet.",
+      "language": "The language of Cenacle, how times are written and your time zone.",
+      "texts": "Texts of the interface the administrators change for everyone.",
+      "announcements": "A banner and terms everyone sees and accepts.",
+      "signIn": "Where people may use Cenacle."
+    },
+    "timeFormat": {
+      "title": "Clock",
+      "auto": "As the language writes it",
+      "24": "24-hour",
+      "12": "12-hour (AM/PM)",
+      "hint": "For this device."
+    },
+    "timeZone": "Time zone",
+    "timeZoneHint": "Times are shown in this device's time zone."
   },
   "reactions": {
     "label": "Reactions",
@@ -827,7 +847,18 @@
     "emailAfter": "Send after",
     "minutes_one": "{{count}} minute",
     "minutes_other": "{{count}} minutes",
-    "saveFailed": "Couldn't save your notification settings. Try again."
+    "saveFailed": "Couldn't save your notification settings. Try again.",
+    "exceptions": {
+      "title": "Exceptions",
+      "hint": "set from a channel's bell menu",
+      "none": "No channel differs from these settings.",
+      "mutedForever": "Muted until you unmute",
+      "mutedUntil": "Muted until {{time}}",
+      "ownSound": "Its own sound",
+      "reset": "Reset",
+      "resetNamed": "Reset, {{channel}}",
+      "unknownChannel": "A channel you left"
+    }
   },
   "search": {
     "title": "Search",

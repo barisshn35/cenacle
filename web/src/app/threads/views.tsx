@@ -56,6 +56,7 @@ import {
   unsaveMessage,
   type SavedItem,
 } from './threads';
+import { dateLocale } from '../../i18n/time-format';
 
 // Pages few people open load when opened.
 const WorkflowsPage = lazy(() =>
@@ -223,8 +224,11 @@ function ThreadsList() {
   const self = useSession().user.id;
   const info = useChannelInfo();
   const list = useInfiniteQuery(followedThreadsQuery(ws));
-  const clock = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' });
-  const day = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
+  const clock = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const day = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' });
   const when = (iso: string) => {
     const d = new Date(iso);
     return d.toDateString() === new Date().toDateString() ? clock.format(d) : day.format(d);
@@ -406,8 +410,11 @@ function SavedList() {
   const info = useChannelInfo();
   const [tab, setTab] = useState<'open' | 'done'>('open');
   const saved = useQuery(savedQuery);
-  const clock = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' });
-  const date = new Intl.DateTimeFormat(i18n.language, {
+  const clock = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -673,7 +680,10 @@ function UnreadsList() {
   const ws = useActiveWorkspace().id;
   const channels = useQuery(channelsQuery).data ?? [];
   const unreads = useQuery(unreadsQuery(ws));
-  const time = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' });
+  const time = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
   const read = useMutation({
     mutationFn: ({ channelId, messageId }: { channelId: string; messageId: string }) =>
       markRead(channelId, messageId),

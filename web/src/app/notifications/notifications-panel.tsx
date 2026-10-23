@@ -9,9 +9,11 @@ import { Button } from '@cenacle/ui/components/button';
 import { Label } from '@cenacle/ui/components/label';
 import {
   deleteSound,
+  FOREVER,
   isActive,
   notificationsQuery,
   savePrefs,
+  setChannelNotifications,
   soundsQuery,
   untilOf,
   uploadSound,
@@ -20,6 +22,9 @@ import {
 import { canNotify } from './notifier';
 import { disablePush, enablePush, pushSupported } from './push';
 import { BUILTIN_SOUNDS, playSound } from './sounds';
+import { dateLocale } from '../../i18n/time-format';
+import { ChannelIcon } from '../chat/channel-icon';
+import { channelsQuery } from '../chat/data';
 
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -96,7 +101,10 @@ export function NotificationsPanel() {
   );
 
   return (
-    <div className="flex flex-col gap-5" data-testid="notifications-panel">
+    <div
+      className="gap-x-10 pt-4 lg:columns-2 [&>section]:mb-7 [&>section]:break-inside-avoid [&>section]:content-start [&_section>h4]:border-b [&_section>h4]:pb-2 [&_section>h4]:font-semibold"
+      data-testid="notifications-panel"
+    >
       <section className="grid gap-2" aria-labelledby={`${ids.pause}-title`}>
         <h4 id={`${ids.pause}-title`} className="text-sm font-medium">
           {t('notifications.pause')}
@@ -105,7 +113,7 @@ export function NotificationsPanel() {
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span>
               {t('notifications.pausedUntil', {
-                time: new Intl.DateTimeFormat(undefined, {
+                time: new Intl.DateTimeFormat(dateLocale(), {
                   dateStyle: 'medium',
                   timeStyle: 'short',
                 }).format(new Date(p.paused_until!)),
@@ -360,7 +368,86 @@ export function NotificationsPanel() {
           )}
         </section>
       )}
+      <ChannelExceptions />
     </div>
+  );
+}
+
+/** Channels whose notifications differ from the defaults, set from their bell menu. */
+function ChannelExceptions() {
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const settings = useQuery(notificationsQuery);
+  const channels = useQuery(channelsQuery).data ?? [];
+  const reset = useMutation({
+    mutationFn: (channelId: string) =>
+      setChannelNotifications(channelId, { level: 'default', muted_until: null, sound: '' }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: notificationsQuery.queryKey }),
+    onError: () => toast.error(t('notifications.saveFailed')),
+  });
+  const until = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+  const rows = (settings.data?.channels ?? []).filter(
+    (c) => c.level !== 'default' || isActive(c.muted_until) || c.sound !== '',
+  );
+  const describe = (c: (typeof rows)[number]) => {
+    if (isActive(c.muted_until))
+      return c.muted_until === FOREVER
+        ? t('notifications.exceptions.mutedForever')
+        : t('notifications.exceptions.mutedUntil', {
+            time: until.format(new Date(c.muted_until!)),
+          });
+    if (c.level !== 'default') return t(`notifications.levels.${c.level}`);
+    return t('notifications.exceptions.ownSound');
+  };
+  return (
+    <section
+      className="grid content-start gap-2 lg:col-start-2"
+      aria-labelledby="notification-exceptions"
+    >
+      <h4 className="flex items-baseline gap-2 text-sm">
+        <span id="notification-exceptions">{t('notifications.exceptions.title')}</span>
+        <span className="text-xs font-normal text-muted-foreground">
+          {t('notifications.exceptions.hint')}
+        </span>
+      </h4>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('notifications.exceptions.none')}</p>
+      ) : (
+        <ul
+          data-testid="notification-exceptions"
+          className="divide-y rounded-[10px] border border-rule-strong bg-background"
+        >
+          {rows.map((c) => {
+            const channel = channels.find((x) => x.id === c.channel_id);
+            const name = channel?.name ?? t('notifications.exceptions.unknownChannel');
+            return (
+              <li key={c.channel_id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                {channel && (
+                  <ChannelIcon
+                    channel={channel}
+                    className="size-4 shrink-0 text-muted-foreground"
+                  />
+                )}
+                <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                <span className="text-muted-foreground">{describe(c)}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={t('notifications.exceptions.resetNamed', { channel: name })}
+                  disabled={reset.isPending}
+                  onClick={() => reset.mutate(c.channel_id)}
+                >
+                  {t('notifications.exceptions.reset')}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -458,7 +545,7 @@ function SoundUploads() {
             value={name}
             maxLength={60}
             onChange={(e) => setName(e.target.value)}
-            className={inputClass}
+            className={`${inputClass} w-full min-w-0`}
           />
         </div>
         <input

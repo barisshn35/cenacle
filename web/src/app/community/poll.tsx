@@ -21,6 +21,7 @@ import { useSession } from '../auth/session';
 import { addMessage, patchMessage, type Channel, type Message } from '../chat/data';
 import { newNonce } from '../chat/pending';
 import { closePoll, sendPoll, votePoll, type Poll } from './community';
+import { dateLocale } from '../../i18n/time-format';
 
 /** A message's poll: choose, see the results, close it (author, managers). */
 export function PollCard({ message, channel }: { message: Message; channel: Channel }) {
@@ -54,7 +55,7 @@ export function PollCard({ message, channel }: { message: Message; channel: Chan
     if (!poll.multiple) return vote.mutate(mine.includes(id) ? [] : [id]);
     vote.mutate(mine.includes(id) ? mine.filter((x) => x !== id) : [...mine, id]);
   };
-  const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  const date = new Intl.DateTimeFormat(dateLocale(), { dateStyle: 'medium', timeStyle: 'short' });
   return (
     <fieldset
       data-testid="poll"

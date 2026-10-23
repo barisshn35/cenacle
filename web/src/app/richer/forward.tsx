@@ -23,6 +23,7 @@ import { channelsQuery, type Message } from '../chat/data';
 import { MessageBody } from '../chat/markdown/message-body';
 import { useSession } from '../auth/session';
 import { forwardMessage } from './richer';
+import { dateLocale } from '../../i18n/time-format';
 
 /** A forwarded message: what was said, by whom and where. */
 export function ForwardedQuote({ message }: { message: Message }) {
@@ -30,7 +31,10 @@ export function ForwardedQuote({ message }: { message: Message }) {
   const self = useSession().user.id;
   const f = message.forward;
   if (!f) return null;
-  const when = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   return (
     <figure
       data-testid="forwarded"

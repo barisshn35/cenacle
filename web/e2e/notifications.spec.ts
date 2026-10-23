@@ -12,6 +12,23 @@ import {
 test.describe('notifications', () => {
   test.skip(({ isMobile }) => isMobile, 'settings open from the sidebar footer on desktop');
 
+  test('settings list the channels with their own notifications', async ({ page }) => {
+    const api = await mockApi(page, { messages: [] });
+    api.notifications!.channels = [
+      { channel_id: GENERAL.id, level: 'none', muted_until: null, sound: '' },
+    ];
+    await page.goto(`/c/${GENERAL.id}`);
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    await dialog.getByRole('tab', { name: 'Notifications' }).click();
+    const list = dialog.getByTestId('notification-exceptions');
+    await expect(list.getByRole('listitem')).toHaveCount(1);
+    await expect(list).toContainText('General');
+    await expect(list).toContainText('Nothing');
+    await list.getByRole('button', { name: 'Reset, General' }).click();
+    await expect(dialog.getByText('No channel differs from these settings.')).toBeVisible();
+  });
+
   test('settings: pause, levels, sounds and quiet hours', async ({ page }, testInfo) => {
     const api = await mockApi(page, { messages: [] });
     await page.goto(`/c/${GENERAL.id}`);

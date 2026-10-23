@@ -57,6 +57,7 @@ import {
 } from './bots';
 import { directoryQuery, isConversation } from './data';
 import type { Workspace } from './workspaces';
+import { dateLocale } from '../../i18n/time-format';
 
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -602,7 +603,10 @@ function Deliveries({ bot, subscription }: { bot: Bot; subscription: Subscriptio
     },
     onError: () => toast.error(t('bots.resendFailed')),
   });
-  const time = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'short', timeStyle: 'medium' });
+  const time = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  });
   const items = log.data?.deliveries ?? [];
   if (log.isPending) return <Skeleton className="h-9" />;
   return (

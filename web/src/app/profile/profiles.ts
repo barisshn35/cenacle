@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { queryOptions, useQuery, type QueryClient } from '@tanstack/react-query';
 import { apiFetch, type components } from '@cenacle/core/api';
+import { dateLocale } from '../../i18n/time-format';
 
 export type Profile = components['schemas']['Profile'];
 export type MyProfile = components['schemas']['MyProfile'];
@@ -108,7 +109,11 @@ export function browserTimeZone(): string {
 export function localTime(timeZone: string, locale: string, now = new Date()): string | null {
   if (!timeZone) return null;
   try {
-    const time = new Intl.DateTimeFormat(locale, { timeZone, hour: '2-digit', minute: '2-digit' });
+    const time = new Intl.DateTimeFormat(dateLocale(locale), {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+    });
     const offset = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'shortOffset' })
       .formatToParts(now)
       .find((p) => p.type === 'timeZoneName')?.value;

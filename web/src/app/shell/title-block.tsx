@@ -12,6 +12,7 @@ import { ChannelComplianceDialog } from '../compliance/channel-compliance';
 import { classificationsQuery } from '../compliance/compliance';
 import { usePeriodLabel } from '../compliance/retention-label';
 import { pinsQuery } from '../threads/threads';
+import { dateLocale } from '../../i18n/time-format';
 
 /** When a UUIDv7 was made: its first 48 bits are milliseconds since the epoch. */
 function createdAt(id: string): Date | null {
@@ -127,7 +128,9 @@ export function TitleBlock({ channel }: { channel: Channel }) {
         <Cell label={t('channels.titleBlock.created')}>
           <span className="font-mono text-[13px] tabular-nums">
             {created
-              ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(created)
+              ? new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' }).format(
+                  created,
+                )
               : '—'}
           </span>
         </Cell>

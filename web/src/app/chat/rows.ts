@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Message } from './data';
 import type { PendingMessage } from './pending';
+import { dateLocale } from '../../i18n/time-format';
 
 /** A row of the timeline: a confirmed or a pending message. */
 export type Row =
@@ -22,13 +23,15 @@ const GROUP_MS = 5 * 60_000;
 
 export function useFormatters() {
   const { i18n } = useTranslation();
+  // The language with the chosen hour cycle; changes when either does.
+  const locale = dateLocale(i18n.language);
   return useMemo(
     () => ({
-      time: new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }),
-      day: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full' }),
-      full: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }),
+      time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }),
+      day: new Intl.DateTimeFormat(locale, { dateStyle: 'full' }),
+      full: new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }),
     }),
-    [i18n.language],
+    [locale],
   );
 }
 

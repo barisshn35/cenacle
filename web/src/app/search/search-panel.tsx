@@ -28,6 +28,7 @@ import {
   type SearchFile,
   type SearchMessage,
 } from './search';
+import { dateLocale } from '../../i18n/time-format';
 
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -319,7 +320,10 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
   const nameOf = useChannelName();
   const results = useInfiniteQuery(searchMessagesQuery(q, filters));
   const terms = searchTerms(q);
-  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   if (results.isPending) return <Skeleton className="h-16" />;
   if (results.isError)
     return <Problem error={results.error} retry={() => void results.refetch()} />;
@@ -397,7 +401,7 @@ function FileResults({ q, workspaceId }: { q: string; workspaceId: string | unde
   const nameOf = useChannelName();
   const results = useInfiniteQuery(searchFilesQuery(q, workspaceId));
   const terms = searchTerms(q);
-  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' });
   if (results.isPending) return <Skeleton className="h-16" />;
   if (results.isError)
     return <Problem error={results.error} retry={() => void results.refetch()} />;

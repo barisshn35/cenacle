@@ -2,9 +2,21 @@
 import { AnnouncementsPanel } from '../community/admin-panels';
 import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLinkIcon, LaptopIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
+import {
+  BellIcon,
+  ExternalLinkIcon,
+  LanguagesIcon,
+  LaptopIcon,
+  LogOutIcon,
+  MegaphoneIcon,
+  PaletteIcon,
+  ShieldCheckIcon,
+  TypeIcon,
+  UserIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, setLanguage, type Language } from '../../i18n';
+import { getTimeFormat, setTimeFormat, type TimeFormat } from '../../i18n/time-format';
 import { cn } from '@cenacle/ui/lib/utils';
 import { AppearancePanel } from '../appearance/appearance-panel';
 import { UITextsPanel } from '../appearance/ui-texts-panel';
@@ -17,7 +29,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@cenacle/ui/components/dialog';
 import { ErrorState } from '@cenacle/ui/components/error-state';
@@ -32,10 +43,14 @@ import {
   endDevice,
   type DeviceSession,
 } from './devices';
+import { dateLocale } from '../../i18n/time-format';
 
 function useWhen() {
   const { i18n } = useTranslation();
-  const fmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const fmt = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   return (iso: string) => fmt.format(new Date(iso));
 }
 
@@ -114,161 +129,197 @@ export function SettingsDialog({
   const [keepCurrent, setKeepCurrent] = useState(true);
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
-  const tabs: Tab[] = session.permissions.create_workspaces
-    ? ['account', 'appearance', 'notifications', 'language', 'texts', 'announcements', 'signIn']
-    : ['account', 'appearance', 'notifications', 'language'];
+  const admin = session.permissions.create_workspaces;
+  const groups: { label?: string; tabs: Tab[] }[] = [
+    { tabs: ['account', 'appearance', 'notifications', 'language'] },
+    ...(admin
+      ? [{ label: t('settings.adminGroup'), tabs: ['texts', 'announcements', 'signIn'] as Tab[] }]
+      : []),
+  ];
+  const tabs = groups.flatMap((g) => g.tabs);
   const [tab, setTab] = useState<Tab>('account');
+  const ICONS: Record<Tab, typeof UserIcon> = {
+    account: UserIcon,
+    appearance: PaletteIcon,
+    notifications: BellIcon,
+    language: LanguagesIcon,
+    texts: TypeIcon,
+    announcements: MegaphoneIcon,
+    signIn: ShieldCheckIcon,
+  };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{t('settings.title')}</DialogTitle>
-            <DialogDescription>{t('settings.description')}</DialogDescription>
-          </DialogHeader>
-          <div role="tablist" aria-label={t('settings.title')} className="flex gap-1 border-b">
-            {tabs.map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="tab"
-                id={`settings-tab-${k}`}
-                aria-selected={tab === k}
-                aria-controls={`settings-panel-${k}`}
-                tabIndex={tab === k ? 0 : -1}
-                onClick={() => setTab(k)}
-                onKeyDown={(e) => {
-                  const i = tabs.indexOf(k);
-                  const next =
-                    e.key === 'ArrowRight'
-                      ? tabs[(i + 1) % tabs.length]
-                      : e.key === 'ArrowLeft'
-                        ? tabs[(i + tabs.length - 1) % tabs.length]
-                        : undefined;
-                  if (next) {
-                    setTab(next);
-                    document.getElementById(`settings-tab-${next}`)?.focus();
-                  }
-                }}
-                className={cn(
-                  '-mb-px inline-flex min-h-target items-center border-b-2 px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                  tab === k
-                    ? 'border-primary font-medium'
-                    : 'border-transparent text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {t(`settings.tabs.${k}`)}
-              </button>
-            ))}
-          </div>
-          {tab === 'appearance' && (
+        <DialogContent className="grid h-[min(90svh,52rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-5xl md:grid-cols-[236px_minmax(0,1fr)] md:grid-rows-1">
+          <nav
+            aria-label={t('settings.title')}
+            className="flex min-h-0 flex-col gap-1 border-b bg-secondary px-3 pt-5 pb-3 md:border-r md:border-b-0"
+          >
+            <div className="px-2.5 pb-3 max-md:pr-10">
+              <DialogTitle className="text-[17px] font-semibold">{t('settings.title')}</DialogTitle>
+              <DialogDescription className="text-xs">{session.user.display_name}</DialogDescription>
+            </div>
             <div
-              role="tabpanel"
-              id="settings-panel-appearance"
-              aria-labelledby="settings-tab-appearance"
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label={t('settings.title')}
+              className="flex gap-1 overflow-x-auto max-md:pb-1 md:flex-col md:overflow-visible"
             >
-              <AppearancePanel />
+              {groups.map((g, gi) => (
+                <div key={gi} className="contents md:flex md:flex-col md:gap-0.5">
+                  {g.label && (
+                    <p className="px-2.5 pt-4 pb-1 text-xs font-semibold text-muted-foreground max-md:hidden">
+                      {g.label}
+                    </p>
+                  )}
+                  {g.tabs.map((k) => {
+                    const Icon = ICONS[k];
+                    return (
+                      <button
+                        key={k}
+                        type="button"
+                        role="tab"
+                        id={`settings-tab-${k}`}
+                        aria-selected={tab === k}
+                        aria-controls={`settings-panel-${k}`}
+                        tabIndex={tab === k ? 0 : -1}
+                        onClick={() => setTab(k)}
+                        onKeyDown={(e) => {
+                          const i = tabs.indexOf(k);
+                          const forward = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+                          const back = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+                          if (!forward && !back) return;
+                          e.preventDefault();
+                          const next = tabs[(i + (forward ? 1 : tabs.length - 1)) % tabs.length]!;
+                          setTab(next);
+                          document.getElementById(`settings-tab-${next}`)?.focus();
+                        }}
+                        className={cn(
+                          'flex h-8 min-h-target shrink-0 items-center gap-2.5 rounded-[7px] px-2.5 text-left text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                          tab === k
+                            ? 'bg-accent font-semibold text-foreground'
+                            : 'text-foreground hover:bg-muted',
+                        )}
+                      >
+                        <Icon
+                          aria-hidden
+                          className="size-4 shrink-0 text-muted-foreground"
+                          strokeWidth={1.75}
+                        />
+                        {t(`settings.tabs.${k}`)}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
-          )}
-          {tab === 'language' && (
-            <div
-              role="tabpanel"
-              id="settings-panel-language"
-              aria-labelledby="settings-tab-language"
+            <a
+              href={session.account_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 flex h-8 min-h-target items-center gap-2.5 rounded-[7px] px-2.5 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 max-md:hidden"
             >
-              <LanguagePanel />
-            </div>
-          )}
-          {tab === 'notifications' && (
-            <div
-              role="tabpanel"
-              id="settings-panel-notifications"
-              aria-labelledby="settings-tab-notifications"
-            >
-              <NotificationsPanel />
-            </div>
-          )}
-          {tab === 'announcements' && (
-            <div
-              role="tabpanel"
-              id="settings-panel-announcements"
-              aria-labelledby="settings-tab-announcements"
-            >
-              <AnnouncementsPanel />
-            </div>
-          )}
-          {tab === 'signIn' && (
-            <div role="tabpanel" id="settings-panel-signIn" aria-labelledby="settings-tab-signIn">
-              <WebAppPanel />
-            </div>
-          )}
-          {tab === 'texts' && (
-            <div role="tabpanel" id="settings-panel-texts" aria-labelledby="settings-tab-texts">
-              <UITextsPanel />
-            </div>
-          )}
-          {tab === 'account' && (
-            <div
-              role="tabpanel"
-              id="settings-panel-account"
-              aria-labelledby="settings-tab-account"
-              className="flex flex-col gap-4"
-            >
-              <section aria-labelledby="settings-security" className="flex flex-col gap-2">
-                <h3 id="settings-security" className="text-sm font-semibold">
-                  {t('settings.security')}
-                </h3>
-                <p className="text-sm text-muted-foreground">{t('settings.securityHint')}</p>
-                <a
-                  href={session.account_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={buttonVariants({ variant: 'outline', className: 'self-start' })}
-                >
-                  <ShieldCheckIcon aria-hidden strokeWidth={1.75} />
-                  {t('settings.openAccount')}
-                  <ExternalLinkIcon aria-hidden strokeWidth={1.75} />
-                  <span className="sr-only">{t('settings.newTab')}</span>
-                </a>
-              </section>
+              <ShieldCheckIcon
+                aria-hidden
+                className="size-4 text-muted-foreground"
+                strokeWidth={1.75}
+              />
+              {t('settings.cenacleId')}
+              <ExternalLinkIcon
+                aria-hidden
+                className="ml-auto size-3.5 text-muted-foreground"
+                strokeWidth={1.75}
+              />
+              <span className="sr-only">{t('settings.newTab')}</span>
+            </a>
+            <p className="mt-auto px-2.5 pt-4 font-mono text-xs text-muted-foreground max-md:hidden">
+              {window.location.host}
+            </p>
+          </nav>
+          <div
+            role="tabpanel"
+            id={`settings-panel-${tab}`}
+            aria-labelledby={`settings-tab-${tab}`}
+            className="flex min-h-0 flex-col"
+          >
+            <header className="border-b px-8 pt-5 pb-4 max-sm:px-4 max-md:hidden">
+              <h2 className="text-[22px] leading-7 font-semibold tracking-[-0.01em]">
+                {t(`settings.tabs.${tab}`)}
+              </h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t(`settings.sections.${tab}`)}
+              </p>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-2 pb-8 max-sm:px-4">
+              {tab === 'appearance' && <AppearancePanel />}
+              {tab === 'language' && <LanguagePanel />}
+              {tab === 'notifications' && <NotificationsPanel />}
+              {tab === 'announcements' && <AnnouncementsPanel />}
+              {tab === 'signIn' && <WebAppPanel />}
+              {tab === 'texts' && <UITextsPanel />}
+              {tab === 'account' && (
+                <div className="flex flex-col gap-6 pt-4">
+                  <section aria-labelledby="settings-security" className="flex flex-col gap-2">
+                    <h3 id="settings-security" className="text-sm font-semibold">
+                      {t('settings.security')}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{t('settings.securityHint')}</p>
+                    <a
+                      href={session.account_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={buttonVariants({ variant: 'outline', className: 'self-start' })}
+                    >
+                      <ShieldCheckIcon aria-hidden strokeWidth={1.75} />
+                      {t('settings.openAccount')}
+                      <ExternalLinkIcon aria-hidden strokeWidth={1.75} />
+                      <span className="sr-only">{t('settings.newTab')}</span>
+                    </a>
+                  </section>
 
-              <section aria-labelledby="settings-devices" className="flex flex-col gap-1">
-                <h3 id="settings-devices" className="text-sm font-semibold">
-                  {t('settings.devices')}
-                </h3>
-                {devices.isPending ? (
-                  <div aria-hidden className="flex flex-col gap-2 py-2">
-                    <Skeleton className="h-9" />
-                    <Skeleton className="h-9" />
-                  </div>
-                ) : devices.isError ? (
-                  <ErrorState
-                    problem={
-                      devices.error instanceof ApiError ? devices.error.problem : { status: 500 }
-                    }
-                    actions={
-                      <Button onClick={() => void devices.refetch()}>{t('ui:errors.retry')}</Button>
-                    }
-                  />
-                ) : (
-                  <ul className="flex max-h-[40svh] flex-col divide-y overflow-y-auto">
-                    {devices.data.map((d) => (
-                      <DeviceRow key={d.id} device={d} />
-                    ))}
-                  </ul>
-                )}
-                <Button
-                  variant="outline"
-                  className="mt-2 self-start text-destructive"
-                  onClick={() => setConfirm(true)}
-                >
-                  <LogOutIcon aria-hidden strokeWidth={1.75} />
-                  {t('settings.endAll')}
-                </Button>
-              </section>
+                  <section aria-labelledby="settings-devices" className="flex flex-col gap-2">
+                    <h3 id="settings-devices" className="text-sm font-semibold">
+                      {t('settings.devices')}
+                    </h3>
+                    {devices.isPending ? (
+                      <div aria-hidden className="flex flex-col gap-2 py-2">
+                        <Skeleton className="h-9" />
+                        <Skeleton className="h-9" />
+                      </div>
+                    ) : devices.isError ? (
+                      <ErrorState
+                        problem={
+                          devices.error instanceof ApiError
+                            ? devices.error.problem
+                            : { status: 500 }
+                        }
+                        actions={
+                          <Button onClick={() => void devices.refetch()}>
+                            {t('ui:errors.retry')}
+                          </Button>
+                        }
+                      />
+                    ) : (
+                      <ul className="flex flex-col divide-y rounded-[10px] border border-rule-strong bg-background px-3">
+                        {devices.data.map((d) => (
+                          <DeviceRow key={d.id} device={d} />
+                        ))}
+                      </ul>
+                    )}
+                    <Button
+                      variant="outline"
+                      className="mt-1 self-start text-destructive"
+                      onClick={() => setConfirm(true)}
+                    >
+                      <LogOutIcon aria-hidden strokeWidth={1.75} />
+                      {t('settings.endAll')}
+                    </Button>
+                  </section>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </DialogContent>
       </Dialog>
       <ConfirmDialog
@@ -314,25 +365,60 @@ export function SettingsDialog({
   );
 }
 
-/** The language of the interface (English or Turkish). */
+/** The language of the interface (English or Turkish), the clock and the time zone. */
 function LanguagePanel() {
   const { t, i18n } = useTranslation();
   const id = useId();
+  const [format, setFormat] = useState<TimeFormat>(getTimeFormat);
+  const now = new Date();
+  const sample = (f: TimeFormat) =>
+    new Intl.DateTimeFormat(
+      f === 'auto' ? i18n.language : `${i18n.language}-u-hc-${f === '12' ? 'h12' : 'h23'}`,
+      { hour: '2-digit', minute: '2-digit' },
+    ).format(now);
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return (
-    <div className="flex flex-col gap-2 pt-4">
-      <Label htmlFor={id}>{t('appearance.language')}</Label>
-      <select
-        id={id}
-        className="h-9 min-h-target w-full max-w-xs rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        value={i18n.resolvedLanguage}
-        onChange={(e) => setLanguage(e.target.value as Language)}
-      >
-        {LANGUAGES.map((l) => (
-          <option key={l} value={l}>
-            {l === 'en' ? 'English' : 'Türkçe'}
-          </option>
+    <div className="flex flex-col gap-6 pt-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={id}>{t('appearance.language')}</Label>
+        <select
+          id={id}
+          className="h-9 min-h-target w-full max-w-xs rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          value={i18n.resolvedLanguage}
+          onChange={(e) => setLanguage(e.target.value as Language)}
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l} value={l}>
+              {l === 'en' ? 'English' : 'Türkçe'}
+            </option>
+          ))}
+        </select>
+      </div>
+      <fieldset className="flex flex-col gap-1">
+        <legend className="mb-1 text-sm font-medium">{t('settings.timeFormat.title')}</legend>
+        {(['auto', '24', '12'] as const).map((f) => (
+          <label key={f} className="flex min-h-target items-center gap-2.5 text-sm">
+            <input
+              type="radio"
+              name="time-format"
+              className="size-target shrink-0 accent-primary"
+              checked={format === f}
+              onChange={() => {
+                setFormat(f);
+                setTimeFormat(f);
+              }}
+            />
+            {t(`settings.timeFormat.${f}`)}
+            <span className="font-mono text-xs text-muted-foreground">{sample(f)}</span>
+          </label>
         ))}
-      </select>
+        <p className="text-xs text-muted-foreground">{t('settings.timeFormat.hint')}</p>
+      </fieldset>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">{t('settings.timeZone')}</p>
+        <p className="font-mono text-sm">{zone}</p>
+        <p className="text-xs text-muted-foreground">{t('settings.timeZoneHint')}</p>
+      </div>
     </div>
   );
 }

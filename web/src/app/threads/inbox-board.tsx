@@ -12,6 +12,7 @@ import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import { openMessage } from './open-message';
 import { activityQuery, type ActivityItem } from './threads';
+import { dateLocale } from '../../i18n/time-format';
 
 const keyOf = (a: ActivityItem) => `${a.kind}:${a.message.id}:${a.actor.id}:${a.emoji}`;
 const SEEN_LIMIT = 1000;
@@ -47,7 +48,7 @@ function useSeen(workspaceId: string) {
 /** "Today", "Yesterday" or the date, for the group rows of the board. */
 function useDayLabel() {
   const { t, i18n } = useTranslation();
-  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full' });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'full' });
   return (d: Date) => {
     const today = new Date();
     const y = new Date(today);
@@ -75,7 +76,10 @@ function Board({ ws }: { ws: string }) {
   const list = useInfiniteQuery(activityQuery(ws));
   const { seen, mark } = useSeen(ws);
   const day = useDayLabel();
-  const time = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' });
+  const time = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   if (list.isPending) return <BoardSkeleton />;
   if (list.isError) return null;

@@ -18,6 +18,7 @@ import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { cancelScheduled, scheduledQuery, scheduleMessage } from './commands';
 import { channelsQuery, isConversation } from './data';
+import { dateLocale } from '../../i18n/time-format';
 
 /** Today or later at a time of day (local). */
 function at(days: number, hour: number, from = new Date()): Date {
@@ -42,7 +43,7 @@ function localInput(d: Date): string {
 function useFormatWhen() {
   const { i18n } = useTranslation();
   return (d: Date | string) =>
-    new Intl.DateTimeFormat(i18n.language, {
+    new Intl.DateTimeFormat(dateLocale(i18n.language), {
       weekday: 'short',
       day: 'numeric',
       month: 'short',

@@ -44,6 +44,7 @@ import {
   type WorkflowStep,
   type WorkflowTrigger,
 } from './automation';
+import { dateLocale } from '../../i18n/time-format';
 
 const control =
   'min-h-target w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -959,7 +960,10 @@ function Secrets({ workflow, onClose }: { workflow: Workflow; onClose: () => voi
 function Runs({ workflow, onClose }: { workflow: Workflow; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const runs = useQuery(runsQuery(workflow.id));
-  const when = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const when = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">

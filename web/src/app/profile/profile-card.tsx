@@ -22,12 +22,13 @@ import { Avatar } from './avatar';
 import { useProfileDialogs } from './dialogs-state';
 import { sinceText } from './format';
 import { localTime, useProfile, type CustomStatus } from './profiles';
+import { dateLocale } from '../../i18n/time-format';
 
 /** The emoji and text of a custom status, as one line. */
 export function StatusLine({ status, className }: { status: CustomStatus; className?: string }) {
   const { t, i18n } = useTranslation();
   const until = status.expires_at
-    ? new Intl.DateTimeFormat(i18n.language, { timeStyle: 'short' }).format(
+    ? new Intl.DateTimeFormat(dateLocale(i18n.language), { timeStyle: 'short' }).format(
         new Date(status.expires_at),
       )
     : null;

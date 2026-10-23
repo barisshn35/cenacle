@@ -5,6 +5,7 @@ import { useLayout } from '../../stores/layout';
 import type { Message } from '../chat/data';
 import { UserAvatar } from '../profile/avatar';
 import { useProfile } from '../profile/profiles';
+import { dateLocale } from '../../i18n/time-format';
 
 /** Under a message with replies: who replied, how many, when; opens the thread. */
 export function ThreadSummaryButton({ message }: { message: Message }) {
@@ -15,7 +16,7 @@ export function ThreadSummaryButton({ message }: { message: Message }) {
   const last = new Date(thread.last_reply_at);
   const today = new Date().toDateString() === last.toDateString();
   const when = new Intl.DateTimeFormat(
-    i18n.language,
+    dateLocale(i18n.language),
     today ? { hour: '2-digit', minute: '2-digit' } : { dateStyle: 'medium' },
   ).format(last);
   return (

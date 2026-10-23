@@ -439,14 +439,34 @@
     "endedOthers_one": "{{count}} cihazdan çıkış yapıldı.",
     "endedOthers_other": "{{count}} cihazdan çıkış yapıldı.",
     "tabs": {
-      "account": "Hesap",
+      "account": "Hesap ve cihazlar",
       "appearance": "Görünüm",
       "texts": "Arayüz metinleri",
       "notifications": "Bildirimler",
       "announcements": "Duyurular",
-      "language": "Dil",
+      "language": "Dil ve bölge",
       "signIn": "Giriş"
-    }
+    },
+    "adminGroup": "Çalışma alanı · yönetici",
+    "cenacleId": "Cenacle ID hesabı",
+    "sections": {
+      "account": "Cenacle ID hesabın ve onunla giriş yapılmış cihazlar.",
+      "appearance": "Cihazlarındaki tema, yoğunluk, yazı ve kod blokları.",
+      "notifications": "Sana neyin ulaşacağı, nasıl sesleneceği ve Cenacle'ın ne zaman sessiz kalacağı.",
+      "language": "Cenacle'ın dili, saatlerin yazılışı ve saat dilimin.",
+      "texts": "Yöneticilerin herkes için değiştirdiği arayüz metinleri.",
+      "announcements": "Herkesin gördüğü bir duyuru şeridi ve kabul ettiği koşullar.",
+      "signIn": "Cenacle'ın nerede kullanılabileceği."
+    },
+    "timeFormat": {
+      "title": "Saat",
+      "auto": "Dilin yazdığı gibi",
+      "24": "24 saat",
+      "12": "12 saat (ÖÖ/ÖS)",
+      "hint": "Bu cihaz için."
+    },
+    "timeZone": "Saat dilimi",
+    "timeZoneHint": "Saatler bu cihazın saat diliminde gösterilir."
   },
   "reactions": {
     "label": "Tepkiler",
@@ -827,7 +847,18 @@
     "emailAfter": "Gönderme gecikmesi",
     "minutes_one": "{{count}} dakika",
     "minutes_other": "{{count}} dakika",
-    "saveFailed": "Bildirim ayarlarınız kaydedilemedi. Yeniden deneyin."
+    "saveFailed": "Bildirim ayarlarınız kaydedilemedi. Yeniden deneyin.",
+    "exceptions": {
+      "title": "İstisnalar",
+      "hint": "kanalın zil menüsünden ayarlanır",
+      "none": "Bu ayarlardan farklı kanal yok.",
+      "mutedForever": "Sesi sen açana kadar kapalı",
+      "mutedUntil": "{{time}} saatine kadar sessiz",
+      "ownSound": "Kendi sesi",
+      "reset": "Sıfırla",
+      "resetNamed": "Sıfırla, {{channel}}",
+      "unknownChannel": "Ayrıldığın bir kanal"
+    }
   },
   "search": {
     "title": "Ara",

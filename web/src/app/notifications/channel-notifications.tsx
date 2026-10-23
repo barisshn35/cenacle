@@ -16,6 +16,7 @@ import {
   type NotificationSettings,
 } from './notifications';
 import { BUILTIN_SOUNDS } from './sounds';
+import { dateLocale } from '../../i18n/time-format';
 
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -128,7 +129,7 @@ export function ChannelNotificationsSection({ channel }: { channel: Channel }) {
             <option value="muted" disabled>
               {until
                 ? t('notifications.mutedUntil', {
-                    time: new Intl.DateTimeFormat(undefined, {
+                    time: new Intl.DateTimeFormat(dateLocale(), {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     }).format(new Date(until)),

@@ -27,6 +27,7 @@ import { ListView } from '../collab/list-view';
 import { GovernanceChip } from '../compliance/classification';
 import { UnlockPanel } from '../compliance/encrypted';
 import { useCanWrite } from '../compliance/e2e';
+import { dateLocale } from '../../i18n/time-format';
 
 /** Header buttons that open a panel: Brass while their panel is open. */
 const HEADER_TOGGLE =
@@ -129,7 +130,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
                 className="mx-auto max-w-3xl rounded-[10px] border border-dashed border-rule-strong px-4 py-3 text-sm text-muted-foreground"
               >
                 {t('community.moderation.timedOutNotice', {
-                  time: new Intl.DateTimeFormat(undefined, {
+                  time: new Intl.DateTimeFormat(dateLocale(), {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   }).format(new Date(workspace!.timeout_until!)),

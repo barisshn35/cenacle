@@ -14,6 +14,7 @@ import { TaskCard } from '../automation/cards';
 import { Board, BoardGroup, BoardSection } from '../shell/board';
 import { boardCell, boardRow } from '../shell/board-styles';
 import { assignedQuery, type AssignedItem } from './collab';
+import { dateLocale } from '../../i18n/time-format';
 
 /** What waits for the person: approvals and forms of workflows, then list rows assigned to them. */
 export function MyTasks() {
@@ -41,7 +42,10 @@ export function MyTasks() {
     );
   }
   const today = new Date().toISOString().slice(0, 10);
-  const date = new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short' });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    day: 'numeric',
+    month: 'short',
+  });
   const lists = new Set(rows.map((r) => r.list_title)).size;
 
   const title = (row: AssignedItem) => (

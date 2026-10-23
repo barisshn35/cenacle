@@ -6,6 +6,7 @@ import { useLayout } from '../../stores/layout';
 import { useJump } from '../chat/jump';
 import { plainText } from '../search/search';
 import { pinsQuery } from './threads';
+import { dateLocale } from '../../i18n/time-format';
 
 /** In the channel details: the pinned messages; one jumps to its place. */
 export function PinsSection({ channelId }: { channelId: string }) {
@@ -13,7 +14,7 @@ export function PinsSection({ channelId }: { channelId: string }) {
   const pins = useQuery(pinsQuery(channelId));
   const jump = useJump((s) => s.jump);
   const openThread = useLayout((s) => s.openThread);
-  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' });
   return (
     <section aria-labelledby="pins-title" className="flex flex-col gap-2" data-testid="pins">
       <h3 id="pins-title" className="text-[13px] font-semibold text-foreground">

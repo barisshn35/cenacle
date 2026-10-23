@@ -23,6 +23,7 @@ import { addMessage, flatten, messagesQuery, type Channel, type Message } from '
 import { newNonce } from '../chat/pending';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
+import { dateLocale } from '../../i18n/time-format';
 
 const lastActivity = (m: Message) => m.thread?.last_reply_at ?? m.created_at;
 
@@ -33,7 +34,10 @@ export function ForumView({ channel }: { channel: Channel }) {
   const posts = useInfiniteQuery(messagesQuery(channel.id));
   const [tag, setTag] = useState<string | null>(null);
   const [writing, setWriting] = useState(false);
-  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
   const list = useMemo(
     () =>
       flatten(posts.data)
