@@ -81,6 +81,22 @@ func TestLoadFromFile(t *testing.T) {
 	}
 }
 
+// Compose passes settings left out of .env.prod as empty values: they leave
+// the secret file in charge.
+func TestLoadEmptyValueYieldsToFile(t *testing.T) {
+	cfg, err := Load(env(map[string]string{
+		"CENACLE_DATABASE_URL":         "postgres://localhost/chat",
+		"CENACLE_VALKEY_PASSWORD":      "",
+		"CENACLE_VALKEY_PASSWORD_FILE": "/run/secrets/valkey",
+	}), files(map[string]string{"/run/secrets/valkey": "s3cret\n"}))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.ValkeyPassword != "s3cret" {
+		t.Errorf("ValkeyPassword = %q", cfg.ValkeyPassword)
+	}
+}
+
 func TestLoadReportsAllErrors(t *testing.T) {
 	_, err := Load(env(map[string]string{
 		"CENACLE_ENV":                  "staging",

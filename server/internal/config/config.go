@@ -288,7 +288,8 @@ func (l *loader) str(key, def string) string {
 	val, ok := l.lookup(key)
 	file, fileOK := l.lookup(key + "_FILE")
 	switch {
-	case ok && fileOK:
+	// An empty value does not count: compose passes unset settings as "".
+	case ok && val != "" && fileOK:
 		l.fail("%s and %s_FILE are both set; use only one", key, key)
 		return def
 	case fileOK:
