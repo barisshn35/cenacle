@@ -278,7 +278,24 @@
       "retentionNote": "Saklama süresini ({{period}}) aşan mesajlar, yasal saklamadakiler dışında silinir.",
       "editClassification": "Sınıflandırmayı değiştir",
       "editRetention": "Saklama süresini değiştir"
-    }
+    },
+    "searchDirectory": "Kanallarda ara",
+    "directoryFilter": "Göster",
+    "directoryFilters": {
+      "all": "Tümü",
+      "joined": "Katıldıkların",
+      "other": "Katılmadıkların"
+    },
+    "showArchived": "Arşivlenenleri göster",
+    "directoryMatches_one": "“{{query}}” ile eşleşen {{count}} kanal",
+    "directoryMatches_other": "“{{query}}” ile eşleşen {{count}} kanal",
+    "directoryCount_one": "{{count}} kanal",
+    "directoryCount_other": "{{count}} kanal",
+    "dirArchived": "Arşivlendi",
+    "dirMember": "Üyesin",
+    "notJoined": "Katılmadın",
+    "openChannelNamed": "{{channel}} kanalını aç",
+    "directoryNote": "Özel kanallar yalnızca üyesiysen görünür. Arşivlenmiş kanallar okunabilir ama kimse yazamaz."
   },
   "categories": {
     "manage": "Kategorileri düzenle",

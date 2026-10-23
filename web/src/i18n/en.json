@@ -278,7 +278,24 @@
       "retentionNote": "Messages older than {{period}} are deleted, except those under legal hold.",
       "editClassification": "Change classification",
       "editRetention": "Change retention"
-    }
+    },
+    "searchDirectory": "Search channels",
+    "directoryFilter": "Show",
+    "directoryFilters": {
+      "all": "All",
+      "joined": "Joined",
+      "other": "Not joined"
+    },
+    "showArchived": "Show archived",
+    "directoryMatches_one": "{{count}} channel matches “{{query}}”",
+    "directoryMatches_other": "{{count}} channels match “{{query}}”",
+    "directoryCount_one": "{{count}} channel",
+    "directoryCount_other": "{{count}} channels",
+    "dirArchived": "Archived",
+    "dirMember": "Member",
+    "notJoined": "Not joined",
+    "openChannelNamed": "Open {{channel}}",
+    "directoryNote": "Private channels appear only when you are a member. Archived channels can be read, but no one can post."
   },
   "categories": {
     "manage": "Edit categories",

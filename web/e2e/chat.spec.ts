@@ -143,6 +143,25 @@ test.describe('channels', () => {
     await expect(page.getByRole('link', { name: 'Random' })).toBeVisible();
   });
 
+  test('the directory searches and filters channels', async ({ page }, testInfo) => {
+    await mockApi(page);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Browse channels' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Channels' });
+    const rows = dialog.getByTestId('directory-channel');
+    const total = await rows.count();
+    expect(total).toBeGreaterThan(1);
+    await dialog.getByRole('radio', { name: /^Not joined/ }).click();
+    await expect(rows.filter({ hasText: 'General' })).toHaveCount(0);
+    await expect(rows.filter({ hasText: 'Random' })).toHaveCount(1);
+    await dialog.getByRole('radio', { name: /^All/ }).click();
+    await dialog.getByLabel('Search channels').fill('rand');
+    await expect(rows).toHaveCount(1);
+    await expect(dialog.getByRole('status')).toContainText('1 channel matches “rand”');
+    await expectNoAxeViolations(page);
+    await expectTargetSizes(page, testInfo);
+  });
+
   test('the administrator creates channels', async ({ page }, testInfo) => {
     await mockApi(page, { admin: true });
     await page.goto('/');
