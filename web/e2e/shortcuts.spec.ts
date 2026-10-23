@@ -9,6 +9,8 @@ test.beforeEach(({ isMobile }) => {
 test('Ctrl+/ lists the shortcuts', async ({ page }) => {
   await mockApi(page);
   await page.goto(`/c/${GENERAL.id}`);
+  // The keys work once the app is there.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('General');
   await page.keyboard.press('Control+/');
   const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
   await expect(dialog.getByText('Edit your last message (empty message box)')).toBeVisible();
