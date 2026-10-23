@@ -19,6 +19,11 @@ store come from your platform (operators, managed services or Garage).
      --from-literal=s3-access-key='…' --from-literal=s3-secret-key='…'
    ```
 
+   Optional keys: `smtp-password` (e-mail) and `ai-api-key` (a model server that wants
+   one). Keep a copy of this Secret with your backups: without `idp-key-encryption-key`
+   Cenacle ID cannot read its signing keys or directory settings
+   ([backup guide](../backup/README.md)).
+
 3. Install:
 
    ```sh
@@ -28,6 +33,10 @@ store come from your platform (operators, managed services or Garage).
      --set s3.endpoint=http://garage.storage:3900 \
      --set s3.ingressBackend.service=garage --set ingress.className=nginx
    ```
+
+Images come from `git.calaixo.com:5050/calaxio/cenacle` (`image.registry`); when that
+registry asks for credentials, add a pull secret to `imagePullSecrets`. For air-gapped
+clusters, copy the images into your own registry and point `image.registry` to it.
 
 Migrations run as Helm hooks before every install and upgrade; pods are replaced one at a
 time with a drain delay ([operations](../operations/README.md#upgrades-without-downtime)).

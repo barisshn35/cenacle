@@ -12,16 +12,14 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.27.** Sign in with Cenacle ID (passwords with two-step verification,
-> passkeys, Active Directory/LDAP or your OpenID Connect or SAML provider), chat live in
-> channels, forums, threads and direct conversations with profiles and custom statuses,
-> link previews, voice messages, forwarding, custom emoji and stickers, burn-on-read
-> messages, polls, events and playbooks, moderation with AutoMod, pin and save messages, search
-> messages and files, choose what notifies you (sounds, muting, quiet hours, web push,
-> e-mail), make Cenacle yours with theme presets and fonts, share files, connect bots and
-> schedule messages, automate work with workflows, forms and approvals, keep canvases, lists and boards next to channels, meet compliance needs (retention, legal holds, eDiscovery, access rules, encrypted channels), use optional AI with a model you run, share channels with other Cenacle servers; run several instances, monitor, back up, install on Kubernetes or
-> offline.
-> The release candidate comes next (see the [roadmap](#roadmap)).
+> **Status: v0.28, release candidate preparation.** Sign in with Cenacle ID (passwords with
+> two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
+> provider); chat in channels, forums, threads and direct conversations; search, notify,
+> pin and save; share files; automate with bots, workflows, forms and approvals; keep
+> canvases, lists and boards next to channels; meet compliance needs (retention, legal
+> holds, eDiscovery, access rules, encrypted channels); use optional AI with a model you
+> run; share channels with other Cenacle servers. Runs on one host or Kubernetes, also
+> offline. The interface rewrite comes next (see the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -32,7 +30,7 @@ air-gapped networks.
 - **Calm, predictable UI:** WCAG 2.2 target sizes (24/28/44 px) enforced in CI, safe
   patterns for destructive actions, undo instead of surprise, clear errors with request IDs,
   English and Turkish.
-- **Permissive dependencies only:** license policy enforced in CI.
+- **Permissive dependencies only:** a license policy for every dependency, enforced in CI.
 
 ## Quick start (development)
 
@@ -41,7 +39,7 @@ Requirements: Go 1.26, Node.js 24 (`.nvmrc`), pnpm via Corepack, Docker with Com
 ```sh
 corepack enable
 pnpm install
-make tools                  # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck
+make tools                  # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck, helm
 cp .env.example .env
 make up                     # postgres, valkey, openldap, mailpit (healthy)
 make migrate-up             # chat database migrations
@@ -81,7 +79,10 @@ in `.env`. To run the application containers too:
 | `lint` / `test` / `test-e2e`         | Linters + type checks / unit tests / Playwright |
 | `test-e2e-stack`                     | Sign in end to end with all components running  |
 | `licenses` / `vuln`                  | License policy check / Go vulnerability scan    |
-| `build` / `images`                   | Build all components / container images         |
+| `fuzz` / `load`                      | Fuzz the input parsers / load test the server   |
+| `lint-helm`                          | Lint and render the Helm chart                  |
+| `build` / `images` / `brand`         | Build components / container images / icons     |
+| `tools` / `help`                     | Install pinned tools / list every target        |
 
 ## Architecture
 
@@ -89,7 +90,7 @@ in `.env`. To run the application containers too:
 flowchart LR
   subgraph Clients
     W[Web app<br/>React SPA]
-    D[Desktop<br/>Electron, v1.1]
+    D[Desktop<br/>Electron, v0.99]
   end
   subgraph Edge
     P[Caddy<br/>automatic TLS]
@@ -102,8 +103,8 @@ flowchart LR
     PGC[(PostgreSQL<br/>chat DB)]
     PGI[(PostgreSQL<br/>IdP DB)]
     V[(Valkey)]
-    O[(S3 object store<br/>v0.12)]
-    L[(LDAP / AD<br/>optional, v0.14)]
+    O[(S3 object store)]
+    L[(LDAP / AD<br/>optional)]
   end
 
   W -- HTTPS --> P
@@ -125,8 +126,7 @@ flowchart LR
   sessions ([ADR 0004](docs/adr/0004-chat-sign-in-and-sessions.md)). Live events go over
   WebSocket from a Valkey stream shared by all instances
   ([ADR 0005](docs/adr/0005-live-chat.md)). Channels everyone belongs to are set at
-  installation; one administrator creates channels until roles arrive
-  ([ADR 0006](docs/adr/0006-channel-membership.md)). Messages can be edited and deleted
+  installation ([ADR 0006](docs/adr/0006-channel-membership.md)). Messages can be edited and deleted
   with undo; channels are renamed, archived and grouped in categories
   ([ADR 0007](docs/adr/0007-channel-and-message-management.md)). Workspaces have owners,
   admins and members, and people join with invitation links
@@ -142,8 +142,13 @@ flowchart LR
   and incoming webhooks, Jira included
   ([ADR 0012](docs/adr/0012-bots-and-incoming-webhooks.md),
   [integrations guide](docs/integrations/README.md)).
+  Later releases are described in ADRs 0013–0030: files, scaling, profiles, appearance,
+  search and notifications, threads, community, automation, collaboration, compliance, AI
+  and federation.
 - **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify), `node-oidc-provider`, Argon2id
-  passwords, two-step verification with an authenticator app and recovery codes.
+  passwords, two-step verification, passkeys, Active Directory/LDAP, OpenID Connect and
+  SAML providers, directory groups and an admin console
+  ([ADR 0017](docs/adr/0017-identity-directories-and-federation.md)).
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
   types, local storage (drafts in IndexedDB).
@@ -157,7 +162,7 @@ idp/             Cenacle ID (identity server)
 web/             React SPA
 packages/core/   API/WS client, shared types, local storage (TS)
 packages/ui/     design system: tokens, theme, primitives, UX components
-deploy/          compose stacks (dev, prod), Caddy build; Helm later
+deploy/          compose stacks (dev, prod, backup, observability), Caddy build, Helm chart
 docs/            ADRs, upgrade and backup guides, UX glossary
 ```
 
@@ -191,25 +196,25 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.24     | Optional, self-hosted AI (off by default)                                             |
 | v0.25     | Federation between servers                                                            |
 | v0.26     | Security testing and hardening                                                        |
-| **v0.27** | **Optimization and load tests**                                                       |
-| v0.28     | Release candidate                                                                     |
-| v0.99     | Interface rewrite                                                                     |
-| v1.0      | Stable                                                                                |
-| v1.1      | Desktop app                                                                           |
-| v1.2      | Voice and video                                                                       |
-| v1.3      | Mobile apps                                                                           |
+| v0.27     | Optimization and load tests                                                           |
+| **v0.28** | **Release candidate preparation**                                                     |
+| v0.29     | Interface rewrite                                                                     |
+| v0.99     | Desktop app (Electron)                                                                |
+| v1.0      | Stable: web and desktop                                                               |
+| v1.1      | Voice and video                                                                       |
+| v1.2      | Mobile apps                                                                           |
 
-### Self-hosted installation roadmap
+### Installation
 
-1. **v0.1:** production compose skeleton ([`deploy/compose/prod.yml`](deploy/compose/prod.yml),
-   [installation and firewall guide](docs/install/README.md), [operations](docs/operations/README.md), [Kubernetes](docs/install/kubernetes.md)):
-   Caddy, chat server, Cenacle ID, web, PostgreSQL, Valkey; secrets via
-   `deploy/compose/gen-secrets.sh`, host names from `.env.prod`.
-2. **v0.3–v0.12:** the stack becomes usable end to end; SMTP, LDAP and object storage stay
-   optional and configurable.
-3. **v0.13:** Helm chart, observability profile (OpenTelemetry, Prometheus, Loki, Tempo,
-   Grafana), documented backups with pgBackRest/WAL-G.
-4. **v1.0:** supported upgrade path between releases ([`docs/upgrade`](docs/upgrade)).
+- **One host:** [`deploy/compose/prod.yml`](deploy/compose/prod.yml) with Caddy, the chat
+  server, Cenacle ID, the web app, PostgreSQL, Valkey and Garage; secrets from
+  `deploy/compose/gen-secrets.sh`, settings in `.env.prod`
+  ([installation and firewall guide](docs/install/README.md)).
+- **Kubernetes:** the Helm chart in [`deploy/helm/cenacle`](deploy/helm/cenacle)
+  ([guide](docs/install/kubernetes.md)).
+- **Operations:** several instances, observability (OpenTelemetry, Prometheus, Loki, Tempo,
+  Grafana), [backups with WAL-G](docs/backup/README.md), [upgrades](docs/upgrade/README.md),
+  [security](docs/security/README.md) and [performance](docs/operations/performance.md).
 
 ## Contributing and security
 

@@ -1,8 +1,8 @@
 # Installing Cenacle (self-hosted)
 
 This guide covers a single-host installation with Docker Compose
-([`deploy/compose/prod.yml`](../../deploy/compose/prod.yml)). v0.1 ships the stack
-skeleton; sign-in and messaging arrive in later releases.
+([`deploy/compose/prod.yml`](../../deploy/compose/prod.yml)). For Kubernetes, see
+[Kubernetes](kubernetes.md).
 
 ## Requirements
 
@@ -20,6 +20,14 @@ cp .env.prod.example .env.prod        # set domains, ACME_EMAIL, version, admini
 docker compose -f prod.yml --env-file .env.prod up -d
 docker compose -f prod.yml --env-file .env.prod ps     # every service healthy
 ```
+
+Images come from `git.calaixo.com:5050/calaxio/cenacle` (`CENACLE_IMAGE_PREFIX`). If the
+registry asks for credentials, `docker login git.calaixo.com:5050` once before `up`.
+
+Every setting can also be read from a file: `CENACLE_X_FILE=/run/secrets/x` instead of
+`CENACLE_X` (the same for `IDP_*`); setting both is an error. `prod.yml` reads the
+credentials from `secrets/` this way. `secrets/smtp_password` and `secrets/ai_api_key`
+start empty; write a password or key there instead of into `.env.prod`.
 
 Back up `secrets/` and `.env.prod` together with the databases
 ([backup guide](../backup/README.md)).
@@ -52,12 +60,13 @@ checks access first. Settings (in `.env.prod`):
 | Setting                     | Default                      | Meaning                                                                                                                                 |
 | --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `CENACLE_FILES_MAX_SIZE_MB` | `100`                        | The largest file.                                                                                                                       |
-| `CENACLE_S3_ENDPOINT`       | `http://garage:3900`         | Another S3 service instead of Garage (then also `CENACLE_S3_UPLOAD_URL` and the keys).                                                  |
+| `CENACLE_S3_ENDPOINT`       | `http://garage:3900`         | Another S3 service instead of Garage (then also `CENACLE_S3_UPLOAD_URL` and the keys); empty: files are off.                            |
+| `CENACLE_S3_REGION`         | `garage`                     | The region the S3 service expects.                                                                                                      |
 | `CENACLE_S3_BUCKET`         | `cenacle-files`              | The bucket; Caddy passes uploads to `/<bucket>/` on the chat domain.                                                                    |
 | `CENACLE_S3_UPLOAD_URL`     | `https://<domain>/<bucket>/` | Where browsers post uploads. For an external S3 service, its bucket URL; allow `POST` from the app's origin in the bucket's CORS rules. |
 | `CENACLE_CLAMAV_ADDR`       | (none)                       | A clamd to scan every file, e.g. `clamav:3310` with `--profile clamav`. Rejected files are deleted.                                     |
 
-Without `CENACLE_S3_ENDPOINT` files are off and the app hides the attach button.
+With `CENACLE_S3_ENDPOINT=` (empty) files are off and the app hides the attach button.
 
 Virus scanning: start the stack with `--profile clamav` and set
 `CENACLE_CLAMAV_ADDR=clamav:3310`. ClamAV (GPL-2.0) runs as its own container, downloads
@@ -74,10 +83,27 @@ server's help:
 | `CENACLE_SMTP_HOST`        | (none)     | SMTP server for e-mail about missed mentions and direct messages; empty: no e-mail.                     |
 | `CENACLE_SMTP_PORT`        | `587`      | Its port.                                                                                               |
 | `CENACLE_SMTP_SECURITY`    | `starttls` | `starttls`, `tls` (port 465) or `none` (only for a relay on a trusted network).                         |
-| `CENACLE_SMTP_USERNAME`    | (none)     | Sign-in, if the server asks for one (with `CENACLE_SMTP_PASSWORD` or `CENACLE_SMTP_PASSWORD_FILE`).     |
+| `CENACLE_SMTP_USERNAME`    | (none)     | Sign-in, if the server asks for one (password in `CENACLE_SMTP_PASSWORD` or `secrets/smtp_password`).   |
 | `CENACLE_SMTP_FROM`        | (none)     | Sender, e.g. `Cenacle <chat@example.com>`; required with a host.                                        |
 | `CENACLE_WEB_PUSH`         | `false`    | Notifications on devices where Cenacle is closed, through the browser makers' push services (internet). |
-| `CENACLE_WEB_PUSH_SUBJECT` | (none)     | A `mailto:` or `https:` contact for the push services; required with web push.                          |
+| `CENACLE_WEB_PUSH_SUBJECT` | (none)     | A `mailto:` or `https:` contact for the push services; default: `mailto:` and `CENACLE_ADMIN_EMAIL`.    |
+
+### Other settings
+
+| Setting                        | Default | Meaning                                                                                              |
+| ------------------------------ | ------- | ---------------------------------------------------------------------------------------------------- |
+| `CENACLE_LINK_PREVIEWS`        | `true`  | The server fetches public pages linked in messages for previews; `false` without internet access.    |
+| `CENACLE_DATABASE_MAX_CONNS`   | `25`    | Database connections per chat server ([performance](../operations/performance.md)).                  |
+| `CENACLE_DRAIN_DELAY`          | `5s`    | A stopping chat server keeps serving this long while the proxy moves away (upgrades without errors). |
+| `CENACLE_SESSION_IDLE_TIMEOUT` | `168h`  | A signed-in device ends after this long unused.                                                      |
+| `CENACLE_SESSION_MAX_AGE`      | `720h`  | ... and after this long at the latest.                                                               |
+| `CENACLE_LOG_LEVEL`            | `info`  | `debug`, `info`, `warn` or `error` (`IDP_LOG_LEVEL` for Cenacle ID).                                 |
+| `CENACLE_AI_URL`, `_MODEL`     | (none)  | Optional AI with a model you run; see the [AI guide](../operations/ai.md).                           |
+| `IDP_LOGIN_RATE_LIMIT`         | `10`    | Sign-in attempts per address and minute; raise it when many people share one public address.         |
+| `IDP_COOKIE_DOMAIN`            | (none)  | Share Cenacle ID's cookies across subdomains, e.g. `example.com`.                                    |
+
+Cenacle ID keeps up to 10 database connections (`IDP_DATABASE_POOL_MAX`); keep the sum of
+all chat servers' and Cenacle ID's connections below PostgreSQL's `max_connections`.
 
 ### First account and Cenacle ID operations
 
@@ -93,7 +119,8 @@ docker compose -f prod.yml --env-file .env.prod run --rm -T idp \
 ```
 
 Token signing keys are created on first start. Rotate them periodically; the previous key
-stays published for the grace period (default 7 days) so issued tokens keep verifying:
+stays published for the grace period (`IDP_KEY_RETIRED_GRACE_SECONDS`, default 7 days) so
+issued tokens keep verifying:
 
 ```sh
 docker compose -f prod.yml --env-file .env.prod run --rm idp node dist/cli.js keys rotate
@@ -128,16 +155,20 @@ container are only reachable through Caddy.
 
 ### Outbound
 
-| Destination                                  | When                                                    |
-| -------------------------------------------- | ------------------------------------------------------- |
-| DNS (53/udp, 53/tcp)                         | always                                                  |
-| Let's Encrypt (443/tcp)                      | certificate issuance and renewal                        |
-| Container registry, e.g. `ghcr.io` (443/tcp) | installing and upgrading images (not needed air-gapped) |
-| SMTP relay (587 or 465/tcp)                  | e-mail features (v0.8+)                                 |
-| Browser push services (443/tcp)              | only with web push turned on (`CENACLE_WEB_PUSH`)       |
-| ClamAV signature mirror (443/tcp)            | only with the optional virus scanner (`clamav` profile) |
-| LDAP / Active Directory (389 or 636/tcp)     | directory sign-in (v0.14)                               |
-| Identity providers (443/tcp)                 | sign-in with OpenID Connect or SAML providers (v0.14)   |
+| Destination                                 | When                                                    |
+| ------------------------------------------- | ------------------------------------------------------- |
+| DNS (53/udp, 53/tcp)                        | always                                                  |
+| Let's Encrypt (443/tcp)                     | certificate issuance and renewal                        |
+| Container registry (`git.calaixo.com:5050`) | installing and upgrading images (not needed air-gapped) |
+| SMTP relay (587 or 465/tcp)                 | e-mail about missed messages (`CENACLE_SMTP_HOST`)      |
+| Public web sites (80, 443/tcp)              | link previews (`CENACLE_LINK_PREVIEWS`, on by default)  |
+| Bots' and workflows' servers (443/tcp)      | slash commands, event deliveries, workflow webhooks     |
+| Other Cenacle servers (443/tcp)             | only with federation (shared channels)                  |
+| Your AI model server                        | only with AI (`CENACLE_AI_URL`)                         |
+| Browser push services (443/tcp)             | only with web push turned on (`CENACLE_WEB_PUSH`)       |
+| ClamAV signature mirror (443/tcp)           | only with the optional virus scanner (`clamav` profile) |
+| LDAP / Active Directory (389 or 636/tcp)    | directory sign-in                                       |
+| Identity providers (443/tcp)                | sign-in with OpenID Connect or SAML providers           |
 
 ### Things to know
 

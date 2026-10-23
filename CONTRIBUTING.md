@@ -48,7 +48,7 @@ Requirements: Go 1.26, Node.js 24 (see `.nvmrc`), pnpm via Corepack, Docker with
 ```sh
 corepack enable
 pnpm install
-make tools          # pinned sqlc / golangci-lint binaries into ./.bin
+make tools          # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck, helm
 cp .env.example .env
 make up             # postgres, valkey, ldap, mailpit
 make dev-server     # Go chat backend
@@ -56,7 +56,7 @@ make dev-idp        # identity server
 make dev-web        # web app
 ```
 
-Before opening a pull request run:
+Before opening a merge request run:
 
 ```sh
 make lint test licenses build
@@ -64,8 +64,8 @@ make lint test licenses build
 
 ## Dependencies and licenses
 
-Only permissively licensed dependencies are accepted: MIT, BSD, ISC, Apache-2.0,
-MPL-2.0 (file-level), 0BSD, Unlicense, BlueOak-1.0.0. Commercial/closed, unclear-license and linked
+Only permissively licensed dependencies are accepted: MIT, MIT-0, BSD, ISC, Apache-2.0,
+MPL-2.0 (file-level), 0BSD, Unlicense, BlueOak-1.0.0 (fonts: OFL-1.1). Commercial/closed, unclear-license and linked
 GPL/AGPL libraries are not accepted. `make licenses` enforces this policy and CI fails
 on a violation. See `docs/adr/0001-monorepo-and-tooling.md` for the exact allow lists.
 

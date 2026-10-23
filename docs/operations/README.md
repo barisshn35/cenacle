@@ -51,6 +51,10 @@ ssh -L 3000:127.0.0.1:3000 your-server   # then open http://localhost:3000 (user
                                          # password in secrets/grafana_admin_password)
 ```
 
+Settings in `.env.prod`: `CENACLE_TRACE_SAMPLE_RATIO` (share of requests traced, default
+`0.1`), `PROMETHEUS_RETENTION` (default `30d`) and `GRAFANA_PORT` (on `127.0.0.1`, default
+`3000`).
+
 Every component's usage reporting and update checks are off. Alloy reads the Docker API
 through the read-only socket to collect logs of this Compose project only.
 

@@ -17,9 +17,9 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Cancel               | Cancel                          | Vazgeç                                | `glossary.cancel`, `ui:confirm.cancel`    | The safe choice in every dialog               |
 | Undo                 | Undo                            | Geri al                               | `glossary.undo`, `ui:undo.action`         |                                               |
 | Identity server      | Cenacle ID                      | Cenacle ID                            | —                                         | Product name of the IdP in the UI             |
-| Sign in              | Sign in / Sign out              | Giriş yap / Çıkış yap                 | `auth.signOut`                            | Never "log in" / "oturum aç"                  |
+| Sign in              | Sign in / Sign out              | Giriş yap / Çıkış yap                 | `auth.continue`, `auth.signOut`           | Never "log in" / "oturum aç"                  |
 | Session              | Session                         | Oturum                                | —                                         | "Your session has ended"                      |
-| Announcement channel | Announcement channel            | Duyuru kanalı                         | `channels.kinds.announcement`             | Only the administrator posts                  |
+| Announcement channel | Announcement channel            | Duyuru kanalı                         | `channels.kinds.announcement`             | Only admins post                              |
 | Join / Leave         | Join / Leave channel            | Katıl / Kanaldan ayrıl                | `channels.join`, `channels.leave`         | Leaving shows "Undo", no confirmation         |
 | Visibility           | Public / Private                | Herkese açık / Özel                   | `channels.visibility.*`                   | Private channels show a lock                  |
 | Channel manager      | Manager                         | Yönetici                              | `channels.manager`                        | Adds and removes people                       |
@@ -36,7 +36,7 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Slash command        | Command                         | Komut                                 | `commands.*`, `bots.commands`             | Typed as `/name`; answers may be only for you |
 | Event subscription   | Events / Deliveries             | Olaylar / Teslimatlar                 | `bots.events`, `bots.deliveries`          | Signed POSTs to a bot; retried                |
 | Send later           | Send later / Scheduled          | Sonra gönder / Zamanlanmış            | `scheduled.*`                             | Cancel until it goes out; reminders too       |
-| Rotate token         | Rotate                          | Yenile                                | `bots.rotate`                             | New token; the old one works for an overlap   |
+| Rotate (bot token)   | Rotate                          | Yenile                                | `bots.rotate`                             | New token; the old one works for an overlap   |
 | Directory groups     | Directory groups                | Dizin grupları                        | `groups.title`                            | Groups of Cenacle ID (directory or provider)  |
 | Guest                | Guest                           | Misafir                               | `workspaces.roles.guest`                  | Sees only their channels and their people     |
 | Passkey              | Passkey                         | Geçiş anahtarı                        | —                                         | Cenacle ID pages; never "security key" alone  |
@@ -47,7 +47,7 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 | Username             | Username                        | Kullanıcı adı                         | `profile.username`                        | Shown as @username                            |
 | Last seen            | last seen                       | son görülme                           | `profile.lastSeen`                        | Only while offline; can be hidden             |
 | Appearance           | Appearance                      | Görünüm                               | `settings.tabs.appearance`                | Theme, fonts, code blocks                     |
-| Mute                 | Mute / Unmute                   | Sessize al / Sesini aç                | `notifications.muteChannel`               | Until a time or until unmuted                 |
+| Mute a channel       | Mute / Unmute                   | Sessize al / Sesini aç                | `notifications.muteChannel`               | Until a time or until unmuted                 |
 | Pause notifications  | Pause notifications             | Bildirimleri duraklat                 | `notifications.pause`                     | All notifications, for a while                |
 | Quiet hours          | Quiet hours                     | Sessiz saatler                        | `notifications.quietHours`                | Daily, in one's own time zone                 |
 | Forum                | Forum                           | Forum                                 | `channels.kinds.forum`                    | Posts with titles, answered in threads        |

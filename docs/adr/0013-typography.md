@@ -7,7 +7,7 @@
 
 Geist and Geist Mono were the interface and code fonts since v0.1. For a calmer, more
 corporate default, the user chose Inter with JetBrains Mono, keeping Geist in the library.
-Fraunces stays the brand headline face until "Cenacle Display" replaces it (v0.99 design).
+Fraunces stays the brand headline face until "Cenacle Display" replaces it (v0.29 interface rewrite).
 
 ## Decisions
 

@@ -37,7 +37,30 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 3. Release notes state whether a migration is reversible. Destructive migrations
    (dropping data) are never reversible; restore from backup instead.
 
+## Tested upgrade path
+
+Before 0.28.0 a production stack was installed with 0.20.0 and filled with channels,
+messages, a thread, reactions, a pin and a file. Then it was taken through every step of
+this guide: upgraded to 0.27.1 (migrations 00021–00025), rolled back with `migrate down`
+five times and started on 0.20.0 again, restored from `pg_dump` backups, and upgraded with
+the 0.28 `prod.yml`. Every time, sessions stayed signed in and all data, the file
+included, was there.
+
 ## Version notes
+
+### 0.28.0
+
+- No migration. Use `prod.yml` and the images of the same release: the 0.28 `prod.yml` with
+  older images stops the server ("… and …_FILE are both set").
+- Take the new `prod.yml` and run `./gen-secrets.sh` once more **before**
+  `up`: it keeps every secret and adds the empty `secrets/smtp_password` and
+  `secrets/ai_api_key` that `prod.yml` now mounts (compose stops with "secret file not
+  found" otherwise).
+- Images now come from `git.calaixo.com:5050/calaxio/cenacle`: set
+  `CENACLE_IMAGE_PREFIX=git.calaixo.com:5050/calaxio/cenacle/cenacle-` in `.env.prod` (or
+  remove the line). The proxy image is pulled as well; `up --build` still builds it.
+- `CENACLE_S3_ENDPOINT` set but empty in `.env.prod` now turns files off; remove the line to
+  keep the bundled Garage.
 
 ### 0.27.1
 
@@ -170,8 +193,9 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 - Cenacle ID administrators: give the administration to an account with
   `node dist/cli.js users admin --email you@example.com` to reach `/account/admin`.
 - The Cenacle ID pages allow `connect-src 'self'` (passkeys fetch their options).
-- Rolling back to 0.13 needs the migrations rolled back first (`migrate down` in Cenacle ID
-  three times; accounts of identity providers become local accounts).
+- Rolling back to 0.13 needs the migrations rolled back first, with the 0.14 image, three
+  times: `docker compose -f prod.yml --env-file .env.prod run --rm idp-migrate node
+dist/cli.js migrate down` (accounts of identity providers become local accounts).
 
 ### 0.13.0
 
@@ -202,6 +226,10 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 - Bots are reached only on the internet by default. If a bot runs in a private network,
   list that network in `CENACLE_EGRESS_ALLOW` (e.g. `10.20.0.0/16`); the server container
   needs a route to it.
+
+### 0.10.1
+
+- Security and reliability fixes; no migration and nothing to change.
 
 ### 0.10.0
 
@@ -292,7 +320,7 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
   are added) and use the new `prod.yml`, which adds the `idp-migrate` step and mounts
   `idp/clients.json`.
 - The IdP database gets its first migration (`idp_migrations` table); it runs automatically.
-- Create the first account with `cenacle-idp users create` (see the
+- Create the first account with `node dist/cli.js users create` in the `idp` container (see the
   [installation guide](../install/README.md)).
 
 ### 0.1.1

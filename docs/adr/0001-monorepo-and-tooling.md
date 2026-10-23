@@ -40,8 +40,8 @@ record covers the tooling and the decisions made while implementing v0.1.
 
 ### License policy
 
-8. **Project license: open, decided last (before the first public release).** Apache-2.0
-   is the working default in `LICENSE` and the SPDX headers. Switching (e.g. to AGPL-3.0)
+8. **Project license (superseded by ADR 0025: AGPL-3.0-only, `packages/core` Apache-2.0).**
+   Apache-2.0 was the working default in `LICENSE` and the SPDX headers. Switching (e.g. to AGPL-3.0)
    only changes those files, because every dependency already follows the policy below.
 9. **Allowed dependency licenses:** MIT, MIT-0, ISC, BSD-2/3-Clause, Apache-2.0, MPL-2.0,
    0BSD, Unlicense, BlueOak-1.0.0 (OSI-approved permissive; added in v0.2 for `glob` and

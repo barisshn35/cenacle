@@ -5,23 +5,38 @@ Cenacle: a backup that has never been restored is not a backup.
 
 ## What to back up
 
-| Data                         | Where                                                         | Needed for                                   |
-| ---------------------------- | ------------------------------------------------------------- | -------------------------------------------- |
-| Chat database `cenacle_chat` | PostgreSQL                                                    | messages, channels, workspaces, sessions     |
-| IdP database `cenacle_idp`   | PostgreSQL                                                    | accounts, MFA, clients, consents             |
-| Secrets                      | `deploy/compose/secrets/`                                     | database passwords and URLs, Valkey password |
-| Settings                     | `deploy/compose/.env.prod`                                    | domains, version                             |
-| IdP signing keys             | IdP database, encrypted with `secrets/idp_key_encryption_key` | validating issued tokens across restores     |
-| Object store (v0.12+)        | S3-compatible store (Garage by default)                       | uploaded files                               |
-| TLS state                    | `caddy-data` volume                                           | optional; Caddy re-issues certificates       |
+| Data                         | Where                                                         | Needed for                                |
+| ---------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
+| Chat database `cenacle_chat` | PostgreSQL                                                    | messages, channels, workspaces, sessions  |
+| IdP database `cenacle_idp`   | PostgreSQL                                                    | accounts, MFA, clients, consents          |
+| Secrets                      | `deploy/compose/secrets/`                                     | every password and key (see below)        |
+| Settings                     | `deploy/compose/.env.prod`, `idp/clients.json`                | domains, version, registered applications |
+| IdP signing keys             | IdP database, encrypted with `secrets/idp_key_encryption_key` | validating issued tokens across restores  |
+| Object store                 | S3-compatible store (Garage by default)                       | uploaded files                            |
+| TLS state                    | `caddy-data` volume, `certs/` (`CENACLE_TLS_MODE=files`)      | optional with Let's Encrypt (re-issued)   |
 
 Valkey holds only ephemeral data (presence, typing, short-lived tickets, caches) and does
 not need a backup.
 
+`secrets/` holds the database and Valkey passwords, Cenacle ID's key-encryption and cookie
+keys, the chat server's client secret, the object store's keys and cluster secret, and,
+when used, the SMTP password, the AI key, WAL-G's and Grafana's settings. On Kubernetes,
+back up the Secret named by `existingSecret` the same way.
+
+The database dumps are secrets too: the chat database holds the secrets shared with
+federated servers and the web push key (losing it means devices subscribe again); Cenacle
+ID's database holds directory and identity-provider credentials, encrypted with
+`idp_key_encryption_key`.
+
+Not on the server, so not in any backup: the keys of encrypted channels. They come from a
+passphrase members share outside Cenacle; a lost passphrase cannot be recovered. AI keeps
+only its settings and a log without content in the chat database.
+
 Keep secrets and database backups **together and encrypted**. Token signing keys are stored
 in the IdP database, encrypted with `secrets/idp_key_encryption_key`: a database restored
 without that key cannot use its signing keys (Cenacle ID would need new keys, which
-invalidates every issued token and session).
+invalidates every issued token and session), and directory sign-in and other identity
+providers have to be set up again.
 
 ## Small installations: logical dumps
 
@@ -32,7 +47,7 @@ docker compose -f prod.yml --env-file .env.prod exec -T postgres \
   pg_dump -U postgres -Fc cenacle_chat > "backup-chat-$ts.dump"
 docker compose -f prod.yml --env-file .env.prod exec -T postgres \
   pg_dump -U postgres -Fc cenacle_idp > "backup-idp-$ts.dump"
-tar -czf "backup-secrets-$ts.tgz" secrets .env.prod
+tar -czf "backup-secrets-$ts.tgz" secrets .env.prod idp/clients.json certs
 ```
 
 Restore into a fresh stack (services stopped except `postgres`):

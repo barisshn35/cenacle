@@ -7,10 +7,10 @@ AI). While off, the app shows nothing about AI.
 ## Run a model
 
 Any server with the OpenAI-compatible chat completions API works. With Ollama next to the
-compose stack:
+compose stack (on its `edge` network, which the chat server is on):
 
 ```sh
-docker run -d --name ollama --network cenacle_default -v ollama:/root/.ollama ollama/ollama
+docker run -d --name ollama --network cenacle_edge -v ollama:/root/.ollama ollama/ollama
 docker exec ollama ollama pull qwen2.5:7b-instruct
 ```
 
@@ -19,7 +19,8 @@ Then in `.env.prod`:
 ```sh
 CENACLE_AI_URL=http://ollama:11434/v1
 CENACLE_AI_MODEL=qwen2.5:7b-instruct
-# CENACLE_AI_API_KEY=…   (only if your server asks for one)
+# API key only if your server asks for one: in secrets/ai_api_key
+# (or CENACLE_AI_API_KEY=…)
 # CENACLE_AI_TIMEOUT=2m
 ```
 

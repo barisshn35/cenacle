@@ -8,6 +8,32 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Release candidate preparation.
+
+### Added
+
+- Compose: the SMTP password and the AI key can live in `secrets/smtp_password` and
+  `secrets/ai_api_key`; `CENACLE_AI_TIMEOUT`, `CENACLE_LOG_LEVEL`, `IDP_LOG_LEVEL` and the
+  session lifetimes can be set in `.env.prod`.
+- Helm: `ai.timeout` and the optional `ai-api-key` key of the Secret.
+
+### Changed
+
+- Images are pulled from the project's registry, `git.calaixo.com:5050/calaxio/cenacle`, by
+  default (compose and Helm); the proxy image is pulled too instead of built on the host.
+- An empty setting no longer conflicts with its `_FILE` form.
+- Cenacle ID's metrics use `@prometheus-io/client`, the successor of `prom-client`.
+- Dependency updates.
+- Documentation reviewed against the code: installation settings, outbound connections,
+  backups (everything that holds secrets), upgrade notes, roadmap.
+
+### Fixed
+
+- Compose: `CENACLE_S3_ENDPOINT=` (empty) turns files off, as documented, instead of
+  falling back to Garage.
+- After jumping to a message, its highlight lasts from when it is in view: a slow device no
+  longer uses it up while still scrolling.
+
 ## [0.27.1] - 2026-10-23
 
 ### Fixed
