@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { Body } from '../compliance/encrypted';
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback,
+  useLayoutEffect,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { CircleAlertIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -477,8 +485,29 @@ export function MessageList({ channel }: { channel: Channel }) {
     () => toRows(messages, pending, fmt.day, mark),
     [messages, pending, fmt.day, mark],
   );
-  const setAtBottom = useMarkRead(channel, messages);
+  const markAtBottom = useMarkRead(channel, messages);
   const list = useRef<VirtuosoHandle>(null);
+  // Whether the reader is at the end. Virtuoso's own following lets go when
+  // rows change height as they arrive (the reader's own messages from another
+  // device do): the list then keeps to the end itself while the reader is there.
+  const atEnd = useRef(true);
+  const setAtBottom = useCallback(
+    (bottom: boolean) => {
+      atEnd.current = bottom;
+      markAtBottom(bottom);
+    },
+    [markAtBottom],
+  );
+  const rowCount = rows.length;
+  useLayoutEffect(() => {
+    if (!atEnd.current || rowCount === 0) return;
+    const toEnd = () =>
+      list.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'auto' });
+    toEnd();
+    // Again once the new row is measured (its height is known only after paint).
+    const frame = requestAnimationFrame(toEnd);
+    return () => cancelAnimationFrame(frame);
+  }, [rowCount]);
 
   // Prepending older messages lowers the index of the first row by exactly the
   // rows added before the oldest message of the newest page (its anchor): day
@@ -556,8 +585,10 @@ export function MessageList({ channel }: { channel: Channel }) {
         }
         computeItemKey={(_, row) => row.key}
         // Stay at the bottom when new messages arrive, if the reader is there.
-        followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
+        followOutput={(atBottom) => (atBottom ? 'auto' : false)}
         atBottomStateChange={setAtBottom}
+        // "At the end" with a little slack, so a row still growing does not let go.
+        atBottomThreshold={48}
         alignToBottom
         startReached={() => {
           if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
