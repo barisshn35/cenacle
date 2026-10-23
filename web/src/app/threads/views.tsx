@@ -4,9 +4,12 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
+  AlarmClockIcon,
+  BellOffIcon,
   BellRingIcon,
   CheckIcon,
-  MessageSquareIcon,
+  ChevronDownIcon,
+  ClockIcon,
   RotateCcwIcon,
   Trash2Icon,
 } from 'lucide-react';
@@ -22,11 +25,18 @@ import {
 } from '@cenacle/ui/components/dropdown-menu';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { SidebarTrigger } from '@cenacle/ui/components/sidebar';
+import { useIsMobile } from '@cenacle/ui/hooks/use-mobile';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ApiError } from '@cenacle/core/api';
 import { useLayout } from '../../stores/layout';
 import { useActiveWorkspace } from '../chat/active-workspace';
-import { channelsQuery, markRead, setReadLocally, type Message } from '../chat/data';
+import { ChannelIcon } from '../chat/channel-icon';
+import { channelsQuery, markRead, setReadLocally, type Channel, type Message } from '../chat/data';
+import { MessageBody } from '../chat/markdown/message-body';
+import { SPEAKER_GRID } from '../chat/message-list';
+import { useSession } from '../auth/session';
+import { Board, BoardGroup, BoardTabs } from '../shell/board';
+import { boardCell, boardRow } from '../shell/board-styles';
 import { openMessage } from './open-message';
 import { InboxBoard } from './inbox-board';
 import { EventsList } from '../community/events';
@@ -37,8 +47,11 @@ import { plainText } from '../search/search';
 import {
   applySaved,
   followedThreadsQuery,
+  markThreadRead,
   savedQuery,
   saveMessage,
+  setFollowing,
+  threadsChanged,
   unreadsQuery,
   unsaveMessage,
   type SavedItem,
@@ -73,40 +86,37 @@ function channelLabel(c: { name: string; kind: string }) {
   return c.name;
 }
 
-/** The name the person sees for a channel (conversations are named after people). */
-function useChannelNames() {
-  const channels = useQuery(channelsQuery).data;
-  return (c: { id: string; name: string; kind: string }) =>
-    channelLabel({ ...c, name: channels?.find((x) => x.id === c.id)?.name ?? c.name });
-}
-
 function Shell({
   title,
+  subtitle,
+  actions,
   mobile,
-  wide = false,
   children,
 }: {
   title: string;
+  subtitle?: string;
+  actions?: ReactNode;
   mobile: boolean;
-  /** Boards (the Inbox) use the whole width with 32px gutters. */
-  wide?: boolean;
   children: ReactNode;
 }) {
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="view-title">
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 max-sm:px-2">
-        {mobile && <SidebarTrigger />}
-        <h1 id="view-title" className="text-[17px] leading-5 font-semibold tracking-[-0.01em]">
-          {title}
-        </h1>
-      </header>
+      {mobile && (
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-2">
+          <SidebarTrigger />
+        </header>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div
-          className={cn(
-            'mx-auto flex flex-col gap-2 p-4',
-            wide ? 'max-w-7xl sm:px-8 sm:py-6 max-sm:p-0' : 'max-w-3xl',
-          )}
-        >
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-8 pt-6 pb-10 max-sm:px-0 max-sm:pt-4">
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-2 max-sm:px-4">
+            <div className="min-w-0">
+              <h1 id="view-title" className="text-2xl leading-8 font-semibold tracking-[-0.015em]">
+                {title}
+              </h1>
+              {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+            </div>
+            {actions && <div className="ml-auto flex gap-2">{actions}</div>}
+          </div>
           {children}
         </div>
       </div>
@@ -141,13 +151,15 @@ function Empty({ children }: { children: ReactNode }) {
   );
 }
 
-const cardClass =
-  'flex w-full flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-left text-sm outline-none hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50';
-
 export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?: boolean }) {
   const { t } = useTranslation();
   return (
-    <Shell title={t(`home.${view}`)} mobile={mobile} wide={view === 'activity'}>
+    <Shell
+      title={t(`home.${view}`)}
+      subtitle={t(`home.subtitles.${view}`, { defaultValue: '' }) || undefined}
+      actions={view === 'threads' ? <MarkThreadsRead /> : undefined}
+      mobile={mobile}
+    >
       {view === 'threads' && <ThreadsList />}
       {view === 'activity' && <InboxBoard />}
       {view === 'saved' && <SavedList />}
@@ -165,71 +177,180 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
   );
 }
 
+/** A channel as the reader knows it: its own name for conversations, and its visibility. */
+function useChannelInfo() {
+  const channels = useQuery(channelsQuery).data;
+  return (c: { id: string; name: string; kind: string }) => {
+    const known = channels?.find((x) => x.id === c.id);
+    return {
+      name: channelLabel({ ...c, name: known?.name ?? c.name }),
+      icon: {
+        kind: (known?.kind ?? c.kind) as Channel['kind'],
+        visibility: known?.visibility ?? 'public',
+      },
+    };
+  };
+}
+
+/** Marks every followed thread with new replies as read. */
+function MarkThreadsRead() {
+  const { t } = useTranslation();
+  const ws = useActiveWorkspace().id;
+  const queryClient = useQueryClient();
+  const list = useInfiniteQuery(followedThreadsQuery(ws));
+  const unread = (list.data?.pages ?? [])
+    .flatMap((p) => p.threads)
+    .filter((th) => th.unread_count > 0);
+  const read = useMutation({
+    mutationFn: () => Promise.all(unread.map((th) => markThreadRead(th.root.id, th.last_reply_id))),
+    onSettled: () => threadsChanged(queryClient),
+    onError: () => toast.error(t('home.readFailed')),
+  });
+  if (unread.length === 0) return null;
+  return (
+    <Button variant="outline" disabled={read.isPending} onClick={() => read.mutate()}>
+      <CheckIcon strokeWidth={1.75} />
+      {t('threads.markAllRead')}
+    </Button>
+  );
+}
+
 function ThreadsList() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const ws = useActiveWorkspace().id;
-  const name = useChannelNames();
+  const self = useSession().user.id;
+  const info = useChannelInfo();
   const list = useInfiniteQuery(followedThreadsQuery(ws));
-  const time = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const clock = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' });
+  const day = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
+  const when = (iso: string) => {
+    const d = new Date(iso);
+    return d.toDateString() === new Date().toDateString() ? clock.format(d) : day.format(d);
+  };
+  const unfollow = useMutation({
+    mutationFn: (rootId: string) => setFollowing(rootId, false),
+    onSettled: () => threadsChanged(queryClient),
+    onError: () => toast.error(t('threads.followFailed')),
+  });
   if (list.isPending) return <Loading />;
   if (list.isError) return <Problem error={list.error} retry={() => void list.refetch()} />;
   const threads = list.data.pages.flatMap((p) => p.threads);
   if (threads.length === 0) return <Empty>{t('home.noThreads')}</Empty>;
+  const open = (th: (typeof threads)[number]) => {
+    void navigate({ to: '/c/$channelId', params: { channelId: th.channel.id } });
+    useLayout.getState().openThread({ channelId: th.channel.id, rootId: th.root.id });
+  };
   return (
     <>
-      <ul className="flex flex-col gap-2">
-        {threads.map((th) => (
-          <li key={th.root.id}>
-            <button
-              type="button"
+      <ul className="flex max-w-[1000px] flex-col gap-3.5">
+        {threads.map((th) => {
+          const ch = info(th.channel);
+          const root = th.root;
+          const summary = root.thread;
+          return (
+            <li
+              key={root.id}
               data-testid="followed-thread"
               data-unread={th.unread_count > 0 || undefined}
-              className={cardClass}
-              onClick={() => {
-                void navigate({ to: '/c/$channelId', params: { channelId: th.channel.id } });
-                useLayout.getState().openThread({ channelId: th.channel.id, rootId: th.root.id });
-              }}
+              className="overflow-hidden rounded-[10px] border border-rule-strong bg-background max-sm:rounded-none max-sm:border-x-0"
             >
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="truncate">{name(th.channel)}</span>
-                {th.root.thread && (
-                  <span className="ml-auto shrink-0">
-                    {time.format(new Date(th.root.thread.last_reply_at))}
+              <header className="flex min-h-12 flex-wrap items-center gap-x-2.5 gap-y-1 border-b bg-secondary py-2 pr-2.5 pl-4">
+                <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
+                  <ChannelIcon
+                    channel={ch.icon}
+                    className="size-4 shrink-0 text-muted-foreground"
+                  />
+                  <span className="truncate">{ch.name}</span>
+                </span>
+                {summary && (
+                  <span className="text-[12.5px] text-muted-foreground">
+                    {t('threads.lastReplyLabel')}{' '}
+                    <time dateTime={summary.last_reply_at} className="font-mono">
+                      {when(summary.last_reply_at)}
+                    </time>
                   </span>
                 )}
-              </span>
-              <span className="flex items-center gap-2">
-                <UserAvatar
-                  userId={th.root.author.id}
-                  name={th.root.author.display_name}
-                  size="sm"
-                />
-                <span className="font-medium">{th.root.author.display_name}</span>
-              </span>
-              <span className="line-clamp-2 break-words">{plainText(th.root.body)}</span>
-              <span className="flex items-center gap-2 text-xs">
-                <MessageSquareIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
-                <span className="text-muted-foreground">
-                  {t('threads.replies', { count: th.root.thread?.reply_count ?? 0 })}
-                </span>
-                {th.unread_count > 0 && (
+                <span className="ml-auto flex items-center gap-2">
+                  {th.mention_count > 0 && (
+                    <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-mention px-1 text-[11px] font-semibold text-mention-foreground">
+                      {th.mention_count}
+                    </span>
+                  )}
                   <span
-                    className={
-                      th.mention_count > 0
-                        ? 'rounded-full bg-mention px-2 font-semibold text-mention-foreground'
-                        : 'font-semibold text-unread'
-                    }
+                    className={cn(
+                      'text-[13px]',
+                      th.unread_count > 0 ? 'font-semibold' : 'text-muted-foreground',
+                    )}
                   >
                     {th.mention_count > 0
-                      ? t('mentions.unread', { count: th.mention_count })
-                      : t('threads.newReplies', { count: th.unread_count })}
+                      ? t('threads.mentionsAndReplies', {
+                          mentions: t('mentions.unread', { count: th.mention_count }),
+                          count: th.unread_count,
+                        })
+                      : th.unread_count > 0
+                        ? t('threads.newReplies', { count: th.unread_count })
+                        : t('threads.noNewReplies')}
                   </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    aria-label={t('threads.openIn', { channel: ch.name })}
+                    onClick={() => open(th)}
+                  >
+                    {t('threads.open')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={unfollow.isPending}
+                    onClick={() => unfollow.mutate(root.id)}
+                  >
+                    <BellOffIcon strokeWidth={1.75} />
+                    {t('threads.stopFollowing')}
+                  </Button>
+                </span>
+              </header>
+              <div className="py-2.5 pr-4 pl-2 max-sm:px-0">
+                <div className={cn(SPEAKER_GRID(), 'py-1')}>
+                  <div className="flex min-w-0 items-start justify-end gap-2 text-right max-sm:justify-start max-sm:text-left">
+                    <div className="flex min-w-0 flex-col items-end max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2">
+                      <span className="max-w-full truncate text-[13px] leading-[18px] font-semibold">
+                        {root.author.display_name}
+                      </span>
+                      <time
+                        dateTime={root.created_at}
+                        className="font-mono text-xs leading-4 text-muted-foreground"
+                      >
+                        {when(root.created_at)}
+                      </time>
+                    </div>
+                    <UserAvatar userId={root.author.id} name={root.author.display_name} size="xs" />
+                  </div>
+                  <div className="min-w-0 text-[15px] leading-[22px] break-words">
+                    <MessageBody body={root.body} mentions={root.mentions ?? []} selfId={self} />
+                  </div>
+                </div>
+                {summary && (
+                  <div className={cn(SPEAKER_GRID(), 'min-h-8 items-center')}>
+                    <span aria-hidden className="max-sm:hidden" />
+                    <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                      <span className="flex gap-0.5">
+                        {summary.participants.map((a) => (
+                          <UserAvatar key={a.id} userId={a.id} name={a.display_name} size="xs" />
+                        ))}
+                      </span>
+                      <b className="font-semibold text-foreground">
+                        {t('threads.replies', { count: summary.reply_count })}
+                      </b>
+                    </span>
+                  </div>
                 )}
-              </span>
-            </button>
-          </li>
-        ))}
+              </div>
+            </li>
+          );
+        })}
       </ul>
       {list.hasNextPage && (
         <Button
@@ -267,14 +388,30 @@ function remindAt(choice: (typeof REMINDERS)[number], now = new Date()): string 
   }
 }
 
+type SavedGroup = 'overdue' | 'today' | 'later' | 'none';
+
+function savedGroup(s: SavedItem, now = new Date()): SavedGroup {
+  if (!s.remind_at) return 'none';
+  const at = new Date(s.remind_at);
+  if (at < now) return 'overdue';
+  return at.toDateString() === now.toDateString() ? 'today' : 'later';
+}
+
+/** Saved messages as a board: reminder, where, from, message and actions. */
 function SavedList() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const name = useChannelNames();
+  const mobile = useIsMobile();
+  const info = useChannelInfo();
   const [tab, setTab] = useState<'open' | 'done'>('open');
   const saved = useQuery(savedQuery);
-  const time = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+  const clock = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' });
+  const date = new Intl.DateTimeFormat(i18n.language, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
   const change = useMutation({
     mutationFn: ({
       item,
@@ -289,111 +426,242 @@ function SavedList() {
   });
   if (saved.isPending) return <Loading />;
   if (saved.isError) return <Problem error={saved.error} retry={() => void saved.refetch()} />;
-  const items = saved.data.filter((s) => (tab === 'done') === !!s.done_at);
+  const open = saved.data.filter((s) => !s.done_at);
+  const done = saved.data.filter((s) => !!s.done_at);
+  const items = tab === 'done' ? done : open;
+  const groups: { key: SavedGroup | 'done'; rows: SavedItem[] }[] =
+    tab === 'done'
+      ? [{ key: 'done', rows: done }]
+      : (['overdue', 'today', 'later', 'none'] as const)
+          .map((key) => ({
+            key,
+            rows: open
+              .filter((s) => savedGroup(s) === key)
+              .sort((a, b) => (a.remind_at ?? '').localeCompare(b.remind_at ?? '')),
+          }))
+          .filter((g) => g.rows.length > 0);
+
+  const reminder = (s: SavedItem) => {
+    if (!s.remind_at || s.done_at) return <span className="text-muted-foreground">—</span>;
+    const at = new Date(s.remind_at);
+    const group = savedGroup(s);
+    return (
+      <span className="flex flex-col">
+        <span className="flex items-center gap-1.5 font-mono text-[14px] font-medium">
+          {group === 'overdue' && (
+            <AlarmClockIcon aria-hidden className="size-4" strokeWidth={1.75} />
+          )}
+          <time dateTime={s.remind_at}>{clock.format(at)}</time>
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {group === 'overdue'
+            ? t('saved.overdueSince', {
+                date:
+                  at.toDateString() === new Date().toDateString()
+                    ? t('saved.today')
+                    : date.format(at),
+              })
+            : group === 'today'
+              ? t('saved.groups.today')
+              : date.format(at)}
+        </span>
+      </span>
+    );
+  };
+  const where = (s: SavedItem) => {
+    const ch = info(s.channel);
+    return (
+      <span className="flex min-w-0 items-start gap-1.5">
+        <ChannelIcon channel={ch.icon} className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0">
+          <span className="block truncate text-[13.5px] font-semibold">{ch.name}</span>
+          {s.message.root_id && (
+            <span className="block text-xs text-muted-foreground">{t('saved.inThread')}</span>
+          )}
+        </span>
+      </span>
+    );
+  };
+  const actions = (s: SavedItem) => (
+    <span className="flex flex-wrap items-center justify-end gap-1.5">
+      {!s.done_at && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label={t('saved.remindNamed', { name: s.message.author.display_name })}
+              />
+            }
+          >
+            <BellRingIcon strokeWidth={1.75} />
+            {t('saved.remind')}
+            <ChevronDownIcon strokeWidth={1.75} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60">
+            {REMINDERS.map((r) => {
+              const at = remindAt(r);
+              return (
+                <DropdownMenuItem
+                  key={r}
+                  onClick={() => change.mutate({ item: s, state: { remind_at: at } })}
+                >
+                  <ClockIcon strokeWidth={1.75} />
+                  {t(`saved.reminders.${r}`)}
+                  <span className="ml-auto font-mono text-xs text-muted-foreground">
+                    {r === 'tomorrow' || r === 'week'
+                      ? date.format(new Date(at))
+                      : clock.format(new Date(at))}
+                  </span>
+                </DropdownMenuItem>
+              );
+            })}
+            {s.remind_at && (
+              <DropdownMenuItem
+                onClick={() => change.mutate({ item: s, state: { remind_at: null } })}
+              >
+                <BellOffIcon strokeWidth={1.75} />
+                {t('saved.noReminder')}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      <Button
+        size="sm"
+        variant="outline"
+        aria-label={t(s.done_at ? 'saved.undoDoneNamed' : 'saved.markDoneNamed', {
+          name: s.message.author.display_name,
+        })}
+        onClick={() =>
+          change.mutate({ item: s, state: s.done_at ? { remind_at: null } : { done: true } })
+        }
+      >
+        {s.done_at ? <RotateCcwIcon strokeWidth={1.75} /> : <CheckIcon strokeWidth={1.75} />}
+        {s.done_at ? t('saved.undoDone') : t('saved.markDone')}
+      </Button>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        aria-label={t('saved.removeNamed', { name: s.message.author.display_name })}
+        onClick={() => change.mutate({ item: s, state: null })}
+      >
+        <Trash2Icon strokeWidth={1.75} />
+      </Button>
+    </span>
+  );
+  const message = (s: SavedItem) => (
+    <button
+      type="button"
+      className="line-clamp-2 w-full rounded-sm text-left text-[14px] break-words outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+      onClick={() => openMessage(navigate, s.message)}
+    >
+      {plainText(s.message.body)}
+    </button>
+  );
+
   return (
     <>
-      <div role="tablist" aria-label={t('home.saved')} className="flex gap-1">
-        {(['open', 'done'] as const).map((k) => (
-          <Button
-            key={k}
-            role="tab"
-            size="sm"
-            variant={tab === k ? 'secondary' : 'ghost'}
-            aria-selected={tab === k}
-            onClick={() => setTab(k)}
-          >
-            {t(`saved.tabs.${k}`)}
-          </Button>
-        ))}
+      <div className="max-sm:px-4">
+        <BoardTabs
+          label={t('home.saved')}
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { key: 'open', label: t('saved.tabs.open'), count: open.length },
+            { key: 'done', label: t('saved.tabs.done'), count: done.length },
+          ]}
+          note={mobile ? undefined : t('saved.remindersNote')}
+        />
       </div>
-      {items.length === 0 ? (
-        <Empty>{tab === 'open' ? t('saved.none') : t('saved.noneDone')}</Empty>
-      ) : (
-        <div role="tabpanel">
-          <ul className="flex flex-col gap-2">
-            {items.map((s) => (
-              <li
-                key={s.message.id}
-                data-testid="saved-item"
-                className="flex flex-col gap-2 rounded-xl border bg-card px-4 py-3 text-sm"
-              >
-                <button
-                  type="button"
-                  className="flex flex-col gap-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                  onClick={() => openMessage(navigate, s.message)}
-                >
-                  <span className="flex gap-2 text-xs text-muted-foreground">
-                    <span className="truncate">{name(s.channel)}</span>
-                    <span>·</span>
-                    <span className="truncate">{s.message.author.display_name}</span>
-                  </span>
-                  <span className="line-clamp-3 break-words">{plainText(s.message.body)}</span>
-                </button>
-                {s.remind_at && !s.done_at && (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <BellRingIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
-                    {t('saved.remindAt', { time: time.format(new Date(s.remind_at)) })}
-                  </p>
+      <div role="tabpanel" aria-labelledby={`tab-${tab}`}>
+        {items.length === 0 ? (
+          <Empty>{tab === 'open' ? t('saved.none') : t('saved.noneDone')}</Empty>
+        ) : mobile ? (
+          <div className="flex flex-col">
+            {groups.map((g) => (
+              <section key={g.key} aria-label={t(`saved.groups.${g.key}`)}>
+                {tab === 'open' && (
+                  <h2 className="bg-secondary px-4 py-2 text-[12.5px] font-semibold">
+                    {t(`saved.groups.${g.key}`)}
+                  </h2>
                 )}
-                <div className="flex flex-wrap gap-1">
-                  {!s.done_at && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button size="sm" variant="outline" />}>
-                        <BellRingIcon strokeWidth={1.75} />
-                        {t('saved.remind')}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {REMINDERS.map((r) => (
-                          <DropdownMenuItem
-                            key={r}
-                            onClick={() =>
-                              change.mutate({ item: s, state: { remind_at: remindAt(r) } })
-                            }
-                          >
-                            {t(`saved.reminders.${r}`)}
-                          </DropdownMenuItem>
-                        ))}
-                        {s.remind_at && (
-                          <DropdownMenuItem
-                            onClick={() => change.mutate({ item: s, state: { remind_at: null } })}
-                          >
-                            {t('saved.noReminder')}
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      change.mutate({
-                        item: s,
-                        state: s.done_at ? { remind_at: null } : { done: true },
-                      })
-                    }
-                  >
-                    {s.done_at ? (
-                      <RotateCcwIcon strokeWidth={1.75} />
-                    ) : (
-                      <CheckIcon strokeWidth={1.75} />
-                    )}
-                    {s.done_at ? t('saved.undoDone') : t('saved.markDone')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => change.mutate({ item: s, state: null })}
-                  >
-                    <Trash2Icon strokeWidth={1.75} />
-                    {t('saved.remove')}
-                  </Button>
-                </div>
-              </li>
+                <ul>
+                  {g.rows.map((s) => (
+                    <li
+                      key={s.message.id}
+                      data-testid="saved-item"
+                      className={cn(
+                        'flex flex-col gap-2 border-b px-4 py-3',
+                        savedGroup(s) === 'overdue' && !s.done_at && 'bg-muted',
+                      )}
+                    >
+                      <div className="flex items-start gap-3 text-[13px]">
+                        {where(s)}
+                        <span className="ml-auto shrink-0 text-right">{reminder(s)}</span>
+                      </div>
+                      <span className="flex items-center gap-2 text-[13.5px]">
+                        <UserAvatar
+                          userId={s.message.author.id}
+                          name={s.message.author.display_name}
+                          size="xs"
+                        />
+                        {s.message.author.display_name}
+                      </span>
+                      {message(s)}
+                      {actions(s)}
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
-        </div>
-      )}
+          </div>
+        ) : (
+          <Board
+            label={t('home.saved')}
+            columns={[
+              { label: t('saved.columns.reminder'), width: 'w-[124px]' },
+              { label: t('saved.columns.where'), width: 'w-[170px]' },
+              { label: t('saved.columns.from'), width: 'w-[150px]' },
+              { label: t('saved.columns.message') },
+              { label: t('saved.columns.actions'), width: 'w-[312px]', align: 'end' },
+            ]}
+          >
+            {groups.map((g) => (
+              <BoardGroup
+                key={g.key}
+                span={5}
+                label={tab === 'open' ? t(`saved.groups.${g.key}`) : undefined}
+                count={tab === 'open' ? g.rows.length : undefined}
+              >
+                {g.rows.map((s) => (
+                  <tr
+                    key={s.message.id}
+                    data-testid="saved-item"
+                    className={boardRow(savedGroup(s) === 'overdue' && !s.done_at)}
+                  >
+                    <td className={boardCell}>{reminder(s)}</td>
+                    <td className={boardCell}>{where(s)}</td>
+                    <td className={boardCell}>
+                      <span className="flex min-w-0 items-center gap-2 text-[13.5px]">
+                        <UserAvatar
+                          userId={s.message.author.id}
+                          name={s.message.author.display_name}
+                          size="xs"
+                        />
+                        <span className="truncate">{s.message.author.display_name}</span>
+                      </span>
+                    </td>
+                    <td className={boardCell}>{message(s)}</td>
+                    <td className={boardCell}>{actions(s)}</td>
+                  </tr>
+                ))}
+              </BoardGroup>
+            ))}
+          </Board>
+        )}
+      </div>
     </>
   );
 }

@@ -869,7 +869,15 @@
     "repliesIn": "{{channel}} içindeki dizi",
     "unavailable": "Bu yanıt dizisi artık yok.",
     "unreadThreads_one": "Yeni yanıtı olan {{count}} dizi",
-    "unreadThreads_other": "Yeni yanıtı olan {{count}} dizi"
+    "unreadThreads_other": "Yeni yanıtı olan {{count}} dizi",
+    "lastReplyLabel": "Son yanıt",
+    "stopFollowing": "Takibi bırak",
+    "noNewReplies": "Yeni yanıt yok",
+    "open": "Aç",
+    "openIn": "{{channel}} içindeki diziyi aç",
+    "markAllRead": "Tümünü okundu say",
+    "mentionsAndReplies_one": "{{mentions}} · {{count}} yeni yanıt",
+    "mentionsAndReplies_other": "{{mentions}} · {{count}} yeni yanıt"
   },
   "pins": {
     "title": "Sabitlenmiş mesajlar",
@@ -907,7 +915,29 @@
       "week": "Gelecek hafta"
     },
     "markDone": "Tamamlandı olarak işaretle",
-    "undoDone": "Devam edenlere geri al"
+    "undoDone": "Devam edenlere geri al",
+    "remindersNote": "Hatırlatmalar Gelen kutuna düşer",
+    "inThread": "Dizi",
+    "overdueSince": "Gecikti · {{date}}",
+    "remindNamed": "Bana hatırlat, {{name}} adlı kişinin mesajı",
+    "markDoneNamed": "Tamamlandı olarak işaretle, {{name}} adlı kişinin mesajı",
+    "undoDoneNamed": "Devam edenlere geri al, {{name}} adlı kişinin mesajı",
+    "removeNamed": "{{name}} adlı kişinin mesajını kaydedilenlerden çıkar",
+    "groups": {
+      "overdue": "Gecikenler",
+      "today": "Bugün",
+      "later": "Sonra",
+      "none": "Hatırlatmasız",
+      "done": "Tamamlananlar"
+    },
+    "columns": {
+      "reminder": "Hatırlatma",
+      "where": "Nerede",
+      "from": "Kimden",
+      "message": "Mesaj",
+      "actions": "İşlemler"
+    },
+    "today": "bugün"
   },
   "home": {
     "threads": "Yanıt dizileri",
@@ -930,7 +960,17 @@
     "workflows": "İş akışları",
     "compliance": "Uyumluluk",
     "ask": "Yapay zekâya sor",
-    "federation": "Federasyon"
+    "federation": "Federasyon",
+    "subtitles": {
+      "threads": "Başlattığın, yanıtladığın ya da anıldığın diziler. Yeni yanıtlar önce.",
+      "activity": "Seni bekleyenler: anılmalar, yanıtlar ve tepkiler. Yeni satırlar açana ya da işaretleyene kadar vurgulu kalır.",
+      "saved": "Geri dönmek için kaydettiğin mesajlar. Hatırlatma kur ya da tamamlandı say.",
+      "unreads": "Okumadığın mesajları olan her kanal.",
+      "tasks": "Seni bekleyenler: onaylar, formlar ve sana atanmış liste satırları.",
+      "events": "Bu çalışma alanındaki toplantılar ve buluşmalar.",
+      "playbooks": "Ekibinin tekrar tekrar yürüttüğü kontrol listeleri; olay müdahalesi ya da işe başlangıç gibi.",
+      "workflows": "Bir iş akışı bir tetikleyiciyle başlar ve adımlarını sırayla yürütür."
+    }
   },
   "community": {
     "banner": {

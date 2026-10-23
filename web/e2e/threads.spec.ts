@@ -85,7 +85,8 @@ test('saved for later, with a reminder, then done', async ({ page }) => {
   await expect(item).toContainText('Release plan');
   await item.getByRole('button', { name: 'Remind me' }).click();
   await page.getByRole('menuitem', { name: 'In 1 hour' }).click();
-  await expect(item).toContainText('Reminder');
+  // The reminder's time stands in the first column of the board.
+  await expect(item.locator('time')).toBeVisible();
   await expectNoAxeViolations(page, 'main');
   await item.getByRole('button', { name: 'Mark done' }).click();
   await expect(page.getByText('Nothing saved.', { exact: false })).toBeVisible();

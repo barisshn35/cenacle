@@ -869,7 +869,15 @@
     "repliesIn": "Thread in {{channel}}",
     "unavailable": "This thread is no longer available.",
     "unreadThreads_one": "{{count}} thread with new replies",
-    "unreadThreads_other": "{{count}} threads with new replies"
+    "unreadThreads_other": "{{count}} threads with new replies",
+    "lastReplyLabel": "Last reply",
+    "stopFollowing": "Stop following",
+    "noNewReplies": "No new replies",
+    "open": "Open",
+    "openIn": "Open the thread in {{channel}}",
+    "markAllRead": "Mark all as read",
+    "mentionsAndReplies_one": "{{mentions}} · {{count}} new reply",
+    "mentionsAndReplies_other": "{{mentions}} · {{count}} new replies"
   },
   "pins": {
     "title": "Pinned messages",
@@ -907,7 +915,29 @@
       "week": "Next week"
     },
     "markDone": "Mark done",
-    "undoDone": "Back to in progress"
+    "undoDone": "Back to in progress",
+    "remindersNote": "Reminders arrive in your Inbox",
+    "inThread": "Thread",
+    "overdueSince": "Overdue · {{date}}",
+    "remindNamed": "Remind me about the message from {{name}}",
+    "markDoneNamed": "Mark done, the message from {{name}}",
+    "undoDoneNamed": "Back to in progress, the message from {{name}}",
+    "removeNamed": "Remove the message from {{name}} from saved",
+    "groups": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "later": "Later",
+      "none": "No reminder",
+      "done": "Done"
+    },
+    "columns": {
+      "reminder": "Reminder",
+      "where": "Where",
+      "from": "From",
+      "message": "Message",
+      "actions": "Actions"
+    },
+    "today": "today"
   },
   "home": {
     "threads": "Threads",
@@ -930,7 +960,17 @@
     "workflows": "Workflows",
     "compliance": "Compliance",
     "ask": "Ask AI",
-    "federation": "Federation"
+    "federation": "Federation",
+    "subtitles": {
+      "threads": "Threads you started, replied to or were mentioned in. New replies first.",
+      "activity": "What needs you: mentions, replies and reactions. New rows stay lit until you open or mark them.",
+      "saved": "Messages you kept to come back to. Set a reminder or mark them done.",
+      "unreads": "Every channel with messages you have not read.",
+      "tasks": "What waits for you: approvals, forms and list rows assigned to you.",
+      "events": "Meetings and gatherings in this workspace.",
+      "playbooks": "Checklists your team runs again and again, like an incident or an onboarding.",
+      "workflows": "A workflow starts on a trigger and runs its steps in order."
+    }
   },
   "community": {
     "banner": {
