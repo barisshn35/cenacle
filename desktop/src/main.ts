@@ -2,6 +2,7 @@
 import {
   app,
   BrowserWindow,
+  protocol,
   dialog,
   ipcMain,
   Menu,
@@ -15,7 +16,8 @@ import {
   type Session,
   type WebContents,
 } from 'electron';
-import { join } from 'node:path';
+import { join, normalize as normalizePath, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { fill, language, setupLanguage, t } from './i18n.js';
 import { hardenSession, originOf } from './security.js';
 import { check, normalize, type PairError } from './server.js';
@@ -37,8 +39,19 @@ const APP_PARTITION = 'persist:cenacle';
 /** Cenacle ID's own pages (account, administration): their sign-in lasts. */
 const ID_PARTITION = 'persist:cenacle-id';
 
-const assets = join(__dirname, '..', 'assets');
-const pages = join(__dirname, 'pages');
+const root = join(__dirname, '..');
+const assets = join(root, 'assets');
+
+/**
+ * The app's own pages (pairing, offline) come from its archive through a
+ * scheme of its own: file:// has no extra rights in this app (Electron fuse
+ * GrantFileProtocolExtraPrivileges is off).
+ */
+const LOCAL_SCHEME = 'cenacle-app';
+const LOCAL_ORIGIN = `${LOCAL_SCHEME}://local`;
+protocol.registerSchemesAsPrivileged([
+  { scheme: LOCAL_SCHEME, privileges: { standard: true, secure: true } },
+]);
 
 let config: Config;
 let main: BrowserWindow | null = null;
@@ -81,8 +94,21 @@ app.on('window-all-closed', () => {
   if (!config?.closeToTray || !tray) app.quit();
 });
 
+function serveLocalPages() {
+  protocol.handle(LOCAL_SCHEME, (request) => {
+    const url = new URL(request.url);
+    // Only the pages and their assets; nothing outside the app's own files.
+    const path = normalizePath(join(root, decodeURIComponent(url.pathname)));
+    const allowed = [join(root, 'dist', 'pages') + sep, join(root, 'assets') + sep];
+    if (url.host !== 'local' || !allowed.some((dir) => path.startsWith(dir)))
+      return new Response('Not found', { status: 404 });
+    return net.fetch(pathToFileURL(path).toString());
+  });
+}
+
 async function start() {
   setupLanguage();
+  serveLocalPages();
   config = loadConfig();
   createTray();
   buildMenu();
@@ -398,7 +424,9 @@ function localWindow(page: 'pair' | 'offline', query: Record<string, string>) {
       local = null;
     });
   }
-  void local.loadFile(join(pages, `${page}.html`), { query: { ...query, lang: language() } });
+  const url = new URL(`/dist/pages/${page}.html`, LOCAL_ORIGIN);
+  for (const [k, v] of Object.entries({ ...query, lang: language() })) url.searchParams.set(k, v);
+  void local.loadURL(url.toString());
   return local;
 }
 
@@ -441,7 +469,7 @@ function fromServer(e: IpcMainInvokeEvent): boolean {
 /** Only the app's own pages (loaded from its files). */
 function fromLocal(e: IpcMainInvokeEvent): boolean {
   const url = e.senderFrame?.url ?? '';
-  return url.startsWith('file://') && e.sender === local?.webContents;
+  return url.startsWith(`${LOCAL_ORIGIN}/`) && e.sender === local?.webContents;
 }
 
 function registerIpc() {

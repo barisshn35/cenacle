@@ -21,6 +21,7 @@ publish:
   provider: generic
   url: https://example.invalid/downloads/desktop
 win:
+  executableName: Cenacle
   target:
     - target: nsis
       arch: [x64, arm64]
@@ -32,6 +33,7 @@ nsis:
   createDesktopShortcut: true
   installerLanguages: [en_US, tr_TR]
 linux:
+  executableName: cenacle
   target:
     - target: AppImage
       arch: [x64, arm64]
