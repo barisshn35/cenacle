@@ -159,6 +159,11 @@
       "password": "Kullanıcı adı ve parola",
       "code": "Doğrulama uygulamasındaki kod",
       "passwordNote": "Parolanı yalnızca Cenacle ID'ye girersin, sohbet uygulamasına asla."
+    },
+    "desktop": {
+      "lede": "Açılan pencerede giriş yap: kullanıcı adın ve parolan, ardından doğrulama uygulamandaki kod.",
+      "open": "Giriş penceresini aç",
+      "changeServer": "Sunucuyu değiştir"
     }
   },
   "chat": {
@@ -485,7 +490,12 @@
       "hint": "Bu cihaz için."
     },
     "timeZone": "Saat dilimi",
-    "timeZoneHint": "Saatler bu cihazın saat diliminde gösterilir."
+    "timeZoneHint": "Saatler bu cihazın saat diliminde gösterilir.",
+    "thisApp": "Bu uygulama",
+    "pairedServer": "Sunucu",
+    "appVersion": "Sürüm",
+    "pairedHint": "Uygulama bu sunucuyu açar. Başka birini kullanmak için sunucuyu değiştir; orada yeniden giriş yaparsın.",
+    "changeServer": "Sunucuyu değiştir"
   },
   "reactions": {
     "label": "Tepkiler",
@@ -1960,7 +1970,18 @@
     "server": "Sunucu",
     "address": "Adres",
     "browsers": "Web tarayıcıları",
-    "turnedOff": "Yöneticin kapattı"
+    "turnedOff": "Yöneticin kapattı",
+    "download": {
+      "windows": "Windows için indir ({{kind}})",
+      "linux": "Linux için indir ({{kind}})"
+    },
+    "kinds": {
+      "installer": "kurulum",
+      "appimage": "AppImage",
+      "deb": ".deb",
+      "rpm": ".rpm"
+    },
+    "version": "Cenacle {{version}}. Uygulamada sunucu adresi olarak {{address}} gir."
   },
   "webApp": {
     "title": "Web tarayıcılarında Cenacle",

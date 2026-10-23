@@ -32,7 +32,18 @@
 
 	respond /healthz 200
 
+	# Desktop app installers and update files, put on the downloads volume by
+	# the administrators (docs/install/desktop.md). Missing files are 404, not
+	# the app.
+	handle_path /downloads/* {
+		root * /downloads
+		header Cache-Control "no-cache"
+		file_server
+	}
+
 	# SPA routing: unknown paths fall back to index.html.
-	try_files {path} /index.html
-	file_server
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }

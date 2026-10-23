@@ -29,6 +29,7 @@ import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ApiError } from '@cenacle/core/api';
 import { useSession } from './session';
+import { desktop } from '../desktop/desktop';
 import { WebAppPanel } from './web-app-panel';
 import { SideNavDialog } from '../shell/side-nav-dialog';
 import { sideNavLink } from '../shell/board-styles';
@@ -205,6 +206,30 @@ export function SettingsDialog({
                   <span className="sr-only">{t('settings.newTab')}</span>
                 </a>
               </section>
+
+              {desktop && (
+                <section aria-labelledby="settings-app" className="flex flex-col gap-2">
+                  <h3 id="settings-app" className="text-sm font-semibold">
+                    {t('settings.thisApp')}
+                  </h3>
+                  <dl className="grid gap-0.5 rounded-[10px] border border-rule-strong bg-background px-3 py-2.5">
+                    <dt className="text-xs text-muted-foreground">{t('settings.pairedServer')}</dt>
+                    <dd className="font-mono text-sm">{window.location.host}</dd>
+                    <dt className="mt-1.5 text-xs text-muted-foreground">
+                      {t('settings.appVersion')}
+                    </dt>
+                    <dd className="font-mono text-sm">{desktop.version}</dd>
+                  </dl>
+                  <p className="text-sm text-muted-foreground">{t('settings.pairedHint')}</p>
+                  <Button
+                    variant="outline"
+                    className="self-start"
+                    onClick={() => void desktop?.changeServer()}
+                  >
+                    {t('settings.changeServer')}
+                  </Button>
+                </section>
+              )}
 
               <section aria-labelledby="settings-devices" className="flex flex-col gap-2">
                 <h3 id="settings-devices" className="text-sm font-semibold">

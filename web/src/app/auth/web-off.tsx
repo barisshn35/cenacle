@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { ShieldCheckIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { DownloadIcon, ShieldCheckIcon } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { SigninLayout, SigninRecord } from './signin-layout';
 import { serverAddress } from './web-app';
+import { downloadsQuery } from '../desktop/desktop';
+import { formatSize } from '../chat/files';
 
 /**
  * Shown instead of the app while the administrators turned Cenacle in web
  * browsers off: the desktop and mobile apps keep working with this address.
  */
 export function WebOffPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const downloads = useQuery(downloadsQuery);
   const address = serverAddress();
   return (
     <SigninLayout
@@ -42,9 +46,35 @@ export function WebOffPage() {
             components={{ b: <b className="font-mono font-medium text-foreground" /> }}
           />
         </p>
-        <p className="mt-6 rounded-[10px] border border-rule-strong bg-background px-4 py-3 text-sm leading-relaxed">
-          {t('webOff.getApp')}
-        </p>
+        {downloads.data && downloads.data.files.length > 0 ? (
+          <div className="mt-6 flex flex-col gap-2.5" data-testid="downloads">
+            {downloads.data.files.map((f) => (
+              <a
+                key={f.file}
+                href={`/downloads/desktop/${encodeURIComponent(f.file)}`}
+                download
+                className="flex h-11 min-h-target items-center gap-3 rounded-[10px] border border-rule-strong bg-background px-3.5 text-[14.5px] font-medium outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <DownloadIcon
+                  aria-hidden
+                  className="size-4 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                {t(`webOff.download.${f.platform}`, { kind: t(`webOff.kinds.${f.kind}`) })}
+                <span className="ml-auto font-mono text-xs font-normal text-muted-foreground">
+                  {f.arch} · {formatSize(f.size, i18n.language)}
+                </span>
+              </a>
+            ))}
+            <p className="text-[12.5px] text-muted-foreground">
+              {t('webOff.version', { version: downloads.data.version, address })}
+            </p>
+          </div>
+        ) : (
+          <p className="mt-6 rounded-[10px] border border-rule-strong bg-background px-4 py-3 text-sm leading-relaxed">
+            {t('webOff.getApp')}
+          </p>
+        )}
       </div>
     </SigninLayout>
   );

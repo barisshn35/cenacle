@@ -14,6 +14,7 @@ import { RealtimeProvider } from '../chat/realtime';
 import { InstanceBanner } from '../community/banner';
 import { isWebAppOff } from './web-app';
 import { WebOffPage } from './web-off';
+import { DesktopBadge } from '../desktop/desktop-badge';
 import { TermsGate } from '../community/terms-gate';
 
 /**
@@ -50,6 +51,7 @@ export function RequireSession() {
           <RealtimeProvider>
             <AppearanceSync />
             <NotificationsSync />
+            <DesktopBadge />
             <div className="flex h-svh flex-col">
               <InstanceBanner />
               <div className="min-h-0 flex-1">

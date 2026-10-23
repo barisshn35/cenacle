@@ -23,19 +23,22 @@ export const endAllDevices = (keepCurrent: boolean) =>
 /** "Firefox on Windows" from a user agent, as far as it can be told. */
 export function describeDevice(userAgent: string): { browser?: string; os?: string } {
   const ua = userAgent;
-  const browser = /Edg\//.test(ua)
-    ? 'Edge'
-    : /OPR\/|Opera/.test(ua)
-      ? 'Opera'
-      : /Firefox\//.test(ua)
-        ? 'Firefox'
-        : /Chrome\//.test(ua)
-          ? 'Chrome'
-          : /Safari\//.test(ua)
-            ? 'Safari'
-            : /Electron\//.test(ua)
-              ? 'Cenacle'
-              : undefined;
+  // The desktop app names itself before its Chrome engine would.
+  const browser = /CenacleDesktop\//.test(ua)
+    ? 'Cenacle desktop app'
+    : /Edg\//.test(ua)
+      ? 'Edge'
+      : /OPR\/|Opera/.test(ua)
+        ? 'Opera'
+        : /Firefox\//.test(ua)
+          ? 'Firefox'
+          : /Chrome\//.test(ua)
+            ? 'Chrome'
+            : /Safari\//.test(ua)
+              ? 'Safari'
+              : /Electron\//.test(ua)
+                ? 'Cenacle'
+                : undefined;
   const os = /Windows/.test(ua)
     ? 'Windows'
     : /Android/.test(ua)

@@ -159,6 +159,11 @@
       "password": "Username and password",
       "code": "Code from your authenticator app",
       "passwordNote": "Your password is entered only at Cenacle ID, never in the chat app."
+    },
+    "desktop": {
+      "lede": "Sign in in the window that opened: your username and password, then a code from your authenticator app.",
+      "open": "Open the sign-in window",
+      "changeServer": "Change server"
     }
   },
   "chat": {
@@ -485,7 +490,12 @@
       "hint": "For this device."
     },
     "timeZone": "Time zone",
-    "timeZoneHint": "Times are shown in this device's time zone."
+    "timeZoneHint": "Times are shown in this device's time zone.",
+    "thisApp": "This app",
+    "pairedServer": "Server",
+    "appVersion": "Version",
+    "pairedHint": "The app opens this server. To use another one, change the server; you sign in again there.",
+    "changeServer": "Change server"
   },
   "reactions": {
     "label": "Reactions",
@@ -1960,7 +1970,18 @@
     "server": "Server",
     "address": "Address",
     "browsers": "Web browsers",
-    "turnedOff": "Turned off by your administrator"
+    "turnedOff": "Turned off by your administrator",
+    "download": {
+      "windows": "Download for Windows ({{kind}})",
+      "linux": "Download for Linux ({{kind}})"
+    },
+    "kinds": {
+      "installer": "installer",
+      "appimage": "AppImage",
+      "deb": ".deb",
+      "rpm": ".rpm"
+    },
+    "version": "Cenacle {{version}}. In the app, enter the server address {{address}}."
   },
   "webApp": {
     "title": "Cenacle in web browsers",

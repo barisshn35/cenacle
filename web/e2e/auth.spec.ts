@@ -190,3 +190,68 @@ test('server administrators turn the web app off after confirming', async ({ pag
   await page.getByRole('button', { name: 'Turn off' }).click();
   await expect.poll(() => puts).toEqual([false]);
 });
+
+test('inside the desktop app, sign-in opens the app’s own window', async ({ page }) => {
+  await mockSession(page, null);
+  await page.route('**/api/meta', (route) => route.fulfill({ json: { web_app: false } }));
+  const calls: string[] = [];
+  await page.exposeFunction('desktopCall', (name: string, arg?: string) => {
+    calls.push(arg === undefined ? name : `${name}:${arg}`);
+  });
+  await page.addInitScript(() => {
+    const call = (window as unknown as { desktopCall: (n: string, a?: string) => Promise<void> })
+      .desktopCall;
+    (window as unknown as { cenacleDesktop: unknown }).cenacleDesktop = {
+      version: '0.30.0',
+      platform: 'linux',
+      signIn: (returnTo: string) => call('signIn', returnTo),
+      signOut: () => call('signOut'),
+      changeServer: () => call('changeServer'),
+      setBadge: (n: number) => call('setBadge', String(n)),
+    };
+  });
+  await page.goto('/signin?return_to=%2Fc%2Fx');
+  // Not the web-off page: the desktop app works while browsers are turned away.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to Cenacle');
+  await expect.poll(() => calls).toEqual(['signIn:/c/x']);
+  await page.getByRole('button', { name: 'Open the sign-in window' }).click();
+  await page.getByRole('button', { name: 'Change server' }).click();
+  await expect.poll(() => calls).toEqual(['signIn:/c/x', 'signIn:/c/x', 'changeServer']);
+  await expectNoAxeViolations(page);
+});
+
+test('the web-off page lists the desktop installers the server offers', async ({ page }) => {
+  await mockSession(page, null);
+  await page.route('**/api/meta', (route) => route.fulfill({ json: { web_app: false } }));
+  await page.route('**/downloads/desktop/index.json', (route) =>
+    route.fulfill({
+      json: {
+        version: '0.30.0',
+        files: [
+          {
+            file: 'Cenacle-0.30.0-x64.exe',
+            platform: 'windows',
+            arch: 'x64',
+            kind: 'installer',
+            size: 98_000_000,
+          },
+          {
+            file: 'Cenacle-0.30.0-x86_64.AppImage',
+            platform: 'linux',
+            arch: 'x64',
+            kind: 'appimage',
+            size: 120_000_000,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto('/signin');
+  const list = page.getByTestId('downloads');
+  await expect(list.getByRole('link')).toHaveCount(2);
+  await expect(
+    list.getByRole('link', { name: /Download for Windows \(installer\)/ }),
+  ).toHaveAttribute('href', '/downloads/desktop/Cenacle-0.30.0-x64.exe');
+  await expect(list).toContainText('Cenacle 0.30.0');
+  await expectNoAxeViolations(page);
+});

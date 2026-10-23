@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { logout } from '@cenacle/core/api';
+import { desktop } from '../desktop/desktop';
 
 /**
  * Ends the chat session, then opens the Cenacle ID sign-out page, which ends
@@ -12,7 +13,9 @@ export function useSignOut() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: logout,
+    // The desktop app ends the session itself and forgets its token.
+    mutationFn: () =>
+      desktop ? desktop.signOut().then(() => ({ end_session_url: '' })) : logout(),
     onSuccess: ({ end_session_url }) => {
       queryClient.clear();
       window.location.assign(end_session_url || '/signin');

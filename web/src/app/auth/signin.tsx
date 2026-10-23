@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, useSearch } from '@tanstack/react-router';
 import { LockIcon, ShieldCheckIcon } from 'lucide-react';
@@ -11,6 +12,7 @@ import { sessionQuery, type SigninError } from './session';
 import { SigninLayout, SigninRecord } from './signin-layout';
 import { metaQuery, serverAddress } from './web-app';
 import { WebOffPage } from './web-off';
+import { desktop } from '../desktop/desktop';
 
 /** Informational outcomes are announced politely; failures as alerts. */
 const POLITE: ReadonlySet<SigninError> = new Set(['cancelled', 'session_expired']);
@@ -74,6 +76,41 @@ function Steps() {
   );
 }
 
+/** In the desktop app: opens its sign-in window once, with a way to open it again. */
+function DesktopSignin({ returnTo }: { returnTo: string }) {
+  const { t } = useTranslation();
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return;
+    opened.current = true;
+    void desktop?.signIn(returnTo);
+  }, [returnTo]);
+  return (
+    <SigninLayout aside={<Steps />}>
+      <h1 className="text-[34px] leading-[1.15] font-semibold tracking-[-0.02em] text-balance">
+        {t('auth.title')}
+      </h1>
+      <p className="mt-2 text-[15.5px] leading-[1.55] text-muted-foreground">
+        {t('auth.desktop.lede')}
+      </p>
+      <button
+        type="button"
+        onClick={() => void desktop?.signIn(returnTo)}
+        className={cn(buttonVariants({ size: 'lg' }), 'mt-6 h-12 w-full text-[15.5px]')}
+      >
+        {t('auth.desktop.open')}
+      </button>
+      <button
+        type="button"
+        onClick={() => void desktop?.changeServer()}
+        className={cn(buttonVariants({ variant: 'outline' }), 'mt-3 w-full')}
+      >
+        {t('auth.desktop.changeServer')}
+      </button>
+    </SigninLayout>
+  );
+}
+
 /**
  * Sign-in screen of the chat app. The server is the page's own address;
  * signing in happens at Cenacle ID: the button is a plain link to the
@@ -90,6 +127,8 @@ export function SigninPage() {
   // session that just ended keeps its old data next to the error: that is
   // not signed in, and redirecting would bounce back here forever.
   if (session.data && !session.isError) return <Navigate to={returnTo} replace />;
+  // The desktop app signs in in a window of its own, also while browsers are turned away.
+  if (desktop) return <DesktopSignin returnTo={returnTo} />;
   if (meta.data?.web_app === false || search.error === 'web_app_off') return <WebOffPage />;
 
   return (
