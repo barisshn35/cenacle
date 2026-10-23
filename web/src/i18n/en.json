@@ -243,7 +243,23 @@
     "archiveImpact": "Its managers can unarchive it at any time; nothing is deleted.",
     "archiveConfirm": "Archive channel",
     "managerToggle": "Channel manager: {{person}}",
-    "groupManaged": "Members come from directory groups."
+    "groupManaged": "Members come from directory groups.",
+    "titleBlock": {
+      "channel": "Channel",
+      "owner": "Owner",
+      "noOwner": "Workspace admins",
+      "members": "Members",
+      "classification": "Classification",
+      "none": "None",
+      "retention": "Retention",
+      "keptForever": "Kept",
+      "workspaceRetention": "Workspace’s",
+      "created": "Created",
+      "pinned": "Pinned",
+      "retentionNote": "Messages older than {{period}} are deleted, except those under legal hold.",
+      "editClassification": "Change classification",
+      "editRetention": "Change retention"
+    }
   },
   "categories": {
     "manage": "Edit categories",
@@ -1598,7 +1614,15 @@
       "days_one": "kept {{count}} day",
       "days_other": "kept {{count}} days"
     },
-    "governance": "Classification and retention: {{label}}. Open the channel details."
+    "governance": "Classification and retention: {{label}}. Open the channel details.",
+    "period": {
+      "years_one": "{{count}} year",
+      "years_other": "{{count}} years",
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days"
+    }
   },
   "e2e": {
     "create": "Encrypt end to end",

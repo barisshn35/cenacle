@@ -243,7 +243,23 @@
     "archiveImpact": "Yöneticileri istediği zaman arşivden çıkarabilir; hiçbir şey silinmez.",
     "archiveConfirm": "Kanalı arşivle",
     "managerToggle": "Kanal yöneticisi: {{person}}",
-    "groupManaged": "Üyeler dizin gruplarından gelir."
+    "groupManaged": "Üyeler dizin gruplarından gelir.",
+    "titleBlock": {
+      "channel": "Kanal",
+      "owner": "Sahibi",
+      "noOwner": "Çalışma alanı yöneticileri",
+      "members": "Üyeler",
+      "classification": "Sınıflandırma",
+      "none": "Yok",
+      "retention": "Saklama",
+      "keptForever": "Süresiz",
+      "workspaceRetention": "Çalışma alanınınki",
+      "created": "Oluşturuldu",
+      "pinned": "Sabitlenen",
+      "retentionNote": "Saklama süresini ({{period}}) aşan mesajlar, yasal saklamadakiler dışında silinir.",
+      "editClassification": "Sınıflandırmayı değiştir",
+      "editRetention": "Saklama süresini değiştir"
+    }
   },
   "categories": {
     "manage": "Kategorileri düzenle",
@@ -1598,7 +1614,15 @@
       "days_one": "{{count}} gün saklanır",
       "days_other": "{{count}} gün saklanır"
     },
-    "governance": "Sınıflandırma ve saklama: {{label}}. Kanal ayrıntılarını açar."
+    "governance": "Sınıflandırma ve saklama: {{label}}. Kanal ayrıntılarını açar.",
+    "period": {
+      "years_one": "{{count}} yıl",
+      "years_other": "{{count}} yıl",
+      "months_one": "{{count}} ay",
+      "months_other": "{{count}} ay",
+      "days_one": "{{count}} gün",
+      "days_other": "{{count}} gün"
+    }
   },
   "e2e": {
     "create": "Uçtan uca şifrele",

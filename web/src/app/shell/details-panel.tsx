@@ -3,8 +3,7 @@ import { ChannelShares } from '../federation/channel-shares';
 import { ChannelNotificationsSection } from '../notifications/channel-notifications';
 import { PinsSection } from '../threads/pins-section';
 import { RunsSection } from '../community/playbooks';
-import { LogOutIcon, SettingsIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
+import { LogOutIcon, XIcon } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -13,7 +12,6 @@ import { Button } from '@cenacle/ui/components/button';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { ChannelFiles } from '../chat/channel-files';
 import { MembersSection, VisibilitySetting } from '../chat/channel-members';
-import { ChannelSettingsDialog } from '../chat/channel-settings';
 import {
   isConversation,
   joinChannel,
@@ -23,24 +21,22 @@ import {
 } from '../chat/data';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
-import { useActiveWorkspace } from '../chat/active-workspace';
-import { ChannelComplianceButton } from '../compliance/channel-compliance';
 import { EncryptionInfo } from '../compliance/encrypted';
+import { TitleBlock } from './title-block';
 
 export function DetailsPanel() {
   const { t } = useTranslation();
   const { channel } = useActiveChannel();
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
-  const admin = useActiveWorkspace().admin;
 
   return (
     <aside
       aria-labelledby="details-title"
-      className="flex h-full flex-col overflow-y-auto border-l bg-background"
+      className="flex h-full flex-col overflow-y-auto border-l bg-secondary"
     >
-      <header className="flex min-h-12 items-center justify-between border-b px-3">
-        <h2 id="details-title" className="text-sm font-semibold">
-          {t('shell.details')}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b px-5">
+        <h2 id="details-title" className="text-[15px] font-semibold">
+          {t('shell.toggleDetails')}
         </h2>
         <Button
           variant="ghost"
@@ -51,10 +47,9 @@ export function DetailsPanel() {
           <XIcon strokeWidth={1.75} />
         </Button>
       </header>
-      {channel?.can_manage && (
-        <div className="flex flex-wrap gap-2 px-4 pt-4">
-          <SettingsButton channel={channel} />
-          {admin && <ChannelComplianceButton channel={channel} />}
+      {channel && !isConversation(channel) && (
+        <div className="px-5 pt-4">
+          <TitleBlock channel={channel} />
         </div>
       )}
       {channel?.encrypted && <EncryptionInfo channel={channel} />}
@@ -70,17 +65,13 @@ export function DetailsPanel() {
         </div>
       )}
       {channel && !isConversation(channel) && (
-        <dl className="flex flex-col gap-4 p-4 text-sm">
+        <dl className="flex flex-col gap-4 px-5 py-4 text-sm">
           <div className="flex flex-col gap-1">
-            <dt className="text-xs font-medium text-muted-foreground uppercase">
-              {t('shell.about')}
-            </dt>
+            <dt className="text-[13px] font-semibold">{t('shell.about')}</dt>
             <dd>{channel.topic || t('shell.noTopic')}</dd>
           </div>
           <div className="flex flex-col gap-1">
-            <dt className="text-xs font-medium text-muted-foreground uppercase">
-              {t('channels.visibility.label')}
-            </dt>
+            <dt className="text-[13px] font-semibold">{t('channels.visibility.label')}</dt>
             <dd>
               <VisibilitySetting channel={channel} />
             </dd>
@@ -100,27 +91,27 @@ export function DetailsPanel() {
         </dl>
       )}
       {channel && (
-        <div className="border-t p-4">
+        <div className="border-t px-5 py-4">
           <PinsSection channelId={channel.id} />
         </div>
       )}
       {channel && !isConversation(channel) && (
-        <div className="border-t p-4 empty:hidden">
+        <div className="border-t px-5 py-4 empty:hidden">
           <RunsSection channelId={channel.id} canPost={channel.can_post} />
         </div>
       )}
       {channel && (
-        <div className="border-t p-4">
+        <div className="border-t px-5 py-4">
           <ChannelNotificationsSection channel={channel} />
         </div>
       )}
       {channel && (
-        <div className="border-t p-4">
+        <div className="border-t px-5 py-4">
           <MembersSection channel={channel} />
         </div>
       )}
       {channel && (
-        <div className="border-t p-4">
+        <div className="border-t px-5 py-4">
           <ChannelFiles channelId={channel.id} />
         </div>
       )}
@@ -154,20 +145,5 @@ function LeaveButton({ channel }: { channel: Channel }) {
       <LogOutIcon aria-hidden strokeWidth={1.75} />
       {t('channels.leave')}
     </Button>
-  );
-}
-
-function SettingsButton({ channel }: { channel: Channel }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button variant="outline" size="sm" className="w-full" onClick={() => setOpen(true)}>
-        <SettingsIcon aria-hidden strokeWidth={1.75} />
-        {t('channels.settings')}
-      </Button>
-      {/* Mounted while open, so the form starts from the current values. */}
-      {open && <ChannelSettingsDialog channel={channel} open onOpenChange={setOpen} />}
-    </>
   );
 }

@@ -43,7 +43,13 @@ export function ChannelComplianceButton({ channel }: { channel: Channel }) {
   );
 }
 
-function ChannelComplianceDialog({ channel, onClose }: { channel: Channel; onClose: () => void }) {
+export function ChannelComplianceDialog({
+  channel,
+  onClose,
+}: {
+  channel: Channel;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const id = useId();
   const queryClient = useQueryClient();

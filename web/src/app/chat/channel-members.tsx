@@ -125,10 +125,7 @@ export function MembersSection({ channel }: { channel: Channel }) {
   return (
     <section aria-labelledby={`members-${channel.id}`} className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <h3
-          id={`members-${channel.id}`}
-          className="text-xs font-medium text-muted-foreground uppercase"
-        >
+        <h3 id={`members-${channel.id}`} className="text-[13px] font-semibold text-foreground">
           {members.data
             ? t('channels.membersCount', { count: members.data.length })
             : t('channels.members')}

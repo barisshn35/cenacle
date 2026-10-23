@@ -87,7 +87,7 @@ export function ChannelNotificationsSection({ channel }: { channel: Channel }) {
       className="flex flex-col gap-2"
       data-testid="channel-notifications"
     >
-      <h3 id={`${ids.level}-title`} className="text-xs font-medium text-muted-foreground uppercase">
+      <h3 id={`${ids.level}-title`} className="text-[13px] font-semibold text-foreground">
         {t('notifications.title')}
       </h3>
       <div className="grid gap-1">

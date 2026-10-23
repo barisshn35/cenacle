@@ -26,7 +26,7 @@ export function ChannelFiles({ channelId }: { channelId: string }) {
   const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
   return (
     <section aria-labelledby="channel-files-title" className="flex flex-col gap-2">
-      <h3 id="channel-files-title" className="text-xs font-medium text-muted-foreground uppercase">
+      <h3 id="channel-files-title" className="text-[13px] font-semibold text-foreground">
         {t('files.title')}
       </h3>
       {files.isPending ? (

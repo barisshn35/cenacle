@@ -11,3 +11,14 @@ export function useRetentionLabel() {
         ? t('compliance.kept.months', { count: days / 30 })
         : t('compliance.kept.days', { count: days });
 }
+
+/** "2 years", "6 months", "45 days". */
+export function usePeriodLabel() {
+  const { t } = useTranslation();
+  return (days: number) =>
+    days % 365 === 0
+      ? t('compliance.period.years', { count: days / 365 })
+      : days % 30 === 0
+        ? t('compliance.period.months', { count: days / 30 })
+        : t('compliance.period.days', { count: days });
+}

@@ -360,7 +360,7 @@ export function RunsSection({ channelId, canPost }: { channelId: string; canPost
   if (list.length === 0) return null;
   return (
     <section aria-labelledby="runs-title" className="flex flex-col gap-2" data-testid="runs">
-      <h3 id="runs-title" className="text-xs font-medium text-muted-foreground uppercase">
+      <h3 id="runs-title" className="text-[13px] font-semibold text-foreground">
         {t('community.playbooks.runs')}
       </h3>
       {list.map((r) => (

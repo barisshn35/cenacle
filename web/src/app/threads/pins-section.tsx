@@ -16,7 +16,7 @@ export function PinsSection({ channelId }: { channelId: string }) {
   const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
   return (
     <section aria-labelledby="pins-title" className="flex flex-col gap-2" data-testid="pins">
-      <h3 id="pins-title" className="text-xs font-medium text-muted-foreground uppercase">
+      <h3 id="pins-title" className="text-[13px] font-semibold text-foreground">
         {t('pins.title')}
       </h3>
       {pins.isPending ? (
