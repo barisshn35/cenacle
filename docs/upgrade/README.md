@@ -48,6 +48,15 @@ included, was there.
 
 ## Version notes
 
+### 0.30.0
+
+- No migration.
+- New, optional: the desktop app. To offer it, copy a release's files (package registry,
+  `cenacle-desktop/0.30.0/`) into `deploy/compose/downloads/desktop/` — the new `prod.yml`
+  mounts that folder into the web container — or set `web.downloadsClaim` with Helm. See
+  [the desktop app](../install/desktop.md).
+- `CENACLE_DESKTOP_MIN_VERSION` (unset by default) makes older desktop apps update first.
+
 ### 0.29.0
 
 - Migrations: chat `00026_web_app` (one `instance_settings` row, reversible) and Cenacle ID

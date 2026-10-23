@@ -112,11 +112,14 @@ export default defineConfig({
     },
     {
       name: 'web',
-      command: `pnpm exec vite --port ${WEB_PORT} --strictPort`,
+      // STACK_WEB_BUILD=1 serves the production build (soak runs measure that).
+      command: process.env.STACK_WEB_BUILD
+        ? `pnpm exec vite build && pnpm exec vite preview --port ${WEB_PORT} --strictPort`
+        : `pnpm exec vite --port ${WEB_PORT} --strictPort`,
       env: { CENACLE_DEV_API: `http://127.0.0.1:${SERVER_PORT}` },
       url: `http://127.0.0.1:${WEB_PORT}`,
       reuseExistingServer: false,
-      timeout: 60_000,
+      timeout: 180_000,
     },
   ],
 });

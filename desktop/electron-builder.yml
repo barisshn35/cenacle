@@ -22,10 +22,12 @@ publish:
   url: https://example.invalid/downloads/desktop
 win:
   executableName: Cenacle
+  # One installer for both architectures: it installs the one of the computer
+  # (and latest.yml names one file for the updater).
   target:
     - target: nsis
       arch: [x64, arm64]
-  artifactName: Cenacle-${version}-${arch}.${ext}
+  artifactName: Cenacle-${version}-setup.${ext}
 nsis:
   oneClick: false
   perMachine: false

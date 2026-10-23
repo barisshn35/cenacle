@@ -8,6 +8,38 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-10-24
+
+The desktop app (ADR 0033).
+
+### Added
+
+- **Desktop app for Windows and Linux** (Electron; Windows x64 and arm64 in one installer,
+  Linux AppImage, deb and rpm for x64 and arm64). It pairs with your server by its address
+  and opens it; everything happens inside the app: signing in at Cenacle ID's page in a
+  window of the app, Cenacle ID's account pages, links to other sites in isolated windows,
+  files through the save dialog. Its own title bar with the window buttons in the app's
+  colors, no menu bar; tray, taskbar count of mentions and direct messages, `cenacle://`
+  links, an offline page, English and Turkish.
+- Desktop sign-in on the server: `GET /api/auth/login?desktop=<challenge>` and
+  `POST /api/auth/desktop/token` (a one-time code exchanged with a PKCE verifier); works
+  while the web app is off. `CENACLE_DESKTOP_MIN_VERSION` makes older apps update first.
+- Updates of the desktop app from your own server: `downloads/desktop/` (compose) or
+  `web.downloadsClaim` (Helm), served at `/downloads/desktop/`; the "Use the Cenacle app"
+  page lists the installers there.
+- Playbooks list the runs in progress in your channels (`GET /api/workspaces/{id}/runs`).
+- The channel directory shows how many people are in each channel (`member_count`).
+
+### Changed
+
+- Compliance and federation are laid out in two columns on wide screens.
+- The devices list names the desktop app.
+
+### Fixed
+
+- An open channel now stays at its newest message while messages you send from another
+  device (or a bot sends as you) keep arriving.
+
 ## [0.29.0] - 2026-10-23
 
 The interface rewrite and a stricter sign-in (ADR 0031, ADR 0032).

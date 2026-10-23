@@ -25,7 +25,8 @@ export const desktop: DesktopBridge | undefined = (globalThis as { cenacleDeskto
 export interface DesktopDownload {
   file: string;
   platform: 'windows' | 'linux';
-  arch: 'x64' | 'arm64';
+  /** 'x64', 'arm64', or both for the Windows installer. */
+  arch: string;
   kind: 'installer' | 'appimage' | 'deb' | 'rpm';
   size: number;
 }

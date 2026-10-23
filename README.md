@@ -12,14 +12,14 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.29, the interface rewrite.** Sign in with Cenacle ID (passwords with
+> **Status: v0.30, the desktop app.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
 > canvases, lists and boards next to channels; meet compliance needs (retention, legal
 > holds, eDiscovery, access rules, encrypted channels); use optional AI with a model you
 > run; share channels with other Cenacle servers. Runs on one host or Kubernetes, also
-> offline. The desktop app comes next (see the [roadmap](#roadmap)).
+> offline. Desktop app for Windows and Linux. Next: new features toward 1.0 (see the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -153,6 +153,9 @@ flowchart LR
 - **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
   Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
   types, local storage (drafts in IndexedDB).
+- **Desktop (`/desktop`):** Electron for Windows and Linux; signs in inside the app and
+  updates from your server ([ADR 0033](docs/adr/0033-desktop-app.md),
+  [guide](docs/install/desktop.md)).
 - Decisions are recorded in [`docs/adr`](docs/adr).
 
 ## Repository layout
@@ -161,6 +164,7 @@ flowchart LR
 server/          Go chat backend
 idp/             Cenacle ID (identity server)
 web/             React SPA
+desktop/         desktop app (Electron, Windows and Linux)
 packages/core/   API/WS client, shared types, local storage (TS)
 packages/ui/     design system: tokens, theme, primitives, UX components
 deploy/          compose stacks (dev, prod, backup, observability), Caddy build, Helm chart
@@ -199,8 +203,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.26     | Security testing and hardening                                                        |
 | v0.27     | Optimization and load tests                                                           |
 | v0.28     | Release candidate preparation                                                         |
-| **v0.29** | **Interface rewrite, sign-in pairing by server address, optional web app**            |
-| v0.30     | Desktop app (Electron)                                                                |
+| v0.29     | Interface rewrite, sign-in pairing by server address, optional web app                |
+| **v0.30** | **Desktop app (Electron) for Windows and Linux**                                      |
 | v0.31     | Mark unread, personal sidebar sections, user groups, edit history, signed images      |
 | v0.32     | Message priority and acknowledgement, read receipts (off by default), image galleries |
 | v0.33     | App platform: interactive messages and dialogs, bot SDKs, more integrations           |

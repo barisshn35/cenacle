@@ -27,6 +27,11 @@ variables:
   GOCACHE: /cache/go/build
   GOLANGCI_LINT_CACHE: /cache/golangci
   PLAYWRIGHT_BROWSERS_PATH: /cache/ms-playwright
+  # Electron's runtime and electron-builder's tools, downloaded once.
+  ELECTRON_CACHE: /cache/electron
+  ELECTRON_BUILDER_CACHE: /cache/electron-builder
+  # The desktop app's packaging image (Node.js, Wine for the Windows installer).
+  DESKTOP_BUILDER_IMAGE: electronuserland/builder:22-wine-10.26@sha256:7e725c402e1a950b901263107da1c63afae9a2db02d5eed97102bd68f0decb59
   PNPM_STORE: /cache/pnpm-store
   FORCE_COLOR: '1'
   GIT_DEPTH: '50'
@@ -140,7 +145,12 @@ test-e2e:
     - pnpm --filter @cenacle/web exec playwright install chromium
     - pnpm --filter @cenacle/web test:e2e
     - pnpm --filter @cenacle/idp test:e2e
-    - pnpm --filter @cenacle/web test:e2e-stack
+    # The desktop app runs under a virtual display: on its own against a
+    # stand-in server, then against the whole stack with the rest.
+    - Xvfb :99 -screen 0 1440x900x24 >/dev/null 2>&1 &
+    - export DISPLAY=:99
+    - pnpm --filter @cenacle/desktop test:e2e
+    - CENACLE_DESKTOP_E2E=1 pnpm --filter @cenacle/web test:e2e-stack
   after_script:
     - ci/services.sh stop
   artifacts:
@@ -151,6 +161,7 @@ test-e2e:
       - web/test-results
       - idp/playwright-report
       - idp/test-results
+      - desktop/test-results
 
 security:
   stage: test
@@ -261,3 +272,39 @@ images:
         rm -f "$auth" "$archive"
         exit $status
       fi
+
+# The desktop app (v* tags): Windows (one installer for x64 and arm64) and
+# Linux (AppImage, deb, rpm; x64 and arm64), unsigned, with the update files
+# and index.json, published to the project's package registry as
+# cenacle-desktop/<version>/ (docs/install/desktop.md).
+desktop:
+  stage: build
+  needs: [licenses, test-e2e, security]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  image: $DESKTOP_BUILDER_IMAGE
+  timeout: 1h
+  script:
+    - npm install -g --prefix /usr/local "pnpm@12.14.0"
+    - pnpm install --frozen-lockfile --store-dir "$PNPM_STORE" --filter "@cenacle/desktop..."
+    - pnpm --filter @cenacle/desktop build
+    - cd desktop
+    - ./node_modules/.bin/electron-builder --config electron-builder.yml --linux --win --publish never
+    - node scripts/release-index.mjs
+    - version="${CI_COMMIT_TAG#v}"
+    - |
+      for file in release/*.exe release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.blockmap release/index.json; do
+        [ -f "$file" ] || continue
+        curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version/$(basename "$file")"
+      done
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - desktop/release/*.exe
+      - desktop/release/*.AppImage
+      - desktop/release/*.deb
+      - desktop/release/*.rpm
+      - desktop/release/*.yml
+      - desktop/release/*.blockmap
+      - desktop/release/index.json
