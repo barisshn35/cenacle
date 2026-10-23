@@ -8,6 +8,22 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Optimization and load tests.
+
+### Added
+
+- A load test of the chat server (`make load`) and a [performance guide](docs/operations/performance.md)
+  with its results.
+- `CENACLE_DATABASE_MAX_CONNS`: the most database connections one server keeps.
+
+### Changed
+
+- A server keeps up to 25 database connections by default (was one per CPU): about 55%
+  more messages per second under load, and history and search answer several times faster.
+- Live events are prepared once for all connections of a server.
+- The web app's first download is about 1.6 MB of JavaScript instead of 4.4 MB; code
+  highlighting, emoji data and admin pages load when needed.
+
 ## [0.26.0] - 2026-10-23
 
 Security testing.

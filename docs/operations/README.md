@@ -83,6 +83,11 @@ images, checksums and `load.sh`. Copy the directory and the repository (or at le
 `deploy/compose`) to the offline host, run `./load.sh`, then install as usual. ClamAV still
 needs virus signatures: point it at a local mirror.
 
+## Performance
+
+How many connections a server keeps, the load test and its results: see the
+[performance guide](performance.md).
+
 ## AI (optional)
 
 AI features are off until a model you run is configured; see the [AI guide](ai.md).

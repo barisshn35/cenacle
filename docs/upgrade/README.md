@@ -39,6 +39,12 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.27.0
+
+- No migration. Each chat server now keeps up to 25 database connections
+  (`CENACLE_DATABASE_MAX_CONNS`). With several instances, keep their sum plus Cenacle ID's
+  below PostgreSQL's `max_connections` (100 by default), or lower the setting.
+
 ### 0.26.0
 
 - No migration. The proxy now sends `Strict-Transport-Security` (one year): serve the chat
