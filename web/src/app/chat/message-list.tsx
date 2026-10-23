@@ -362,25 +362,40 @@ function useJumpTo(
       // Starting the list at the message is reliable where scrolling a list
       // whose rows are still being measured is not; the loop below checks.
       onFound(index);
-      let tries = 0;
-      const bring = () => {
+      const inView = () => {
+        const el = document.querySelector(`[data-message-id="${target}"]`);
+        const box = el?.closest('[role="log"]')?.getBoundingClientRect();
+        const r = el?.getBoundingClientRect();
+        return !!r && !!box && r.top >= box.top && r.bottom <= box.bottom;
+      };
+      // The highlight lasts 2.6 s from when the message is in view (or from
+      // giving up waiting), so a slow device does not use it up beforehand.
+      const fade = (waits = 0) => {
+        if (!inView() && waits < 50) {
+          scroll();
+          setTimeout(() => fade(waits + 1), 200);
+          return;
+        }
+        setTimeout(() => {
+          if (useJump.getState().highlighted === target) useJump.getState().done(null);
+        }, 2600);
+      };
+      const scroll = () => {
         const now = latestRows.current.findIndex(
           (r) => r.kind === 'message' && r.message.id === target,
         );
         list.current?.scrollToIndex({ index: now >= 0 ? now : index, align: 'center' });
-        const el = document.querySelector(`[data-message-id="${target}"]`);
-        const box = el?.closest('[role="log"]')?.getBoundingClientRect();
-        const r = el?.getBoundingClientRect();
-        const inView = !!r && !!box && r.top >= box.top && r.bottom <= box.bottom;
+      };
+      let tries = 0;
+      const bring = () => {
+        scroll();
         // A busy device lays the list out slowly: keep trying for up to 10 s.
-        if (!inView && ++tries < 100) {
+        if (!inView() && ++tries < 100) {
           setTimeout(bring, 100);
           return;
         }
         done(target);
-        setTimeout(() => {
-          if (useJump.getState().highlighted === target) useJump.getState().done(null);
-        }, 2600);
+        fade();
       };
       setTimeout(bring, 50);
       return;
