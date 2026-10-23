@@ -3,7 +3,7 @@
 import { createServer, type Server } from 'node:http';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
-import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
+import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from '@prometheus-io/client';
 
 export const registry = new Registry();
 collectDefaultMetrics({ register: registry, prefix: 'cenacle_idp_' });
