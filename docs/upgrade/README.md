@@ -39,6 +39,11 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.26.0
+
+- No migration. The proxy now sends `Strict-Transport-Security` (one year): serve the chat
+  and Cenacle ID over https only. Rolling back to 0.25 needs no database step.
+
 ### 0.25.0
 
 - Migration `00025_federation` adds connections to other servers, shared channels and their

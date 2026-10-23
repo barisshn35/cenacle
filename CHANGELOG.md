@@ -8,6 +8,28 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Security testing.
+
+### Added
+
+- An authorization test calls every API operation that names a resource as someone
+  outside the workspace, and as a member outside the private channel; none may succeed.
+- Fuzzing of what people type (search terms, mentions, encrypted envelopes, links,
+  reminders) on every change, and `ci/zap.sh` for an OWASP ZAP scan of an installation.
+- The proxy sends `Strict-Transport-Security`; the web app sends
+  `Cross-Origin-Resource-Policy`. A [security overview](docs/security/README.md) with the
+  threat model and an operators' checklist.
+
+### Fixed
+
+- Voice messages and video clips could not record behind the production web server, whose
+  `Permissions-Policy` turned off the microphone and camera.
+- `/remind` with some unusual characters failed instead of answering.
+- A text such as `http://%` no longer counts as a link to preview.
+- On phones, choosing a search result closes the search so the message shows.
+- Loading older messages could shift the list by a row (day separators move), which made
+  jumping to an older message stop short.
+
 ## [0.25.0] - 2026-10-23
 
 Federation between Cenacle servers.
