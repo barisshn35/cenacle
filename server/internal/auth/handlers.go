@@ -200,7 +200,9 @@ func (h *Handlers) AuthCallback(w http.ResponseWriter, r *http.Request, params a
 			return
 		}
 		log.InfoContext(ctx, "signed in", "user_id", principal.session.UserID, "client", "desktop")
-		http.Redirect(w, r, h.PublicURL.String()+DesktopSignedInPath+"?code="+code, http.StatusFound)
+		// Our own origin and path; the code is our random value.
+		target := h.PublicURL.String() + DesktopSignedInPath + "?" + url.Values{"code": {code}}.Encode()
+		http.Redirect(w, r, target, http.StatusFound) //nolint:gosec // see above
 		return
 	}
 	h.Cookies.setSession(w, principal.token, principal.session.ExpiresAt)
