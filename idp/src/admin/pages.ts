@@ -4,7 +4,7 @@ import type { LdapConfig } from '../directory/ldap.ts';
 import type { Source, SyncRun } from '../directory/store.ts';
 import type { OidcConfig, ProviderKind, SamlConfig } from '../federation/config.ts';
 import { federationUrls } from '../federation/protocols.ts';
-import { html, type SafeHtml } from '../ui/html.ts';
+import { html, raw, type SafeHtml } from '../ui/html.ts';
 import { format, type Locale } from '../ui/messages.ts';
 import { alertBox, layout, noticeBox } from '../ui/pages.ts';
 import { ADMIN_MESSAGES } from './messages.ts';
@@ -38,11 +38,11 @@ export interface AdminAccount {
 function frame(
   locale: Locale,
   title: string,
-  current: 'accounts' | 'directories' | 'providers',
+  current: 'accounts' | 'directories' | 'providers' | 'signIn',
   body: SafeHtml,
 ): string {
   const m = ADMIN_MESSAGES[locale];
-  const tab = (key: 'accounts' | 'directories' | 'providers', href: string) =>
+  const tab = (key: 'accounts' | 'directories' | 'providers' | 'signIn', href: string) =>
     key === current
       ? html`<a href="${href}" aria-current="page" class="${link} font-semibold">${m.nav[key]}</a>`
       : html`<a href="${href}" class="${link} text-muted-foreground">${m.nav[key]}</a>`;
@@ -57,7 +57,7 @@ function frame(
       >
         <span class="font-display text-xl font-medium">${m.title}</span>
         ${tab('accounts', '/account/admin')} ${tab('directories', '/account/admin/directories')}
-        ${tab('providers', '/account/admin/providers')}
+        ${tab('providers', '/account/admin/providers')} ${tab('signIn', '/account/admin/sign-in')}
         <a href="/account" class="${link} ml-auto text-muted-foreground">${m.nav.back}</a>
       </nav>
       ${body}`,
@@ -726,5 +726,49 @@ ${value}</textarea>
         )}
         <div><button type="submit" class="${primary}">${m.save}</button></div>
       </form>`,
+  );
+}
+
+/** The sign-in policy: two-step verification required, passkeys allowed. */
+export function signInPolicyPage(opts: {
+  locale: Locale;
+  requireTwoStep: boolean;
+  passkeys: boolean;
+  saved?: boolean;
+}): string {
+  const m = ADMIN_MESSAGES[opts.locale].signIn;
+  const check = (name: string, on: boolean, labelText: string, hint: string) =>
+    html`<div class="flex gap-3">
+      <input
+        id="${name}"
+        name="${name}"
+        type="checkbox"
+        value="on"
+        class="mt-0.5 size-5 shrink-0 accent-[var(--accent-brand)]"
+        aria-describedby="${name}-hint"
+        ${raw(on ? 'checked' : '')}
+      />
+      <div class="flex flex-col gap-1">
+        <label for="${name}" class="text-sm font-medium">${labelText}</label>
+        <p id="${name}-hint" class="text-sm text-muted-foreground">${hint}</p>
+      </div>
+    </div>`;
+  return frame(
+    opts.locale,
+    m.title,
+    'signIn',
+    html`<div class="flex max-w-2xl flex-col gap-5">
+      <div class="flex flex-col gap-1">
+        <h1 class="text-2xl font-semibold">${m.title}</h1>
+        <p class="text-sm text-muted-foreground">${m.lead}</p>
+      </div>
+      ${opts.saved ? noticeBox(m.saved) : null}
+      <form method="post" action="/account/admin/sign-in" class="flex flex-col gap-5">
+        ${check('require_two_step', opts.requireTwoStep, m.twoStep, m.twoStepHint)}
+        ${check('passkeys', opts.passkeys, m.passkeys, m.passkeysHint)}
+        <p class="text-sm text-muted-foreground">${m.providersHint}</p>
+        <button type="submit" class="${primary} self-start">${m.save}</button>
+      </form>
+    </div>`,
   );
 }

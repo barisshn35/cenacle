@@ -15,6 +15,7 @@ import type { MfaStore } from './accounts/mfa.ts';
 import type { UserStore } from './accounts/users.ts';
 import { registerAccount } from './account/routes.ts';
 import type { PasskeyStore } from './accounts/passkeys.ts';
+import type { PolicyStore } from './accounts/policy.ts';
 import { registerFederation } from './federation/routes.ts';
 import type { ProviderStore } from './federation/store.ts';
 import { registerAdmin } from './admin/routes.ts';
@@ -67,6 +68,8 @@ export interface OidcOptions {
   federation?: ProviderStore;
   /** Registered apps (the directory feed authenticates them). */
   clients?: ClientMetadata[];
+  /** The sign-in policy (two-step required, passkeys allowed). */
+  policy?: PolicyStore;
 }
 
 export interface AppOptions {
@@ -222,6 +225,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
         directory: opts.oidc.directory,
         passkeys: opts.oidc.passkeys,
         federation: opts.oidc.federation,
+        policy: opts.oidc.policy,
       });
       if (opts.oidc.federation && opts.oidc.directory) {
         await registerFederation(app, {
@@ -246,6 +250,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
           issuer: opts.oidc.issuer,
           cookieKeys,
           formActionOrigins: opts.oidc.formActionOrigins,
+          policy: opts.oidc.policy,
         });
       }
     }

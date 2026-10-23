@@ -26,7 +26,8 @@ export type AuditAction =
   | 'admin.directory.updated'
   | 'admin.directory.synced'
   | 'admin.provider.created'
-  | 'admin.provider.updated';
+  | 'admin.provider.updated'
+  | 'admin.sign_in_policy.changed';
 
 export interface AuditEvent {
   id: string;

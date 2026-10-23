@@ -25,12 +25,14 @@ import {
   directoryPage,
   providerPage,
   providersPage,
+  signInPolicyPage,
   type DirectoryForm,
   type DirectoryOutcome,
   type ProviderForm,
 } from './pages.ts';
 import { oidcConfigSchema, samlConfigSchema, type ProviderKind } from '../federation/config.ts';
 import { endProviderSessions } from '../federation/people.ts';
+import { DEFAULT_POLICY, type PolicyStore } from '../accounts/policy.ts';
 import type { ProviderStore } from '../federation/store.ts';
 
 export interface AdminOptions {
@@ -44,6 +46,8 @@ export interface AdminOptions {
   issuer: string;
   cookieKeys: string[];
   formActionOrigins: string[];
+  /** The sign-in policy, set on its own admin page. */
+  policy?: PolicyStore;
 }
 
 const PAGE = 50;
@@ -230,6 +234,38 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
       return reply.redirect('/account/admin?done=1', 303);
     },
   );
+
+  // --- sign-in policy --------------------------------------------------------
+
+  app.get<{ Querystring: { saved?: string } }>('/account/admin/sign-in', async (request, reply) => {
+    if (!(await admin(request, reply))) return;
+    const policy = opts.policy ? await opts.policy.get() : DEFAULT_POLICY;
+    return page(
+      reply,
+      200,
+      signInPolicyPage({
+        locale: locale(request),
+        ...policy,
+        saved: request.query.saved !== undefined,
+      }),
+    );
+  });
+
+  app.post<{ Body: Body }>('/account/admin/sign-in', async (request, reply) => {
+    const user = await guardPost(request, reply);
+    if (!user) return;
+    if (!opts.policy) return reply.code(404).send();
+    const policy = {
+      requireTwoStep: request.body?.require_two_step === 'on',
+      passkeys: request.body?.passkeys === 'on',
+    };
+    await opts.policy.set(policy);
+    await audit.record('admin.sign_in_policy.changed', user.id, request.ip, {
+      require_two_step: policy.requireTwoStep,
+      passkeys: policy.passkeys,
+    });
+    return reply.redirect('/account/admin/sign-in?saved=1', 303);
+  });
 
   app.get('/account/admin/directories', async (request, reply) => {
     if (!(await admin(request, reply))) return;

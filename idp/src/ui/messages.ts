@@ -89,6 +89,10 @@ const en = {
     codesBody:
       'Each code signs you in once if you lose your phone. They are shown only now: print them or keep them in a password manager.',
     codesDone: 'I have saved the codes',
+    codesContinue: 'I have saved the codes, continue',
+    twoStepRequired: 'Your organization requires two-step verification, so it stays on.',
+    setupRequired:
+      'Your organization requires two-step verification. Set it up once to continue; you will enter a code from the app each time you sign in.',
     turnOffTitle: 'Turn off two-step verification?',
     turnOffBody:
       'Signing in will need only your password. Your recovery codes stop working. Enter a current code to confirm.',
@@ -140,6 +144,7 @@ const en = {
       'admin.directory.synced': 'Synchronized a directory',
       'admin.provider.created': 'Added an identity provider',
       'admin.provider.updated': 'Changed identity provider settings',
+      'admin.sign_in_policy.changed': 'Changed the sign-in policy',
     } as Record<string, string>,
     administration: 'Administration',
     enabledNotice: 'Two-step verification is on.',
@@ -243,6 +248,10 @@ const tr: Messages = {
     codesBody:
       'Telefonunu kaybedersen her kod bir kez giriş yaptırır. Yalnızca şimdi gösterilirler: yazdır ya da bir parola yöneticisinde sakla.',
     codesDone: 'Kodları sakladım',
+    codesContinue: 'Kodları sakladım, devam et',
+    twoStepRequired: 'Kurumun iki adımlı doğrulamayı zorunlu tutuyor; açık kalır.',
+    setupRequired:
+      'Kurumun iki adımlı doğrulamayı zorunlu tutuyor. Devam etmek için bir kez kur; her oturum açışta uygulamadaki kodu gireceksin.',
     turnOffTitle: 'İki adımlı doğrulama kapatılsın mı?',
     turnOffBody:
       'Giriş için yalnızca parolan yeterli olacak. Kurtarma kodların çalışmaz olur. Onaylamak için güncel bir kod gir.',
@@ -293,6 +302,7 @@ const tr: Messages = {
       'admin.directory.synced': 'Bir dizin eşitlendi',
       'admin.provider.created': 'Bir kimlik sağlayıcısı eklendi',
       'admin.provider.updated': 'Kimlik sağlayıcısı ayarları değiştirildi',
+      'admin.sign_in_policy.changed': 'Oturum açma politikası değiştirildi',
     } as Record<string, string>,
     administration: 'Yönetim',
     enabledNotice: 'İki adımlı doğrulama açık.',

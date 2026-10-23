@@ -4,6 +4,7 @@ import type Provider from 'oidc-provider';
 import type { AuditLog } from '../accounts/audit.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
 import type { PasskeyStore } from '../accounts/passkeys.ts';
+import { DEFAULT_POLICY, type PolicyStore, type SignInPolicy } from '../accounts/policy.ts';
 import {
   checkPasskey,
   checkPassword,
@@ -14,11 +15,14 @@ import type { UserStore } from '../accounts/users.ts';
 import { FEDERATION_COOKIE } from '../federation/routes.ts';
 import type { ProviderStore } from '../federation/store.ts';
 import { isLocale, pickLocale, type Locale } from '../ui/messages.ts';
+import QRCode from 'qrcode';
 import {
   errorPage,
   LANG_PARAM,
   loginPage,
+  recoveryCodesPage,
   secondStepPage,
+  setupPage,
   type CodeError,
   type LoginError,
 } from '../ui/pages.ts';
@@ -40,6 +44,11 @@ export interface InteractionOptions {
   passkeys?: PasskeyStore;
   /** Identity providers people may sign in with (OIDC, SAML). */
   federation?: ProviderStore;
+  /**
+   * The sign-in policy (v0.29). Without it (tests of the bare flow) two-step
+   * verification is optional and passkeys are allowed.
+   */
+  policy?: PolicyStore;
 }
 
 interface Params {
@@ -71,6 +80,11 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
   }
 
   const usernames = () => usernamesAllowed(opts.directory);
+  /** The sign-in policy; without a store, the behaviour before v0.29. */
+  const policy = async (): Promise<SignInPolicy> =>
+    opts.policy
+      ? await opts.policy.get()
+      : { ...DEFAULT_POLICY, requireTwoStep: false, passkeys: true };
   const providers = async () => (opts.federation ? await opts.federation.enabled() : []);
 
   function clientName(clientId: unknown): Promise<string> {
@@ -130,6 +144,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           email: typeof d.params.login_hint === 'string' ? d.params.login_hint : undefined,
           usernames: await usernames(),
           providers: await providers(),
+          passkeys: (await policy()).passkeys,
           error: request.query.federation_error ? 'federation' : undefined,
         }),
       );
@@ -160,6 +175,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
               error: { rateLimited: retry },
               usernames: await usernames(),
               providers: await providers(),
+              passkeys: (await policy()).passkeys,
             }),
           );
         }
@@ -202,6 +218,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
             error,
             usernames: await usernames(),
             providers: await providers(),
+            passkeys: (await policy()).passkeys,
           }),
         );
       }
@@ -218,6 +235,11 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           }),
         );
       }
+      if (opts.mfa && (await policy()).requireTwoStep) {
+        // Required but not set up yet: set it up now, then the sign-in goes on.
+        await opts.mfa.createChallenge(user.id, 'login', d.uid);
+        return renderSetup(reply, locale(request, d.params.ui_locales), d.uid, user);
+      }
       request.log.info({ uid: d.uid, sub: user.id }, 'sign-in succeeded');
       await opts.audit?.record('signin.succeeded', user.id, request.ip, {
         client: d.params.client_id,
@@ -231,6 +253,101 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
       );
     },
   );
+
+  /** The setup of a required two-step verification, inside the sign-in. */
+  async function renderSetup(
+    reply: FastifyReply,
+    loc: Locale,
+    uid: string,
+    user: { id: string; email: string | null; username: string | null; displayName: string },
+    error?: CodeError,
+  ) {
+    const mfa = opts.mfa!;
+    // The authenticator shows the account by its address (or sign-in name).
+    const label = user.email ?? user.username ?? user.displayName;
+    const setup =
+      (await mfa.pendingSecret(user.id, label)) ?? (await mfa.beginSetup(user.id, label));
+    const qrSvg = await QRCode.toString(setup.uri, {
+      type: 'svg',
+      margin: 1,
+      errorCorrectionLevel: 'M',
+    });
+    return page(
+      reply,
+      error ? 401 : 200,
+      setupPage({
+        locale: loc,
+        secret: setup.secret,
+        qrSvg,
+        error,
+        interaction: {
+          action: `/interaction/${uid}/two-step-setup`,
+          cancelAction: `/interaction/${uid}/abort`,
+        },
+      }),
+    );
+  }
+
+  app.post<{ Params: Params; Body: { code?: string } }>(
+    '/interaction/:uid/two-step-setup',
+    { config: { rateLimit: { max: opts.loginRateLimit ?? 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+      const mfa = opts.mfa;
+      const d = await details(request, reply);
+      if (!mfa || !d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
+        return expired(request, reply);
+      }
+      const loc = locale(request, d.params.ui_locales);
+      const challenge = await mfa.takeAttempt(d.uid, 'login');
+      if (!challenge) return expired(request, reply);
+      const user = await users.findById(challenge.userId);
+      if (!user) return expired(request, reply);
+      const codes = await mfa.confirmSetup(user.id, (request.body?.code ?? '').replace(/\s/g, ''));
+      if (!codes) {
+        await opts.audit?.record('signin.second_step_failed', user.id, request.ip, {
+          client: d.params.client_id,
+        });
+        if (challenge.attemptsLeft <= 0) return expired(request, reply);
+        return renderSetup(reply, loc, d.uid, user, { attemptsLeft: challenge.attemptsLeft });
+      }
+      await opts.audit?.record('two_step.enabled', user.id, request.ip);
+      return page(
+        reply,
+        200,
+        recoveryCodesPage({
+          locale: loc,
+          codes,
+          continueAction: `/interaction/${d.uid}/two-step-done`,
+        }),
+      );
+    },
+  );
+
+  app.post<{ Params: Params }>('/interaction/:uid/two-step-done', async (request, reply) => {
+    if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+    const mfa = opts.mfa;
+    const d = await details(request, reply);
+    if (!mfa || !d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
+      return expired(request, reply);
+    }
+    // The setup was confirmed with a code in this sign-in (the challenge binds both).
+    const challenge = await mfa.challenge(d.uid, 'login');
+    if (!challenge || !(await mfa.enabled(challenge.userId))) return expired(request, reply);
+    await mfa.finishChallenge(d.uid);
+    request.log.info({ uid: d.uid, sub: challenge.userId }, 'sign-in succeeded');
+    await opts.audit?.record('signin.succeeded', challenge.userId, request.ip, {
+      client: d.params.client_id,
+      second_step: 'totp',
+    });
+    reply.hijack();
+    await provider.interactionFinished(
+      request.raw,
+      reply.raw,
+      { login: { accountId: challenge.userId, amr: ['pwd', 'otp', 'mfa'] } },
+      { mergeWithLastSubmission: false },
+    );
+  });
 
   app.post<{ Params: Params; Body: { code?: string } }>(
     '/interaction/:uid/second-step',
@@ -298,7 +415,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
     '/interaction/:uid/passkey/options',
     limited,
     async (request, reply) => {
-      if (!opts.passkeys) return reply.code(404).send();
+      if (!opts.passkeys || !(await policy()).passkeys) return reply.code(404).send();
       if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
       const d = await details(request, reply);
       if (!d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
@@ -314,7 +431,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
     '/interaction/:uid/passkey',
     limited,
     async (request, reply) => {
-      if (!opts.passkeys) return reply.code(404).send();
+      if (!opts.passkeys || !(await policy()).passkeys) return reply.code(404).send();
       if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
       const d = await details(request, reply);
       if (!d || d.uid !== request.params.uid || d.prompt.name !== 'login') {

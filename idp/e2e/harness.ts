@@ -13,6 +13,7 @@ import pg from 'pg';
 import { AuditLog } from '../src/accounts/audit.ts';
 import { MfaStore } from '../src/accounts/mfa.ts';
 import { PasskeyStore } from '../src/accounts/passkeys.ts';
+import { PolicyStore, type SignInPolicy } from '../src/accounts/policy.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { buildApp } from '../src/app.ts';
 import { SourceStore } from '../src/directory/store.ts';
@@ -62,6 +63,8 @@ export async function startHarness(
     scope?: string;
     /** Host of the issuer: passkeys need a domain name (localhost), not an IP address. */
     host?: string;
+    /** The sign-in policy (v0.29); without it, two-step is optional and passkeys allowed. */
+    policy?: SignInPolicy;
   } = {},
 ): Promise<Harness> {
   if (!DATABASE_URL) throw new Error('IDP_TEST_DATABASE_URL is not set');
@@ -85,6 +88,8 @@ export async function startHarness(
   const providers = new ProviderStore(pool, kek);
   const keys = new KeyStore(pool, kek);
   await keys.ensureActiveKey();
+  const policy = opts.policy ? new PolicyStore(pool) : undefined;
+  if (opts.policy) await policy!.set(opts.policy);
 
   const callbacks: URLSearchParams[] = [];
   const logoutTokens: string[] = [];
@@ -151,6 +156,7 @@ export async function startHarness(
         directory: opts.directory ? { pool, sources } : undefined,
         passkeys: new PasskeyStore(pool, issuer),
         federation: opts.directory ? providers : undefined,
+        policy,
       },
     });
     await app.listen({ host, port });

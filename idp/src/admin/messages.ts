@@ -8,7 +8,22 @@ const en = {
     accounts: 'Accounts',
     directories: 'Directories',
     providers: 'Identity providers',
+    signIn: 'Sign-in',
     back: 'Back to your account',
+  },
+  signIn: {
+    title: 'Sign-in policy',
+    lead: 'How people sign in to Cenacle. Everyone signs in on these pages, with a directory or Cenacle ID username and password.',
+    twoStep: 'Require two-step verification',
+    twoStepHint:
+      'People sign in with a code from an authenticator app after their password. Those who have not set it up do so at their next sign-in, and get recovery codes. Administrators can reset it for someone who lost their phone.',
+    passkeys: 'Allow passkeys',
+    passkeysHint:
+      'People may add passkeys on their account page and sign in with them instead of a password and code. Off by default.',
+    providersHint:
+      'Single sign-on with other identity providers (OpenID Connect, SAML) is off until you add a provider under Identity providers.',
+    save: 'Save the policy',
+    saved: 'The sign-in policy is saved. It applies to the next sign-in.',
   },
   accounts: {
     title: 'Accounts',
@@ -185,7 +200,22 @@ const tr: typeof en = {
     accounts: 'Hesaplar',
     directories: 'Dizinler',
     providers: 'Kimlik sağlayıcıları',
+    signIn: 'Oturum açma',
     back: 'Hesabına dön',
+  },
+  signIn: {
+    title: 'Oturum açma politikası',
+    lead: 'Kişilerin Cenacle’a nasıl oturum açtığı. Herkes bu sayfalarda, dizin ya da Cenacle ID kullanıcı adı ve parolasıyla oturum açar.',
+    twoStep: 'İki adımlı doğrulamayı zorunlu tut',
+    twoStepHint:
+      'Kişiler parolalarından sonra doğrulama uygulamasındaki kodu girer. Kurmamış olanlar bir sonraki oturum açışlarında kurar ve kurtarma kodlarını alır. Telefonunu kaybeden birinin doğrulamasını yöneticiler sıfırlayabilir.',
+    passkeys: 'Geçiş anahtarlarına izin ver',
+    passkeysHint:
+      'Kişiler hesap sayfalarında geçiş anahtarı ekleyebilir ve parola ile kod yerine onunla oturum açabilir. Varsayılan olarak kapalı.',
+    providersHint:
+      'Başka kimlik sağlayıcılarıyla tek oturum açma (OpenID Connect, SAML), Kimlik sağlayıcıları bölümüne bir sağlayıcı ekleyene kadar kapalıdır.',
+    save: 'Politikayı kaydet',
+    saved: 'Oturum açma politikası kaydedildi. Bir sonraki oturum açmada geçerli olur.',
   },
   accounts: {
     title: 'Hesaplar',

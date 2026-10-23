@@ -12,6 +12,7 @@ import {
 } from '../accounts/signin.ts';
 import type { UserStore } from '../accounts/users.ts';
 import { FEDERATION_COOKIE, federationCookie } from '../federation/routes.ts';
+import { DEFAULT_POLICY, type PolicyStore, type SignInPolicy } from '../accounts/policy.ts';
 import type { ProviderStore } from '../federation/store.ts';
 import { isSameOriginPost, LOCALE_COOKIE, pageSecurityHeaders } from '../oidc/security.ts';
 import { isLocale, MESSAGES, pickLocale, type Locale } from '../ui/messages.ts';
@@ -50,6 +51,8 @@ export interface AccountOptions {
   directory?: DirectoryAccess;
   passkeys?: PasskeyStore;
   federation?: ProviderStore;
+  /** The sign-in policy (v0.29); without it, two-step is optional and passkeys allowed. */
+  policy?: PolicyStore;
 }
 
 type CodeBody = { code?: string; challenge?: string };
@@ -59,6 +62,13 @@ type CodeBody = { code?: string; challenge?: string };
  * two-step verification on and off, new recovery codes, recent activity.
  */
 export async function registerAccount(app: FastifyInstance, opts: AccountOptions) {
+  /** The sign-in policy; without a store, the behaviour before v0.29. */
+  const policy = async (): Promise<SignInPolicy> =>
+    opts.policy
+      ? await opts.policy.get()
+      : { ...DEFAULT_POLICY, requireTwoStep: false, passkeys: true };
+  const passkeysOff = async () => !opts.passkeys || !(await policy()).passkeys;
+
   const { users, mfa, audit, issuer, cookieKeys, formActionOrigins } = opts;
   const secure = new URL(issuer).protocol === 'https:';
   const limited = { config: { rateLimit: { max: opts.rateLimit ?? 10, timeWindow: '1 minute' } } };
@@ -135,10 +145,16 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
             locale: loc,
             usernames: await usernamesAllowed(opts.directory),
             providers: await providers(),
+            passkeys: (await policy()).passkeys,
             error: request.query.federation_error ? 'federation' : undefined,
           }),
         );
       const on = await mfa.enabled(user.id);
+      const rules = await policy();
+      // Required by the policy and not set up yet: setting it up comes first.
+      if (rules.requireTwoStep && !on && !user.fromProvider) {
+        return reply.redirect('/account/two-step/setup', 303);
+      }
       const m = MESSAGES[loc].account;
       const done = (request.query as Record<string, string | undefined>).done;
       const notices: Record<string, string> = {
@@ -166,6 +182,8 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           passkeyError: failed === 'limit' || failed === 'failed' ? failed : undefined,
           nameEditable: !user.fromDirectory && !user.fromProvider,
           nameInvalid: request.query.name_error !== undefined,
+          twoStepRequired: rules.requireTwoStep,
+          passkeysAllowed: rules.passkeys,
         }),
       );
     },
@@ -192,6 +210,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           reply,
           401,
           accountSigninPage({
+            passkeys: (await policy()).passkeys,
             locale: loc,
             email,
             error: result && 'error' in result ? result.error : 'missing',
@@ -286,7 +305,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
   // --- passkeys -------------------------------------------------------------
 
   app.post('/account/passkey/options', limited, async (request, reply) => {
-    if (!opts.passkeys) return reply.code(404).send();
+    if (!opts.passkeys || (await passkeysOff())) return reply.code(404).send();
     if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
     return reply
       .header('cache-control', 'no-store')
@@ -297,7 +316,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
     '/account/passkey',
     limited,
     async (request, reply) => {
-      if (!opts.passkeys) return reply.code(404).send();
+      if (!opts.passkeys || (await passkeysOff())) return reply.code(404).send();
       if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
       const result = await checkPasskey(users, opts.passkeys, 'account', request.body);
       if (!result) {
@@ -306,6 +325,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           reply,
           401,
           accountSigninPage({
+            passkeys: (await policy()).passkeys,
             locale: locale(request),
             error: 'passkey',
             usernames: await usernamesAllowed(opts.directory),
@@ -320,7 +340,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
   );
 
   app.post('/account/passkeys/options', limited, async (request, reply) => {
-    if (!opts.passkeys) return reply.code(404).send();
+    if (!opts.passkeys || (await passkeysOff())) return reply.code(404).send();
     if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
     const user = await current(request);
     if (!user) return reply.code(401).send();
@@ -333,7 +353,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
     '/account/passkeys',
     limited,
     async (request, reply) => {
-      if (!opts.passkeys) return reply.code(404).send();
+      if (!opts.passkeys || (await passkeysOff())) return reply.code(404).send();
       if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
       const user = await current(request);
       if (!user) return reply.redirect('/account', 303);
@@ -366,7 +386,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
   );
 
   app.post<{ Params: { id: string } }>('/account/passkeys/:id/delete', async (request, reply) => {
-    if (!opts.passkeys) return reply.code(404).send();
+    if (!opts.passkeys || (await passkeysOff())) return reply.code(404).send();
     if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
     const user = await current(request);
     if (!user) return reply.redirect('/account', 303);
@@ -386,6 +406,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       reply,
       200,
       accountSigninPage({
+        passkeys: (await policy()).passkeys,
         locale: loc,
         notice: MESSAGES[loc].account.signedOut,
         usernames: await usernamesAllowed(opts.directory),
@@ -466,6 +487,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
     app.get(path, async (request, reply) => {
       const user = await current(request);
       if (!user || !(await mfa.enabled(user.id))) return reply.redirect('/account', 303);
+      if (kind === 'off' && (await policy()).requireTwoStep) return reply.redirect('/account', 303);
       return page(reply, 200, confirmPage(locale(request), kind));
     });
 
@@ -473,6 +495,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
       if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
       const user = await current(request);
       if (!user || !(await mfa.enabled(user.id))) return reply.redirect('/account', 303);
+      if (kind === 'off' && (await policy()).requireTwoStep) return reply.redirect('/account', 303);
       const loc = locale(request);
       const factor = await mfa.verify(user.id, request.body?.code ?? '');
       if (!factor) return page(reply, 401, confirmPage(loc, kind, 'invalid'));
