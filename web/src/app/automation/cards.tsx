@@ -21,7 +21,7 @@ export function SubmissionCard({ submission }: { submission: Submission }) {
   return (
     <figure
       data-testid="submission"
-      className="mt-1 max-w-lg rounded-xl border bg-card px-4 py-3 text-sm"
+      className="mt-1 max-w-lg rounded-[10px] border border-rule-strong bg-background px-4 py-3 text-sm"
     >
       <figcaption className="flex items-center gap-2 font-medium">
         <FileTextIcon aria-hidden className="size-4 text-muted-foreground" strokeWidth={1.75} />

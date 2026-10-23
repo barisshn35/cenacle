@@ -126,7 +126,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
               <p
                 role="status"
                 data-testid="timed-out-notice"
-                className="mx-auto max-w-3xl rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground"
+                className="mx-auto max-w-3xl rounded-[10px] border border-dashed border-rule-strong px-4 py-3 text-sm text-muted-foreground"
               >
                 {t('community.moderation.timedOutNotice', {
                   time: new Intl.DateTimeFormat(undefined, {
@@ -149,7 +149,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
             <footer className="shrink-0 px-4 pb-4">
               <p
                 data-testid="read-only-notice"
-                className="mx-auto max-w-3xl rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground"
+                className="mx-auto max-w-3xl rounded-[10px] border border-dashed border-rule-strong px-4 py-3 text-sm text-muted-foreground"
               >
                 {t('channels.readOnly', { channel: name })}
               </p>

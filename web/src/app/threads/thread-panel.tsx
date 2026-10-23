@@ -207,7 +207,7 @@ function Thread({ target, channel }: { target: ThreadTarget; channel: Channel })
         )}
       </div>
       {channel.archived || !channel.can_post ? (
-        <p className="m-3 rounded-xl border border-dashed px-3 py-2 text-sm text-muted-foreground">
+        <p className="m-3 rounded-[10px] border border-dashed border-rule-strong px-3 py-2 text-sm text-muted-foreground">
           {t('threads.readOnly')}
         </p>
       ) : (

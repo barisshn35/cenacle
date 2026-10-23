@@ -474,7 +474,7 @@ function Board({ list, column }: { list: ItemList; column: ListColumn }) {
             }}
             onDragLeave={() => setOver(null)}
             onDrop={drop(lane.value)}
-            className={`flex w-72 shrink-0 flex-col gap-2 rounded-xl border bg-muted/40 p-2 ${over === lane.value ? 'ring-2 ring-ring/50' : ''}`}
+            className={`flex w-72 shrink-0 flex-col gap-2 rounded-[10px] border bg-muted/40 p-2 ${over === lane.value ? 'ring-2 ring-ring/50' : ''}`}
           >
             <h3 className="flex items-center justify-between px-1 text-sm font-medium">
               {lane.label}

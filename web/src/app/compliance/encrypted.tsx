@@ -55,7 +55,7 @@ export function UnlockPanel({ channel }: { channel: Channel }) {
     <footer className="shrink-0 px-4 pb-4">
       <form
         data-testid="unlock"
-        className="mx-auto flex max-w-3xl flex-col gap-2 rounded-xl border px-4 py-3"
+        className="mx-auto flex max-w-3xl flex-col gap-2 rounded-[10px] border border-rule-strong px-4 py-3"
         onSubmit={(e) => {
           e.preventDefault();
           setBusy(true);

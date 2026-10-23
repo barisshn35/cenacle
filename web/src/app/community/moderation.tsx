@@ -245,7 +245,7 @@ function Queue({ workspace, status }: { workspace: Workspace; status: 'open' | '
         <li
           key={r.id}
           data-testid="report"
-          className="flex flex-col gap-2 rounded-xl border p-3 text-sm"
+          className="flex flex-col gap-2 rounded-[10px] border border-rule-strong p-3 text-sm"
         >
           <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
             {r.reporter ? (

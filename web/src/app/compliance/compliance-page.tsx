@@ -43,7 +43,10 @@ const COLORS = ['neutral', 'info', 'success', 'warning', 'danger'] as const;
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <section
+      aria-labelledby={id}
+      className="flex flex-col gap-3 rounded-[10px] border border-rule-strong bg-background p-4"
+    >
       <header className="flex flex-col gap-1">
         <h2 id={id} className="text-base font-semibold">
           {title}

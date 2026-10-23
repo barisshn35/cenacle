@@ -284,7 +284,7 @@ export function ArchivedNotice({ channel }: { channel: Channel }) {
     <footer className="shrink-0 px-4 pb-4">
       <div
         data-testid="archived-notice"
-        className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground"
+        className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-[10px] border border-dashed border-rule-strong px-4 py-3 text-sm text-muted-foreground"
       >
         <ArchiveIcon aria-hidden className="size-4" strokeWidth={1.75} />
         <span className="flex-1">{t('channels.archivedNotice')}</span>

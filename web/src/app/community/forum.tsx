@@ -94,7 +94,7 @@ export function ForumView({ channel }: { channel: Channel }) {
                   type="button"
                   data-testid="forum-post"
                   onClick={() => openThread({ channelId: channel.id, rootId: m.id })}
-                  className="flex w-full flex-col gap-1.5 rounded-xl border bg-card px-4 py-3 text-left outline-none hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="flex w-full flex-col gap-1.5 rounded-[10px] border border-rule-strong bg-background px-4 py-3 text-left outline-none hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <span className="font-semibold">{m.title ?? plainText(m.body, 80)}</span>
                   {!!m.tags?.length && (

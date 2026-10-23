@@ -213,7 +213,7 @@ export function CanvasView({ canvasId }: { canvasId: string }) {
         ) : (
           <div
             role="status"
-            className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-12 text-center"
+            className="flex flex-col items-center gap-3 rounded-[10px] border border-dashed border-rule-strong px-6 py-12 text-center"
           >
             <PencilLineIcon
               aria-hidden

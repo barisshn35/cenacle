@@ -221,7 +221,11 @@ function FormEditor({
           <fieldset className="flex flex-col gap-3">
             <legend className="mb-2 text-sm font-semibold">{t('automation.admin.fields')}</legend>
             {fields.map((f, i) => (
-              <div key={i} className="grid gap-2 rounded-xl border p-3" data-testid="field-editor">
+              <div
+                key={i}
+                className="grid gap-2 rounded-[10px] border border-rule-strong p-3"
+                data-testid="field-editor"
+              >
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
                     <Row label={t('automation.admin.fieldLabel', { n: i + 1 })}>
@@ -370,7 +374,7 @@ function TriggerFields({
     }
   })();
   return (
-    <fieldset className="grid gap-3 rounded-xl border p-3">
+    <fieldset className="grid gap-3 rounded-[10px] border border-rule-strong p-3">
       <legend className="px-1 text-sm font-semibold">{t('automation.admin.trigger')}</legend>
       <Row label={t('automation.admin.triggerKind')}>
         {(id) => (
@@ -823,7 +827,7 @@ function WorkflowEditor({
               {steps.map((s, i) => (
                 <li
                   key={s.id}
-                  className="grid gap-2 rounded-xl border p-3"
+                  className="grid gap-2 rounded-[10px] border border-rule-strong p-3"
                   data-testid="step-editor"
                 >
                   <div className="flex items-center gap-2">

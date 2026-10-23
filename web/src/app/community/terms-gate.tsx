@@ -45,7 +45,7 @@ export function TermsGate({ children }: { children: ReactNode }) {
         <p className="text-sm text-muted-foreground">{t('community.terms.intro')}</p>
         <div
           data-testid="terms-text"
-          className="max-h-[55svh] overflow-y-auto rounded-xl border bg-card p-4 text-sm"
+          className="max-h-[55svh] overflow-y-auto rounded-[10px] border border-rule-strong bg-background p-4 text-sm"
         >
           <MessageBody body={pending.text} mentions={[]} selfId={user.id} />
         </div>

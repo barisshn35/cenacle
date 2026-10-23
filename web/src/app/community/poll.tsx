@@ -58,7 +58,7 @@ export function PollCard({ message, channel }: { message: Message; channel: Chan
   return (
     <fieldset
       data-testid="poll"
-      className="mt-1.5 flex max-w-md flex-col gap-1.5 rounded-xl border bg-card p-3"
+      className="mt-1.5 flex max-w-md flex-col gap-1.5 rounded-[10px] border border-rule-strong bg-background p-3"
     >
       <legend className="sr-only">{t('community.poll.legend')}</legend>
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
