@@ -230,6 +230,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           200,
           secondStepPage({
             locale: locale(request, d.params.ui_locales),
+            client: await clientName(d.params.client_id),
             action: `/interaction/${d.uid}/second-step`,
             cancelAction: `/interaction/${d.uid}/abort`,
           }),
@@ -238,7 +239,13 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
       if (opts.mfa && (await policy()).requireTwoStep) {
         // Required but not set up yet: set it up now, then the sign-in goes on.
         await opts.mfa.createChallenge(user.id, 'login', d.uid);
-        return renderSetup(reply, locale(request, d.params.ui_locales), d.uid, user);
+        return renderSetup(
+          reply,
+          locale(request, d.params.ui_locales),
+          d.uid,
+          await clientName(d.params.client_id),
+          user,
+        );
       }
       request.log.info({ uid: d.uid, sub: user.id }, 'sign-in succeeded');
       await opts.audit?.record('signin.succeeded', user.id, request.ip, {
@@ -259,6 +266,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
     reply: FastifyReply,
     loc: Locale,
     uid: string,
+    client: string,
     user: { id: string; email: string | null; username: string | null; displayName: string },
     error?: CodeError,
   ) {
@@ -283,6 +291,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
         interaction: {
           action: `/interaction/${uid}/two-step-setup`,
           cancelAction: `/interaction/${uid}/abort`,
+          client,
         },
       }),
     );
@@ -309,7 +318,9 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           client: d.params.client_id,
         });
         if (challenge.attemptsLeft <= 0) return expired(request, reply);
-        return renderSetup(reply, loc, d.uid, user, { attemptsLeft: challenge.attemptsLeft });
+        return renderSetup(reply, loc, d.uid, await clientName(d.params.client_id), user, {
+          attemptsLeft: challenge.attemptsLeft,
+        });
       }
       await opts.audit?.record('two_step.enabled', user.id, request.ip);
       return page(
@@ -319,6 +330,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           locale: loc,
           codes,
           continueAction: `/interaction/${d.uid}/two-step-done`,
+          client: await clientName(d.params.client_id),
         }),
       );
     },
@@ -360,12 +372,14 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
         return expired(request, reply);
       }
       const loc = locale(request, d.params.ui_locales);
+      const client = await clientName(d.params.client_id);
       const show = (status: number, error: CodeError) =>
         page(
           reply,
           status,
           secondStepPage({
             locale: loc,
+            client,
             action: `/interaction/${d.uid}/second-step`,
             cancelAction: `/interaction/${d.uid}/abort`,
             error,

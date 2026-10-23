@@ -217,10 +217,10 @@ importers:
       '@fastify/static':
         specifier: 10.1.7
         version: 10.1.7
-      '@fontsource-variable/fraunces':
+      '@fontsource-variable/geist':
         specifier: 5.3.0
         version: 5.3.0
-      '@fontsource-variable/inter':
+      '@fontsource-variable/geist-mono':
         specifier: 5.3.0
         version: 5.3.0
       '@node-rs/argon2':

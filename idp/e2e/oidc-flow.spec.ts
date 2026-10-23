@@ -115,7 +115,7 @@ test('wrong credentials get one message for unknown and known accounts', async (
 
 test('cancelling returns access_denied to the client', async ({ page }) => {
   const { state } = await startAuthorization(page);
-  await page.getByRole('button', { name: 'Cancel sign-in' }).click();
+  await page.getByRole('button', { name: /^Cancel and go back to / }).click();
   await page.waitForURL((u) => u.href.startsWith(h.callbackUrl));
   const params = new URL(page.url()).searchParams;
   expect(params.get('error')).toBe('access_denied');

@@ -24,6 +24,7 @@ import type { ClientMetadata } from './oidc/clients.ts';
 import type { DirectoryAccess } from './accounts/signin.ts';
 import { registerInteractions } from './oidc/interactions.ts';
 import { sendProblem } from './problem.ts';
+import { configurePages } from './ui/pages.ts';
 
 export const REQUEST_ID_HEADER = 'x-request-id';
 const VALID_REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
@@ -209,6 +210,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   }
 
   if (opts.oidc) {
+    configurePages({ issuer: opts.oidc.issuer });
     await app.register(formbody, { bodyLimit: 16 * 1024 });
     await app.register(rateLimit, { global: false });
     await registerInteractions(app, opts.oidc);
