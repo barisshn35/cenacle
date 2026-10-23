@@ -19,11 +19,13 @@ import {
   removeMessage,
   replaceMessage,
   setReadLocally,
+  setUnreadLocally,
   type Message,
   type PresenceStatus,
   type ReactionEvent,
 } from './data';
 import { usePending } from './pending';
+import { useUnreadHold } from './unread-hold';
 import { applyLinkPreview, revealMessage } from '../richer/richer';
 import { profileChanged } from '../profile/profiles';
 import {
@@ -95,6 +97,20 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (ev.type === 'channel.read') {
           const { channel_id, message_id } = ev.data as { channel_id: string; message_id: string };
           setReadLocally(queryClient, channel_id, message_id);
+          useUnreadHold.getState().release(channel_id);
+        } else if (ev.type === 'sidebar.changed') {
+          const { workspace_id } = ev.data as { workspace_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['sidebar', workspace_id] });
+        } else if (ev.type === 'channel.unread') {
+          const { channel_id, last_read_id } = ev.data as {
+            channel_id: string;
+            last_read_id: string | null;
+          };
+          setUnreadLocally(queryClient, channel_id, last_read_id);
+          // Open here too: it stays unread rather than being read again at once.
+          if (location.pathname === `/c/${channel_id}`) {
+            useUnreadHold.getState().hold(channel_id, { after: last_read_id });
+          }
         } else if (ev.type === 'message.updated') {
           const message = ev.data as Message;
           replaceMessage(queryClient, message);

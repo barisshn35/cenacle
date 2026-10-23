@@ -232,3 +232,73 @@ func TestTypingAndPresence(t *testing.T) {
 		t.Errorf("after leaving = %+v", p)
 	}
 }
+
+func TestMarkUnread(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	dm, _ := s.open(ayse, s.defaultWS, s.userID(mert))
+	var sent []message
+	for i := range 3 {
+		m, _ := s.send(ayse, dm.ID, "selam", "mu-nonce-"+string(rune('a'+i)))
+		sent = append(sent, m)
+	}
+	s.call(http.MethodPost, "/api/channels/"+dm.ID+"/read", mert, map[string]string{"message_id": sent[2].ID}, nil)
+
+	// From the second message on: two unread, the read position before it.
+	conn := s.connect(mert, "")
+	read(t, conn) // hello
+	if res := s.call(http.MethodPost, "/api/channels/"+dm.ID+"/unread", mert, map[string]string{"message_id": sent[1].ID}, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("mark unread = %d", res.StatusCode)
+	}
+	if c := s.listed(mert, dm.ID); c.UnreadCount != 2 || c.LastReadID != sent[0].ID {
+		t.Errorf("after marking unread: %+v", c)
+	}
+	ev := read(t, conn)
+	var data struct {
+		ChannelID  string  `json:"channel_id"`
+		LastReadID *string `json:"last_read_id"`
+	}
+	_ = json.Unmarshal(ev.Data, &data)
+	if ev.Type != "channel.unread" || data.ChannelID != dm.ID || data.LastReadID == nil || *data.LastReadID != sent[0].ID {
+		t.Errorf("event = %s %s", ev.Type, ev.Data)
+	}
+	// The first message: everything is unread.
+	s.call(http.MethodPost, "/api/channels/"+dm.ID+"/unread", mert, map[string]string{"message_id": sent[0].ID}, nil)
+	if c := s.listed(mert, dm.ID); c.UnreadCount != 3 || c.LastReadID != "" {
+		t.Errorf("from the first: %+v", c)
+	}
+	// Without a message: the newest one.
+	s.call(http.MethodPost, "/api/channels/"+dm.ID+"/read", mert, map[string]string{"message_id": sent[2].ID}, nil)
+	if res := s.call(http.MethodPost, "/api/channels/"+dm.ID+"/unread", mert, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("mark channel unread = %d", res.StatusCode)
+	}
+	if c := s.listed(mert, dm.ID); c.UnreadCount != 1 {
+		t.Errorf("channel unread: %+v", c)
+	}
+	// A message of another channel, and outsiders, are refused.
+	general := s.general(ayse)
+	other, _ := s.send(ayse, general, "başka", "mu-nonce-x")
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/channels/"+dm.ID+"/unread", mert, map[string]string{"message_id": other.ID}); status != http.StatusNotFound {
+		t.Errorf("message of another channel = %d", status)
+	}
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/channels/"+dm.ID+"/unread", s.user("sub-z", "Zeynep"), nil); status != http.StatusNotFound {
+		t.Errorf("outsider = %d", status)
+	}
+
+	// A reply marks its thread unread, not the channel.
+	root, _ := s.send(ayse, general, "konu", "mu-nonce-root")
+	r1, _ := s.reply(mert, general, root.ID, "bir", "mu-nonce-r1", false)
+	r2, _ := s.reply(mert, general, root.ID, "iki", "mu-nonce-r2", false)
+	s.call(http.MethodPost, "/api/me/threads/"+root.ID+"/read", ayse, map[string]any{"message_id": r2.Id}, nil)
+	before := s.listed(ayse, general).UnreadCount
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/unread", ayse, map[string]string{"message_id": r1.Id.String()}, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("mark reply unread = %d", res.StatusCode)
+	}
+	if l := s.threads(ayse); len(l.Threads) != 1 || l.Threads[0].UnreadCount != 2 {
+		t.Errorf("thread after marking unread: %+v", l.Threads)
+	}
+	if c := s.listed(ayse, general); c.UnreadCount != before {
+		t.Errorf("channel unread changed: %d → %d", before, c.UnreadCount)
+	}
+}

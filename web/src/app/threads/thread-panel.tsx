@@ -15,6 +15,8 @@ import { channelsQuery, flatten, messageQuery, repliesQuery, type Channel } from
 import { MessageRow, PendingRow } from '../chat/message-list';
 import { toRows, useFormatters } from '../chat/rows';
 import { usePending } from '../chat/pending';
+import { threadKey, useUnreadHold } from '../chat/unread-hold';
+import { useSession } from '../auth/session';
 import { markThreadRead, setFollowing, threadFollowQuery, threadsChanged } from './threads';
 
 /** The right panel's thread: its first message, the replies and a composer. */
@@ -108,9 +110,15 @@ function Thread({ target, channel }: { target: ThreadTarget; channel: Channel })
     [allPending, target.rootId],
   );
   const messages = useMemo(() => flatten(replies.data), [replies.data]);
+  // Marked unread here: the replies from there on show as new, and stay unread
+  // while the thread is open.
+  const self = useSession().user.id;
+  const holdKey = threadKey(target.rootId);
+  const hold = useUnreadHold((s) => s.held[holdKey]);
+  useEffect(() => () => useUnreadHold.getState().release(holdKey), [holdKey]);
   const rows = useMemo(
-    () => toRows(messages, pending, fmt.day, undefined),
-    [messages, pending, fmt.day],
+    () => toRows(messages, pending, fmt.day, hold ? { ...hold, self } : undefined),
+    [messages, pending, fmt.day, hold, self],
   );
   const scroller = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
@@ -126,7 +134,7 @@ function Thread({ target, channel }: { target: ThreadTarget; channel: Channel })
   const lastRead = follow.data?.last_read_id;
   const following = follow.data?.following;
   useEffect(() => {
-    if (!following || !last || (lastRead && lastRead >= last.id)) return;
+    if (hold || !following || !last || (lastRead && lastRead >= last.id)) return;
     if (document.visibilityState !== 'visible') return;
     queryClient.setQueryData(threadFollowQuery(target.rootId).queryKey, (d) =>
       d ? { ...d, last_read_id: last.id } : d,
@@ -134,7 +142,7 @@ function Thread({ target, channel }: { target: ThreadTarget; channel: Channel })
     void markThreadRead(target.rootId, last.id)
       .then(() => threadsChanged(queryClient))
       .catch(() => undefined);
-  }, [following, last, lastRead, queryClient, target.rootId]);
+  }, [hold, following, last, lastRead, queryClient, target.rootId]);
 
   if (root.isError) {
     return (

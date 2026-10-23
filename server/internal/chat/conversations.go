@@ -165,9 +165,7 @@ func (h *Handlers) MarkRead(w http.ResponseWriter, r *http.Request, channelID op
 	if !ok {
 		return
 	}
-	var in struct {
-		MessageID openapi_types.UUID `json:"message_id"`
-	}
+	var in api.MarkReadJSONBody
 	if !decode(w, r, &in) {
 		return
 	}
@@ -175,7 +173,21 @@ func (h *Handlers) MarkRead(w http.ResponseWriter, r *http.Request, channelID op
 	if !ok {
 		return
 	}
-	if err := h.markRead(r.Context(), c.ID, p.User.ID, pgUUID(in.MessageID)); err != nil {
+	var message pgtype.UUID
+	if in.MessageId != nil {
+		message = pgUUID(*in.MessageId)
+	} else {
+		id, err := h.Queries.NewestTimelineMessage(r.Context(), c.ID)
+		if isNoRows(err) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		} else if err != nil {
+			h.unavailable(w, r, "newest message", err)
+			return
+		}
+		message = id
+	}
+	if err := h.markRead(r.Context(), c.ID, p.User.ID, message); err != nil {
 		h.unavailable(w, r, "mark read", err)
 		return
 	}
@@ -194,6 +206,100 @@ func (h *Handlers) markRead(ctx context.Context, channel, user, message pgtype.U
 		})
 	}
 	return nil
+}
+
+// UnreadEvent is the data of channel.unread: the member's new read position
+// (null when the whole channel is unread).
+type UnreadEvent struct {
+	UserID     string  `json:"user_id"`
+	ChannelID  string  `json:"channel_id"`
+	LastReadID *string `json:"last_read_id"`
+}
+
+// MarkUnread implements api.ServerInterface.
+func (h *Handlers) MarkUnread(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	var in api.MarkUnreadJSONBody
+	if r.ContentLength != 0 && !decode(w, r, &in) {
+		return
+	}
+	c, _, ok := h.memberChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	ctx := r.Context()
+	var message pgtype.UUID
+	inChannel := true
+	var root pgtype.UUID
+	if in.MessageId == nil {
+		id, err := h.Queries.NewestChannelMessage(ctx, store.NewestChannelMessageParams{ChannelID: c.ID, UserID: p.User.ID})
+		if isNoRows(err) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		} else if err != nil {
+			h.unavailable(w, r, "newest message", err)
+			return
+		}
+		message = id
+	} else {
+		m, ok := h.messageAnywhere(w, r, *in.MessageId, p.User)
+		if !ok {
+			return
+		}
+		if m.ChannelID != c.ID {
+			httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
+				Detail: "No such message."})
+			return
+		}
+		message, root = m.ID, m.RootID
+		inChannel = !m.RootID.Valid || m.AlsoInChannel
+	}
+	err := h.inTx(ctx, func(q *store.Queries) error {
+		if root.Valid {
+			last, err := q.MarkThreadUnreadFrom(ctx, store.MarkThreadUnreadFromParams{
+				UserID: p.User.ID, RootID: root, MessageID: message,
+			})
+			if err != nil {
+				return err
+			}
+			if err := emit(ctx, q, events.ThreadRead, ThreadFollowEvent{
+				UserID: uuid(p.User.ID).String(), RootID: uuid(root).String(), MessageID: optionalID(last),
+			}); err != nil {
+				return err
+			}
+		}
+		if !inChannel {
+			return nil
+		}
+		last, err := q.MarkUnreadFrom(ctx, store.MarkUnreadFromParams{
+			ChannelID: c.ID, UserID: p.User.ID, MessageID: message,
+		})
+		if err != nil {
+			return err
+		}
+		ev := UnreadEvent{UserID: uuid(p.User.ID).String(), ChannelID: uuid(c.ID).String()}
+		if last.Valid {
+			id := uuid(last).String()
+			ev.LastReadID = &id
+		}
+		return emit(ctx, q, events.ChannelUnread, ev)
+	})
+	if err != nil {
+		h.unavailable(w, r, "mark unread", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// optionalID is the text of an id, or "" when there is none.
+func optionalID(id pgtype.UUID) string {
+	if !id.Valid {
+		return ""
+	}
+	return uuid(id).String()
 }
 
 // TypingEvent is the data of typing.

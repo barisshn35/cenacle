@@ -197,7 +197,10 @@
       "one": "{{name}} yazıyor…",
       "two": "{{first}} ve {{second}} yazıyor…",
       "many": "Birkaç kişi yazıyor…"
-    }
+    },
+    "markUnread": "Okunmamış olarak işaretle",
+    "markedUnread": "Okunmamış olarak işaretlendi. Buradan ayrılana kadar öyle kalır.",
+    "markUnreadFailed": "Okunmamış olarak işaretlenemedi. Tekrar dene."
   },
   "channels": {
     "kinds": {
@@ -2000,5 +2003,30 @@
     "failed": "Ayar kaydedilmedi. Yeniden dene.",
     "policy": "İki adımlı doğrulama, geçiş anahtarları ve giriş yöntemleri Cenacle ID yönetiminde ayarlanır.",
     "openPolicy": "Giriş politikasını aç"
+  },
+  "sidebar": {
+    "unreads": "Okunmamış",
+    "favorites": "Favoriler",
+    "favorite": "Favorilere ekle",
+    "unfavorite": "Favorilerden çıkar",
+    "moveTo": "Taşı",
+    "backTo": "{{section}} bölümüne geri al",
+    "newSection": "Yeni bölüm…",
+    "renameSection": "Bölümü yeniden adlandır",
+    "removeSection": "Bölümü sil",
+    "sectionRemoved": "Bölüm silindi. İçindekiler eski yerlerine döndü.",
+    "moveUp": "Yukarı taşı",
+    "moveDown": "Aşağı taşı",
+    "groupUnreads": "Okunmamışları en üstte topla",
+    "sectionMenu": "{{section}} seçenekleri",
+    "channelMenu": "{{channel}} seçenekleri",
+    "dropFavorites": "Favorilere eklemek için bir kanalı buraya bırak.",
+    "emptySection": "Henüz boş. Kanalları ya da konuşmaları menülerinden buraya taşı ya da sürükle.",
+    "sectionHint": "Kendi bölümlerin yalnızca senin kenar çubuğunda görünür. Başkaları görmez.",
+    "sectionName": "Ad",
+    "sectionTaken": "Bu adda bir bölümün zaten var.",
+    "create": "Oluştur",
+    "saveFailed": "Kenar çubuğundaki değişiklik kaydedilemedi. Tekrar dene.",
+    "markReadFailed": "Okundu olarak işaretlenemedi. Tekrar dene."
   }
 }

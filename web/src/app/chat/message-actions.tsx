@@ -8,6 +8,7 @@ import {
   FlagIcon,
   ForwardIcon,
   LinkIcon,
+  MailIcon,
   MessageSquareIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -52,6 +53,7 @@ import {
 import { mentionsToText } from './markdown/mentions';
 import { useMentionPicker } from './mention-picker';
 import { useEditing, useMessagePermissions } from './message-state';
+import { useMarkUnread } from './mark-unread';
 
 /**
  * Actions of a message. The button shows on hover and keyboard focus, and
@@ -115,6 +117,8 @@ export function MessageActions({
       ),
   });
 
+  const unread = useMarkUnread(message);
+
   const remove = useMutation({
     mutationFn: () => deleteMessage(message),
     onMutate: () => removeMessage(queryClient, message),
@@ -159,6 +163,12 @@ export function MessageActions({
             >
               <MessageSquareIcon strokeWidth={1.75} />
               {t('threads.reply')}
+            </DropdownMenuItem>
+          )}
+          {message.author.id !== user.id && (
+            <DropdownMenuItem onClick={() => unread.mutate()}>
+              <MailIcon strokeWidth={1.75} />
+              {t('chat.markUnread')}
             </DropdownMenuItem>
           )}
           {!burn && (

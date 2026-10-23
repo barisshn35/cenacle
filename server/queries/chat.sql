@@ -221,3 +221,27 @@ ORDER BY m.channel_id, lower(u.display_name);
 UPDATE channel_members SET last_read_id = @message_id
 WHERE channel_id = @channel_id AND user_id = @user_id
   AND (last_read_id IS NULL OR last_read_id < @message_id);
+
+-- name: MarkUnreadFrom :one
+-- MarkUnreadFrom moves a member's read position back to just before a message,
+-- so it and everything after it count as unread again.
+UPDATE channel_members m SET last_read_id = (
+    SELECT x.id FROM messages x
+    WHERE x.channel_id = @channel_id AND x.id < @message_id
+    ORDER BY x.id DESC LIMIT 1)
+WHERE m.channel_id = @channel_id AND m.user_id = @user_id
+RETURNING m.last_read_id;
+
+-- name: NewestChannelMessage :one
+-- NewestChannelMessage returns the newest message of others shown in a
+-- channel's timeline (one's own messages never count as unread).
+SELECT id FROM messages
+WHERE channel_id = @channel_id AND deleted_at IS NULL AND (root_id IS NULL OR also_in_channel)
+  AND author_id <> @user_id
+ORDER BY id DESC LIMIT 1;
+
+-- name: NewestTimelineMessage :one
+-- NewestTimelineMessage returns the newest message shown in a channel's timeline.
+SELECT id FROM messages
+WHERE channel_id = @channel_id AND deleted_at IS NULL AND (root_id IS NULL OR also_in_channel)
+ORDER BY id DESC LIMIT 1;

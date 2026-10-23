@@ -2961,6 +2961,31 @@ type Session struct {
 	User        User        `json:"user"`
 }
 
+// SidebarLayout Sections are named by key: `favorites`, `channels` (channels without a
+// category), `direct` (conversations), a category's id or a section's id.
+type SidebarLayout struct {
+	// Collapsed Sections folded away.
+	Collapsed []string `json:"collapsed"`
+
+	// GroupUnreads Unread channels and conversations gather in a section at the top.
+	GroupUnreads bool `json:"group_unreads"`
+
+	// Order Sections from the top; the ones missing follow in their usual order.
+	Order []string `json:"order"`
+
+	// Placements Channel or conversation id → `favorites` or a section's id.
+	Placements map[string]string `json:"placements"`
+
+	// Sections The person's own sections.
+	Sections []SidebarSection `json:"sections"`
+}
+
+// SidebarSection defines model for SidebarSection.
+type SidebarSection struct {
+	Id   openapi_types.UUID `json:"id"`
+	Name string             `json:"name"`
+}
+
 // SlashCommand defines model for SlashCommand.
 type SlashCommand struct {
 	CreatedAt   time.Time          `json:"created_at"`
@@ -3510,7 +3535,7 @@ type ReportMessageJSONBody struct {
 
 // MarkReadJSONBody defines parameters for MarkRead.
 type MarkReadJSONBody struct {
-	MessageId openapi_types.UUID `json:"message_id"`
+	MessageId *openapi_types.UUID `json:"message_id,omitempty"`
 }
 
 // ScheduleMessageJSONBody defines parameters for ScheduleMessage.
@@ -3522,6 +3547,11 @@ type ScheduleMessageJSONBody struct {
 // ShareChannelJSONBody defines parameters for ShareChannel.
 type ShareChannelJSONBody struct {
 	ConnectionId openapi_types.UUID `json:"connection_id"`
+}
+
+// MarkUnreadJSONBody defines parameters for MarkUnread.
+type MarkUnreadJSONBody struct {
+	MessageId *openapi_types.UUID `json:"message_id,omitempty"`
 }
 
 // RsvpEventJSONBody defines parameters for RsvpEvent.
@@ -4002,6 +4032,9 @@ type ShareChannelJSONRequestBody ShareChannelJSONBody
 // CreateChannelTabJSONRequestBody defines body for CreateChannelTab for application/json ContentType.
 type CreateChannelTabJSONRequestBody = TabInput
 
+// MarkUnreadJSONRequestBody defines body for MarkUnread for application/json ContentType.
+type MarkUnreadJSONRequestBody MarkUnreadJSONBody
+
 // UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
 type UpdateEventJSONRequestBody = EventInput
 
@@ -4178,6 +4211,9 @@ type FinishOnboardingJSONRequestBody FinishOnboardingJSONBody
 
 // CreatePlaybookJSONRequestBody defines body for CreatePlaybook for application/json ContentType.
 type CreatePlaybookJSONRequestBody = PlaybookInput
+
+// SetSidebarJSONRequestBody defines body for SetSidebar for application/json ContentType.
+type SetSidebarJSONRequestBody = SidebarLayout
 
 // SetWelcomeJSONRequestBody defines body for SetWelcome for application/json ContentType.
 type SetWelcomeJSONRequestBody = Welcome
@@ -4504,6 +4540,9 @@ type ServerInterface interface {
 	// UnarchiveChannel Restore an archived channel (channel managers)
 	// (POST /api/channels/{channel_id}/unarchive)
 	UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// MarkUnread Mark a channel or thread unread from a message
+	// (POST /api/channels/{channel_id}/unread)
+	MarkUnread(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// DeleteCustomEmoji Remove a custom emoji (who added it, or a workspace admin)
 	// (DELETE /api/emoji/{emoji_id})
 	DeleteCustomEmoji(w http.ResponseWriter, r *http.Request, emojiId openapi_types.UUID)
@@ -4942,6 +4981,12 @@ type ServerInterface interface {
 	// ListWorkspaceRuns Runs in progress in the person's channels of a workspace, newest first (up to 100)
 	// (GET /api/workspaces/{workspace_id}/runs)
 	ListWorkspaceRuns(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// GetSidebar The person's own arrangement of the workspace's sidebar
+	// (GET /api/workspaces/{workspace_id}/sidebar)
+	GetSidebar(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetSidebar Replace the person's arrangement of the workspace's sidebar
+	// (PUT /api/workspaces/{workspace_id}/sidebar)
+	SetSidebar(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListStickers The workspace's stickers
 	// (GET /api/workspaces/{workspace_id}/stickers)
 	ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -5479,6 +5524,12 @@ func (_ Unimplemented) SendTyping(w http.ResponseWriter, r *http.Request, channe
 // UnarchiveChannel Restore an archived channel (channel managers)
 // (POST /api/channels/{channel_id}/unarchive)
 func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MarkUnread Mark a channel or thread unread from a message
+// (POST /api/channels/{channel_id}/unread)
+func (_ Unimplemented) MarkUnread(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6355,6 +6406,18 @@ func (_ Unimplemented) ListReports(w http.ResponseWriter, r *http.Request, works
 // ListWorkspaceRuns Runs in progress in the person's channels of a workspace, newest first (up to 100)
 // (GET /api/workspaces/{workspace_id}/runs)
 func (_ Unimplemented) ListWorkspaceRuns(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSidebar The person's own arrangement of the workspace's sidebar
+// (GET /api/workspaces/{workspace_id}/sidebar)
+func (_ Unimplemented) GetSidebar(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetSidebar Replace the person's arrangement of the workspace's sidebar
+// (PUT /api/workspaces/{workspace_id}/sidebar)
+func (_ Unimplemented) SetSidebar(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8910,6 +8973,32 @@ func (siw *ServerInterfaceWrapper) UnarchiveChannel(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UnarchiveChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkUnread operation middleware
+func (siw *ServerInterfaceWrapper) MarkUnread(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkUnread(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -12881,6 +12970,58 @@ func (siw *ServerInterfaceWrapper) ListWorkspaceRuns(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// GetSidebar operation middleware
+func (siw *ServerInterfaceWrapper) GetSidebar(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSidebar(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetSidebar operation middleware
+func (siw *ServerInterfaceWrapper) SetSidebar(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSidebar(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListStickers operation middleware
 func (siw *ServerInterfaceWrapper) ListStickers(w http.ResponseWriter, r *http.Request) {
 
@@ -13465,6 +13606,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}", wrapper.UpdateChannel)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/unread", wrapper.MarkUnread)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/read", wrapper.MarkRead)
 	})
 	r.Group(func(r chi.Router) {
@@ -13709,6 +13853,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/runs", wrapper.ListWorkspaceRuns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/sidebar", wrapper.GetSidebar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/sidebar", wrapper.SetSidebar)
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/runs/{run_id}/items", wrapper.UpdateRunItem)

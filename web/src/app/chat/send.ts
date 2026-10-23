@@ -5,6 +5,7 @@ import { ApiError, apiFetch } from '@cenacle/core/api';
 import { sealFor } from '../compliance/e2e';
 import { addMessage, type Message } from './data';
 import { newNonce, usePending, type PendingMessage } from './pending';
+import { threadKey, useUnreadHold } from './unread-hold';
 
 /**
  * Sends messages optimistically: the message shows at once as "sending",
@@ -45,8 +46,11 @@ export function useSendMessage() {
           }),
         });
         addMessage(queryClient, message);
+        // Sending reads what was marked unread there (as on the server).
+        useUnreadHold.getState().release(message.channel_id);
         // Replying makes one follow the thread (on the server).
         if (message.root_id) {
+          useUnreadHold.getState().release(threadKey(message.root_id));
           void queryClient.invalidateQueries({ queryKey: ['thread-follow', message.root_id] });
         }
         remove(p.nonce);

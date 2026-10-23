@@ -50,8 +50,18 @@ export const openConversation = (workspaceId: string, userIds: string[]) =>
     json({ user_ids: userIds }),
   ).then(displayName);
 
-export const markRead = (channelId: string, messageId: string) =>
-  apiFetch<void>(`/api/channels/${channelId}/read`, json({ message_id: messageId }));
+/** Marks a channel read up to a message (without one: all of it). */
+export const markRead = (channelId: string, messageId?: string) =>
+  apiFetch<void>(
+    `/api/channels/${channelId}/read`,
+    json(messageId ? { message_id: messageId } : {}),
+  );
+/** Marks a channel unread from a message (without one: its newest message). */
+export const markUnread = (channelId: string, messageId?: string) =>
+  apiFetch<void>(
+    `/api/channels/${channelId}/unread`,
+    json(messageId ? { message_id: messageId } : {}),
+  );
 export const sendTyping = (channelId: string) =>
   apiFetch<void>(`/api/channels/${channelId}/typing`, { method: 'POST' });
 export const setPresence = (status: Exclude<PresenceStatus, 'offline'>) =>
@@ -87,6 +97,24 @@ export function setReadLocally(queryClient: QueryClient, channelId: string, mess
       ? c
       : { ...c, last_read_id: messageId, unread_count: 0, mention_count: 0 },
   );
+}
+
+/** All of the channel is read (its newest message is not known here). */
+export function clearCountsLocally(queryClient: QueryClient, channelId: string) {
+  patchChannel(queryClient, channelId, (c) => ({ ...c, unread_count: 0, mention_count: 0 }));
+}
+
+/**
+ * The channel was marked unread (here or on another device): the read position
+ * moves back, and the counts come again from the server.
+ */
+export function setUnreadLocally(
+  queryClient: QueryClient,
+  channelId: string,
+  lastReadId: string | null,
+) {
+  patchChannel(queryClient, channelId, (c) => ({ ...c, last_read_id: lastReadId }));
+  void queryClient.invalidateQueries({ queryKey: ['channels'] });
 }
 
 /** The message shows in its channel's timeline (not a reply kept in its thread). */

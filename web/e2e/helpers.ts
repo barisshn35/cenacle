@@ -425,6 +425,10 @@ export interface MockApi {
   reacted: string[];
   /** Read positions sent: channel id -> message id. */
   reads: Map<string, string>;
+  /** Marked unread: "channel id" or "channel id:message id". */
+  unreads: string[];
+  /** The person's sidebar arrangement as the fake server keeps it. */
+  sidebar: Record<string, unknown>;
   /** Channels typing notices were sent for. */
   typing: string[];
   /** Statuses the user chose. */
@@ -734,6 +738,8 @@ export async function mockApi(
   } = {
     sent: [],
     reads: new Map(),
+    unreads: [],
+    sidebar: { order: [], sections: [], placements: {}, group_unreads: false, collapsed: [] },
     reacted: [],
     typing: [],
     statuses: [],
@@ -1040,11 +1046,25 @@ export async function mockApi(
   });
   await page.route('**/api/channels/*/read', (route) => {
     const c = channelOf(route.request().url());
-    const { message_id } = route.request().postDataJSON() as { message_id: string };
+    const { message_id = 'newest' } = route.request().postDataJSON() as { message_id?: string };
     api.reads.set(c.id, message_id);
-    c.last_read_id = message_id;
+    if (message_id !== 'newest') c.last_read_id = message_id;
     c.unread_count = 0;
+    c.mention_count = 0;
     return route.fulfill({ status: 204 });
+  });
+  await page.route('**/api/channels/*/unread', (route) => {
+    const c = channelOf(route.request().url());
+    const { message_id } = route.request().postDataJSON() as { message_id?: string };
+    api.unreads.push(message_id ? `${c.id}:${message_id}` : c.id);
+    c.unread_count = Math.max(c.unread_count, 1);
+    return route.fulfill({ status: 204 });
+  });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/sidebar$/, (route) => {
+    if (route.request().method() === 'PUT') {
+      api.sidebar = route.request().postDataJSON() as Record<string, unknown>;
+    }
+    return route.fulfill({ json: api.sidebar });
   });
   await page.route('**/api/channels/*/typing', (route) => {
     api.typing.push(channelOf(route.request().url()).id);

@@ -47,11 +47,13 @@ import { ProfileCard } from '../profile/profile-card';
 import { BotBadge } from './bot-badge';
 import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
+import { useMarkUnread } from './mark-unread';
 import { AddReactionButton, ReactionBar } from './reactions';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
 import { useSendMessage } from './send';
 import { toRows, useFormatters, type ReadMark, type Row } from './rows';
+import { useUnreadHold } from './unread-hold';
 
 // Virtuoso keeps the scroll position when older pages are prepended if the
 // index of the first item decreases by the number of items added.
@@ -88,6 +90,7 @@ export function MessageRow({
   const mentionsMe = m.mentions.some((p) => p.id === self) || reached;
   const highlighted = useJump((s) => s.highlighted === m.id);
   const hasStatus = !!useProfile(m.author.id)?.status;
+  const unread = useMarkUnread(m);
   const time = (
     <time
       dateTime={m.created_at}
@@ -130,8 +133,15 @@ export function MessageRow({
           <span aria-hidden className="h-px bg-foreground" />
         </div>
       )}
+      {/* Alt+click marks the message unread; its menu offers the same. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <article
         aria-labelledby={`m-${m.id}-author`}
+        onClick={(e) => {
+          if (!e.altKey || m.author.id === self || editing) return;
+          e.preventDefault();
+          unread.mutate();
+        }}
         data-testid="message"
         className={cn(
           'group relative rounded-[10px] hover:bg-hover focus-within:bg-hover',
@@ -357,13 +367,18 @@ function useVisible() {
  * Marks the channel read up to its newest message while the reader is at the
  * bottom of a visible tab.
  */
-function useMarkRead(channel: Channel, messages: Message[]) {
+function useMarkRead(channel: Channel, messages: Message[], held: boolean) {
   const queryClient = useQueryClient();
   const visible = useVisible();
   const [atBottom, setAtBottomState] = useState(true);
   const sent = useRef<string | undefined>(undefined);
   const newest = messages.at(-1)?.id;
   useEffect(() => {
+    // Marked unread here: it stays so until the reader leaves.
+    if (held) {
+      sent.current = undefined;
+      return;
+    }
     if (!newest || !visible || !atBottom) return;
     if (channel.last_read_id && channel.last_read_id >= newest) return;
     if (sent.current && sent.current >= newest) return;
@@ -372,7 +387,7 @@ function useMarkRead(channel: Channel, messages: Message[]) {
     void markRead(channel.id, newest).catch(() => {
       sent.current = undefined;
     });
-  }, [newest, visible, atBottom, channel.id, channel.last_read_id, queryClient]);
+  }, [held, newest, visible, atBottom, channel.id, channel.last_read_id, queryClient]);
   return setAtBottomState;
 }
 
@@ -477,15 +492,19 @@ export function MessageList({ channel }: { channel: Channel }) {
   );
   const messages = useMemo(() => flatten(query.data), [query.data]);
   const self = useSession().user.id;
-  // The list is keyed by channel: this is the read position when it opened.
-  const [mark] = useState<ReadMark | undefined>(() =>
+  // The list is keyed by channel: this is the read position when it opened,
+  // or where the reader marked it unread since.
+  const [opened] = useState<ReadMark | undefined>(() =>
     channel.unread_count > 0 ? { after: channel.last_read_id, self } : undefined,
   );
+  const hold = useUnreadHold((s) => s.held[channelId]);
+  const mark = useMemo(() => (hold ? { ...hold, self } : opened), [hold, opened, self]);
+  useEffect(() => () => useUnreadHold.getState().release(channelId), [channelId]);
   const rows = useMemo(
     () => toRows(messages, pending, fmt.day, mark),
     [messages, pending, fmt.day, mark],
   );
-  const markAtBottom = useMarkRead(channel, messages);
+  const markAtBottom = useMarkRead(channel, messages, !!hold);
   const list = useRef<VirtuosoHandle>(null);
   // Whether the reader is at the end. Virtuoso's own following lets go when
   // rows change height as they arrive (the reader's own messages from another

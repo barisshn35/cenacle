@@ -579,6 +579,13 @@ type SharedChannel struct {
 	CreatedAt       time.Time   `json:"created_at"`
 }
 
+type SidebarLayout struct {
+	UserID      pgtype.UUID `json:"user_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Layout      []byte      `json:"layout"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+}
+
 type SlashCommand struct {
 	ID          pgtype.UUID `json:"id"`
 	BotID       pgtype.UUID `json:"bot_id"`

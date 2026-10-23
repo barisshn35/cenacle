@@ -35,9 +35,13 @@ export function useFormatters() {
   );
 }
 
-/** Where reading stood when the channel opened, if anything was unread then. */
+/**
+ * Where reading stood when the channel opened, if anything was unread then
+ * (or from which message the reader marked it unread).
+ */
 export interface ReadMark {
   after: string | null;
+  from?: string;
   self: string;
 }
 
@@ -52,7 +56,9 @@ export function toRows(
   let marked = !mark;
   for (const m of messages) {
     const firstUnread =
-      !marked && m.author.id !== mark!.self && (mark!.after === null || m.id > mark!.after);
+      !marked &&
+      m.author.id !== mark!.self &&
+      (mark!.from ? m.id >= mark!.from : mark!.after === null || m.id > mark!.after);
     if (firstUnread) marked = true;
     const at = new Date(m.created_at);
     const day = dayFmt.format(at);

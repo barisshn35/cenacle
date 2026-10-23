@@ -2,6 +2,7 @@
 // Source: shadcn/ui (style "base-nova", Base UI primitives) https://ui.shadcn.com
 // Author: shadcn and contributors. License: MIT.
 // Adapted for Cenacle: target size tokens, destructive items with icon and text.
+import { CheckIcon, ChevronRightIcon } from 'lucide-react';
 import { Menu as MenuPrimitive } from '@base-ui/react/menu';
 import { cn } from '../lib/utils';
 
@@ -60,6 +61,31 @@ function DropdownMenuItem({
   );
 }
 
+/** An item that is on or off; the check shows its state (also to screen readers). */
+function DropdownMenuCheckboxItem({
+  className,
+  children,
+  ...props
+}: MenuPrimitive.CheckboxItem.Props) {
+  return (
+    <MenuPrimitive.CheckboxItem
+      data-slot="dropdown-menu-checkbox-item"
+      className={cn(
+        "relative flex min-h-target cursor-default items-center gap-2 rounded-md py-1.5 pr-2 pl-8 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2 flex size-4 items-center justify-center">
+        <MenuPrimitive.CheckboxItemIndicator>
+          <CheckIcon strokeWidth={1.75} />
+        </MenuPrimitive.CheckboxItemIndicator>
+      </span>
+      {children}
+    </MenuPrimitive.CheckboxItem>
+  );
+}
+
 function DropdownMenuSeparator({ className, ...props }: MenuPrimitive.Separator.Props) {
   return (
     <MenuPrimitive.Separator
@@ -70,10 +96,79 @@ function DropdownMenuSeparator({ className, ...props }: MenuPrimitive.Separator.
   );
 }
 
+/** The key that does the same as the item, shown at its end. */
+function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<'kbd'>) {
+  return (
+    <kbd
+      data-slot="dropdown-menu-shortcut"
+      className={cn(
+        'ml-auto pl-4 font-sans text-xs tracking-wide text-muted-foreground',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+function DropdownMenuGroup({ ...props }: MenuPrimitive.Group.Props) {
+  return <MenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />;
+}
+
+function DropdownMenuLabel({ className, ...props }: MenuPrimitive.GroupLabel.Props) {
+  return (
+    <MenuPrimitive.GroupLabel
+      data-slot="dropdown-menu-label"
+      className={cn('px-2 py-1.5 text-xs font-medium text-muted-foreground', className)}
+      {...props}
+    />
+  );
+}
+
+function DropdownMenuSub({ ...props }: MenuPrimitive.SubmenuRoot.Props) {
+  return <MenuPrimitive.SubmenuRoot data-slot="dropdown-menu-sub" {...props} />;
+}
+
+/** An item that opens a submenu (with the arrow key, Enter or a click). */
+function DropdownMenuSubTrigger({
+  className,
+  children,
+  ...props
+}: MenuPrimitive.SubmenuTrigger.Props) {
+  return (
+    <MenuPrimitive.SubmenuTrigger
+      data-slot="dropdown-menu-sub-trigger"
+      className={cn(
+        "flex min-h-target cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[popup-open]:bg-accent [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronRightIcon aria-hidden strokeWidth={1.75} className="ml-auto" />
+    </MenuPrimitive.SubmenuTrigger>
+  );
+}
+
+function DropdownMenuSubContent({
+  side = 'right',
+  align = 'start',
+  sideOffset = 2,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuContent>) {
+  return <DropdownMenuContent side={side} align={align} sideOffset={sideOffset} {...props} />;
+}
+
 export {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 };

@@ -1085,6 +1085,65 @@ func (q *Queries) MarkRead(ctx context.Context, arg MarkReadParams) (int64, erro
 	return result.RowsAffected(), nil
 }
 
+const markUnreadFrom = `-- name: MarkUnreadFrom :one
+UPDATE channel_members m SET last_read_id = (
+    SELECT x.id FROM messages x
+    WHERE x.channel_id = $1 AND x.id < $2
+    ORDER BY x.id DESC LIMIT 1)
+WHERE m.channel_id = $1 AND m.user_id = $3
+RETURNING m.last_read_id
+`
+
+type MarkUnreadFromParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	MessageID pgtype.UUID `json:"message_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+// MarkUnreadFrom moves a member's read position back to just before a message,
+// so it and everything after it count as unread again.
+func (q *Queries) MarkUnreadFrom(ctx context.Context, arg MarkUnreadFromParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, markUnreadFrom, arg.ChannelID, arg.MessageID, arg.UserID)
+	var last_read_id pgtype.UUID
+	err := row.Scan(&last_read_id)
+	return last_read_id, err
+}
+
+const newestChannelMessage = `-- name: NewestChannelMessage :one
+SELECT id FROM messages
+WHERE channel_id = $1 AND deleted_at IS NULL AND (root_id IS NULL OR also_in_channel)
+  AND author_id <> $2
+ORDER BY id DESC LIMIT 1
+`
+
+type NewestChannelMessageParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+// NewestChannelMessage returns the newest message of others shown in a
+// channel's timeline (one's own messages never count as unread).
+func (q *Queries) NewestChannelMessage(ctx context.Context, arg NewestChannelMessageParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, newestChannelMessage, arg.ChannelID, arg.UserID)
+	var id pgtype.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const newestTimelineMessage = `-- name: NewestTimelineMessage :one
+SELECT id FROM messages
+WHERE channel_id = $1 AND deleted_at IS NULL AND (root_id IS NULL OR also_in_channel)
+ORDER BY id DESC LIMIT 1
+`
+
+// NewestTimelineMessage returns the newest message shown in a channel's timeline.
+func (q *Queries) NewestTimelineMessage(ctx context.Context, channelID pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, newestTimelineMessage, channelID)
+	var id pgtype.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const purgeDeletedMessages = `-- name: PurgeDeletedMessages :execrows
 DELETE FROM messages WHERE deleted_at <= now() - $1::interval
     AND NOT message_held(channel_id, author_id, created_at)

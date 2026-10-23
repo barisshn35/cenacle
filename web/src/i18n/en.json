@@ -197,7 +197,10 @@
       "one": "{{name}} is typing…",
       "two": "{{first}} and {{second}} are typing…",
       "many": "Several people are typing…"
-    }
+    },
+    "markUnread": "Mark as unread",
+    "markedUnread": "Marked as unread. It stays unread until you leave.",
+    "markUnreadFailed": "Couldn't mark it unread. Try again."
   },
   "channels": {
     "kinds": {
@@ -2000,5 +2003,30 @@
     "failed": "The setting was not saved. Try again.",
     "policy": "Two-step verification, passkeys and sign-in methods are set in Cenacle ID administration.",
     "openPolicy": "Open sign-in policy"
+  },
+  "sidebar": {
+    "unreads": "Unread",
+    "favorites": "Favorites",
+    "favorite": "Add to Favorites",
+    "unfavorite": "Remove from Favorites",
+    "moveTo": "Move to",
+    "backTo": "Back to {{section}}",
+    "newSection": "New section…",
+    "renameSection": "Rename section",
+    "removeSection": "Delete section",
+    "sectionRemoved": "Section deleted. Its channels went back to where they were.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "groupUnreads": "Show unread ones together at the top",
+    "sectionMenu": "{{section}} options",
+    "channelMenu": "{{channel}} options",
+    "dropFavorites": "Drop a channel here to add it to Favorites.",
+    "emptySection": "Nothing here yet. Move channels or conversations here from their menu, or drag them.",
+    "sectionHint": "Your own sections are only in your sidebar. Others do not see them.",
+    "sectionName": "Name",
+    "sectionTaken": "You already have a section with this name.",
+    "create": "Create",
+    "saveFailed": "Your sidebar change couldn't be saved. Try again.",
+    "markReadFailed": "Couldn't mark it read. Try again."
   }
 }

@@ -838,6 +838,32 @@ func (q *Queries) MarkThreadRead(ctx context.Context, arg MarkThreadReadParams) 
 	return result.RowsAffected(), nil
 }
 
+const markThreadUnreadFrom = `-- name: MarkThreadUnreadFrom :one
+INSERT INTO thread_follows (user_id, root_id, last_read_id)
+VALUES ($1, $2, (
+    SELECT x.id FROM messages x
+    WHERE (x.root_id = $2 OR x.id = $2) AND x.id < $3
+    ORDER BY x.id DESC LIMIT 1))
+ON CONFLICT (user_id, root_id) DO UPDATE
+SET following = true, last_read_id = EXCLUDED.last_read_id
+RETURNING last_read_id
+`
+
+type MarkThreadUnreadFromParams struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	RootID    pgtype.UUID `json:"root_id"`
+	MessageID pgtype.UUID `json:"message_id"`
+}
+
+// MarkThreadUnreadFrom moves a follower's read position in a thread back to just
+// before a reply (following the thread if they did not).
+func (q *Queries) MarkThreadUnreadFrom(ctx context.Context, arg MarkThreadUnreadFromParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, markThreadUnreadFrom, arg.UserID, arg.RootID, arg.MessageID)
+	var last_read_id pgtype.UUID
+	err := row.Scan(&last_read_id)
+	return last_read_id, err
+}
+
 const setPinned = `-- name: SetPinned :one
 UPDATE messages
 SET pinned_at = CASE WHEN $1::boolean THEN now() END,

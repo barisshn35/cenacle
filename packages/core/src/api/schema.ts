@@ -1382,6 +1382,32 @@ export interface paths {
     patch: operations['updateChannel'];
     trace?: never;
   };
+  '/api/channels/{channel_id}/unread': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Mark a channel or thread unread from a message
+     * @description Moves the read position back to just before the message, so it and the
+     *     ones after it count as unread again. Without a message, the newest
+     *     message of someone else in the channel becomes unread. A reply marks its thread unread
+     *     (and the channel, when it was also sent there). The user's other devices
+     *     get `channel.unread` or `thread.read`.
+     */
+    post: operations['markUnread'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/read': {
     parameters: {
       query?: never;
@@ -1395,7 +1421,8 @@ export interface paths {
     put?: never;
     /**
      * Mark a channel read up to a message
-     * @description The read position only moves forward; the user's other devices get `channel.read`.
+     * @description The read position only moves forward; without a message it moves to the
+     *     channel's newest one. The user's other devices get `channel.read`.
      */
     post: operations['markRead'];
     delete?: never;
@@ -2561,6 +2588,31 @@ export interface paths {
     /** Runs in progress in the person's channels of a workspace, newest first (up to 100) */
     get: operations['listWorkspaceRuns'];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/sidebar': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The person's own arrangement of the workspace's sidebar */
+    get: operations['getSidebar'];
+    /**
+     * Replace the person's arrangement of the workspace's sidebar
+     * @description Placements of channels the person does not belong to, and of sections
+     *     that do not exist, are dropped. The person's other devices get
+     *     `sidebar.changed`.
+     */
+    put: operations['setSidebar'];
     post?: never;
     delete?: never;
     options?: never;
@@ -4576,6 +4628,29 @@ export interface components {
       size: number;
       /** Format: date-time */
       created_at: string;
+    };
+    /**
+     * @description Sections are named by key: `favorites`, `channels` (channels without a
+     *     category), `direct` (conversations), a category's id or a section's id.
+     */
+    SidebarLayout: {
+      /** @description Sections from the top; the ones missing follow in their usual order. */
+      order: string[];
+      /** @description The person's own sections. */
+      sections: components['schemas']['SidebarSection'][];
+      /** @description Channel or conversation id → `favorites` or a section's id. */
+      placements: {
+        [key: string]: string;
+      };
+      /** @description Unread channels and conversations gather in a section at the top. */
+      group_unreads: boolean;
+      /** @description Sections folded away. */
+      collapsed: string[];
+    };
+    SidebarSection: {
+      /** Format: uuid */
+      id: string;
+      name: string;
     };
     Meta: {
       /** @description People may use Cenacle in web browsers. */
@@ -7402,6 +7477,36 @@ export interface operations {
       404: components['responses']['Problem'];
     };
   };
+  markUnread: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          message_id?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Marked. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
   markRead: {
     parameters: {
       query?: never;
@@ -7415,7 +7520,7 @@ export interface operations {
       content: {
         'application/json': {
           /** Format: uuid */
-          message_id: string;
+          message_id?: string;
         };
       };
     };
@@ -9692,6 +9797,59 @@ export interface operations {
       };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getSidebar: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The arrangement (empty when never changed). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SidebarLayout'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setSidebar: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SidebarLayout'];
+      };
+    };
+    responses: {
+      /** @description The arrangement as kept. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SidebarLayout'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };

@@ -218,3 +218,15 @@ ORDER BY x.channel_id, x.id;
 
 -- name: GetUsersByIDs :many
 SELECT * FROM users WHERE id = ANY(@ids::uuid[]);
+
+-- name: MarkThreadUnreadFrom :one
+-- MarkThreadUnreadFrom moves a follower's read position in a thread back to just
+-- before a reply (following the thread if they did not).
+INSERT INTO thread_follows (user_id, root_id, last_read_id)
+VALUES (@user_id, @root_id, (
+    SELECT x.id FROM messages x
+    WHERE (x.root_id = @root_id OR x.id = @root_id) AND x.id < @message_id
+    ORDER BY x.id DESC LIMIT 1))
+ON CONFLICT (user_id, root_id) DO UPDATE
+SET following = true, last_read_id = EXCLUDED.last_read_id
+RETURNING last_read_id;

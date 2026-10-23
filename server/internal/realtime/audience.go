@@ -63,7 +63,7 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 		return true
 	case events.Typing: // others typing in the user's channels
 		return d.UserID != a.user && a.inChannel(d.ChannelID)
-	case events.ChannelRead, events.SessionsEnded, // about the user only
+	case events.ChannelRead, events.ChannelUnread, events.SidebarChanged, events.SessionsEnded, // about the user only
 		events.ThreadFollowed, events.ThreadRead, events.SavedChanged:
 		return d.UserID == a.user
 	case events.PresenceChanged, events.UserUpdated:

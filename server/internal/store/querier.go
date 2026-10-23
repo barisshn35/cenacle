@@ -283,6 +283,7 @@ type Querier interface {
 	GetRun(ctx context.Context, id pgtype.UUID) (PlaybookRun, error)
 	GetSaved(ctx context.Context, arg GetSavedParams) (SavedMessage, error)
 	GetSharedChannel(ctx context.Context, arg GetSharedChannelParams) (SharedChannel, error)
+	GetSidebarLayout(ctx context.Context, arg GetSidebarLayoutParams) ([]byte, error)
 	GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, error)
 	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetTabByCanvas(ctx context.Context, canvasID pgtype.UUID) (ChannelTab, error)
@@ -362,6 +363,7 @@ type Querier interface {
 	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
 	ListBurnReveals(ctx context.Context, arg ListBurnRevealsParams) ([]ListBurnRevealsRow, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
+	ListCategoryIDs(ctx context.Context, workspaceID pgtype.UUID) ([]pgtype.UUID, error)
 	// ListChannelFiles is the files tab: files of the channel's visible messages,
 	// newest first, with their uploaders.
 	ListChannelFiles(ctx context.Context, arg ListChannelFilesParams) ([]ListChannelFilesRow, error)
@@ -482,6 +484,9 @@ type Querier interface {
 	// ListWorkspaceCommands returns the custom commands of a workspace whose bot is enabled.
 	ListWorkspaceCommands(ctx context.Context, workspaceID pgtype.UUID) ([]SlashCommand, error)
 	ListWorkspaceGroupMappings(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceGroupMapping, error)
+	// ListWorkspaceMemberChannels returns the channels and conversations of a workspace
+	// the user belongs to.
+	ListWorkspaceMemberChannels(ctx context.Context, arg ListWorkspaceMemberChannelsParams) ([]pgtype.UUID, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
 	ListWorkspaceNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]ListWorkspaceNotificationPrefsRow, error)
 	LocalMessageOf(ctx context.Context, arg LocalMessageOfParams) (pgtype.UUID, error)
@@ -491,11 +496,22 @@ type Querier interface {
 	MarkRead(ctx context.Context, arg MarkReadParams) (int64, error)
 	// MarkThreadRead moves a follower's read position in a thread forward.
 	MarkThreadRead(ctx context.Context, arg MarkThreadReadParams) (int64, error)
+	// MarkThreadUnreadFrom moves a follower's read position in a thread back to just
+	// before a reply (following the thread if they did not).
+	MarkThreadUnreadFrom(ctx context.Context, arg MarkThreadUnreadFromParams) (pgtype.UUID, error)
+	// MarkUnreadFrom moves a member's read position back to just before a message,
+	// so it and everything after it count as unread again.
+	MarkUnreadFrom(ctx context.Context, arg MarkUnreadFromParams) (pgtype.UUID, error)
 	// MissedForEmail lists unread mentions, conversation messages and replies in
 	// followed threads of a person after a message id and older than a moment,
 	// oldest first.
 	MissedForEmail(ctx context.Context, arg MissedForEmailParams) ([]MissedForEmailRow, error)
+	// NewestChannelMessage returns the newest message of others shown in a
+	// channel's timeline (one's own messages never count as unread).
+	NewestChannelMessage(ctx context.Context, arg NewestChannelMessageParams) (pgtype.UUID, error)
 	NewestMessageID(ctx context.Context) (pgtype.UUID, error)
+	// NewestTimelineMessage returns the newest message shown in a channel's timeline.
+	NewestTimelineMessage(ctx context.Context, channelID pgtype.UUID) (pgtype.UUID, error)
 	// NotifyCandidates lists, for messages after a cursor, the people who may be
 	// told about them: the members of the message's channel other than its author,
 	// what the message is to them (a mention, a conversation, any message) and
@@ -516,6 +532,7 @@ type Querier interface {
 	// PurgeExpiredMessages deletes up to row_limit messages older than their
 	// channel's (or workspace's) retention, except those a legal hold keeps.
 	PurgeExpiredMessages(ctx context.Context, rowLimit int32) (int64, error)
+	PutSidebarLayout(ctx context.Context, arg PutSidebarLayoutParams) error
 	// QueueDeliveries records an event for every enabled subscription of a bot that is a
 	// member of the event's channel and wants this event, except the bot's own messages.
 	QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error)
