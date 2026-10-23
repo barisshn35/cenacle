@@ -62,11 +62,19 @@ export function FederationPage() {
     );
   }
   return (
-    <div className="flex flex-col gap-4" data-testid="federation">
-      {query.data.offers.length > 0 && <Offers ws={ws} offers={query.data.offers} />}
-      <Connections ws={ws} connections={query.data.connections} />
-      <Invite ws={ws} />
-      <Connect ws={ws} />
+    // Two columns on wide screens: the connections beside the ways to add one.
+    <div
+      className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] max-sm:px-4"
+      data-testid="federation"
+    >
+      <div className="flex min-w-0 flex-col gap-4">
+        {query.data.offers.length > 0 && <Offers ws={ws} offers={query.data.offers} />}
+        <Connections ws={ws} connections={query.data.connections} />
+      </div>
+      <div className="flex min-w-0 flex-col gap-4">
+        <Invite ws={ws} />
+        <Connect ws={ws} />
+      </div>
     </div>
   );
 }

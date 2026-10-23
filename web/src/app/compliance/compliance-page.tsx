@@ -78,11 +78,22 @@ export function CompliancePage() {
   }
   const owner = workspace?.role === 'owner';
   return (
-    <div className="flex flex-col gap-4" data-testid="compliance">
-      <Settings ws={ws} initial={query.data} />
-      {query.data.attributes.length > 0 && <MemberAttributes ws={ws} settings={query.data} />}
-      {owner && <Holds ws={ws} />}
-      {owner && <Export ws={ws} />}
+    // Two columns on wide screens: what is kept (retention, classifications,
+    // attributes) beside what is held and exported.
+    <div
+      className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] max-sm:px-4"
+      data-testid="compliance"
+    >
+      <div className="flex min-w-0 flex-col gap-4">
+        <Settings ws={ws} initial={query.data} />
+        {query.data.attributes.length > 0 && <MemberAttributes ws={ws} settings={query.data} />}
+      </div>
+      {owner && (
+        <div className="flex min-w-0 flex-col gap-4">
+          <Export ws={ws} />
+          <Holds ws={ws} />
+        </div>
+      )}
     </div>
   );
 }
