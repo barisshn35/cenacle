@@ -126,29 +126,46 @@ test('the desktop app keeps its memory while messages keep coming', async () => 
   await main.waitForURL(/\/c\/[0-9a-f-]{36}/);
   const channel = main.url().match(/\/c\/([0-9a-f-]{36})/)![1]!;
 
+  // The messages go to a thread of one message, so the channel the other
+  // stack tests read stays as they expect; the thread panel shows them live.
+  const post = (body: string, rootId?: string) =>
+    main.evaluate(
+      async ([id, text, root]) => {
+        const res = await fetch(`/api/channels/${id}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            body: text,
+            nonce: `soak-${Date.now()}-${Math.random()}`,
+            ...(root ? { root_id: root } : {}),
+          }),
+        });
+        return ((await res.json()) as { id: string }).id;
+      },
+      [channel, body, rootId ?? ''] as const,
+    );
+  const root = await post('Soak run: replies follow in this thread.');
+  await post('Soak message 0: the quick brown fox.', root);
+  await main
+    .getByTestId('message')
+    .filter({ hasText: 'Soak run: replies follow' })
+    .getByTestId('thread-summary')
+    .click();
+  const panel = main.getByTestId('thread-panel');
+  await expect(panel).toContainText('Soak message 0');
+
   const memory = () =>
     app.evaluate(({ app: a }) =>
       Math.round(a.getAppMetrics().reduce((s, p) => s + p.memory.workingSetSize, 0) / 1024),
     );
   const samples: number[] = [];
   const end = Date.now() + minutes * 60_000;
-  let sent = 0;
+  let sent = 1;
   let nextSample = Date.now();
   while (Date.now() < end) {
-    // One message every 1.5 seconds, under the rate limit; the page sends it
+    // One reply every 1.5 seconds, under the rate limit; the page sends it
     // (the app adds the session), the realtime connection brings it back.
-    await main.evaluate(
-      ([id, n]) =>
-        fetch(`/api/channels/${id}/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            body: `Soak message ${n}: the quick brown fox.`,
-            nonce: `soak-${n}-${Date.now()}`,
-          }),
-        }).then((r) => r.status),
-      [channel, sent] as const,
-    );
+    await post(`Soak message ${sent}: the quick brown fox.`, root);
     sent++;
     if (Date.now() >= nextSample) {
       samples.push(await memory());
@@ -157,7 +174,7 @@ test('the desktop app keeps its memory while messages keep coming', async () => 
     await main.waitForTimeout(1_500);
   }
   samples.push(await memory());
-  await expect(main.getByTestId('message').last()).toContainText(`Soak message ${sent - 1}`);
+  await expect(panel.getByTestId('message').last()).toContainText(`Soak message ${sent - 1}`);
   test.info().annotations.push({
     type: 'soak',
     description: `${sent} messages, MB per minute: ${samples.join(' ')}`,
