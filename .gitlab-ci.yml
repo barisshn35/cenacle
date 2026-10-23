@@ -328,11 +328,14 @@ desktop-sign:
     - packages="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version"
     - work="$CI_PROJECT_DIR/.sign" && mkdir -p "$work" && chmod 700 "$work"
     - (umask 077 && cp "$COSIGN_KEY" "$work/cosign.key")
-    - curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" -o "$work/SHA256SUMS" "$packages/SHA256SUMS"
+    - |
+      curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" -o "$work/SHA256SUMS" "$packages/SHA256SUMS"
     - >
       docker run --rm --user 0 --network host -v "$work:/w" -v "$CI_PROJECT_DIR/ci/signing-config.json:/signing-config.json:ro"
       -e COSIGN_PASSWORD "$COSIGN_IMAGE" sign-blob --key /w/cosign.key --signing-config /signing-config.json
       --bundle /w/SHA256SUMS.sigstore.json --yes /w/SHA256SUMS
-    - curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$work/SHA256SUMS.sigstore.json" "$packages/SHA256SUMS.sigstore.json"
+    - |
+      curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file \
+        "$work/SHA256SUMS.sigstore.json" "$packages/SHA256SUMS.sigstore.json"
   after_script:
     - rm -rf "$CI_PROJECT_DIR/.sign"
