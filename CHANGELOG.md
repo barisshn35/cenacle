@@ -8,6 +8,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- Jumping to an older message (from search or a link) could still stop short on phones: the
+  list now opens at the message instead of scrolling a list still being measured.
+
 ## [0.27.0] - 2026-10-23
 
 Optimization and load tests.

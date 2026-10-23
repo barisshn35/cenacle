@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { Body } from '../compliance/encrypted';
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { CircleAlertIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -338,6 +338,8 @@ function useJumpTo(
     fetchNextPage: () => Promise<unknown>;
   },
   list: RefObject<VirtuosoHandle | null>,
+  /** Called with the row of the message once found: the list starts there. */
+  onFound: (index: number) => void,
 ) {
   const { t } = useTranslation();
   const target = useJump((s) => (s.target?.channelId === channelId ? s.target.messageId : null));
@@ -357,6 +359,9 @@ function useJumpTo(
       // again until the message is in view (a few tries).
       // The highlight starts once the message is in view, so it is seen in full.
       useJump.setState({ target: null });
+      // Starting the list at the message is reliable where scrolling a list
+      // whose rows are still being measured is not; the loop below checks.
+      onFound(index);
       let tries = 0;
       const bring = () => {
         const now = latestRows.current.findIndex(
@@ -386,7 +391,7 @@ function useJumpTo(
     }
     done(null);
     toast(t('search.notLoaded'));
-  }, [target, rows, loading, hasNextPage, pages, fetchNextPage, list, done, t]);
+  }, [target, rows, loading, hasNextPage, pages, fetchNextPage, list, done, t, onFound]);
 }
 
 export function MessageList({ channel }: { channel: Channel }) {
@@ -427,6 +432,12 @@ export function MessageList({ channel }: { channel: Channel }) {
     return START_INDEX - (at >= 0 ? at : olderCount);
   }, [rows, anchorId, olderCount]);
 
+  // A jump starts the list again at the message (a new key mounts it there).
+  const [startAt, setStartAt] = useState<{ index: number; seq: number } | null>(null);
+  const onFound = useCallback(
+    (index: number) => setStartAt((s) => ({ index, seq: (s?.seq ?? 0) + 1 })),
+    [],
+  );
   useJumpTo(
     channelId,
     rows,
@@ -437,6 +448,7 @@ export function MessageList({ channel }: { channel: Channel }) {
       fetchNextPage: query.fetchNextPage,
     },
     list,
+    onFound,
   );
 
   if (query.isPending) return <Loading />;
@@ -469,11 +481,16 @@ export function MessageList({ channel }: { channel: Channel }) {
       className="min-h-0 flex-1"
     >
       <Virtuoso
+        key={startAt?.seq ?? 0}
         ref={list}
         className="h-full"
         data={rows}
         firstItemIndex={firstItemIndex}
-        initialTopMostItemIndex={Math.max(rows.length - 1, 0)}
+        initialTopMostItemIndex={
+          startAt
+            ? { index: Math.min(startAt.index, rows.length - 1), align: 'center' }
+            : Math.max(rows.length - 1, 0)
+        }
         computeItemKey={(_, row) => row.key}
         // Stay at the bottom when new messages arrive, if the reader is there.
         followOutput={(atBottom) => (atBottom ? 'smooth' : false)}
