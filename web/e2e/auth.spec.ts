@@ -208,9 +208,16 @@ test('inside the desktop app, sign-in opens the app’s own window', async ({ pa
       signOut: () => call('signOut'),
       changeServer: () => call('changeServer'),
       setBadge: (n: number) => call('setBadge', String(n)),
+      setTitleBar: () => Promise.resolve(),
+      prefs: () => Promise.resolve({ closeToTray: true, sessionKept: true, tray: true }),
+      setCloseToTray: () => Promise.resolve(),
+      checkUpdates: () => Promise.resolve(),
+      titleBarHeight: 36,
     };
   });
   await page.goto('/signin?return_to=%2Fc%2Fx');
+  // The app's own bar replaces the system's title bar.
+  await expect(page.getByTestId('desktop-title-bar')).toBeVisible();
   // Not the web-off page: the desktop app works while browsers are turned away.
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to Cenacle');
   await expect.poll(() => calls).toEqual(['signIn:/c/x']);
