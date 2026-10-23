@@ -1480,7 +1480,16 @@
       "secret": "İmzalama anahtarı",
       "copy": "Kopyala",
       "copied": "Kopyalandı.",
-      "failed": "Bu işlem yapılamadı."
+      "failed": "Bu işlem yapılamadı.",
+      "on": "Açık",
+      "columns": {
+        "workflow": "İş akışı",
+        "steps": "Adımlar",
+        "state": "Durum",
+        "actions": "İşlemler",
+        "form": "Form",
+        "fields": "Alanlar"
+      }
     }
   },
   "collab": {

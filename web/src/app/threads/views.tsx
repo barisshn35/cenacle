@@ -696,8 +696,12 @@ function UnreadsList() {
         const channel = channels.find((c) => c.id === group.channel_id);
         const last = group.messages.at(-1)!;
         return (
-          <li key={group.channel_id} data-testid="unread-channel" className="rounded-xl border">
-            <header className="flex items-center gap-2 border-b px-4 py-2">
+          <li
+            key={group.channel_id}
+            data-testid="unread-channel"
+            className="overflow-hidden rounded-[10px] border border-rule-strong bg-background"
+          >
+            <header className="flex items-center gap-2 border-b bg-secondary px-4 py-2">
               <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">
                 {channel ? channelLabel(channel) : ''}
               </h2>

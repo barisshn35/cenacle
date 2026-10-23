@@ -18,6 +18,10 @@ import {
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
+import { cn } from '@cenacle/ui/lib/utils';
+import { useIsMobile } from '@cenacle/ui/hooks/use-mobile';
+import { Board, BoardGroup, BoardSection } from '../shell/board';
+import { boardCell, boardRow } from '../shell/board-styles';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { directoryQuery, isConversation } from '../chat/data';
 import { workspaceMembersQuery } from '../chat/workspaces';
@@ -996,6 +1000,7 @@ export function WorkflowsPage() {
   const queryClient = useQueryClient();
   const workflows = useQuery(workflowsQuery(ws.admin ? ws.id : undefined));
   const forms = useQuery(formsQuery(ws.id));
+  const mobile = useIsMobile();
   const [editing, setEditing] = useState<Workflow | 'new' | null>(null);
   const [editingForm, setEditingForm] = useState<Form | 'new' | null>(null);
   const [runs, setRuns] = useState<Workflow | null>(null);
@@ -1014,116 +1019,184 @@ export function WorkflowsPage() {
     );
   }
   const triggerText = (w: Workflow) => t(`automation.triggers.${w.trigger.kind}`);
+  const wfActions = (w: Workflow) => (
+    <span className="flex flex-wrap justify-end gap-1.5">
+      <Button size="sm" variant="outline" onClick={() => setRuns(w)}>
+        {t('automation.admin.runs')}
+      </Button>
+      {w.trigger.kind === 'webhook' && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => rotateWorkflowWebhook(w.id).then(setSecrets, failed(t))}
+        >
+          {t('automation.admin.newAddress')}
+        </Button>
+      )}
+      <Button size="sm" variant="outline" onClick={() => setEditing(w)}>
+        {t('automation.admin.edit')}
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setArchiving({ kind: 'workflow', id: w.id, name: w.name })}
+      >
+        {t('automation.admin.archive')}
+      </Button>
+    </span>
+  );
+  const formActions = (f: Form) => (
+    <span className="flex flex-wrap justify-end gap-1.5">
+      <Button size="sm" variant="outline" onClick={() => setEditingForm(f)}>
+        {t('automation.admin.edit')}
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setArchiving({ kind: 'form', id: f.id, name: f.name })}
+      >
+        {t('automation.admin.archive')}
+      </Button>
+    </span>
+  );
+  const state = (w: Workflow) => (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 text-[13px]',
+        w.enabled ? 'font-semibold' : 'text-muted-foreground',
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'size-2 rounded-full',
+          w.enabled ? 'bg-success' : 'border border-rule-strong',
+        )}
+      />
+      {w.enabled ? t('automation.admin.on') : t('automation.admin.off')}
+    </span>
+  );
   return (
     <div className="flex flex-col gap-8" data-testid="workflows-page">
-      <section aria-labelledby="wf-title" className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="wf-title" className="text-base font-semibold">
-            {t('automation.admin.workflows')}
-          </h2>
-          <Button size="sm" onClick={() => setEditing('new')}>
+      <BoardSection
+        title={t('automation.admin.workflows')}
+        count={workflows.data?.length}
+        actions={
+          <Button onClick={() => setEditing('new')}>
             <PlusIcon strokeWidth={1.75} />
             {t('automation.admin.newWorkflow')}
           </Button>
-        </div>
+        }
+      >
         {workflows.isPending ? (
           <Skeleton className="h-16" />
         ) : (workflows.data ?? []).length === 0 ? (
-          <p role="status" className="text-sm text-muted-foreground">
+          <p role="status" className="text-sm text-muted-foreground max-sm:px-4">
             {t('automation.admin.noWorkflows')}
           </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
+        ) : mobile ? (
+          <ul className="flex flex-col border-t">
             {workflows.data!.map((w) => (
               <li
                 key={w.id}
-                className="flex flex-wrap items-center gap-2 rounded-xl border bg-card px-4 py-3"
                 data-testid="workflow"
+                className="flex flex-col gap-1.5 border-b px-4 py-3 text-sm"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">
-                    {w.name}
-                    {!w.enabled && (
-                      <span className="ml-2 rounded-full border px-2 text-xs text-muted-foreground">
-                        {t('automation.admin.off')}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {triggerText(w)} · {t('automation.admin.stepCount', { count: w.steps.length })}
-                  </p>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => setRuns(w)}>
-                  {t('automation.admin.runs')}
-                </Button>
-                {w.trigger.kind === 'webhook' && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => rotateWorkflowWebhook(w.id).then(setSecrets, failed(t))}
-                  >
-                    {t('automation.admin.newAddress')}
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" onClick={() => setEditing(w)}>
-                  {t('automation.admin.edit')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setArchiving({ kind: 'workflow', id: w.id, name: w.name })}
-                >
-                  {t('automation.admin.archive')}
-                </Button>
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold">{w.name}</span>
+                  <span className="ml-auto">{state(w)}</span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {triggerText(w)} · {t('automation.admin.stepCount', { count: w.steps.length })}
+                </span>
+                <div className="flex justify-start">{wfActions(w)}</div>
               </li>
             ))}
           </ul>
+        ) : (
+          <Board
+            label={t('automation.admin.workflows')}
+            minWidth="min-w-[52rem]"
+            columns={[
+              { label: t('automation.admin.columns.workflow') },
+              { label: t('automation.admin.columns.steps'), width: 'w-[88px]' },
+              { label: t('automation.admin.columns.state'), width: 'w-[96px]' },
+              { label: t('automation.admin.columns.actions'), width: 'w-[360px]', align: 'end' },
+            ]}
+          >
+            <BoardGroup span={4}>
+              {workflows.data!.map((w) => (
+                <tr key={w.id} data-testid="workflow" className={cn(boardRow(), 'text-sm')}>
+                  <td className={boardCell}>
+                    <span className="block font-semibold">{w.name}</span>
+                    <span className="block text-[13px] text-muted-foreground">
+                      {triggerText(w)}
+                    </span>
+                  </td>
+                  <td className={cn(boardCell, 'font-mono')}>{w.steps.length}</td>
+                  <td className={boardCell}>{state(w)}</td>
+                  <td className={boardCell}>{wfActions(w)}</td>
+                </tr>
+              ))}
+            </BoardGroup>
+          </Board>
         )}
-      </section>
+      </BoardSection>
 
-      <section aria-labelledby="forms-title" className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="forms-title" className="text-base font-semibold">
-            {t('automation.admin.forms')}
-          </h2>
-          <Button size="sm" variant="outline" onClick={() => setEditingForm('new')}>
+      <BoardSection
+        title={t('automation.admin.forms')}
+        count={forms.data?.length}
+        actions={
+          <Button variant="outline" onClick={() => setEditingForm('new')}>
             <PlusIcon strokeWidth={1.75} />
             {t('automation.admin.newForm')}
           </Button>
-        </div>
+        }
+      >
         {(forms.data ?? []).length === 0 ? (
-          <p role="status" className="text-sm text-muted-foreground">
+          <p role="status" className="text-sm text-muted-foreground max-sm:px-4">
             {t('automation.admin.noForms')}
           </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
+        ) : mobile ? (
+          <ul className="flex flex-col border-t">
             {forms.data!.map((f) => (
               <li
                 key={f.id}
-                className="flex flex-wrap items-center gap-2 rounded-xl border bg-card px-4 py-3"
                 data-testid="form"
+                className="flex flex-col gap-1.5 border-b px-4 py-3 text-sm"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{f.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t('automation.admin.fieldCount', { count: f.fields.length })}
-                  </p>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => setEditingForm(f)}>
-                  {t('automation.admin.edit')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setArchiving({ kind: 'form', id: f.id, name: f.name })}
-                >
-                  {t('automation.admin.archive')}
-                </Button>
+                <span className="font-semibold">{f.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t('automation.admin.fieldCount', { count: f.fields.length })}
+                </span>
+                <div className="flex justify-start">{formActions(f)}</div>
               </li>
             ))}
           </ul>
+        ) : (
+          <Board
+            label={t('automation.admin.forms')}
+            minWidth="min-w-[40rem]"
+            columns={[
+              { label: t('automation.admin.columns.form') },
+              { label: t('automation.admin.columns.fields'), width: 'w-[140px]' },
+              { label: t('automation.admin.columns.actions'), width: 'w-[200px]', align: 'end' },
+            ]}
+          >
+            <BoardGroup span={3}>
+              {forms.data!.map((f) => (
+                <tr key={f.id} data-testid="form" className={cn(boardRow(), 'text-sm')}>
+                  <td className={cn(boardCell, 'font-semibold')}>{f.name}</td>
+                  <td className={cn(boardCell, 'text-[13px] text-muted-foreground')}>
+                    {t('automation.admin.fieldCount', { count: f.fields.length })}
+                  </td>
+                  <td className={boardCell}>{formActions(f)}</td>
+                </tr>
+              ))}
+            </BoardGroup>
+          </Board>
         )}
-      </section>
+      </BoardSection>
 
       {editing && (
         <WorkflowEditor

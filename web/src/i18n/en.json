@@ -1480,7 +1480,16 @@
       "secret": "Signing secret",
       "copy": "Copy",
       "copied": "Copied.",
-      "failed": "That did not work."
+      "failed": "That did not work.",
+      "on": "On",
+      "columns": {
+        "workflow": "Workflow",
+        "steps": "Steps",
+        "state": "State",
+        "actions": "Actions",
+        "form": "Form",
+        "fields": "Fields"
+      }
     }
   },
   "collab": {
