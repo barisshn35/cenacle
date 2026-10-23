@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.26.** Sign in with Cenacle ID (passwords with two-step verification,
+> **Status: v0.27.** Sign in with Cenacle ID (passwords with two-step verification,
 > passkeys, Active Directory/LDAP or your OpenID Connect or SAML provider), chat live in
 > channels, forums, threads and direct conversations with profiles and custom statuses,
 > link previews, voice messages, forwarding, custom emoji and stickers, burn-on-read
@@ -21,7 +21,7 @@ air-gapped networks.
 > e-mail), make Cenacle yours with theme presets and fonts, share files, connect bots and
 > schedule messages, automate work with workflows, forms and approvals, keep canvases, lists and boards next to channels, meet compliance needs (retention, legal holds, eDiscovery, access rules, encrypted channels), use optional AI with a model you run, share channels with other Cenacle servers; run several instances, monitor, back up, install on Kubernetes or
 > offline.
-> Optimization and load tests come next (see the [roadmap](#roadmap)).
+> The release candidate comes next (see the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -190,8 +190,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.23     | Compliance: retention, legal hold, eDiscovery, export, access control                 |
 | v0.24     | Optional, self-hosted AI (off by default)                                             |
 | v0.25     | Federation between servers                                                            |
-| **v0.26** | **Security testing and hardening**                                                    |
-| v0.27     | Optimization and load tests                                                           |
+| v0.26     | Security testing and hardening                                                        |
+| **v0.27** | **Optimization and load tests**                                                       |
 | v0.28     | Release candidate                                                                     |
 | v0.99     | Interface rewrite                                                                     |
 | v1.0      | Stable                                                                                |
