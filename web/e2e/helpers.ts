@@ -920,6 +920,11 @@ export async function mockApi(
     const c = all.find((x) => x.id === id)!;
     return { id: c.id, name: c.name, kind: c.kind, workspace_id: c.workspace_id };
   };
+  const edits: Record<string, { body: string; written_at: string; replaced_at: string }[]> = {};
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}\/edits$/, (route) => {
+    const id = route.request().url().split('/messages/')[1]!.split('/')[0]!;
+    return route.fulfill({ json: { edits: edits[id] ?? [] } });
+  });
   await page.route(
     /\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}(\/restore)?$/,
     (route) => {
@@ -927,7 +932,16 @@ export async function mockApi(
       const id = req.url().split('/messages/')[1]!.split('/')[0]!;
       const m = stored.find((x) => x.id === id)!;
       if (req.method() === 'PATCH') {
-        m.body = (req.postDataJSON() as { body: string }).body;
+        const body = (req.postDataJSON() as { body: string }).body;
+        if (body !== m.body) {
+          const versions = (edits[m.id] ??= []);
+          versions.unshift({
+            body: m.body,
+            written_at: m.edited_at ?? m.created_at,
+            replaced_at: new Date().toISOString(),
+          });
+        }
+        m.body = body;
         m.edited_at = new Date().toISOString();
       } else if (req.method() === 'DELETE') {
         m.deleted = true;

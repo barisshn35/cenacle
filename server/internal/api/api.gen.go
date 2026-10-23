@@ -1311,6 +1311,24 @@ func (e WorkflowTriggerKind) Valid() bool {
 	}
 }
 
+// Defines values for WorkspaceEditHistory.
+const (
+	WorkspaceEditHistoryAuthor   WorkspaceEditHistory = "author"
+	WorkspaceEditHistoryEveryone WorkspaceEditHistory = "everyone"
+)
+
+// Valid indicates whether the value is a known member of the WorkspaceEditHistory enum.
+func (e WorkspaceEditHistory) Valid() bool {
+	switch e {
+	case WorkspaceEditHistoryAuthor:
+		return true
+	case WorkspaceEditHistoryEveryone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WorkspaceRole.
 const (
 	WorkspaceRoleAdmin  WorkspaceRole = "admin"
@@ -1557,6 +1575,24 @@ func (e SetUITextsJSONBodyLocale) Valid() bool {
 	case En:
 		return true
 	case Tr:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RenameWorkspaceJSONBodyEditHistory.
+const (
+	RenameWorkspaceJSONBodyEditHistoryAuthor   RenameWorkspaceJSONBodyEditHistory = "author"
+	RenameWorkspaceJSONBodyEditHistoryEveryone RenameWorkspaceJSONBodyEditHistory = "everyone"
+)
+
+// Valid indicates whether the value is a known member of the RenameWorkspaceJSONBodyEditHistory enum.
+func (e RenameWorkspaceJSONBodyEditHistory) Valid() bool {
+	switch e {
+	case RenameWorkspaceJSONBodyEditHistoryAuthor:
+		return true
+	case RenameWorkspaceJSONBodyEditHistoryEveryone:
 		return true
 	default:
 		return false
@@ -2577,6 +2613,14 @@ type Message struct {
 	Title *string `json:"title,omitempty"`
 }
 
+// MessageEdit defines model for MessageEdit.
+type MessageEdit struct {
+	// Body The text as it was (sealed in encrypted channels).
+	Body       string    `json:"body"`
+	ReplacedAt time.Time `json:"replaced_at"`
+	WrittenAt  time.Time `json:"written_at"`
+}
+
 // MessagePage defines model for MessagePage.
 type MessagePage struct {
 	HasMore  bool      `json:"has_more"`
@@ -3333,6 +3377,9 @@ type Workspace struct {
 	Appearance  WorkspaceAppearance `json:"appearance"`
 	Description string              `json:"description"`
 
+	// EditHistory Who sees the earlier versions of edited messages (their author, or everyone who sees them).
+	EditHistory *WorkspaceEditHistory `json:"edit_history,omitempty"`
+
 	// IconUrl The workspace's icon, or null (the app shows its initials).
 	IconUrl *string            `json:"icon_url"`
 	Id      openapi_types.UUID `json:"id"`
@@ -3350,6 +3397,9 @@ type Workspace struct {
 	// TimeoutUntil Until then you may not post or react here (a moderator's timeout).
 	TimeoutUntil *time.Time `json:"timeout_until,omitempty"`
 }
+
+// WorkspaceEditHistory Who sees the earlier versions of edited messages (their author, or everyone who sees them).
+type WorkspaceEditHistory string
 
 // WorkspaceRole Guests see only the channels they are in and the people in them.
 type WorkspaceRole string
@@ -3891,8 +3941,14 @@ type CreateWorkspaceJSONBody struct {
 // RenameWorkspaceJSONBody defines parameters for RenameWorkspace.
 type RenameWorkspaceJSONBody struct {
 	Description *string `json:"description,omitempty"`
-	Name        *string `json:"name,omitempty"`
+
+	// EditHistory Who sees the earlier versions of edited messages.
+	EditHistory *RenameWorkspaceJSONBodyEditHistory `json:"edit_history,omitempty"`
+	Name        *string                             `json:"name,omitempty"`
 }
+
+// RenameWorkspaceJSONBodyEditHistory defines parameters for RenameWorkspace.
+type RenameWorkspaceJSONBodyEditHistory string
 
 // SetWorkspaceAIJSONBody defines parameters for SetWorkspaceAI.
 type SetWorkspaceAIJSONBody struct {
@@ -4578,6 +4634,9 @@ type ServerInterface interface {
 	// EditMessage Edit your own message
 	// (PATCH /api/channels/{channel_id}/messages/{message_id})
 	EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// ListMessageEdits The earlier versions of an edited message, the newest first
+	// (GET /api/channels/{channel_id}/messages/{message_id}/edits)
+	ListMessageEdits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// ForwardMessage Forward a message to a channel or conversation you can post in
 	// (POST /api/channels/{channel_id}/messages/{message_id}/forward)
 	ForwardMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
@@ -4962,7 +5021,7 @@ type ServerInterface interface {
 	// CreateWorkspace Create a workspace (the instance administrator)
 	// (POST /api/workspaces)
 	CreateWorkspace(w http.ResponseWriter, r *http.Request)
-	// RenameWorkspace Change a workspace's name or description (owners and admins)
+	// RenameWorkspace Change a workspace's name, description or settings (owners and admins)
 	// (PATCH /api/workspaces/{workspace_id})
 	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// SetWorkspaceAI Turn the AI features of a workspace on or off (owners and admins)
@@ -5511,6 +5570,12 @@ func (_ Unimplemented) GetMessage(w http.ResponseWriter, r *http.Request, channe
 // EditMessage Edit your own message
 // (PATCH /api/channels/{channel_id}/messages/{message_id})
 func (_ Unimplemented) EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMessageEdits The earlier versions of an edited message, the newest first
+// (GET /api/channels/{channel_id}/messages/{message_id}/edits)
+func (_ Unimplemented) ListMessageEdits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6282,7 +6347,7 @@ func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// RenameWorkspace Change a workspace's name or description (owners and admins)
+// RenameWorkspace Change a workspace's name, description or settings (owners and admins)
 // (PATCH /api/workspaces/{workspace_id})
 func (_ Unimplemented) RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -8344,6 +8409,41 @@ func (siw *ServerInterfaceWrapper) EditMessage(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EditMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMessageEdits operation middleware
+func (siw *ServerInterfaceWrapper) ListMessageEdits(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMessageEdits(w, r, channelId, messageId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14048,6 +14148,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.EditMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/edits", wrapper.ListMessageEdits)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/replies", wrapper.ListReplies)

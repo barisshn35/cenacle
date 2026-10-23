@@ -94,7 +94,7 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Wor
 }
 
 const createWorkspace = `-- name: CreateWorkspace :one
-INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation
+INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history
 `
 
 type CreateWorkspaceParams struct {
@@ -118,12 +118,13 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.ClassificationID,
 		&i.AiEnabled,
 		&i.GroupCreation,
+		&i.EditHistory,
 	)
 	return i, err
 }
 
 const getDefaultWorkspace = `-- name: GetDefaultWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation FROM workspaces WHERE is_default
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history FROM workspaces WHERE is_default
 `
 
 func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
@@ -142,6 +143,7 @@ func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
 		&i.ClassificationID,
 		&i.AiEnabled,
 		&i.GroupCreation,
+		&i.EditHistory,
 	)
 	return i, err
 }
@@ -177,7 +179,7 @@ func (q *Queries) GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInv
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation FROM workspaces WHERE id = $1
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error) {
@@ -196,6 +198,7 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.ClassificationID,
 		&i.AiEnabled,
 		&i.GroupCreation,
+		&i.EditHistory,
 	)
 	return i, err
 }
@@ -307,7 +310,7 @@ func (q *Queries) ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]W
 }
 
 const listUserWorkspaces = `-- name: ListUserWorkspaces :many
-SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, w.welcome, w.retention_days, w.classification_id, w.ai_enabled, w.group_creation, wm.role, wm.timeout_until, wm.onboarded_at
+SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, w.welcome, w.retention_days, w.classification_id, w.ai_enabled, w.group_creation, w.edit_history, wm.role, wm.timeout_until, wm.onboarded_at
 FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.user_id = $1
 ORDER BY w.is_default DESC, lower(w.name), w.id
@@ -344,6 +347,7 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([
 			&i.Workspace.ClassificationID,
 			&i.Workspace.AiEnabled,
 			&i.Workspace.GroupCreation,
+			&i.Workspace.EditHistory,
 			&i.Role,
 			&i.TimeoutUntil,
 			&i.OnboardedAt,
@@ -421,18 +425,25 @@ func (q *Queries) RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspace
 
 const renameWorkspace = `-- name: RenameWorkspace :one
 UPDATE workspaces SET name = coalesce($1, name),
-    description = coalesce($2, description)
-WHERE id = $3 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation
+    description = coalesce($2, description),
+    edit_history = coalesce($3, edit_history)
+WHERE id = $4 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history
 `
 
 type RenameWorkspaceParams struct {
 	Name        pgtype.Text `json:"name"`
 	Description pgtype.Text `json:"description"`
+	EditHistory pgtype.Text `json:"edit_history"`
 	ID          pgtype.UUID `json:"id"`
 }
 
 func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error) {
-	row := q.db.QueryRow(ctx, renameWorkspace, arg.Name, arg.Description, arg.ID)
+	row := q.db.QueryRow(ctx, renameWorkspace,
+		arg.Name,
+		arg.Description,
+		arg.EditHistory,
+		arg.ID,
+	)
 	var i Workspace
 	err := row.Scan(
 		&i.ID,
@@ -447,6 +458,7 @@ func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams
 		&i.ClassificationID,
 		&i.AiEnabled,
 		&i.GroupCreation,
+		&i.EditHistory,
 	)
 	return i, err
 }

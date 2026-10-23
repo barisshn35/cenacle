@@ -106,7 +106,7 @@ paths:
     patch:
       tags: [workspaces]
       operationId: renameWorkspace
-      summary: Change a workspace's name or description (owners and admins)
+      summary: Change a workspace's name, description or settings (owners and admins)
       requestBody:
         required: true
         content:
@@ -117,6 +117,10 @@ paths:
               properties:
                 name: { type: string, minLength: 1, maxLength: 80 }
                 description: { type: string, maxLength: 500 }
+                edit_history:
+                  type: string
+                  enum: [author, everyone]
+                  description: Who sees the earlier versions of edited messages.
       responses:
         '200':
           description: Changed.
@@ -2504,6 +2508,32 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/messages/{message_id}/edits:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listMessageEdits
+      summary: The earlier versions of an edited message, the newest first
+      description: |
+        For its author, or for everyone who sees the message when the
+        workspace shows edit history to everyone.
+      responses:
+        '200':
+          description: Earlier versions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [edits]
+                properties:
+                  edits:
+                    type: array
+                    items: { $ref: '#/components/schemas/MessageEdit' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/channels/{channel_id}/messages/{message_id}/replies:
     parameters:
       - name: channel_id
@@ -6789,6 +6819,10 @@ components:
         needs_onboarding:
           type: boolean
           description: The workspace has a welcome you have not seen yet.
+        edit_history:
+          type: string
+          enum: [author, everyone]
+          description: Who sees the earlier versions of edited messages (their author, or everyone who sees them).
     WorkspaceMember:
       type: object
       required: [user, role]
@@ -6980,6 +7014,13 @@ components:
         format: { type: string, enum: [woff2, woff, truetype, opentype] }
         size: { type: integer }
         created_at: { type: string, format: date-time }
+    MessageEdit:
+      type: object
+      required: [body, written_at, replaced_at]
+      properties:
+        body: { type: string, description: The text as it was (sealed in encrypted channels). }
+        written_at: { type: string, format: date-time }
+        replaced_at: { type: string, format: date-time }
     MentionGroup:
       type: object
       required: [id, handle, name, description, directory_group, member_count, is_member, can_manage, archived]

@@ -205,6 +205,18 @@ export const editMessage = async (m: Message, body: string) =>
     ...json({ body: await sealFor(m.channel_id, body) }),
     method: 'PATCH',
   });
+/** Puts an earlier version back, as it was kept (sealed in encrypted channels). */
+export const restoreVersion = (m: Message, body: string) =>
+  apiFetch<Message>(messageUrl(m), { ...json({ body }), method: 'PATCH' });
+export type MessageEdit = components['schemas']['MessageEdit'];
+export const messageEditsQuery = (m: Pick<Message, 'id' | 'channel_id' | 'edited_at'>) =>
+  queryOptions({
+    queryKey: ['message-edits', m.channel_id, m.id, m.edited_at],
+    queryFn: () =>
+      apiFetch<{ edits: MessageEdit[] }>(
+        `/api/channels/${m.channel_id}/messages/${m.id}/edits`,
+      ).then((r) => r.edits),
+  });
 export const deleteMessage = (m: Message) => apiFetch<void>(messageUrl(m), { method: 'DELETE' });
 export const restoreMessage = (m: Message) =>
   apiFetch<Message>(`${messageUrl(m)}/restore`, { method: 'POST' });

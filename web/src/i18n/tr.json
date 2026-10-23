@@ -384,7 +384,11 @@
       "members": "Bu çalışma alanındaki kişiler ve rolleri; bir çalışma alanında en az bir sahip kalır.",
       "welcome": "Yeni üyelerin ilk gördükleri.",
       "ai": "Sunucu sunuyorsa bu çalışma alanının yardımcısı."
-    }
+    },
+    "editHistory": "Düzenleme geçmişi",
+    "editHistoryHint": "Düzenlenen mesajların önceki hallerini kimin göreceği. eKeşif dışa aktarımları onları her zaman içerir.",
+    "editHistoryAuthor": "Yalnızca yazan",
+    "editHistoryEveryone": "Mesajı gören herkes"
   },
   "invites": {
     "title": "{{workspace}} alanına katıl",
@@ -2100,5 +2104,16 @@
     "pickerLine_other": "{{name}} · {{count}} kişi",
     "toManager": "Yönetici yap",
     "fromManager": "Yöneticilikten al"
+  },
+  "edits": {
+    "title": "Düzenleme geçmişi",
+    "description": "Bu mesajın önceki halleri, en yenisi önce.",
+    "descriptionOwn": "Mesajının önceki halleri, en yenisi önce. Birini geri getirebilirsin.",
+    "open": "{{when}} düzenlendi. Önceki hallerini göster",
+    "now": "Şimdi",
+    "written": "Yazıldı",
+    "restore": "Bu hali geri getir",
+    "restored": "Önceki hali geri getirildi.",
+    "none": "Önceki bir hali saklanmadı."
   }
 }

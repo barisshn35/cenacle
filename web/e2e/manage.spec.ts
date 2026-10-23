@@ -35,6 +35,13 @@ test('authors edit their messages in place', async ({ page }) => {
   await page.getByLabel('Edit message').fill('vazgeçilen');
   await page.getByLabel('Edit message').press('Escape');
   await expect(page.getByText('vazgeçilen')).toHaveCount(0);
+
+  // "(edited)" opens the earlier versions; one is put back.
+  await edited.getByRole('button', { name: /^Edited .*Show the earlier versions$/ }).click();
+  const history = page.getByRole('dialog', { name: 'Edit history' });
+  await expect(history.getByText('yazım hatsı')).toBeVisible();
+  await history.getByRole('button', { name: 'Restore this version' }).click();
+  await expect(page.getByTestId('message').filter({ hasText: 'yazım hatsı' })).toBeVisible();
 });
 
 test('deleting shows Undo, which brings the message back', async ({ page }) => {

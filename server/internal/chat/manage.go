@@ -377,6 +377,18 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 	}
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
+		// The text it replaces is kept (when it changes).
+		if body != m.Body {
+			written := m.CreatedAt
+			if m.EditedAt.Valid {
+				written = m.EditedAt.Time
+			}
+			if err := q.AddMessageEdit(r.Context(), store.AddMessageEditParams{
+				MessageID: m.ID, Body: m.Body, WrittenAt: written,
+			}); err != nil {
+				return err
+			}
+		}
 		edited, err := q.EditMessage(r.Context(), store.EditMessageParams{ID: m.ID, Body: body})
 		if err != nil {
 			return err
@@ -408,6 +420,46 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, out)
+}
+
+// ListMessageEdits implements api.ServerInterface.
+func (h *Handlers) ListMessageEdits(w http.ResponseWriter, r *http.Request, channelID, messageID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	c, _, m, ok := h.message(w, r, channelID, messageID, p.User)
+	if !ok {
+		return
+	}
+	if m.DeletedAt.Valid || m.BurnSeconds.Valid {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
+			Detail: "No such message."})
+		return
+	}
+	if m.AuthorID != p.User.ID {
+		ws, err := h.Queries.GetWorkspace(r.Context(), c.WorkspaceID)
+		if err != nil {
+			h.unavailable(w, r, "get workspace", err)
+			return
+		}
+		if ws.EditHistory != "everyone" {
+			forbidden(w, r, httpx.CodeForbidden, "Only its author sees the earlier versions of a message here.")
+			return
+		}
+	}
+	rows, err := h.Queries.ListMessageEdits(r.Context(), m.ID)
+	if err != nil {
+		h.unavailable(w, r, "list edits", err)
+		return
+	}
+	out := make([]api.MessageEdit, 0, len(rows))
+	for _, e := range rows {
+		out = append(out, api.MessageEdit{Body: e.Body, WrittenAt: e.WrittenAt, ReplacedAt: e.ReplacedAt})
+	}
+	httpx.WriteJSON(w, http.StatusOK, struct {
+		Edits []api.MessageEdit `json:"edits"`
+	}{out})
 }
 
 // DeleteMessage implements api.ServerInterface.

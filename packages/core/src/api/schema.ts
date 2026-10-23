@@ -40,7 +40,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Change a workspace's name or description (owners and admins) */
+    /** Change a workspace's name, description or settings (owners and admins) */
     patch: operations['renameWorkspace'];
     trace?: never;
   };
@@ -1564,6 +1564,30 @@ export interface paths {
     head?: never;
     /** Edit your own message */
     patch: operations['editMessage'];
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/edits': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * The earlier versions of an edited message, the newest first
+     * @description For its author, or for everyone who sees the message when the
+     *     workspace shows edit history to everyone.
+     */
+    get: operations['listMessageEdits'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/api/channels/{channel_id}/messages/{message_id}/replies': {
@@ -4575,6 +4599,11 @@ export interface components {
       timeout_until?: string | null;
       /** @description The workspace has a welcome you have not seen yet. */
       needs_onboarding?: boolean;
+      /**
+       * @description Who sees the earlier versions of edited messages (their author, or everyone who sees them).
+       * @enum {string}
+       */
+      edit_history?: 'author' | 'everyone';
     };
     WorkspaceMember: {
       user: components['schemas']['Person'];
@@ -4731,6 +4760,14 @@ export interface components {
       size: number;
       /** Format: date-time */
       created_at: string;
+    };
+    MessageEdit: {
+      /** @description The text as it was (sealed in encrypted channels). */
+      body: string;
+      /** Format: date-time */
+      written_at: string;
+      /** Format: date-time */
+      replaced_at: string;
     };
     MentionGroup: {
       /** Format: uuid */
@@ -5292,6 +5329,11 @@ export interface operations {
         'application/json': {
           name?: string;
           description?: string;
+          /**
+           * @description Who sees the earlier versions of edited messages.
+           * @enum {string}
+           */
+          edit_history?: 'author' | 'everyone';
         };
       };
     };
@@ -7900,6 +7942,34 @@ export interface operations {
         };
       };
       400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listMessageEdits: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Earlier versions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            edits: components['schemas']['MessageEdit'][];
+          };
+        };
+      };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];

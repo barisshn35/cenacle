@@ -452,6 +452,14 @@ type Message struct {
 	SubmissionID  pgtype.UUID        `json:"submission_id"`
 }
 
+type MessageEdit struct {
+	ID         pgtype.UUID `json:"id"`
+	MessageID  pgtype.UUID `json:"message_id"`
+	Body       string      `json:"body"`
+	WrittenAt  time.Time   `json:"written_at"`
+	ReplacedAt time.Time   `json:"replaced_at"`
+}
+
 type MessageMention struct {
 	MessageID pgtype.UUID `json:"message_id"`
 	UserID    pgtype.UUID `json:"user_id"`
@@ -778,6 +786,7 @@ type Workspace struct {
 	ClassificationID pgtype.UUID `json:"classification_id"`
 	AiEnabled        bool        `json:"ai_enabled"`
 	GroupCreation    string      `json:"group_creation"`
+	EditHistory      string      `json:"edit_history"`
 }
 
 type WorkspaceAttribute struct {

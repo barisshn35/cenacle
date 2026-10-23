@@ -204,3 +204,39 @@ export function WorkspaceAppearanceForm({ workspace }: { workspace: Workspace })
     </section>
   );
 }
+
+/** Who sees the earlier versions of edited messages (owners and admins choose). */
+export function EditHistorySetting({ workspace }: { workspace: Workspace }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const set = useMutation({
+    mutationFn: (edit_history: 'author' | 'everyone') =>
+      updateWorkspace(workspace.id, { edit_history }),
+    onSuccess: () => reloadWorkspaces(queryClient),
+    onError: () => toast.error(t('channels.changeFailed')),
+  });
+  const value = set.isPending ? set.variables : (workspace.edit_history ?? 'author');
+  return (
+    <fieldset className="flex flex-col gap-2 border-t pt-5">
+      <legend className="text-sm font-semibold">{t('workspaces.editHistory')}</legend>
+      <p className="text-xs text-muted-foreground">{t('workspaces.editHistoryHint')}</p>
+      {(['author', 'everyone'] as const).map((v) => (
+        <div key={v} className="flex min-h-target items-center gap-2.5 text-sm">
+          <input
+            id={`edit-history-${v}`}
+            type="radio"
+            name="edit-history"
+            className="size-4"
+            checked={value === v}
+            onChange={() => set.mutate(v)}
+          />
+          <label htmlFor={`edit-history-${v}`}>
+            {v === 'author'
+              ? t('workspaces.editHistoryAuthor')
+              : t('workspaces.editHistoryEveryone')}
+          </label>
+        </div>
+      ))}
+    </fieldset>
+  );
+}

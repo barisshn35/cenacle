@@ -39,7 +39,8 @@ type WorkspaceEvent struct {
 func workspaceAPI(w store.Workspace, role string) api.Workspace {
 	return api.Workspace{Id: uuid(w.ID), Name: w.Name, Description: w.Description,
 		IconUrl: pictureURL(w.IconID, false), Appearance: workspaceAppearance(w.Appearance),
-		IsDefault: w.IsDefault, Role: api.WorkspaceRole(role), AiEnabled: ptr(w.AiEnabled)}
+		IsDefault: w.IsDefault, Role: api.WorkspaceRole(role), AiEnabled: ptr(w.AiEnabled),
+		EditHistory: ptr(api.WorkspaceEditHistory(w.EditHistory))}
 }
 
 // ListWorkspaces implements api.ServerInterface.
@@ -138,10 +139,7 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 	if !ok {
 		return
 	}
-	var in struct {
-		Name        *string `json:"name"`
-		Description *string `json:"description"`
-	}
+	var in api.RenameWorkspaceJSONBody
 	if !decode(w, r, &in) {
 		return
 	}
@@ -166,8 +164,15 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 		}
 		params.Description = pgtype.Text{String: d, Valid: true}
 	}
-	if !params.Name.Valid && !params.Description.Valid {
-		badRequest(w, r, "Change the name, the description or both.")
+	if in.EditHistory != nil {
+		if !in.EditHistory.Valid() {
+			badRequest(w, r, "edit_history is author or everyone.")
+			return
+		}
+		params.EditHistory = pgtype.Text{String: string(*in.EditHistory), Valid: true}
+	}
+	if !params.Name.Valid && !params.Description.Valid && !params.EditHistory.Valid {
+		badRequest(w, r, "Change the name, the description or a setting.")
 		return
 	}
 	ws, err := h.Queries.RenameWorkspace(r.Context(), params)
@@ -178,6 +183,9 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 	h.publish(r.Context(), events.WorkspaceUpdated, WorkspaceEvent{WorkspaceID: uuid(ws.ID).String()})
 	if in.Name != nil {
 		h.record(r, ws.ID, audit.WorkspaceRenamed, "workspace", uuid(ws.ID).String(), map[string]any{"name": ws.Name})
+	}
+	if in.EditHistory != nil {
+		h.record(r, ws.ID, audit.EditHistoryChanged, "workspace", uuid(ws.ID).String(), map[string]any{"edit_history": ws.EditHistory})
 	}
 	httpx.WriteJSON(w, http.StatusOK, workspaceAPI(ws, role))
 }

@@ -36,6 +36,8 @@ type Querier interface {
 	AddMentionGroupMembers(ctx context.Context, arg AddMentionGroupMembersParams) error
 	// AddMentions stores the mentions of a message: only members of its channel.
 	AddMentions(ctx context.Context, arg AddMentionsParams) error
+	// AddMessageEdit keeps the text an edit replaces.
+	AddMessageEdit(ctx context.Context, arg AddMessageEditParams) error
 	AddPollOptions(ctx context.Context, arg AddPollOptionsParams) error
 	AddPollVotes(ctx context.Context, arg AddPollVotesParams) (int64, error)
 	AddPushSubscription(ctx context.Context, arg AddPushSubscriptionParams) error
@@ -391,6 +393,8 @@ type Querier interface {
 	ListConversationParticipants(ctx context.Context, userID pgtype.UUID) ([]ListConversationParticipantsRow, error)
 	ListCustomEmoji(ctx context.Context, workspaceID pgtype.UUID) ([]CustomEmoji, error)
 	ListDeliveries(ctx context.Context, arg ListDeliveriesParams) ([]EventDelivery, error)
+	// ListEditsOfMessages returns the earlier versions of messages, oldest first.
+	ListEditsOfMessages(ctx context.Context, messageIds []pgtype.UUID) ([]ListEditsOfMessagesRow, error)
 	ListEnabledAutomodRules(ctx context.Context, workspaceID pgtype.UUID) ([]AutomodRule, error)
 	ListEventReminders(ctx context.Context, eventID pgtype.UUID) ([]ListEventRemindersRow, error)
 	ListEventRsvps(ctx context.Context, eventIds []pgtype.UUID) ([]ListEventRsvpsRow, error)
@@ -424,6 +428,8 @@ type Querier interface {
 	// each and whether the user is in it or manages it.
 	ListMentionGroups(ctx context.Context, arg ListMentionGroupsParams) ([]ListMentionGroupsRow, error)
 	ListMentions(ctx context.Context, messageIds []pgtype.UUID) ([]ListMentionsRow, error)
+	// ListMessageEdits returns a message's earlier versions, the newest first.
+	ListMessageEdits(ctx context.Context, messageID pgtype.UUID) ([]ListMessageEditsRow, error)
 	ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error)
 	// ListMessagesBefore returns up to row_limit messages of a channel older than
 	// the cursor (all when before is NULL), newest first, with their authors.

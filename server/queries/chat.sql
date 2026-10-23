@@ -245,3 +245,17 @@ ORDER BY id DESC LIMIT 1;
 SELECT id FROM messages
 WHERE channel_id = @channel_id AND deleted_at IS NULL AND (root_id IS NULL OR also_in_channel)
 ORDER BY id DESC LIMIT 1;
+
+-- name: AddMessageEdit :exec
+-- AddMessageEdit keeps the text an edit replaces.
+INSERT INTO message_edits (message_id, body, written_at) VALUES (@message_id, @body, @written_at);
+
+-- name: ListMessageEdits :many
+-- ListMessageEdits returns a message's earlier versions, the newest first.
+SELECT body, written_at, replaced_at FROM message_edits
+WHERE message_id = @message_id ORDER BY id DESC LIMIT 200;
+
+-- name: ListEditsOfMessages :many
+-- ListEditsOfMessages returns the earlier versions of messages, oldest first.
+SELECT message_id, body, written_at, replaced_at FROM message_edits
+WHERE message_id = ANY(@message_ids::uuid[]) ORDER BY message_id, id;

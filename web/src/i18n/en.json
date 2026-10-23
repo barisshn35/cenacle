@@ -384,7 +384,11 @@
       "members": "The people in this workspace and their roles; a workspace keeps at least one owner.",
       "welcome": "What new members see first.",
       "ai": "The assistant of this workspace, when the server offers one."
-    }
+    },
+    "editHistory": "Edit history",
+    "editHistoryHint": "Who sees the earlier versions of edited messages. eDiscovery exports always include them.",
+    "editHistoryAuthor": "Only the author",
+    "editHistoryEveryone": "Everyone who sees the message"
   },
   "invites": {
     "title": "Join {{workspace}}",
@@ -2100,5 +2104,16 @@
     "pickerLine_other": "{{name}} · {{count}} people",
     "toManager": "Make manager",
     "fromManager": "Remove manager"
+  },
+  "edits": {
+    "title": "Edit history",
+    "description": "Earlier versions of this message, the newest first.",
+    "descriptionOwn": "Earlier versions of your message, the newest first. You can put one back.",
+    "open": "Edited {{when}}. Show the earlier versions",
+    "now": "Now",
+    "written": "Written",
+    "restore": "Restore this version",
+    "restored": "The earlier version is back.",
+    "none": "No earlier versions were kept."
   }
 }

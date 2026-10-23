@@ -51,6 +51,22 @@ func (q *Queries) AddMember(ctx context.Context, arg AddMemberParams) (int64, er
 	return result.RowsAffected(), nil
 }
 
+const addMessageEdit = `-- name: AddMessageEdit :exec
+INSERT INTO message_edits (message_id, body, written_at) VALUES ($1, $2, $3)
+`
+
+type AddMessageEditParams struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	Body      string      `json:"body"`
+	WrittenAt time.Time   `json:"written_at"`
+}
+
+// AddMessageEdit keeps the text an edit replaces.
+func (q *Queries) AddMessageEdit(ctx context.Context, arg AddMessageEditParams) error {
+	_, err := q.db.Exec(ctx, addMessageEdit, arg.MessageID, arg.Body, arg.WrittenAt)
+	return err
+}
+
 const createCategory = `-- name: CreateCategory :one
 INSERT INTO channel_categories (workspace_id, name, position)
 VALUES ($1, $2,
@@ -811,6 +827,44 @@ func (q *Queries) ListConversationParticipants(ctx context.Context, userID pgtyp
 	return items, nil
 }
 
+const listEditsOfMessages = `-- name: ListEditsOfMessages :many
+SELECT message_id, body, written_at, replaced_at FROM message_edits
+WHERE message_id = ANY($1::uuid[]) ORDER BY message_id, id
+`
+
+type ListEditsOfMessagesRow struct {
+	MessageID  pgtype.UUID `json:"message_id"`
+	Body       string      `json:"body"`
+	WrittenAt  time.Time   `json:"written_at"`
+	ReplacedAt time.Time   `json:"replaced_at"`
+}
+
+// ListEditsOfMessages returns the earlier versions of messages, oldest first.
+func (q *Queries) ListEditsOfMessages(ctx context.Context, messageIds []pgtype.UUID) ([]ListEditsOfMessagesRow, error) {
+	rows, err := q.db.Query(ctx, listEditsOfMessages, messageIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListEditsOfMessagesRow
+	for rows.Next() {
+		var i ListEditsOfMessagesRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.Body,
+			&i.WrittenAt,
+			&i.ReplacedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMemberChannelIDs = `-- name: ListMemberChannelIDs :many
 SELECT m.channel_id, c.workspace_id
 FROM channel_members m
@@ -957,6 +1011,38 @@ func (q *Queries) ListMembers(ctx context.Context, channelID pgtype.UUID) ([]Lis
 			&i.Role,
 			&i.JoinedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMessageEdits = `-- name: ListMessageEdits :many
+SELECT body, written_at, replaced_at FROM message_edits
+WHERE message_id = $1 ORDER BY id DESC LIMIT 200
+`
+
+type ListMessageEditsRow struct {
+	Body       string    `json:"body"`
+	WrittenAt  time.Time `json:"written_at"`
+	ReplacedAt time.Time `json:"replaced_at"`
+}
+
+// ListMessageEdits returns a message's earlier versions, the newest first.
+func (q *Queries) ListMessageEdits(ctx context.Context, messageID pgtype.UUID) ([]ListMessageEditsRow, error) {
+	rows, err := q.db.Query(ctx, listMessageEdits, messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMessageEditsRow
+	for rows.Next() {
+		var i ListMessageEditsRow
+		if err := rows.Scan(&i.Body, &i.WrittenAt, &i.ReplacedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

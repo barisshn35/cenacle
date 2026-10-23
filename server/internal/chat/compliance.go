@@ -720,6 +720,14 @@ type exportLine struct {
 	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
 	HasFiles    bool       `json:"has_files"`
 	Held        bool       `json:"held"`
+	// Edits are the earlier versions, oldest first.
+	Edits []exportEdit `json:"edits,omitempty"`
+}
+
+type exportEdit struct {
+	Body       string    `json:"body"`
+	WrittenAt  time.Time `json:"written_at"`
+	ReplacedAt time.Time `json:"replaced_at"`
 }
 
 // ExportMessages implements api.ServerInterface.
@@ -756,11 +764,33 @@ func (h *Handlers) ExportMessages(w http.ResponseWriter, r *http.Request, worksp
 			}
 			return
 		}
+		var edited []pgtype.UUID
+		for _, m := range rows {
+			if m.EditedAt.Valid {
+				edited = append(edited, m.ID)
+			}
+		}
+		edits := map[pgtype.UUID][]exportEdit{}
+		if len(edited) > 0 {
+			list, err := h.Queries.ListEditsOfMessages(r.Context(), edited)
+			if err != nil {
+				if !wrote {
+					h.unavailable(w, r, "export edits", err)
+				} else {
+					h.Log.ErrorContext(r.Context(), "export edits", slog.Any("error", err))
+				}
+				return
+			}
+			for _, e := range list {
+				edits[e.MessageID] = append(edits[e.MessageID], exportEdit{Body: e.Body, WrittenAt: e.WrittenAt, ReplacedAt: e.ReplacedAt})
+			}
+		}
 		for _, m := range rows {
 			line := exportLine{
 				ID: uuid(m.ID).String(), ChannelID: uuid(m.ChannelID).String(), ChannelName: m.ChannelName,
 				AuthorID: uuid(m.AuthorID).String(), AuthorName: m.AuthorName, Body: m.Body, CreatedAt: m.CreatedAt,
 				EditedAt: timeOf(m.EditedAt), DeletedAt: timeOf(m.DeletedAt), HasFiles: m.HasFiles, Held: m.Held,
+				Edits: edits[m.ID],
 			}
 			if m.RootID.Valid {
 				line.RootID = uuid(m.RootID).String()

@@ -53,7 +53,11 @@ import {
   setWorkspaceMute,
 } from '../notifications/notifications';
 import { WorkspaceGroupsSection } from './directory-groups';
-import { WorkspaceAppearanceForm, WorkspaceDetailsForm } from './workspace-details';
+import {
+  EditHistorySetting,
+  WorkspaceAppearanceForm,
+  WorkspaceDetailsForm,
+} from './workspace-details';
 import { IntegrationsDialog } from './integrations';
 import { useLastWorkspace } from './active-workspace';
 import {
@@ -407,6 +411,7 @@ function WorkspaceSettingsDialog({
             (admin ? (
               <>
                 <WorkspaceDetailsForm workspace={workspace} />
+                <EditHistorySetting workspace={workspace} />
                 <WorkspaceAppearanceForm workspace={workspace} />
                 <EmojiAndStickers workspace={workspace} />
               </>

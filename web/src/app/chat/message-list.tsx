@@ -48,6 +48,7 @@ import { BotBadge } from './bot-badge';
 import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
 import { useMarkUnread } from './mark-unread';
+import { EditedLabel } from './edit-history';
 import { AddReactionButton, ReactionBar } from './reactions';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
@@ -248,14 +249,7 @@ export function MessageRow({
               {m.submission && <SubmissionCard submission={m.submission} />}
               <ForwardedQuote message={m} />
               {m.poll && <PollCard message={m} channel={channel} />}
-              {m.edited_at && (
-                <span
-                  className="text-xs text-muted-foreground"
-                  title={fmt.full.format(new Date(m.edited_at))}
-                >
-                  {t('chat.edited')}
-                </span>
-              )}
+              <EditedLabel message={m} channel={channel} />
               <Attachments items={m.attachments} selfId={self} />
               <MessageFiles files={m.files} />
               <LinkPreviewCard message={m} />
