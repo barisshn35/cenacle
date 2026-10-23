@@ -62,7 +62,7 @@ function Onboarding({ workspaceId, name }: { workspaceId: string; name: string }
         )}
         {welcome.data.rules.length > 0 && (
           <section aria-labelledby="welcome-rules" className="flex flex-col gap-2">
-            <h3 id="welcome-rules" className="text-xs font-medium text-muted-foreground uppercase">
+            <h3 id="welcome-rules" className="text-sm font-semibold">
               {t('community.welcome.rules')}
             </h3>
             <ol className="list-decimal space-y-1 pl-5 text-sm">
@@ -74,7 +74,7 @@ function Onboarding({ workspaceId, name }: { workspaceId: string; name: string }
         )}
         {suggested.length > 0 && (
           <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 text-xs font-medium text-muted-foreground uppercase">
+            <legend className="mb-1 text-sm font-semibold">
               {t('community.welcome.channels')}
             </legend>
             {suggested.map((c) => (

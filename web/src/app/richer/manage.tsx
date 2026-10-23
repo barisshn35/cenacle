@@ -68,7 +68,7 @@ function PictureSet({ kind, workspace }: { kind: Kind; workspace: Workspace }) {
   const admin = isWorkspaceAdmin(workspace);
   return (
     <section aria-labelledby={ids.title} className="grid gap-2" data-testid={`manage-${kind}`}>
-      <h3 id={ids.title} className="text-xs font-medium text-muted-foreground uppercase">
+      <h3 id={ids.title} className="text-sm font-semibold">
         {t(`richer.manage.${kind}.title`)}
       </h3>
       <p className="text-xs text-muted-foreground">{t(`richer.manage.${kind}.hint`)}</p>

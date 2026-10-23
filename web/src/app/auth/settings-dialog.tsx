@@ -17,7 +17,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, setLanguage, type Language } from '../../i18n';
 import { getTimeFormat, setTimeFormat, type TimeFormat } from '../../i18n/time-format';
-import { cn } from '@cenacle/ui/lib/utils';
 import { AppearancePanel } from '../appearance/appearance-panel';
 import { UITextsPanel } from '../appearance/ui-texts-panel';
 import { NotificationsPanel } from '../notifications/notifications-panel';
@@ -25,17 +24,14 @@ import { toast } from 'sonner';
 import { Button, buttonVariants } from '@cenacle/ui/components/button';
 import { ConfirmDialog } from '@cenacle/ui/components/confirm-dialog';
 import { Label } from '@cenacle/ui/components/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@cenacle/ui/components/dialog';
+import { Dialog } from '@cenacle/ui/components/dialog';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ApiError } from '@cenacle/core/api';
 import { useSession } from './session';
 import { WebAppPanel } from './web-app-panel';
+import { SideNavDialog } from '../shell/side-nav-dialog';
+import { sideNavLink } from '../shell/board-styles';
 import {
   describeDevice,
   devicesQuery,
@@ -136,7 +132,6 @@ export function SettingsDialog({
       ? [{ label: t('settings.adminGroup'), tabs: ['texts', 'announcements', 'signIn'] as Tab[] }]
       : []),
   ];
-  const tabs = groups.flatMap((g) => g.tabs);
   const [tab, setTab] = useState<Tab>('account');
   const ICONS: Record<Tab, typeof UserIcon> = {
     account: UserIcon,
@@ -151,74 +146,23 @@ export function SettingsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="grid h-[min(90svh,52rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-5xl md:grid-cols-[236px_minmax(0,1fr)] md:grid-rows-1">
-          <nav
-            aria-label={t('settings.title')}
-            className="flex min-h-0 flex-col gap-1 border-b bg-secondary px-3 pt-5 pb-3 md:border-r md:border-b-0"
-          >
-            <div className="px-2.5 pb-3 max-md:pr-10">
-              <DialogTitle className="text-[17px] font-semibold">{t('settings.title')}</DialogTitle>
-              <DialogDescription className="text-xs">{session.user.display_name}</DialogDescription>
-            </div>
-            <div
-              role="tablist"
-              aria-orientation="vertical"
-              aria-label={t('settings.title')}
-              className="flex gap-1 overflow-x-auto max-md:pb-1 md:flex-col md:overflow-visible"
-            >
-              {groups.map((g, gi) => (
-                <div key={gi} className="contents md:flex md:flex-col md:gap-0.5">
-                  {g.label && (
-                    <p className="px-2.5 pt-4 pb-1 text-xs font-semibold text-muted-foreground max-md:hidden">
-                      {g.label}
-                    </p>
-                  )}
-                  {g.tabs.map((k) => {
-                    const Icon = ICONS[k];
-                    return (
-                      <button
-                        key={k}
-                        type="button"
-                        role="tab"
-                        id={`settings-tab-${k}`}
-                        aria-selected={tab === k}
-                        aria-controls={`settings-panel-${k}`}
-                        tabIndex={tab === k ? 0 : -1}
-                        onClick={() => setTab(k)}
-                        onKeyDown={(e) => {
-                          const i = tabs.indexOf(k);
-                          const forward = e.key === 'ArrowDown' || e.key === 'ArrowRight';
-                          const back = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
-                          if (!forward && !back) return;
-                          e.preventDefault();
-                          const next = tabs[(i + (forward ? 1 : tabs.length - 1)) % tabs.length]!;
-                          setTab(next);
-                          document.getElementById(`settings-tab-${next}`)?.focus();
-                        }}
-                        className={cn(
-                          'flex h-8 min-h-target shrink-0 items-center gap-2.5 rounded-[7px] px-2.5 text-left text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                          tab === k
-                            ? 'bg-accent font-semibold text-foreground'
-                            : 'text-foreground hover:bg-muted',
-                        )}
-                      >
-                        <Icon
-                          aria-hidden
-                          className="size-4 shrink-0 text-muted-foreground"
-                          strokeWidth={1.75}
-                        />
-                        {t(`settings.tabs.${k}`)}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+        <SideNavDialog
+          id="settings"
+          title={t('settings.title')}
+          subtitle={session.user.display_name}
+          groups={groups.map((g) => ({
+            label: g.label,
+            items: g.tabs.map((k) => ({ key: k, label: t(`settings.tabs.${k}`), icon: ICONS[k] })),
+          }))}
+          value={tab}
+          onChange={setTab}
+          description={t(`settings.sections.${tab}`)}
+          aside={
             <a
               href={session.account_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 flex h-8 min-h-target items-center gap-2.5 rounded-[7px] px-2.5 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 max-md:hidden"
+              className={sideNavLink}
             >
               <ShieldCheckIcon
                 aria-hidden
@@ -233,94 +177,72 @@ export function SettingsDialog({
               />
               <span className="sr-only">{t('settings.newTab')}</span>
             </a>
-            <p className="mt-auto px-2.5 pt-4 font-mono text-xs text-muted-foreground max-md:hidden">
-              {window.location.host}
-            </p>
-          </nav>
-          <div
-            role="tabpanel"
-            id={`settings-panel-${tab}`}
-            aria-labelledby={`settings-tab-${tab}`}
-            className="flex min-h-0 flex-col"
-          >
-            <header className="border-b px-8 pt-5 pb-4 max-sm:px-4 max-md:hidden">
-              <h2 className="text-[22px] leading-7 font-semibold tracking-[-0.01em]">
-                {t(`settings.tabs.${tab}`)}
-              </h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {t(`settings.sections.${tab}`)}
-              </p>
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto px-8 pt-2 pb-8 max-sm:px-4">
-              {tab === 'appearance' && <AppearancePanel />}
-              {tab === 'language' && <LanguagePanel />}
-              {tab === 'notifications' && <NotificationsPanel />}
-              {tab === 'announcements' && <AnnouncementsPanel />}
-              {tab === 'signIn' && <WebAppPanel />}
-              {tab === 'texts' && <UITextsPanel />}
-              {tab === 'account' && (
-                <div className="flex flex-col gap-6 pt-4">
-                  <section aria-labelledby="settings-security" className="flex flex-col gap-2">
-                    <h3 id="settings-security" className="text-sm font-semibold">
-                      {t('settings.security')}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">{t('settings.securityHint')}</p>
-                    <a
-                      href={session.account_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={buttonVariants({ variant: 'outline', className: 'self-start' })}
-                    >
-                      <ShieldCheckIcon aria-hidden strokeWidth={1.75} />
-                      {t('settings.openAccount')}
-                      <ExternalLinkIcon aria-hidden strokeWidth={1.75} />
-                      <span className="sr-only">{t('settings.newTab')}</span>
-                    </a>
-                  </section>
+          }
+          footer={<span className="font-mono">{window.location.host}</span>}
+        >
+          {tab === 'appearance' && <AppearancePanel />}
+          {tab === 'language' && <LanguagePanel />}
+          {tab === 'notifications' && <NotificationsPanel />}
+          {tab === 'announcements' && <AnnouncementsPanel />}
+          {tab === 'signIn' && <WebAppPanel />}
+          {tab === 'texts' && <UITextsPanel />}
+          {tab === 'account' && (
+            <div className="flex flex-col gap-6 pt-4">
+              <section aria-labelledby="settings-security" className="flex flex-col gap-2">
+                <h3 id="settings-security" className="text-sm font-semibold">
+                  {t('settings.security')}
+                </h3>
+                <p className="text-sm text-muted-foreground">{t('settings.securityHint')}</p>
+                <a
+                  href={session.account_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: 'outline', className: 'self-start' })}
+                >
+                  <ShieldCheckIcon aria-hidden strokeWidth={1.75} />
+                  {t('settings.openAccount')}
+                  <ExternalLinkIcon aria-hidden strokeWidth={1.75} />
+                  <span className="sr-only">{t('settings.newTab')}</span>
+                </a>
+              </section>
 
-                  <section aria-labelledby="settings-devices" className="flex flex-col gap-2">
-                    <h3 id="settings-devices" className="text-sm font-semibold">
-                      {t('settings.devices')}
-                    </h3>
-                    {devices.isPending ? (
-                      <div aria-hidden className="flex flex-col gap-2 py-2">
-                        <Skeleton className="h-9" />
-                        <Skeleton className="h-9" />
-                      </div>
-                    ) : devices.isError ? (
-                      <ErrorState
-                        problem={
-                          devices.error instanceof ApiError
-                            ? devices.error.problem
-                            : { status: 500 }
-                        }
-                        actions={
-                          <Button onClick={() => void devices.refetch()}>
-                            {t('ui:errors.retry')}
-                          </Button>
-                        }
-                      />
-                    ) : (
-                      <ul className="flex flex-col divide-y rounded-[10px] border border-rule-strong bg-background px-3">
-                        {devices.data.map((d) => (
-                          <DeviceRow key={d.id} device={d} />
-                        ))}
-                      </ul>
-                    )}
-                    <Button
-                      variant="outline"
-                      className="mt-1 self-start text-destructive"
-                      onClick={() => setConfirm(true)}
-                    >
-                      <LogOutIcon aria-hidden strokeWidth={1.75} />
-                      {t('settings.endAll')}
-                    </Button>
-                  </section>
-                </div>
-              )}
+              <section aria-labelledby="settings-devices" className="flex flex-col gap-2">
+                <h3 id="settings-devices" className="text-sm font-semibold">
+                  {t('settings.devices')}
+                </h3>
+                {devices.isPending ? (
+                  <div aria-hidden className="flex flex-col gap-2 py-2">
+                    <Skeleton className="h-9" />
+                    <Skeleton className="h-9" />
+                  </div>
+                ) : devices.isError ? (
+                  <ErrorState
+                    problem={
+                      devices.error instanceof ApiError ? devices.error.problem : { status: 500 }
+                    }
+                    actions={
+                      <Button onClick={() => void devices.refetch()}>{t('ui:errors.retry')}</Button>
+                    }
+                  />
+                ) : (
+                  <ul className="flex flex-col divide-y rounded-[10px] border border-rule-strong bg-background px-3">
+                    {devices.data.map((d) => (
+                      <DeviceRow key={d.id} device={d} />
+                    ))}
+                  </ul>
+                )}
+                <Button
+                  variant="outline"
+                  className="mt-1 self-start text-destructive"
+                  onClick={() => setConfirm(true)}
+                >
+                  <LogOutIcon aria-hidden strokeWidth={1.75} />
+                  {t('settings.endAll')}
+                </Button>
+              </section>
             </div>
-          </div>
-        </DialogContent>
+          )}
+        </SideNavDialog>
       </Dialog>
       <ConfirmDialog
         open={confirm}

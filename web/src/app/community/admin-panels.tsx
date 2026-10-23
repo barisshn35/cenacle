@@ -70,10 +70,7 @@ export function WelcomeForm({ workspace }: { workspace: Workspace }) {
       className="grid gap-2"
       data-testid="welcome-form"
     >
-      <h3
-        id={`${ids.message}-title`}
-        className="text-xs font-medium text-muted-foreground uppercase"
-      >
+      <h3 id={`${ids.message}-title`} className="text-sm font-semibold">
         {t('community.welcome.settingsTitle')}
       </h3>
       <p className="text-xs text-muted-foreground">{t('community.welcome.settingsHint')}</p>

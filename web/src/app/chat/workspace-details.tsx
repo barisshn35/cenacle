@@ -161,10 +161,7 @@ export function WorkspaceAppearanceForm({ workspace }: { workspace: Workspace })
       className="grid gap-2"
       data-testid="workspace-appearance"
     >
-      <h3
-        id={`${ids.preset}-title`}
-        className="text-xs font-medium text-muted-foreground uppercase"
-      >
+      <h3 id={`${ids.preset}-title`} className="text-sm font-semibold">
         {t('workspaces.appearance')}
       </h3>
       <p className="text-xs text-muted-foreground">{t('workspaces.appearanceHint')}</p>

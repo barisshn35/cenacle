@@ -48,9 +48,10 @@ test.describe('workspaces', () => {
 
     await page.getByRole('button', { name: 'Workspace menu: Cenacle' }).click();
     await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
-    const settings = page.getByRole('dialog', { name: 'Cenacle' });
-    await expect(settings.getByLabel('Role of Ayşe Yılmaz')).toHaveValue('member');
+    const settings = page.getByRole('dialog', { name: 'Workspace settings' });
     await expect(settings.getByLabel('Name', { exact: true })).toHaveValue('Cenacle');
+    await settings.getByRole('tab', { name: /^Members/ }).click();
+    await expect(settings.getByLabel('Role of Ayşe Yılmaz')).toHaveValue('member');
   });
 
   test('admins map directory groups to the workspace', async ({ page }, testInfo) => {
@@ -58,6 +59,7 @@ test.describe('workspaces', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Workspace menu: Cenacle' }).click();
     await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
+    await page.getByRole('dialog').getByRole('tab', { name: /^Members/ }).click();
     const groups = page.getByRole('dialog').getByTestId('workspace-groups');
     await groups.getByLabel('Group', { exact: true }).fill('engineering');
     await groups.getByLabel('Role', { exact: true }).selectOption('admin');

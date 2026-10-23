@@ -357,7 +357,24 @@
     "iconRemove": "Simgeyi kaldır",
     "description": "Açıklama (isteğe bağlı)",
     "appearance": "Varsayılan görünüm",
-    "appearanceHint": "Çalışma alanındaki kişiler kendi seçimlerini yapmadıkça bunu görür."
+    "appearanceHint": "Çalışma alanındaki kişiler kendi seçimlerini yapmadıkça bunu görür.",
+    "you": "(sen)",
+    "groups": {
+      "workspace": "Çalışma alanı",
+      "more": "Uygulamalar ve güvenlik"
+    },
+    "sectionNames": {
+      "general": "Genel",
+      "members": "Üyeler",
+      "welcome": "Karşılama",
+      "ai": "Yapay zekâ"
+    },
+    "sections": {
+      "general": "Adı, açıklaması, görünümü, emojileri ve çıkartmaları.",
+      "members": "Bu çalışma alanındaki kişiler ve rolleri; bir çalışma alanında en az bir sahip kalır.",
+      "welcome": "Yeni üyelerin ilk gördükleri.",
+      "ai": "Sunucu sunuyorsa bu çalışma alanının yardımcısı."
+    }
   },
   "invites": {
     "title": "{{workspace}} alanına katıl",

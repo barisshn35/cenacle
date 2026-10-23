@@ -4,16 +4,21 @@ import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
-  ChevronDownIcon,
   BellIcon,
-  ShieldIcon,
   BellOffIcon,
+  BotIcon,
+  ChevronDownIcon,
   CopyIcon,
+  GlobeIcon,
+  HandIcon,
   LogOutIcon,
+  ScaleIcon,
   SettingsIcon,
+  ShieldIcon,
+  SparklesIcon,
   UserMinusIcon,
   UserPlusIcon,
-  BotIcon,
+  UsersIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -48,7 +53,6 @@ import {
 import { WorkspaceGroupsSection } from './directory-groups';
 import { WorkspaceAppearanceForm, WorkspaceDetailsForm } from './workspace-details';
 import { IntegrationsDialog } from './integrations';
-import { initials } from '../auth/sign-out';
 import { useLastWorkspace } from './active-workspace';
 import {
   createInvite,
@@ -68,6 +72,10 @@ import { ModerationDialog, TimeoutSelect } from '../community/moderation';
 import { WelcomeForm } from '../community/admin-panels';
 import { EmojiAndStickers } from '../richer/manage';
 import { dateLocale } from '../../i18n/time-format';
+import { cn } from '@cenacle/ui/lib/utils';
+import { UserAvatar } from '../profile/avatar';
+import { SideNavDialog } from '../shell/side-nav-dialog';
+import { sideNavLink } from '../shell/board-styles';
 
 const selectClass =
   'min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60';
@@ -150,7 +158,12 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
         </DropdownMenuContent>
       </DropdownMenu>
       {dialog === 'settings' && (
-        <WorkspaceSettingsDialog workspace={workspace} open onOpenChange={close} />
+        <WorkspaceSettingsDialog
+          workspace={workspace}
+          open
+          onOpenChange={close}
+          onOpen={setDialog}
+        />
       )}
       {dialog === 'invite' && <InviteDialog workspace={workspace} open onOpenChange={close} />}
       {dialog === 'moderation' && (
@@ -190,11 +203,15 @@ function WorkspaceSettingsDialog({
   workspace,
   open,
   onOpenChange,
+  onOpen,
 }: {
   workspace: Workspace;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Opens another dialog of the workspace instead of this one. */
+  onOpen: (dialog: 'integrations' | 'moderation') => void;
 }) {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const nameId = useId();
   const { user } = useSession();
@@ -223,107 +240,196 @@ function WorkspaceSettingsDialog({
     onError: failed,
   });
 
+  type Section = 'general' | 'members' | 'welcome' | 'ai';
+  // Members open the member list; administrators start at the general settings.
+  const [section, setSection] = useState<Section>(admin ? 'general' : 'members');
+  const go = (to: '/compliance' | '/federation') => {
+    onOpenChange(false);
+    void navigate({ to });
+  };
+
+  const membersList = (
+    <ul
+      className="divide-y rounded-[10px] border border-rule-strong bg-background"
+      data-testid="workspace-members"
+    >
+      {members.data?.map((m) => {
+        const self = m.user.id === user.id;
+        // Admins manage members and admins; only owners touch owners.
+        // Guests come from the directory: their role is not changed here.
+        const editable = admin && !self && m.role !== 'guest' && (owner || m.role !== 'owner');
+        const name = m.user.display_name || m.user.email;
+        return (
+          <li key={m.user.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5">
+            <UserAvatar userId={m.user.id} name={name} size="sm" />
+            <div className="min-w-0 flex-1 basis-40 leading-tight">
+              <p className="truncate text-sm font-semibold">
+                {name}
+                {self && (
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    {t('workspaces.you')}
+                  </span>
+                )}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{m.user.email}</p>
+            </div>
+            {editable ? (
+              <>
+                <label htmlFor={`role-${m.user.id}`} className="sr-only">
+                  {t('workspaces.roleOf', { person: name })}
+                </label>
+                <select
+                  id={`role-${m.user.id}`}
+                  className={cn(selectClass, 'w-32')}
+                  value={m.role}
+                  disabled={setRole.isPending}
+                  onChange={(e) =>
+                    setRole.mutate({
+                      userId: m.user.id,
+                      role: e.target.value as Workspace['role'],
+                    })
+                  }
+                >
+                  {owner && <option value="owner">{t('workspaces.roles.owner')}</option>}
+                  <option value="admin">{t('workspaces.roles.admin')}</option>
+                  <option value="member">{t('workspaces.roles.member')}</option>
+                </select>
+                {m.role !== 'owner' && m.role !== 'admin' && (
+                  <TimeoutSelect workspace={workspace} userId={m.user.id} name={name} />
+                )}
+                {!workspace.is_default && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={t('workspaces.removeNamed', { person: name })}
+                    disabled={remove.isPending}
+                    onClick={() => remove.mutate(m.user.id)}
+                  >
+                    <UserMinusIcon strokeWidth={1.75} />
+                  </Button>
+                )}
+              </>
+            ) : (
+              <span className="text-[13px] text-muted-foreground">
+                {t(`workspaces.roles.${m.role}`)}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{t('workspaces.settingsTitle', { workspace: workspace.name })}</DialogTitle>
-          <DialogDescription>
-            {admin ? t('workspaces.settingsDescription') : t('workspaces.membersDescription')}
-          </DialogDescription>
-        </DialogHeader>
-        {admin ? (
-          <>
-            <WorkspaceDetailsForm workspace={workspace} />
-            <WorkspaceAppearanceForm workspace={workspace} />
-            <WelcomeForm workspace={workspace} />
-            <WorkspaceAIForm workspace={workspace} />
-          </>
-        ) : (
-          workspace.description && (
-            <p className="text-sm whitespace-pre-line" data-testid="workspace-description">
-              {workspace.description}
-            </p>
+      <SideNavDialog
+        id="workspace-settings"
+        title={admin ? t('workspaces.settings') : t('workspaces.members')}
+        subtitle={workspace.name}
+        value={section}
+        onChange={setSection}
+        description={t(`workspaces.sections.${section}`)}
+        groups={[
+          {
+            label: t('workspaces.groups.workspace'),
+            items: [
+              { key: 'general', label: t('workspaces.sectionNames.general'), icon: SettingsIcon },
+              {
+                key: 'members',
+                label: t('workspaces.sectionNames.members'),
+                icon: UsersIcon,
+                count: members.data?.length,
+              },
+              ...(admin
+                ? [
+                    {
+                      key: 'welcome' as const,
+                      label: t('workspaces.sectionNames.welcome'),
+                      icon: HandIcon,
+                    },
+                    {
+                      key: 'ai' as const,
+                      label: t('workspaces.sectionNames.ai'),
+                      icon: SparklesIcon,
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ]}
+        aside={
+          admin && (
+            <>
+              <p className="px-2.5 pt-2 pb-1 text-xs font-semibold text-muted-foreground">
+                {t('workspaces.groups.more')}
+              </p>
+              <button type="button" className={sideNavLink} onClick={() => onOpen('integrations')}>
+                <BotIcon aria-hidden className="size-4 text-muted-foreground" strokeWidth={1.75} />
+                {t('bots.title')}
+              </button>
+              <button type="button" className={sideNavLink} onClick={() => onOpen('moderation')}>
+                <ShieldIcon
+                  aria-hidden
+                  className="size-4 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                {t('community.moderation.open')}
+              </button>
+              <button type="button" className={sideNavLink} onClick={() => go('/compliance')}>
+                <ScaleIcon
+                  aria-hidden
+                  className="size-4 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                {t('home.compliance')}
+              </button>
+              <button type="button" className={sideNavLink} onClick={() => go('/federation')}>
+                <GlobeIcon
+                  aria-hidden
+                  className="size-4 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                {t('home.federation')}
+              </button>
+            </>
           )
-        )}
-        <EmojiAndStickers workspace={workspace} />
-        <section aria-labelledby={`${nameId}-members`} className="grid gap-2">
-          <h3
-            id={`${nameId}-members`}
-            className="text-xs font-medium text-muted-foreground uppercase"
-          >
-            {members.data
-              ? t('channels.membersCount', { count: members.data.length })
-              : t('channels.members')}
-          </h3>
-          <ul className="grid max-h-[45svh] gap-1 overflow-y-auto" data-testid="workspace-members">
-            {members.data?.map((m) => {
-              const self = m.user.id === user.id;
-              // Admins manage members and admins; only owners touch owners.
-              // Guests come from the directory: their role is not changed here.
-              const editable =
-                admin && !self && m.role !== 'guest' && (owner || m.role !== 'owner');
-              const name = m.user.display_name || m.user.email;
-              return (
-                <li key={m.user.id} className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-[10px] font-semibold"
-                  >
-                    {initials(name)}
-                  </span>
-                  <div className="min-w-0 flex-1 leading-tight">
-                    <p className="truncate text-sm">{name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{m.user.email}</p>
-                  </div>
-                  {editable ? (
-                    <>
-                      <label htmlFor={`role-${m.user.id}`} className="sr-only">
-                        {t('workspaces.roleOf', { person: name })}
-                      </label>
-                      <select
-                        id={`role-${m.user.id}`}
-                        className={selectClass}
-                        value={m.role}
-                        disabled={setRole.isPending}
-                        onChange={(e) =>
-                          setRole.mutate({
-                            userId: m.user.id,
-                            role: e.target.value as Workspace['role'],
-                          })
-                        }
-                      >
-                        {owner && <option value="owner">{t('workspaces.roles.owner')}</option>}
-                        <option value="admin">{t('workspaces.roles.admin')}</option>
-                        <option value="member">{t('workspaces.roles.member')}</option>
-                      </select>
-                      {m.role !== 'owner' && m.role !== 'admin' && (
-                        <TimeoutSelect workspace={workspace} userId={m.user.id} name={name} />
-                      )}
-                      {!workspace.is_default && (
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          aria-label={t('workspaces.removeNamed', { person: name })}
-                          disabled={remove.isPending}
-                          onClick={() => remove.mutate(m.user.id)}
-                        >
-                          <UserMinusIcon strokeWidth={1.75} />
-                        </Button>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {t(`workspaces.roles.${m.role}`)}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-        {admin && <WorkspaceGroupsSection workspace={workspace} />}
-      </DialogContent>
+        }
+      >
+        <div className="flex flex-col gap-6 pt-4">
+          {section === 'general' &&
+            (admin ? (
+              <>
+                <WorkspaceDetailsForm workspace={workspace} />
+                <WorkspaceAppearanceForm workspace={workspace} />
+                <EmojiAndStickers workspace={workspace} />
+              </>
+            ) : (
+              <>
+                {workspace.description && (
+                  <p className="text-sm whitespace-pre-line" data-testid="workspace-description">
+                    {workspace.description}
+                  </p>
+                )}
+                <EmojiAndStickers workspace={workspace} />
+              </>
+            ))}
+          {section === 'members' && (
+            <>
+              <section aria-labelledby={`${nameId}-members`} className="grid gap-2">
+                <h3 id={`${nameId}-members`} className="text-sm font-semibold">
+                  {members.data
+                    ? t('channels.membersCount', { count: members.data.length })
+                    : t('channels.members')}
+                </h3>
+                {membersList}
+              </section>
+              {admin && <WorkspaceGroupsSection workspace={workspace} />}
+            </>
+          )}
+          {section === 'welcome' && <WelcomeForm workspace={workspace} />}
+          {section === 'ai' && <WorkspaceAIForm workspace={workspace} />}
+        </div>
+      </SideNavDialog>
     </Dialog>
   );
 }
@@ -438,9 +544,7 @@ function InviteDialog({
         )}
         {invites.data && invites.data.length > 0 && (
           <section className="grid gap-2">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase">
-              {t('invites.active')}
-            </h3>
+            <h3 className="text-sm font-semibold">{t('invites.active')}</h3>
             <ul className="grid gap-1" data-testid="invites">
               {invites.data.map((i) => (
                 <li key={i.id} className="flex items-center gap-2 text-sm">

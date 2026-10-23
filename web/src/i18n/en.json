@@ -357,7 +357,24 @@
     "iconRemove": "Remove icon",
     "description": "Description (optional)",
     "appearance": "Default appearance",
-    "appearanceHint": "What people of the workspace see unless they choose their own."
+    "appearanceHint": "What people of the workspace see unless they choose their own.",
+    "you": "(you)",
+    "groups": {
+      "workspace": "Workspace",
+      "more": "Apps and safety"
+    },
+    "sectionNames": {
+      "general": "General",
+      "members": "Members",
+      "welcome": "Welcome",
+      "ai": "AI"
+    },
+    "sections": {
+      "general": "Its name, description, look, emoji and stickers.",
+      "members": "The people in this workspace and their roles; a workspace keeps at least one owner.",
+      "welcome": "What new members see first.",
+      "ai": "The assistant of this workspace, when the server offers one."
+    }
   },
   "invites": {
     "title": "Join {{workspace}}",

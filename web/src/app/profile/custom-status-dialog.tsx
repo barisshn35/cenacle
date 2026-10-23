@@ -152,10 +152,7 @@ export function CustomStatusDialog({
             </div>
           </div>
           <section aria-labelledby={`${ids.text}-suggested`} className="grid gap-1">
-            <h3
-              id={`${ids.text}-suggested`}
-              className="text-xs font-medium text-muted-foreground uppercase"
-            >
+            <h3 id={`${ids.text}-suggested`} className="text-sm font-semibold">
               {recent.length ? t('profile.recentAndSuggested') : t('profile.suggested')}
             </h3>
             <ul className="grid gap-0.5" data-testid="status-suggestions">

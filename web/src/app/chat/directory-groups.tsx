@@ -61,7 +61,7 @@ export function WorkspaceGroupsSection({ workspace }: { workspace: Workspace }) 
 
   return (
     <section aria-labelledby={`${id}-title`} className="grid gap-2" data-testid="workspace-groups">
-      <h3 id={`${id}-title`} className="text-xs font-medium text-muted-foreground uppercase">
+      <h3 id={`${id}-title`} className="text-sm font-semibold">
         {t('groups.title')}
       </h3>
       <p className="text-xs text-muted-foreground">{t('groups.workspaceHint')}</p>
@@ -181,7 +181,7 @@ export function ChannelGroupsSection({ channel }: { channel: Channel }) {
       className="grid gap-2 border-t pt-4"
       data-testid="channel-groups"
     >
-      <h3 id={`${id}-title`} className="text-xs font-medium text-muted-foreground uppercase">
+      <h3 id={`${id}-title`} className="text-sm font-semibold">
         {t('groups.title')}
       </h3>
       <Label htmlFor={`${id}-groups`}>{t('groups.channelGroups')}</Label>

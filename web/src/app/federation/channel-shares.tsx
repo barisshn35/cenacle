@@ -39,10 +39,7 @@ export function ChannelShares({ channel }: { channel: Channel }) {
       className="flex flex-col gap-2 px-4 pt-4 text-sm"
       data-testid="shares"
     >
-      <h3
-        id={`${id}-title`}
-        className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase"
-      >
+      <h3 id={`${id}-title`} className="flex items-center gap-1.5 text-sm font-semibold">
         <GlobeIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
         {t('federation.shares.title')}
       </h3>
