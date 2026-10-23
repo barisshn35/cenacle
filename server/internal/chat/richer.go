@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -50,7 +51,7 @@ func firstLink(body string) string {
 			continue
 		}
 		link := strings.TrimRight(body[loc[0]:loc[1]], ".,;:!?")
-		if len(link) <= 2048 {
+		if u, err := url.Parse(link); err == nil && u.Host != "" && len(link) <= 2048 {
 			return link
 		}
 	}

@@ -91,6 +91,7 @@ test-go:
   script:
     - make test-go
     - make vuln
+    - make fuzz FUZZTIME=15s
   after_script:
     - ci/services.sh stop
 

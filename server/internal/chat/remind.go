@@ -39,8 +39,9 @@ func unit(u string) time.Duration {
 // parseReminder returns when and what to remind, in the caller's time zone.
 func parseReminder(input string, now time.Time, loc *time.Location) (time.Time, string, bool) {
 	s := strings.TrimSpace(input)
-	if rest, ok := strings.CutPrefix(strings.ToLower(s), "me "); ok {
-		s = strings.TrimSpace(s[len(s)-len(rest):])
+	// Compared without changing case: lowering can change the length of the text.
+	if len(s) >= 3 && strings.EqualFold(s[:3], "me ") {
+		s = strings.TrimSpace(s[3:])
 	}
 	now = now.In(loc)
 	at := func(day time.Time, hh, mm string) (time.Time, bool) {
