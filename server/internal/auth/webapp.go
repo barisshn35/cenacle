@@ -108,7 +108,7 @@ func (h *Handlers) GetMeta(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w, r, "read the web app setting", err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, api.Meta{WebApp: on})
+	httpx.WriteJSON(w, http.StatusOK, api.Meta{WebApp: on, DesktopMinVersion: h.DesktopMinVersion})
 }
 
 func (h *Handlers) webAppSetting(w http.ResponseWriter, r *http.Request) {

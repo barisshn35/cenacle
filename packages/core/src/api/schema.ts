@@ -745,6 +745,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/auth/desktop/token': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * The desktop app's session for the code of its sign-in
+     * @description Exchanges the one-time code of a desktop sign-in (valid for a minute)
+     *     with the verifier of the challenge given at `/api/auth/login?desktop=`.
+     *     The session token is sent as `Authorization: Bearer` from then on.
+     */
+    post: operations['desktopToken'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/logout': {
     parameters: {
       query?: never;
@@ -4558,6 +4580,11 @@ export interface components {
     Meta: {
       /** @description People may use Cenacle in web browsers. */
       web_app: boolean;
+      /**
+       * @description The oldest desktop app this server accepts ("" for any); older apps ask
+       *     to update before signing in. CENACLE_DESKTOP_MIN_VERSION.
+       */
+      desktop_min_version: string;
     };
     WebAppSetting: {
       enabled: boolean;
@@ -6288,6 +6315,14 @@ export interface operations {
       query?: {
         /** @description Path inside the app to open after sign-in (default `/`). */
         return_to?: string;
+        /**
+         * @description Sign-in of the desktop app, in its own window: the S256 challenge
+         *     (base64url, 43 characters) of a verifier the app keeps. Instead of a
+         *     cookie, the sign-in ends at `/desktop/signed-in?code=<code>`, which the
+         *     app exchanges at `POST /api/auth/desktop/token`. Allowed while the web
+         *     app is turned off.
+         */
+        desktop?: string;
       };
       header?: never;
       path?: never;
@@ -6326,6 +6361,38 @@ export interface operations {
         };
         content?: never;
       };
+    };
+  };
+  desktopToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          code: string;
+          verifier: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The session. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            token: string;
+            /** Format: date-time */
+            expires_at: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
     };
   };
   logout: {

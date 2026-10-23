@@ -56,6 +56,8 @@ type flow struct {
 	Verifier string `json:"verifier"`
 	Nonce    string `json:"nonce"`
 	ReturnTo string `json:"return_to"`
+	// Desktop is the S256 challenge of a desktop sign-in ("" in a browser).
+	Desktop string `json:"desktop,omitempty"`
 }
 
 // Handlers implements the auth operations of the API.
@@ -81,7 +83,9 @@ type Handlers struct {
 	AI bool
 	// WebApp decides whether browsers may sign in; nil keeps it on.
 	WebApp *WebApp
-	Log    *slog.Logger
+	// DesktopMinVersion is the oldest desktop app accepted ("" any).
+	DesktopMinVersion string
+	Log               *slog.Logger
 }
 
 func randomString() string {
@@ -98,7 +102,13 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request, params api.Logi
 	if params.ReturnTo != nil {
 		returnTo = SafeReturnPath(*params.ReturnTo)
 	}
-	if on, err := h.WebApp.Enabled(r.Context()); err != nil || !on {
+	desktop := deref(params.Desktop)
+	if desktop != "" && !desktopChallenge.MatchString(desktop) {
+		h.redirectSigninError(w, r, signinFailed, returnTo)
+		return
+	}
+	// The desktop app signs in while the web app is off.
+	if on, err := h.WebApp.Enabled(r.Context()); desktop == "" && (err != nil || !on) {
 		code := signinWebAppOff
 		if err != nil {
 			code = signinUnavailable
@@ -115,7 +125,7 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request, params api.Logi
 	}
 
 	state := randomString()
-	f := flow{Verifier: oauth2.GenerateVerifier(), Nonce: randomString(), ReturnTo: returnTo}
+	f := flow{Verifier: oauth2.GenerateVerifier(), Nonce: randomString(), ReturnTo: returnTo, Desktop: desktop}
 	value, _ := json.Marshal(f)
 	if err := h.Flows.PutNew(r.Context(), flowKey(state), value, flowTTL); err != nil {
 		h.Log.ErrorContext(r.Context(), "store sign-in flow", "error", err,
@@ -179,6 +189,18 @@ func (h *Handlers) AuthCallback(w http.ResponseWriter, r *http.Request, params a
 		}
 		log.WarnContext(ctx, "sign-in failed", "error", err)
 		h.redirectSigninError(w, r, code, f.ReturnTo)
+		return
+	}
+	if f.Desktop != "" {
+		// The desktop app's window stops at this address and exchanges the code.
+		code, err := h.handOver(ctx, principal, f.Desktop)
+		if err != nil {
+			log.ErrorContext(ctx, "hand the session to the desktop app", "error", err)
+			h.redirectSigninError(w, r, signinUnavailable, f.ReturnTo)
+			return
+		}
+		log.InfoContext(ctx, "signed in", "user_id", principal.session.UserID, "client", "desktop")
+		http.Redirect(w, r, h.PublicURL.String()+DesktopSignedInPath+"?code="+code, http.StatusFound)
 		return
 	}
 	h.Cookies.setSession(w, principal.token, principal.session.ExpiresAt)

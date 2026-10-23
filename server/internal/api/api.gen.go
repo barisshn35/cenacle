@@ -2525,6 +2525,10 @@ type MessagePage struct {
 
 // Meta defines model for Meta.
 type Meta struct {
+	// DesktopMinVersion The oldest desktop app this server accepts ("" for any); older apps ask
+	// to update before signing in. CENACLE_DESKTOP_MIN_VERSION.
+	DesktopMinVersion string `json:"desktop_min_version"`
+
 	// WebApp People may use Cenacle in web browsers.
 	WebApp bool `json:"web_app"`
 }
@@ -3312,10 +3316,23 @@ type AuthCallbackParams struct {
 	Iss              *string `form:"iss,omitempty" json:"iss,omitempty"`
 }
 
+// DesktopTokenJSONBody defines parameters for DesktopToken.
+type DesktopTokenJSONBody struct {
+	Code     string `json:"code"`
+	Verifier string `json:"verifier"`
+}
+
 // LoginParams defines parameters for Login.
 type LoginParams struct {
 	// ReturnTo Path inside the app to open after sign-in (default `/`).
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
+
+	// Desktop Sign-in of the desktop app, in its own window: the S256 challenge
+	// (base64url, 43 characters) of a verifier the app keeps. Instead of a
+	// cookie, the sign-in ends at `/desktop/signed-in?code=<code>`, which the
+	// app exchanges at `POST /api/auth/desktop/token`. Allowed while the web
+	// app is turned off.
+	Desktop *string `form:"desktop,omitempty" json:"desktop,omitempty"`
 }
 
 // UpdateBotJSONBody defines parameters for UpdateBot.
@@ -3889,6 +3906,9 @@ type SetWebAppJSONRequestBody SetWebAppJSONBody
 // BackchannelLogoutFormdataRequestBody defines body for BackchannelLogout for application/x-www-form-urlencoded ContentType.
 type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
 
+// DesktopTokenJSONRequestBody defines body for DesktopToken for application/json ContentType.
+type DesktopTokenJSONRequestBody DesktopTokenJSONBody
+
 // UpdateAutomodRuleJSONRequestBody defines body for UpdateAutomodRule for application/json ContentType.
 type UpdateAutomodRuleJSONRequestBody = AutomodRuleInput
 
@@ -4241,6 +4261,9 @@ type ServerInterface interface {
 	// AuthCallback Finish sign-in (redirect target of Cenacle ID)
 	// (GET /api/auth/callback)
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
+	// DesktopToken The desktop app's session for the code of its sign-in
+	// (POST /api/auth/desktop/token)
+	DesktopToken(w http.ResponseWriter, r *http.Request)
 	// Login Start sign-in with Cenacle ID
 	// (GET /api/auth/login)
 	Login(w http.ResponseWriter, r *http.Request, params LoginParams)
@@ -4970,6 +4993,12 @@ func (_ Unimplemented) BackchannelLogout(w http.ResponseWriter, r *http.Request)
 // AuthCallback Finish sign-in (redirect target of Cenacle ID)
 // (GET /api/auth/callback)
 func (_ Unimplemented) AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DesktopToken The desktop app's session for the code of its sign-in
+// (POST /api/auth/desktop/token)
+func (_ Unimplemented) DesktopToken(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6513,6 +6542,20 @@ func (siw *ServerInterfaceWrapper) AuthCallback(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// DesktopToken operation middleware
+func (siw *ServerInterfaceWrapper) DesktopToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DesktopToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Login operation middleware
 func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -6531,6 +6574,19 @@ func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request)
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "return_to"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "return_to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "desktop" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "desktop", r.URL.Query(), &params.Desktop, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "desktop"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "desktop", Err: err})
 		}
 		return
 	}
@@ -13299,6 +13355,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/auth/callback", wrapper.AuthCallback)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/auth/desktop/token", wrapper.DesktopToken)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/auth/logout", wrapper.Logout)

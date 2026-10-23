@@ -16,6 +16,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -99,6 +100,8 @@ type Config struct {
 	// browsers and overrides the administrators' setting (recovery when
 	// the administrators locked themselves out). nil leaves it to them.
 	WebApp *bool
+	// DesktopMinVersion is the oldest desktop app the server accepts ("" any).
+	DesktopMinVersion string
 
 	// Files: an S3-compatible object store; without an endpoint, files are off.
 	S3Endpoint  string
@@ -206,6 +209,10 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.EgressAllowHTTP = l.boolean("CENACLE_EGRESS_ALLOW_HTTP", false)
 	cfg.LinkPreviews = l.boolean("CENACLE_LINK_PREVIEWS", true)
 	cfg.WebApp = l.onOff("CENACLE_WEB_APP")
+	cfg.DesktopMinVersion = strings.TrimSpace(l.str("CENACLE_DESKTOP_MIN_VERSION", ""))
+	if v := cfg.DesktopMinVersion; v != "" && !semver.MatchString(v) {
+		l.fail("CENACLE_DESKTOP_MIN_VERSION: must be a version such as 0.30.0, got %q", v)
+	}
 	cfg.S3Endpoint = strings.TrimSpace(l.str("CENACLE_S3_ENDPOINT", ""))
 	cfg.S3Region = l.str("CENACLE_S3_REGION", "garage")
 	cfg.S3Bucket = l.str("CENACLE_S3_BUCKET", "cenacle-files")
@@ -370,6 +377,9 @@ func (l *loader) onOff(key string) *bool {
 	}
 	return &v
 }
+
+// semver is a plain release version (major.minor.patch).
+var semver = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
 // origin parses an absolute http(s) URL without path, query or fragment.
 // An empty optional value yields nil.

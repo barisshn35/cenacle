@@ -1178,6 +1178,15 @@ paths:
           in: query
           description: Path inside the app to open after sign-in (default `/`).
           schema: { type: string, maxLength: 2048 }
+        - name: desktop
+          in: query
+          description: |
+            Sign-in of the desktop app, in its own window: the S256 challenge
+            (base64url, 43 characters) of a verifier the app keeps. Instead of a
+            cookie, the sign-in ends at `/desktop/signed-in?code=<code>`, which the
+            app exchanges at `POST /api/auth/desktop/token`. Allowed while the web
+            app is turned off.
+          schema: { type: string, pattern: '^[A-Za-z0-9_-]{43}$' }
       responses:
         '302':
           description: Redirect to the authorization endpoint of Cenacle ID.
@@ -1200,6 +1209,38 @@ paths:
       responses:
         '302':
           description: Redirect into the app.
+  /api/auth/desktop/token:
+    post:
+      tags: [auth]
+      operationId: desktopToken
+      summary: The desktop app's session for the code of its sign-in
+      description: |
+        Exchanges the one-time code of a desktop sign-in (valid for a minute)
+        with the verifier of the challenge given at `/api/auth/login?desktop=`.
+        The session token is sent as `Authorization: Bearer` from then on.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, verifier]
+              properties:
+                code: { type: string, maxLength: 128 }
+                verifier: { type: string, minLength: 43, maxLength: 128 }
+      responses:
+        '200':
+          description: The session.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, expires_at]
+                properties:
+                  token: { type: string }
+                  expires_at: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/Problem' }
   /api/auth/logout:
     post:
       tags: [auth]
@@ -6681,11 +6722,16 @@ components:
         created_at: { type: string, format: date-time }
     Meta:
       type: object
-      required: [web_app]
+      required: [web_app, desktop_min_version]
       properties:
         web_app:
           type: boolean
           description: People may use Cenacle in web browsers.
+        desktop_min_version:
+          type: string
+          description: |
+            The oldest desktop app this server accepts ("" for any); older apps ask
+            to update before signing in. CENACLE_DESKTOP_MIN_VERSION.
     WebAppSetting:
       type: object
       required: [enabled, forced]
