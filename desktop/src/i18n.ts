@@ -80,6 +80,12 @@ const en = {
   external: {
     loading: 'Opening {{host}}…',
   },
+  frame: {
+    back: 'Back',
+    reload: 'Reload',
+    secure: 'Secure connection',
+    insecure: 'Not a secure connection',
+  },
 };
 
 type Texts = typeof en;
@@ -161,6 +167,12 @@ const tr: Texts = {
   },
   external: {
     loading: '{{host}} açılıyor…',
+  },
+  frame: {
+    back: 'Geri',
+    reload: 'Yenile',
+    secure: 'Güvenli bağlantı',
+    insecure: 'Güvenli olmayan bağlantı',
   },
 };
 

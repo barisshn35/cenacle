@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { AnnouncementsPanel } from '../community/admin-panels';
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BellIcon,
@@ -221,13 +221,15 @@ export function SettingsDialog({
                     <dd className="font-mono text-sm">{desktop.version}</dd>
                   </dl>
                   <p className="text-sm text-muted-foreground">{t('settings.pairedHint')}</p>
-                  <Button
-                    variant="outline"
-                    className="self-start"
-                    onClick={() => void desktop?.changeServer()}
-                  >
-                    {t('settings.changeServer')}
-                  </Button>
+                  <DesktopPrefs />
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => void desktop?.checkUpdates()}>
+                      {t('settings.checkUpdates')}
+                    </Button>
+                    <Button variant="outline" onClick={() => void desktop?.changeServer()}>
+                      {t('settings.changeServer')}
+                    </Button>
+                  </div>
                 </section>
               )}
 
@@ -308,6 +310,42 @@ export function SettingsDialog({
           }
         }}
       />
+    </>
+  );
+}
+
+/** The desktop app's own choices: keep running in the tray when closed. */
+function DesktopPrefs() {
+  const { t } = useTranslation();
+  const [prefs, setPrefs] = useState<{
+    closeToTray: boolean;
+    sessionKept: boolean;
+    tray: boolean;
+  } | null>(null);
+  useEffect(() => {
+    void desktop?.prefs().then(setPrefs);
+  }, []);
+  if (!prefs) return null;
+  return (
+    <>
+      {prefs.tray && (
+        <label className="flex min-h-target items-center gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            className="size-target shrink-0 accent-primary"
+            checked={prefs.closeToTray}
+            onChange={(e) => {
+              const on = e.target.checked;
+              setPrefs({ ...prefs, closeToTray: on });
+              void desktop?.setCloseToTray(on);
+            }}
+          />
+          {t('settings.closeToTray')}
+        </label>
+      )}
+      {!prefs.sessionKept && (
+        <p className="text-sm text-muted-foreground">{t('settings.sessionNotKept')}</p>
+      )}
     </>
   );
 }

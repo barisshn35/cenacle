@@ -66,6 +66,30 @@ body {
   display: grid;
   grid-template-rows: auto 1fr auto;
 }
+/* The window's own bar: drags the window; the system's buttons sit at its
+   right (Window Controls Overlay), so its content stops before them. */
+.bar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 12px);
+  font: 600 13.5px var(--font);
+  letter-spacing: -0.01em;
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+.bar svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.bar button {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
 .top {
   display: flex;
   align-items: center;
@@ -238,4 +262,60 @@ footer {
   .primary {
     transition: opacity 120ms cubic-bezier(0.23, 1, 0.32, 1);
   }
+}
+
+/* The address bar of frame windows. */
+body.frame {
+  overflow: hidden;
+}
+.address {
+  gap: 4px;
+  padding-left: 8px;
+  border-bottom: 1px solid var(--rule);
+  font: 500 13px var(--mono);
+}
+.address .icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.address .icon:hover:not(:disabled) {
+  background: var(--well);
+}
+.address .icon:disabled {
+  color: var(--ink-2);
+  opacity: 0.5;
+  cursor: default;
+}
+.address svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.address .host {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.address .lock {
+  display: flex;
+  color: var(--ink-2);
+}
+.address .lock[hidden] {
+  display: none;
 }

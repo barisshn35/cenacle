@@ -9,6 +9,12 @@ export interface DesktopBridge {
   signOut: () => Promise<void>;
   changeServer: () => Promise<void>;
   setBadge: (count: number) => Promise<void>;
+  setTitleBar: (colors: { color: string; symbolColor: string }) => Promise<void>;
+  prefs: () => Promise<{ closeToTray: boolean; sessionKept: boolean; tray: boolean } | null>;
+  setCloseToTray: (on: boolean) => Promise<void>;
+  checkUpdates: () => Promise<void>;
+  /** The height of the window's bar in pixels. */
+  titleBarHeight: number;
 }
 
 /** The desktop app around this page, or undefined in a browser. */

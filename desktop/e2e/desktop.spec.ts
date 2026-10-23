@@ -22,10 +22,7 @@ test.afterAll(async () => {
 async function launch(data: string): Promise<ElectronApplication> {
   return electron.launch({
     // As root (CI containers) Chromium needs --no-sandbox; the pages still run sandboxed renderers.
-    args: [
-      join(__dirname, '..', 'dist', 'main.js'),
-      ...(process.getuid?.() === 0 ? ['--no-sandbox'] : []),
-    ],
+    args: [join(__dirname, '..'), ...(process.getuid?.() === 0 ? ['--no-sandbox'] : [])],
     env: { ...process.env, CENACLE_DESKTOP_DATA: data, LANG: 'en_US.UTF-8' },
   });
 }
@@ -74,7 +71,17 @@ test('pairs with a server and signs in inside the app, while the web app is off'
   expect(fake.authorizations).toContain(`Bearer ${TOKEN}`);
   expect(fake.cookies.filter(Boolean)).toEqual([]);
   expect(await main.locator('body').getAttribute('data-bridge-keys')).toBe(
-    'changeServer,platform,setBadge,signIn,signOut,version',
+    'changeServer,checkUpdates,platform,prefs,setBadge,setCloseToTray,setTitleBar,signIn,signOut,titleBarHeight,version',
+  );
+  // No menu bar anywhere: the windows draw their own bar.
+  expect(await app.evaluate(({ Menu }) => Menu.getApplicationMenu())).toBeNull();
+  expect(
+    await app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows().every((w) => !w.isMenuBarVisible()),
+    ),
+  ).toBe(true);
+  expect(await app.evaluate(({ app: a }) => a.getVersion())).toBe(
+    (await import('../package.json', { with: { type: 'json' } })).default.version,
   );
   expect(
     await main.evaluate(() => JSON.stringify(window.localStorage) + document.cookie),

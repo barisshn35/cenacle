@@ -495,7 +495,10 @@
     "pairedServer": "Sunucu",
     "appVersion": "Sürüm",
     "pairedHint": "Uygulama bu sunucuyu açar. Başka birini kullanmak için sunucuyu değiştir; orada yeniden giriş yaparsın.",
-    "changeServer": "Sunucuyu değiştir"
+    "changeServer": "Sunucuyu değiştir",
+    "checkUpdates": "Güncellemeleri denetle",
+    "closeToTray": "Pencere kapatılınca Cenacle tepside çalışmaya devam etsin",
+    "sessionNotKept": "Bu bilgisayarda şifreli anahtar deposu yok: Cenacle kapanana kadar girişli kalırsın."
   },
   "reactions": {
     "label": "Tepkiler",

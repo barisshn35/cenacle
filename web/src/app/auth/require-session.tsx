@@ -15,6 +15,7 @@ import { InstanceBanner } from '../community/banner';
 import { isWebAppOff } from './web-app';
 import { WebOffPage } from './web-off';
 import { DesktopBadge } from '../desktop/desktop-badge';
+import { DesktopTitleBar } from '../desktop/title-bar';
 import { TermsGate } from '../community/terms-gate';
 
 /**
@@ -53,6 +54,7 @@ export function RequireSession() {
             <NotificationsSync />
             <DesktopBadge />
             <div className="flex h-svh flex-col">
+              <DesktopTitleBar />
               <InstanceBanner />
               <div className="min-h-0 flex-1">
                 <Outlet />

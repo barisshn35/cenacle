@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { BrowserWindow, net, session } from 'electron';
+import { net, session, type BrowserWindow, type Session, type WebContentsView } from 'electron';
 import { createHash, randomBytes } from 'node:crypto';
-import { fill, t } from './i18n.js';
 import { hardenSession } from './security.js';
 
 export type SignInResult =
@@ -16,8 +15,8 @@ const base64url = (b: Buffer) => b.toString('base64url');
 /**
  * Signs in in a window of the app (never a browser): the window opens the
  * server's sign-in for the desktop app, which leads to Cenacle ID's page
- * (username, password, code). The window shows whose page it is in its
- * title, has no access to the app, and keeps nothing afterwards. Where the
+ * (username, password, code). The window's bar shows whose page it is; the
+ * page has no access to the app, and nothing is kept afterwards. Where the
  * sign-in ends, the window stops and the app exchanges the one-time code
  * with the verifier only it knows (PKCE S256) for the session token.
  */
@@ -25,6 +24,8 @@ export function signIn(opts: {
   server: string;
   parent: BrowserWindow | null;
   returnTo: string;
+  /** Opens a window with the app's bar (the address of the page) around a page view. */
+  frame: (ses: Session, parent?: BrowserWindow) => { win: BrowserWindow; view: WebContentsView };
   /** Called with the origin of each page of the sign-in that is not the server. */
   onIdentityProvider: (origin: string) => void;
 }): Promise<SignInResult> {
@@ -32,28 +33,9 @@ export function signIn(opts: {
   const challenge = base64url(createHash('sha256').update(verifier).digest());
   const ses = session.fromPartition(SIGNIN_PARTITION);
   hardenSession(ses, { allowNotifications: false });
-
-  const win = new BrowserWindow({
-    width: 520,
-    height: 720,
-    minWidth: 400,
-    minHeight: 560,
-    parent: opts.parent ?? undefined,
-    modal: false,
-    show: false,
-    autoHideMenuBar: true,
-    title: fill(t().signIn.title, { host: new URL(opts.server).host }),
-    webPreferences: {
-      session: ses,
-      sandbox: true,
-      contextIsolation: true,
-      nodeIntegration: false,
-      webSecurity: true,
-      spellcheck: false,
-    },
-  });
-  win.removeMenu();
-  win.once('ready-to-show', () => win.show());
+  // The bar shows the address of each page, so the person sees where the password goes.
+  const { win, view } = opts.frame(ses, opts.parent ?? undefined);
+  const page = view.webContents;
 
   return new Promise<SignInResult>((resolve) => {
     let done = false;
@@ -96,21 +78,16 @@ export function signIn(opts: {
       }
       if (origin !== opts.server) opts.onIdentityProvider(origin);
     };
-    win.webContents.on('will-redirect', follow);
-    win.webContents.on('will-navigate', follow);
-    // The title names whose page this is, so the person sees where the password goes.
-    win.webContents.on('did-navigate', (_e, url) => {
-      if (!win.isDestroyed()) win.setTitle(fill(t().signIn.title, { host: new URL(url).host }));
-    });
-    win.on('page-title-updated', (e) => e.preventDefault());
+    page.on('will-redirect', follow);
+    page.on('will-navigate', follow);
     // No pop-ups from the sign-in pages.
-    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    page.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.on('closed', () => finish({ error: 'closed' }));
 
     const url = new URL('/api/auth/login', opts.server);
     url.searchParams.set('desktop', challenge);
     url.searchParams.set('return_to', opts.returnTo);
-    void win.loadURL(url.toString());
+    void page.loadURL(url.toString());
   });
 }
 

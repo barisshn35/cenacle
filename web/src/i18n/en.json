@@ -495,7 +495,10 @@
     "pairedServer": "Server",
     "appVersion": "Version",
     "pairedHint": "The app opens this server. To use another one, change the server; you sign in again there.",
-    "changeServer": "Change server"
+    "changeServer": "Change server",
+    "checkUpdates": "Check for updates",
+    "closeToTray": "Keep Cenacle running in the tray when its window is closed",
+    "sessionNotKept": "This computer has no encrypted key store: you stay signed in only until Cenacle quits."
   },
   "reactions": {
     "label": "Reactions",

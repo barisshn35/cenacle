@@ -1,0 +1,38 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'"
+    />
+    <title>Cenacle</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="frame.js" defer></script>
+  </head>
+  <body class="frame">
+    <!-- The bar of a window for a page that is not the app's own: the page
+         itself is shown below it, out of reach of this bar's scripts. -->
+    <header class="bar address">
+      <button id="back" type="button" class="icon" hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5" /></svg>
+      </button>
+      <button id="reload" type="button" class="icon" hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      </button>
+      <p class="host">
+        <span id="lock" class="lock" role="img">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <rect width="18" height="11" x="3" y="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </span>
+        <span id="host"></span>
+      </p>
+    </header>
+  </body>
+</html>

@@ -7,17 +7,25 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  nativeTheme,
   net,
   session,
   shell,
   Tray,
   type IpcMainInvokeEvent,
-  type MenuItemConstructorOptions,
   type Session,
   type WebContents,
 } from 'electron';
 import { join, normalize as normalizePath, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {
+  bindShortcuts,
+  chromeOptions,
+  framedWindow,
+  isBarColor,
+  localBarColors,
+  type BarColors,
+} from './chrome.js';
 import { fill, language, setupLanguage, t } from './i18n.js';
 import { hardenSession, originOf } from './security.js';
 import { check, normalize, type PairError } from './server.js';
@@ -60,6 +68,7 @@ let tray: Tray | null = null;
 let quitting = false;
 let signingIn = false;
 let externalCount = 0;
+let mainBar: BarColors = { color: '#14342b', symbolColor: '#f3eee2' };
 let toldNotKept = !!process.env.CENACLE_DESKTOP_DATA;
 
 // Tests (and people with several profiles) keep the app's data elsewhere.
@@ -111,8 +120,13 @@ async function start() {
   serveLocalPages();
   config = loadConfig();
   createTray();
-  buildMenu();
+  // No menu bar: its actions live in the app (Settings, This app) and the tray.
+  Menu.setApplicationMenu(null);
   registerIpc();
+  nativeTheme.on('updated', () => {
+    if (local && !local.isDestroyed()) local.setTitleBarOverlay(localBarColors());
+    for (const w of framed) if (!w.isDestroyed()) w.setTitleBarOverlay(localBarColors());
+  });
   if (config.server) openServer(config.server);
   else showPairing();
   setupUpdates(
@@ -162,6 +176,8 @@ function createMainWindow(server: string): BrowserWindow {
     title: t().appName,
     icon: join(assets, 'icon.png'),
     backgroundColor: '#14342b',
+    // Until the page says its colors: the sidebar's Forest.
+    ...chromeOptions(mainBar),
     webPreferences: {
       session: appSession(server),
       preload: join(__dirname, 'preload.js'),
@@ -175,6 +191,7 @@ function createMainWindow(server: string): BrowserWindow {
   });
   if (b?.maximized) win.maximize();
   win.once('ready-to-show', () => win.show());
+  bindShortcuts(win.webContents, win);
   guardNavigation(win.webContents, server);
   win.webContents.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
     // -3 is an aborted load (a navigation replaced it), not an outage.
@@ -229,21 +246,40 @@ function openLink(url: string) {
   else openExternalWindow(url);
 }
 
+/** The frame page of windows for others' pages (the bar with the address). */
+const frameUrl = () => `${LOCAL_ORIGIN}/dist/pages/frame.html?lang=${language()}`;
+/** Frame windows and the page view they hold, for the bar's buttons. */
+const framed = new Set<BrowserWindow>();
+const frameViews = new Map<number, Electron.WebContentsView>();
+
+function frame(ses: Session, browse: boolean, parent?: BrowserWindow) {
+  const { win, view } = framedWindow({
+    session: ses,
+    width: browse ? 1100 : 520,
+    height: browse ? 800 : 720,
+    parent,
+    icon: join(assets, 'icon.png'),
+    frameUrl: frameUrl(),
+    framePreload: join(__dirname, 'local-preload.js'),
+    browse,
+  });
+  framed.add(win);
+  const id = win.webContents.id;
+  frameViews.set(id, view);
+  win.on('closed', () => {
+    framed.delete(win);
+    frameViews.delete(id);
+  });
+  return { win, view };
+}
+
 /** Cenacle ID's account and administration pages, in a window of their own. */
 function openIdentityWindow(url: string) {
   const ses = session.fromPartition(ID_PARTITION);
   hardenSession(ses, { allowNotifications: false });
-  const win = new BrowserWindow({
-    width: 1100,
-    height: 800,
-    title: new URL(url).host,
-    icon: join(assets, 'icon.png'),
-    autoHideMenuBar: true,
-    webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false },
-  });
-  keepTitleOnHost(win);
+  const { win, view } = frame(ses, true);
   const idp = originOf(url)!;
-  win.webContents.on('will-navigate', (event, target) => {
+  view.webContents.on('will-navigate', (event, target) => {
     const origin = originOf(target);
     // Back to the chat server ("Back to Cenacle"): show it in the main window.
     if (origin === config.server) {
@@ -255,11 +291,11 @@ function openIdentityWindow(url: string) {
       openLink(target);
     }
   });
-  win.webContents.setWindowOpenHandler(({ url: target }) => {
+  view.webContents.setWindowOpenHandler(({ url: target }) => {
     openLink(target);
     return { action: 'deny' };
   });
-  void win.loadURL(url);
+  void view.webContents.loadURL(url);
 }
 
 /**
@@ -270,35 +306,18 @@ function openIdentityWindow(url: string) {
 function openExternalWindow(url: string) {
   const ses = session.fromPartition(`cenacle-external-${++externalCount}`);
   hardenSession(ses, { allowNotifications: false });
-  const win = new BrowserWindow({
-    width: 1100,
-    height: 800,
-    title: new URL(url).host,
-    icon: join(assets, 'icon.png'),
-    autoHideMenuBar: true,
-    webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false },
-  });
-  keepTitleOnHost(win);
-  win.webContents.setWindowOpenHandler(({ url: target }) => {
-    if (originOf(target)) void win.loadURL(target);
+  const { win, view } = frame(ses, true);
+  view.webContents.setWindowOpenHandler(({ url: target }) => {
+    if (originOf(target)) void view.webContents.loadURL(target);
     return { action: 'deny' };
   });
-  win.webContents.on('will-navigate', (event, target) => {
+  view.webContents.on('will-navigate', (event, target) => {
     if (!originOf(target)) event.preventDefault();
   });
   win.on('closed', () => {
     void ses.clearStorageData();
   });
-  void win.loadURL(url);
-}
-
-/** The title of a window shows the address of its page, so people see where they are. */
-function keepTitleOnHost(win: BrowserWindow) {
-  win.on('page-title-updated', (e) => e.preventDefault());
-  win.webContents.on('did-navigate', (_e, url) => {
-    const u = new URL(url);
-    if (!win.isDestroyed()) win.setTitle(`${u.protocol === 'https:' ? '🔒 ' : ''}${u.host}`);
-  });
+  void view.webContents.loadURL(url);
 }
 
 async function startSignIn(returnTo: string) {
@@ -310,6 +329,7 @@ async function startSignIn(returnTo: string) {
       server,
       parent: main,
       returnTo,
+      frame: (ses, parent) => frame(ses, false, parent),
       onIdentityProvider: (origin) => {
         if (config.idp !== origin) {
           config = { ...config, idp: origin };
@@ -409,7 +429,8 @@ function localWindow(page: 'pair' | 'offline', query: Record<string, string>) {
       show: false,
       title: t().appName,
       icon: join(assets, 'icon.png'),
-      backgroundColor: '#faf7f0',
+      backgroundColor: localBarColors().color,
+      ...chromeOptions(localBarColors()),
       webPreferences: {
         preload: join(__dirname, 'local-preload.js'),
         sandbox: true,
@@ -418,6 +439,7 @@ function localWindow(page: 'pair' | 'offline', query: Record<string, string>) {
       },
     });
     local.once('ready-to-show', () => local?.show());
+    bindShortcuts(local.webContents, local);
     local.webContents.on('will-navigate', (e) => e.preventDefault());
     local.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     local.on('closed', () => {
@@ -469,7 +491,7 @@ function fromServer(e: IpcMainInvokeEvent): boolean {
 /** Only the app's own pages (loaded from its files). */
 function fromLocal(e: IpcMainInvokeEvent): boolean {
   const url = e.senderFrame?.url ?? '';
-  return url.startsWith(`${LOCAL_ORIGIN}/`) && e.sender === local?.webContents;
+  return url.startsWith(`${LOCAL_ORIGIN}/`);
 }
 
 function registerIpc() {
@@ -479,6 +501,12 @@ function registerIpc() {
       typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')
         ? returnTo
         : '/';
+    // A page that loaded before the sign-in finished still asks: it only
+    // needs to load again with the session the app now has.
+    if (loadToken() && config.server) {
+      void main?.loadURL(new URL(path, config.server).toString());
+      return;
+    }
     void startSignIn(path);
   });
   ipcMain.handle('desktop:sign-out', async (e) => {
@@ -492,6 +520,36 @@ function registerIpc() {
     setBadge(Math.max(0, Math.min(9999, Math.floor(count))));
   });
   ipcMain.handle('desktop:server', (e) => (fromServer(e) || fromLocal(e) ? config.server : null));
+  // The page gives the colors of its bar; the window's buttons take them.
+  ipcMain.handle('desktop:title-bar', (e, colors: unknown) => {
+    if (!fromServer(e) || !colors || typeof colors !== 'object') return;
+    const { color, symbolColor } = colors as Record<string, unknown>;
+    if (!isBarColor(color) || !isBarColor(symbolColor)) return;
+    mainBar = { color, symbolColor };
+    main?.setTitleBarOverlay(mainBar);
+  });
+  ipcMain.handle('desktop:prefs', (e) =>
+    fromServer(e)
+      ? { closeToTray: config.closeToTray, sessionKept: canKeepSession(), tray: !!tray }
+      : null,
+  );
+  ipcMain.handle('desktop:set-close-to-tray', (e, on: unknown) => {
+    if (!fromServer(e) || typeof on !== 'boolean') return;
+    config = { ...config, closeToTray: on };
+    saveConfig(config);
+  });
+  ipcMain.handle('desktop:check-updates', async (e) => {
+    if (fromServer(e)) await checkForUpdates(true);
+  });
+  ipcMain.handle('frame:texts', (e) => (fromLocal(e) ? t().frame : null));
+  ipcMain.handle('frame:back', (e) => {
+    const view = fromLocal(e) ? frameViews.get(e.sender.id) : undefined;
+    if (view?.webContents.navigationHistory.canGoBack())
+      view.webContents.navigationHistory.goBack();
+  });
+  ipcMain.handle('frame:reload', (e) => {
+    if (fromLocal(e)) frameViews.get(e.sender.id)?.webContents.reload();
+  });
 
   ipcMain.handle('pair:texts', (e) =>
     fromLocal(e) ? { ...t().pair, offline: t().offline } : null,
@@ -520,7 +578,7 @@ function registerIpc() {
   });
 }
 
-// --- tray, badge and menu ------------------------------------------------------
+// --- tray and badge --------------------------------------------------------------
 
 function createTray() {
   if (process.platform !== 'win32' && process.platform !== 'linux') return;
@@ -544,74 +602,6 @@ function setBadge(count: number) {
   if (process.platform === 'win32')
     main?.setOverlayIcon(count > 0 ? badgeIcon() : null, count > 0 ? String(count) : '');
   tray?.setToolTip(count > 0 ? `${t().appName} (${count})` : t().appName);
-}
-
-function buildMenu() {
-  const m = t().menu;
-  const template: MenuItemConstructorOptions[] = [
-    {
-      label: m.file,
-      submenu: [
-        { label: m.changeServer, click: () => void changeServer() },
-        { label: m.signOut, click: () => void signOut() },
-        { type: 'separator' },
-        {
-          label: m.closeToTray,
-          type: 'checkbox',
-          checked: loadConfig().closeToTray,
-          click: (item) => {
-            config = { ...config, closeToTray: item.checked };
-            saveConfig(config);
-          },
-        },
-        { type: 'separator' },
-        { label: m.quit, accelerator: 'CmdOrCtrl+Q', click: () => app.quit() },
-      ],
-    },
-    {
-      label: m.edit,
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'pasteAndMatchStyle' },
-        { role: 'selectAll' },
-      ],
-    },
-    {
-      label: m.view,
-      submenu: [
-        { label: m.reload, role: 'reload' },
-        ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' } as MenuItemConstructorOptions]),
-        { type: 'separator' },
-        { label: m.actualSize, role: 'resetZoom' },
-        { label: m.zoomIn, role: 'zoomIn' },
-        { label: m.zoomOut, role: 'zoomOut' },
-        { type: 'separator' },
-        { label: m.fullScreen, role: 'togglefullscreen' },
-      ],
-    },
-    { label: m.window, submenu: [{ role: 'minimize' }, { role: 'close' }] },
-    {
-      label: m.help,
-      submenu: [
-        { label: m.checkUpdates, click: () => void checkForUpdates(true) },
-        {
-          label: m.about,
-          click: () =>
-            void dialog.showMessageBox({
-              type: 'info',
-              message: `${t().appName} ${app.getVersion()}`,
-              detail: `${config.server ?? ''}\nElectron ${process.versions.electron}`,
-            }),
-        },
-      ],
-    },
-  ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 export const forTests = { normalize, fill };

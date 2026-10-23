@@ -3,6 +3,9 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from '@cenacle/ui/brand';
 import { AppearanceControls } from '../shell/appearance-controls';
+import { DesktopTitleBar } from '../desktop/title-bar';
+import { desktop } from '../desktop/desktop';
+import { cn } from '@cenacle/ui/lib/utils';
 
 /**
  * The sign-in pages of the chat app: the form on the left and, on wide
@@ -11,7 +14,13 @@ import { AppearanceControls } from '../shell/appearance-controls';
 export function SigninLayout({ children, aside }: { children: ReactNode; aside: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <div className="grid min-h-svh grid-rows-[auto_1fr_auto] bg-panel">
+    <div
+      className={cn(
+        'grid min-h-svh bg-panel',
+        desktop ? 'grid-rows-[auto_auto_1fr_auto]' : 'grid-rows-[auto_1fr_auto]',
+      )}
+    >
+      <DesktopTitleBar tone="page" />
       <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-10 sm:py-5">
         <Logo variant="lockup" size={28} />
         <AppearanceControls />
