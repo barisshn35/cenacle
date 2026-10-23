@@ -184,6 +184,14 @@ export const channelRunsQuery = (channelId: string) =>
     queryKey: ['runs', channelId],
     queryFn: () => apiFetch<{ runs: Run[] }>(`/api/channels/${channelId}/runs`).then((r) => r.runs),
   });
+/** The runs in progress in the person's channels of a workspace. */
+export const workspaceRunsQuery = (workspaceId: string | undefined) =>
+  queryOptions({
+    queryKey: ['runs', 'workspace', workspaceId],
+    queryFn: () =>
+      apiFetch<{ runs: Run[] }>(`/api/workspaces/${workspaceId}/runs`).then((r) => r.runs),
+    enabled: !!workspaceId,
+  });
 export const updateRunItem = (
   runId: string,
   change: {
@@ -206,6 +214,8 @@ export function applyRun(queryClient: QueryClient, run: Run): void {
         : [run, ...list]
       : list,
   );
+  // The workspace's list of runs in progress follows on its next look.
+  void queryClient.invalidateQueries({ queryKey: ['runs', 'workspace'] });
 }
 
 /** Sends a poll: the question is the message's text. */

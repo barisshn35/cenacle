@@ -24,6 +24,9 @@ import { boardCell, boardRow } from '../shell/board-styles';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { channelsQuery } from '../chat/data';
+import { ChannelIcon } from '../chat/channel-icon';
+import { UserAvatar } from '../profile/avatar';
+import { dateLocale } from '../../i18n/time-format';
 import {
   applyRun,
   archivePlaybook,
@@ -34,6 +37,7 @@ import {
   startRun,
   updatePlaybook,
   updateRunItem,
+  workspaceRunsQuery,
   type Playbook,
   type PlaybookInput,
   type Run,
@@ -46,11 +50,14 @@ const areaClass =
 
 /** The workspace's playbooks: start a run; owners and admins write them. */
 export function PlaybooksList() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const ws = useActiveWorkspace();
   const queryClient = useQueryClient();
   const mobile = useIsMobile();
+  const navigate = useNavigate();
+  const channels = useQuery(channelsQuery).data ?? [];
   const playbooks = useQuery(playbooksQuery(ws.id));
+  const runsQueryData = useQuery(workspaceRunsQuery(ws.id)).data ?? [];
   const [editing, setEditing] = useState<Playbook | 'new' | null>(null);
   const [starting, setStarting] = useState<Playbook | null>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['playbooks', ws.id] });
@@ -100,6 +107,37 @@ export function PlaybooksList() {
       )}
     </span>
   );
+  const runs = runsQueryData;
+  const progress = (r: Run) => {
+    const items = r.checklists.flatMap((c) => c.items);
+    return { done: items.filter((i) => i.done_at || i.skipped).length, total: items.length };
+  };
+  const runOpen = (r: Run) => (
+    <Button
+      size="sm"
+      variant="outline"
+      aria-label={t('community.playbooks.openRun', { name: r.name })}
+      onClick={() => void navigate({ to: '/c/$channelId', params: { channelId: r.channel_id } })}
+    >
+      {t('community.playbooks.open')}
+    </Button>
+  );
+  const runChannel = (r: Run) => {
+    const c = channels.find((x) => x.id === r.channel_id);
+    return (
+      <span className="flex min-w-0 items-center gap-1.5">
+        {c && <ChannelIcon channel={c} className="size-4 shrink-0 text-muted-foreground" />}
+        <span className="truncate">{c?.name ?? '—'}</span>
+      </span>
+    );
+  };
+  const runPlaybook = (r: Run) => list.find((p) => p.id === r.playbook_id)?.name ?? '—';
+  const started = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
   return (
     <>
       {ws.admin && (
@@ -109,6 +147,90 @@ export function PlaybooksList() {
             {t('community.playbooks.new')}
           </Button>
         </div>
+      )}
+      {runs.length > 0 && (
+        <BoardSection title={t('community.playbooks.runsTitle')} count={runs.length}>
+          {mobile ? (
+            <ul className="flex flex-col border-t">
+              {runs.map((r) => {
+                const p = progress(r);
+                return (
+                  <li
+                    key={r.id}
+                    data-testid="run"
+                    className="flex flex-col gap-1.5 border-b px-4 py-3 text-sm"
+                  >
+                    <span className="font-semibold">{r.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {runPlaybook(r)} · {t('community.playbooks.progress', p)}
+                    </span>
+                    <span className="flex items-center gap-2 text-[13px]">
+                      {runChannel(r)}
+                      <span className="ml-auto">{runOpen(r)}</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <Board
+              label={t('community.playbooks.runsTitle')}
+              minWidth="min-w-[52rem]"
+              columns={[
+                { label: t('community.playbooks.columns.run') },
+                { label: t('community.playbooks.columns.playbook'), width: 'w-[180px]' },
+                { label: t('community.playbooks.columns.channel'), width: 'w-[160px]' },
+                { label: t('community.playbooks.columns.owner'), width: 'w-[170px]' },
+                { label: t('community.playbooks.columns.progress'), width: 'w-[120px]' },
+                {
+                  label: (
+                    <span className="sr-only">{t('community.playbooks.columns.actions')}</span>
+                  ),
+                  width: 'w-[84px]',
+                },
+              ]}
+            >
+              <BoardGroup span={6}>
+                {runs.map((r) => {
+                  const p = progress(r);
+                  return (
+                    <tr key={r.id} data-testid="run" className={cn(boardRow(), 'text-sm')}>
+                      <td className={boardCell}>
+                        <span className="block font-semibold">{r.name}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {t('community.playbooks.startedAt', {
+                            time: started.format(new Date(r.created_at)),
+                          })}
+                        </span>
+                      </td>
+                      <td className={boardCell}>{runPlaybook(r)}</td>
+                      <td className={boardCell}>{runChannel(r)}</td>
+                      <td className={boardCell}>
+                        {r.owner ? (
+                          <span className="flex min-w-0 items-center gap-2">
+                            <UserAvatar userId={r.owner.id} name={r.owner.display_name} size="xs" />
+                            <span className="truncate">{r.owner.display_name}</span>
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className={boardCell}>
+                        <span className="block font-mono">
+                          {t('community.playbooks.progressShort', p)}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {t('community.playbooks.itemsDone')}
+                        </span>
+                      </td>
+                      <td className={cn(boardCell, 'text-right')}>{runOpen(r)}</td>
+                    </tr>
+                  );
+                })}
+              </BoardGroup>
+            </Board>
+          )}
+        </BoardSection>
       )}
       {playbooks.isPending ? (
         <Skeleton className="h-20" />

@@ -1300,6 +1300,9 @@ export async function mockApi(
     }
     return route.fulfill({ json: { playbooks: api.playbooks } });
   });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/runs$/, (route) =>
+    route.fulfill({ json: { runs: [] } }),
+  );
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/reports/, (route) =>
     route.fulfill({ json: { reports: [] } }),
   );

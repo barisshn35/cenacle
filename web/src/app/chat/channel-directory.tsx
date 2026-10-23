@@ -152,7 +152,7 @@ export function ChannelDirectory({
                   <li
                     key={c.id}
                     data-testid="directory-channel"
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-t px-3 py-2.5 first:border-t-0 sm:grid-cols-[220px_minmax(0,1fr)_120px_auto]"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-t px-3 py-2.5 first:border-t-0 sm:grid-cols-[220px_minmax(0,1fr)_88px_120px_auto]"
                   >
                     <div className="flex min-w-0 items-start gap-2.5">
                       <ChannelIcon
@@ -167,6 +167,18 @@ export function ChannelDirectory({
                     <p className="col-span-2 line-clamp-2 text-[13px] text-muted-foreground max-sm:order-last sm:col-span-1">
                       {c.topic || '—'}
                     </p>
+                    <span className="text-right font-mono text-[13px] text-muted-foreground max-sm:hidden">
+                      {c.member_count !== undefined ? (
+                        <>
+                          <span aria-hidden>{c.member_count}</span>
+                          <span className="sr-only">
+                            {t('channels.memberCount', { count: c.member_count })}
+                          </span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </span>
                     <span className="flex items-center gap-1.5 text-[13px] max-sm:hidden">
                       {c.archived ? (
                         <>

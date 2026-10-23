@@ -8,6 +8,7 @@ import {
   instance,
   mockApi,
   mockMessage,
+  SESSION,
 } from './helpers';
 
 test('the terms of service come first; the banner shows above the app', async ({ page }) => {
@@ -144,5 +145,65 @@ test.describe('administration', () => {
         { title: 'Triage', items: [{ title: 'Open a channel' }, { title: 'Page on-call' }] },
       ],
     });
+  });
+
+  test('playbooks list the runs in progress', async ({ page }) => {
+    const api = await mockApi(page, { messages: [], admin: true });
+    api.playbooks.push({
+      id: '01a15e50-bbbb-7000-8000-000000000001',
+      name: 'Incident response',
+      description: '',
+      checklists: [],
+      updated_at: new Date().toISOString(),
+      runs_active: 1,
+    });
+    await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/runs$/, (route) =>
+      route.fulfill({
+        json: {
+          runs: [
+            {
+              id: '01a15e50-cccc-7000-8000-000000000001',
+              playbook_id: '01a15e50-bbbb-7000-8000-000000000001',
+              channel_id: GENERAL.id,
+              name: 'Login slow for LDAP users',
+              owner: { id: SESSION.user.id, display_name: SESSION.user.display_name },
+              status: 'active',
+              checklists: [
+                {
+                  title: 'Triage',
+                  items: [
+                    {
+                      title: 'a',
+                      description: '',
+                      done_at: new Date().toISOString(),
+                      done_by: null,
+                      skipped: false,
+                      assignee_id: null,
+                    },
+                    {
+                      title: 'b',
+                      description: '',
+                      done_at: null,
+                      done_by: null,
+                      skipped: false,
+                      assignee_id: null,
+                    },
+                  ],
+                },
+              ],
+              created_at: new Date().toISOString(),
+              finished_at: null,
+            },
+          ],
+        },
+      }),
+    );
+    await page.goto('/playbooks');
+    const run = page.getByTestId('run');
+    await expect(run).toContainText('Login slow for LDAP users');
+    await expect(run).toContainText('Incident response');
+    await expect(run).toContainText('1 of 2');
+    await run.getByRole('button', { name: /^Open/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/c/${GENERAL.id}`));
   });
 });

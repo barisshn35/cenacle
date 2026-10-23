@@ -295,7 +295,9 @@
     "dirMember": "Üyesin",
     "notJoined": "Katılmadın",
     "openChannelNamed": "{{channel}} kanalını aç",
-    "directoryNote": "Özel kanallar yalnızca üyesiysen görünür. Arşivlenmiş kanallar okunabilir ama kimse yazamaz."
+    "directoryNote": "Özel kanallar yalnızca üyesiysen görünür. Arşivlenmiş kanallar okunabilir ama kimse yazamaz.",
+    "memberCount_one": "{{count}} üye",
+    "memberCount_other": "{{count}} üye"
   },
   "categories": {
     "manage": "Kategorileri düzenle",
@@ -1276,18 +1278,29 @@
       "runName": "Çalıştırma adı",
       "channel": "Kanal",
       "runs": "Çalıştırmalar",
-      "progress": "{{total}} maddeden {{done}}",
+      "progress": "{{total}} maddeden {{done}} tamam",
       "finished": "Bitti",
       "finish": "Çalıştırmayı bitir",
       "title": "Oyun kitapları",
       "columns": {
         "name": "Ad",
         "contents": "İçerik",
-        "actions": "İşlemler"
+        "actions": "İşlemler",
+        "run": "Çalıştırma",
+        "playbook": "Oyun kitabı",
+        "channel": "Kanal",
+        "owner": "Sahibi",
+        "progress": "İlerleme"
       },
       "startNamed": "Çalıştır, {{name}}",
       "editNamed": "Düzenle, {{name}}",
-      "archiveNamed": "Arşivle, {{name}}"
+      "archiveNamed": "Arşivle, {{name}}",
+      "runsTitle": "Süren çalıştırmalar",
+      "open": "Aç",
+      "openRun": "{{name}} aç",
+      "startedAt": "Başladı: {{time}}",
+      "progressShort": "{{done}} / {{total}}",
+      "itemsDone": "madde tamam"
     },
     "admin": {
       "banner": "Duyuru şeridi",

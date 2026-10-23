@@ -295,7 +295,9 @@
     "dirMember": "Member",
     "notJoined": "Not joined",
     "openChannelNamed": "Open {{channel}}",
-    "directoryNote": "Private channels appear only when you are a member. Archived channels can be read, but no one can post."
+    "directoryNote": "Private channels appear only when you are a member. Archived channels can be read, but no one can post.",
+    "memberCount_one": "{{count}} member",
+    "memberCount_other": "{{count}} members"
   },
   "categories": {
     "manage": "Edit categories",
@@ -1276,7 +1278,7 @@
       "runName": "Run name",
       "channel": "Channel",
       "runs": "Runs",
-      "progress": "{{done}} of {{total}}",
+      "progress": "{{done}} of {{total}} items done",
       "finished": "Finished",
       "finish": "Finish run",
       "title": "Playbooks",
@@ -1286,8 +1288,19 @@
       "columns": {
         "name": "Name",
         "contents": "Contents",
-        "actions": "Actions"
-      }
+        "actions": "Actions",
+        "run": "Run",
+        "playbook": "Playbook",
+        "channel": "Channel",
+        "owner": "Owner",
+        "progress": "Progress"
+      },
+      "runsTitle": "Runs in progress",
+      "open": "Open",
+      "openRun": "Open {{name}}",
+      "startedAt": "Started {{time}}",
+      "progressShort": "{{done}} of {{total}}",
+      "itemsDone": "items done"
     },
     "admin": {
       "banner": "Announcement banner",
