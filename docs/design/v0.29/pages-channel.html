@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Cenacle</title>
+<link rel="stylesheet" href="app.css">
+<style>
+/* ---- shared ---- */
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-2); }
+.tabs span.on svg { color: var(--accent); }
+.btn svg { color: var(--ink-2); }
+.btn.p svg { color: var(--accent-fg); }
+.btn.sq { width: 32px; padding: 0; justify-content: center; }
+.btn[aria-disabled="true"] { color: var(--ink-2); background: var(--panel); }
+.sel-btn { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; padding: 0 10px 0 12px; border: 1px solid var(--rule-strong); border-radius: 7px; background: var(--sheet); font-size: 13.5px; }
+.sel-btn svg { color: var(--ink-2); }
+.seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 8px; padding: 2px; gap: 2px; background: var(--sheet); }
+.seg span { height: 26px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.seg span.on { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.seg span.on svg { color: var(--accent); }
+.tbar { height: 52px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 24px; border-bottom: 1px solid var(--rule); }
+.tbar h2 { font-size: 15px; font-weight: 600; }
+.tbar .sp { flex: 1; }
+.lbl { font-size: 12.5px; color: var(--ink-2); }
+.fchip { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--rule-strong); font-size: 13px; font-weight: 500; background: var(--sheet); color: var(--ink); }
+.fchip.on { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+.fchip small { color: var(--ink-2); font: 12px var(--mono); }
+.tagc { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 4px; background: var(--well); font-size: 12px; font-weight: 500; color: var(--ink); }
+
+/* ---- canvas ---- */
+.cv-wrap { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.cv-status { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.cv-status .live { width: 7px; height: 7px; border-radius: 50%; background: var(--online); }
+.cv-status b { font-weight: 600; }
+.cv-note { display: flex; align-items: center; gap: 8px; margin: 14px 24px 0; padding: 8px 12px; border-radius: 8px; background: var(--well); font-size: 13px; }
+.cv-note svg { color: var(--ink-2); }
+.doc { padding: 26px 260px 0 64px; overflow: hidden; flex: 1; }
+.doc > * { max-width: 72ch; }
+.doc h1 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
+.doc .sub { margin-top: 4px; font-size: 13px; color: var(--ink-2); line-height: 18px; }
+.doc h2 { font-size: 17px; font-weight: 600; margin-top: 22px; letter-spacing: -0.01em; }
+.doc p, .doc li { font-size: 15px; line-height: 1.55; }
+.doc p { margin-top: 8px; }
+.doc ul, .doc ol { margin-top: 8px; padding-left: 22px; }
+.doc li + li { margin-top: 3px; }
+.doc ul.todo { list-style: none; padding-left: 0; }
+.doc ul.todo li { display: flex; gap: 10px; align-items: flex-start; }
+.cb { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--rule-strong); background: var(--sheet); flex: none; margin-top: 4px; display: grid; place-items: center; }
+.cb.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.cb svg { width: 12px; height: 12px; stroke-width: 2.5; }
+.doc ul.todo li.done span:last-child { color: var(--ink-2); text-decoration: line-through; }
+.dtable { margin-top: 10px; border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
+.dtable th { text-align: left; font-weight: 600; background: var(--panel); padding: 8px 12px; border-bottom: 1px solid var(--rule-strong); }
+.dtable td { padding: 8px 12px; border-top: 1px solid var(--rule); vertical-align: top; }
+.dtable tr:nth-child(2) td { border-top: 0; }
+.dtable td.mono { font-size: 13px; }
+.doc a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
+.cv-aside { position: absolute; right: 24px; top: 22px; width: 216px; display: grid; gap: 10px; }
+.cv-card { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; background: var(--sheet); font-size: 13px; }
+.cv-card h4 { font-size: 12.5px; font-weight: 600; margin-bottom: 6px; }
+.cv-card .r { display: flex; justify-content: space-between; gap: 8px; line-height: 22px; }
+.cv-card .r span:first-child { color: var(--ink-2); }
+
+/* ---- list: board ---- */
+.lanes { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 16px 24px 16px; overflow: hidden; }
+.lane { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; }
+.lane-h { height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 14px; border-bottom: 1px solid var(--rule); font-size: 13.5px; font-weight: 600; }
+.lane-h .n { font: 400 12px var(--mono); color: var(--ink-2); }
+.lane-h .sp { flex: 1; }
+.lane-h svg.k { color: var(--ink-2); }
+.lane-b { padding: 10px; display: grid; gap: 8px; align-content: start; }
+.card { background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; }
+.card .ct { font-size: 14px; font-weight: 500; line-height: 20px; }
+.card .cm { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+.card .cm .who { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-size: 12.5px; font-weight: 400; }
+.card .cm .sp { flex: 1; }
+.card .due { display: inline-flex; align-items: center; gap: 4px; font: 12px var(--mono); }
+.card .due svg { width: 14px; height: 14px; }
+.card .due.late { color: var(--ink); font-weight: 600; }
+.card.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.pri { font-size: 12px; font-weight: 500; color: var(--ink-2); display: inline-flex; align-items: center; gap: 4px; }
+.pri.hi { color: var(--ink); font-weight: 600; }
+.addc { height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 7px; font-size: 13px; color: var(--ink-2); }
+.card.done .ct { color: var(--ink-2); }
+
+/* ---- list: table ---- */
+.ltable-wrap { flex: 1; min-height: 0; padding: 16px 24px; overflow: hidden; }
+.lt { border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; background: var(--sheet); }
+.lr { display: grid; grid-template-columns: 40px minmax(0, 1fr) 172px 164px 132px 104px 44px; align-items: center; min-height: 44px; border-top: 1px solid var(--rule); font-size: 13.5px; }
+.lr > div { padding: 0 12px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lr > div:first-child { padding: 0 0 0 14px; }
+.lr.h { background: var(--forest); color: var(--bone); border-top: 0; min-height: 40px; font-size: 13px; font-weight: 500; }
+.dark .lr.h { background: #1d3d32; }
+.lr.h > div { display: flex; align-items: center; gap: 6px; }
+.lr.h svg { width: 14px; height: 14px; opacity: .8; }
+.lr .tt { font-weight: 500; }
+.lr .pp { display: flex; align-items: center; gap: 8px; }
+.lr.sel { background: var(--accent-soft); }
+.lr .cb { margin-top: 0; }
+.stv { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.stv svg { width: 15px; height: 15px; color: var(--ink-2); }
+.lr.add { color: var(--ink-2); font-size: 13px; }
+.lr.add > div:nth-child(2) { display: flex; align-items: center; gap: 6px; }
+.lr .mono { font-size: 13px; }
+.lr.done .tt { color: var(--ink-2); }
+.lfoot { margin-top: 10px; font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; }
+
+/* ---- forum ---- */
+.fhead { padding: 16px 24px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.fhead .sp { flex: 1; }
+.posts { flex: 1; min-height: 0; overflow: hidden; }
+.post { display: grid; grid-template-columns: minmax(0, 1fr) 96px 104px; gap: 0 16px; padding: 12px 24px; border-bottom: 1px solid var(--rule); align-items: center; }
+.post .pt { font-size: 15px; font-weight: 600; line-height: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.post .pm { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12.5px; color: var(--ink-2); flex-wrap: nowrap; white-space: nowrap; }
+.post .pm .a { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.post .rc { text-align: right; font-size: 13px; }
+.post .rc b { font: 500 14px var(--mono); display: block; }
+.post .rc span { color: var(--ink-2); font-size: 12px; }
+.post .la { text-align: right; font: 13px var(--mono); }
+.post .la span { display: block; font: 12px var(--font); color: var(--ink-2); }
+.post.sel { background: var(--accent-soft); }
+.post.read .pt { font-weight: 500; }
+.colh { display: grid; grid-template-columns: minmax(0, 1fr) 96px 104px; gap: 0 16px; padding: 8px 24px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--rule); background: var(--panel); }
+.colh span:not(:first-child) { text-align: right; }
+.ptitle { font-size: 18px; font-weight: 600; line-height: 24px; letter-spacing: -0.01em; }
+.ptags { display: flex; gap: 6px; margin-top: 8px; }
+
+/* ---- rich messages ---- */
+.poll { border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--sheet); padding: 12px 14px; max-width: 460px; }
+.poll .q { font-size: 15px; font-weight: 600; line-height: 21px; }
+.poll .qm { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+.popt { margin-top: 8px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: 14px; }
+.popt .rad { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--rule-strong); display: grid; place-items: center; }
+.popt.mine .rad { border: 5px solid var(--accent); }
+.popt .pc { font: 13px var(--mono); }
+.popt.mine .pc, .popt.mine .on { font-weight: 600; }
+.popt .trk { grid-column: 2 / 4; height: 6px; border-radius: 3px; background: var(--well); overflow: hidden; }
+.popt .trk i { display: block; height: 100%; background: var(--ink-2); border-radius: 3px; }
+.popt.mine .trk i { background: var(--accent); }
+.poll .pf { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--ink-2); }
+.poll .pf button { height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--rule-strong); font-size: 12.5px; font-weight: 500; color: var(--ink); }
+.lp { display: grid; grid-template-columns: minmax(0, 1fr) 112px; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; max-width: 520px; background: var(--sheet); }
+.lp .lt2 { padding: 10px 14px; }
+.lp .site { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.lp .site svg { width: 14px; height: 14px; }
+.lp b { display: block; font-size: 14px; font-weight: 600; margin-top: 2px; line-height: 20px; }
+.lp p { font-size: 13px; color: var(--ink-2); line-height: 18px; margin-top: 2px; }
+.lp .thumb { background: var(--well); border-left: 1px solid var(--rule); display: grid; place-items: center; color: var(--ink-2); }
+.voice { display: inline-flex; align-items: center; gap: 12px; height: 48px; padding: 0 14px 0 8px; border: 1px solid var(--rule-strong); border-radius: 24px; background: var(--sheet); }
+.voice .play { width: 32px; height: 32px; border-radius: 16px; background: var(--well); color: var(--ink); display: grid; place-items: center; }
+.voice .play svg { width: 16px; height: 16px; fill: currentColor; }
+.wave { display: flex; align-items: center; gap: 2px; height: 28px; }
+.wave i { width: 3px; border-radius: 2px; background: var(--rule-strong); }
+.wave i.p { background: var(--ink); }
+.voice .dur { font: 13px var(--mono); color: var(--ink-2); }
+.voice .dur b { color: var(--ink); font-weight: 500; }
+.fwd { border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); padding: 10px 14px; max-width: 560px; }
+.fwd .fh { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
+.fwd .fh svg { width: 14px; height: 14px; }
+.fwd .fb { margin-top: 6px; display: flex; gap: 10px; }
+.fwd .fb b { font-size: 13px; font-weight: 600; }
+.fwd .fb p { font-size: 14.5px; line-height: 1.5; }
+.fwd .open { margin-top: 6px; font-size: 12.5px; font-weight: 500; color: var(--ink); display: inline-flex; align-items: center; gap: 4px; }
+.fwd .open svg { width: 14px; height: 14px; color: var(--ink-2); }
+.cemo { width: 18px; height: 18px; display: block; }
+.tx .cemo { display: inline-block; vertical-align: -3px; }
+
+/* ---- dialog ---- */
+.stage { position: relative; height: 100vh; }
+.scrim2 { position: absolute; inset: 0; background: rgba(12, 26, 22, .45); }
+.dlg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 640px; background: var(--sheet); border-radius: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.dlg-h { padding: 20px 24px 0; display: flex; align-items: flex-start; gap: 12px; }
+.dlg-h h2 { font-size: 18px; font-weight: 600; line-height: 24px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+.dlg-h h2 svg { color: var(--ink-2); }
+.dlg-h p { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; }
+.dlg-h .sp { flex: 1; }
+.dlg .itabs { margin: 14px 0 0; padding: 0 16px; }
+.dlg-b { padding: 18px 24px 4px; display: grid; gap: 16px; }
+.fld { display: grid; gap: 6px; align-content: start; }
+.fld > label, .fld > .lab2 { font-size: 13px; font-weight: 600; }
+.fld .hint { font-size: 12.5px; color: var(--ink-2); }
+.inp { height: 36px; border: 1px solid var(--rule-strong); border-radius: 8px; padding: 0 12px; display: flex; align-items: center; font-size: 14px; background: var(--sheet); }
+.inp.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.inp .caret { width: 1px; height: 18px; background: var(--ink); margin-left: 1px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.vis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vopt { border: 1px solid var(--rule-strong); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: 18px 1fr; gap: 2px 10px; }
+.vopt .rad { grid-column: 1; grid-row: 1 / span 2; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--rule-strong); margin-top: 2px; }
+.vopt.on { border-color: var(--accent); background: var(--accent-soft); }
+.vopt.on .rad { border: 5px solid var(--accent); }
+.vopt b { grid-column: 2; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.vopt b svg { color: var(--ink-2); width: 15px; height: 15px; }
+.vopt span { grid-column: 2; font-size: 12.5px; color: var(--ink-2); line-height: 17px; }
+.dlg-f { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; }
+.danger { margin: 8px 24px 0; padding: 14px 0 0; border-top: 1px solid var(--rule); display: flex; align-items: center; gap: 16px; }
+.danger div { flex: 1; }
+.danger b { font-size: 13.5px; font-weight: 600; display: block; }
+.danger p { font-size: 12.5px; color: var(--ink-2); line-height: 17px; margin-top: 2px; }
+.btn.d { color: var(--mention); border-color: var(--mention); }
+.btn.d svg { color: var(--mention); }
+.dlg .itab { font-size: 13.5px; height: 38px; }
+
+/* ---- files panel ---- */
+.fl-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.imgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.imgs .im { aspect-ratio: 4 / 3; border-radius: 8px; border: 1px solid var(--rule); overflow: hidden; background: var(--well); }
+.imgs .im svg { width: 100%; height: 100%; display: block; }
+.frow { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 0 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--rule); }
+.frow .fi { width: 32px; height: 32px; border-radius: 6px; background: var(--well); display: grid; place-items: center; color: var(--ink-2); }
+.frow b { font-size: 13.5px; font-weight: 500; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frow small { font-size: 12px; color: var(--ink-2); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frow .iconbtn { width: 30px; height: 30px; }
+.psec2 h3 { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 8px; }
+.psec2 h3 span { font-weight: 400; color: var(--ink-2); font-family: var(--mono); font-size: 12px; }
+
+/* ---- lightbox ---- */
+.lb { position: absolute; inset: 0; background: rgba(8, 14, 12, .94); display: grid; grid-template-rows: 64px 1fr 72px; color: #ece8dd; }
+.lb-top { display: flex; align-items: center; gap: 12px; padding: 0 16px 0 24px; border-bottom: 1px solid rgba(236, 232, 221, .12); }
+.lb-top .nm { font-size: 14.5px; font-weight: 600; }
+.lb-top .mt { font-size: 12.5px; color: #b9c3bd; }
+.lb-top .sp { flex: 1; }
+.lb-btn { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: #ece8dd; border: 1px solid rgba(236, 232, 221, .18); }
+.lb-btn.t { width: auto; padding: 0 14px; gap: 8px; display: flex; align-items: center; font-size: 13.5px; font-weight: 500; }
+.lb-mid { display: grid; grid-template-columns: 88px minmax(0, 1fr) 88px; align-items: center; min-height: 0; }
+.lb-nav { width: 48px; height: 48px; border-radius: 24px; display: grid; place-items: center; background: rgba(236, 232, 221, .1); color: #ece8dd; margin: 0 auto; border: 1px solid rgba(236, 232, 221, .18); }
+.lb-img { justify-self: center; height: 640px; aspect-ratio: 4 / 3; border-radius: 6px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.lb-img svg { width: 100%; height: 100%; display: block; }
+.lb-bot { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.lb-th { width: 64px; height: 48px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(236, 232, 221, .2); opacity: .7; }
+.lb-th.on { opacity: 1; box-shadow: 0 0 0 2px #c9a24b; border-color: transparent; }
+.lb-th svg { width: 100%; height: 100%; display: block; }
+.lb-pos { font: 13px var(--mono); color: #b9c3bd; margin-left: 12px; }
+</style>
+</head>
+<body><script src="icons.js"></script><script src="app-kit.js"></script><div id="root"></div><script>
+Object.assign(ICONS,{"table-2":"<path d=\"M3 9h18\"/><path d=\"M9 3v18\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/>","square-kanban":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M8 7v7\"/><path d=\"M12 7v4\"/><path d=\"M16 7v9\"/>","play":"<path d=\"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z\"/>","download":"<path d=\"M12 15V3\"/><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/>","image":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" ry=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\"/>","file":"<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/>","file-archive":"<path d=\"M13.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v11.5\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M8 12v-1\"/><path d=\"M8 18v-2\"/><path d=\"M8 7V6\"/><circle cx=\"8\" cy=\"20\" r=\"2\"/>","chevron-left":"<path d=\"m15 18-6-6 6-6\"/>","funnel":"<path d=\"M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z\"/>","archive":"<rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\"/><path d=\"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8\"/><path d=\"M10 12h4\"/>","tag":"<path d=\"M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/>","circle-dashed":"<path d=\"M10.1 2.182a10 10 0 0 1 3.8 0\"/><path d=\"M13.9 21.818a10 10 0 0 1-3.8 0\"/><path d=\"M17.609 3.721a10 10 0 0 1 2.69 2.7\"/><path d=\"M2.182 13.9a10 10 0 0 1 0-3.8\"/><path d=\"M20.279 17.609a10 10 0 0 1-2.7 2.69\"/><path d=\"M21.818 10.1a10 10 0 0 1 0 3.8\"/><path d=\"M3.721 6.391a10 10 0 0 1 2.7-2.69\"/><path d=\"M6.391 20.279a10 10 0 0 1-2.69-2.7\"/>","circle-check-big":"<path d=\"M21.801 10A10 10 0 1 1 17 3.335\"/><path d=\"m9 11 3 3L22 4\"/>","circle-dot":"<circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/>","flag":"<path d=\"M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528\"/>","upload":"<path d=\"M12 3v12\"/><path d=\"m17 8-5-5-5 5\"/><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/>","user-plus":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><line x1=\"19\" x2=\"19\" y1=\"8\" y2=\"14\"/><line x1=\"22\" x2=\"16\" y1=\"11\" y2=\"11\"/>","calendar-days":"<path d=\"M8 2v3\"/><path d=\"M16 2v3\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18\"/><path d=\"M8 13h.01\"/><path d=\"M12 13h.01\"/><path d=\"M16 13h.01\"/><path d=\"M8 17h.01\"/><path d=\"M12 17h.01\"/><path d=\"M16 17h.01\"/>","arrow-up-down":"<path d=\"m21 16-4 4-4-4\"/><path d=\"M17 20V4\"/><path d=\"m3 8 4-4 4 4\"/><path d=\"M7 4v16\"/>","history":"<path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M12 7v5l4 2\"/>","external-link":"<path d=\"M15 3h6v6\"/><path d=\"M10 14 21 3\"/><path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6\"/>","file-spreadsheet":"<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M8 13h2\"/><path d=\"M14 13h2\"/><path d=\"M8 17h2\"/><path d=\"M14 17h2\"/>","volume-2":"<path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"/><path d=\"M16 9a5 5 0 0 1 0 6\"/><path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\"/>","eye":"<path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>","columns-3":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"M15 3v18\"/>","newspaper":"<path d=\"M15 18h-5\"/><path d=\"M18 14h-8\"/><path d=\"M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2\"/><rect width=\"8\" height=\"4\" x=\"10\" y=\"6\" rx=\"1\"/>","triangle-alert":"<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>","grip-vertical":"<circle cx=\"9\" cy=\"12\" r=\"1\"/><circle cx=\"9\" cy=\"5\" r=\"1\"/><circle cx=\"9\" cy=\"19\" r=\"1\"/><circle cx=\"15\" cy=\"12\" r=\"1\"/><circle cx=\"15\" cy=\"5\" r=\"1\"/><circle cx=\"15\" cy=\"19\" r=\"1\"/>","type":"<path d=\"M12 4v16\"/><path d=\"M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2\"/><path d=\"M9 20h6\"/>","hash":"<line x1=\"4\" x2=\"20\" y1=\"9\" y2=\"9\"/><line x1=\"4\" x2=\"20\" y1=\"15\" y2=\"15\"/><line x1=\"10\" x2=\"8\" y1=\"3\" y2=\"21\"/><line x1=\"16\" x2=\"14\" y1=\"3\" y2=\"21\"/>","user-round":"<circle cx=\"12\" cy=\"8\" r=\"5\"/><path d=\"M20 21a8 8 0 0 0-16 0\"/>"});
+const S = q.get('s') ?? 'canvas';
+
+/* channel header + tabs for General */
+const head = (tab = 'messages', panelOn = '', ch = { icon: 'channel', name: 'General', topic: 'Anything and everything for the whole team', gov: 'Internal · kept 2 years', n: 24 }) => `<header class="head">
+  <h1>${I(ch.icon, 's')}${ch.name}</h1><span class="topic">${ch.topic}</span>
+  <button class="gov" title="Classification and retention">${I('shield-check', 's')}${ch.gov}</button>
+  <span class="mem">${I('users', 's')}<span class="tab">${ch.n}</span></span>
+  <span class="iconbtn" title="Pinned">${I('pin')}</span><span class="iconbtn" title="Notifications">${I('bell')}</span><span class="iconbtn" title="Search in channel">${I('search')}</span><span class="iconbtn ${panelOn === 'files' ? 'on' : ''}" title="Files">${I('paperclip')}</span><span class="iconbtn ${panelOn === 'details' ? 'on' : ''}" title="Details">${I('panel-right')}</span>
+</header>
+<div class="tabs" role="tablist" aria-label="Channel tabs"><span class="${tab === 'messages' ? 'on' : ''}">${I('message-square', 's')}Messages</span><span class="${tab === 'canvas' ? 'on' : ''}">${I('file-text', 's')}Release notes</span><span class="${tab === 'list' ? 'on' : ''}">${I('list-checks', 's')}Launch tasks</span><span title="Add a tab">${I('plus', 's')}</span></div>`;
+
+const turn = (who, time, body, cls = '', extra = '') => `<div class="turn ${cls}"><div class="mg">${cls.includes('cont') ? `<time>${time}</time>` : `<div><div class="who">${who}</div><time>${time}</time></div>${av(who)}`}</div><div class="tx">${body}</div>${extra}</div>`;
+const pturn = (who, time, body, cls = '') => turn(who, time, body, cls).replace(/<span class="av[^>]*>[^<]*<\/span>/, '');
+const composer = (ph = 'Message General') => `<div class="foot"><div class="typing"><span></span><span class="r"><span></span><span></span></span></div>
+  <div class="comp"><span class="ph">${ph}</span><span class="iconbtn" title="Attach">${I('paperclip')}</span><span class="iconbtn aa" title="Formatting">Aa</span><span class="iconbtn" title="Emoji">${I('smile')}</span><span class="iconbtn" title="Mention">${I('at-sign')}</span><span class="send" title="Send">${I('send-horizontal')}</span></div></div>`;
+
+/* small drawn images (sketch photos) — content, so fixed colours are fine */
+const sketch = (v = 1) => {
+  const bg = ['#f6f1e4', '#eef2ee', '#f3ece6', '#eceef4', '#f2f0e2'][v % 5];
+  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><rect width="400" height="300" fill="${bg}"/>
+  <rect x="24" y="22" width="352" height="256" rx="6" fill="#fffdf8" stroke="#bdb4a2" stroke-width="2"/>
+  <rect x="24" y="22" width="${v % 2 ? 70 : 84}" height="256" fill="#2e4a40" opacity=".88"/>
+  ${[0,1,2,3,4,5].map(i => `<rect x="34" y="${48 + i * 22}" width="${40 + (i * 7 + v * 5) % 22}" height="7" rx="3" fill="#cdd8d1"/>`).join('')}
+  <rect x="${v % 2 ? 110 : 124}" y="40" width="${v % 2 ? 160 : 140}" height="10" rx="4" fill="#3c4743"/>
+  ${[0,1,2,3,4].map(i => `<circle cx="${v % 2 ? 122 : 136}" cy="${82 + i * 38}" r="8" fill="#d9cdb4"/><rect x="${v % 2 ? 138 : 152}" y="${76 + i * 38}" width="${150 + (i * 31 + v * 13) % 70}" height="6" rx="3" fill="#8b958f"/><rect x="${v % 2 ? 138 : 152}" y="${88 + i * 38}" width="${90 + (i * 17 + v * 7) % 80}" height="5" rx="2.5" fill="#c6c0b2"/>`).join('')}
+  <path d="M${v % 2 ? 300 : 290} 230 q 20 -26 50 -10" stroke="#b5462f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>`; };
+
+/* ---------- 1. canvas ---------- */
+const canvas = () => shell('general', `${head('canvas')}
+<div class="tbar">
+  <div class="cv-status">${av('Ayşe Yılmaz', '', '')}<span><b>Ayşe Yılmaz is editing</b> <span class="muted">· one editor at a time</span></span><span class="live" title="Editing now"></span></div>
+  <span class="sp"></span>
+  <span class="lbl">Version <span class="mono">14</span> · edited by Mert Demir, today <span class="mono">09:48</span></span>
+  <button class="btn" aria-disabled="true" title="Available when Ayşe finishes">${I('pencil', 's')}Edit</button>
+  <span class="iconbtn" title="Options for Release notes">${I('ellipsis')}</span>
+</div>
+<div class="cv-wrap" style="position:relative">
+<article class="doc" aria-label="Canvas text">
+  <h1>Cenacle 0.28.0 release notes</h1>
+  <p class="sub">Release candidate prep · target date <span class="mono">2026-10-30</span> · owner Mert Demir</p>
+  <h2>Highlights</h2>
+  <ul>
+    <li>Upgrade rehearsal now runs against a copy of production in under <strong>12 minutes</strong>.</li>
+    <li>Search indexes attachments' text; PDF and DOCX are covered.</li>
+    <li>Retention runs in batches every minute instead of once a night.</li>
+  </ul>
+  <h2>Component versions</h2>
+  <table class="dtable">
+    <tr><th>Component</th><th>Version</th><th>Notes</th></tr>
+    <tr><td>Chat server</td><td class="mono">0.28.0</td><td>Migration <code>00042_billing</code>, 1.2 s on staging</td></tr>
+    <tr><td>Cenacle ID</td><td class="mono">0.28.0</td><td>Key rotation keeps the old key for 7 days</td></tr>
+    <tr><td>PostgreSQL</td><td class="mono">18.1</td><td>No change</td></tr>
+    <tr><td>Valkey</td><td class="mono">9.0.2</td><td>Patch release, restart required</td></tr>
+  </table>
+  <h2>Before tagging</h2>
+  <ul class="todo">
+    <li class="done"><span class="cb on">${I('check')}</span><span>Freeze main</span></li>
+    <li class="done"><span class="cb on">${I('check')}</span><span>Run the load test with 200 users</span></li>
+    <li><span class="cb"></span><span>Upgrade rehearsal on the Ankara mirror (Zeynep)</span></li>
+    <li><span class="cb"></span><span>Approve these notes in <a>release-rc</a> before 15:00</span></li>
+  </ul>
+</article>
+<aside class="cv-aside" aria-label="About this canvas">
+  <div class="cv-card"><h4>Editing</h4><div class="r"><span>Now</span><span>Ayşe Yılmaz</span></div><div class="r"><span>Since</span><span class="mono">10:14</span></div><div class="r"><span>Your turn</span><span>When she saves</span></div></div>
+  <div class="cv-card"><h4>History</h4><div class="r"><span class="mono">v14</span><span>Mert · <span class="mono">09:48</span></span></div><div class="r"><span class="mono">v13</span><span>Ayşe · <span class="mono">22 Oct</span></span></div><div class="r"><span class="mono">v12</span><span>Zeynep · <span class="mono">21 Oct</span></span></div></div>
+</aside>
+</div>`);
+
+/* ---------- list data ---------- */
+const ROWS = [
+  { t: 'Tag the release candidate', a: 'Mert Demir', d: '27 Oct', st: 'todo', p: 'High' },
+  { t: 'Upgrade rehearsal on the Ankara mirror', a: 'Zeynep Ak', d: '26 Oct', st: 'doing', p: 'High' },
+  { t: 'Translate the upgrade notes to Turkish', a: 'Deniz Kaya', d: '28 Oct', st: 'todo', p: 'Normal' },
+  { t: 'Backup and restore drill (pgBackRest)', a: 'Can Öztürk', d: '22 Oct', st: 'doing', p: 'High', late: true },
+  { t: 'Update the screenshots in the guide', a: 'Ayşe Yılmaz', d: '29 Oct', st: 'todo', p: 'Low' },
+  { t: 'Freeze main', a: 'Mert Demir', d: '21 Oct', st: 'done', p: 'Normal' },
+  { t: 'Load test with 200 users', a: 'Zeynep Ak', d: '22 Oct', st: 'done', p: 'Normal' },
+  { t: 'Security scan of the images', a: 'Can Öztürk', d: '30 Oct', st: 'todo', p: 'Normal' },
+  { t: 'Review the release notes canvas', a: 'Deniz Kaya', d: '23 Oct', st: 'doing', p: 'Normal' },
+];
+const STI = { todo: ['circle-dashed', 'To do'], doing: ['circle-dot', 'In progress'], done: ['circle-check-big', 'Done'] };
+const listBar = (view) => `<div class="tbar">
+  <h2>Launch tasks</h2><span class="lbl"><span class="mono">9</span> rows</span>
+  <span class="sp"></span>
+  <span class="lbl">View</span>
+  <div class="seg" role="radiogroup" aria-label="View"><span class="${view === 'table' ? 'on' : ''}">${I('table-2', 's')}Table</span><span class="${view === 'board' ? 'on' : ''}">${I('square-kanban', 's')}Board</span></div>
+  ${view === 'board' ? `<span class="lbl">Groups by</span><button class="sel-btn">Status ${I('chevron-down', 's')}</button>` : ''}
+  <button class="btn">${I('columns-3', 's')}Columns</button>
+  <button class="btn p">${I('plus', 's')}Add a row</button>
+</div>`;
+
+/* ---------- 2. board ---------- */
+const card = (r, sel) => `<div class="card ${r.st === 'done' ? 'done' : ''} ${sel ? 'sel' : ''}"><div class="ct">${r.t}</div>
+  <div class="cm"><span class="who">${av(r.a)}${r.a.split(' ')[0]}</span><span class="sp"></span>
+  ${r.p === 'High' ? `<span class="pri hi">${I('flag', 's')}High</span>` : `<span class="pri">${r.p}</span>`}
+  <span class="due ${r.late ? 'late' : ''}" title="Due date">${I('calendar-days', 's')}${r.d}${r.late ? ' · overdue' : ''}</span></div></div>`;
+const lane = (st) => { const rs = ROWS.filter(r => r.st === st); return `<section class="lane" aria-label="${STI[st][1]}">
+  <div class="lane-h">${I(STI[st][0], 's k')}${STI[st][1]}<span class="n">${rs.length}</span><span class="sp"></span><span class="iconbtn" title="Add a card to ${STI[st][1]}">${I('plus', 's')}</span></div>
+  <div class="lane-b">${rs.map((r) => card(r, r.t.startsWith('Upgrade rehearsal'))).join('')}<button class="addc">${I('plus', 's')}Add a card to ${STI[st][1]}</button></div></section>`; };
+const board = () => shell('general', `${head('list')}${listBar('board')}<div class="lanes">${lane('todo')}${lane('doing')}${lane('done')}</div>`);
+
+/* ---------- 3. list (table) ---------- */
+const lrow = (r, i) => `<div class="lr ${i === 1 ? 'sel' : ''} ${r.st === 'done' ? 'done' : ''}" role="row" ${i === 1 ? 'aria-selected="true"' : ''}>
+  <div><span class="cb ${i === 1 ? 'on' : ''}">${i === 1 ? I('check') : ''}</span></div>
+  <div class="tt">${r.t}</div>
+  <div class="pp">${av(r.a)}${r.a}</div>
+  <div class="mono">${r.d}${r.late ? ' <span style="font-family:var(--font);font-weight:600">· overdue</span>' : ''}</div>
+  <div><span class="stv">${I(STI[r.st][0])}${STI[r.st][1]}</span></div>
+  <div>${r.p === 'High' ? `<span class="pri hi">${I('flag', 's')}High</span>` : `<span class="pri">${r.p}</span>`}</div>
+  <div><span class="iconbtn" style="width:28px;height:28px" title="Options for ${r.t}">${I('ellipsis', 's')}</span></div></div>`;
+const list = () => shell('general', `${head('list')}${listBar('table')}<div class="ltable-wrap">
+  <div class="lt" role="table" aria-label="Launch tasks">
+    <div class="lr h" role="row"><div><span class="cb" style="border-color:rgba(243,238,226,.5);background:transparent"></span></div><div>${I('type')}Title</div><div>${I('user-round')}Assignee</div><div>${I('calendar-days')}Due date</div><div>${I('circle-dot')}Status</div><div>${I('list')}Priority</div><div></div></div>
+    ${ROWS.map(lrow).join('')}
+    <div class="lr add"><div></div><div>${I('plus', 's')}Add a row</div><div></div><div></div><div></div><div></div><div></div></div>
+  </div>
+  <div class="lfoot"><span><span class="mono">1</span> selected · Move to, Move up, Move down and Delete row are in the row's options</span><span>Sorted by list order</span></div>
+</div>`);
+
+/* ---------- 4. forum ---------- */
+const forumSide = () => side('random').replace(`${I('channel')}<span class="n">random</span>`, `${I('newspaper')}<span class="n">Ideas</span><span class="meta">Forum</span>`);
+const POSTS = [
+  { t: 'Show the retention period on every file preview', a: 'Zeynep Ak', tags: ['Compliance', 'Files'], r: 9, la: '10:12', ld: 'today' },
+  { t: 'Let channel owners pin a canvas as the first tab', a: 'Ayşe Yılmaz', tags: ['Canvas'], r: 14, la: '09:57', ld: 'today', sel: true },
+  { t: 'Quiet hours per workspace for on-call teams', a: 'Can Öztürk', tags: ['Notifications'], r: 6, la: '08:30', ld: 'today' },
+  { t: 'Board view: group by assignee, not only status', a: 'Mert Demir', tags: ['Lists'], r: 3, la: '22 Oct', ld: '17:05', read: true },
+  { t: 'Turkish keyboard shortcuts clash with Ctrl Alt Q', a: 'Deniz Kaya', tags: ['Accessibility'], r: 11, la: '21 Oct', ld: '14:40', read: true },
+  { t: 'Export a canvas as PDF for the board meeting', a: 'Ayşe Yılmaz', tags: ['Canvas', 'Export'], r: 2, la: '20 Oct', ld: '11:18', read: true },
+  { t: 'Voice messages: show a transcript when the server has one', a: 'Zeynep Ak', tags: ['Messages'], r: 0, la: '19 Oct', ld: '16:02', read: true },
+  { t: 'Show who is editing a list row', a: 'Can Öztürk', tags: ['Lists'], r: 4, la: '18 Oct', ld: '10:45', read: true },
+];
+const forumMain = () => `<header class="head"><h1>${I('newspaper', 's')}Ideas</h1><span class="topic">Proposals for the product; answer in each post's thread</span>
+  <button class="gov">${I('shield-check', 's')}Internal · kept 2 years</button><span class="mem">${I('users', 's')}<span class="tab">86</span></span>
+  <span class="iconbtn" title="Notifications">${I('bell')}</span><span class="iconbtn" title="Search in channel">${I('search')}</span></header>
+  <div class="fhead"><span class="lbl" style="margin-right:2px">Filter by tag</span>
+    <span class="fchip on">All</span><span class="fchip">Canvas</span><span class="fchip">Lists</span><span class="fchip">Compliance</span><span class="fchip">Notifications</span>
+    <span class="sp"></span><button class="btn p">${I('square-pen', 's')}New post</button></div>
+  <div class="colh"><span>Post</span><span>Replies</span><span>Last activity</span></div>
+  <div class="posts">${POSTS.map(p => `<div class="post ${p.sel ? 'sel' : ''} ${p.read ? 'read' : ''}"><div style="min-width:0"><div class="pt">${p.t}</div>
+    <div class="pm"><span class="a">${av(p.a)}${p.a}</span>${p.tags.map(t => `<span class="tagc">${t}</span>`).join('')}</div></div>
+    <div class="rc"><b>${p.r}</b><span>${p.r === 1 ? 'reply' : 'replies'}</span></div>
+    <div class="la">${p.la}<span>${p.ld}</span></div></div>`).join('')}</div>`;
+const forumPanel = () => `<aside class="panel" aria-label="Post">
+  <div class="ph2"><b>Post</b><span>in Ideas</span><span class="iconbtn" title="Stop following">${I('bell-off', 's')}</span><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="pbody" style="gap:0;padding-top:16px">
+    <div style="padding:0 0 12px"><div class="ptitle">Let channel owners pin a canvas as the first tab</div><div class="ptags"><span class="tagc">Canvas</span><span class="lbl" style="margin-left:4px">Ayşe Yılmaz · <span class="mono">21 Oct 15:20</span></span></div></div>
+    ${pturn('Ayşe Yılmaz', '21 Oct', '<p>Teams that run a release from one channel open the release notes first every morning. A pinned first tab would save a click for 40 people.</p>')}
+    <div class="heading"><span></span><h2>14 replies</h2></div>
+    ${pturn('Mert Demir', '09:31', '<p>Agree. Should it be per channel or per person? I would keep it per channel, set by managers.</p>')}
+    ${pturn('Zeynep Ak', '09:44', '<p>Per channel. Personal order can come later if people ask.</p>')}
+    ${pturn('Ayşe Yılmaz', '09:57', '<p>Writing it up as a proposal for the next planning.</p>')}
+  </div>
+  <div class="foot"><div class="follow">${I('check', 's')}You follow this post</div><div class="comp"><span class="ph" style="font-size:14px">Reply to the post</span><span class="iconbtn">${I('paperclip')}</span><span class="iconbtn aa">Aa</span><span class="iconbtn">${I('smile')}</span><span class="send">${I('send-horizontal')}</span></div></div>
+</aside>`;
+const forum = () => `<div class="app">${rail()}${forumSide()}<main class="main">${forumMain()}</main>${forumPanel()}</div>`;
+
+/* ---------- 5. rich ---------- */
+const EMO = {
+  shipit: `<svg class="cemo" viewBox="0 0 20 20" role="img" aria-label=":shipit:"><rect width="20" height="20" rx="4" fill="#2e4a40"/><path d="M10 3.5c2.6 1.6 3.6 4.4 3.2 7.6L10 13.3l-3.2-2.2C6.4 7.9 7.4 5.1 10 3.5z" fill="#f3eee2"/><circle cx="10" cy="8" r="1.4" fill="#2e4a40"/><path d="M7.6 13.5 6 16.5l2.6-1.2M12.4 13.5 14 16.5l-2.6-1.2" stroke="#e0b04a" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>`,
+  lgtm: `<svg class="cemo" viewBox="0 0 20 20" role="img" aria-label=":lgtm:"><circle cx="10" cy="10" r="9" fill="#2f8a5b"/><path d="M5.8 10.3 8.6 13l5.6-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  cay: `<svg class="cemo" viewBox="0 0 20 20" role="img" aria-label=":cay:"><path d="M6 6h8l-.8 9.5a1.6 1.6 0 0 1-1.6 1.5H8.4a1.6 1.6 0 0 1-1.6-1.5z" fill="#b8452e"/><path d="M5.5 6h9" stroke="#7a2a1b" stroke-width="1.4" stroke-linecap="round"/><path d="M5 17.5h10" stroke="#9a8f7b" stroke-width="1.6" stroke-linecap="round"/><path d="M8.5 2.5c.6.8-.6 1.4 0 2.2M11.5 2.5c.6.8-.6 1.4 0 2.2" stroke="#9a8f7b" stroke-width="1" fill="none" stroke-linecap="round"/></svg>`,
+};
+const WAVE = [6,10,14,9,18,22,16,12,20,26,18,10,8,14,20,24,17,12,9,15,21,18,11,7,12,16,22,19,13,9,6,10,14,11,8,6];
+const popt = (o, n, pct, mine = false) => `<div class="popt ${mine ? 'mine' : ''}"><span class="rad" aria-hidden="true"></span><span class="on">${o}${mine ? ' <span class="muted" style="font-weight:400">· your vote</span>' : ''}</span><span class="pc">${n} · ${pct}%</span><span></span><span class="trk"><i style="width:${pct}%"></i></span></div>`;
+const rich = () => shell('release-rc', `${head('messages', '', { icon: 'lock', name: 'release-rc', topic: 'Release candidate 0.28: go/no-go, notes and the rehearsal', gov: 'Confidential · kept 5 years', n: 12 })}
+<section class="log">
+  <div class="heading"><span class="l">Today</span><h2>Friday 23 October 2026</h2></div>
+  ${turn('Mert Demir', '09:20', `<p>Quick vote before the go/no-go at 15:00:</p>
+    <div class="poll" role="group" aria-label="Poll"><div class="q">When do we tag 0.28.0?</div><div class="qm">Choose one · closes today <span class="mono">14:30</span></div>
+    ${popt('Today after the rehearsal', 7, 58, true)}${popt('Monday morning', 4, 33)}${popt('Wait for the Valkey patch', 1, 8)}
+    <div class="pf"><span><span class="mono">12</span> people voted</span><button>Close poll</button></div></div>`)}
+  ${turn('Zeynep Ak', '09:41', `<p>Valkey patch notes, in case it matters for the vote:</p>
+    <div class="lp"><div class="lt2"><span class="site">${I('globe')}valkey.io</span><b>Valkey 9.0.2 released</b><p>Fixes a replication stall after failover.</p></div><div class="thumb">${I('file-text')}</div></div>
+    `)}
+  ${turn('Can Öztürk', '09:58', `<div class="voice" role="group" aria-label="Voice message, 0:42"><button class="play" title="Play voice message">${I('play')}</button><span class="wave" aria-hidden="true">${WAVE.map((h, i) => `<i class="${i < 13 ? 'p' : ''}" style="height:${h}px"></i>`).join('')}</span><span class="dur"><b>0:15</b> / 0:42</span></div>`)}
+  ${turn('Ayşe Yılmaz', '10:04', `<p>Forwarding this from the ops channel, it changes the restore step:</p>
+    <div class="fwd"><div class="fh">${I('forward')}Forwarded from Deniz Kaya in Central · <span class="mono">22 Oct 18:10</span></div>
+    <div class="fb"><p>Restore drills now read from <code>s3://backups-izmir</code>, not the old bucket.</p></div>
+    <span class="open">Open the original ${I('external-link')}</span></div>`)}
+  ${turn('Mert Demir', '10:06', `<p>Noted ${EMO.cay} I will update step 4 in the canvas.</p><div class="reacts" style="margin-top:6px"><span class="re" title=":cay: — Zeynep Ak, Can Öztürk">${EMO.cay}<span class="tab">2</span></span><span class="re mine" title=":lgtm: — you and Zeynep Ak">${EMO.lgtm}<span class="tab">2</span></span><span class="re" title=":shipit: — Can Öztürk">${EMO.shipit}<span class="tab">1</span></span><span class="re">👍 <span class="tab">3</span></span><span class="re" style="color:var(--ink-2);padding:0 7px" title="Add reaction">${I('smile-plus', 's')}</span></div>`)}
+</section>
+${composer('Message release-rc')}`);
+
+/* ---------- 6. settings ---------- */
+const settings = () => `<div class="stage">${shell('design-review', `${head('messages', '', { icon: 'channel', name: 'design-review', topic: 'Sketches, contrast checks and UI decisions', gov: 'Internal · kept 2 years', n: 18 })}
+<section class="log">
+  <div class="heading"><span class="l">Today</span><h2>Friday 23 October 2026</h2></div>
+  ${turn('Zeynep Ak', '09:20', '<p>The contrast check passes on every token now.</p>')}
+  ${turn('Ayşe Yılmaz', '09:44', '<p>Sidebar sketches attached, compact and comfortable.</p>')}
+  ${turn('Deniz Kaya', '10:01', '<p>Renaming this channel to design-decisions after the review.</p>')}
+</section>${composer('Message design-review')}`)}
+<div class="scrim2"></div>
+<div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dt">
+  <div class="dlg-h"><div><h2 id="dt">${I('settings')}Settings of design-review</h2><p>Name, topic and who can find the channel.</p></div><span class="sp"></span><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="itabs" role="tablist"><button class="itab on">General</button><button class="itab">Notifications</button><button class="itab">Members <span class="lbl mono">18</span></button><button class="itab">Compliance</button></div>
+  <div class="dlg-b">
+    <div class="fld"><label>Name</label><div class="inp focus">design-decisions<span class="caret"></span></div></div>
+    <div class="fld"><label>Topic (optional)</label><div class="inp">Sketches, contrast checks and UI decisions</div></div>
+    <div class="two">
+      <div class="fld"><span class="lab2">Category</span><button class="sel-btn">Product ${I('chevron-down', 's')}</button></div>
+      <div class="fld"><span class="lab2">Slow mode</span><button class="sel-btn">Off ${I('chevron-down', 's')}</button><span class="hint">Members wait this long between messages; managers don't.</span></div>
+    </div>
+    <div class="fld"><span class="lab2">Visibility</span>
+      <div class="vis" role="radiogroup">
+        <div class="vopt on" role="radio" aria-checked="true"><span class="rad"></span><b>${I('channel')}Public</b><span>Everyone can find and join it.</span></div>
+        <div class="vopt" role="radio" aria-checked="false"><span class="rad"></span><b>${I('lock')}Private</b><span>Only members see it; its managers add people.</span></div>
+      </div></div>
+  </div>
+  <div class="dlg-f"><button class="btn">Cancel</button><button class="btn p">Save</button></div>
+  <div class="danger" style="margin-top:0;padding-bottom:20px"><div><b>Archive channel</b><p>Members can still read it, but no one can post, and it leaves the sidebar. Managers can unarchive it; nothing is deleted.</p></div><button class="btn d">${I('archive', 's')}Archive</button></div>
+</div></div>`;
+
+/* ---------- 7. files ---------- */
+const FILES = [
+  ['file-text', 'release-checklist.pdf', '284 KB', 'Mert Demir', 'today 09:31'],
+  ['file-spreadsheet', 'load-test-200-users.xlsx', '1.4 MB', 'Zeynep Ak', 'today 08:12'],
+  ['file-archive', 'cenacle-0.28.0-rc1-sbom.zip', '3.8 MB', 'Can Öztürk', '22 Oct 18:40'],
+  ['file-text', 'upgrade-notes-tr.docx', '96 KB', 'Deniz Kaya', '22 Oct 16:05'],
+  ['file', 'staging-migration.log', '42 KB', 'Ayşe Yılmaz', '22 Oct 09:12'],
+  ['file-text', 'retention-policy-v3.pdf', '512 KB', 'Ayşe Yılmaz', '20 Oct 14:30'],
+];
+const filesPanel = () => `<aside class="panel" aria-label="Files">
+  <div class="ph2"><b>Files</b><span>in General · <span class="mono">23</span></span><span class="iconbtn" title="Search files">${I('search', 's')}</span><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="pbody" style="gap:16px">
+    <div class="fl-filters" role="radiogroup" aria-label="Filter by type"><span class="fchip on">All <small>23</small></span><span class="fchip">Images <small>8</small></span><span class="fchip">Documents <small>11</small></span><span class="fchip">Archives <small>2</small></span><span class="fchip">Other <small>2</small></span></div>
+    <div class="psec2"><h3>Images <span>8</span></h3><div class="imgs">${[1,2,3].map(v => `<button class="im" title="Open sidebar-sketch-v${v}.png">${sketch(v)}</button>`).join('')}</div></div>
+    <div class="psec2"><h3>Documents and other files <span>15</span></h3>
+      ${FILES.map(f => `<div class="frow"><span class="fi">${I(f[0])}</span><span style="min-width:0"><b>${f[1]}</b><small>${f[3]} · ${f[4]} · <span class="mono">${f[2]}</span></small></span><span class="iconbtn" title="Download ${f[1]}">${I('download', 's')}</span></div>`).join('')}
+      <button class="btn" style="margin-top:10px;width:100%;justify-content:center">Show more</button></div>
+  </div></aside>`;
+const filesScreen = () => shell('general', `${head('messages', 'files')}
+<section class="log">
+  <div class="heading"><span class="l">Today</span><h2>Friday 23 October 2026</h2></div>
+  ${turn('Zeynep Ak', '08:12', `<p>Load test results from last night:</p><div class="file"><span class="fi">${I('file-spreadsheet')}</span><span><b>load-test-200-users.xlsx</b><small>XLSX · <span class="mono">1.4 MB</span></small></span></div>`)}
+  ${turn('Ayşe Yılmaz', '09:12', '<p>Good morning! The staging deploy from last night looks healthy.</p>')}
+  ${turn('Mert Demir', '09:31', `<p>Here is the checklist for the release:</p><div class="file"><span class="fi">${I('file-text')}</span><span><b>release-checklist.pdf</b><small><span class="rec">REL-14</span> · PDF · 284 KB</small></span></div>`)}
+  ${turn('Deniz Kaya', '09:40', '<p>Thanks. I will read it before the review.</p>')}
+</section>${composer()}`, filesPanel());
+
+/* ---------- 8. lightbox ---------- */
+const lightbox = () => `<div class="stage">${shell('design-review', `${head('messages', '', { icon: 'channel', name: 'design-review', topic: 'Sketches, contrast checks and UI decisions', gov: 'Internal · kept 2 years', n: 18 })}
+<section class="log">${turn('Ayşe Yılmaz', '09:44', '<p>Sidebar sketches attached, compact and comfortable.</p>')}</section>${composer('Message design-review')}`)}
+<div class="lb" role="dialog" aria-modal="true" aria-label="sidebar-sketch-v2.png">
+  <div class="lb-top">${av('Ayşe Yılmaz')}<div><div class="nm">sidebar-sketch-v2.png</div><div class="mt">Ayşe Yılmaz · today <span class="mono">09:44</span> · <span class="mono">1.1 MB</span> · in design-review</div></div>
+    <span class="sp"></span><span class="lb-pos" style="margin-right:8px">2 / 5</span>
+    <button class="lb-btn t" title="Download sidebar-sketch-v2.png">${I('download', 's')}Download</button>
+    <button class="lb-btn" title="Close (Esc)">${I('x')}</button></div>
+  <div class="lb-mid"><button class="lb-nav" title="Previous image">${I('chevron-left')}</button><div class="lb-img">${sketch(2)}</div><button class="lb-nav" title="Next image">${I('chevron-right')}</button></div>
+  <div class="lb-bot">${[1,2,3,4,5].map(v => `<span class="lb-th ${v === 2 ? 'on' : ''}">${sketch(v)}</span>`).join('')}<span class="lb-pos" style="font-family:var(--font)">Arrow keys to move · Esc to close</span></div>
+</div></div>`;
+
+const screens = { canvas, board, list, forum, rich, settings, files: filesScreen, lightbox };
+document.getElementById('root').innerHTML = (screens[S] ?? canvas)();
+</script></body></html>

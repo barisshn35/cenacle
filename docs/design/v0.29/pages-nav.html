@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Cenacle</title>
+<link rel="stylesheet" href="app.css">
+<style>
+/* Overlays */
+.stage { position: relative; height: 100vh; overflow: hidden; }
+.dim { position: absolute; inset: 0; background: rgba(12, 26, 22, .45); }
+.dlg { position: absolute; left: 50%; transform: translateX(-50%); background: var(--sheet); border-radius: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.dlg .dh { padding: 20px 24px 0; display: flex; align-items: flex-start; gap: 12px; }
+.dlg .dh h2 { font-size: 17px; line-height: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.dlg .dh p { font-size: 13.5px; line-height: 20px; color: var(--ink-2); margin-top: 2px; }
+.dlg .dh .iconbtn { margin: -4px -8px 0 auto; }
+.dlg .db { padding: 18px 24px; display: grid; gap: 16px; }
+.dlg .df { padding: 14px 24px; border-top: 1px solid var(--rule); display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+.dlg .df .l { margin-right: auto; }
+.btn.ghost { border-color: transparent; background: none; }
+.btn.danger { color: var(--mention); }
+.pop { position: absolute; background: var(--sheet); border-radius: 10px; box-shadow: var(--shadow); }
+
+/* Fields */
+.fld { display: grid; gap: 6px; }
+.fld > label, .lgd { font-size: 13px; font-weight: 600; }
+.fld .hint, .hint { font-size: 12.5px; line-height: 18px; color: var(--ink-2); }
+.inp { height: 36px; border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--sheet); display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 14px; color: var(--ink); }
+.inp svg { color: var(--ink-2); }
+.inp .ph { color: var(--ink-2); }
+.inp.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.caret { display: inline-block; width: 1.5px; height: 18px; background: var(--ink); vertical-align: -3px; margin-left: 1px; }
+.dd { height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; border: 1px solid var(--rule-strong); border-radius: 7px; background: var(--sheet); font-size: 13px; white-space: nowrap; }
+.dd svg { color: var(--ink-2); }
+.dd .k { color: var(--ink-2); }
+.dd.set { border-color: var(--ink-2); font-weight: 500; }
+kbd.k { font: 500 11.5px/18px var(--mono); color: var(--ink-2); border: 1px solid var(--rule-strong); border-radius: 4px; padding: 0 5px; background: var(--sheet); }
+
+/* Radio cards, checks */
+.rcards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rcard { border: 1px solid var(--rule-strong); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; }
+.rcard .ic { grid-row: 1 / span 2; width: 32px; height: 32px; border-radius: 8px; background: var(--well); display: grid; place-items: center; color: var(--ink-2); }
+.rcard b { font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+.rcard p { font-size: 12.5px; line-height: 18px; color: var(--ink-2); }
+.rcard.on { border-color: var(--accent); background: var(--accent-soft); }
+.rcard.on .ic { background: var(--sheet); }
+.rcard.on .ic { color: var(--accent); }
+.radio { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--rule-strong); flex: none; display: grid; place-items: center; }
+.radio.on { border-color: var(--accent); } .radio.on::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 8px; padding: 2px; gap: 2px; background: var(--sheet); }
+.seg span { height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 6px; font-size: 13px; color: var(--ink-2); }
+.seg span.on { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.seg span.on svg { color: var(--accent); }
+.check { display: grid; grid-template-columns: 18px 1fr; gap: 2px 10px; align-items: start; }
+.box { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--rule-strong); margin-top: 1px; display: grid; place-items: center; }
+.box.on { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.box.on svg { width: 13px; height: 13px; stroke-width: 2.5; }
+.check b { font-size: 13.5px; font-weight: 500; } .check p { grid-column: 2; font-size: 12.5px; line-height: 18px; color: var(--ink-2); }
+.check.off b { color: var(--ink-2); }
+
+/* Option list (switcher, pickers) */
+.olist { display: grid; gap: 1px; }
+.ogrp { font-size: 12px; font-weight: 600; color: var(--ink-2); padding: 10px 10px 4px; display: flex; justify-content: space-between; }
+.ogrp span { font-weight: 400; }
+.opt2 { height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 7px; font-size: 14px; }
+.opt2 > svg { color: var(--ink-2); }
+.opt2 .m { margin-left: auto; font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+.opt2 .u { color: var(--ink-2); font-size: 13px; }
+.opt2.on { background: var(--accent-soft); }
+.opt2.on > svg { color: var(--accent); }
+.opt2 b { font-weight: 600; }
+.opt2 .av .pr, .prs .pr { border-color: var(--sheet); }
+.opt2.on .av .pr { border-color: var(--accent-soft); }
+.keys { display: flex; gap: 16px; padding: 10px 14px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--ink-2); }
+.keys span { display: flex; align-items: center; gap: 6px; }
+mark { background: none; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
+.ps { display: inline-flex; align-items: center; gap: 6px; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.pdot.on { background: var(--online); } .pdot.away { box-shadow: inset 0 0 0 2px var(--away); } .pdot.off { box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+.pdot.dnd { background: var(--mention); position: relative; } .pdot.dnd::after { content: ''; position: absolute; left: 2px; right: 2px; top: 3.5px; height: 1px; background: var(--sheet); }
+
+/* Search panel */
+.srch .pbody { gap: 12px; padding: 14px 20px; }
+.ftabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); margin: 0 -20px; padding: 0 20px; }
+.ftabs span { height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 13.5px; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ftabs .on { color: var(--ink); font-weight: 600; border-color: var(--accent); }
+.fchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fchips .dd { height: 28px; border-radius: 6px; font-size: 12.5px; }
+.fchips .dd .x { margin-left: 2px; color: var(--ink-2); }
+.rcount { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-2); }
+.res { border: 1px solid var(--rule); border-radius: 10px; background: var(--sheet); overflow: hidden; }
+.res .rh { display: flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 12.5px; color: var(--ink-2); border-bottom: 1px solid var(--rule); }
+.res .rh b { color: var(--ink); font-weight: 600; } .res .rh svg { color: var(--ink-2); }
+.res .rh .d { margin-left: auto; font: 12px var(--mono); }
+.res .rt { display: grid; grid-template-columns: 24px 1fr; gap: 0 10px; padding: 9px 12px 10px; }
+.res .rt .n { font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.res .rt .n time { font: 400 12px var(--mono); color: var(--ink-2); }
+.res .rt p { grid-column: 2; font-size: 14px; line-height: 1.5; }
+.res .rt .sub2 { grid-column: 2; font-size: 12.5px; color: var(--ink-2); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+.res.on { border-color: var(--accent); }
+.res.on .rh { background: var(--accent-soft); border-color: var(--rule); }
+.turn.lit { background: var(--accent-soft); }
+
+/* Directory */
+.dir { flex: 1; min-height: 0; overflow: hidden; padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; }
+.dtools { display: flex; gap: 8px; align-items: center; }
+.dtools .inp { width: 360px; }
+.tbl { border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; background: var(--sheet); }
+.tr { display: grid; grid-template-columns: 260px minmax(0, 1fr) 96px 128px 120px; align-items: center; min-height: 56px; border-top: 1px solid var(--rule); }
+.tr > div { padding: 0 14px; min-width: 0; }
+.tr.th { min-height: 38px; border-top: 0; background: var(--panel); font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.tr .nm { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.tr .nm svg { color: var(--ink-2); }
+.tr .nm small { display: block; font-size: 12px; color: var(--ink-2); font-weight: 400; }
+.tr .tp { font-size: 13.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr .num { font: 13px var(--mono); text-align: right; }
+.tr .act { display: flex; justify-content: flex-end; }
+.tr .act .btn { height: 28px; border-radius: 6px; }
+.tr .st2 { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.tr .st2.y { color: var(--ink); }
+.tr.arch .nm { font-weight: 500; color: var(--ink-2); }
+.tr.lit { background: var(--hover); }
+
+/* Composer variants */
+.comp2 { margin-left: calc(var(--margin) + 20px); border: 1px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); border-radius: 10px; background: var(--sheet); }
+.fmt { display: flex; align-items: center; gap: 2px; padding: 4px 6px; border-bottom: 1px solid var(--rule); }
+.fmt .iconbtn { width: 30px; height: 30px; }
+.fmt .sep { width: 1px; height: 18px; background: var(--rule); margin: 0 6px; }
+.fmt .r { margin-left: auto; display: flex; gap: 2px; }
+.fmt .r .btn { height: 30px; border-color: transparent; color: var(--ink-2); padding: 0 8px; font-weight: 500; }
+.comp2 .line { display: flex; align-items: center; gap: 2px; padding: 6px 6px 6px 14px; }
+.comp2 .ph { flex: 1; font-size: 15px; }
+.comp2 .ph b { font-weight: 600; }
+.atq { background: var(--well); border-radius: 4px; padding: 0 3px; font-weight: 600; }
+.picker { position: absolute; width: 420px; padding: 4px; }
+.picker .opt2 { height: 40px; }
+.picker .cmd { font: 500 13px var(--mono); }
+.picker .hint2 { font: 12px var(--mono); color: var(--ink-2); }
+.picker .desc { font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.botb { font-size: 11px; font-weight: 600; border: 1px solid var(--rule-strong); border-radius: 4px; padding: 0 5px; line-height: 16px; color: var(--ink-2); }
+
+/* Profile card */
+.pcard { width: 340px; overflow: hidden; }
+.pcard .top { padding: 20px 20px 14px; display: flex; gap: 14px; align-items: center; }
+.bigav { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; font-weight: 600; color: #1e2b26; position: relative; flex: none; }
+.bigav .pr { width: 16px; height: 16px; border: 3px solid var(--sheet); right: 1px; bottom: 1px; }
+.pcard h3 { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.pcard .un { font-size: 13px; color: var(--ink-2); }
+.pcard .cs { margin: 0 20px 14px; padding: 8px 10px; background: var(--well); border-radius: 8px; font-size: 13.5px; display: flex; gap: 8px; align-items: center; }
+.pcard .cs small { margin-left: auto; color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.pcard dl { border-top: 1px solid var(--rule); }
+.pcard .dr { display: grid; grid-template-columns: 96px 1fr; padding: 8px 20px; font-size: 13.5px; border-bottom: 1px solid var(--rule); }
+.pcard dt { color: var(--ink-2); font-size: 12.5px; }
+.pcard dd .mono { font: 13px var(--mono); }
+.pcard .acts { display: flex; gap: 8px; padding: 14px 20px 16px; }
+.pcard .acts .btn { flex: 1; justify-content: center; height: 34px; }
+.turn.anchor .who { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Status menu */
+.menu { width: 288px; padding: 4px; }
+.menu .mi { height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 7px; font-size: 13.5px; }
+.menu .mi > svg { color: var(--ink-2); }
+.menu .mi .ck { margin-left: auto; color: var(--accent); }
+.menu .mi.on { background: var(--accent-soft); }
+.menu .hr { height: 1px; background: var(--rule); margin: 4px -4px; }
+.menu .mh { display: flex; align-items: center; gap: 10px; padding: 10px 10px 8px; }
+.menu .mh b { font-size: 14px; font-weight: 600; display: block; } .menu .mh span { font-size: 12px; color: var(--ink-2); }
+.menu .pr { border-color: var(--sheet); }
+.side .me.open { background: var(--side-hover); }
+
+/* Custom status */
+.pre { display: grid; gap: 1px; }
+.pre .opt2 { height: 38px; }
+.pre .opt2 .emo { width: 20px; text-align: center; font-size: 16px; }
+.emobtn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--rule-strong); display: grid; place-items: center; font-size: 17px; flex: none; }
+
+/* Offline */
+.conn.off i { background: none; box-shadow: inset 0 0 0 1.5px var(--side-ink-2); }
+.quiet { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 24px; border-bottom: 1px solid var(--rule); background: var(--panel); font-size: 13.5px; color: var(--ink); flex: none; }
+.quiet svg { color: var(--ink-2); }
+.quiet .q2 { color: var(--ink-2); }
+.quiet .btn { margin-left: auto; height: 28px; border-radius: 6px; }
+.pend .tx { color: var(--ink-2); }
+.pend .mg time { color: var(--ink-2); }
+.pstate { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+.pstate svg { width: 14px; height: 14px; }
+.comp.dis .ph { color: var(--ink-2); }
+</style>
+<script src="icons.js"></script></head>
+<body><div id="root"></div><script src="app-kit.js"></script><script>
+ICONS['chart-column']='<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>';;
+ICONS['corner-down-left']='<path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/>';
+ICONS['arrow-down']='<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>';
+ICONS['wifi-off']='<path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/>';
+ICONS['archive']='<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>';
+ICONS['mail']='<path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/>';
+ICONS['user-plus']='<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>';
+ICONS['text-quote']='<path d="M17 5H3"/><path d="M21 12H8"/><path d="M21 19H8"/><path d="M3 12v7"/>';
+ICONS['list-ordered']='<path d="M11 5h10"/><path d="M11 12h10"/><path d="M11 19h10"/><path d="M4 4h1v5"/><path d="M4 9h2"/><path d="M6.5 20H3.4c0-1 2.6-1.925 2.6-3.5a1.5 1.5 0 0 0-2.6-1.02"/>';
+ICONS['sliders-horizontal']='<path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/>';
+ICONS['circle-minus']='<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/>';
+ICONS['rotate-cw']='<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>';
+ICONS['image']='<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>';
+ICONS['hourglass']='<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>';
+ICONS['strikethrough']='<path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/>';
+
+AV['Selin Koç'] = ['SK', 'a2']; AV['Emre Aydın'] = ['EA', 'a4']; AV['Desen Arslan'] = ['DA', 'a5']; AV['Burak Şen'] = ['BŞ', 'a1'];
+const S = q.get('s') ?? 'search';
+const dark = document.body.classList.contains('dark');
+
+const head = (panelOn, searchOn) => `<header class="head">
+  <h1>${I('channel', 's')}General</h1><span class="topic">Anything and everything for the whole team</span>
+  <button class="gov" title="Classification and retention">${I('shield-check', 's')}Internal · kept 2 years</button>
+  <span class="mem">${I('users', 's')}<span class="tab">24</span></span>
+  <span class="iconbtn" title="Pinned">${I('pin')}</span><span class="iconbtn" title="Notifications">${I('bell')}</span><span class="iconbtn ${searchOn ? 'on' : ''}" title="Search">${I('search')}</span><span class="iconbtn ${panelOn ? 'on' : ''}" title="Details">${I('panel-right')}</span>
+</header>
+<div class="tabs"><span class="on">${I('message-square', 's')}Messages</span><span>${I('file-text', 's')}Release notes</span><span>${I('list-checks', 's')}Launch tasks</span><span>${I('plus', 's')}</span></div>`;
+const turn = (who, time, body, cls = '', extra = '') => `<div class="turn ${cls}"><div class="mg">${cls.includes('cont') ? `<time>${time}</time>` : `<div><div class="who">${who}</div><time>${time}</time></div>${av(who)}`}</div><div class="tx">${body}</div>${extra}</div>`;
+const COMP = (ph = 'Message General') => `<div class="comp"><span class="ph">${ph}</span><span class="iconbtn" title="Attach files">${I('paperclip')}</span><span class="iconbtn aa" title="Formatting">Aa</span><span class="iconbtn" title="Emoji">${I('smile')}</span><span class="iconbtn" title="Mention">${I('at-sign')}</span><span class="send" title="Send message">${I('send-horizontal')}</span></div>`;
+
+const log = (opts = {}) => `<section class="log">
+  <div class="heading"><span class="l">Yesterday</span><h2>Thursday 22 October 2026</h2></div>
+  ${turn('Zeynep Ak', '17:40', '<p>Leaving the load test running overnight. Results in the morning.</p>')}
+  ${turn('Can Öztürk', '18:05', '<p>Carrier API is back to normal latency after the 17:30 incident.</p>')}
+  <div class="heading"><span class="l">Today</span><h2>Friday 23 October 2026</h2></div>
+  ${turn('Ayşe Yılmaz', '09:12', '<p>Good morning! The staging deploy from last night looks healthy.</p>')}
+  ${turn('Ayşe Yılmaz', '09:13', '<p>Migration <code>00042_billing</code> applied in 1.2 s, logs are clean.</p>', 'cont')}
+  ${turn('Mert Demir', '09:31', `<p>Here is the checklist for the release:</p><ol><li>Freeze main</li><li>Tag the release candidate</li><li>Run the upgrade rehearsal</li></ol>`, opts.lit === 'mert' ? 'lit' : (opts.anchor ? 'anchor' : ''))}
+  ${turn('Deniz Kaya', '09:40', `<p><strong>Heads up:</strong> the design review moved to 14:00. <span class="chip">@Ayşe Yılmaz</span> can you bring the sidebar sketches?</p><div class="thr"><span class="stack">${av('Ayşe Yılmaz')}${av('Mert Demir')}</span><b>4 replies</b><span>last reply 10:02</span></div>`)}
+  ${turn('Zeynep Ak', '09:52', '<p>That is the command if anyone wants to try:</p><pre>make load LOAD_USERS=200</pre>')}
+  ${turn('Mert Demir', '10:05', '<p><span class="chip you">@Deniz Kaya</span> the release notes tab is ready for a read.</p>', 'mention')}
+  ${opts.tail ?? ''}
+</section>`;
+const chat = (opts = {}) => `${head(opts.panel, opts.search)}${opts.banner ?? ''}${log(opts)}<div class="foot">${opts.foot ?? `<div class="typing"><span></span><span class="r"><span></span><span></span></span></div>${COMP()}`}</div>`;
+const over = (base, layer) => `<div class="stage">${base}<div class="dim"></div>${layer}</div>`;
+
+/* 1. Search */
+const res = (icon, ch, date, who, time, text, sub = '', on = false) => `<div class="res ${on ? 'on' : ''}"><div class="rh">${I(icon, 's')}<b>${ch}</b>${sub ? `<span>· ${sub}</span>` : ''}<span class="d">${date}</span></div>
+  <div class="rt">${av(who)}<div class="n">${who}<time>${time}</time></div><p>${text}</p></div></div>`;
+const searchPanel = () => `<aside class="panel srch" aria-label="Search">
+  <div class="ph2"><b>Search</b><span></span><span class="iconbtn" title="Close search">${I('x')}</span></div>
+  <div class="pbody">
+    <div class="inp focus">${I('search', 's')}<span>release<span class="caret"></span></span><span class="iconbtn" style="margin-left:auto;width:26px;height:26px" title="Clear">${I('x', 's')}</span></div>
+    <div class="hint" style="margin-top:-4px">Words match their beginnings; <code>-word</code> leaves it out.</div>
+    <div class="ftabs" role="tablist"><span class="on">${I('message-square', 's')}Messages</span><span>${I('file-text', 's')}Files</span></div>
+    <div class="fchips">
+      <span class="dd set">${av('Mert Demir')}From: Mert Demir<span class="x" title="Remove Mert Demir from the filter">${I('x', 's')}</span></span>
+      <span class="dd"><span class="k">Where:</span> This workspace ${I('chevron-down', 's')}</span>
+      <span class="dd">${I('calendar', 's')}Any date ${I('chevron-down', 's')}</span>
+      <span class="dd"><span class="k">Contains:</span> Anything ${I('chevron-down', 's')}</span>
+    </div>
+    <div class="rcount"><span><b style="color:var(--ink)">5 results</b> · newest first</span><span>Enter opens · Esc closes</span></div>
+    ${res('channel', 'General', 'Today', 'Mert Demir', '09:31', 'Here is the checklist for the <mark>release</mark>: freeze main, tag the <mark>release</mark> candidate, run the upgrade rehearsal.', '', true)}
+    ${res('lock', 'release-rc', 'Today', 'Mert Demir', '08:47', '<span class="chip you">@Deniz Kaya</span> can you approve the <mark>release</mark> notes before 15:00?', 'private')}
+    ${res('channel', 'General', 'Yesterday', 'Mert Demir', '16:44', 'Rollback steps for the <mark>release</mark> are in the runbook, section 4.', 'reply in thread')}
+    ${res('message-square', 'Mert Demir', '21 Oct', 'Mert Demir', '11:20', 'I moved the <mark>release</mark> rehearsal to Friday so Zeynep can join.')}
+    <div class="hint" style="text-align:center">1 more · <span style="color:var(--ink);font-weight:500;text-decoration:underline;text-underline-offset:3px">Show more</span></div>
+  </div>
+</aside>`;
+
+/* 2. Switcher */
+const switcher = () => `<div class="dlg" style="top:120px;width:600px">
+  <div style="padding:10px 10px 0"><div class="inp focus" style="height:44px;font-size:16px">${I('search')}<span>des<span class="caret"></span></span><kbd class="k" style="margin-left:auto">Esc</kbd></div></div>
+  <div class="olist" style="padding:4px 8px 8px" role="listbox" aria-label="Channels">
+    <div class="ogrp">Channels <span>3</span></div>
+    <div class="opt2 on">${I('channel')}<span><mark>des</mark>ign-review</span><span class="m"><span class="dot" style="color:var(--ink)"></span>Unread<kbd class="k">Enter</kbd></span></div>
+    <div class="opt2">${I('channel')}<span><mark>des</mark>ign-system</span><span class="m">Not joined</span></div>
+    <div class="opt2">${I('lock')}<span><mark>des</mark>ign-vendors-2025</span><span class="m">${I('archive', 's')}Archived</span></div>
+    <div class="ogrp">Conversations <span>2</span></div>
+    <div class="opt2">${av('Desen Arslan', '', 'on')}<span><mark>Des</mark>en Arslan</span><span class="u">Head of Design</span><span class="m">Online</span></div>
+    <div class="opt2">${I('users')}<span>Zeynep Ak, <mark>Des</mark>en Arslan</span><span class="m">Group conversation</span></div>
+  </div>
+  <div class="keys"><span><kbd class="k">↑</kbd><kbd class="k">↓</kbd>to move</span><span><kbd class="k">Enter</kbd>to open</span><span><kbd class="k">Esc</kbd>to close</span><span style="margin-left:auto">Jump to a channel</span></div>
+</div>`;
+
+/* 3. Directory */
+const drow = (icon, name, kind, topic, n, state, cls = '') => `<div class="tr ${cls}" role="row"><div class="nm">${I(icon)}<span>${name}<small>${kind}</small></span></div><div class="tp">${topic}</div><div class="num">${n}</div><div class="st2 ${state === 'in' ? 'y' : ''}">${state === 'in' ? I('check', 's') + 'Member' : state === 'arch' ? I('archive', 's') + 'Archived' : 'Not joined'}</div><div class="act">${state === 'out' ? `<button class="btn" title="Join ${name}">Join</button>` : `<button class="btn ghost">Open</button>`}</div></div>`;
+const directory = () => `<section class="dir">
+  <div class="ihead"><div><h1>Channels</h1><p>Open a channel you are in, or join another one.</p></div><div class="acts"><button class="btn p">${I('plus', 's')}Create channel</button></div></div>
+  <div class="dtools"><div class="inp focus">${I('search', 's')}<span>ope<span class="caret"></span></span></div>
+    <div class="seg"><span class="on">All <span class="tab">5</span></span><span>Joined</span><span>Not joined</span></div>
+    <span class="dd">${I('archive', 's')}Archived: shown ${I('chevron-down', 's')}</span>
+    <span class="hint" style="margin-left:auto">5 of 38 channels match “ope”</span></div>
+  <div class="tbl" role="table">
+    <div class="tr th" role="row"><div>Name</div><div>Topic</div><div style="text-align:right">Members</div><div>Membership</div><div></div></div>
+    ${drow('channel', 'operations', 'Channel', 'Warehouse shifts, carrier changes and the daily dispatch report', 41, 'in')}
+    ${drow('megaphone', 'ops-announcements', 'Announcement channel', 'Read-only notices from the operations desk', 212, 'in')}
+    ${drow('channel', 'open-source', 'Channel', 'Licences, upstream patches and what we give back', 17, 'out', 'lit')}
+    ${drow('channel', 'ops-forum', 'Forum', 'Questions about routing rules; one post per question', 64, 'out')}
+    ${drow('lock', 'opex-review-2025', 'Private channel', 'Last year’s cost review, kept for reference', 6, 'arch', 'arch')}
+  </div>
+  <div class="hint">Private channels appear only when you are a member. Archived channels can be read, but no one can post.</div>
+</section>`;
+
+/* 4. Create */
+const create = () => `<div class="dlg" style="top:64px;width:600px" role="dialog">
+  <div class="dh"><div><h2>Create a channel</h2><p>Channels are where people talk about one topic.</p></div><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="db">
+    <div class="fld"><label>Name</label><div class="inp focus">${I('channel', 's')}<span>load-testing<span class="caret"></span></span><span class="hint" style="margin-left:auto;font-family:var(--mono)">12/80</span></div></div>
+    <div class="fld"><label>Topic <span style="font-weight:400;color:var(--ink-2)">(optional)</span></label><div class="inp"><span>k6 runs, capacity numbers and the weekly load report</span></div></div>
+    <div class="fld"><span class="lgd">Visibility</span><div class="rcards" role="radiogroup">
+      <div class="rcard on"><span class="ic">${I('channel')}</span><b>Public <span class="radio on"></span></b><p>Everyone can find and join it.</p></div>
+      <div class="rcard"><span class="ic">${I('lock')}</span><b>Private <span class="radio"></span></b><p>Only members see it; its managers add people.</p></div></div></div>
+    <div class="fld"><span class="lgd">Kind</span><div class="seg" style="width:max-content"><span class="on">${I('message-square', 's')}Channel</span><span>${I('list-checks', 's')}Forum</span></div><span class="hint">A forum holds posts with titles and tags; people answer in each post’s thread.</span></div>
+    <div style="display:grid;gap:12px;padding-top:4px;border-top:1px solid var(--rule)">
+      <div class="check" style="margin-top:12px"><span class="box"></span><b>Add everyone</b><p>Everyone becomes a member, also people who join later.</p></div>
+      <div class="check"><span class="box"></span><b>Encrypt end to end</b><p>Only members who know the passphrase can read it. Bots, search, link previews and files are not available in it.</p></div>
+    </div>
+  </div>
+  <div class="df"><button class="btn ghost">Cancel</button><button class="btn p">Create channel</button></div>
+</div>`;
+
+/* 5. New conversation */
+const person = (n, pr, sub, act, on) => `<div class="opt2 ${on ? 'on' : ''}" style="height:44px">${av(n, 'l', pr)}<span><b>${n}</b><span class="u" style="display:block;font-size:12px;line-height:16px">${sub}</span></span><span class="m">${act}</span></div>`;
+const chipP = (n) => `<span class="dd" style="height:30px;border-radius:15px;padding:0 6px 0 3px">${av(n)}${n}<span style="color:var(--ink-2)" title="Remove ${n}">${I('x', 's')}</span></span>`;
+const newdm = () => `<div class="dlg" style="top:96px;width:560px" role="dialog">
+  <div class="dh"><div><h2>New conversation</h2><p>Pick one person for a direct conversation, or up to 8 for a group. The same people always meet in the same conversation.</p></div><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="db" style="gap:12px">
+    <div class="fld"><span class="lgd" style="display:flex;justify-content:space-between">People in the conversation <span style="font-weight:400;color:var(--ink-2);font-family:var(--mono);font-size:12px">2 / 8</span></span>
+      <div class="inp focus" style="height:auto;min-height:44px;flex-wrap:wrap;padding:6px 8px;gap:6px">${chipP('Ayşe Yılmaz')}${chipP('Mert Demir')}<span>Se<span class="caret"></span></span></div></div>
+    <div class="olist" style="margin:0 -10px">
+      <div class="ogrp">People <span>3 found</span></div>
+      ${person('Selin Koç', 'on', '<span class="ps"><i class="pdot on"></i>Online</span> · Finance · selin.koc', `<button class="btn" style="height:28px">${I('plus', 's')}Add</button>`, true)}
+      ${person('Desen Arslan', 'away', '<span class="ps"><i class="pdot away"></i>Away</span> · Design · desen.arslan', `<button class="btn" style="height:28px">${I('plus', 's')}Add</button>`)}
+      ${person('Emre Aydın', '', '<span class="ps"><i class="pdot off"></i>Offline · last seen 2 h ago</span> · Sevkiyat', `<button class="btn" style="height:28px">${I('plus', 's')}Add</button>`)}
+    </div>
+    <div class="notice" style="margin:0;font-size:13px;padding:10px 12px">${I('users', 's')}<span>With three people this becomes a group conversation. Its people are fixed; start a new one to add someone later.</span></div>
+  </div>
+  <div class="df"><button class="btn ghost">Cancel</button><button class="btn p">Start conversation</button></div>
+</div>`;
+
+/* 6. Composer */
+const fmtRow = `<div class="fmt"><span class="iconbtn" title="Bold">${I('bold', 's')}</span><span class="iconbtn" title="Italic">${I('italic', 's')}</span><span class="iconbtn" title="Strikethrough">${I('strikethrough', 's')}</span><span class="sep"></span><span class="iconbtn" title="Code">${I('code', 's')}</span><span class="iconbtn" title="Link">${I('link', 's')}</span><span class="iconbtn" title="Quote">${I('text-quote', 's')}</span><span class="sep"></span><span class="iconbtn" title="Bulleted list">${I('list', 's')}</span><span class="iconbtn" title="Numbered list">${I('list-ordered', 's')}</span>
+  <span class="r"><button class="btn" title="Create poll">${I('chart-column', 's')}Poll</button><button class="btn" title="Send later">${I('clock', 's')}Send later</button></span></div>`;
+const comp2 = (typed) => `<div class="comp2">${fmtRow}<div class="line"><span class="ph">${typed}</span><span class="iconbtn" title="Attach files">${I('paperclip')}</span><span class="iconbtn aa on" title="Formatting">Aa</span><span class="iconbtn" title="Emoji">${I('smile')}</span><span class="iconbtn" title="Mention">${I('at-sign')}</span><span class="send" title="Send message">${I('send-horizontal')}</span></div></div>`;
+const mentionPicker = () => `<div class="pop picker" style="left:516px;bottom:150px" role="listbox" aria-label="People to mention">
+  <div class="ogrp">People in General <span>4 match “a”</span></div>
+  <div class="opt2 on">${av('Ayşe Yılmaz', '', 'on')}<b>Ayşe Yılmaz</b><span class="u">@ayse.yilmaz</span><span class="m"><span class="ps"><i class="pdot on"></i>Online</span></span></div>
+  <div class="opt2">${av('Zeynep Ak', '', 'on')}<b>Zeynep Ak</b><span class="u">@zeynep.ak</span><span class="m"><span class="ps"><i class="pdot on"></i>Online</span></span></div>
+  <div class="opt2">${av('Desen Arslan', '', 'away')}<b>Desen Arslan</b><span class="u">@desen.arslan</span><span class="m"><span class="ps"><i class="pdot away"></i>Away</span></span></div>
+  <div class="opt2">${av('Emre Aydın')}<b>Emre Aydın</b><span class="u">@emre.aydin</span><span class="m"><span class="ps"><i class="pdot off"></i>Offline</span></span></div>
+  <div class="hr" style="height:1px;background:var(--rule);margin:4px -4px"></div>
+  <div class="ogrp">Notify many</div>
+  <div class="opt2">${I('at-sign')}<b>@here</b><span class="u">people online in General</span><span class="m tab">notifies 9 people</span></div>
+  <div class="opt2">${I('megaphone')}<b>@channel</b><span class="u">everyone in General</span><span class="m tab">notifies 24 people</span></div>
+  <div class="keys" style="margin:4px -4px -4px"><span><kbd class="k">↑</kbd><kbd class="k">↓</kbd>choose</span><span><kbd class="k">Enter</kbd>or<kbd class="k">Tab</kbd>insert</span><span><kbd class="k">Esc</kbd>close</span></div>
+</div>`;
+const cmd = (c, hint, d, on, bot) => `<div class="opt2 ${on ? 'on' : ''}"><span class="cmd">/${c}</span>${hint ? `<span class="hint2">${hint}</span>` : ''}<span class="m"><span class="desc">${d}</span>${bot ? `<span class="botb">${bot}</span>` : ''}</span></div>`;
+const commandPicker = () => `<div class="pop picker" style="left:516px;bottom:150px;width:520px" role="listbox" aria-label="Commands">
+  <div class="ogrp">Commands <span>8</span></div>
+  ${cmd('remind', '[when] [what]', 'Get a reminder from Cenacle', true)}
+  ${cmd('topic', '[text]', 'Set the channel topic')}
+  ${cmd('join', '[channel]', 'Join a channel')}
+  ${cmd('leave', '', 'Leave this channel')}
+  ${cmd('me', '[text]', 'Say something about yourself')}
+  ${cmd('shrug', '[text]', 'Add ¯\\_(ツ)_/¯')}
+  ${cmd('jira', 'create [summary]', 'Create a Jira issue', false, 'BOT')}
+  ${cmd('alarm', 'ack [id]', 'Acknowledge an alert', false, 'BOT')}
+  <div class="keys" style="margin:4px -4px -4px"><span><kbd class="k">↑</kbd><kbd class="k">↓</kbd>choose</span><span><kbd class="k">Tab</kbd>complete</span><span style="margin-left:auto">Start with <code>//</code> to send text with a slash</span></div>
+</div>`;
+const composerScreen = (variant) => {
+  const typed = variant === 'commands' ? '/<span class="caret"></span>' : 'Can we freeze main at 15:00? <span class="atq">@a</span><span class="caret"></span>';
+  const foot = `<div class="typing"><span></span><span class="r"><span>Zeynep is typing…</span><span>Draft saved</span></span></div>${comp2(typed)}`;
+  return `<div style="position:relative;height:100vh">${shell('general', chat({ foot }))}${variant === 'commands' ? commandPicker() : mentionPicker()}</div>`;
+};
+
+/* 7. Profile card */
+const profileCard = () => `<div class="pop pcard" style="left:520px;top:340px" role="dialog" aria-label="Mert Demir">
+  <div class="top"><span class="bigav a2">MD<i class="pr on"></i></span><div><h3>Mert Demir</h3><div class="un">@mert.demir</div></div></div>
+  <div class="cs"><span>🚀</span><span>Upgrade rehearsal</span><small>until 15:00</small></div>
+  <dl>
+    <div class="dr"><dt>Status</dt><dd><span class="ps"><i class="pdot on"></i>Online</span></dd></div>
+    <div class="dr"><dt>Local time</dt><dd><span class="mono">14:32</span> <span style="color:var(--ink-2)">(GMT+3)</span></dd></div>
+    <div class="dr"><dt>E-mail</dt><dd>mert.demir@kuzeylojistik.com.tr</dd></div>
+  </dl>
+  <div class="acts"><button class="btn p">${I('message-square', 's')}Message</button></div>
+</div>`;
+const statusMenu = () => `<div class="pop menu" style="left:76px;bottom:70px" role="menu" aria-label="Status: Online. Change status">
+  <div class="mh">${av('Deniz Kaya', 'l', 'on')}<div><b>Deniz Kaya</b><span>@deniz.kaya</span></div></div>
+  <div class="hr"></div>
+  <div class="mi on"><i class="pdot on"></i>Online<span class="ck">${I('check', 's')}</span></div>
+  <div class="mi"><i class="pdot away"></i>Away</div>
+  <div class="mi"><i class="pdot dnd"></i>Do not disturb</div>
+  <div class="mi"><i class="pdot off"></i>Offline</div>
+  <div class="hr"></div>
+  <div class="mi">${I('smile', 's')}Change custom status<span class="ck" style="color:var(--ink-2);font-size:12px">🎧 Focusing</span></div>
+  <div class="hr"></div>
+  <div class="mi">${I('bell-off', 's')}Pause notifications for 1 hour</div>
+  <div class="mi">${I('bell-off', 's')}Pause until tomorrow morning</div>
+  <div class="mi">${I('pencil', 's')}Edit profile</div>
+</div>`;
+const pre = (e, t, d, on) => `<div class="opt2 ${on ? 'on' : ''}"><span class="emo">${e}</span><span>${t}</span><span class="m">${d}</span></div>`;
+const statusDialog = () => `<div class="dlg" style="top:110px;width:520px" role="dialog">
+  <div class="dh"><div><h2>Set a custom status</h2><p>Shown next to your name and on your profile.</p></div><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="db">
+    <div class="fld"><label>What are you up to?</label><div style="display:flex;gap:8px"><span class="emobtn" title="Emoji: 🎧. Change emoji">🎧</span><div class="inp focus" style="flex:1;height:36px"><span>Focusing on the release notes<span class="caret"></span></span><span class="iconbtn" style="margin-left:auto;width:26px;height:26px" title="Empty the status">${I('x', 's')}</span></div></div></div>
+    <div class="fld"><span class="lgd">Recent and suggested</span><div class="pre" style="margin:0 -10px">
+      ${pre('🎧', 'Focusing', 'until 15:00', true)}
+      ${pre('📅', 'In a meeting', '1 hour')}
+      ${pre('🚆', 'Commuting', '30 minutes')}
+      ${pre('🤒', 'Out sick', 'Today')}
+      ${pre('🌴', 'On holiday', 'This week')}
+      ${pre('🏠', 'Working remotely', 'Today')}</div></div>
+    <div class="fld"><label>Clear after</label><span class="dd" style="width:220px;height:36px;justify-content:space-between">Today <span class="k" style="margin-left:auto">ends 23:59</span>${I('chevron-down', 's')}</span></div>
+  </div>
+  <div class="df"><button class="btn ghost danger l">Clear status</button><button class="btn ghost">Cancel</button><button class="btn p">Save</button></div>
+</div>`;
+
+/* 8. Offline */
+const offline = () => {
+  const banner = `<div class="quiet" role="status">${I('wifi-off', 's')}<span>Reconnecting…</span><span class="q2">Messages you send go out when you are back online.</span><button class="btn">${I('rotate-cw', 's')}Try now</button></div>`;
+  const tail = `<div class="turn pend"><div class="mg"><div><div class="who">Deniz Kaya</div><time>10:14</time></div>${av('Deniz Kaya')}</div><div class="tx"><p>Approved. Tag the release candidate once the rehearsal is green.</p><div class="pstate">${I('clock', 's')}Waiting for the connection · will send automatically</div></div></div>`;
+  const foot = `<div class="typing"><span></span><span class="r"><span>1 message waiting to send</span><span></span></span></div>${COMP('Message General')}`;
+  return shell('general', chat({ banner, tail, foot })).replace('<div class="conn"><i></i>Connected</div>', '<div class="conn off"><i></i>Reconnecting…</div>');
+};
+
+const screens = {
+  search: () => shell('general', chat({ search: true, lit: 'mert' }), searchPanel()),
+  switcher: () => over(shell('general', chat()), switcher()),
+  directory: () => shell('none', directory()),
+  create: () => over(shell('general', chat()), create()),
+  newdm: () => over(shell('general', chat()), newdm()),
+  composer: () => composerScreen('mention'),
+  'composer-commands': () => composerScreen('commands'),
+  profile: () => `<div style="position:relative;height:100vh">${shell('general', chat({ anchor: true }))}${profileCard()}</div>`,
+  status: () => `<div style="position:relative;height:100vh">${shell('general', chat()).replace('<div class="me">', '<div class="me open">')}${statusMenu()}</div>`,
+  'status-set': () => over(shell('general', chat()), statusDialog()),
+  offline,
+};
+document.getElementById('root').innerHTML = (screens[S] ?? screens.search)();
+</script></body></html>

@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Cenacle settings</title>
+<link rel="stylesheet" href="app.css">
+<style>
+/* Settings: a large dialog over the dimmed app. Section list left (Paper), the section right (sheet). */
+.scrim { position: fixed; inset: 0; background: rgba(12, 26, 22, .45); }
+.dlg { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 1120px; height: 812px; background: var(--sheet); border-radius: 14px; box-shadow: var(--shadow); display: grid; grid-template-columns: 236px minmax(0, 1fr); overflow: hidden; }
+.snav { background: var(--panel); border-right: 1px solid var(--rule); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; }
+.snav .t { padding: 0 10px 14px; }
+.snav .t b { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; display: block; line-height: 22px; }
+.snav .t span { font-size: 12px; color: var(--ink-2); }
+.snav .g { font-size: 12px; font-weight: 600; color: var(--ink-2); padding: 14px 10px 4px; }
+.it { height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 7px; font-size: 13.5px; color: var(--ink); }
+.it svg { color: var(--ink-2); }
+.it.sel { background: var(--accent-soft); font-weight: 600; }
+.it.sel svg { color: var(--accent); }
+.it .ext { margin-left: auto; width: 14px; height: 14px; }
+.snav .grow { flex: 1; }
+.snav .host { font: 12px var(--mono); color: var(--ink-2); padding: 0 10px; }
+
+.smain { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.shd { height: 72px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px 0 32px; border-bottom: 1px solid var(--rule); }
+.shd div { flex: 1; min-width: 0; }
+.shd h1 { font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.015em; }
+.shd p { font-size: 13.5px; color: var(--ink-2); }
+.sbd { flex: 1; min-height: 0; overflow: hidden; padding: 6px 32px 24px; }
+.sft { flex: none; display: flex; align-items: center; gap: 8px; padding: 12px 24px 12px 32px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--ink-2); }
+.sft .sp { flex: 1; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; }
+
+/* Rows: label + hint on the left, control on the right, hairline between */
+.sx { padding-top: 18px; }
+.sx > h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.sx > h3 small { font-weight: 400; color: var(--ink-2); font-size: 12.5px; }
+.sr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 11px 0; border-top: 1px solid var(--rule); }
+.sr.top { align-items: start; }
+.sr .l b { font-size: 13.5px; font-weight: 500; display: block; line-height: 18px; }
+.sr .l p, .hint { font-size: 12.5px; line-height: 17px; color: var(--ink-2); margin-top: 2px; }
+.sr .r { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.lab { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; }
+
+/* Controls (shadcn on Base UI: Input, Select trigger, Switch, RadioGroup, Checkbox, Slider, ToggleGroup) */
+.inp { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--rule-strong); border-radius: 7px; background: var(--sheet); font-size: 13.5px; min-width: 0; }
+.inp.ro { background: var(--well); border-color: var(--rule); color: var(--ink); }
+.inp.ro svg { color: var(--ink-2); margin-left: auto; }
+.inp.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.inp .m, .m { font-family: var(--mono); font-size: 13px; }
+.selb { height: 32px; display: inline-flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border: 1px solid var(--rule-strong); border-radius: 7px; background: var(--sheet); font-size: 13.5px; white-space: nowrap; }
+.selb svg { color: var(--ink-2); margin-left: auto; width: 16px; height: 16px; }
+.sw { width: 40px; height: 24px; border-radius: 12px; background: var(--rule-strong); position: relative; flex: none; }
+.sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+.sw.on { background: var(--accent); } .sw.on::after { left: 19px; }
+.dark .sw::after { background: #ece8dd; } .dark .sw.on::after { background: #1b1507; }
+.seg { display: inline-flex; padding: 2px; border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--sheet); gap: 2px; }
+.seg span { height: 28px; display: flex; align-items: center; padding: 0 12px; border-radius: 6px; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.seg span.on { background: var(--accent-soft); color: var(--ink); font-weight: 600; box-shadow: inset 0 0 0 1px var(--accent); }
+.rad { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; }
+.rad i { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--rule-strong); background: var(--sheet); flex: none; margin-top: 1px; }
+.rad.on i { border: 5px solid var(--accent); }
+.rad b { font-size: 13.5px; font-weight: 500; display: block; line-height: 20px; }
+.rad p { font-size: 12.5px; color: var(--ink-2); line-height: 17px; }
+.ck { display: flex; align-items: center; gap: 10px; font-size: 13.5px; height: 30px; }
+.ck i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--rule-strong); display: grid; place-items: center; background: var(--sheet); flex: none; }
+.ck.on i { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.ck i svg { width: 13px; height: 13px; stroke-width: 2.5; }
+.days { display: flex; gap: 4px; }
+.days span { width: 40px; height: 30px; border-radius: 7px; border: 1px solid var(--rule-strong); display: grid; place-items: center; font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+.days span.on { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.slider { display: flex; align-items: center; gap: 12px; }
+.slider .tr { width: 180px; height: 4px; border-radius: 2px; background: var(--rule-strong); position: relative; }
+.slider .tr i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--accent); }
+.slider .tr b { position: absolute; top: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--sheet); border: 1px solid var(--accent); margin-left: -9px; box-shadow: 0 1px 2px rgba(20, 52, 43, .15); }
+.btn.sm { height: 28px; padding: 0 10px; border-radius: 6px; font-size: 12.5px; }
+.btn.danger { color: var(--mention); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+.iconbtn.b { border: 1px solid var(--rule-strong); background: var(--sheet); color: var(--ink); width: 32px; height: 32px; border-radius: 7px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 4px; background: var(--well); font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.lnk { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.lnk svg { width: 14px; height: 14px; color: var(--ink-2); }
+
+/* Profile */
+.pic { display: flex; align-items: center; gap: 18px; }
+.av.xl { width: 72px; height: 72px; font-size: 22px; }
+.av.xl .pr { width: 18px; height: 18px; border: 3px solid var(--sheet); right: 0; bottom: 0; }
+.cstat { display: flex; align-items: center; gap: 12px; border: 1px solid var(--rule-strong); border-radius: 10px; padding: 10px 10px 10px 14px; }
+.cstat .e { font-size: 20px; width: 28px; text-align: center; }
+.cstat div { flex: 1; min-width: 0; }
+.cstat b { font-size: 13.5px; font-weight: 500; display: block; }
+.cstat small { font-size: 12px; color: var(--ink-2); }
+.prev2 { border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; background: var(--panel); }
+.prev2 .k { font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.card { display: flex; gap: 12px; align-items: center; }
+.card b { font-size: 15px; font-weight: 600; display: block; }
+.card > div > span { font-size: 12.5px; color: var(--ink-2); display: block; }
+.card .stl { color: var(--ink); font-size: 13px; }
+
+/* Appearance */
+.themes { display: flex; gap: 12px; }
+.th { width: 156px; }
+.th .pv { height: 92px; border-radius: 10px; border: 1px solid var(--rule-strong); overflow: hidden; display: grid; grid-template-columns: 12px 40px 1fr; position: relative; }
+.th.on .pv { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.th .cap2 { display: flex; align-items: center; gap: 8px; font-size: 13.5px; margin-top: 8px; }
+.th .cap2 i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--rule-strong); }
+.th.on .cap2 { font-weight: 600; } .th.on .cap2 i { border: 5px solid var(--accent); }
+.pv .r1 { background: #0c1a16; } .pv .s1 { background: #14342b; padding: 8px 5px; display: grid; gap: 4px; align-content: start; }
+.pv .s1 u { height: 4px; border-radius: 2px; background: #c3cfc7; opacity: .55; display: block; }
+.pv .s1 u.k { background: #c9a24b; opacity: 1; }
+.pv .w { padding: 10px 10px; display: grid; gap: 6px; align-content: start; }
+.pv .w u { height: 5px; border-radius: 3px; display: block; }
+.pv.l .w { background: #fff; } .pv.l .w u { background: #e4ddcf; } .pv.l .w u.k { background: #16201d; width: 40%; }
+.pv.d .s1 { background: #0f231d; } .pv.d .w { background: #111c18; } .pv.d .w u { background: #34483f; } .pv.d .w u.k { background: #ece8dd; width: 40%; }
+.pv.sys .half { position: absolute; inset: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); display: grid; grid-template-columns: 12px 40px 1fr; }
+.sws { display: flex; flex-wrap: wrap; gap: 6px; }
+.swc { height: 32px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px 0 6px; border: 1px solid var(--rule-strong); border-radius: 16px; font-size: 13px; background: var(--sheet); }
+.swc i { width: 20px; height: 20px; border-radius: 50%; display: block; }
+.swc.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.fontrow { display: flex; align-items: center; gap: 10px; border: 1px solid var(--rule); border-radius: 8px; padding: 6px 6px 6px 12px; font-size: 13.5px; }
+.fontrow b { font-weight: 500; } .fontrow small { color: var(--ink-2); font-size: 12px; }
+.fontrow .sp { flex: 1; }
+.preview { border: 1px solid var(--rule); border-radius: 10px; background: var(--sheet); padding: 6px 0; }
+.preview .turn { grid-template-columns: 96px minmax(0, 1fr); column-gap: 14px; }
+.preview .tx { font-size: 14px; }
+.preview pre { margin-top: 6px; font-size: 12.5px; display: grid; grid-template-columns: 18px 1fr; column-gap: 10px; padding: 8px 12px; }
+.preview pre .n { color: var(--ink-2); text-align: right; }
+.preview pre .kw { color: var(--accent); font-weight: 600; }
+
+/* Notifications */
+.snd { display: grid; grid-template-columns: 1fr 156px 32px; gap: 8px; align-items: center; padding: 6px 0; font-size: 13.5px; }
+.snd .selb { width: 156px; }
+.ovr { border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; }
+.ovr .h, .ovr .o { display: grid; grid-template-columns: minmax(0, 1fr) 168px 68px; align-items: center; }
+.ovr .h { height: 34px; background: var(--panel); font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+.ovr .h > div, .ovr .o > div { padding: 0 12px; }
+.ovr .o { height: 38px; border-top: 1px solid var(--rule); font-size: 13.5px; }
+.ovr .o .n { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.ovr .o .n svg { color: var(--ink-2); }
+.ovr .q { color: var(--ink-2); }
+
+/* Devices */
+.dev { border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; }
+.dev .h, .dev .d { display: grid; grid-template-columns: minmax(0, 1fr) 124px 136px 120px 96px; align-items: center; }
+.dev .h { height: 36px; background: var(--panel); font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+.dev .h > div, .dev .d > div { padding: 0 12px; min-width: 0; }
+.dev .d { min-height: 64px; border-top: 1px solid var(--rule); }
+.dev .nm { display: flex; align-items: center; gap: 12px; }
+.dev .nm .ic { width: 36px; height: 36px; border-radius: 8px; background: var(--well); display: grid; place-items: center; color: var(--ink-2); flex: none; }
+.dev .nm b { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.dev .nm span { font-size: 12px; color: var(--ink-2); }
+.dev .v { font: 13px var(--mono); }
+.dev .v small { display: block; font: 12px var(--font); color: var(--ink-2); }
+.dev .act { display: flex; justify-content: flex-end; }
+.dev .d.gone { background: var(--well); }
+.dev .d.gone .nm b, .dev .d.gone .v { color: var(--ink-2); }
+.keep { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--well); font-size: 13.5px; line-height: 1.5; }
+.keep svg { color: var(--ink-2); margin-top: 1px; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--sheet); box-shadow: var(--shadow); border-radius: 10px; padding: 10px 12px 10px 14px; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
+
+/* Language */
+.lang { display: grid; grid-template-columns: repeat(2, 220px); gap: 10px; }
+.lc { border: 1px solid var(--rule-strong); border-radius: 10px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+.lc i { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--rule-strong); flex: none; margin-top: 1px; }
+.lc.on { border-color: var(--accent); background: var(--accent-soft); } .lc.on i { border: 5px solid var(--accent); }
+.lc b { display: block; font-size: 14px; font-weight: 600; } .lc span { font-size: 12.5px; color: var(--ink-2); }
+.sample { border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; background: var(--sheet); }
+.sample > div { padding: 10px 14px; border-top: 1px solid var(--rule); }
+.sample > div:nth-child(2n) { border-left: 1px solid var(--rule); }
+.sample > div:nth-child(-n+2) { border-top: 0; }
+.sample .k { font-size: 11.5px; color: var(--ink-2); display: block; }
+.sample .v { font: 13.5px var(--mono); }
+
+/* Cenacle ID account page (separate site) */
+.idp { min-height: 100vh; background: var(--panel); display: grid; grid-template-rows: auto 1fr auto; }
+.idp .top { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; border-bottom: 1px solid var(--rule); }
+.idp .lockup svg { width: 30px; height: 30px; }
+.idp .tools { display: flex; gap: 8px; }
+.idp .wrap { width: 1080px; margin: 0 auto; padding: 28px 0 24px; }
+.idp h1 { font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
+.idp .lede { font-size: 14.5px; color: var(--ink-2); margin-top: 4px; }
+.idp .grid2 { display: grid; grid-template-columns: 470px minmax(0, 1fr); gap: 28px; margin-top: 22px; align-items: start; }
+.idp .record dl { grid-template-columns: 1fr 1fr; }
+.idp .record dd { white-space: normal; }
+.idp .record dd .tag { margin-left: 6px; }
+.box { background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; }
+.box h2 { font-size: 13.5px; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--rule-strong); display: flex; align-items: center; gap: 8px; }
+.box h2 svg { color: var(--ink-2); }
+.box h2 .rt { margin-left: auto; font-weight: 400; font-size: 12.5px; color: var(--ink-2); }
+.box .in { padding: 14px 16px; }
+.state { display: flex; align-items: center; gap: 10px; }
+.state .ok { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
+.state .ok svg { color: var(--online); }
+.kv { display: grid; grid-template-columns: 140px 1fr; row-gap: 8px; margin-top: 12px; font-size: 13.5px; }
+.kv dt { color: var(--ink-2); font-size: 12.5px; padding-top: 1px; }
+.kv dd .m { font-size: 13px; }
+.box .acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--rule); }
+.act-t .h, .act-t .r { display: grid; grid-template-columns: 170px minmax(0, 1fr) 136px; align-items: center; }
+.act-t .h { height: 34px; background: var(--panel); font-size: 12.5px; color: var(--ink-2); font-weight: 500; border-bottom: 1px solid var(--rule); }
+.act-t .h > div, .act-t .r > div { padding: 0 16px; }
+.act-t .r { height: 40px; border-top: 1px solid var(--rule); font-size: 13.5px; }
+.act-t .r:nth-child(2) { border-top: 0; }
+.act-t .t, .act-t .ip { font: 13px var(--mono); }
+.act-t .ip { color: var(--ink-2); }
+.act-t .fail { color: var(--mention); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.act-t .fail svg { width: 15px; height: 15px; }
+.idp .foot { display: flex; justify-content: space-between; padding: 14px 40px 18px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule); }
+</style>
+</head>
+<body><script src="icons.js"></script><script src="app-kit.js"></script><script src="pages-settings-icons.js"></script><div id="root"></div><script>
+const S = q.get('s') ?? 'profile';
+const ck = I('check');
+const sel = (txt, w = '') => `<span class="selb" ${w ? `style="width:${w}"` : ''}>${txt}${I('chevron-down', 's')}</span>`;
+
+/* The app behind the dialog: General, read-only and dimmed */
+const behind = () => shell('general', `<header class="head"><h1>${I('channel')}General</h1><span class="topic">Anything and everything for the whole team</span><span class="gov">${I('shield-check', 's')}Internal · kept 2 years</span></header>
+  <div class="tabs"><span class="on">${I('message-square', 's')}Messages</span><span>${I('file-text', 's')}Release notes</span></div>
+  <div class="log">
+    <div class="heading"><span class="l">Today</span><h2>Friday 23 October 2026</h2></div>
+    <div class="turn"><div class="mg"><div><span class="who">Ayşe Yılmaz</span><time>09:12</time></div>${av('Ayşe Yılmaz')}</div><div class="tx"><p>Good morning! The staging deploy from last night looks healthy.</p></div></div>
+    <div class="turn"><div class="mg"><div><span class="who">Mert Demir</span><time>09:31</time></div>${av('Mert Demir')}</div><div class="tx"><p>Release checklist is pinned. Freeze starts at 14:00.</p></div></div>
+    <div class="turn"><div class="mg"><div><span class="who">Zeynep Ak</span><time>09:52</time></div>${av('Zeynep Ak')}</div><div class="tx"><p>Load test numbers are in the thread.</p></div></div>
+  </div>
+  <div class="foot"><div class="typing"><span></span><span></span></div><div class="comp"><span class="ph">Message General</span><span class="iconbtn">${I('paperclip')}</span><span class="iconbtn aa">Aa</span><span class="iconbtn">${I('smile')}</span><span class="iconbtn">${I('at-sign')}</span><span class="send">${I('send-horizontal')}</span></div></div>`);
+
+const NAV = [
+  ['profile', 'user-round', 'Profile'],
+  ['appearance', 'palette', 'Appearance'],
+  ['notifications', 'bell', 'Notifications'],
+  ['devices', 'laptop', 'Signed-in devices'],
+  ['language', 'languages', 'Language and region'],
+];
+const nav = (cur) => `<nav class="snav" aria-label="Settings sections">
+  <div class="t"><b>Settings</b><span>Deniz Kaya · Cenacle</span></div>
+  ${NAV.map(([k, ic, l]) => `<div class="it ${k === cur ? 'sel' : ''}" ${k === cur ? 'aria-current="page"' : ''}>${I(ic)}${l}</div>`).join('')}
+  <div class="g">Workspace · admin</div>
+  <div class="it">${I('type')}Interface texts</div>
+  <div class="it">${I('megaphone')}Announcements</div>
+  <div class="g">Security</div>
+  <div class="it">${I('shield-check')}Cenacle ID account${I('external-link', 'ext')}</div>
+  <div class="grow"></div>
+  <div class="host">chat.alanadi.com</div>
+</nav>`;
+const dialog = (cur, title, desc, body, foot = '') => behind() + `<div class="scrim"></div>
+<div class="dlg" role="dialog" aria-modal="true" aria-label="Settings">${nav(cur)}
+  <section class="smain"><header class="shd"><div><h1>${title}</h1><p>${desc}</p></div><span class="iconbtn" title="Close (Esc)">${I('x')}</span></header>
+  <div class="sbd">${body}</div>${foot}</section></div>`;
+const saved = (t = 'Changes save as you make them.') => `<footer class="sft">${I('circle-check', 's')}<span>${t}</span></footer>`;
+
+/* 1. Profile */
+const profile = () => dialog('profile', 'Profile', 'How others see you in Cenacle.', `<div class="cols">
+  <div>
+    <div class="sx"><h3>Picture</h3>
+      <div class="pic"><span class="av a4 xl">DK<i class="pr on"></i></span><div><div style="display:flex;gap:8px"><span class="btn">${I('upload', 's')}Change picture</span><span class="btn ghost">Remove</span></div><p class="hint" style="margin-top:8px">PNG, JPEG, WebP or GIF up to 5 MB. Animated GIFs stand still for people who reduce motion.</p></div></div>
+    </div>
+    <div class="sx"><h3>Name and username</h3>
+      <div class="sr top" style="grid-template-columns:1fr"><div><span class="lab">Name</span><div class="inp ro">Deniz Kaya${I('lock', 's')}</div><p class="hint" style="margin-top:6px">Your name comes from Cenacle ID. <span class="lnk">Change it in Cenacle ID${I('external-link')}</span></p></div></div>
+      <div class="sr top" style="grid-template-columns:1fr"><div><span class="lab">Username</span><div class="inp ro"><span class="m">deniz.kaya</span>${I('lock', 's')}</div><p class="hint" style="margin-top:6px">Your sign-in name in the company directory (Contoso AD).</p></div></div>
+    </div>
+  </div>
+  <div>
+    <div class="sx"><h3>Custom status</h3>
+      <div class="cstat"><span class="e">🎯</span><div><b>Focusing</b><small>Clears at 15:00 today</small></div><span class="btn sm">Change</span><span class="btn sm ghost">Clear</span></div>
+    </div>
+    <div class="sx"><h3>Time</h3>
+      <div class="sr"><div class="l"><b>Time zone</b><p>People see your local time on your profile.</p></div><div class="r">${sel('Europe/Istanbul (GMT+3)', '220px')}</div></div>
+      <div class="sr" style="border-top:0;padding-top:0"><div class="l"><p>This device is in Europe/Istanbul.</p></div><div class="r"><span class="btn ghost sm" style="padding:0 4px">Use this device's</span></div></div>
+      <div class="sr"><div class="l"><b>Show when I was last online</b><p>When off, others see only that you are offline.</p></div><div class="r"><span class="sw on" role="switch" aria-checked="true"></span></div></div>
+    </div>
+    <div class="sx"><h3>Preview</h3>
+      <div class="prev2"><div class="card"><span class="av a4" style="width:48px;height:48px;font-size:15px">DK<i class="pr on" style="border-color:var(--panel)"></i></span><div><b>Deniz Kaya</b><span>@deniz.kaya</span><span class="stl">🎯 Focusing · until 15:00</span><span><span class="m" style="font-size:12px">10:42</span>&nbsp;local time (GMT+3)</span></div></div></div>
+    </div>
+  </div></div>`,
+  `<footer class="sft"><span>Changes save as you make them.</span></footer>`);
+
+/* 2. Appearance */
+const pv = (k) => `<div class="pv ${k}"><span class="r1"></span><span class="s1"><u class="k"></u><u></u><u></u><u></u></span><span class="w"><u class="k"></u><u></u><u style="width:80%"></u><u class="k"></u><u style="width:60%"></u></span>${k === 'sys l' ? `<div class="half pv d" style="border:0;border-radius:0;height:auto"><span class="r1"></span><span class="s1"><u class="k"></u><u></u><u></u><u></u></span><span class="w"><u class="k"></u><u></u><u style="width:80%"></u><u class="k"></u><u style="width:60%"></u></span></div>` : ''}</div>`;
+const SW = [['Workspace\'s', '#14342b', '#c9a24b'], ['Cenacle', '#8f6b1f', '#c9a24b'], ['Graphite', '#3f3f46', '#d4d4d8'], ['Ocean', '#0b5cad', '#6cb4ff'], ['Forest', '#1f7a4d', '#5fd39a'], ['Sunset', '#b0420a', '#ff9a5c'], ['Rose', '#b0245c', '#ff8fb8'], ['High contrast', '#0033b3', '#ffd400']];
+const appearance = () => dialog('appearance', 'Appearance', 'Only for you, on every device you sign in on.', `<div class="cols">
+  <div>
+    <div class="sx"><h3>Theme</h3>
+      <div class="themes"><div class="th">${pv('sys l')}<div class="cap2"><i></i>System</div></div><div class="th on">${pv('l')}<div class="cap2"><i></i>Light</div></div><div class="th">${pv('d')}<div class="cap2"><i></i>Dark</div></div></div>
+    </div>
+    <div class="sx"><h3>Colors <small>Workspace's is set by your administrator</small></h3>
+      <div class="sws">${SW.map(([n, a, b], i) => `<span class="swc ${i === 0 ? 'on' : ''}"><i style="background:linear-gradient(135deg, ${a} 50%, ${b} 50%)"></i>${n}</span>`).join('')}</div>
+    </div>
+    <div class="sx"><h3>Text</h3>
+      <div class="sr"><div class="l"><b>Density</b></div><div class="r"><span class="seg"><span>Automatic</span><span class="on">Compact</span><span>Comfortable</span></span></div></div>
+      <div class="sr"><div class="l"><b>Fonts</b></div><div class="r">${sel('Modern (Geist)', '232px')}</div></div>
+      <div class="sr"><div class="l"><b>Text size</b></div><div class="r">${sel('15 px', '232px')}</div></div>
+      <div class="sr"><div class="l"><b>Line spacing</b></div><div class="r"><span class="seg"><span>Compact</span><span class="on">Normal</span><span>Relaxed</span></span></div></div>
+    </div>
+  </div>
+  <div>
+    <div class="sx"><h3>Code blocks</h3>
+      <div class="sr"><div class="l"><b>Colors</b></div><div class="r">${sel('GitHub', '200px')}</div></div>
+      <div style="border-top:1px solid var(--rule);padding:6px 0 2px"><div class="ck on"><i>${ck}</i>Show line numbers</div><div class="ck"><i></i>Wrap long lines</div><div class="ck on"><i>${ck}</i>Use ligatures (=> becomes one sign)</div></div>
+    </div>
+    <div class="sx"><h3>Preview</h3>
+      <div class="preview"><div class="turn"><div class="mg"><div><span class="who">Mert Demir</span><time>09:31</time></div></div><div class="tx"><p>Cenacle shows your messages like this: calm, readable, yours.</p><pre><span class="n">1</span><span><span class="kw">make</span> load LOAD_USERS=200</span><span class="n">2</span><span><span class="kw">make</span> report => out/k6.html</span></pre></div></div></div>
+    </div>
+    <div class="sx"><h3>Your fonts <small>2 of 5</small></h3>
+      <div style="display:grid;gap:6px"><div class="fontrow"><b>Kurumsal Sans</b><small class="m">woff2 · 84 KB</small><span class="sp"></span><span class="iconbtn" title="Remove Kurumsal Sans">${I('trash-2', 's')}</span></div><div class="fontrow"><b>Okuma Serif</b><small class="m">ttf · 212 KB</small><span class="sp"></span><span class="iconbtn" title="Remove Okuma Serif">${I('trash-2', 's')}</span></div></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><div class="inp" style="flex:1;color:var(--ink-2)">Name (optional)</div><span class="btn">${I('upload', 's')}Upload a font</span></div>
+      <p class="hint" style="margin-top:6px">WOFF2, WOFF, TrueType or OpenType, up to 2 MB. Only you see them; check the license allows it.</p>
+    </div>
+  </div></div>`, saved());
+
+/* 3. Notifications */
+const notifications = () => dialog('notifications', 'Notifications', 'What reaches you, how it sounds, and when Cenacle stays quiet.', `<div class="cols">
+  <div>
+    <div class="sx"><h3>Pause notifications</h3>
+      <div class="sr"><div class="l"><b>Not paused</b><p>Notifications reach you as set below.</p></div><div class="r">${sel('Pause for 1 hour', '172px')}</div></div>
+    </div>
+    <div class="sx"><h3>In channels, notify me about</h3>
+      <div style="border-top:1px solid var(--rule);padding-top:2px">
+        <div class="rad"><i></i><div><b>All messages</b></div></div>
+        <div class="rad on"><i></i><div><b>Mentions only</b><p>@you, @here and @channel, and replies in threads you follow.</p></div></div>
+        <div class="rad"><i></i><div><b>Nothing</b></div></div>
+      </div>
+      <p class="hint">Direct messages and group conversations always notify, unless you mute them.</p>
+    </div>
+    <div class="sx"><h3>Delivery</h3>
+      <div class="sr"><div class="l"><b>Desktop notifications</b><p>Allowed in this browser.</p></div><div class="r"><span class="sw on" role="switch" aria-checked="true"></span></div></div>
+      <div class="sr"><div class="l"><b>Web push</b><p>Notify me on this device when Cenacle is closed.</p></div><div class="r"><span class="sw on" role="switch" aria-checked="true"></span></div></div>
+      <div class="sr"><div class="l"><b>E-mail</b><p>Mentions and direct messages I missed.</p></div><div class="r"><span class="hint" style="margin:0">after</span>${sel('15 minutes', '128px')}<span class="sw on" role="switch" aria-checked="true"></span></div></div>
+    </div>
+  </div>
+  <div>
+    <div class="sx"><h3>Sounds</h3>
+      <div style="border-top:1px solid var(--rule);padding-top:4px">
+        <div class="snd"><span>Mentions</span>${sel('Chime')}<span class="iconbtn b" title="Play Mentions">${I('play', 's')}</span></div>
+        <div class="snd"><span>Direct messages</span>${sel('Kapı zili <small style="color:var(--ink-2)">· yours</small>')}<span class="iconbtn b" title="Play Direct messages">${I('play', 's')}</span></div>
+        <div class="snd"><span>Other messages</span>${sel('No sound')}<span class="iconbtn b" title="Play Other messages" style="color:var(--ink-2)">${I('play', 's')}</span></div>
+        <div class="snd" style="grid-template-columns:1fr auto"><span>Volume</span><span class="slider"><span class="tr"><i style="width:70%"></i><b style="left:70%"></b></span><span class="m" style="width:36px;text-align:right">70%</span></span></div>
+      </div>
+      <p class="hint" style="margin-top:4px">10 built-in sounds, or up to 5 of your own. <span class="lnk">Upload a sound</span></p>
+    </div>
+    <div class="sx"><h3>Quiet hours</h3>
+      <div class="sr"><div class="l"><b>Stay quiet during these hours</b><p>No sounds or pop-ups; everything waits in Inbox.</p></div><div class="r"><span class="sw on" role="switch" aria-checked="true"></span></div></div>
+      <div style="display:flex;align-items:end;gap:16px;padding-bottom:10px">
+        <div><span class="lab" style="font-weight:500;font-size:12.5px;color:var(--ink-2)">From</span><div class="inp" style="width:88px"><span class="m">19:00</span></div></div>
+        <div><span class="lab" style="font-weight:500;font-size:12.5px;color:var(--ink-2)">To</span><div class="inp" style="width:88px"><span class="m">08:00</span></div></div>
+        </div><div style="padding-bottom:10px"><span class="lab" style="font-weight:500;font-size:12.5px;color:var(--ink-2)">Days</span><div class="days"><span class="on">Mon</span><span class="on">Tue</span><span class="on">Wed</span><span class="on">Thu</span><span class="on">Fri</span><span>Sat</span><span>Sun</span></div></div>
+    </div>
+
+  <div class="sx"><h3>Exceptions <small>set from a channel's bell menu</small></h3>
+    <div class="ovr"><div class="h"><div>Where</div><div>Notify me about</div><div></div></div>
+      <div class="o"><div class="n">${I('lock', 's')}release-rc</div><div>All messages</div><div><span class="btn sm ghost">Reset</span></div></div>
+      <div class="o"><div class="n">${I('megaphone', 's')}Central</div><div>Mentions only</div><div><span class="btn sm ghost">Reset</span></div></div>
+      <div class="o"><div class="n">${I('channel', 's')}random</div><div>Muted until I unmute</div><div><span class="btn sm ghost">Reset</span></div></div>
+    </div>
+    </div></div></div>`, saved());
+
+/* 4. Signed-in devices */
+const D = [
+  ['laptop', 'Chrome on Windows', 'Web · chat.alanadi.com', true, '14 Oct 2026', 'Active now', '10.20.4.17'],
+  ['monitor', 'Cenacle desktop app on Windows', 'App · chat.alanadi.com', false, '2 Oct 2026', 'Today 08:52', '10.20.4.17'],
+  ['smartphone', 'Cenacle on iPhone', 'iOS app · chat.alanadi.com', false, '9 Sep 2026', 'Yesterday 22:14', '78.186.12.40'],
+  ['laptop', 'Chrome on Linux', 'Web · chat.alanadi.com', false, '21 Aug 2026', '3 Oct 2026 17:40', '10.20.9.112'],
+];
+const devices = () => dialog('devices', 'Signed-in devices', 'Where your account is signed in to Cenacle.', `
+  <div class="sx"><div class="keep">${I('info')}<span><b style="font-weight:600">You stay signed in until you sign out.</b> Sign out a device you no longer use or don't recognise; its open app disconnects at once and its drafts stay on it.</span></div></div>
+  <div class="sx"><h3>4 devices <small>most recently used first</small><span style="margin-left:auto"></span><span class="btn danger">${I('log-out', 's')}Sign out everywhere</span></h3>
+    <div class="dev" style="margin-top:6px"><div class="h"><div>Device</div><div>Signed in since</div><div>Last active</div><div>IP address</div><div></div></div>
+    ${D.map(([ic, n, s, cur, since, last, ip]) => `<div class="d"><div class="nm"><span class="ic">${I(ic)}</span><div style="min-width:0"><b>${n}${cur ? '<span class="tag">This device</span>' : ''}</b><span class="m" style="font-size:12px">${s}</span></div></div><div class="v">${since}</div><div class="v" style="font-family:var(--font);font-size:13.5px">${last}</div><div class="v">${ip}</div><div class="act">${cur ? '' : `<span class="btn sm" title="Sign out ${n}">Sign out</span>`}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="sx"><h3>Password and two-step verification</h3>
+    <div class="sr"><div class="l"><b>Managed in Cenacle ID</b><p>Your password, authenticator app and recovery codes live on id.alanadi.com.</p></div><div class="r"><span class="btn">${I('shield-check', 's')}Open Cenacle ID${I('external-link', 's')}</span></div></div>
+  </div>`);
+
+/* 5. Language and region */
+const language = () => dialog('language', 'Language and region', 'How Cenacle writes words, dates and times for you.', `<div style="max-width:640px">
+  <div class="sx"><h3>Language</h3>
+    <div class="lang"><div class="lc on"><i></i><div><b>English</b><span>Default</span></div></div><div class="lc"><i></i><div><b>Türkçe</b><span>Turkish</span></div></div></div>
+    <p class="hint" style="margin-top:8px">Messages are not translated; only the interface changes.</p>
+  </div>
+  <div class="sx"><h3>Region</h3>
+    <div class="sr"><div class="l"><b>Time format</b></div><div class="r"><span class="seg"><span class="on">24-hour <span class="m" style="margin-left:6px;font-weight:400">13:45</span></span><span>12-hour <span class="m" style="margin-left:6px;font-weight:400">1:45 PM</span></span></span></div></div>
+    <div class="sr"><div class="l"><b>Time zone</b><p>Set on your profile. The first day of the week follows the server’s region.</p></div><div class="r"><span class="m">Europe/Istanbul (GMT+3)</span><span class="btn ghost sm">Change</span></div></div>
+  </div>
+  <div class="sx"><h3>Preview</h3>
+    <div class="sample"><div><span class="k">Date</span><span class="v">Friday 23 October 2026</span></div><div><span class="k">Time</span><span class="v">13:45</span></div><div><span class="k">Short date</span><span class="v">23 Oct 2026</span></div><div><span class="k">Week</span><span class="v">Mon 19 – Sun 25 Oct</span></div></div>
+  </div></div>`, saved());
+
+/* 6. Cenacle ID account page */
+const IDLOGO = () => `<svg viewBox="0 0 48 48"><path fill="none" stroke="${document.documentElement.classList.contains('dark') ? '#F3EEE2' : '#14342B'}" stroke-width="6.5" stroke-linecap="round" d="M10 41V22A14 14 0 0 1 38 22V41"/><path fill="#C9A24B" d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"/></svg>`;
+const ACT = [
+  ['23 Oct 2026 08:51', 'Signed in to the account page', '10.20.4.17'],
+  ['23 Oct 2026 08:50', 'Signed in', '10.20.4.17'],
+  ['22 Oct 2026 22:13', 'Signed in', '78.186.12.40'],
+  ['22 Oct 2026 22:12', 'Second step failed', '78.186.12.40', 1],
+  ['14 Oct 2026 09:02', 'New recovery codes created', '10.20.4.17'],
+  ['14 Oct 2026 09:01', 'Signed in', '10.20.4.17'],
+  ['2 Oct 2026 08:40', 'Signed in', '10.20.4.17'],
+  ['9 Sep 2026 19:25', 'Recovery code used', '78.186.12.40'],
+  ['9 Sep 2026 19:24', 'Sign-in failed', '78.186.12.40', 1],
+  ['21 Aug 2026 10:15', 'Two-step verification turned on', '10.20.9.112'],
+];
+const account = () => `<div class="idp"><header class="top"><span class="lockup">${IDLOGO()}Cenacle ID</span><div class="tools"><span class="btn">${I('languages', 's')}English</span><span class="btn">${I('log-out', 's')}Sign out of Cenacle ID</span><span class="btn p">${I('arrow-left', 's')}Back to Cenacle</span></div></header>
+  <main class="wrap"><h1>Your Cenacle ID</h1><p class="lede">Deniz Kaya · <span class="m" style="font-size:14px">deniz.kaya@alanadi.com</span></p>
+  <div class="grid2"><div style="display:grid;gap:20px">
+    <section class="record"><h2>${I('user-round', 's')}Account</h2><dl>
+      <div class="c first"><dt>Name</dt><dd>Deniz Kaya</dd></div><div class="c first right"><dt>Username</dt><dd class="num">deniz.kaya</dd></div>
+      <div class="c wide"><dt>Directory</dt><dd>Contoso AD <span class="tag">${I('lock', 's')}Read-only</span></dd></div></dl>
+      <p class="note">${I('info', 's')}<span>Your name, username and password come from the company directory. Your IT department changes them there.</span></p></section>
+    <section class="box"><h2>${I('shield-check', 's')}Two-step verification</h2>
+      <div class="in"><div class="state"><span class="ok">${I('circle-check')}On</span><span class="hint" style="margin:0">Signing in needs a code from your authenticator app.</span></div>
+      <dl class="kv"><dt>Method</dt><dd>Authenticator app</dd><dt>Turned on</dt><dd class="m">21 Aug 2026</dd><dt>Recovery codes</dt><dd><b style="font-weight:600">8 left</b> <span class="hint">of 10</span></dd></dl></div>
+      <div class="acts" style="flex-wrap:nowrap"><span class="btn sm">${I('refresh-cw', 's')}Create new recovery codes</span><span class="btn sm">Turn off two-step verification</span></div></section>
+  </div>
+  <section class="box act-t"><h2>${I('clock', 's')}Recent activity<span class="rt">Last 10 events</span></h2>
+    <div class="h"><div>Time</div><div>Action</div><div>IP address</div></div>
+    ${ACT.map(([t, a, ip, f]) => `<div class="r"><div class="t">${t}</div><div ${f ? 'class="fail"' : ''}>${f ? I('triangle-alert') : ''}${a}</div><div class="ip">${ip}</div></div>`).join('')}
+  </section></div></main>
+  <footer class="foot"><span>id.alanadi.com · Cenacle, open source and self-hosted</span><span>Didn't do one of these? Tell your IT department.</span></footer></div>`;
+
+const screens = { profile, appearance, notifications, devices, language, account };
+document.getElementById('root').innerHTML = (screens[S] ?? screens.profile)();
+</script></body></html>

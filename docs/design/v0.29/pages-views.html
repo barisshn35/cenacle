@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Cenacle</title>
+<link rel="stylesheet" href="app.css">
+<style>
+/* Views: threads, saved, tasks, events, playbooks, workflows, activity. Tokens only. */
+.ibx { overflow: hidden; }
+.wrap { max-width: 1000px; }
+.sect { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 10px; }
+.sect h2 { font-size: 15px; font-weight: 600; }
+.sect span { font-size: 13px; color: var(--ink-2); }
+.sect .acts { margin-left: auto; display: flex; gap: 8px; align-self: center; }
+.btn svg { color: var(--ink-2); }
+.btn.p svg { color: var(--accent-fg); }
+.btn.s { height: 28px; padding: 0 9px; border-radius: 6px; }
+.btn.ghost { border-color: transparent; background: none; color: var(--ink); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.dim { color: var(--ink-2); }
+.err { color: var(--mention); }
+.row-ic { display: inline-flex; align-items: center; gap: 6px; }
+.row-ic svg { color: var(--ink-2); }
+
+/* Threads */
+.tlist { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+.tcard { border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--sheet); overflow: hidden; }
+.th { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 10px 0 16px; border-bottom: 1px solid var(--rule); background: var(--panel); }
+.th .ch { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; }
+.th .ch svg { color: var(--ink-2); }
+.th .ch small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+.th .lr { font-size: 12.5px; color: var(--ink-2); }
+.th .grow { flex: 1; }
+.th .nr { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.th .nr.q { font-weight: 400; color: var(--ink-2); }
+.tb { padding: 6px 16px 10px 8px; }
+.tb .turn { padding-top: 5px; padding-bottom: 5px; }
+.tsum { display: grid; grid-template-columns: var(--margin) minmax(0, 1fr); column-gap: 20px; align-items: center; height: 30px; }
+.tsum > span:last-child { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+.tsum b { color: var(--ink); font-weight: 600; }
+.tsum .stack { display: flex; gap: 2px; }
+.tb .newline { margin: 4px 0 0; }
+
+/* Board variants */
+.board .brow > div { padding: 0 12px; }
+.br .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.br .t2 { font: 500 14px/20px var(--mono); }
+.when b { display: block; font: 500 14px/20px var(--mono); }
+.when .sub { font-family: var(--font); }
+.br.sel { background: var(--accent-soft); }
+.grp .acts { margin-left: auto; }
+
+/* Menu (anchored dropdown) */
+.menu { position: absolute; z-index: 5; width: 232px; background: var(--sheet); border-radius: 10px; box-shadow: var(--shadow); padding: 4px; }
+.menu .mi { height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 6px; font-size: 13.5px; }
+.menu .mi span:last-child { margin-left: auto; font: 12px var(--mono); color: var(--ink-2); }
+.menu .mi.hl { background: var(--well); }
+.menu .mi svg { color: var(--ink-2); }
+.menu .lab { font-size: 12px; color: var(--ink-2); padding: 6px 10px 4px; }
+.menu hr { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; }
+.ra button, .row-ic { white-space: nowrap; }
+.board.ov { overflow: visible; } .board.ov .bh { border-radius: 9px 9px 0 0; }
+.btn.open, .ra button.open { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* Segmented answer (RSVP) */
+.seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 7px; overflow: hidden; }
+.seg span { height: 28px; display: flex; align-items: center; gap: 4px; padding: 0 9px; font-size: 13px; font-weight: 500; border-left: 1px solid var(--rule-strong); background: var(--sheet); white-space: nowrap; }
+.seg span:first-child { border-left: 0; }
+.seg span.on { background: var(--accent-soft); color: var(--ink); font-weight: 600; box-shadow: inset 0 0 0 1px var(--accent); }
+.seg span.on svg { color: var(--accent); width: 14px; height: 14px; }
+.stk { display: flex; } .stk .av { box-shadow: 0 0 0 2px var(--sheet); } .stk { gap: 2px; }
+.br.lit .stk .av { box-shadow: 0 0 0 2px var(--well); }
+
+/* Switch */
+.sw { width: 36px; height: 20px; border-radius: 10px; background: var(--rule-strong); position: relative; flex: none; display: inline-block; }
+.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+.sw.on { background: var(--accent); }
+.sw.on::after { left: 18px; }
+.dark .sw::after { background: var(--ink-2); } .dark .sw.on::after { background: var(--accent-fg); }
+.swl { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+/* Workflow panel */
+.panel .pbody { gap: 16px; overflow: hidden; }
+.steps { list-style: none; padding: 0; counter-reset: s; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--sheet); overflow: hidden; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 9px 12px; border-top: 1px solid var(--rule); }
+.steps li:first-child { border-top: 0; }
+.steps li::before { content: counter(s); font: 500 13px/20px var(--mono); color: var(--ink-2); text-align: right; }
+.steps b { font-size: 13.5px; font-weight: 600; display: block; }
+.steps small { font-size: 12.5px; color: var(--ink-2); display: block; line-height: 17px; }
+.runs .r { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 0; border-top: 1px solid var(--rule); font-size: 13px; }
+.runs .r:first-of-type { border-top: 0; }
+.runs .r .mono { font-size: 12px; color: var(--ink-2); }
+.runs .r p { grid-column: 1 / -1; font-size: 12.5px; }
+.pacts { display: flex; gap: 8px; }
+
+/* Approval card (tasks) */
+.task { border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--sheet); padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; }
+.task .k { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.task b { font-size: 14px; font-weight: 600; }
+.task p { font-size: 13.5px; color: var(--ink-2); }
+.task .acts { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 8px; }
+
+/* Activity */
+.alog { max-width: 920px; margin-top: 8px; }
+.alog .turn { padding-top: 8px; padding-bottom: 8px; }
+.act { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; line-height: 18px; }
+.act b { color: var(--ink); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.act b svg { width: 14px; height: 14px; color: var(--ink-2); }
+.quote { color: var(--ink-2); }
+.alog .tx { font-size: 14.5px; }
+.alog .turn .go { position: absolute; right: 8px; top: 8px; }
+</style>
+</head>
+<body><script src="icons.js"></script><script src="app-kit.js"></script><div id="root"></div><script>
+ICONS['bell-ring'] = '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M22 8c0-2.3-.8-4.3-2-6"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/>';
+ICONS['rotate-ccw'] = '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>';
+ICONS['map-pin'] = '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>';
+ICONS['play'] = '<path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>';
+ICONS['table'] = '<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>';
+ICONS['circle-alert'] = '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>';
+ICONS['video'] = '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/>';
+ICONS['zap'] = '<path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"/>';
+ICONS['circle-check'] = '<circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/>';
+
+const S = q.get('s') ?? 'threads';
+const page = (title, sub, acts, body) => `<div class="ibx"><div class="ihead"><div><h1>${title}</h1><p>${sub}</p></div>${acts ? `<div class="acts">${acts}</div>` : ''}</div>${body}</div>`;
+const turn = (who, time, text, cls = '') => `<div class="turn ${cls}"><div class="mg"><div><div class="who">${who}</div><time>${time}</time></div>${av(who)}</div><div class="tx"><p>${text}</p></div></div>`;
+const head = (cols, labels) => `<div class="brow bh" style="grid-template-columns:${cols}">${labels.map((l) => `<div${l.r ? ' style="justify-content:flex-end"' : ''}>${l.t ?? l}</div>`).join('')}</div>`;
+
+/* 1. Threads */
+const tcard = (ch, icon, sub, last, status, body) => `<article class="tcard"><header class="th">
+  <span class="ch">${I(icon, 's')}${ch}${sub ? `<small>${sub}</small>` : ''}</span><span class="lr">· Last reply ${last}</span>
+  <span class="grow"></span>${status}
+  <button class="btn s">Open</button><button class="btn s">${I('bell-off', 's')}Stop following</button></header>
+  <div class="tb">${body}</div></article>`;
+const sum = (n, avs, extra) => `<div class="tsum"><span></span><span><span class="stack">${avs.map((a) => av(a)).join('')}</span><b>${n}</b>${extra}</span></div>`;
+const threads = () => shell('threads', page('Threads', 'Threads you started, replied to or were mentioned in. New replies first.', `<button class="btn">${I('check', 's')}Mark all as read</button>`,
+  `<div class="tlist wrap">
+  ${tcard('release-rc', 'lock', 'private', '<span class="mono">10:05</span>', `<span class="nr"><span class="badge" aria-label="1 mention">1</span>mention · 3 new replies</span>`,
+    turn('Mert Demir', '09:31', 'Rollback steps for 0.28: who signs off on the database part before we tag?') +
+    sum('8 replies', ['Ayşe Yılmaz', 'Zeynep Ak', 'Deniz Kaya'], '5 earlier replies') +
+    `<div class="newline"><span>New</span><i></i></div>` +
+    turn('Zeynep Ak', '09:58', 'Migration <code>00043_reports</code> rolls back cleanly on the staging copy.') +
+    turn('Mert Demir', '10:05', '<span class="chip you">@Deniz Kaya</span> can you take the database sign-off? Tag is at 15:00.', 'mention'))}
+  ${tcard('General', 'channel', '', '<span class="mono">10:02</span>', `<span class="nr">2 new replies</span>`,
+    turn('Deniz Kaya', '09:40', '<b>Heads up:</b> the design review moved to 14:00. <span class="chip">@Ayşe Yılmaz</span> can you bring the sidebar sketches?') +
+    sum('4 replies', ['Ayşe Yılmaz', 'Mert Demir'], '2 earlier replies') +
+    `<div class="newline"><span>New</span><i></i></div>` +
+    turn('Ayşe Yılmaz', '09:55', 'Fine by me. I will print them for the room too.') +
+    turn('Mert Demir', '10:02', 'Booked Room 3 and added the call link to the invite.'))}
+  ${tcard('Ayşe Yılmaz', 'message-square', 'direct message', 'yesterday <span class="mono">17:12</span>', `<span class="nr q">No new replies</span>`,
+    turn('Ayşe Yılmaz', 'Yesterday 16:48', 'Can you review the onboarding checklist before Monday? It is in the Playbooks page.') +
+    sum('2 replies', ['Deniz Kaya'], 'last reply yesterday'))}
+  </div>`));
+
+/* 2. Saved */
+const SC = '124px 170px 150px minmax(0,1fr) 288px';
+const srow = (when, whenSub, ch, icon, sub, who, text, cls = '', menuBtn = false) => `<div class="brow br ${cls}" style="grid-template-columns:${SC}">
+  <div class="when">${when}${whenSub ? `<span class="sub">${whenSub}</span>` : ''}</div>
+  <div class="wh">${I(icon, 's')}<div><b>${ch}</b><span class="sub">${sub}</span></div></div>
+  <div class="fr">${av(who)}${who}</div>
+  <div><p class="clamp">${text}</p></div>
+  <div class="ra" style="position:relative"><button class="${menuBtn ? 'open' : ''}" style="display:flex;align-items:center;gap:4px">${I('bell-ring', 's')}Remind me${I('chevron-down', 's')}</button><button style="display:flex;align-items:center;gap:4px">${I('check', 's')}Done</button><span class="iconbtn" title="Remove from saved" style="width:28px;height:28px">${I('trash-2', 's')}</span>
+  ${menuBtn ? `<div class="menu" style="top:36px;right:72px"><div class="lab">Remind me</div>
+    <div class="mi">${I('clock', 's')}<span>In 20 minutes</span><span>10:30</span></div>
+    <div class="mi hl">${I('clock', 's')}<span>In 1 hour</span><span>11:10</span></div>
+    <div class="mi">${I('clock', 's')}<span>In 3 hours</span><span>13:10</span></div>
+    <div class="mi">${I('calendar', 's')}<span>Tomorrow at 9:00</span><span>Sat</span></div>
+    <div class="mi">${I('calendar', 's')}<span>Next week</span><span>30 Oct</span></div>
+    <hr><div class="mi">${I('bell-off', 's')}<span>No reminder</span><span></span></div></div>` : ''}</div></div>`;
+const saved = () => shell('saved', page('Saved', 'Messages you kept to come back to. Set a reminder or mark them done.', '',
+  `<div class="itabs"><span class="itab on">In progress <span class="dim tab">5</span></span><span class="itab">Done <span class="dim tab">12</span></span><span class="note">Reminders arrive in your Inbox</span></div>
+  <div class="board ov">${head(SC, ['Reminder', 'Where', 'From', 'Message', { t: 'Actions', r: 1 }])}
+  <div class="grp">Overdue <span>1</span></div>
+  ${srow(`<span class="row-ic" style="font-weight:600">${I('circle-alert', 's')}<b>09:30</b></span>`, 'Overdue · today', 'release-rc', 'lock', 'private', 'Mert Demir', 'Read the rollback runbook before the 15:00 tag: <code>docs/operations/rollback.md</code>', 'lit')}
+  <div class="grp">Today <span>2</span></div>
+  ${srow('<b>15:00</b>', 'Today', 'General', 'channel', 'Thread', 'Ayşe Yılmaz', 'Design review moved to 14:00 in Room 3. Bring the sidebar sketches, compact and comfortable.', '', true)}
+  ${srow('<b>17:30</b>', 'Today', 'Zeynep Ak', 'message-square', 'Direct message', 'Zeynep Ak', 'Load test numbers: p95 at 180 ms with 200 users, details in the shared sheet.')}
+  <div class="grp">No reminder <span>2</span></div>
+  ${srow('<span class="dim" style="font-size:13px">—</span>', '', 'Central', 'megaphone', 'Announcements', 'Can Öztürk', 'Office closed on 29 October (Republic Day). Support rota is pinned in General.')}
+  ${srow('<span class="dim" style="font-size:13px">—</span>', '', 'design-review', 'channel', 'Public', 'Ayşe Yılmaz', 'Contrast notes for the dark theme: secondary text passes 4.5:1 on every surface now.')}
+  </div><p class="ifoot">Done items move to the Done tab and can go back to In progress.</p>`));
+
+/* 3. Tasks */
+const TC = 'minmax(0,1fr) 190px 160px 220px 120px';
+const trow = (title, list, ch, due, status, cls = '') => `<div class="brow br ${cls}" style="grid-template-columns:${TC};min-height:52px">
+  <div><b style="font-weight:${cls ? 600 : 500}">${title}</b></div>
+  <div class="row-ic">${I('table', 's')}${list}</div>
+  <div class="row-ic">${ch}</div>
+  <div>${due}</div><div class="st">${status}</div></div>`;
+const tasks = () => shell('tasks', page('Tasks', 'What waits for you: approvals, forms and list rows assigned to you.', '',
+  `<div class="wrap"><div class="sect"><h2>Waiting for you</h2><span class="tab">1</span></div>
+  <div class="task"><span class="k">${I('workflow', 's')}Approval · Leave request · started by Can Öztürk, 09:12</span>
+    <b>Annual leave, 2 to 6 November 2026 (5 days)</b><p>Ask for approval: one of Deniz Kaya, Ayşe Yılmaz decides.</p>
+    <div class="acts"><button class="btn">${I('x', 's')}Reject</button><button class="btn p">${I('check', 's')}Approve</button></div></div>
+  <div class="sect"><h2>Assigned to you</h2><span class="tab">4 rows in 3 lists</span></div>
+  <div class="board">${head(TC, ['Title', 'List', 'Channel', 'Due', 'Status'])}
+  ${trow('Database sign-off for 0.28 rollback', 'Release checklist', `${I('lock', 's')}release-rc`, `<span class="row-ic" style="font-weight:600">${I('circle-alert', 's')}Overdue since <span class="mono">21 Oct</span></span>`, '<span class="w">Blocked</span>', 'lit')}
+  ${trow('Update upgrade notes for 0.28', 'Release checklist', `${I('lock', 's')}release-rc`, `<span class="row-ic">${I('calendar', 's')}Due <span class="mono">23 Oct</span></span>`, 'In progress')}
+  ${trow('Review sidebar density tokens', 'Design backlog', `${I('channel', 's')}design-review`, `<span class="row-ic">${I('calendar', 's')}Due <span class="mono">27 Oct</span></span>`, 'To do')}
+  ${trow('Order badges for new starters', 'Onboarding, November', `${I('channel', 's')}General`, '<span class="dim">No due date</span>', 'To do')}
+  </div><p class="ifoot">Rows open in their channel's list tab. Change the status there.</p></div>`));
+
+/* 4. Events */
+const EC = '112px minmax(0,1fr) 210px 168px 262px 44px';
+const erow = (t1, t2, title, desc, loc, locIcon, ch, going, maybe, me, cls = '') => `<div class="brow br ${cls}" style="grid-template-columns:${EC}">
+  <div class="when"><b>${t1}</b><span class="sub mono">–${t2}</span></div>
+  <div><b style="font-weight:600;display:block">${title}</b><p class="clamp dim" style="font-size:13px;line-height:18px">${desc}</p></div>
+  <div class="wh">${I(locIcon, 's')}<div><span style="display:block">${loc}</span><span class="sub">Announced in ${ch}</span></div></div>
+  <div><span class="stk">${going.slice(0, 4).map((a) => av(a)).join('')}</span><span class="sub" style="margin-top:4px">${going.length + 2} going${maybe ? ` · ${maybe} maybe` : ''}</span></div>
+  <div><span class="seg" role="group" aria-label="Your answer">${['Going', 'Maybe', "Can't go"].map((s) => `<span class="${me === s ? 'on' : ''}">${me === s ? I('check', 's') : ''}${s}</span>`).join('')}</span></div>
+  <div><span class="iconbtn" title="Edit or cancel">${I('ellipsis', 's')}</span></div></div>`;
+const events = () => shell('none', page('Events', 'Meetings and gatherings in this workspace. People get a reminder 15 minutes before.', `<button class="btn p">${I('plus', 's')}New event</button>`,
+  `<div class="itabs"><span class="itab on">Coming up <span class="dim tab">5</span></span><span class="note">Times in Europe/Istanbul (GMT+3)</span></div>
+  <div class="board">${head(EC, ['Time', 'Event', 'Where', 'Who', 'Your answer', ''])}
+  <div class="grp">Today <span class="mono">Fri 23 Oct</span></div>
+  ${erow('14:00', '14:45', 'Design review: sidebar density', 'Compact and comfortable sketches, contrast notes for the dark theme.', 'Room 3, 4th floor', 'map-pin', 'design-review', ['Ayşe Yılmaz', 'Mert Demir', 'Deniz Kaya', 'Zeynep Ak'], 1, 'Going')}
+  ${erow('16:30', '17:00', 'Release 0.28 go / no-go', 'Final check before the tag: rollback sign-off and upgrade notes.', 'meet.ornek.com.tr/rc-28', 'video', 'release-rc', ['Mert Demir', 'Zeynep Ak', 'Can Öztürk'], 0, '', 'lit')}
+  <div class="grp">Next week <span class="mono">26–30 Oct</span></div>
+  ${erow('10:00', '10:30', 'Monday all-hands', 'Quarter numbers, office move and the new support rota.', 'Main hall and online', 'map-pin', 'Central', ['Can Öztürk', 'Ayşe Yılmaz', 'Deniz Kaya', 'Mert Demir'], 4, 'Going')}
+  ${erow('15:00', '16:30', 'Onboarding: new starters', 'Accounts, laptops and a walk through Cenacle for four new colleagues.', 'Training room B', 'map-pin', 'General', ['Zeynep Ak', 'Can Öztürk'], 2, 'Maybe')}
+  ${erow('12:30', '13:30', 'Team lunch before the holiday', 'Table for twelve, vegetarian options confirmed.', 'Kalamış Balıkçısı, Kadıköy', 'map-pin', 'random', ['Ayşe Yılmaz', 'Zeynep Ak', 'Mert Demir'], 3, "Can't go")}
+  </div>`));
+
+/* 5. Playbooks */
+const RC = 'minmax(0,1fr) 170px 150px 170px 96px 120px';
+const rrow = (name, pb, ch, chIcon, owner, done, total, started, cls = '') => `<div class="brow br ${cls}" style="grid-template-columns:${RC};min-height:56px">
+  <div><b style="font-weight:600;display:block">${name}</b><span class="sub">Started <span class="mono">${started}</span></span></div>
+  <div>${pb}</div><div class="row-ic">${I(chIcon, 's')}${ch}</div>
+  <div class="fr">${av(owner)}${owner}</div>
+  <div><b class="mono" style="font-weight:500;font-size:14px">${done} of ${total}</b><span class="sub">items done</span></div>
+  <div class="ra"><button>Open</button></div></div>`;
+const PC = 'minmax(0,1fr) 250px 290px';
+const prow = (name, desc, lists, items, running) => `<div class="brow br" style="grid-template-columns:${PC}">
+  <div><b style="font-weight:600;display:block">${name}</b><p class="dim clamp" style="font-size:13px;line-height:18px">${desc}</p></div>
+  <div class="dim" style="font-size:13px;white-space:nowrap"><span class="tab">${lists}</span> checklists · <span class="tab">${items}</span> items · <span class="tab">${running}</span> running</div>
+  <div class="ra"><button style="display:flex;align-items:center;gap:4px">${I('play', 's')}Start run</button><button>Edit</button><button>Archive</button></div></div>`;
+const playbooks = () => shell('none', page('Playbooks', 'Checklists your team runs again and again, like an incident or an onboarding.', `<button class="btn p">${I('plus', 's')}New playbook</button>`,
+  `<div class="sect"><h2>Runs in progress</h2><span class="tab">3</span></div>
+  <div class="board">${head(RC, ['Run', 'Playbook', 'Channel', 'Owner', 'Progress', { t: '', r: 1 }])}
+  ${rrow('Incident: login slow for LDAP users', 'Incident response', 'release-rc', 'lock', 'Mert Demir', 3, 7, '23 Oct 08:52', 'lit')}
+  ${rrow('Release 0.28', 'Release', 'release-rc', 'lock', 'Deniz Kaya', 9, 12, '21 Oct 10:00')}
+  ${rrow('Onboarding: Elif Arslan', 'New starter onboarding', 'General', 'channel', 'Ayşe Yılmaz', 4, 11, '20 Oct 09:30')}
+  </div>
+  <div class="sect"><h2>Playbooks</h2><span class="tab">4</span></div>
+  <div class="board">${head(PC, ['Name', 'Contents', { t: 'Actions', r: 1 }])}
+  ${prow('Incident response', 'Triage, communicate, mitigate and write the review within 5 working days.', 3, 7, 1)}
+  ${prow('Release', 'Freeze, tag the candidate, upgrade rehearsal, publish notes and announce.', 2, 12, 1)}
+  ${prow('New starter onboarding', 'Accounts, laptop, Cenacle ID with two-step verification, first-week buddy.', 3, 11, 1)}
+  ${prow('Quarterly access review', 'Export members per channel, confirm owners, remove leavers.', 1, 5, 0)}
+  </div>`));
+
+/* 6. Workflows */
+const WC = 'minmax(0,1fr) 72px 200px 64px';
+const wrow = (name, trig, trigIcon, steps, last, on, cls = '') => `<div class="brow br ${cls}" style="grid-template-columns:${WC}">
+  <div><b style="font-weight:600;display:block">${name}</b><span class="sub row-ic">${I(trigIcon, 's')}${trig}</span></div>
+  <div class="mono" style="font-size:13px">${steps}</div>
+  <div class="st">${last}</div>
+  <div><span class="sw ${on ? 'on' : ''}" role="switch" aria-checked="${on}" title="${on ? 'On' : 'Off'}"></span></div></div>`;
+const ok = (t) => `<span class="row-ic">${I('circle-check', 's')}Done <span class="mono dim">${t}</span></span>`;
+const wfPanel = `<aside class="panel"><div class="ph2"><b>Workflow details</b><span></span><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="pbody">
+  <div class="tblock"><div class="c wide"><span class="lab">Workflow</span><span class="val">Leave request</span></div>
+    <div class="c"><span class="lab">When</span><span class="val">Started from the composer</span></div>
+    <div class="c"><span class="lab">Channel</span><span class="val">${I('channel', 's')}General</span></div>
+    <div class="c"><span class="lab">Steps</span><span class="val num">4</span></div>
+    <div class="c"><span class="lab">Status</span><span class="val"><span class="swl"><span class="sw on"></span>On</span></span></div></div>
+  <div class="psec"><h3>Steps <span>run in order</span></h3><ol class="steps">
+    <li><div><b>Ask for a form</b><small>Leave request · 4 fields</small></div></li>
+    <li><div><b>Ask for approval</b><small>Approvers: Deniz Kaya, Ayşe Yılmaz (one decides)</small></div></li>
+    <li><div><b>Send to a web address</b><small class="mono" style="font-size:12px">https://ik.ornek.com.tr/api/izin</small></div></li>
+    <li><div><b>Send a direct message</b><small>To the person who started it: “Approved, enjoy your leave.”</small></div></li></ol></div>
+  <div class="psec runs"><h3>Latest runs <span>of 50</span></h3>
+    <div class="r"><span class="row-ic err" style="font-weight:600">${I('circle-alert', 's')}Failed · step 3 of 4</span><span class="mono">09:15</span><p class="err">ik.ornek.com.tr answered 502 Bad Gateway. Approved by Deniz Kaya.</p></div>
+    <div class="r"><span class="row-ic">${I('clock', 's')}Waiting · step 2 of 4 · Mert Demir</span><span class="dim" style="font-size:12px">Yesterday</span></div>
+    <div class="r"><span class="row-ic">${I('circle-check', 's')}Done · 4 of 4 · Zeynep Ak</span><span class="mono">21 Oct</span></div></div>
+  <div class="pacts"><button class="btn">Runs</button><button class="btn">${I('pencil', 's')}Edit</button><button class="btn">Archive</button></div>
+  </div></aside>`;
+const workflows = () => shell('none', page('Workflows', 'A workflow starts on a trigger and runs its steps in order.', `<button class="btn p">${I('plus', 's')}New workflow</button>`,
+  `<div class="board" style="margin-top:20px">${head(WC, ['Workflow', 'Steps', 'Last run', 'On'])}
+  ${wrow('Leave request', 'Started from the composer', 'square-pen', 4, `<span class="row-ic err" style="font-weight:600">${I('circle-alert', 's')}Failed <span class="mono" style="font-weight:400">09:15</span></span><span class="sub err">Step 3: 502 from ik.ornek.com.tr</span>`, true, 'sel')}
+  ${wrow('Welcome new members', 'Someone joins a channel', 'users', 2, ok('10:01'), true)}
+  ${wrow('Incident page', 'A message contains “SEV1”', 'zap', 3, ok('<span style="font-family:var(--font)">yesterday</span>'), true)}
+  ${wrow('Weekly status digest', 'Every Friday at 16:00', 'calendar', 1, ok('16 Oct'), true)}
+  ${wrow('Jira ticket mirror', 'A webhook is called', 'link', 2, '<span class="dim">No runs yet</span>', false)}
+  </div>
+  <div class="sect"><h2>Forms</h2><span class="tab">2</span><div class="acts"><button class="btn">${I('plus', 's')}New form</button></div></div>
+  <div class="board">
+  <div class="brow br" style="grid-template-columns:minmax(0,1fr) 140px 170px;min-height:52px"><div><b style="font-weight:600">Leave request</b></div><div class="dim tab" style="font-size:13px">4 fields</div><div class="ra"><button>Edit</button><button>Archive</button></div></div>
+  <div class="brow br" style="grid-template-columns:minmax(0,1fr) 140px 170px;min-height:52px"><div><b style="font-weight:600">IT equipment request</b></div><div class="dim tab" style="font-size:13px">6 fields</div><div class="ra"><button>Edit</button><button>Archive</button></div></div>
+  </div>`), wfPanel);
+
+/* 7. Activity */
+const aturn = (who, time, verb, icon, ch, chIcon, text, cls = '') => `<div class="turn ${cls}"><div class="mg"><div><div class="who">${who}</div><time>${time}</time></div>${av(who)}</div>
+  <div class="tx"><p class="act">${I(icon, 's')}${verb} <b>${I(chIcon, 's')}${ch}</b></p><p>${text}</p></div></div>`;
+const activity = () => shell('none', page('Activity', 'Mentions of you, replies in your threads and reactions to your messages.', `<button class="btn">${I('check', 's')}Mark all as read</button>`,
+  `<div class="alog">
+  <div class="heading"><span class="l">Today</span><h2>Friday 23 October 2026</h2></div>
+  ${aturn('Mert Demir', '10:05', 'Mentioned you in a thread in', 'at-sign', 'release-rc', 'lock', '<span class="chip you">@Deniz Kaya</span> can you take the database sign-off? Tag is at 15:00.', 'mention')}
+  ${aturn('Mert Demir', '10:02', 'Replied in your thread in', 'message-square', 'General', 'channel', 'Booked Room 3 and added the call link to the invite.')}
+  ${aturn('Ayşe Yılmaz', '09:44', 'Reacted 👍 to your message in', 'smile', 'General', 'channel', '<span class="quote">“Heads up: the design review moved to 14:00.”</span>')}
+  ${aturn('Zeynep Ak', '09:20', 'Mentioned you in', 'at-sign', 'design-review', 'channel', '<span class="chip you">@Deniz Kaya</span> the contrast check passes on every token now.', 'mention')}
+  <div class="heading"><span class="l">Yesterday</span><h2>Thursday 22 October 2026</h2></div>
+  ${aturn('Can Öztürk', '17:10', 'Mentioned you in', 'at-sign', 'random', 'channel', '<span class="chip you">@Deniz Kaya</span> the photos from Friday are in the shared folder.', 'mention')}
+  ${aturn('Zeynep Ak', '16:52', 'Reacted 🎉 to your message in', 'smile', 'release-rc', 'lock', '<span class="quote">“Load test passed at 200 users, p95 180 ms.”</span>')}
+  ${aturn('Ayşe Yılmaz', '16:48', 'Replied in your thread in', 'message-square', 'Ayşe Yılmaz', 'message-square', 'I left two notes on the onboarding checklist, both small.')}
+  </div>`));
+
+const screens = { threads, saved, tasks, events, playbooks, workflows, activity };
+document.getElementById('root').innerHTML = (screens[S] ?? screens.threads)();
+</script></body></html>

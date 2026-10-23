@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cenacle Minutes</title>
+<script src="icons.js"></script>
+<style>
+@font-face { font-family: Geist; src: url(geist-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; }
+@font-face { font-family: Geist; src: url(geist-latin-ext-wght-normal.woff2) format('woff2'); font-weight: 100 900; unicode-range: U+0100-024F, U+1E00-1EFF; }
+@font-face { font-family: 'Geist Mono'; src: url(geist-mono-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; }
+
+/* The record: paper, Forest ink, a speaker margin. Brass only for selection, focus, send. */
+:root {
+  --night: #0c1a16; --forest: #14342b; --bone: #f3eee2; --paper: #faf7f0; --brass: #c9a24b; --brass-ink: #8f6b1f;
+  --sheet: #ffffff; --panel: #faf7f0; --ink: #16201d; --ink-2: #55605b; --rule: #e4ddcf; --rule-strong: #cfc6b3;
+  --well: #f1ebdd; --hover: #faf6ec;
+  --accent: var(--brass-ink); --accent-fg: #ffffff; --accent-soft: #f4ecd9;
+  --side: var(--forest); --side-ink: #f3eee2; --side-ink-2: #c3cfc7; --side-rule: #22493c; --side-sel: #22503f; --side-hover: #1b4135;
+  --mention: #b42318; --mention-bg: #fcebe8; --badge: #b42318;
+  --online: #2f8a5b; --away: #b08420;
+  --shadow: 0 6px 20px rgba(20, 52, 43, .10), 0 0 0 1px rgba(20, 52, 43, .10);
+  --margin: 152px;
+  --font: Geist, system-ui, sans-serif; --mono: 'Geist Mono', ui-monospace, monospace;
+}
+.dark {
+  --sheet: #111c18; --panel: #14221d; --ink: #ece8dd; --ink-2: #a9b5ae; --rule: #24352e; --rule-strong: #34483f;
+  --well: #1b2b25; --hover: #16251f;
+  --accent: var(--brass); --accent-fg: #1b1507; --accent-soft: #2a2a1c;
+  --side: #0f231d; --side-ink: #ece8dd; --side-ink-2: #a9b5ae; --side-rule: #1e3a30; --side-sel: #1d3d32; --side-hover: #173129;
+  --mention: #ff8a80; --mention-bg: #3a1f1d; --badge: #d93a2b;
+  --online: #5cc48d; --away: #d9a93a;
+  --shadow: 0 8px 24px rgba(0, 0, 0, .45), 0 0 0 1px #34483f;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font: 400 14px/20px var(--font); color: var(--ink); background: var(--sheet); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--accent-soft); color: var(--ink); }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.s { width: 16px; height: 16px; }
+.tab { font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-align: left; }
+.iconbtn { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-2); flex: none; }
+.iconbtn.on { background: var(--accent-soft); color: var(--accent); }
+
+.app { display: grid; grid-template-columns: 64px 256px minmax(0, 1fr) auto; height: 100vh; overflow: hidden; }
+
+/* Rail: workspaces */
+.rail { background: var(--night); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; }
+.ws { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: #c3cfc7; font-weight: 600; font-size: 14px; background: #15271f; }
+.ws.on { background: var(--forest); box-shadow: 0 0 0 2px var(--night), 0 0 0 4px var(--brass); }
+.ws.on svg { width: 26px; height: 26px; }
+.ws.add { background: none; border: 1px dashed #3a4f46; }
+.rail .grow { flex: 1; }
+
+/* Sidebar */
+.side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; min-height: 0; }
+.wsname { height: 56px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 16px; border-bottom: 1px solid var(--side-rule); }
+.wsname b { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.side .iconbtn { color: var(--side-ink-2); }
+.jump { margin: 12px 10px 4px; height: 32px; border-radius: 8px; border: 1px solid var(--side-rule); display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 13px; color: var(--side-ink-2); }
+.jump kbd { margin-left: auto; font: 500 12px var(--mono); }
+.nav { padding: 6px 8px; flex: 1; overflow: hidden; }
+.row { height: 30px; display: flex; align-items: center; gap: 10px; padding: 0 8px; border-radius: 7px; color: var(--side-ink-2); position: relative; white-space: nowrap; }
+.row .n { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.row.unread { color: var(--side-ink); font-weight: 600; }
+.row.sel { background: var(--side-sel); color: var(--side-ink); font-weight: 600; }
+.row.sel svg { color: var(--brass); }
+.meta { font-size: 12px; color: var(--side-ink-2); font-weight: 400; }
+.badge { min-width: 20px; height: 18px; padding: 0 6px; border-radius: 9px; background: var(--badge); color: #fff; font: 600 11px/18px var(--font); text-align: center; font-variant-numeric: tabular-nums; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.sec { display: flex; align-items: center; justify-content: space-between; padding: 14px 8px 4px; font-size: 12.5px; font-weight: 600; color: var(--side-ink-2); }
+.sec span { display: flex; align-items: center; gap: 6px; }
+.draft { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 400; color: var(--side-ink-2); }
+.conn { display: flex; align-items: center; gap: 6px; padding: 0 18px 8px; font-size: 12px; color: var(--side-ink-2); }
+.conn i { width: 6px; height: 6px; border-radius: 50%; background: var(--online); }
+.me { border-top: 1px solid var(--side-rule); padding: 10px 12px 12px 16px; display: flex; align-items: center; gap: 10px; flex: none; }
+.me b { font-size: 13.5px; font-weight: 600; display: block; line-height: 18px; }
+
+/* Avatars: quiet tints from the paper world */
+.av { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; flex: none; position: relative; color: #1e2b26; }
+.av.l { width: 32px; height: 32px; font-size: 12px; }
+.a1 { background: #e3d9c4; } .a2 { background: #d4e0d9; } .a3 { background: #e6d6d0; } .a4 { background: #d9dce6; } .a5 { background: #dfe3cf; }
+.pr { position: absolute; right: -2px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--side); }
+.pr.on { background: var(--online); } .pr.away { background: var(--side); box-shadow: inset 0 0 0 2px var(--away); }
+
+/* Main */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--sheet); }
+.head { height: 56px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 24px; border-bottom: 1px solid var(--rule); }
+.head h1 { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 6px; letter-spacing: -0.01em; }
+.head h1 svg { color: var(--ink-2); }
+.topic { color: var(--ink-2); font-size: 13.5px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gov { height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--rule-strong); border-radius: 6px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+.gov svg { color: var(--ink-2); }
+.mem { display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px; border-radius: 8px; font-size: 13px; color: var(--ink-2); }
+.tabs { height: 40px; flex: none; display: flex; gap: 22px; padding: 0 24px; border-bottom: 1px solid var(--rule); font-size: 13.5px; color: var(--ink-2); }
+.tabs span { display: flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs .on { color: var(--ink); font-weight: 600; border-color: var(--accent); }
+.log { flex: 1; min-height: 0; overflow: hidden; padding: 8px 24px 0; display: flex; flex-direction: column; justify-content: flex-end; }
+
+/* The speaker margin (signature) */
+.turn { display: grid; grid-template-columns: var(--margin) minmax(0, 1fr); column-gap: 20px; padding: 6px 8px 6px 0; position: relative; border-radius: 8px; }
+.mg { display: flex; justify-content: flex-end; gap: 8px; text-align: right; padding-top: 2px; }
+.who { font-size: 13px; font-weight: 600; line-height: 18px; }
+.mg time { display: block; font-size: 12px; color: var(--ink-2); line-height: 16px; font-variant-numeric: tabular-nums; }
+.tx { font-size: 15px; line-height: 1.55; max-width: 72ch; }
+.tx p, .what p, .mrow p, .pin b { text-wrap: pretty; }
+.tx > * + * { margin-top: 6px; }
+.cont { padding-top: 0; margin-top: -8px; }
+.cont .mg time { opacity: 0; }
+.turn.hover { background: var(--hover); }
+.turn.hover.cont .mg time { opacity: 1; }
+.heading { display: grid; grid-template-columns: var(--margin) minmax(0, 1fr); column-gap: 20px; align-items: baseline; padding: 16px 0 6px; }
+.heading .l { text-align: right; font-size: 12px; color: var(--ink-2); font-weight: 500; }
+.heading h2 { font-size: 13.5px; font-weight: 600; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.newline { display: grid; grid-template-columns: var(--margin) minmax(0, 1fr); column-gap: 20px; align-items: center; margin: 8px 0 2px; }
+.newline span { text-align: right; font-size: 12px; font-weight: 600; }
+.newline i { height: 1px; background: var(--ink); }
+code { font: 13px var(--mono); background: var(--well); padding: 1px 5px; border-radius: 4px; }
+pre { font: 13px/1.6 var(--mono); background: var(--well); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 14px; }
+ol { padding-left: 22px; }
+.file { display: inline-flex; align-items: center; gap: 12px; border: 1px solid var(--rule); border-radius: 8px; padding: 8px 14px 8px 10px; background: var(--sheet); }
+.file .fi { width: 32px; height: 32px; border-radius: 6px; background: var(--well); display: grid; place-items: center; color: var(--ink-2); }
+.file b { font-size: 13.5px; font-weight: 600; display: block; } .file small { font-size: 12px; color: var(--ink-2); }
+.rec { font: 12px var(--mono); color: var(--ink-2); }
+.chip { font-weight: 600; background: var(--well); border-radius: 4px; padding: 0 4px; }
+.chip.you { background: var(--mention-bg); color: var(--mention); }
+.mention .who::before { content: '@ '; color: var(--mention); }
+.mention .mg time { color: var(--mention); font-weight: 600; }
+.thr { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); height: 28px; }
+.thr .stack { display: flex; gap: 2px; }
+.thr b { color: var(--ink); font-weight: 600; }
+.thr.open { background: var(--accent-soft); border-radius: 6px; padding: 0 8px 0 4px; width: max-content; }
+.reacts { display: flex; gap: 6px; }
+.re { height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--rule-strong); border-radius: 14px; font-size: 13px; font-weight: 500; background: var(--sheet); }
+.re.mine { border-color: var(--accent); background: var(--accent-soft); }
+.sending .tx { color: var(--ink-2); }
+.sending .mg time::after { content: ' · sending'; }
+.bar { position: absolute; right: 8px; top: -16px; display: flex; gap: 2px; padding: 3px; background: var(--sheet); border-radius: 8px; box-shadow: var(--shadow); }
+.bar .iconbtn { width: 30px; height: 30px; }
+
+/* Composer */
+.foot { padding: 0 24px 14px; flex: none; }
+.typing { height: 24px; display: grid; grid-template-columns: var(--margin) 1fr; column-gap: 20px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
+.typing .r { display: flex; justify-content: space-between; }
+.comp { margin-left: calc(var(--margin) + 20px); border: 1px solid var(--rule-strong); border-radius: 10px; display: flex; align-items: center; gap: 2px; padding: 6px 6px 6px 14px; background: var(--sheet); }
+.comp.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.comp .ph { flex: 1; font-size: 15px; color: var(--ink-2); }
+.comp .ph.typed { color: var(--ink); }
+.aa { font-size: 13px; font-weight: 600; }
+.send { width: 34px; height: 34px; border-radius: 8px; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; margin-left: 4px; }
+
+/* Right panels */
+.panel { width: 400px; border-left: 1px solid var(--rule); display: flex; flex-direction: column; background: var(--panel); min-height: 0; }
+.ph2 { height: 56px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 20px; border-bottom: 1px solid var(--rule); }
+.ph2 b { font-size: 15px; font-weight: 600; } .ph2 span { flex: 1; color: var(--ink-2); font-size: 13px; }
+.pbody { flex: 1; min-height: 0; overflow: hidden; padding: 16px 20px; display: flex; flex-direction: column; gap: 18px; }
+.panel .turn, .panel .heading { grid-template-columns: 96px minmax(0, 1fr); column-gap: 14px; }
+.panel .tx { font-size: 14.5px; }
+.panel .foot { padding: 0 20px 14px; }
+.panel .comp { margin-left: 0; }
+.follow { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); padding: 0 0 8px; }
+
+/* Title block (from the drawing) */
+.tblock { border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; background: var(--sheet); }
+.tblock .c { padding: 8px 12px 9px; border-top: 1px solid var(--rule-strong); display: grid; gap: 2px; text-align: left; }
+.tblock .c:nth-child(2n) { border-left: 1px solid var(--rule-strong); }
+.tblock .c.wide { grid-column: 1 / -1; border-top: 0; padding: 10px 12px 12px; }
+.tblock .c.wide + .c { border-top: 1px solid var(--rule-strong); }
+.tblock .lab { font-size: 11.5px; color: var(--ink-2); line-height: 16px; }
+.tblock .val { font: 13.5px/18px var(--font); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
+.tblock .val.num { font: 13px/18px var(--mono); font-variant-numeric: tabular-nums; }
+.tblock .c .ed { margin-left: auto; color: var(--ink-2); }
+.tblock .c { display: grid; grid-template-columns: 1fr auto; }
+.tblock .c .lab, .tblock .c .val { grid-column: 1; }
+.tblock .c .ed { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.tblock .wide .val { font: 600 22px/28px var(--font); letter-spacing: -0.01em; }
+.tblock .val .cls { font-family: var(--font); font-weight: 600; font-size: 12px; background: var(--well); border-radius: 4px; padding: 1px 7px; }
+.tblock .note { grid-column: 1 / -1; border-top: 1px solid var(--rule-strong); padding: 8px 12px; font-size: 12.5px; color: var(--ink-2); }
+.psec h3 { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 8px; }
+.psec h3 span { font-weight: 400; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.psec p { font-size: 14px; }
+.plist { display: grid; gap: 8px; }
+.pin { border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; background: var(--sheet); }
+.pin b { font-weight: 500; display: block; font-size: 13.5px; } .pin small { color: var(--ink-2); font-size: 12px; }
+.prow { display: flex; align-items: center; gap: 10px; height: 32px; font-size: 13.5px; }
+.prow .pr { border-color: var(--panel); }
+.prow small { margin-left: auto; color: var(--ink-2); font-size: 12px; }
+.setrow { display: flex; align-items: center; justify-content: space-between; height: 36px; font-size: 13.5px; border-top: 1px solid var(--rule); }
+.setrow span:last-child { color: var(--ink-2); display: flex; align-items: center; gap: 4px; }
+
+/* Inbox board (from the departures board) */
+.ibx { flex: 1; min-height: 0; overflow: hidden; padding: 24px 32px 0; display: flex; flex-direction: column; }
+.ihead { display: flex; align-items: flex-end; gap: 16px; }
+.ihead h1 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
+.ihead p { font-size: 14px; color: var(--ink-2); margin-top: 2px; }
+.ihead .acts { margin-left: auto; display: flex; gap: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--rule-strong); background: var(--sheet); font-size: 13px; font-weight: 500; }
+.btn.p { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.itabs { display: flex; gap: 4px; margin: 18px 0 12px; border-bottom: 1px solid var(--rule); }
+.itab { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; font-size: 14px; font-weight: 500; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.itab.on { color: var(--ink); font-weight: 600; border-color: var(--accent); }
+.itabs .note { margin-left: auto; align-self: center; font-size: 12px; color: var(--ink-2); }
+.board { border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; background: var(--sheet); }
+.brow { display: grid; grid-template-columns: 72px 188px 168px minmax(0, 1fr) 104px 176px; align-items: center; position: relative; }
+.brow > div { padding: 0 12px; min-width: 0; }
+.bh { background: var(--forest); color: var(--bone); height: 40px; font-size: 13px; font-weight: 500; }
+.dark .bh { background: #1d3d32; }
+.bh > div { display: flex; align-items: center; gap: 4px; }
+.grp { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 12px; background: var(--panel); border-top: 1px solid var(--rule); font-size: 13px; font-weight: 600; }
+.grp span { font-weight: 400; color: var(--ink-2); }
+.br { min-height: 62px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.br .t { font: 500 15px/20px var(--mono); }
+.wh { display: flex; align-items: flex-start; gap: 6px; } .wh svg { margin-top: 2px; color: var(--ink-2); }
+.wh b { font-weight: 600; display: block; } .sub { display: block; font-size: 12px; line-height: 16px; color: var(--ink-2); }
+.fr { display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; }
+.what b { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.what p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.st { font-size: 13px; line-height: 18px; } .st .w { font-weight: 600; } .st .q { color: var(--ink-2); }
+.mv { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; font-size: 12.5px; color: var(--ink-2); }
+.mv svg { width: 14px; height: 14px; }
+.ra { display: flex; gap: 4px; justify-content: flex-end; }
+.ra button { height: 28px; padding: 0 9px; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid var(--rule-strong); background: var(--sheet); }
+.ra button.p { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.br.lit { background: var(--well); }
+.br.old .what b, .br.old .wh b, .br.old .t { font-weight: 400; }
+.ifoot { margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+
+/* Phone */
+.phones { display: flex; gap: 36px; padding: 24px 36px 52px; background: #dfe3dc; height: 100vh; align-items: center; justify-content: center; }
+.dark .phones, .phones.d { background: #1a201e; }
+.phone { width: 390px; height: 844px; border-radius: 44px; overflow: hidden; background: var(--sheet); box-shadow: 0 0 0 10px #050605, 0 30px 60px rgba(0,0,0,.35); display: flex; flex-direction: column; position: relative; }
+.status { height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; font-size: 14px; font-weight: 600; }
+.phead { height: 52px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 6px; border-bottom: 1px solid var(--rule); }
+.phead .t { flex: 1; min-width: 0; line-height: 1.2; }
+.phead .t b { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.phead .t span { font-size: 12px; color: var(--ink-2); }
+.tap { width: 44px; height: 44px; display: grid; place-items: center; color: var(--ink-2); border-radius: 10px; position: relative; }
+.tap.back { width: auto; padding: 0 8px 0 6px; gap: 2px; display: flex; align-items: center; }
+.tap.back .badge { position: static; }
+.phone .log { padding: 0 16px; }
+.pturn { padding: 8px 0; position: relative; }
+.pturn .ln { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.pturn .ln b { font-size: 13.5px; font-weight: 600; }
+.pturn .ln time { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pturn .tx { font-size: 16px; }
+.pturn.mention .ln b::before { content: '@ '; color: var(--mention); }
+.pturn.mention .ln time { color: var(--mention); font-weight: 600; }
+.phone .heading { grid-template-columns: 1fr; padding: 12px 0 4px; }
+.phone .heading .l { display: none; }
+.phone .newline { grid-template-columns: auto 1fr; column-gap: 10px; }
+.pcomp { display: flex; align-items: center; gap: 6px; padding: 8px 10px 28px; border-top: 1px solid var(--rule); flex: none; }
+.pcomp .field { flex: 1; min-width: 0; height: 44px; border-radius: 22px; border: 1px solid var(--rule-strong); display: flex; align-items: center; padding: 0 2px 0 14px; color: var(--ink-2); font-size: 16px; white-space: nowrap; }
+.pcomp .field span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.pcomp .field span { flex: 1; }
+.round { width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; color: var(--ink-2); flex: none; }
+.round.send { background: var(--accent); color: var(--accent-fg); }
+.scrim { position: absolute; inset: 0; background: rgba(12, 26, 22, .45); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--sheet); border-radius: 20px 20px 0 0; padding: 8px 0 30px; box-shadow: 0 -10px 30px rgba(0,0,0,.25); }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--rule-strong); margin: 0 auto 10px; }
+.sprev { margin: 0 16px 10px; padding: 10px 12px; border-radius: 12px; background: var(--well); font-size: 14px; color: var(--ink-2); }
+.sprev b { color: var(--ink); }
+.opt { height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 22px; font-size: 16px; border-top: 1px solid var(--rule); }
+.opt svg { color: var(--ink-2); }
+.quick { display: flex; justify-content: space-between; padding: 10px 18px 12px; }
+.quick span { width: 48px; height: 48px; border-radius: 24px; background: var(--well); display: grid; place-items: center; font-size: 22px; }
+.mrow { display: grid; grid-template-columns: 52px 1fr 44px; gap: 0 6px; padding: 12px 16px; border-bottom: 1px solid var(--rule); position: relative; }
+.mrow .t { font: 500 14px/20px var(--mono); }
+.mrow .w { font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 4px; }
+.mrow p { font-size: 15px; line-height: 1.45; margin-top: 2px; }
+.mrow.lit { background: var(--well); }
+.mrow .more { grid-row: 1 / span 2; grid-column: 3; align-self: center; }
+.mrow .st { grid-column: 2; margin-top: 4px; font-size: 12.5px; }
+.cap { position: absolute; bottom: -36px; left: 0; right: 0; text-align: center; font-size: 13px; color: #55605b; }
+.dark .cap { color: #a9b5ae; }
+.pwrap { position: relative; }
+
+/* Sign-in: a cover sheet for the record. Where you are signing in is stated, in the title block's voice. */
+.si { min-height: 100vh; background: var(--panel); display: grid; grid-template-rows: auto 1fr auto; }
+.si-top { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; }
+.lockup { display: flex; align-items: center; gap: 10px; font: 600 19px var(--font); letter-spacing: -0.01em; }
+.lockup span.l { width: 30px; height: 30px; display: block; }
+.si-tools { display: flex; gap: 8px; }
+.si-main { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 420px); gap: 96px; justify-content: center; align-items: center; padding: 0 40px 40px; }
+.si h1 { font: 600 40px/1.12 var(--font); letter-spacing: -0.02em; text-wrap: balance; }
+.si .lede { margin-top: 12px; font-size: 16px; line-height: 1.55; color: var(--ink-2); max-width: 42ch; }
+.notice { margin-top: 24px; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--well); font-size: 14px; line-height: 1.5; }
+.notice svg { margin-top: 1px; color: var(--ink-2); }
+.primary { height: 44px; border-radius: 10px; background: var(--accent); color: var(--accent-fg); font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.si .primary { margin-top: 28px; width: 100%; height: 48px; font-size: 15.5px; }
+.si .primary:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+.si .after { margin-top: 12px; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.si .help { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--ink-2); }
+.si .help b { color: var(--ink); font-weight: 600; }
+.record { background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; }
+.record h2 { font-size: 13px; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--rule-strong); display: flex; align-items: center; gap: 8px; }
+.record h2 svg { color: var(--ink-2); }
+.record dl { display: grid; grid-template-columns: 1fr 1fr; }
+.record .c { padding: 10px 16px 11px; border-top: 1px solid var(--rule); display: grid; gap: 2px; min-width: 0; }
+.record .c.first { border-top: 0; }
+.record .c.right { border-left: 1px solid var(--rule); }
+.record dt { font-size: 11.5px; color: var(--ink-2); }
+.record dd { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.record dd.num { font: 13.5px var(--mono); }
+.record .c.wide { grid-column: 1 / -1; }
+.record .note { border-top: 1px solid var(--rule-strong); padding: 10px 16px; font-size: 13px; color: var(--ink-2); line-height: 1.5; display: flex; gap: 8px; }
+.record .note svg { flex: none; margin-top: 1px; }
+.si-foot { display: flex; justify-content: space-between; padding: 16px 40px 20px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule); }
+.si.phone-si .si-top { padding: 12px 16px; }
+.si.phone-si .si-main { grid-template-columns: 1fr; gap: 28px; padding: 8px 20px 24px; align-items: start; }
+.si.phone-si h1 { font-size: 30px; }
+.si.phone-si .si-foot { padding: 12px 20px 28px; flex-direction: column; gap: 4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+ICONS.channel = '<path d="M5 20.5V11A7 7 0 0 1 12 4h0.5A7 7 0 0 1 19.5 11v2.5A7 7 0 0 1 12.5 20.5Z"/>';
+const I = (n, c = '') => `<svg class="i ${c}" viewBox="0 0 24 24">${ICONS[n] || ''}</svg>`;
+const q = new URLSearchParams(location.search);
+const S = q.get('s') ?? 'chat';
+if (q.get('t') === 'dark') document.body.classList.add('dark');
+const LOGO = (arch = '#F3EEE2') => `<svg viewBox="0 0 48 48"><path fill="none" stroke="${arch}" stroke-width="6.5" stroke-linecap="round" d="M10 41V22A14 14 0 0 1 38 22V41"/><path fill="#C9A24B" d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"/></svg>`;
+const AV = { 'Ayşe Yılmaz': ['AY', 'a1'], 'Mert Demir': ['MD', 'a2'], 'Zeynep Ak': ['ZA', 'a3'], 'Deniz Kaya': ['DK', 'a4'], 'Can Öztürk': ['CÖ', 'a5'] };
+const av = (n, cls = '', pr = '') => `<span class="av ${AV[n][1]} ${cls}">${AV[n][0]}${pr ? `<i class="pr ${pr}"></i>` : ''}</span>`;
+
+const rail = () => `<nav class="rail" aria-label="Workspaces"><div class="ws on" title="Cenacle">${LOGO()}</div><div class="ws" title="Operations">Op</div><div class="ws" title="Design">De</div><div class="ws add" title="Add a workspace">${I('plus', 's')}</div><div class="grow"></div><span class="iconbtn" style="color:#a9b5ae">${I('settings')}</span></nav>`;
+
+const side = (sel) => `<aside class="side">
+  <div class="wsname"><b>Cenacle ${I('chevron-down', 's')}</b><span class="iconbtn" title="New message">${I('square-pen')}</span></div>
+  <div class="jump">${I('search', 's')} Jump to… <kbd>Ctrl K</kbd></div>
+  <div class="nav">
+    <div class="row ${sel === 'inbox' ? 'sel' : 'unread'}">${I('inbox')}<span class="n">Inbox</span><span class="badge" title="3 mentions and 1 direct message">4</span></div>
+    <div class="row unread">${I('message-circle-reply')}<span class="n">Threads</span><span class="meta">New replies</span><span class="dot"></span></div>
+    <div class="row">${I('bookmark')}<span class="n">Saved</span></div>
+    <div class="row">${I('list-checks')}<span class="n">Tasks</span><span class="meta tab">4 open</span></div>
+    <div class="sec"><span>${I('chevron-down', 's')}Channels</span>${I('plus', 's')}</div>
+    <div class="row">${I('megaphone')}<span class="n">Central</span><span class="meta">Announcements</span></div>
+    <div class="row ${sel === 'general' ? 'sel' : ''}">${I('channel')}<span class="n">General</span></div>
+    <div class="row unread">${I('channel')}<span class="n">design-review</span><span class="draft">${I('square-pen', 's')}Draft</span><span class="dot"></span></div>
+    <div class="row unread">${I('lock')}<span class="n">release-rc</span><span class="badge">2</span></div>
+    <div class="row">${I('channel')}<span class="n">random</span></div>
+    <div class="sec"><span>${I('chevron-down', 's')}Direct messages</span>${I('plus', 's')}</div>
+    <div class="row">${av('Ayşe Yılmaz', '', 'on')}<span class="n">Ayşe Yılmaz</span></div>
+    <div class="row unread">${av('Mert Demir', '', 'away')}<span class="n">Mert Demir</span><span class="badge">1</span></div>
+    <div class="row">${I('users')}<span class="n">Zeynep Ak, Deniz Kaya</span></div>
+  </div>
+  <div class="conn"><i></i>Connected</div>
+  <div class="me">${av('Deniz Kaya', 'l', 'on')}<div style="flex:1;min-width:0"><b>Deniz Kaya</b><span class="meta">Focusing until 15:00</span></div><span class="iconbtn" title="Notifications">${I('bell')}</span></div>
+</aside>`;
+
+const head = (panelOn) => `<header class="head">
+  <h1>${I('channel', 's')}General</h1><span class="topic">Anything and everything for the whole team</span>
+  <button class="gov" title="Classification and retention">${I('shield-check', 's')}Internal · kept 2 years</button>
+  <span class="mem">${I('users', 's')}<span class="tab">24</span></span>
+  <span class="iconbtn" title="Pinned">${I('pin')}</span><span class="iconbtn" title="Notifications">${I('bell')}</span><span class="iconbtn" title="Search in channel">${I('search')}</span><span class="iconbtn ${panelOn ? 'on' : ''}" title="Details">${I('panel-right')}</span>
+</header>
+<div class="tabs"><span class="on">${I('message-square', 's')}Messages</span><span>${I('file-text', 's')}Release notes</span><span>${I('list-checks', 's')}Launch tasks</span><span style="color:var(--ink-2)">${I('plus', 's')}</span></div>`;
+
+const turn = (who, time, body, cls = '', extra = '') => `<div class="turn ${cls}"><div class="mg">${cls.includes('cont') ? `<time>${time}</time>` : `<div><div class="who">${who}</div><time>${time}</time></div>${av(who)}`}</div><div class="tx">${body}</div>${extra}</div>`;
+const BAR = `<div class="bar"><span class="iconbtn" title="React">${I('smile-plus', 's')}</span><span class="iconbtn" title="Reply in thread">${I('message-circle-reply', 's')}</span><span class="iconbtn" title="Forward">${I('forward', 's')}</span><span class="iconbtn" title="Save">${I('bookmark', 's')}</span><span class="iconbtn" title="More">${I('ellipsis', 's')}</span></div>`;
+
+const conversation = (threadOpen) => `<section class="log">
+  <div class="heading"><span class="l">Yesterday</span><h2>Thursday 22 October 2026</h2></div>
+  ${turn('Zeynep Ak', '17:40', '<p>Leaving the load test running overnight. Results in the morning.</p>')}
+  <div class="heading"><span class="l">Today</span><h2>Friday 23 October 2026</h2></div>
+  ${turn('Ayşe Yılmaz', '09:12', '<p>Good morning! The staging deploy from last night looks healthy.</p>')}
+  ${turn('Ayşe Yılmaz', '09:12', '<p>Migration <code>00042_billing</code> applied in 1.2 s, logs are clean.</p>', 'cont')}
+  <div class="newline"><span>New</span><i></i></div>
+  ${turn('Mert Demir', '09:31', `<p>Here is the checklist for the release:</p><ol><li>Freeze main</li><li>Tag the release candidate</li><li>Run the upgrade rehearsal</li></ol><div class="file"><span class="fi">${I('file-text')}</span><span><b>release-checklist.pdf</b><small><span class="rec">REL-14</span> · PDF · 284 KB</small></span></div>`)}
+  ${turn('Deniz Kaya', '09:40', `<p><strong>Heads up:</strong> the design review moved to 14:00. <span class="chip">@Ayşe Yılmaz</span> can you bring the sidebar sketches?</p><div class="thr ${threadOpen ? 'open' : ''}"><span class="stack">${av('Ayşe Yılmaz')}${av('Mert Demir')}</span><b>4 replies</b><span>last reply 10:02</span></div>`)}
+  ${turn('Zeynep Ak', '09:52', `<p>That is the command if anyone wants to try:</p><pre>make load LOAD_USERS=200</pre><div class="reacts"><span class="re mine">👍 <span class="tab">3</span></span><span class="re">🎉 <span class="tab">1</span></span><span class="re" style="color:var(--ink-2);padding:0 7px" title="Add reaction">${I('smile-plus', 's')}</span></div>`, threadOpen ? '' : 'hover', threadOpen ? '' : BAR)}
+  ${turn('Mert Demir', '10:05', '<p><span class="chip you">@Deniz Kaya</span> the release notes tab is ready for a read.</p>', 'mention')}
+  ${turn('Deniz Kaya', '10:06', '<p>Thanks, reading it now.</p>', 'sending')}
+</section>
+<div class="foot">
+  <div class="typing"><span></span><span class="r"><span>Ayşe is typing…</span><span>Sending… · Draft saved in design-review</span></span></div>
+  <div class="comp ${threadOpen ? '' : 'focus'}"><span class="ph">Message General</span>
+    <span class="iconbtn" title="Attach">${I('paperclip')}</span><span class="iconbtn aa" title="Formatting">Aa</span><span class="iconbtn" title="Emoji">${I('smile')}</span><span class="iconbtn" title="Mention">${I('at-sign')}</span><span class="send" title="Send">${I('send-horizontal')}</span></div>
+</div>`;
+
+const details = () => `<aside class="panel" aria-label="Channel details">
+  <div class="ph2"><b>Channel details</b><span></span><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="pbody">
+    <div class="tblock">
+      <div class="c wide"><span class="lab">Channel</span><span class="val">${I('channel', 's')}General</span></div>
+      <button class="c" title="Change owner"><span class="lab">Owner</span><span class="val">Ayşe Yılmaz</span><span class="ed">${I('pencil', 's')}</span></button>
+      <div class="c"><span class="lab">Members</span><span class="val num">24</span></div>
+      <button class="c" title="Change classification"><span class="lab">Classification</span><span class="val"><span class="cls">Internal</span></span><span class="ed">${I('pencil', 's')}</span></button>
+      <button class="c" title="Change retention"><span class="lab">Retention</span><span class="val">2 years</span><span class="ed">${I('pencil', 's')}</span></button>
+      <div class="c"><span class="lab">Created</span><span class="val num">2026-03-02</span></div>
+      <div class="c"><span class="lab">Pinned</span><span class="val num">2</span></div>
+      <div class="note">Messages older than 2 years are deleted, except those under legal hold.</div>
+    </div>
+    <div class="psec"><h3>About</h3><p>Anything and everything for the whole team.</p></div>
+    <div class="psec"><h3>Pinned <span>2</span></h3><div class="plist">
+      <div class="pin"><b>Here is the checklist for the release</b><small>Mert Demir · today 09:31</small></div>
+      <div class="pin"><b>Staging deploys every night at 02:00</b><small>Ayşe Yılmaz · 14 Oct</small></div></div></div>
+    <div class="psec"><h3>Members <span>24</span></h3>
+      <div class="prow">${av('Ayşe Yılmaz', '', 'on')}Ayşe Yılmaz<small>Owner</small></div>
+      <div class="prow">${av('Mert Demir', '', 'away')}Mert Demir<small>Away</small></div>
+      <div class="prow">${av('Zeynep Ak', '', 'on')}Zeynep Ak</div></div>
+    <div class="psec"><div class="setrow"><span>Notify me about</span><span>Mentions ${I('chevron-down', 's')}</span></div><div class="setrow"><span>Sound</span><span>Default ${I('chevron-down', 's')}</span></div></div>
+  </div>
+</aside>`;
+
+const thread = () => `<aside class="panel" aria-label="Thread">
+  <div class="ph2"><b>Thread</b><span>in General</span><span class="iconbtn" title="Stop following">${I('bell-off', 's')}</span><span class="iconbtn" title="Close">${I('x')}</span></div>
+  <div class="pbody" style="gap:0;padding-top:10px">
+    ${turn('Deniz Kaya', '09:40', '<p><strong>Heads up:</strong> the design review moved to 14:00. <span class="chip">@Ayşe Yılmaz</span> can you bring the sidebar sketches?</p>').replace(/<span class="av[^>]*>[^<]*<\/span>/, '')}
+    <div class="heading"><span></span><h2>4 replies</h2></div>
+    ${turn('Ayşe Yılmaz', '09:44', '<p>Yes, I will bring both: the compact one and the comfortable one.</p>').replace(/<span class="av[^>]*>[^<]*<\/span>/, '')}
+    ${turn('Mert Demir', '09:51', '<p>Can we keep it to 30 minutes? The upgrade rehearsal starts at 14:45.</p>').replace(/<span class="av[^>]*>[^<]*<\/span>/, '')}
+    ${turn('Ayşe Yılmaz', '09:55', '<p>Fine by me. I will print them for the room too.</p>').replace(/<span class="av[^>]*>[^<]*<\/span>/, '')}
+    ${turn('Mert Demir', '10:02', '<p>Booked Room 3 and added the call link to the invite.</p>').replace(/<span class="av[^>]*>[^<]*<\/span>/, '')}
+  </div>
+  <div class="foot"><div class="follow">${I('check', 's')}You follow this thread</div><div class="comp focus"><span class="ph" style="font-size:14px">Reply in thread</span><span class="iconbtn">${I('paperclip')}</span><span class="iconbtn aa">Aa</span><span class="iconbtn">${I('smile')}</span><span class="send">${I('send-horizontal')}</span></div></div>
+</aside>`;
+
+const inbox = () => `<main class="main"><section class="ibx">
+  <div class="ihead"><div><h1>Inbox</h1><p>What needs you, newest first. Rows that changed stay marked until you open them.</p></div>
+    <div class="acts"><button class="btn">${I('check', 's')}Mark all as read</button><button class="btn" title="Inbox settings" style="width:32px;padding:0;justify-content:center">${I('settings', 's')}</button></div></div>
+  <div class="itabs" role="tablist"><button class="itab on">All</button><button class="itab">Mentions <span class="badge">3</span></button><button class="itab">Threads</button><button class="itab">Direct <span class="badge">1</span></button><span class="note">Updated live · last change 10:05</span></div>
+  <div class="board" role="table" aria-label="Inbox">
+    <div class="brow bh"><div>Time ${I('chevron-down', 's')}</div><div>Where</div><div>From</div><div>What</div><div>Status</div><div style="justify-content:flex-end">Actions</div></div>
+    <div class="grp">Today <span>4 items, 3 new</span></div>
+    <div class="brow br lit"><div class="t">10:05</div><div class="wh">${I('lock', 's')}<div><b>release-rc</b><span class="sub">Mention · private</span></div></div><div class="fr">${av('Mert Demir')}Mert Demir</div><div class="what"><p><span class="chip you">@Deniz Kaya</span> can you approve the release notes before 15:00?</p></div><div class="st"><span class="w">New</span></div><div class="ra"><button class="p">Reply</button><button>Done</button><button>Later</button></div></div>
+    <div class="brow br"><div class="t">10:02</div><div class="wh">${I('channel', 's')}<div><b>General</b><span class="sub">Thread</span></div></div><div class="fr">Ayşe, Mert, Zeynep</div><div class="what"><b>Design review moved to 14:00</b><p>4 new replies</p></div><div class="st"><span class="w">New</span><br><span class="mv">${I('arrow-up')}moved</span></div><div class="ra"><button>Reply</button><button>Done</button><button>Later</button></div></div>
+    <div class="brow br"><div class="t">09:58</div><div class="wh">${I('message-square', 's')}<div><b>Mert Demir</b><span class="sub">Direct message</span></div></div><div class="fr">${av('Mert Demir')}Mert Demir</div><div class="what"><p>Do you have five minutes after lunch?</p></div><div class="st"><span class="w">New</span></div><div class="ra"><button>Reply</button><button>Done</button><button>Later</button></div></div>
+    <div class="brow br"><div class="t" style="font-weight:400">09:20</div><div class="wh">${I('channel', 's')}<div><b style="font-weight:500">design-review</b><span class="sub">Mention</span></div></div><div class="fr">${av('Zeynep Ak')}Zeynep Ak</div><div class="what"><p><span class="chip you">@Deniz Kaya</span> the contrast check passes on every token now.</p></div><div class="st"><span class="q">Seen</span></div><div class="ra"><button>Reply</button><button>Done</button><button>Later</button></div></div>
+    <div class="grp">Yesterday <span>2 items, seen</span></div>
+    <div class="brow br old"><div class="t">17:10</div><div class="wh">${I('channel', 's')}<div><b>random</b><span class="sub">Mention</span></div></div><div class="fr">${av('Can Öztürk')}Can Öztürk</div><div class="what"><p><span class="chip you" style="font-weight:500">@Deniz Kaya</span> the photos from Friday are in the shared folder.</p></div><div class="st"><span class="q">Seen</span></div><div class="ra"><button>Reply</button><button>Done</button><button>Later</button></div></div>
+    <div class="brow br old"><div class="t">16:44</div><div class="wh">${I('lock', 's')}<div><b>release-rc</b><span class="sub">Thread · private</span></div></div><div class="fr">Mert, you</div><div class="what"><b>Rollback steps</b><p>2 replies</p></div><div class="st"><span class="q">${I('check', 's')} Replied</span></div><div class="ra"><button>Reply</button><button>Done</button><button>Later</button></div></div>
+  </div>
+  <div class="ifoot">Done items leave the board. Mark all as read can be undone for 10 seconds.</div>
+</section></main>`;
+
+const pturn = (who, time, body, cls = '') => `<div class="pturn ${cls}"><div class="ln"><b>${who}</b><time>${time}</time></div><div class="tx">${body}</div></div>`;
+const phoneChat = () => `<div class="pwrap"><div class="phone">
+  <div class="status"><span>9:41</span><span class="tab">100%</span></div>
+  <div class="phead"><span class="tap back" title="Back, 4 unread">${I('arrow-left')}<span class="badge">4</span></span><div class="t"><b>${I('channel', 's')}General</b><span>24 members · Internal · kept 2 years</span></div><span class="tap">${I('search')}</span><span class="tap" title="Details">${I('ellipsis')}</span></div>
+  <section class="log">
+    <div class="heading"><span class="l"></span><h2>Today, Friday 23 October</h2></div>
+    ${pturn('Ayşe Yılmaz', '09:12', '<p>Good morning! The staging deploy from last night looks healthy.</p>')}
+    <div class="newline"><span>New</span><i></i></div>
+    ${pturn('Mert Demir', '09:31', '<p>Here is the checklist for the release:</p><ol><li>Freeze main</li><li>Tag the release candidate</li><li>Run the upgrade rehearsal</li></ol>')}
+    ${pturn('Deniz Kaya', '09:40', `<p><strong>Heads up:</strong> the design review moved to 14:00.</p><div class="thr"><span class="stack">${av('Ayşe Yılmaz')}${av('Mert Demir')}</span><b>4 replies</b></div>`)}
+    ${pturn('Zeynep Ak', '09:52', '<p>That is the command if anyone wants to try:</p><pre>make load LOAD_USERS=200</pre><div class="reacts"><span class="re mine" style="height:36px">👍 3</span><span class="re" style="height:36px">🎉 1</span></div>')}
+    ${pturn('Mert Demir', '10:05', '<p><span class="chip you">@Deniz Kaya</span> the release notes tab is ready for a read.</p>', 'mention')}
+  </section>
+  <div class="pcomp"><span class="round" title="Attach">${I('plus')}</span><div class="field"><span>Message General</span></div><span class="round" title="Emoji">${I('smile')}</span><span class="round send" title="Send">${I('send-horizontal')}</span></div>
+</div><div class="cap">Channel: name and time above the text</div></div>`;
+const phoneSheet = () => `<div class="pwrap"><div class="phone">
+  <div class="status"><span>9:41</span><span class="tab">100%</span></div>
+  <div class="phead"><span class="tap">${I('arrow-left')}</span><div class="t"><b>${I('channel', 's')}General</b><span>24 members</span></div><span class="tap">${I('search')}</span><span class="tap">${I('ellipsis')}</span></div>
+  <section class="log">${pturn('Zeynep Ak', '09:52', '<p>That is the command if anyone wants to try:</p><pre>make load LOAD_USERS=200</pre>')}${pturn('Mert Demir', '10:05', '<p>The release notes tab is ready for a read.</p>')}</section>
+  <div class="scrim"></div>
+  <div class="sheet"><div class="grab"></div>
+    <div class="sprev"><b>Zeynep Ak</b> · That is the command if anyone wants to try…</div>
+    <div class="opt">${I('message-circle-reply')}Reply in thread</div><div class="opt">${I('forward')}Forward</div><div class="opt">${I('bookmark')}Save</div><div class="opt">${I('copy')}Copy text</div><div class="opt">${I('link')}Copy link</div><div class="opt">${I('circle')}Mark unread</div>
+    <div class="quick" style="border-top:1px solid var(--rule)"><span>👍</span><span>❤️</span><span>🎉</span><span>👀</span><span>✅</span><span style="color:var(--ink-2)">${I('smile-plus')}</span></div>
+  </div>
+</div><div class="cap">Press and hold: actions first, reactions below</div></div>`;
+const phoneInbox = () => `<div class="pwrap"><div class="phone">
+  <div class="status"><span>9:41</span><span class="tab">100%</span></div>
+  <div class="phead"><span class="tap">${I('arrow-left')}</span><div class="t"><b>${I('inbox', 's')}Inbox</b><span>3 new · updated 10:05</span></div><span class="tap">${I('check')}</span></div>
+  <div class="itabs" style="margin:0;padding:0 8px"><button class="itab on" style="height:44px">All</button><button class="itab" style="height:44px">Mentions <span class="badge">3</span></button><button class="itab" style="height:44px">Direct <span class="badge">1</span></button></div>
+  <div style="flex:1;overflow:hidden">
+    <div class="mrow lit"><span class="t">10:05</span><div><span class="w">${I('lock', 's')}release-rc · Mention</span><p><b>Mert Demir:</b> <span class="chip you">@Deniz Kaya</span> can you approve the release notes before 15:00?</p></div><span class="round more" title="Done, Later">${I('ellipsis')}</span><span class="st"><b>New</b></span></div>
+    <div class="mrow"><span class="t">10:02</span><div><span class="w">${I('channel', 's')}General · Thread</span><p><b>Design review moved to 14:00</b> · 4 new replies</p></div><span class="round more" title="Done, Later">${I('ellipsis')}</span><span class="st"><b>New</b> · <span class="mv" style="margin:0">${I('arrow-up')}moved</span></span></div>
+    <div class="mrow"><span class="t">09:58</span><div><span class="w">${I('message-square', 's')}Direct message</span><p><b>Mert Demir:</b> Do you have five minutes after lunch?</p></div><span class="round more" title="Done, Later">${I('ellipsis')}</span><span class="st"><b>New</b></span></div>
+    <div class="mrow"><span class="t" style="font-weight:400">09:20</span><div><span class="w">${I('channel', 's')}design-review · Mention</span><p><b>Zeynep Ak:</b> the contrast check passes on every token now.</p></div><span class="round more" title="Done, Later">${I('ellipsis')}</span><span class="st" style="color:var(--ink-2)">Seen</span></div>
+  </div>
+</div><div class="cap">Inbox board as rows; ⋯ or swipe for Done and Later</div></div>`;
+
+const signinBody = (notice, phone) => `<div class="si ${phone ? 'phone-si' : ''}">
+  <header class="si-top"><span class="lockup"><span class="l">${LOGO(document.body.classList.contains('dark') ? '#F3EEE2' : '#14342B')}</span>Cenacle</span>
+    ${phone ? `<span class="tap" title="Language and theme">${I('languages')}</span>` : `<div class="si-tools"><button class="btn">${I('moon', 's')}Theme: System</button><button class="btn">${I('languages', 's')}English</button><button class="btn">Help</button></div>`}</header>
+  <main class="si-main">
+    <section>
+      <h1>Sign in to Cenacle</h1>
+      <p class="lede">Use your Cenacle ID account. After signing in you come back here, to your conversations.</p>
+      ${notice ? `<div class="notice" role="status">${I('clock', 's')}<span>You were signed out because your session ended after 7 days without use. Sign in again to continue; your drafts are kept.</span></div>` : ''}
+      <button class="primary">${I('lock-keyhole', 's')}Continue with Cenacle ID</button>
+      <p class="after">Passkeys, two-step verification and your directory account are offered on the next page.</p>
+      <p class="help"><b>No account yet?</b> Ask your administrator to create one.</p>
+    </section>
+    <aside class="record" aria-label="Where you are signing in">
+      <h2>${I('shield-check', 's')}You are signing in to</h2>
+      <dl>
+        <div class="c wide first"><dt>Server</dt><dd class="num">chat.example.com</dd></div>
+        <div class="c"><dt>Organization</dt><dd>Example Organization</dd></div>
+        <div class="c right"><dt>Version</dt><dd class="num">0.29.0</dd></div>
+        <div class="c wide"><dt>Identity server</dt><dd class="num">id.example.com</dd></div>
+      </dl>
+      <p class="note">${I('lock', 's')}<span>Enter your password only on id.example.com. Messages and files stay on this organization's servers.</span></p>
+    </aside>
+  </main>
+  <footer class="si-foot"><span>Cenacle, open source and self-hosted</span><span>Need help? Contact your IT department.</span></footer>
+</div>`;
+const signin = () => signinBody(q.get('notice') === '1', false);
+const phoneSignin = () => `<div class="phones"><div class="pwrap"><div class="phone" style="overflow:auto"><div class="status"><span>9:41</span><span class="tab">100%</span></div>${signinBody(false, true)}</div><div class="cap">Sign in on a phone</div></div><div class="pwrap"><div class="phone"><div class="status"><span>9:41</span><span class="tab">100%</span></div>${signinBody(true, true)}</div><div class="cap">After the session ended</div></div></div>`;
+
+const root = document.getElementById('root');
+if (S === 'chat') root.innerHTML = `<div class="app">${rail()}${side('general')}<main class="main">${head(true)}${conversation(false)}</main>${details()}</div>`;
+if (S === 'thread') root.innerHTML = `<div class="app">${rail()}${side('general')}<main class="main">${head(false)}${conversation(true)}</main>${thread()}</div>`;
+if (S === 'inbox') root.innerHTML = `<div class="app" style="grid-template-columns:64px 256px minmax(0,1fr)">${rail()}${side('inbox')}${inbox()}</div>`;
+if (S === 'phone') root.innerHTML = `<div class="phones">${phoneChat()}${phoneSheet()}${phoneInbox()}</div>`;
+if (S === 'signin') root.innerHTML = signin();
+if (S === 'signin-phone') root.innerHTML = phoneSignin();
+</script>
+</body>
+</html>

@@ -20,6 +20,7 @@ export default tseslint.config(
       '.bin/**',
       'idp/public/**',
       'server/**',
+      'docs/design/**',
     ],
   },
   js.configs.recommended,

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Cenacle sign-in</title><script src="icons.js"></script><style>
+@font-face { font-family: Geist; src: url(geist-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; }
+@font-face { font-family: Geist; src: url(geist-latin-ext-wght-normal.woff2) format('woff2'); font-weight: 100 900; unicode-range: U+0100-024F, U+1E00-1EFF; }
+@font-face { font-family: 'Geist Mono'; src: url(geist-mono-latin-wght-normal.woff2) format('woff2'); font-weight: 100 900; }
+/* Same world as the chat: paper, Forest ink, hairline frames, brass only for the primary action and focus. */
+:root {
+  --forest: #14342b; --brass: #c9a24b; --brass-ink: #8f6b1f;
+  --sheet: #ffffff; --panel: #faf7f0; --ink: #16201d; --ink-2: #55605b; --rule: #e4ddcf; --rule-strong: #b9b09b; --well: #f1ebdd;
+  --accent: var(--brass-ink); --accent-fg: #fff; --accent-soft: #f4ecd9; --danger: #b42318; --danger-bg: #fcebe8; --ok: #2f7a4f;
+  --font: Geist, system-ui, sans-serif; --mono: 'Geist Mono', ui-monospace, monospace;
+}
+.dark {
+  --sheet: #111c18; --panel: #0e1714; --ink: #ece8dd; --ink-2: #a9b5ae; --rule: #24352e; --rule-strong: #4a5f55; --well: #1b2b25;
+  --accent: var(--brass); --accent-fg: #1b1507; --accent-soft: #2a2a1c; --danger: #ff8a80; --danger-bg: #3a1f1d; --ok: #5cc48d;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font: 400 14px/20px var(--font); color: var(--ink); background: var(--panel); -webkit-font-smoothing: antialiased; }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.s { width: 16px; height: 16px; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.si { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
+.top { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; }
+.lockup { display: flex; align-items: center; gap: 10px; font: 600 19px var(--font); letter-spacing: -0.01em; }
+.lockup svg { width: 30px; height: 30px; }
+.lockup small { font: 500 12px var(--mono); color: var(--ink-2); border: 1px solid var(--rule-strong); border-radius: 4px; padding: 1px 6px; }
+.tools { display: flex; gap: 8px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--rule-strong); background: var(--sheet); font-size: 13px; font-weight: 500; }
+.main { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 380px); gap: 96px; justify-content: center; align-items: center; padding: 0 40px 40px; }
+h1 { font: 600 34px/1.15 var(--font); letter-spacing: -0.02em; }
+.lede { margin-top: 8px; font-size: 15.5px; line-height: 1.55; color: var(--ink-2); }
+.lede b { color: var(--ink); font-weight: 600; }
+.stack { display: grid; gap: 10px; margin-top: 24px; }
+.alt { height: 44px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--sheet); display: flex; align-items: center; gap: 12px; padding: 0 14px; font-size: 14.5px; font-weight: 500; text-align: left; }
+.alt .kind { margin-left: auto; font: 500 11.5px var(--mono); color: var(--ink-2); }
+.alt .mark { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; background: var(--well); color: var(--ink); font-size: 11px; font-weight: 700; }
+.or { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; margin: 22px 0 18px; font-size: 13px; color: var(--ink-2); }
+.or::before, .or::after { content: ''; height: 1px; background: var(--rule); }
+.field { display: grid; gap: 6px; margin-top: 14px; }
+.field:first-of-type { margin-top: 0; }
+label { font-size: 13.5px; font-weight: 600; display: flex; justify-content: space-between; }
+label a { font-weight: 500; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.input { height: 44px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--sheet); display: flex; align-items: center; padding: 0 14px; font-size: 15px; }
+.input.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input.err { border-color: var(--danger); }
+.input .ph { color: var(--ink-2); }
+.input .dots { letter-spacing: 3px; font-size: 18px; }
+.hint { font-size: 12.5px; color: var(--ink-2); }
+.primary { margin-top: 20px; width: 100%; height: 48px; border-radius: 10px; background: var(--accent); color: var(--accent-fg); font-weight: 600; font-size: 15.5px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.links { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; }
+.links a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.links .muted { color: var(--ink-2); }
+.alert { margin-top: 20px; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--danger-bg); font-size: 14px; line-height: 1.5; }
+.alert svg { color: var(--danger); margin-top: 1px; }
+.alert b { font-weight: 600; }
+.otp { display: grid; grid-template-columns: repeat(3, 52px) 16px repeat(3, 52px); gap: 8px; margin-top: 24px; align-items: center; }
+.otp span { height: 60px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--sheet); display: grid; place-items: center; font: 500 24px var(--mono); }
+.otp span.cur { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.otp span.err { border-color: var(--danger); }
+.otp i { height: 2px; background: var(--rule-strong); }
+.wait { margin-top: 28px; display: flex; gap: 16px; align-items: center; padding: 18px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--sheet); }
+.wait .ring { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--well); border-top-color: var(--accent); flex: none; }
+.wait b { display: block; font-weight: 600; font-size: 15px; }
+.wait span { color: var(--ink-2); font-size: 13.5px; }
+.record { background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 10px; overflow: hidden; }
+.record h2 { font-size: 13px; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--rule-strong); display: flex; align-items: center; gap: 8px; }
+.record h2 svg { color: var(--ink-2); }
+.rrow { padding: 10px 16px 11px; border-top: 1px solid var(--rule); display: grid; gap: 2px; }
+.rrow:first-of-type { border-top: 0; }
+.rrow dt { font-size: 11.5px; color: var(--ink-2); }
+.rrow dd { font-size: 14px; } .rrow dd.num { font: 13.5px var(--mono); }
+.steps { border-top: 1px solid var(--rule-strong); padding: 12px 16px 14px; display: grid; gap: 10px; }
+.steps h3 { font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
+.step { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; font-size: 14px; }
+.step .n { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--rule-strong); display: grid; place-items: center; font: 500 12px var(--mono); color: var(--ink-2); }
+.step.done .n { background: var(--well); border-color: var(--well); color: var(--ok); }
+.step.cur { font-weight: 600; } .step.cur .n { border-color: var(--ink); color: var(--ink); }
+.step.todo { color: var(--ink-2); }
+.step small { font-size: 12px; color: var(--ink-2); font-weight: 400; }
+.note { border-top: 1px solid var(--rule-strong); padding: 10px 16px; font-size: 13px; color: var(--ink-2); line-height: 1.5; display: flex; gap: 8px; }
+.foot { display: flex; justify-content: space-between; padding: 16px 40px 20px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule); }
+/* Phones */
+.phones { display: flex; gap: 36px; padding: 24px 36px 52px; background: #dfe3dc; min-height: 100vh; align-items: center; justify-content: center; }
+.phone { width: 390px; height: 844px; border-radius: 44px; overflow: hidden; background: var(--panel); box-shadow: 0 0 0 10px #050605, 0 30px 60px rgba(0,0,0,.3); display: flex; flex-direction: column; position: relative; }
+.status { height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; font-size: 14px; font-weight: 600; background: var(--panel); }
+.phone .si { min-height: 0; flex: 1; }
+.phone .top { padding: 10px 20px; }
+.phone .main { grid-template-columns: 1fr; gap: 24px; padding: 8px 20px 20px; align-items: start; }
+.phone h1 { font-size: 28px; }
+.phone .otp { grid-template-columns: repeat(3, 44px) 10px repeat(3, 44px); gap: 6px; }
+.phone .otp span { height: 54px; }
+.phone .foot { display: none; }
+.phone .record { display: none; }
+.phone .mini { display: flex; }
+.mini { display: none; margin-top: 18px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+.mini b { font: 500 12.5px var(--mono); color: var(--ink); }
+.cap { position: absolute; bottom: -36px; left: 0; right: 0; text-align: center; font-size: 13px; color: #55605b; }
+.pwrap { position: relative; }
+
+.ro { display: flex; align-items: center; gap: 10px; }
+.ro .num { font: 15px var(--mono); }
+.ro small { margin-left: auto; font-size: 12.5px; color: var(--ink-2); display: flex; align-items: center; gap: 4px; }
+.recent { margin-top: 8px; border: 1px solid var(--rule); border-radius: 10px; background: var(--sheet); overflow: hidden; }
+.recent div { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; font: 13.5px var(--mono); border-top: 1px solid var(--rule); }
+.recent div:first-child { border-top: 0; }
+.recent small { margin-left: auto; font: 12px var(--font); color: var(--ink-2); }
+.qrwrap { margin-top: 22px; display: grid; grid-template-columns: 168px 1fr; gap: 20px; align-items: center; }
+.qr { width: 168px; height: 168px; background: #fff; border: 1px solid var(--rule-strong); border-radius: 10px; padding: 10px; }
+.key { font: 500 15px var(--mono); letter-spacing: 1px; margin-top: 4px; }
+.qrwrap ol { padding-left: 18px; display: grid; gap: 6px; font-size: 14px; color: var(--ink-2); }
+.codes { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; padding: 16px 20px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--sheet); font: 15px var(--mono); }
+.row2 { display: flex; gap: 8px; margin-top: 12px; }
+.check { margin-top: 16px; display: flex; gap: 10px; align-items: center; font-size: 14px; }
+.check i { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--ink); display: grid; place-items: center; }
+.window { width: 1200px; height: 780px; margin: 40px auto; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.15); display: flex; flex-direction: column; }
+.wbar { height: 38px; flex: none; background: #e9e5da; display: flex; align-items: center; gap: 8px; padding: 0 14px; font-size: 13px; color: #55605b; }
+.wbar i { width: 12px; height: 12px; border-radius: 50%; background: #cfc6b3; display: inline-block; }
+.wbar span { margin: 0 auto; transform: translateX(-30px); }
+.window .si { min-height: 0; flex: 1; background: var(--panel); }
+.window .main { grid-template-columns: minmax(0, 400px) minmax(0, 360px); gap: 72px; }
+.browserbar { height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--well); font: 13px var(--mono); border-bottom: 1px solid var(--rule); }
+.browserbar span { flex: 1; height: 28px; border-radius: 14px; background: var(--sheet); display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+.admin { max-width: 880px; margin: 0 auto; padding: 32px 40px; }
+.admin h1 { font-size: 26px; }
+.prow { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 16px 0; border-top: 1px solid var(--rule); }
+.prow b { font-weight: 600; font-size: 15px; display: block; } .prow p { color: var(--ink-2); font-size: 13.5px; margin-top: 2px; max-width: 60ch; }
+.sw { width: 40px; height: 24px; border-radius: 12px; background: var(--rule-strong); position: relative; }
+.sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+.sw.on { background: var(--accent); } .sw.on::after { left: 19px; }
+.locked { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.tag { font: 500 12px var(--mono); padding: 2px 8px; border-radius: 4px; background: var(--well); }
+.appframe { flex: 1; position: relative; overflow: hidden; }
+.appframe iframe { width: 1440px; height: 888px; border: 0; transform: scale(.8333); transform-origin: 0 0; }
+.menu { position: absolute; left: 58px; bottom: 64px; width: 320px; background: var(--sheet); border-radius: 12px; box-shadow: 0 12px 32px rgba(20,52,43,.18), 0 0 0 1px var(--rule-strong); overflow: hidden; font-size: 14px; }
+.menu .who { padding: 14px 16px; display: grid; gap: 2px; border-bottom: 1px solid var(--rule); }
+.menu .who b { font-size: 15px; } .menu .who span { color: var(--ink-2); font-size: 13px; }
+.menu .pair { padding: 12px 16px; display: grid; gap: 4px; border-bottom: 1px solid var(--rule); background: var(--panel); }
+.menu .pair dt { font-size: 11.5px; color: var(--ink-2); } .menu .pair dd { font: 13.5px var(--mono); display: flex; align-items: center; gap: 6px; }
+.menu .pair p { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+.menu .it { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 16px; }
+.menu .it svg { color: var(--ink-2); } .menu .it small { margin-left: auto; color: var(--ink-2); font-size: 12.5px; }
+.menu .sep { height: 1px; background: var(--rule); }
+</style></head>
+<body><div id="root"></div>
+<script>
+const I = (n, c = '') => `<svg class="i ${c}" viewBox="0 0 24 24">${ICONS[n] || ''}</svg>`;
+const q = new URLSearchParams(location.search);
+const S = q.get('s') ?? 'web';
+if (q.get('t') === 'dark') document.body.classList.add('dark');
+const dark = document.body.classList.contains('dark');
+const LOGO = `<svg viewBox="0 0 48 48"><path fill="none" stroke="${dark ? '#F3EEE2' : '#14342B'}" stroke-width="6.5" stroke-linecap="round" d="M10 41V22A14 14 0 0 1 38 22V41"/><path fill="#C9A24B" d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"/></svg>`;
+// A synthetic QR code (finder patterns plus pseudo-random modules); illustration only.
+const QR = (() => { const n = 29; let s = 7, cells = ''; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  const finder = (x, y) => (x >= 0 && x < 7 && y >= 0 && y < 7) && (x === 0 || x === 6 || y === 0 || y === 6 || (x >= 2 && x <= 4 && y >= 2 && y <= 4));
+  const inF = (x, y) => (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { let on;
+    if (inF(x, y)) on = finder(x < 8 ? x : x - (n - 7), y < 8 ? y : y - (n - 7)); else on = rnd() > 0.52;
+    if (on) cells += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }
+  return `<svg viewBox="0 0 ${n} ${n}" width="146" height="146" shape-rendering="crispEdges" fill="#16201D">${cells}</svg>`; })();
+
+const steps = (cur, enroll) => `<aside class="record" aria-label="Sign-in steps"><h2>${I('shield-check', 's')}Signing in</h2>
+  <div class="steps" style="border-top:0"><h3>Steps</h3>
+    <div class="step ${cur > 1 ? 'done' : 'cur'}"><span class="n">${cur > 1 ? I('check', 's') : '1'}</span><span>Server</span><small>${cur > 1 ? 'chat.alanadi.com' : ''}</small></div>
+    <div class="step ${cur > 2 ? 'done' : cur === 2 ? 'cur' : 'todo'}"><span class="n">${cur > 2 ? I('check', 's') : '2'}</span><span>Username and password</span><small>${cur > 2 ? 'deniz.kaya' : 'on id.alanadi.com'}</small></div>
+    <div class="step ${cur === 3 ? 'cur' : 'todo'}"><span class="n">3</span><span>${enroll ? 'Set up your authenticator app' : 'Code from your authenticator app'}</span><small></small></div>
+  </div>
+  <p class="note">${I('lock', 's')}<span>Your password is entered only on id.alanadi.com, never in the chat app.</span></p></aside>`;
+const mini = (t) => `<div class="mini">${I('shield-check', 's')}${t}</div>`;
+const shell = (brand, left, right, phone) => `<div class="si"><header class="top"><span class="lockup">${LOGO}${brand}</span>${phone ? `<span class="btn" style="width:44px;height:44px;padding:0">${I('languages')}</span>` : `<div class="tools"><button class="btn">${I('moon', 's')}Theme: System</button><button class="btn">${I('languages', 's')}English</button><button class="btn">Help</button></div>`}</header><main class="main"><section>${left}</section>${right}</main><footer class="foot"><span>Cenacle, open source and self-hosted</span><span>Trouble signing in? Contact your IT department.</span></footer></div>`;
+
+const serverStep = (editable) => `<h1>Sign in to Cenacle</h1><p class="lede">${editable ? 'Enter the address of your organization’s Cenacle server.' : 'You are signing in to the server at this address.'}</p>
+  ${q.get('notice') === '1' ? `<div class="alert" style="background:var(--well)"><span style="color:var(--ink-2);display:flex">${I('lock', 's')}</span><span><b>An administrator ended this device’s session.</b> Sign in again to continue; your drafts are kept.</span></div>` : ''}
+  <div class="field" style="margin-top:24px"><label>Server address</label>
+    ${editable ? `<div class="input focus"><span class="num" style="font-family:var(--mono)">chat.alanadi.com</span></div><span class="hint">Your IT department gives you this address, for example chat.yourcompany.com.</span>
+      <div class="recent"><div>${I('clock', 's')}chat.alanadi.com<small>Used yesterday</small></div><div>${I('clock', 's')}chat.example.org<small>3 weeks ago</small></div></div>`
+    : `<div class="input ro" style="background:var(--well)"><span class="num">chat.alanadi.com</span><small>${I('lock', 's')}This page's address</small></div>`}
+  </div>
+  <button class="primary">Continue</button>
+  <p class="after" style="margin-top:12px;font-size:13.5px;color:var(--ink-2)">Next you sign in with your directory username and password, then a code from your authenticator app.</p>`;
+
+const credentials = () => `<h1>Username and password</h1><p class="lede">Sign in with your organization account (Contoso AD).</p>
+  <div class="field" style="margin-top:24px"><label>Username</label><div class="input focus"><span class="ph">deniz.kaya</span></div><span class="hint">The username you use for your work computer, without the domain.</span></div>
+  <div class="field"><label>Password</label><div class="input"></div></div>
+  <button class="primary">Sign in</button>
+  <div class="links"><a href="#" class="muted">Forgot your password? Your IT department resets it in the directory.</a></div>`;
+
+const enroll = () => `<h1>Set up two-step verification</h1><p class="lede">Two-step verification is required here. Scan this QR code with an authenticator app (for example Microsoft Authenticator, Google Authenticator or FreeOTP).</p>
+  <div class="qrwrap"><div class="qr">${QR}</div><div><ol><li>Open the app and add an account.</li><li>Scan the code.</li><li>Enter the 6-digit code it shows.</li></ol><p class="hint" style="margin-top:12px">Can't scan? Enter this key:</p><p class="key">JBSW Y3DP EHPK 3PXP</p></div></div>
+  <div class="otp" style="margin-top:22px"><span>2</span><span>7</span><span>4</span><i></i><span class="cur"></span><span></span><span></span></div>
+  <button class="primary">Verify and continue</button>`;
+
+const recovery = () => `<h1>Save your recovery codes</h1><p class="lede">If you lose your phone, each of these codes lets you sign in once. Keep them somewhere safe, away from your phone.</p>
+  <div class="codes"><span>k7f3m-2qx9a</span><span>p4n8z-6wd2r</span><span>t9b2c-8km4v</span><span>h3x7q-1ps5n</span><span>a6d4w-9tf2m</span><span>r2v8k-5hb7c</span><span>m5q1z-3nx8d</span><span>w8c6p-7ja3t</span><span>e1r9h-4vk6b</span><span>z3m5t-2cw9q</span></div>
+  <div class="row2"><button class="btn">${I('copy', 's')}Copy</button><button class="btn">${I('file-text', 's')}Download as text</button></div>
+  <div class="check"><i>${I('check', 's')}</i>I saved these codes</div>
+  <button class="primary">Continue to Cenacle</button>
+  <p class="hint" style="margin-top:10px">Lost both your phone and the codes? Your administrator can reset two-step verification.</p>`;
+
+const code = () => `<h1>Enter your code</h1><p class="lede">Open your authenticator app and enter the 6-digit code for <b>Cenacle · deniz.kaya</b>.</p>
+  <div class="otp"><span>4</span><span>8</span><span>1</span><i></i><span class="cur"></span><span></span><span></span></div>
+  <p class="hint" style="margin-top:10px">Pasting works; it is checked as soon as all 6 digits are in.</p>
+  <button class="primary">Verify</button>
+  <div class="links"><a href="#">Use a recovery code</a><a href="#" class="muted">Lost your phone? Your administrator can reset it.</a></div>`;
+
+const admin = () => `<div class="si"><header class="top"><span class="lockup">${LOGO}Cenacle ID <small>Admin</small></span><div class="tools"><button class="btn">Deniz Kaya</button></div></header>
+  <div class="admin"><h1>Sign-in policy</h1><p class="lede">How people sign in to Cenacle at chat.alanadi.com. Changes apply at the next sign-in.</p>
+  <div style="margin-top:20px">
+    <div class="prow"><div><b>Server address, username and password, then a code</b><p>The sign-in everyone uses: the directory account (Contoso AD) or a Cenacle ID account, and a code from an authenticator app set up with a QR code.</p></div><span class="locked">${I('lock', 's')}Always on</span></div>
+    <div class="prow"><div><b>Stay signed in</b><p>People sign in once on each device and stay signed in until they sign out. Ending a device’s session here, or disabling the account in the directory, signs them out at once.</p></div><span class="locked">Until they sign out ${I('chevron-down', 's')}</span></div>
+    <div class="prow"><div><b>Two-step verification</b><p>Required for everyone. People who have not set it up are asked to scan the QR code at their next sign-in.</p></div><span class="locked">${I('lock', 's')}Required</span></div>
+    <div class="prow"><div><b>Recovery codes</b><p>10 one-time codes when two-step verification is set up. Admins can also reset it for a person on their account page.</p></div><span class="sw on" role="switch" aria-checked="true"></span></div>
+    <div class="prow"><div><b>Cenacle in web browsers</b><p>Allow using Cenacle at chat.alanadi.com in a browser. When off, the whole web app is unavailable: open browser sessions end and the address only shows where to get the desktop and mobile apps, which always work.</p></div><span class="sw on" role="switch" aria-checked="true"></span></div>
+    <div class="prow"><div><b>Organization sign-in (OIDC, SAML)</b><p>Off. When on, buttons for your identity providers appear above the password form.</p></div><span class="sw" role="switch" aria-checked="false"></span></div>
+    <div class="prow"><div><b>Passkeys</b><p>Off. When on, people can add a passkey and use it instead of the password and code.</p></div><span class="sw" role="switch" aria-checked="false"></span></div>
+  </div></div></div>`;
+
+const webOff = () => shell('Cenacle', `<h1>Use the Cenacle app</h1><p class="lede">Your organization uses Cenacle only in its desktop and mobile apps. Cenacle in web browsers is turned off for <b style="font-family:var(--mono);font-weight:500">chat.alanadi.com</b>.</p>
+  <div class="stack"><button class="alt"><span class="mark">${I('panel-right', 's')}</span>Download for Windows<span class="kind">.msi</span></button><button class="alt"><span class="mark">${I('panel-right', 's')}</span>Download for macOS<span class="kind">.dmg</span></button><button class="alt"><span class="mark">${I('panel-right', 's')}</span>Download for Linux<span class="kind">.AppImage</span></button></div>
+  <p class="hint" style="margin-top:14px">In the app, enter the server address chat.alanadi.com.</p>`, `<aside class="record"><h2>${I('shield-check', 's')}Server</h2><dl><div class="rrow"><dt>Address</dt><dd class="num">chat.alanadi.com</dd></div><div class="rrow"><dt>Web browsers</dt><dd>Turned off by your administrator</dd></div></dl></aside>`, false);
+
+const root = document.getElementById('root');
+const phone = (inner, cap, bar) => `<div class="pwrap"><div class="phone"><div class="status"><span>9:41</span><span>100%</span></div>${bar ? `<div class="browserbar">${I('lock', 's')}<span>id.alanadi.com</span>Done</div>` : ''}${inner}</div><div class="cap">${cap}</div></div>`;
+if (S === 'web') root.innerHTML = shell('Cenacle', serverStep(false), steps(1), false);
+if (S === 'desktop') root.innerHTML = `<div style="background:#dfe3dc;min-height:100vh;padding-top:20px"><div class="window"><div class="wbar"><i></i><i></i><i></i><span>Cenacle</span></div>${shell('Cenacle', serverStep(true), steps(1), false)}</div></div>`;
+if (S === 'credentials') root.innerHTML = shell('Cenacle ID', credentials(), steps(2), false);
+if (S === 'enroll') root.innerHTML = shell('Cenacle ID', enroll(), steps(3, true), false);
+if (S === 'recovery') root.innerHTML = shell('Cenacle ID', recovery(), steps(3, true), false);
+if (S === 'code') root.innerHTML = shell('Cenacle ID', code(), steps(3), false);
+if (S === 'admin') root.innerHTML = admin();
+if (S === 'paired') root.innerHTML = `<div style="background:#dfe3dc;min-height:100vh;padding-top:20px"><div class="window"><div class="wbar"><i></i><i></i><i></i><span>Cenacle · chat.alanadi.com</span></div><div class="appframe"><iframe src="proto2.html?s=inbox"></iframe>
+  <div class="menu" role="menu"><div class="who"><b>Deniz Kaya</b><span>deniz.kaya · Contoso AD</span></div>
+    <dl class="pair"><dt>Server</dt><dd>${I('lock', 's')}chat.alanadi.com</dd><p>This app is paired with this server. Signed in since 23 Oct 2026; you stay signed in until you sign out.</p></dl>
+    <div class="it">${I('settings', 's')}Profile and settings</div><div class="it">${I('panel-right', 's')}Signed-in devices<small>3</small></div>
+    <div class="sep"></div><div class="it">${I('arrow-left', 's')}Sign out of this device</div><div class="it">${I('x', 's')}Sign out everywhere<small>3 devices</small></div></div>
+  </div></div></div>`;
+if (S === 'weboff') root.innerHTML = webOff();
+if (S === 'phone') root.innerHTML = `<div class="phones">${phone(shell('Cenacle', serverStep(true) + mini('Step 1 of 3'), '', true), '1. Server address (in the app)')}${phone(shell('Cenacle ID', credentials() + mini('Step 2 of 3 · id.alanadi.com'), '', true), '2. Username and password (system browser)', true)}${phone(shell('Cenacle ID', code() + mini('Step 3 of 3'), '', true), '3. Code from the authenticator app', true)}</div>`;
+</script></body></html>
