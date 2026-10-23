@@ -91,7 +91,9 @@ test-go:
   script:
     - make test-go
     - make vuln
-    - make fuzz FUZZTIME=15s
+    # A number of inputs, not a duration: a timed run can fail with "context
+    # deadline exceeded" when it ends while a busy runner is still minimizing.
+    - make fuzz FUZZTIME=100000x
   after_script:
     - ci/services.sh stop
 

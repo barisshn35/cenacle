@@ -189,7 +189,7 @@ load: ## Load test the chat server in process (see server/internal/app/load_test
 
 FUZZTIME ?= 30s
 .PHONY: fuzz
-fuzz: ## Fuzz the parsers of what people type (FUZZTIME each)
+fuzz: ## Fuzz the parsers of what people type (FUZZTIME each: a duration or a count such as 100000x)
 	cd $(SERVER_DIR) && for f in $$(go test -list '^Fuzz' ./internal/chat | grep '^Fuzz'); do \
 		go test ./internal/chat -run '^$$' -fuzz "^$$f$$" -fuzztime $(FUZZTIME) || exit 1; done
 

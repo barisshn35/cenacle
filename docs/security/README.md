@@ -25,7 +25,7 @@ To report a vulnerability, see [SECURITY.md](../../SECURITY.md).
   member of the workspace who is not in the private channel. None may succeed and none may
   fail on the server.
 - **Fuzzing** of what people type (search terms for AI questions, mentions, encrypted
-  envelopes, links, reminders): seeds with every test run, 15 seconds each in CI
+  envelopes, links, reminders): seeds with every test run, 100,000 inputs each in CI
   (`make fuzz`). Inputs that once failed stay as regression seeds in `testdata/fuzz`.
 - **Dependencies and secrets:** `govulncheck`, Trivy (dependencies, secrets, Dockerfiles),
   gitleaks over the whole history, license checks; images run as non-root users.
