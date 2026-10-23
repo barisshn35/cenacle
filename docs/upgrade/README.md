@@ -48,6 +48,22 @@ included, was there.
 
 ## Version notes
 
+### 0.31.0
+
+- Migrations: chat `00027_sidebar` (adds `sidebar_layouts`), `00028_mention_groups` (adds
+  `mention_groups`, `mention_group_members`, the view `mention_group_people` and
+  `workspaces.group_creation`, and allows group mentions) and `00029_message_edits` (adds
+  `message_edits` and `workspaces.edit_history`). All reversible; nothing existing changes.
+- Edits made from now on keep their earlier versions; edits made before keep none.
+- Edit history is shown to the author only by default; owners and admins can show it to
+  everyone in the workspace settings.
+- Release images and files are signed from this version once the project's key is set up
+  (`docs/operations/ci.md`); verify them with `deploy/cosign.pub`
+  (`docs/security/README.md`).
+- Rolling back to 0.30, with the 0.31 images: three times
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`; then
+  the previous `CENACLE_VERSION`. Sidebars, groups and edit histories are lost.
+
 ### 0.30.0
 
 - No migration.
