@@ -18,6 +18,9 @@ import {
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
+import { useIsMobile } from '@cenacle/ui/hooks/use-mobile';
+import { Board, BoardGroup, BoardSection } from '../shell/board';
+import { boardCell, boardRow } from '../shell/board-styles';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { channelsQuery } from '../chat/data';
@@ -46,6 +49,7 @@ export function PlaybooksList() {
   const { t } = useTranslation();
   const ws = useActiveWorkspace();
   const queryClient = useQueryClient();
+  const mobile = useIsMobile();
   const playbooks = useQuery(playbooksQuery(ws.id));
   const [editing, setEditing] = useState<Playbook | 'new' | null>(null);
   const [starting, setStarting] = useState<Playbook | null>(null);
@@ -55,64 +59,119 @@ export function PlaybooksList() {
     onSuccess: refresh,
     onError: () => toast.error(t('community.playbooks.failed')),
   });
+  const list = playbooks.data ?? [];
+  const contents = (p: Playbook) =>
+    t('community.playbooks.summary', {
+      lists: p.checklists.length,
+      items: p.checklists.reduce((n, c) => n + c.items.length, 0),
+      runs: p.runs_active,
+    });
+  const actions = (p: Playbook) => (
+    <span className="flex flex-wrap justify-end gap-1.5">
+      <Button
+        size="sm"
+        variant="outline"
+        aria-label={t('community.playbooks.startNamed', { name: p.name })}
+        onClick={() => setStarting(p)}
+      >
+        <PlayIcon strokeWidth={1.75} />
+        {t('community.playbooks.start')}
+      </Button>
+      {ws.admin && (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={t('community.playbooks.editNamed', { name: p.name })}
+            onClick={() => setEditing(p)}
+          >
+            {t('community.playbooks.edit')}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={t('community.playbooks.archiveNamed', { name: p.name })}
+            disabled={archive.isPending}
+            onClick={() => archive.mutate(p)}
+          >
+            {t('community.playbooks.archive')}
+          </Button>
+        </>
+      )}
+    </span>
+  );
   return (
     <>
-      <p className="text-sm text-muted-foreground">{t('community.playbooks.hint')}</p>
       {ws.admin && (
-        <Button className="self-start" onClick={() => setEditing('new')}>
-          <PlusIcon strokeWidth={1.75} />
-          {t('community.playbooks.new')}
-        </Button>
+        <div className="flex max-sm:px-4">
+          <Button className="ml-auto" onClick={() => setEditing('new')}>
+            <PlusIcon strokeWidth={1.75} />
+            {t('community.playbooks.new')}
+          </Button>
+        </div>
       )}
       {playbooks.isPending ? (
         <Skeleton className="h-20" />
-      ) : (playbooks.data ?? []).length === 0 ? (
+      ) : list.length === 0 ? (
         <p role="status" className="py-8 text-center text-sm text-muted-foreground">
           {t('community.playbooks.none')}
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {playbooks.data!.map((p) => (
-            <li
-              key={p.id}
-              data-testid="playbook"
-              className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
+        <BoardSection title={t('community.playbooks.title')} count={list.length}>
+          {mobile ? (
+            <ul className="flex flex-col border-t">
+              {list.map((p) => (
+                <li
+                  key={p.id}
+                  data-testid="playbook"
+                  className="flex flex-col gap-1.5 border-b px-4 py-3 text-sm"
+                >
+                  <h3 className="font-semibold">{p.name}</h3>
+                  {p.description && (
+                    <p className="line-clamp-2 text-[13px] text-muted-foreground">
+                      {p.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">{contents(p)}</p>
+                  <div className="flex justify-start">{actions(p)}</div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Board
+              label={t('community.playbooks.title')}
+              minWidth="min-w-[48rem]"
+              columns={[
+                { label: t('community.playbooks.columns.name') },
+                { label: t('community.playbooks.columns.contents'), width: 'w-[280px]' },
+                {
+                  label: t('community.playbooks.columns.actions'),
+                  width: 'w-[260px]',
+                  align: 'end',
+                },
+              ]}
             >
-              <h2 className="text-base font-semibold">{p.name}</h2>
-              {p.description && (
-                <p className="whitespace-pre-line text-muted-foreground">{p.description}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {t('community.playbooks.summary', {
-                  lists: p.checklists.length,
-                  items: p.checklists.reduce((n, c) => n + c.items.length, 0),
-                  runs: p.runs_active,
-                })}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                <Button size="sm" onClick={() => setStarting(p)}>
-                  <PlayIcon strokeWidth={1.75} />
-                  {t('community.playbooks.start')}
-                </Button>
-                {ws.admin && (
-                  <>
-                    <Button size="sm" variant="ghost" onClick={() => setEditing(p)}>
-                      {t('community.playbooks.edit')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={archive.isPending}
-                      onClick={() => archive.mutate(p)}
-                    >
-                      {t('community.playbooks.archive')}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+              <BoardGroup span={3}>
+                {list.map((p) => (
+                  <tr key={p.id} data-testid="playbook" className={cn(boardRow(), 'text-sm')}>
+                    <td className={boardCell}>
+                      <span className="block font-semibold">{p.name}</span>
+                      {p.description && (
+                        <span className="line-clamp-1 text-[13px] text-muted-foreground">
+                          {p.description}
+                        </span>
+                      )}
+                    </td>
+                    <td className={cn(boardCell, 'text-[13px] text-muted-foreground')}>
+                      {contents(p)}
+                    </td>
+                    <td className={boardCell}>{actions(p)}</td>
+                  </tr>
+                ))}
+              </BoardGroup>
+            </Board>
+          )}
+        </BoardSection>
       )}
       {editing && ws.id && (
         <PlaybookEditor

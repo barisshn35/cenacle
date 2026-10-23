@@ -1162,7 +1162,21 @@
       "noChannel": "Duyurma",
       "description": "Açıklama",
       "save": "Etkinliği kaydet",
-      "failed": "Etkinlik kaydedilemedi. Yeniden deneyin."
+      "failed": "Etkinlik kaydedilemedi. Yeniden deneyin.",
+      "announcedIn": "{{channel}} kanalında duyuruldu",
+      "answerFor": "{{title}} için yanıtın",
+      "actionsFor": "{{title}} için diğer",
+      "zone": "Saatler {{zone}} saat diliminde",
+      "today": "Bugün",
+      "tomorrow": "Yarın",
+      "columns": {
+        "time": "Saat",
+        "event": "Etkinlik",
+        "where": "Nerede",
+        "who": "Kimler",
+        "answer": "Yanıtın",
+        "actions": "İşlemler"
+      }
     },
     "playbooks": {
       "hint": "Ekibinizin tekrar tekrar uyguladığı kontrol listeleri; örneğin bir olay müdahalesi ya da işe alışma.",
@@ -1191,7 +1205,16 @@
       "runs": "Çalıştırmalar",
       "progress": "{{total}} maddeden {{done}}",
       "finished": "Bitti",
-      "finish": "Çalıştırmayı bitir"
+      "finish": "Çalıştırmayı bitir",
+      "title": "Oyun kitapları",
+      "columns": {
+        "name": "Ad",
+        "contents": "İçerik",
+        "actions": "İşlemler"
+      },
+      "startNamed": "Çalıştır, {{name}}",
+      "editNamed": "Düzenle, {{name}}",
+      "archiveNamed": "Arşivle, {{name}}"
     },
     "admin": {
       "banner": "Duyuru şeridi",
@@ -1571,7 +1594,19 @@
       "waiting": "Sizi bekleyenler",
       "assigned": "Size atananlar",
       "due": "Bitiş: {{date}}",
-      "overdue": "{{date}} tarihinden beri gecikmiş"
+      "overdue": "{{date}} tarihinden beri gecikmiş",
+      "noDue": "Bitiş tarihi yok",
+      "rowsInLists_one": "{{lists}} içinde {{count}} satır",
+      "rowsInLists_other": "{{lists}} içinde {{count}} satır",
+      "hint": "Satırlar kanallarının liste sekmesinde açılır. Durumu orada değiştir.",
+      "columns": {
+        "title": "Başlık",
+        "list": "Liste",
+        "channel": "Kanal",
+        "due": "Bitiş"
+      },
+      "lists_one": "{{count}} liste",
+      "lists_other": "{{count}} liste"
     }
   },
   "compliance": {

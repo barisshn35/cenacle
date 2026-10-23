@@ -220,7 +220,7 @@ test('rows assigned to me show under Tasks and lead to their list', async ({ pag
   await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible();
   const item = page.getByTestId('assigned-item');
   await expect(item).toContainText('Book the room');
-  await expect(item).toContainText('Overdue since');
+  await expect(page.getByRole('main')).toContainText('Overdue since');
   await expectNoAxeViolations(page, 'main');
   await item.click();
   await expect(page).toHaveURL(new RegExp(`/c/${GENERAL.id}\\?tab=${LIST_TAB.id}`));

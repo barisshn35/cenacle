@@ -50,7 +50,7 @@ function usePeople() {
 }
 
 /** A workflow's form to fill in or approval to give, in a conversation with the Cenacle bot. */
-export function TaskCard({ task }: { task: Task }) {
+export function TaskCard({ task, className }: { task: Task; className?: string }) {
   const { t } = useTranslation();
   const self = useSession().user.id;
   const people = usePeople();
@@ -87,8 +87,9 @@ export function TaskCard({ task }: { task: Task }) {
       data-testid="task"
       data-status={task.status}
       className={cn(
-        'mt-1 max-w-lg rounded-xl border px-4 py-3 text-sm',
-        task.status === 'open' ? 'border-ring/40 bg-card' : 'bg-muted/40',
+        'mt-1 max-w-lg rounded-[10px] border border-rule-strong px-4 py-3.5 text-sm',
+        task.status === 'open' ? 'bg-background' : 'bg-muted/40',
+        className,
       )}
     >
       <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">

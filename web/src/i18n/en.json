@@ -1162,7 +1162,21 @@
       "noChannel": "Don't announce",
       "description": "Description",
       "save": "Save event",
-      "failed": "Couldn't save the event. Try again."
+      "failed": "Couldn't save the event. Try again.",
+      "announcedIn": "Announced in {{channel}}",
+      "answerFor": "Your answer for {{title}}",
+      "actionsFor": "More for {{title}}",
+      "zone": "Times in {{zone}}",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "columns": {
+        "time": "Time",
+        "event": "Event",
+        "where": "Where",
+        "who": "Who",
+        "answer": "Your answer",
+        "actions": "Actions"
+      }
     },
     "playbooks": {
       "hint": "Checklists your team runs again and again, like an incident or an onboarding.",
@@ -1191,7 +1205,16 @@
       "runs": "Runs",
       "progress": "{{done}} of {{total}}",
       "finished": "Finished",
-      "finish": "Finish run"
+      "finish": "Finish run",
+      "title": "Playbooks",
+      "startNamed": "Start run, {{name}}",
+      "editNamed": "Edit, {{name}}",
+      "archiveNamed": "Archive, {{name}}",
+      "columns": {
+        "name": "Name",
+        "contents": "Contents",
+        "actions": "Actions"
+      }
     },
     "admin": {
       "banner": "Announcement banner",
@@ -1571,7 +1594,19 @@
       "waiting": "Waiting for you",
       "assigned": "Assigned to you",
       "due": "Due {{date}}",
-      "overdue": "Overdue since {{date}}"
+      "overdue": "Overdue since {{date}}",
+      "noDue": "No due date",
+      "rowsInLists_one": "{{count}} row in {{lists}}",
+      "rowsInLists_other": "{{count}} rows in {{lists}}",
+      "hint": "Rows open in their channel's list tab. Change the status there.",
+      "columns": {
+        "title": "Title",
+        "list": "List",
+        "channel": "Channel",
+        "due": "Due"
+      },
+      "lists_one": "{{count}} list",
+      "lists_other": "{{count}} lists"
     }
   },
   "compliance": {
