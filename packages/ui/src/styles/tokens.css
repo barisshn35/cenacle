@@ -15,13 +15,12 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  /* v0.29 (docs/design/v0.29): one family, Geist; Geist Mono for record values. */
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
   --font-heading: var(--font-sans);
-  /* Brand headlines only (sign-in title, workspace welcome, empty states). */
-  --font-display: 'Fraunces Variable', Georgia, serif;
-  /* Same axes as the wordmark: medium weight, soft, no wonky letters. */
-  --font-display--font-variation-settings: 'SOFT' 50, 'WONK' 0;
+  /* Headlines (sign-in statement, empty states) are Geist set heavier. */
+  --font-display: var(--font-sans);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -60,6 +59,20 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-rail: var(--rail);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-hover: var(--sidebar-hover);
+
+  /* The record (v0.29): panel, well, hover and the stronger rule of frames. */
+  --color-panel: var(--panel);
+  --color-well: var(--well);
+  --color-hover: var(--hover);
+  --color-rule-strong: var(--rule-strong);
+  --color-avatar-1: var(--avatar-1);
+  --color-avatar-2: var(--avatar-2);
+  --color-avatar-3: var(--avatar-3);
+  --color-avatar-4: var(--avatar-4);
+  --color-avatar-5: var(--avatar-5);
+  --color-avatar-ink: var(--avatar-ink);
 
   /* Status colors (always paired with an icon or text, never color alone). */
   --color-success: var(--success);
@@ -96,6 +109,13 @@
   --spacing-target: var(--target);
   --spacing-target-min: var(--target-min);
   --spacing-row: var(--row-height);
+  /* The speaker margin: who spoke and when, beside the words. */
+  --spacing-speaker: var(--speaker-margin);
+  --spacing-speaker-panel: var(--speaker-margin-panel);
+  --spacing-margin-gap: var(--margin-gap);
+  --spacing-margin-gap-panel: var(--margin-gap-panel);
+
+  --shadow-popover: var(--popover-shadow);
 
   --ease-out-quint: var(--ease-out);
   --default-transition-timing-function: var(--ease-out);
@@ -122,132 +142,162 @@
 
   --radius: 0.625rem;
 
+  /* --- The record (v0.29) ----------------------------------------- */
+  --speaker-margin: 152px;
+  --speaker-margin-panel: 96px;
+  --margin-gap: 20px;
+  --margin-gap-panel: 14px;
+
   /* --- Brand (Forest & Brass) -------------------------------------- */
   /* Fixed brand colors; never used for status (online, warning, destructive). */
   --brand-forest: #14342b;
   --brand-brass: #c9a24b; /* logo bubble; accent on dark UI only */
   --brand-brass-ink: #8f6b1f; /* accent on light UI (bright brass fails on light) */
   --brand-paper: #faf7f0;
-  --brand-night: #121212; /* dark brand surface (app icon), neutral black */
+  --brand-night: #0c1a16;
   --brand-bone: #f3eee2;
 
-  /* --- Light theme: Paper and Forest --------------------------------- */
+  /* --- Light theme: the record on paper, a Forest sidebar ------------ */
+  /* Roles from docs/design/v0.29/DESIGN.md: sheet (work area), panel (side
+     panels), well (code, chips, lit rows), rule and rule-strong (hairlines and
+     frames). Brass only for selection, focus and the primary action; red only
+     for the person's own mentions, errors and destructive actions. */
   color-scheme: light;
-  --background: var(--brand-paper);
-  --foreground: var(--brand-forest);
-  --card: #fffdf8;
+  --background: #ffffff;
+  --foreground: #16201d;
+  --card: #ffffff;
   --card-foreground: var(--foreground);
-  --popover: #fffdf8;
+  --popover: #ffffff;
   --popover-foreground: var(--foreground);
   --accent-brand: var(--brand-brass-ink);
   --accent-brand-foreground: #ffffff;
   --primary: var(--accent-brand);
   --primary-foreground: var(--accent-brand-foreground);
-  --secondary: #f1ece1;
+  --secondary: var(--brand-paper);
   --secondary-foreground: var(--foreground);
-  --muted: #f1ece1;
-  --muted-foreground: #56655f;
-  --accent: #eae4d7;
+  --muted: #f1ebdd;
+  --muted-foreground: #55605b;
+  --accent: #f1ebdd;
   --accent-foreground: var(--foreground);
-  --destructive: oklch(0.55 0.21 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: #ddd5c5;
-  /* Form control outlines: >= 3:1 against the background (WCAG 1.4.11). */
-  --input: #82928a;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: #e4ddcf;
+  /* Form control outlines: >= 3:1 against the sheet (WCAG 1.4.11). */
+  --input: #8e8a7e;
   --ring: var(--accent-brand);
   --logo-ink: var(--brand-forest);
   --logo-accent: var(--brand-brass);
 
-  --sidebar: #f4efe4;
-  --sidebar-foreground: #24433a;
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #e8e1d2;
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: #ddd5c5;
-  --sidebar-ring: var(--ring);
-  --rail: #ece6d8;
+  --panel: var(--secondary);
+  --well: var(--muted);
+  --hover: color-mix(in oklab, var(--muted) 45%, var(--background));
+  --rule-strong: color-mix(in oklab, var(--border), var(--foreground) 12%);
+  --popover-shadow: 0 6px 20px rgb(20 52 43 / 0.1), 0 0 0 1px rgb(20 52 43 / 0.1);
 
-  --success: oklch(0.52 0.13 155);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.62 0.14 70);
-  --warning-foreground: oklch(0.2 0.02 70);
+  --sidebar: var(--brand-forest);
+  --sidebar-foreground: var(--brand-bone);
+  --sidebar-muted-foreground: #c3cfc7;
+  --sidebar-primary: var(--brand-brass);
+  --sidebar-primary-foreground: var(--brand-night);
+  --sidebar-accent: #22503f;
+  --sidebar-accent-foreground: var(--brand-bone);
+  --sidebar-hover: #1b4135;
+  --sidebar-border: #22493c;
+  --sidebar-ring: var(--brand-brass);
+  --rail: var(--brand-night);
+
+  --success: #2f8a5b;
+  --success-foreground: #ffffff;
+  --warning: #b08420;
+  --warning-foreground: #1b1507;
   --info: oklch(0.52 0.13 250);
   --info-foreground: oklch(0.99 0 0);
 
-  --presence-online: oklch(0.62 0.15 152);
-  --presence-away: oklch(0.75 0.15 75);
-  --presence-dnd: oklch(0.55 0.16 330);
-  --presence-offline: oklch(0.7 0.01 260);
-  --mention: oklch(0.55 0.21 27);
-  --mention-bg: oklch(0.97 0.02 27);
-  --mention-foreground: oklch(0.99 0 0);
+  /* Away is a ring, online a filled dot: state is never carried by hue alone. */
+  --presence-online: #2f8a5b;
+  --presence-away: #b08420;
+  --presence-dnd: #b42318;
+  --presence-offline: #8e8a7e;
+  --mention: #b42318;
+  --mention-bg: #fcebe8;
+  --mention-foreground: #ffffff;
   --unread: var(--foreground);
-  --bot-badge: oklch(0.5 0.14 275);
-  --bot-badge-foreground: oklch(0.99 0 0);
-  --attachment-stripe-default: oklch(0.8 0.01 260);
+  --bot-badge: var(--brand-forest);
+  --bot-badge-foreground: var(--brand-bone);
+  --attachment-stripe-default: var(--rule-strong);
   --attachment-stripe-info: var(--info);
   --attachment-stripe-success: var(--success);
   --attachment-stripe-warning: var(--warning);
   --attachment-stripe-danger: var(--destructive);
+
+  /* Quiet paper-world tints behind initials (both themes). */
+  --avatar-1: #e3d9c4;
+  --avatar-2: #d4e0d9;
+  --avatar-3: #e6d6d0;
+  --avatar-4: #d9dce6;
+  --avatar-5: #dfe3cf;
+  --avatar-ink: #1e2b26;
 }
 
 [data-theme='dark'] {
-  /* --- Dark theme: Night and Bone ------------------------------------ */
+  /* --- Dark theme: Night-tinted sheets, Bone ink, Brass accent --------- */
   color-scheme: dark;
-  /* Soft, neutral blacks (no green cast); text and accents stay Bone and Brass. */
-  --background: #161616;
-  --foreground: var(--brand-bone);
-  --card: #1c1c1c;
+  --background: #111c18;
+  --foreground: #ece8dd;
+  --card: #14221d;
   --card-foreground: var(--foreground);
-  --popover: #212121;
+  --popover: #16251f;
   --popover-foreground: var(--foreground);
   --accent-brand: var(--brand-brass);
-  --accent-brand-foreground: #161616;
+  --accent-brand-foreground: #1b1507;
   --primary: var(--accent-brand);
   --primary-foreground: var(--accent-brand-foreground);
-  --secondary: #262626;
+  --secondary: #14221d;
   --secondary-foreground: var(--foreground);
-  --muted: #262626;
-  --muted-foreground: #a9a9a9;
-  --accent: #2c2c2c;
+  --muted: #1b2b25;
+  --muted-foreground: #a9b5ae;
+  --accent: #1b2b25;
   --accent-foreground: var(--foreground);
-  --destructive: oklch(0.74 0.16 25);
-  --destructive-foreground: oklch(0.18 0.02 25);
-  --border: #333333;
-  --input: #6b6b6b;
+  --destructive: #ff8a80;
+  --destructive-foreground: #2a0d0a;
+  --border: #24352e;
+  --input: #6f8279;
   --ring: var(--accent-brand);
   --logo-ink: var(--brand-bone);
   --logo-accent: var(--brand-brass);
 
-  --sidebar: #121212;
-  --sidebar-foreground: #dcdcdc;
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #282828;
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: #2a2a2a;
-  --sidebar-ring: var(--ring);
-  --rail: #0c0c0c;
+  --popover-shadow: 0 8px 24px rgb(0 0 0 / 0.45), 0 0 0 1px #34483f;
 
-  --success: oklch(0.7 0.14 155);
-  --success-foreground: oklch(0.18 0.03 155);
-  --warning: oklch(0.78 0.14 75);
-  --warning-foreground: oklch(0.2 0.03 75);
+  --sidebar: #0f231d;
+  --sidebar-foreground: #ece8dd;
+  --sidebar-muted-foreground: #a9b5ae;
+  --sidebar-primary: var(--brand-brass);
+  --sidebar-primary-foreground: #1b1507;
+  --sidebar-accent: #1d3d32;
+  --sidebar-accent-foreground: #ece8dd;
+  --sidebar-hover: #173129;
+  --sidebar-border: #1e3a30;
+  --sidebar-ring: var(--brand-brass);
+  --rail: var(--brand-night);
+
+  --success: #5cc48d;
+  --success-foreground: #0c1a16;
+  --warning: #d9a93a;
+  --warning-foreground: #1b1507;
   --info: oklch(0.72 0.12 250);
   --info-foreground: oklch(0.18 0.03 250);
 
-  --presence-online: oklch(0.7 0.15 152);
-  --presence-away: oklch(0.8 0.14 75);
-  --presence-dnd: oklch(0.68 0.15 330);
-  --presence-offline: oklch(0.55 0.01 260);
-  --mention: oklch(0.7 0.17 25);
-  --mention-bg: oklch(0.3 0.06 25 / 45%);
-  --mention-foreground: oklch(0.18 0.02 25);
+  --presence-online: #5cc48d;
+  --presence-away: #d9a93a;
+  --presence-dnd: #ff8a80;
+  --presence-offline: #6f8279;
+  --mention: #ff8a80;
+  --mention-bg: #3a1f1d;
+  --mention-foreground: #2a0d0a;
   --unread: var(--foreground);
-  --bot-badge: oklch(0.68 0.13 275);
-  --bot-badge-foreground: oklch(0.18 0.03 275);
-  --attachment-stripe-default: oklch(0.45 0.01 260);
+  --bot-badge: var(--brand-bone);
+  --bot-badge-foreground: var(--brand-forest);
+  --attachment-stripe-default: var(--rule-strong);
 }
 
 /* Compact density tightens spacing but never shrinks targets below --target. */
