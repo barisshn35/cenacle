@@ -2115,5 +2115,39 @@
     "restore": "Bu hali geri getir",
     "restored": "Önceki hali geri getirildi.",
     "none": "Önceki bir hali saklanmadı."
+  },
+  "shortcuts": {
+    "title": "Klavye kısayolları",
+    "description": "Bu listeyi her yerden Ctrl+/ ile açabilirsin.",
+    "or": "ya da",
+    "groups": {
+      "navigation": "Gezinme",
+      "messages": "Mesajlar",
+      "formatting": "Biçimlendirme",
+      "app": "Bu uygulama"
+    },
+    "jump": "Bir kanala ya da kişiye git",
+    "channel": "Önceki ya da sonraki kanal",
+    "unread": "Önceki ya da sonraki okunmamış kanal",
+    "search": "Mesajlarda ara",
+    "details": "Ayrıntı panelini göster ya da gizle",
+    "list": "Bu kısayollar",
+    "send": "Gönder",
+    "newLine": "Yeni satır",
+    "editLast": "Son mesajını düzenle (mesaj kutusu boşken)",
+    "replyLast": "Son mesaja yanıt dizisinde yanıt ver (mesaj kutusu boşken)",
+    "reactLast": "Son mesaja tepki ver",
+    "click": "tıkla",
+    "markUnread": "Bir mesajı okunmamış olarak işaretle",
+    "cancelEdit": "Düzenlemeyi bırak ya da kapat",
+    "bold": "Kalın",
+    "italic": "İtalik",
+    "strike": "Üstü çizili",
+    "code": "Kod",
+    "zoom": "Yakınlaştır ya da uzaklaştır",
+    "zoomReset": "Gerçek boyut",
+    "reload": "Yeniden yükle",
+    "fullScreen": "Tam ekran",
+    "open": "Klavye kısayolları"
   }
 }

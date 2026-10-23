@@ -8,6 +8,8 @@ import { RealtimeClient } from '@cenacle/core/realtime';
 import { useConnection } from './connection';
 import { reloadWorkspaces } from './workspaces';
 import { QuickSwitcher } from './quick-switcher';
+import { ShortcutsDialog } from '../shell/shortcuts';
+import { useAppShortcuts } from '../shell/shortcuts-state';
 import { useQuickSwitcherShortcut } from './quick-switcher-state';
 import { useLive } from './presence-state';
 import {
@@ -207,10 +209,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   }, [queryClient, selfId]);
 
   useQuickSwitcherShortcut();
+  useAppShortcuts();
   return (
     <>
       {children}
       <QuickSwitcher />
+      <ShortcutsDialog />
     </>
   );
 }

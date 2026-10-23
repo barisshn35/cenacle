@@ -26,7 +26,19 @@ import { useCommandNotes } from './command-notes-state';
 import { useCommandPicker } from './command-picker';
 import { parseCommand, runCommand } from './commands';
 import { useConnection } from './connection';
-import { addMessage, channelsQuery, isConversation, membersQuery, sendTyping } from './data';
+import {
+  addMessage,
+  channelsQuery,
+  flatten,
+  isConversation,
+  membersQuery,
+  messagesQuery,
+  repliesQuery,
+  sendTyping,
+} from './data';
+import { FORMAT_KEYS, newestOwn, wrapSelection } from './composer-keys';
+import { useEditing } from './message-state';
+import { useLayout } from '../../stores/layout';
 import { useMentionPicker } from './mention-picker';
 import { useSession } from '../auth/session';
 import { PollDialog } from '../community/poll';
@@ -124,7 +136,8 @@ export function Composer({
   const commands = useCommandPicker({ workspaceId, input, onChange: change });
   const addNote = useCommandNotes((s) => s.add);
   const [later, setLater] = useState(false);
-  const { permissions } = useSession();
+  const { permissions, user } = useSession();
+  const self = user.id;
   const uploads = useUploads(channelId, permissions.max_file_size);
   const picker = useRef<HTMLInputElement>(null);
   const addFiles = (files: FileList | File[]) => {
@@ -252,9 +265,47 @@ export function Composer({
     clear();
   };
 
+  const editLast = useEditing((s) => s.set);
+  const openThread = useLayout((s) => s.openThread);
+  /** The messages the composer writes after: the thread's replies or the channel's. */
+  const shown = () =>
+    flatten(
+      thread
+        ? queryClient.getQueryData(repliesQuery(channelId, thread.rootId).queryKey)
+        : queryClient.getQueryData(messagesQuery(channelId).queryKey),
+    );
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (commands.onKeyDown(e)) return;
     if (mentions.onKeyDown(e)) return;
+    const mod = e.ctrlKey || e.metaKey;
+    const format =
+      mod && !e.altKey
+        ? FORMAT_KEYS.find((f) => f.key === e.key.toLowerCase() && f.shift === e.shiftKey)
+        : undefined;
+    if (format) {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const next = wrapSelection(body, el.selectionStart, el.selectionEnd, format.marker);
+      typed(next.value);
+      requestAnimationFrame(() => el.setSelectionRange(next.start, next.end));
+      return;
+    }
+    // ↑ in an empty composer edits one's newest message; Shift+↑ replies to the
+    // newest message in its thread.
+    if (e.key === 'ArrowUp' && body === '' && !mod && !e.altKey) {
+      if (e.shiftKey) {
+        const newest = shown().at(-1);
+        if (thread || !newest) return;
+        e.preventDefault();
+        openThread({ channelId, rootId: newest.root_id ?? newest.id });
+        return;
+      }
+      const own = channel?.archived ? undefined : newestOwn(shown(), self);
+      if (!own) return;
+      e.preventDefault();
+      editLast(own.id);
+      return;
+    }
     // Not while an input method (e.g. for CJK) is composing text.
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();

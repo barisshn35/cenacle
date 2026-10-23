@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BellIcon,
   ExternalLinkIcon,
+  KeyboardIcon,
   LanguagesIcon,
   LaptopIcon,
   LogOutIcon,
@@ -33,6 +34,8 @@ import { desktop } from '../desktop/desktop';
 import { WebAppPanel } from './web-app-panel';
 import { SideNavDialog } from '../shell/side-nav-dialog';
 import { sideNavLink } from '../shell/board-styles';
+import { useShortcutsDialog } from '../shell/shortcuts-state';
+import { Kbd } from '@cenacle/ui/components/kbd';
 import {
   describeDevice,
   devicesQuery,
@@ -159,25 +162,43 @@ export function SettingsDialog({
           onChange={setTab}
           description={t(`settings.sections.${tab}`)}
           aside={
-            <a
-              href={session.account_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={sideNavLink}
-            >
-              <ShieldCheckIcon
-                aria-hidden
-                className="size-4 text-muted-foreground"
-                strokeWidth={1.75}
-              />
-              {t('settings.cenacleId')}
-              <ExternalLinkIcon
-                aria-hidden
-                className="ml-auto size-3.5 text-muted-foreground"
-                strokeWidth={1.75}
-              />
-              <span className="sr-only">{t('settings.newTab')}</span>
-            </a>
+            <>
+              <a
+                href={session.account_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={sideNavLink}
+              >
+                <ShieldCheckIcon
+                  aria-hidden
+                  className="size-4 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                {t('settings.cenacleId')}
+                <ExternalLinkIcon
+                  aria-hidden
+                  className="ml-auto size-3.5 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                <span className="sr-only">{t('settings.newTab')}</span>
+              </a>
+              <button
+                type="button"
+                className={sideNavLink}
+                onClick={() => {
+                  onOpenChange(false);
+                  useShortcutsDialog.getState().setOpen(true);
+                }}
+              >
+                <KeyboardIcon
+                  aria-hidden
+                  className="size-4 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                {t('shortcuts.open')}
+                <Kbd className="ml-auto font-sans">Ctrl /</Kbd>
+              </button>
+            </>
           }
           footer={<span className="font-mono">{window.location.host}</span>}
         >

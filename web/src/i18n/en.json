@@ -2115,5 +2115,39 @@
     "restore": "Restore this version",
     "restored": "The earlier version is back.",
     "none": "No earlier versions were kept."
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "description": "Press Ctrl+/ anywhere to see this list.",
+    "or": "or",
+    "groups": {
+      "navigation": "Moving around",
+      "messages": "Messages",
+      "formatting": "Formatting",
+      "app": "This app"
+    },
+    "jump": "Jump to a channel or person",
+    "channel": "Previous or next channel",
+    "unread": "Previous or next unread channel",
+    "search": "Search messages",
+    "details": "Show or hide the details panel",
+    "list": "These shortcuts",
+    "send": "Send",
+    "newLine": "New line",
+    "editLast": "Edit your last message (empty message box)",
+    "replyLast": "Reply to the last message in its thread (empty message box)",
+    "reactLast": "React to the last message",
+    "click": "click",
+    "markUnread": "Mark a message unread",
+    "cancelEdit": "Stop editing or close",
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "code": "Code",
+    "zoom": "Zoom in or out",
+    "zoomReset": "Actual size",
+    "reload": "Reload",
+    "fullScreen": "Full screen",
+    "open": "Keyboard shortcuts"
   }
 }

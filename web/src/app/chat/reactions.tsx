@@ -108,6 +108,7 @@ export function AddReactionButton({
             variant="ghost"
             size="icon-sm"
             aria-label={t('reactions.add')}
+            data-action="react"
             className={className}
           />
         }
