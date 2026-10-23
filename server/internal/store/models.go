@@ -347,6 +347,12 @@ type InstanceBanner struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type InstanceSetting struct {
+	ID        bool      `json:"id"`
+	WebApp    bool      `json:"web_app"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type LegalHold struct {
 	ID          pgtype.UUID        `json:"id"`
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`

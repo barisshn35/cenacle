@@ -2520,6 +2520,12 @@ type MessagePage struct {
 	Messages []Message `json:"messages"`
 }
 
+// Meta defines model for Meta.
+type Meta struct {
+	// WebApp People may use Cenacle in web browsers.
+	WebApp bool `json:"web_app"`
+}
+
 // MyProfile defines model for MyProfile.
 type MyProfile struct {
 	// AccountUrl Where to change the name (Cenacle ID's account page).
@@ -3097,6 +3103,14 @@ type UserSound struct {
 	Size        int                `json:"size"`
 }
 
+// WebAppSetting defines model for WebAppSetting.
+type WebAppSetting struct {
+	Enabled bool `json:"enabled"`
+
+	// Forced CENACLE_WEB_APP sets it; the administrators cannot change it here.
+	Forced bool `json:"forced"`
+}
+
 // Webhook defines model for Webhook.
 type Webhook struct {
 	ChannelId   openapi_types.UUID `json:"channel_id"`
@@ -3274,6 +3288,11 @@ type WsTicket struct {
 	// ExpiresIn Seconds until the ticket expires.
 	ExpiresIn int    `json:"expires_in"`
 	Ticket    string `json:"ticket"`
+}
+
+// SetWebAppJSONBody defines parameters for SetWebApp.
+type SetWebAppJSONBody struct {
+	Enabled bool `json:"enabled"`
 }
 
 // BackchannelLogoutFormdataBody defines parameters for BackchannelLogout.
@@ -3861,6 +3880,9 @@ type AddStickerParams struct {
 	Name string `form:"name" json:"name"`
 }
 
+// SetWebAppJSONRequestBody defines body for SetWebApp for application/json ContentType.
+type SetWebAppJSONRequestBody SetWebAppJSONBody
+
 // BackchannelLogoutFormdataRequestBody defines body for BackchannelLogout for application/x-www-form-urlencoded ContentType.
 type BackchannelLogoutFormdataRequestBody BackchannelLogoutFormdataBody
 
@@ -4204,6 +4226,12 @@ func (t *FormValues_AdditionalProperties) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetWebApp Whether the web app is on (instance administrators)
+	// (GET /api/admin/web-app)
+	GetWebApp(w http.ResponseWriter, r *http.Request)
+	// SetWebApp Turn the web app on or off (instance administrators)
+	// (PUT /api/admin/web-app)
+	SetWebApp(w http.ResponseWriter, r *http.Request)
 	// BackchannelLogout OpenID Connect Back-Channel Logout (called by Cenacle ID)
 	// (POST /api/auth/backchannel-logout)
 	BackchannelLogout(w http.ResponseWriter, r *http.Request)
@@ -4621,6 +4649,9 @@ type ServerInterface interface {
 	// ListUnreads The unread messages of a workspace's channels (20 latest per channel)
 	// (GET /api/me/unreads)
 	ListUnreads(w http.ResponseWriter, r *http.Request, params ListUnreadsParams)
+	// GetMeta What the server offers, before signing in
+	// (GET /api/meta)
+	GetMeta(w http.ResponseWriter, r *http.Request)
 	// GetPicture A profile picture or workspace icon
 	// (GET /api/pictures/{picture_id})
 	GetPicture(w http.ResponseWriter, r *http.Request, pictureId openapi_types.UUID, params GetPictureParams)
@@ -4911,6 +4942,18 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// GetWebApp Whether the web app is on (instance administrators)
+// (GET /api/admin/web-app)
+func (_ Unimplemented) GetWebApp(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWebApp Turn the web app on or off (instance administrators)
+// (PUT /api/admin/web-app)
+func (_ Unimplemented) SetWebApp(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // BackchannelLogout OpenID Connect Back-Channel Logout (called by Cenacle ID)
 // (POST /api/auth/backchannel-logout)
@@ -5746,6 +5789,12 @@ func (_ Unimplemented) ListUnreads(w http.ResponseWriter, r *http.Request, param
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetMeta What the server offers, before signing in
+// (GET /api/meta)
+func (_ Unimplemented) GetMeta(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetPicture A profile picture or workspace icon
 // (GET /api/pictures/{picture_id})
 func (_ Unimplemented) GetPicture(w http.ResponseWriter, r *http.Request, pictureId openapi_types.UUID, params GetPictureParams) {
@@ -6324,6 +6373,34 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetWebApp operation middleware
+func (siw *ServerInterfaceWrapper) GetWebApp(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWebApp(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetWebApp operation middleware
+func (siw *ServerInterfaceWrapper) SetWebApp(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWebApp(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // BackchannelLogout operation middleware
 func (siw *ServerInterfaceWrapper) BackchannelLogout(w http.ResponseWriter, r *http.Request) {
@@ -10178,6 +10255,20 @@ func (siw *ServerInterfaceWrapper) ListUnreads(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// GetMeta operation middleware
+func (siw *ServerInterfaceWrapper) GetMeta(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMeta(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetPicture operation middleware
 func (siw *ServerInterfaceWrapper) GetPicture(w http.ResponseWriter, r *http.Request) {
 
@@ -13092,6 +13183,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/fonts/{font_id}", wrapper.GetFont)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/meta", wrapper.GetMeta)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/web-app", wrapper.GetWebApp)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/web-app", wrapper.SetWebApp)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/ui-texts", wrapper.GetUITexts)

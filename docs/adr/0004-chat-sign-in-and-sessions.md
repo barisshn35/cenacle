@@ -36,7 +36,8 @@ issues its own opaque sessions; the IdP's tokens are not used after sign-in. Web
 6. **Sessions.** 256-bit random tokens (base64url), stored as SHA-256: a slow hash adds
    nothing for tokens of this entropy and would cost on every request. Lifetime: idle
    timeout 7 days and absolute maximum 30 days (`CENACLE_SESSION_IDLE_TIMEOUT`,
-   `CENACLE_SESSION_MAX_AGE`). Use is recorded at most once a minute; expired sessions are
+   `CENACLE_SESSION_MAX_AGE`); since v0.29 both default to no limit, so people stay
+   signed in until they sign out (ADR 0032). Use is recorded at most once a minute; expired sessions are
    deleted every 10 minutes. User agent and client address are kept for the session list
    of v0.8.
 7. **Cookie.** `cenacle_session`, `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and over

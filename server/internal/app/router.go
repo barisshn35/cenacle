@@ -67,6 +67,7 @@ func NewRouter(d Deps) http.Handler {
 			r.Use(auth.SameOrigin(a.PublicURL, a.Cookies))
 			r.Use(auth.Authenticate(a.Sessions, a.Cookies, a.TrustProxy, d.Log))
 			r.Use(auth.RestrictBots)
+			r.Use(auth.WebAppGate(a.WebApp, a.Cookies))
 			if d.Chat != nil {
 				r.Use(d.Chat.TermsGate)
 			}

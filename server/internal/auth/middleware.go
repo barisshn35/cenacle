@@ -57,8 +57,21 @@ func (c Cookies) set(w http.ResponseWriter, name, value string, maxAge int) {
 	})
 }
 
+// cookieMaxAge is the longest a browser keeps a cookie (400 days in Chrome);
+// a session without a limit renews its cookie whenever the app opens.
+const cookieMaxAge = 400 * 24 * time.Hour
+
 func (c Cookies) setSession(w http.ResponseWriter, token string, expires time.Time) {
-	c.set(w, c.SessionName(), token, int(time.Until(expires)/time.Second))
+	c.set(w, c.SessionName(), token, int(min(time.Until(expires), cookieMaxAge)/time.Second))
+}
+
+// renewSession sets the session cookie of r again, so a session without a
+// limit outlives the browser's cookie limit while it is used. Bearer tokens
+// (desktop and mobile apps) have no cookie to renew.
+func (c Cookies) renewSession(w http.ResponseWriter, r *http.Request, expires time.Time) {
+	if cookie, err := r.Cookie(c.SessionName()); err == nil && cookie.Value != "" {
+		c.setSession(w, cookie.Value, expires)
+	}
 }
 
 func (c Cookies) clearSession(w http.ResponseWriter) { c.set(w, c.SessionName(), "", -1) }

@@ -72,9 +72,10 @@ type Config struct {
 	OIDCClientID     string
 	OIDCClientSecret string
 
-	// SessionIdleTimeout ends sessions that were not used for this long.
+	// SessionIdleTimeout ends sessions that were not used for this long; 0:
+	// no limit (the default since v0.29: signed in until signing out).
 	SessionIdleTimeout time.Duration
-	// SessionMaxAge ends sessions this long after sign-in, used or not.
+	// SessionMaxAge ends sessions this long after sign-in, used or not; 0: no limit.
 	SessionMaxAge time.Duration
 
 	// AdminEmail is the verified e-mail address of the one user who may
@@ -94,6 +95,10 @@ type Config struct {
 	// LinkPreviews: the server fetches a preview of the first link of messages
 	// (public addresses only; never through EgressAllow).
 	LinkPreviews bool
+	// WebApp, when set, decides whether people may use Cenacle in web
+	// browsers and overrides the administrators' setting (recovery when
+	// the administrators locked themselves out). nil leaves it to them.
+	WebApp *bool
 
 	// Files: an S3-compatible object store; without an endpoint, files are off.
 	S3Endpoint  string
@@ -189,8 +194,8 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.OIDCBackchannelURL = l.origin("CENACLE_OIDC_BACKCHANNEL_URL", "", false)
 	cfg.OIDCClientID = l.str("CENACLE_OIDC_CLIENT_ID", "cenacle-chat")
 	cfg.OIDCClientSecret = l.str("CENACLE_OIDC_CLIENT_SECRET", "")
-	cfg.SessionIdleTimeout = l.duration("CENACLE_SESSION_IDLE_TIMEOUT", 7*24*time.Hour)
-	cfg.SessionMaxAge = l.duration("CENACLE_SESSION_MAX_AGE", 30*24*time.Hour)
+	cfg.SessionIdleTimeout = l.limit("CENACLE_SESSION_IDLE_TIMEOUT")
+	cfg.SessionMaxAge = l.limit("CENACLE_SESSION_MAX_AGE")
 	cfg.AdminEmail = strings.TrimSpace(l.str("CENACLE_ADMIN_EMAIL", ""))
 	cfg.AnnouncementChannel = strings.TrimSpace(l.str("CENACLE_ANNOUNCEMENT_CHANNEL", "Central"))
 	if allow, err := egress.ParseAllow(l.str("CENACLE_EGRESS_ALLOW", "")); err != nil {
@@ -200,6 +205,7 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	}
 	cfg.EgressAllowHTTP = l.boolean("CENACLE_EGRESS_ALLOW_HTTP", false)
 	cfg.LinkPreviews = l.boolean("CENACLE_LINK_PREVIEWS", true)
+	cfg.WebApp = l.onOff("CENACLE_WEB_APP")
 	cfg.S3Endpoint = strings.TrimSpace(l.str("CENACLE_S3_ENDPOINT", ""))
 	cfg.S3Region = l.str("CENACLE_S3_REGION", "garage")
 	cfg.S3Bucket = l.str("CENACLE_S3_BUCKET", "cenacle-files")
@@ -319,6 +325,21 @@ func (l *loader) duration(key string, def time.Duration) time.Duration {
 	return d
 }
 
+// limit reads an optional time limit: unset, "0" or "none" mean no limit (0).
+func (l *loader) limit(key string) time.Duration {
+	switch raw := strings.TrimSpace(l.str(key, "")); raw {
+	case "", "0", "none":
+		return 0
+	default:
+		d, err := time.ParseDuration(raw)
+		if err != nil || d <= 0 {
+			l.fail("%s: must be a positive duration such as 720h, or none, got %q", key, raw)
+			return 0
+		}
+		return d
+	}
+}
+
 func (l *loader) boolean(key string, def bool) bool {
 	switch raw := l.str(key, ""); raw {
 	case "":
@@ -331,6 +352,23 @@ func (l *loader) boolean(key string, def bool) bool {
 		l.fail("%s: must be true or false, got %q", key, raw)
 		return def
 	}
+}
+
+// onOff reads an optional switch: nil when unset.
+func (l *loader) onOff(key string) *bool {
+	var v bool
+	switch raw := strings.ToLower(strings.TrimSpace(l.str(key, ""))); raw {
+	case "":
+		return nil
+	case "on", "true", "1":
+		v = true
+	case "off", "false", "0":
+		v = false
+	default:
+		l.fail("%s: must be on or off, got %q", key, raw)
+		return nil
+	}
+	return &v
 }
 
 // origin parses an absolute http(s) URL without path, query or fragment.
@@ -437,7 +475,7 @@ func (l *loader) validateServe(cfg *Config) {
 			seen[key] = true
 		}
 	}
-	if cfg.SessionIdleTimeout > cfg.SessionMaxAge {
+	if cfg.SessionIdleTimeout > 0 && cfg.SessionMaxAge > 0 && cfg.SessionIdleTimeout > cfg.SessionMaxAge {
 		l.fail("CENACLE_SESSION_IDLE_TIMEOUT: must not exceed CENACLE_SESSION_MAX_AGE")
 	}
 }

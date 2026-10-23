@@ -301,6 +301,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Ephemeral:   ephemeral,
 			MaxFileSize: maxFileSize,
 			AI:          cfg.AIURL != "",
+			WebApp:      &auth.WebApp{Store: queries, Forced: cfg.WebApp},
 			Log:         log,
 		},
 		Chat: &chat.Handlers{

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 // backchannel posts a logout token like Cenacle ID does.
@@ -164,5 +165,39 @@ func TestSessionReportsTheAccountPage(t *testing.T) {
 	want := e.idp.Issuer() + "/account?return_to=" + url.QueryEscape(e.app.URL+"/")
 	if s.AccountURL != want {
 		t.Errorf("account_url = %q, want %q", s.AccountURL, want)
+	}
+}
+
+func TestSessionsWithoutLimitsLastUntilSignOut(t *testing.T) {
+	e := newEnv(t)
+	// The v0.29 default: no idle timeout and no maximum age.
+	e.sessions.IdleTimeout, e.sessions.MaxAge = 0, 0
+	c := newClient(t)
+	e.signIn(c, "/api/auth/login")
+
+	var expires time.Time
+	if err := e.pool.QueryRow(e.t.Context(), "SELECT max(expires_at) FROM sessions").Scan(&expires); err != nil {
+		t.Fatal(err)
+	}
+	if time.Until(expires) < 50*365*24*time.Hour {
+		t.Errorf("expires_at = %v, want no limit", expires)
+	}
+	// The app's session request renews the cookie for as long as browsers keep one.
+	res, body := e.do(c, http.MethodGet, "/api/session", nil)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("session = %d %s", res.StatusCode, body)
+	}
+	cookie := res.Header.Get("Set-Cookie")
+	if !strings.Contains(cookie, "Max-Age=34560000") || !strings.Contains(cookie, "HttpOnly") {
+		t.Errorf("renewed cookie = %q", cookie)
+	}
+	var s struct {
+		IdleTimeoutSeconds int `json:"idle_timeout_seconds"`
+	}
+	if err := json.Unmarshal(body, &s); err != nil || s.IdleTimeoutSeconds != 0 {
+		t.Errorf("idle_timeout_seconds = %d (%v)", s.IdleTimeoutSeconds, err)
+	}
+	if !e.signedIn(c) {
+		t.Error("not signed in")
 	}
 }

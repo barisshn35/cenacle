@@ -90,17 +90,18 @@ server's help:
 
 ### Other settings
 
-| Setting                        | Default | Meaning                                                                                              |
-| ------------------------------ | ------- | ---------------------------------------------------------------------------------------------------- |
-| `CENACLE_LINK_PREVIEWS`        | `true`  | The server fetches public pages linked in messages for previews; `false` without internet access.    |
-| `CENACLE_DATABASE_MAX_CONNS`   | `25`    | Database connections per chat server ([performance](../operations/performance.md)).                  |
-| `CENACLE_DRAIN_DELAY`          | `5s`    | A stopping chat server keeps serving this long while the proxy moves away (upgrades without errors). |
-| `CENACLE_SESSION_IDLE_TIMEOUT` | `168h`  | A signed-in device ends after this long unused.                                                      |
-| `CENACLE_SESSION_MAX_AGE`      | `720h`  | ... and after this long at the latest.                                                               |
-| `CENACLE_LOG_LEVEL`            | `info`  | `debug`, `info`, `warn` or `error` (`IDP_LOG_LEVEL` for Cenacle ID).                                 |
-| `CENACLE_AI_URL`, `_MODEL`     | (none)  | Optional AI with a model you run; see the [AI guide](../operations/ai.md).                           |
-| `IDP_LOGIN_RATE_LIMIT`         | `10`    | Sign-in attempts per address and minute; raise it when many people share one public address.         |
-| `IDP_COOKIE_DOMAIN`            | (none)  | Share Cenacle ID's cookies across subdomains, e.g. `example.com`.                                    |
+| Setting                        | Default | Meaning                                                                                                    |
+| ------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `CENACLE_LINK_PREVIEWS`        | `true`  | The server fetches public pages linked in messages for previews; `false` without internet access.          |
+| `CENACLE_DATABASE_MAX_CONNS`   | `25`    | Database connections per chat server ([performance](../operations/performance.md)).                        |
+| `CENACLE_DRAIN_DELAY`          | `5s`    | A stopping chat server keeps serving this long while the proxy moves away (upgrades without errors).       |
+| `CENACLE_SESSION_IDLE_TIMEOUT` | `none`  | A signed-in device ends after this long unused (`none`: never; people stay signed in until they sign out). |
+| `CENACLE_SESSION_MAX_AGE`      | `none`  | ... and after this long at the latest (`none`: no maximum).                                                |
+| `CENACLE_WEB_APP`              | unset   | `on` or `off` overrides the administrators' web app setting (recovery); unset leaves it to them.           |
+| `CENACLE_LOG_LEVEL`            | `info`  | `debug`, `info`, `warn` or `error` (`IDP_LOG_LEVEL` for Cenacle ID).                                       |
+| `CENACLE_AI_URL`, `_MODEL`     | (none)  | Optional AI with a model you run; see the [AI guide](../operations/ai.md).                                 |
+| `IDP_LOGIN_RATE_LIMIT`         | `10`    | Sign-in attempts per address and minute; raise it when many people share one public address.               |
+| `IDP_COOKIE_DOMAIN`            | (none)  | Share Cenacle ID's cookies across subdomains, e.g. `example.com`.                                          |
 
 Cenacle ID keeps up to 10 database connections (`IDP_DATABASE_POOL_MAX`); keep the sum of
 all chat servers' and Cenacle ID's connections below PostgreSQL's `max_connections`.

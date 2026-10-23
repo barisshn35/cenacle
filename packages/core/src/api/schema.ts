@@ -341,6 +341,50 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/meta': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * What the server offers, before signing in
+     * @description Public. The web app reads it first: when the web app is turned off it
+     *     shows where to get the desktop and mobile apps instead of signing in.
+     */
+    get: operations['getMeta'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/web-app': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Whether the web app is on (instance administrators) */
+    get: operations['getWebApp'];
+    /**
+     * Turn the web app on or off (instance administrators)
+     * @description Off: nobody can use Cenacle in a web browser; signed-in browsers are
+     *     signed out at their next request. The desktop and mobile apps keep
+     *     working. Refused while CENACLE_WEB_APP decides it.
+     */
+    put: operations['setWebApp'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/ui-texts': {
     parameters: {
       query?: never;
@@ -4490,6 +4534,15 @@ export interface components {
       /** Format: date-time */
       created_at: string;
     };
+    Meta: {
+      /** @description People may use Cenacle in web browsers. */
+      web_app: boolean;
+    };
+    WebAppSetting: {
+      enabled: boolean;
+      /** @description CENACLE_WEB_APP sets it; the administrators cannot change it here. */
+      forced: boolean;
+    };
     UITexts: {
       /** @description Replaced texts, by language and key. */
       texts: {
@@ -5561,6 +5614,77 @@ export interface operations {
       };
       401: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  getMeta: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The server's offer. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Meta'];
+        };
+      };
+    };
+  };
+  getWebApp: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The setting. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WebAppSetting'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setWebApp: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          enabled: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WebAppSetting'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
     };
   };
   getUITexts: {

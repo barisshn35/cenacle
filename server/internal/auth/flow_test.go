@@ -60,6 +60,7 @@ type env struct {
 	pool     *pgxpool.Pool
 	sessions *auth.Sessions
 	client   *http.Client
+	webApp   *auth.WebApp
 }
 
 func newEnv(t *testing.T) *env {
@@ -69,8 +70,9 @@ func newEnv(t *testing.T) *env {
 	queries := store.New(pool)
 	sessions := &auth.Sessions{Queries: queries, IdleTimeout: time.Hour, MaxAge: 24 * time.Hour}
 
-	e := &env{t: t, idp: idp, pool: pool, sessions: sessions}
+	e := &env{t: t, idp: idp, pool: pool, sessions: sessions, webApp: &auth.WebApp{Store: queries}}
 	handlers := &auth.Handlers{
+		WebApp:     e.webApp,
 		Sessions:   sessions,
 		Users:      queries,
 		Flows:      &memFlows{m: map[string][]byte{}},

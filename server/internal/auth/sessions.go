@@ -80,11 +80,25 @@ func (c ClientInfo) userAgent() string {
 // Sessions creates, checks and ends sessions.
 type Sessions struct {
 	Queries store.Querier
-	// IdleTimeout ends sessions that were not used for this long.
+	// IdleTimeout ends sessions that were not used for this long; 0: no limit.
 	IdleTimeout time.Duration
-	// MaxAge is the absolute lifetime of a session.
+	// MaxAge is the absolute lifetime of a session; 0: no limit.
 	MaxAge time.Duration
 }
+
+// noLimit stands for "no limit" in the database: a session lasts until it is
+// ended (signing out, an administrator, back-channel logout).
+const noLimit = 100 * 365 * 24 * time.Hour
+
+func orNoLimit(d time.Duration) time.Duration {
+	if d <= 0 {
+		return noLimit
+	}
+	return d
+}
+
+// idle is the idle timeout as an SQL interval (no limit: a century).
+func (s *Sessions) idle() pgtype.Interval { return interval(orNoLimit(s.IdleTimeout)) }
 
 // Create starts a session for userID and returns its token. idpSID is the
 // identity provider's session it came from ("" if unknown).
@@ -93,7 +107,7 @@ func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client Client
 	sess, err := s.Queries.CreateSession(ctx, store.CreateSessionParams{
 		UserID:    userID,
 		TokenHash: hash,
-		ExpiresAt: time.Now().Add(s.MaxAge),
+		ExpiresAt: time.Now().Add(orNoLimit(s.MaxAge)),
 		UserAgent: client.userAgent(),
 		IpAddress: client.IP,
 		IdpSid:    idpSID,
@@ -111,7 +125,7 @@ func (s *Sessions) Authenticate(ctx context.Context, token string, client Client
 	}
 	row, err := s.Queries.GetActiveSession(ctx, store.GetActiveSessionParams{
 		TokenHash:   hashToken(token),
-		IdleTimeout: interval(s.IdleTimeout),
+		IdleTimeout: s.idle(),
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Principal{}, ErrNoSession
@@ -132,7 +146,7 @@ func (s *Sessions) Authenticate(ctx context.Context, token string, client Client
 // SessionActive reports whether a session can still be used, without
 // recording use.
 func (s *Sessions) SessionActive(ctx context.Context, id pgtype.UUID) (bool, error) {
-	return s.Queries.SessionIsActive(ctx, store.SessionIsActiveParams{ID: id, IdleTimeout: interval(s.IdleTimeout)})
+	return s.Queries.SessionIsActive(ctx, store.SessionIsActiveParams{ID: id, IdleTimeout: s.idle()})
 }
 
 // Delete ends a session.
@@ -142,7 +156,7 @@ func (s *Sessions) Delete(ctx context.Context, id pgtype.UUID) error {
 
 // DeleteExpired removes sessions that can no longer be used.
 func (s *Sessions) DeleteExpired(ctx context.Context) (int64, error) {
-	return s.Queries.DeleteExpiredSessions(ctx, interval(s.IdleTimeout))
+	return s.Queries.DeleteExpiredSessions(ctx, s.idle())
 }
 
 func interval(d time.Duration) pgtype.Interval {

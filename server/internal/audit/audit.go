@@ -72,6 +72,7 @@ const (
 	MessagesExported        = "messages.exported"
 	AIChanged               = "ai.changed"
 	FederationChanged       = "federation.changed"
+	WebAppChanged           = "instance.web_app_changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

@@ -41,6 +41,7 @@ const (
 	signinExpired     = "expired"     // the flow is unknown, used or too old
 	signinFailed      = "failed"      // the IdP response did not verify
 	signinUnavailable = "unavailable" // Cenacle ID or the database is unreachable
+	signinWebAppOff   = "web_app_off" // the web app is turned off on this server
 )
 
 // FlowStore keeps the state of sign-ins in progress. Take must return a value
@@ -77,8 +78,10 @@ type Handlers struct {
 	// MaxFileSize is the largest file in bytes; 0 when files are off.
 	MaxFileSize int64
 	// AI: the operator configured a model (workspaces may turn AI on).
-	AI  bool
-	Log *slog.Logger
+	AI bool
+	// WebApp decides whether browsers may sign in; nil keeps it on.
+	WebApp *WebApp
+	Log    *slog.Logger
 }
 
 func randomString() string {
@@ -94,6 +97,14 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request, params api.Logi
 	returnTo := "/"
 	if params.ReturnTo != nil {
 		returnTo = SafeReturnPath(*params.ReturnTo)
+	}
+	if on, err := h.WebApp.Enabled(r.Context()); err != nil || !on {
+		code := signinWebAppOff
+		if err != nil {
+			code = signinUnavailable
+		}
+		h.redirectSigninError(w, r, code, returnTo)
+		return
 	}
 	provider, _, err := h.IdP.discover(r.Context())
 	if err != nil {
@@ -310,6 +321,7 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	h.Cookies.renewSession(w, r, p.Session.ExpiresAt)
 	httpx.WriteJSON(w, http.StatusOK, api.Session{
 		User: api.User{
 			Id:            p.User.ID.Bytes,

@@ -147,8 +147,9 @@ func TestLoadServe(t *testing.T) {
 		t.Fatalf("LoadServe: %v", err)
 	}
 	if cfg.PublicURL.String() != "http://localhost:15173" || cfg.OIDCIssuer != "http://localhost:8190" ||
-		cfg.OIDCClientID != "cenacle-chat" || cfg.SessionIdleTimeout != 7*24*time.Hour ||
-		cfg.SessionMaxAge != 30*24*time.Hour || cfg.OIDCBackchannelURL != nil {
+		// Sessions last until sign-out by default (v0.29): no idle timeout, no maximum age.
+		cfg.OIDCClientID != "cenacle-chat" || cfg.SessionIdleTimeout != 0 ||
+		cfg.SessionMaxAge != 0 || cfg.OIDCBackchannelURL != nil {
 		t.Errorf("defaults = %+v", cfg)
 	}
 
@@ -227,5 +228,38 @@ func TestChannelSettings(t *testing.T) {
 	_, err = LoadServe(env(base), files(nil))
 	if err == nil || !strings.Contains(err.Error(), "configured twice") || !strings.Contains(err.Error(), "CENACLE_ADMIN_EMAIL") {
 		t.Errorf("errors = %v", err)
+	}
+}
+
+func TestLoadSessionLimits(t *testing.T) {
+	base := map[string]string{
+		"CENACLE_DATABASE_URL":       "postgres://u:p@localhost/chat",
+		"CENACLE_OIDC_CLIENT_SECRET": "secret",
+	}
+	with := func(extra map[string]string) map[string]string {
+		m := map[string]string{}
+		for k, v := range base {
+			m[k] = v
+		}
+		for k, v := range extra {
+			m[k] = v
+		}
+		return m
+	}
+	for _, none := range []string{"0", "none"} {
+		cfg, err := LoadServe(env(with(map[string]string{
+			"CENACLE_SESSION_IDLE_TIMEOUT": none, "CENACLE_SESSION_MAX_AGE": none,
+		})), files(nil))
+		if err != nil || cfg.SessionIdleTimeout != 0 || cfg.SessionMaxAge != 0 {
+			t.Fatalf("%q: %v %v %v", none, err, cfg.SessionIdleTimeout, cfg.SessionMaxAge)
+		}
+	}
+	// A limit on only one of them is fine; both set, idle must not exceed the maximum.
+	cfg, err := LoadServe(env(with(map[string]string{"CENACLE_SESSION_IDLE_TIMEOUT": "168h"})), files(nil))
+	if err != nil || cfg.SessionIdleTimeout != 168*time.Hour || cfg.SessionMaxAge != 0 {
+		t.Fatalf("idle only: %v %v %v", err, cfg.SessionIdleTimeout, cfg.SessionMaxAge)
+	}
+	if _, err := LoadServe(env(with(map[string]string{"CENACLE_SESSION_IDLE_TIMEOUT": "soon"})), files(nil)); err == nil {
+		t.Fatal("expected an error for an invalid limit")
 	}
 }

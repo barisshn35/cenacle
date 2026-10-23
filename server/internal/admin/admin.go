@@ -82,7 +82,7 @@ func Settings(c config.Config) map[string]any {
 		"public_url": public, "trust_proxy": c.TrustProxy,
 		"database": db, "valkey_addr": c.ValkeyAddr, "valkey_password": secret(c.ValkeyPassword),
 		"oidc_issuer": issuer, "oidc_client_id": c.OIDCClientID, "oidc_client_secret": secret(c.OIDCClientSecret),
-		"session_idle_timeout": c.SessionIdleTimeout.String(), "session_max_age": c.SessionMaxAge.String(),
+		"session_idle_timeout": limitText(c.SessionIdleTimeout), "session_max_age": limitText(c.SessionMaxAge),
 		"admin_email": secret(c.AdminEmail), "announcement_channel": c.AnnouncementChannel,
 		"default_channels": c.DefaultChannels, "egress_allow": allow, "egress_allow_http": c.EgressAllowHTTP,
 		"s3_endpoint": c.S3Endpoint, "s3_bucket": c.S3Bucket, "s3_region": c.S3Region,
@@ -127,4 +127,12 @@ func WriteBundle(w io.Writer, r Report, settings map[string]any) error {
 		return err
 	}
 	return gz.Close()
+}
+
+// limitText shows a time limit, or "none" when there is no limit.
+func limitText(d time.Duration) string {
+	if d <= 0 {
+		return "none"
+	}
+	return d.String()
 }

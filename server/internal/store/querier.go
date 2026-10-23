@@ -253,6 +253,7 @@ type Querier interface {
 	GetFileForReader(ctx context.Context, id pgtype.UUID) (GetFileForReaderRow, error)
 	GetForm(ctx context.Context, id pgtype.UUID) (Form, error)
 	GetInstanceAdmin(ctx context.Context) (User, error)
+	GetInstanceSettings(ctx context.Context) (bool, error)
 	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
 	GetLegalHold(ctx context.Context, id pgtype.UUID) (LegalHold, error)
 	GetLinkPreview(ctx context.Context, url string) (LinkPreview, error)
@@ -620,6 +621,7 @@ type Querier interface {
 	// SetUserDeactivated deactivates or reactivates a person; it returns whether
 	// the state changed.
 	SetUserDeactivated(ctx context.Context, arg SetUserDeactivatedParams) (pgtype.UUID, error)
+	SetWebApp(ctx context.Context, webApp bool) error
 	SetWorkflowNextRun(ctx context.Context, arg SetWorkflowNextRunParams) error
 	SetWorkflowWebhook(ctx context.Context, arg SetWorkflowWebhookParams) error
 	SetWorkspaceAI(ctx context.Context, arg SetWorkspaceAIParams) (Workspace, error)
