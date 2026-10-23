@@ -128,6 +128,10 @@ func TestOnlyTheAdministratorCreatesChannels(t *testing.T) {
 	if found.ID == "" || found.IsMember {
 		t.Fatalf("directory entry = %+v", found)
 	}
+	// The directory counts members (the creator so far).
+	if found.MemberCount == nil || *found.MemberCount != 1 {
+		t.Errorf("member count = %v", found.MemberCount)
+	}
 	if status, code := problemCode(t, s, http.MethodGet, "/api/channels/"+created.ID+"/messages", ayse, nil); status != http.StatusForbidden || code != chat.CodeNotAMember {
 		t.Errorf("reading before joining = %d %s", status, code)
 	}

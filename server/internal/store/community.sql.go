@@ -1148,6 +1148,49 @@ func (q *Queries) ListReports(ctx context.Context, arg ListReportsParams) ([]Lis
 	return items, nil
 }
 
+const listWorkspaceActiveRuns = `-- name: ListWorkspaceActiveRuns :many
+SELECT r.id, r.playbook_id, r.workspace_id, r.channel_id, r.name, r.owner_id, r.checklists, r.status, r.created_at, r.finished_at FROM playbook_runs r
+JOIN channel_members m ON m.channel_id = r.channel_id AND m.user_id = $1
+WHERE r.workspace_id = $2 AND r.status = 'active'
+ORDER BY r.created_at DESC LIMIT 100
+`
+
+type ListWorkspaceActiveRunsParams struct {
+	UserID      pgtype.UUID `json:"user_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+func (q *Queries) ListWorkspaceActiveRuns(ctx context.Context, arg ListWorkspaceActiveRunsParams) ([]PlaybookRun, error) {
+	rows, err := q.db.Query(ctx, listWorkspaceActiveRuns, arg.UserID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PlaybookRun
+	for rows.Next() {
+		var i PlaybookRun
+		if err := rows.Scan(
+			&i.ID,
+			&i.PlaybookID,
+			&i.WorkspaceID,
+			&i.ChannelID,
+			&i.Name,
+			&i.OwnerID,
+			&i.Checklists,
+			&i.Status,
+			&i.CreatedAt,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const resolveReports = `-- name: ResolveReports :many
 UPDATE message_reports
 SET status = $1, action = $2, resolved_by = $3, resolved_at = now()

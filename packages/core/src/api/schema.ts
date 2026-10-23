@@ -2527,6 +2527,25 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Runs in progress in the person's channels of a workspace, newest first (up to 100) */
+    get: operations['listWorkspaceRuns'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/runs/{run_id}/items': {
     parameters: {
       query?: never;
@@ -4449,6 +4468,8 @@ export interface components {
       can_manage: boolean;
       /** @description Archived channels are read-only. */
       archived: boolean;
+      /** @description How many people are in the channel (the channel directory only). */
+      member_count?: number;
       /** @description Members are exactly the people of the channel's directory groups. */
       group_managed: boolean;
       /** @description Messages of others after the read position, counted up to 100. */
@@ -9559,6 +9580,33 @@ export interface operations {
       header?: never;
       path: {
         channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Runs. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            runs: components['schemas']['Run'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listWorkspaceRuns: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
       };
       cookie?: never;
     };

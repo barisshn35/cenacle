@@ -380,7 +380,17 @@ func TestPlaybooks(t *testing.T) {
 	if len(runs.Runs) != 1 {
 		t.Errorf("runs = %d", len(runs.Runs))
 	}
+	// The workspace lists the runs in progress in the person's channels.
+	var active struct{ Runs []api.Run }
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/runs", ayse, nil, &active)
+	if len(active.Runs) != 1 || active.Runs[0].Id != run.Id {
+		t.Errorf("workspace runs = %+v", active.Runs)
+	}
 	s.call(http.MethodPost, "/api/runs/"+run.Id.String()+"/finish", ayse, nil, &run)
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/runs", ayse, nil, &active)
+	if len(active.Runs) != 0 {
+		t.Errorf("finished runs are listed: %d", len(active.Runs))
+	}
 	if run.Status != "finished" || run.FinishedAt == nil {
 		t.Errorf("finished = %+v", run)
 	}

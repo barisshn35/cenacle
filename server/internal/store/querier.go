@@ -475,6 +475,7 @@ type Querier interface {
 	ListWorkflowRuns(ctx context.Context, arg ListWorkflowRunsParams) ([]ListWorkflowRunsRow, error)
 	ListWorkflowTasksByID(ctx context.Context, ids []pgtype.UUID) ([]ListWorkflowTasksByIDRow, error)
 	ListWorkflows(ctx context.Context, workspaceID pgtype.UUID) ([]Workflow, error)
+	ListWorkspaceActiveRuns(ctx context.Context, arg ListWorkspaceActiveRunsParams) ([]PlaybookRun, error)
 	ListWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceAttribute, error)
 	// ListWorkspaceAudit returns a workspace's events newest first, before a cursor.
 	ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAuditParams) ([]ListWorkspaceAuditRow, error)

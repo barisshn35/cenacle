@@ -25,7 +25,8 @@ ORDER BY c.is_mandatory DESC, lower(c.name);
 -- name: ListAllChannels :many
 -- ListAllChannels returns the public channels of a workspace and its private
 -- channels the user belongs to, with the user's role ('' when not a member).
-SELECT sqlc.embed(c), coalesce(m.role, '')::text AS role
+SELECT sqlc.embed(c), coalesce(m.role, '')::text AS role,
+       (SELECT count(*) FROM channel_members x WHERE x.channel_id = c.id)::int AS member_count
 FROM channels c
 LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id
 WHERE c.workspace_id = @workspace_id

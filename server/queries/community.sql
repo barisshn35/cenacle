@@ -245,6 +245,12 @@ SELECT * FROM playbook_runs WHERE id = @id;
 -- name: ListChannelRuns :many
 SELECT * FROM playbook_runs WHERE channel_id = @channel_id ORDER BY created_at DESC LIMIT 50;
 
+-- name: ListWorkspaceActiveRuns :many
+SELECT r.* FROM playbook_runs r
+JOIN channel_members m ON m.channel_id = r.channel_id AND m.user_id = @user_id
+WHERE r.workspace_id = @workspace_id AND r.status = 'active'
+ORDER BY r.created_at DESC LIMIT 100;
+
 -- name: SetRunChecklists :one
 UPDATE playbook_runs SET checklists = @checklists WHERE id = @id AND status = 'active' RETURNING *;
 

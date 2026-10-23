@@ -4083,6 +4083,28 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/runs:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [playbooks]
+      operationId: listWorkspaceRuns
+      summary: Runs in progress in the person's channels of a workspace, newest first (up to 100)
+      responses:
+        '200':
+          description: Runs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runs]
+                properties:
+                  runs:
+                    type: array
+                    items: { $ref: '#/components/schemas/Run' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/runs/{run_id}/items:
     parameters:
       - { name: run_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -6560,6 +6582,9 @@ components:
         archived:
           type: boolean
           description: Archived channels are read-only.
+        member_count:
+          type: integer
+          description: How many people are in the channel (the channel directory only).
         group_managed:
           type: boolean
           description: Members are exactly the people of the channel's directory groups.

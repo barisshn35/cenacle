@@ -315,21 +315,8 @@ func (h *Handlers) ownerName(r *http.Request, run store.PlaybookRun) string {
 	return u.DisplayName
 }
 
-// ListChannelRuns implements api.ServerInterface.
-func (h *Handlers) ListChannelRuns(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
-	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok {
-		return
-	}
-	c, _, ok := h.memberChannel(w, r, channelID, p.User)
-	if !ok {
-		return
-	}
-	runs, err := h.Queries.ListChannelRuns(r.Context(), c.ID)
-	if err != nil {
-		h.unavailable(w, r, "list runs", err)
-		return
-	}
+// runsWithOwners answers runs with their owners' names.
+func (h *Handlers) runsWithOwners(w http.ResponseWriter, r *http.Request, runs []store.PlaybookRun) {
 	owners := []pgtype.UUID{}
 	for _, run := range runs {
 		if run.OwnerID.Valid {
@@ -350,6 +337,44 @@ func (h *Handlers) ListChannelRuns(w http.ResponseWriter, r *http.Request, chann
 		out[i] = runAPI(run, names[run.OwnerID])
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string][]api.Run{"runs": out})
+}
+
+// ListChannelRuns implements api.ServerInterface.
+func (h *Handlers) ListChannelRuns(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	c, _, ok := h.memberChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	runs, err := h.Queries.ListChannelRuns(r.Context(), c.ID)
+	if err != nil {
+		h.unavailable(w, r, "list runs", err)
+		return
+	}
+	h.runsWithOwners(w, r, runs)
+}
+
+// ListWorkspaceRuns implements api.ServerInterface: the runs in progress in
+// the channels the person is in.
+func (h *Handlers) ListWorkspaceRuns(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	if _, ok := h.workspaceRole(w, r, workspaceID, p.User); !ok {
+		return
+	}
+	runs, err := h.Queries.ListWorkspaceActiveRuns(r.Context(), store.ListWorkspaceActiveRunsParams{
+		WorkspaceID: pgUUID(workspaceID), UserID: p.User.ID,
+	})
+	if err != nil {
+		h.unavailable(w, r, "list runs", err)
+		return
+	}
+	h.runsWithOwners(w, r, runs)
 }
 
 // memberRun loads a run in a channel the user belongs to.

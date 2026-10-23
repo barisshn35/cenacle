@@ -283,6 +283,7 @@ type channel struct {
 	IsMandatory bool   `json:"is_mandatory"`
 	IsMember    bool   `json:"is_member"`
 	CanPost     bool   `json:"can_post"`
+	MemberCount *int   `json:"member_count"`
 }
 
 type message struct {

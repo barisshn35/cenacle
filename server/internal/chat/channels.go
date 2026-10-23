@@ -189,7 +189,10 @@ func (h *Handlers) ListChannelDirectory(w http.ResponseWriter, r *http.Request, 
 		if wsRole == WorkspaceGuest && row.Role == "" {
 			continue // guests see their own channels only
 		}
-		out = append(out, toAPI(row.Channel, access{ch: row.Role, ws: wsRole}))
+		c := toAPI(row.Channel, access{ch: row.Role, ws: wsRole})
+		n := int(row.MemberCount)
+		c.MemberCount = &n
+		out = append(out, c)
 	}
 	writeChannels(w, out)
 }

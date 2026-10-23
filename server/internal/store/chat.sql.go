@@ -671,7 +671,8 @@ func (q *Queries) JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (
 }
 
 const listAllChannels = `-- name: ListAllChannels :many
-SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, coalesce(m.role, '')::text AS role
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, coalesce(m.role, '')::text AS role,
+       (SELECT count(*) FROM channel_members x WHERE x.channel_id = c.id)::int AS member_count
 FROM channels c
 LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
 WHERE c.workspace_id = $2
@@ -686,8 +687,9 @@ type ListAllChannelsParams struct {
 }
 
 type ListAllChannelsRow struct {
-	Channel Channel `json:"channel"`
-	Role    string  `json:"role"`
+	Channel     Channel `json:"channel"`
+	Role        string  `json:"role"`
+	MemberCount int32   `json:"member_count"`
 }
 
 // ListAllChannels returns the public channels of a workspace and its private
@@ -723,6 +725,7 @@ func (q *Queries) ListAllChannels(ctx context.Context, arg ListAllChannelsParams
 			&i.Channel.Encrypted,
 			&i.Channel.KeyCheck,
 			&i.Role,
+			&i.MemberCount,
 		); err != nil {
 			return nil, err
 		}

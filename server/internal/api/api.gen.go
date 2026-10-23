@@ -1953,6 +1953,9 @@ type Channel struct {
 	Kind       ChannelKind         `json:"kind"`
 	LastReadId *openapi_types.UUID `json:"last_read_id"`
 
+	// MemberCount How many people are in the channel (the channel directory only).
+	MemberCount *int `json:"member_count,omitempty"`
+
 	// MentionCount Unread messages that mention the user, counted up to 100.
 	MentionCount int    `json:"mention_count"`
 	Name         string `json:"name"`
@@ -4913,6 +4916,9 @@ type ServerInterface interface {
 	// ListReports The moderation queue (workspace owners and admins)
 	// (GET /api/workspaces/{workspace_id}/reports)
 	ListReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListReportsParams)
+	// ListWorkspaceRuns Runs in progress in the person's channels of a workspace, newest first (up to 100)
+	// (GET /api/workspaces/{workspace_id}/runs)
+	ListWorkspaceRuns(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListStickers The workspace's stickers
 	// (GET /api/workspaces/{workspace_id}/stickers)
 	ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -6314,6 +6320,12 @@ func (_ Unimplemented) ListPresence(w http.ResponseWriter, r *http.Request, work
 // ListReports The moderation queue (workspace owners and admins)
 // (GET /api/workspaces/{workspace_id}/reports)
 func (_ Unimplemented) ListReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListReportsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListWorkspaceRuns Runs in progress in the person's channels of a workspace, newest first (up to 100)
+// (GET /api/workspaces/{workspace_id}/runs)
+func (_ Unimplemented) ListWorkspaceRuns(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -12787,6 +12799,32 @@ func (siw *ServerInterfaceWrapper) ListReports(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListWorkspaceRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkspaceRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkspaceRuns(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListStickers operation middleware
 func (siw *ServerInterfaceWrapper) ListStickers(w http.ResponseWriter, r *http.Request) {
 
@@ -13609,6 +13647,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/runs", wrapper.ListChannelRuns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/runs", wrapper.ListWorkspaceRuns)
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/runs/{run_id}/items", wrapper.UpdateRunItem)
