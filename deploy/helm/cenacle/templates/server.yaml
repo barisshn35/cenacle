@@ -57,6 +57,15 @@ spec:
             - { name: CENACLE_DATABASE_MAX_CONNS, value: {{ .Values.databaseMaxConns | quote }} }
             - { name: CENACLE_AI_URL, value: {{ .Values.ai.url | quote }} }
             - { name: CENACLE_AI_MODEL, value: {{ .Values.ai.model | quote }} }
+            - { name: CENACLE_AI_TIMEOUT, value: {{ .Values.ai.timeout | quote }} }
+            {{- if .Values.ai.url }}
+            - name: CENACLE_AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: ai-api-key
+                  optional: true
+            {{- end }}
             - { name: CENACLE_DRAIN_DELAY, value: {{ .Values.server.drainDelay | quote }} }
             {{- if .Values.metrics.enabled }}
             - { name: CENACLE_METRICS_ADDR, value: ':9090' }

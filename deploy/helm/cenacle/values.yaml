@@ -3,7 +3,7 @@
 # external (operators or managed services); see docs/install/kubernetes.md.
 
 image:
-  registry: ghcr.io/barisshn35
+  registry: git.calaixo.com:5050/calaxio/cenacle
   # Images are <registry>/<prefix><component>:<tag>.
   prefix: cenacle-
   # Defaults to the chart's appVersion.
@@ -19,6 +19,7 @@ idDomain: id.example.com
 #   chat-database-url, idp-database-url, valkey-password (may be empty),
 #   chat-client-secret, idp-key-encryption-key, idp-cookie-keys,
 #   s3-access-key, s3-secret-key
+# and, when used: smtp-password, ai-api-key
 existingSecret: cenacle
 
 valkey:
@@ -55,9 +56,12 @@ linkPreviews: true
 # Database connections one chat server keeps (keep replicas × this below max_connections).
 databaseMaxConns: 25
 # Optional AI: an OpenAI-compatible API of a model you run (empty: no AI).
+# Its API key, if it wants one, is the "ai-api-key" key of existingSecret.
 ai:
   url: ''
   model: ''
+  # Longest wait for an answer.
+  timeout: 2m
 
 # E-mail about missed mentions and direct messages; empty host: no e-mail.
 # The password is the "smtp-password" key of existingSecret (optional).
@@ -72,7 +76,7 @@ smtp:
 # Web push through the browsers' push services (needs internet access).
 webPush:
   enabled: false
-  # A contact for the push services: mailto: or https:
+  # A contact for the push services: mailto: or https: (default: the admin's e-mail)
   subject: ''
 
 server:

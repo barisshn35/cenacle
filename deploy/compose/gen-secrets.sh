@@ -38,6 +38,13 @@ hex() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
 keep_or_write garage_rpc_secret "$(hex 32)"
 keep_or_write s3_access_key "GK$(hex 12)"
 keep_or_write s3_secret_key "$(hex 32)"
+
+# Optional credentials of services you connect (empty unless you write them in):
+# the SMTP password and the AI model's API key.
+for f in smtp_password ai_api_key; do
+  [ -e "secrets/$f" ] || : > "secrets/$f"
+  chmod 644 "secrets/$f"
+done
 # Garage reads its cluster secret and first key from the environment.
 printf 'GARAGE_RPC_SECRET=%s\nGARAGE_DEFAULT_ACCESS_KEY=%s\nGARAGE_DEFAULT_SECRET_KEY=%s\n' \
   "$(cat secrets/garage_rpc_secret)" "$(cat secrets/s3_access_key)" "$(cat secrets/s3_secret_key)" \

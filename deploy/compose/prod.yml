@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# Production stack (skeleton, v0.1). Single host, automatic TLS via Caddy.
+# Production stack. Single host, automatic TLS via Caddy.
 #
 #   cd deploy/compose
 #   ./gen-secrets.sh                   # random passwords into ./secrets
@@ -22,7 +22,7 @@ x-hardening: &hardening
     options: { max-size: 20m, max-file: '5' }
 
 x-images:
-  server: &server-image ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}server:${CENACLE_VERSION:?set CENACLE_VERSION}
+  server: &server-image ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}server:${CENACLE_VERSION:?set CENACLE_VERSION}
 
 services:
   proxy:
@@ -30,7 +30,7 @@ services:
     build:
       context: ../..
       dockerfile: deploy/compose/caddy/Dockerfile
-    image: cenacle-proxy:${CENACLE_VERSION}
+    image: ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}proxy:${CENACLE_VERSION}
     read_only: true
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 80
@@ -55,7 +55,7 @@ services:
 
   web:
     <<: *hardening
-    image: ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}web:${CENACLE_VERSION}
+    image: ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}web:${CENACLE_VERSION}
     read_only: true
     tmpfs: [/tmp, /data, /config]
     networks: [edge]
@@ -91,6 +91,9 @@ services:
       # Server-to-IdP requests stay inside the Compose network.
       CENACLE_OIDC_BACKCHANNEL_URL: http://idp:8190
       CENACLE_OIDC_CLIENT_SECRET_FILE: /run/secrets/chat_client_secret
+      CENACLE_LOG_LEVEL: ${CENACLE_LOG_LEVEL:-info}
+      CENACLE_SESSION_IDLE_TIMEOUT: ${CENACLE_SESSION_IDLE_TIMEOUT:-168h}
+      CENACLE_SESSION_MAX_AGE: ${CENACLE_SESSION_MAX_AGE:-720h}
       CENACLE_ADMIN_EMAIL: ${CENACLE_ADMIN_EMAIL:-}
       CENACLE_ANNOUNCEMENT_CHANNEL: ${CENACLE_ANNOUNCEMENT_CHANNEL-Central}
       CENACLE_DEFAULT_CHANNELS: ${CENACLE_DEFAULT_CHANNELS-General}
@@ -102,8 +105,10 @@ services:
       CENACLE_AI_URL: ${CENACLE_AI_URL:-}
       CENACLE_AI_MODEL: ${CENACLE_AI_MODEL:-}
       CENACLE_AI_API_KEY: ${CENACLE_AI_API_KEY:-}
+      CENACLE_AI_API_KEY_FILE: /run/secrets/ai_api_key
+      CENACLE_AI_TIMEOUT: ${CENACLE_AI_TIMEOUT:-2m}
       # Files: the bundled Garage (or set an S3 service of your own).
-      CENACLE_S3_ENDPOINT: ${CENACLE_S3_ENDPOINT:-http://garage:3900}
+      CENACLE_S3_ENDPOINT: ${CENACLE_S3_ENDPOINT-http://garage:3900}
       CENACLE_S3_REGION: ${CENACLE_S3_REGION:-garage}
       CENACLE_S3_BUCKET: ${CENACLE_S3_BUCKET:-cenacle-files}
       CENACLE_S3_UPLOAD_URL: ${CENACLE_S3_UPLOAD_URL:-}
@@ -120,11 +125,21 @@ services:
       CENACLE_SMTP_SECURITY: ${CENACLE_SMTP_SECURITY:-starttls}
       CENACLE_SMTP_USERNAME: ${CENACLE_SMTP_USERNAME:-}
       CENACLE_SMTP_PASSWORD: ${CENACLE_SMTP_PASSWORD:-}
+      CENACLE_SMTP_PASSWORD_FILE: /run/secrets/smtp_password
       CENACLE_SMTP_FROM: ${CENACLE_SMTP_FROM:-}
       # Web push through the browsers' push services (needs internet access).
       CENACLE_WEB_PUSH: ${CENACLE_WEB_PUSH:-false}
       CENACLE_WEB_PUSH_SUBJECT: ${CENACLE_WEB_PUSH_SUBJECT:-}
-    secrets: [chat_database_url, valkey_password, chat_client_secret, s3_access_key, s3_secret_key]
+    secrets:
+      [
+        chat_database_url,
+        valkey_password,
+        chat_client_secret,
+        s3_access_key,
+        s3_secret_key,
+        smtp_password,
+        ai_api_key,
+      ]
     networks: [edge, data, files]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -134,7 +149,7 @@ services:
   idp-migrate:
     <<: *hardening
     restart: 'no'
-    image: &idp-image ${CENACLE_IMAGE_PREFIX:-ghcr.io/barisshn35/cenacle-}idp:${CENACLE_VERSION}
+    image: &idp-image ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}idp:${CENACLE_VERSION}
     command: [node, dist/cli.js, migrate, up]
     read_only: true
     environment:
@@ -159,6 +174,7 @@ services:
       IDP_COOKIE_KEYS_FILE: /run/secrets/idp_cookie_keys
       IDP_CLIENTS_FILE: /etc/cenacle/clients.json
       IDP_LOGIN_RATE_LIMIT: ${IDP_LOGIN_RATE_LIMIT:-10}
+      IDP_LOG_LEVEL: ${IDP_LOG_LEVEL:-info}
       # Used inside clients.json (${CENACLE_DOMAIN}).
       CENACLE_DOMAIN: ${CENACLE_DOMAIN}
     secrets: [idp_database_url, idp_key_encryption_key, idp_cookie_keys, chat_client_secret]
@@ -296,3 +312,6 @@ secrets:
   chat_client_secret: { file: ./secrets/chat_client_secret }
   s3_access_key: { file: ./secrets/s3_access_key }
   s3_secret_key: { file: ./secrets/s3_secret_key }
+  # Optional (empty unless used): instead of CENACLE_SMTP_PASSWORD / CENACLE_AI_API_KEY.
+  smtp_password: { file: ./secrets/smtp_password }
+  ai_api_key: { file: ./secrets/ai_api_key }
