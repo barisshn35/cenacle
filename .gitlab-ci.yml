@@ -295,16 +295,7 @@ desktop:
     - |
       for file in release/*.exe release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.blockmap release/index.json; do
         [ -f "$file" ] || continue
+        [ "$(basename "$file")" = builder-debug.yml ] && continue
         curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version/$(basename "$file")"
       done
-  artifacts:
-    expire_in: 30 days
-    paths:
-      - desktop/release/*.exe
-      - desktop/release/*.AppImage
-      - desktop/release/*.deb
-      - desktop/release/*.rpm
-      - desktop/release/*.yml
-      - desktop/release/*.blockmap
-      - desktop/release/index.json
