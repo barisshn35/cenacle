@@ -39,6 +39,10 @@ Air-gapped hosts: `docker save` the images on a connected machine, copy them ove
 
 ## Version notes
 
+### 0.27.1
+
+- A fix of the web app only (jumping to older messages on phones); no migration.
+
 ### 0.27.0
 
 - No migration. Each chat server now keeps up to 25 database connections

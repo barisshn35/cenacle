@@ -8,6 +8,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-10-23
+
 ### Fixed
 
 - Jumping to an older message (from search or a link) could still stop short on phones: the
@@ -740,7 +742,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.27.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.27.1...HEAD
+[0.27.1]: https://github.com/barisshn35/cenacle/compare/v0.27.0...v0.27.1
 [0.27.0]: https://github.com/barisshn35/cenacle/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/barisshn35/cenacle/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/barisshn35/cenacle/compare/v0.24.0...v0.25.0
