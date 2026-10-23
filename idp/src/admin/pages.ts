@@ -171,6 +171,9 @@ export function accountsPage(opts: {
           ? html`<p class="text-sm text-muted-foreground">${m.none}</p>`
           : html`<div
               class="overflow-x-auto rounded-[10px] border border-rule-strong bg-background"
+              role="region"
+              aria-label="${m.title}"
+              tabindex="0"
             >
               <table class="w-full text-left text-sm">
                 <caption class="sr-only">
@@ -383,7 +386,12 @@ ${value}</textarea>
       : noticeBox(m.previewNone);
 
   const runs = opts.runs.length
-    ? html`<div class="overflow-x-auto rounded-[10px] border border-rule-strong bg-background">
+    ? html`<div
+        class="overflow-x-auto rounded-[10px] border border-rule-strong bg-background"
+        role="region"
+        aria-label="${m.history}"
+        tabindex="0"
+      >
         <table class="w-full text-left text-sm">
           <caption class="sr-only">
             ${m.history}
