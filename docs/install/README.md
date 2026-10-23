@@ -133,8 +133,13 @@ Registered applications are listed in `deploy/compose/idp/clients.json`; host na
 `${CENACLE_DOMAIN}` from `.env.prod`. `backchannel_logout_uri` is where Cenacle ID tells the
 chat server that a sign-in ended (an internal address of the compose network).
 
-Users turn on two-step verification (an authenticator app plus recovery codes) and add
-passkeys at `https://<id-domain>/account`; the app links there from Settings.
+By default everyone signs in with a password and a code from an authenticator app: people
+without one set it up during their first sign-in (QR code, a code, ten recovery codes).
+Passkeys are off. Administrators change both in Cenacle ID's administration, Sign-in
+(`https://<id-domain>/account/admin/sign-in`); people manage their own at
+`https://<id-domain>/account`, which the app links from Settings. Sessions last until people
+sign out (see `CENACLE_SESSION_*` above). Server administrators can turn the web app off in
+Settings, Sign-in; `CENACLE_WEB_APP=on` turns it back on.
 
 Directories (Active Directory, LDAP), other identity providers (OpenID Connect, SAML) and
 directory groups: see [Identity](identity.md).

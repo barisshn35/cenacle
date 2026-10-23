@@ -8,6 +8,41 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-23
+
+The interface rewrite and a stricter sign-in (ADR 0031, ADR 0032).
+
+### Added
+
+- The record: conversations read like minutes, with who and when in a speaker margin; a
+  channel's governance stands in a title block; the Inbox is a departures board of what
+  needs you.
+- Boards for Saved (grouped by reminder), Tasks, Events (answer in one click), Playbooks and
+  Workflows; followed threads as cards with Stop following and Mark all as read.
+- Settings and workspace settings with side navigation; Language and region with a 12- or
+  24-hour clock; the channels whose notifications differ, each with a reset.
+- The channel directory searches names and topics and filters by membership.
+- The composer says how many people @channel, @here or @everyone reaches while you type;
+  channel files filter by kind.
+- Sign-in names the server and the steps that follow. Cenacle ID shows a record of the
+  sign-in beside its pages and requires two-step verification by default, with the setup
+  inside the sign-in (QR code, code, recovery codes).
+- Server administrators can turn the web app off (desktop and mobile apps keep working);
+  `CENACLE_WEB_APP=on|off` overrides the setting. `GET /api/meta` tells the app.
+- Cenacle ID administration: a sign-in policy (two-step verification required, passkeys
+  allowed), side navigation.
+
+### Changed
+
+- New look: Paper and Bone neutrals, a Forest sidebar, Brass for selection, focus and the
+  main action, red only for your mentions, errors and destructive actions; Geist and Geist
+  Mono everywhere, Modern as the default font template; public channels carry a speech
+  bubble instead of "#".
+- Sessions last until sign-out by default (`CENACLE_SESSION_IDLE_TIMEOUT` and
+  `CENACLE_SESSION_MAX_AGE` default to `none`).
+- Passkeys are off until an administrator allows them.
+- Theme, density and language moved from the channel header to Settings.
+
 ## [0.28.0] - 2026-10-23
 
 Release candidate preparation.

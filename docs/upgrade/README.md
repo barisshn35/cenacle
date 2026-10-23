@@ -48,6 +48,28 @@ included, was there.
 
 ## Version notes
 
+### 0.29.0
+
+- Migrations: chat `00026_web_app` (one `instance_settings` row, reversible) and Cenacle ID
+  `0006_sign_in_policy` (one `sign_in_policy` row, reversible). Both only add a table.
+- **Two-step verification is now required.** Everyone without an authenticator app sets one
+  up at their next sign-in (QR code, a code, ten recovery codes). To keep it optional, turn
+  "Require two-step verification" off in Cenacle ID's administration, Sign-in, before people
+  sign in again.
+- **Passkeys are off.** Installations that use them turn "Allow passkeys" on in the same
+  place; registered passkeys stay and work again once it is on.
+- **Sessions last until sign-out.** `CENACLE_SESSION_IDLE_TIMEOUT` and
+  `CENACLE_SESSION_MAX_AGE` default to `none`; set them (for example `168h` and `720h`) to
+  keep the limits of 0.28.
+- The web app can be turned off in Settings, Sign-in (server administrators). If the
+  administrators lock themselves out, set `CENACLE_WEB_APP=on` and restart the server.
+- Workspaces that never chose a font template now use Modern (Geist); those that chose
+  Corporate keep Inter.
+- Rolling back to 0.28, with the 0.29 images: once
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down` and once
+  `docker compose -f prod.yml --env-file .env.prod run --rm idp-migrate node dist/cli.js migrate down`;
+  then the previous `CENACLE_VERSION`.
+
 ### 0.28.0
 
 - No migration. Use `prod.yml` and the images of the same release: the 0.28 `prod.yml` with

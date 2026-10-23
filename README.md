@@ -12,14 +12,14 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.28, release candidate preparation.** Sign in with Cenacle ID (passwords with
+> **Status: v0.29, the interface rewrite.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
 > canvases, lists and boards next to channels; meet compliance needs (retention, legal
 > holds, eDiscovery, access rules, encrypted channels); use optional AI with a model you
 > run; share channels with other Cenacle servers. Runs on one host or Kubernetes, also
-> offline. The interface rewrite comes next (see the [roadmap](#roadmap)).
+> offline. The desktop app comes next (see the [roadmap](#roadmap)).
 
 ## Highlights
 
@@ -49,7 +49,8 @@ make dev-web                # web app        -> http://localhost:15173
 make dev-user EMAIL=you@example.com NAME="Your Name"   # asks for a password (15+ characters)
 ```
 
-Open the app at <http://localhost:15173> and sign in with that account. Use `localhost`, not
+Open the app at <http://localhost:15173> and sign in with that account; the first sign-in
+sets up two-step verification with an authenticator app (required by default). Use `localhost`, not
 `127.0.0.1`: the sign-in cookies are bound to the host name. Component gallery
 (development only): <http://localhost:15173/dev/gallery>.
 
@@ -197,8 +198,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.25     | Federation between servers                                                            |
 | v0.26     | Security testing and hardening                                                        |
 | v0.27     | Optimization and load tests                                                           |
-| **v0.28** | **Release candidate preparation**                                                     |
-| v0.29     | Interface rewrite, sign-in pairing by server address, optional web app                |
+| v0.28     | Release candidate preparation                                                         |
+| **v0.29** | **Interface rewrite, sign-in pairing by server address, optional web app**            |
 | v0.30     | Desktop app (Electron)                                                                |
 | v0.31     | Mark unread, personal sidebar sections, user groups, edit history, signed images      |
 | v0.32     | Message priority and acknowledgement, read receipts (off by default), image galleries |
