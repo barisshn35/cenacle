@@ -23,6 +23,10 @@ variables:
   TRIVY_IMAGE: aquasec/trivy:0.76.0
   BINFMT_IMAGE: tonistiigi/binfmt:qemu-v10.0.4
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1.22.2
+  # Signing releases (with the project's key, CI/CD variables COSIGN_KEY and
+  # COSIGN_PASSWORD) and their SBOMs; docs/security/README.md says how to verify.
+  COSIGN_IMAGE: ghcr.io/sigstore/cosign/cosign:v3.1.4@sha256:0f06154836d2de34f887a5c273506d52ca43edaa1d9e53e6510fa78a48f69c2d
+  SYFT_IMAGE: anchore/syft:v1.54.1@sha256:3eb5379ba7b409c3f4069b686110527af0c47df993fa5c10d13e7cf34f49b1aa
   GOMODCACHE: /cache/go/mod
   GOCACHE: /cache/go/build
   GOLANGCI_LINT_CACHE: /cache/golangci
@@ -237,12 +241,9 @@ images:
     - |
       if [ -n "${CI_COMMIT_TAG:-}" ]; then
         version="${CI_COMMIT_TAG#v}"
-        minor="${version%.*}"
         docker run --privileged --rm "$BINFMT_IMAGE" --install arm64 >/dev/null
-        # Built once into an OCI archive, then copied to each registry with
-        # skopeo: it uploads every platform manifest itself (buildkit trusts
-        # the registry's "already there" for them, which GitLab's registry
-        # sometimes gets wrong: "blob unknown to registry").
+        # Built once into an OCI archive, then published (and signed) by
+        # ci/publish-image.sh.
         archive="$CI_PROJECT_DIR/.image-$IMAGE.tar"
         docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" \
           --platform linux/amd64,linux/arm64 \
@@ -252,24 +253,32 @@ images:
           --provenance mode=max --sbom true \
           --cache-from "type=local,src=$BUILDX_CACHE" \
           --output "type=oci,dest=$archive" .
-        auth="$CI_PROJECT_DIR/.registry-auth.json"
+        auth="$CI_PROJECT_DIR/.registry-auth"
+        mkdir -p "$auth" && chmod 700 "$auth"
         b64() { printf '%s:%s' "$1" "$2" | base64 | tr -d '\n'; }
         entries="\"$CI_REGISTRY\":{\"auth\":\"$(b64 "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD")\"}"
         if [ -n "${GHCR_TOKEN:-}" ]; then
           entries="$entries,\"ghcr.io\":{\"auth\":\"$(b64 "${GHCR_USER:-barisshn35}" "$GHCR_TOKEN")\"}"
         fi
-        (umask 077 && printf '{"auths":{%s}}' "$entries" > "$auth")
+        (umask 077 && printf '{"auths":{%s}}' "$entries" > "$auth/config.json")
+        # The signing key where the job's containers can read it.
+        if [ -n "${COSIGN_KEY:-}" ]; then
+          (umask 077 && cp "$COSIGN_KEY" "$auth/cosign.key")
+          export COSIGN_KEY="$auth/cosign.key"
+        fi
         targets="$CI_REGISTRY_IMAGE/cenacle-$IMAGE"
         # Also to GitHub's registry when a token for it is set (CI/CD variable GHCR_TOKEN).
         if [ -n "${GHCR_TOKEN:-}" ]; then targets="$targets ghcr.io/${GHCR_USER:-barisshn35}/cenacle-$IMAGE"; fi
+        export SBOM_DIR="$CI_PROJECT_DIR/.sbom"
         status=0
-        for target in $targets; do
-          for tag in "$version" "$minor"; do
-            docker run --rm --network host -v "$CI_PROJECT_DIR:$CI_PROJECT_DIR" -e REGISTRY_AUTH_FILE="$auth" "$SKOPEO_IMAGE" \
-              copy --all --retry-times 3 "oci-archive:$archive" "docker://$target:$tag" || status=1
-          done
+        ci/publish-image.sh "$archive" "$IMAGE" "$version" "$auth" $targets || status=1
+        # The SBOMs go to the package registry with the release (cenacle-sbom/<version>/).
+        for file in "$SBOM_DIR"/*.spdx.json; do
+          [ -f "$file" ] || continue
+          curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
+            "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-sbom/$version/$(basename "$file")" || status=1
         done
-        rm -f "$auth" "$archive"
+        rm -rf "$auth" "$archive" "$SBOM_DIR"
         exit $status
       fi
 
@@ -292,10 +301,39 @@ desktop:
     - ./node_modules/.bin/electron-builder --config electron-builder.yml --linux --win --publish never
     - node scripts/release-index.mjs
     - version="${CI_COMMIT_TAG#v}"
+    # Checksums of the installers and packages (signed by the next job).
+    - (cd release && sha256sum *.exe *.AppImage *.deb *.rpm > SHA256SUMS)
     - |
-      for file in release/*.exe release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.blockmap release/index.json; do
+      for file in release/*.exe release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.blockmap release/index.json release/SHA256SUMS; do
         [ -f "$file" ] || continue
         [ "$(basename "$file")" = builder-debug.yml ] && continue
         curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version/$(basename "$file")"
       done
+
+
+# The desktop app's checksums, signed with the project's key (v* tags):
+# SHA256SUMS.sigstore.json next to SHA256SUMS in cenacle-desktop/<version>/.
+desktop-sign:
+  stage: build
+  needs: [desktop]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    - |
+      if [ -z "${COSIGN_KEY:-}" ] || [ -z "${COSIGN_PASSWORD:-}" ]; then
+        echo "COSIGN_KEY is not set: the desktop app's checksums are not signed"
+        exit 0
+      fi
+    - version="${CI_COMMIT_TAG#v}"
+    - packages="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version"
+    - work="$CI_PROJECT_DIR/.sign" && mkdir -p "$work" && chmod 700 "$work"
+    - (umask 077 && cp "$COSIGN_KEY" "$work/cosign.key")
+    - curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" -o "$work/SHA256SUMS" "$packages/SHA256SUMS"
+    - >
+      docker run --rm --user 0 --network host -v "$work:/w" -v "$CI_PROJECT_DIR/ci/signing-config.json:/signing-config.json:ro"
+      -e COSIGN_PASSWORD "$COSIGN_IMAGE" sign-blob --key /w/cosign.key --signing-config /signing-config.json
+      --bundle /w/SHA256SUMS.sigstore.json --yes /w/SHA256SUMS
+    - curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$work/SHA256SUMS.sigstore.json" "$packages/SHA256SUMS.sigstore.json"
+  after_script:
+    - rm -rf "$CI_PROJECT_DIR/.sign"

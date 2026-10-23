@@ -16,7 +16,11 @@ registry as `cenacle-desktop/<version>/`:
 | `Cenacle-<version>-amd64.deb`, `-arm64.deb`     | Debian, Ubuntu                                               |
 | `Cenacle-<version>-x86_64.rpm`, `-aarch64.rpm`  | Fedora, RHEL, SUSE                                           |
 | `latest.yml`, `latest-linux*.yml`, `*.blockmap` | the app's updates (checksums, sizes)                         |
+| `SHA256SUMS`, `SHA256SUMS.sigstore.json`        | checksums of the files above, and their signature            |
 | `index.json`                                    | the list the web app shows on its "Use the Cenacle app" page |
+
+The signature shows the files come from the project's release
+(`docs/security/README.md`, Verifying a release).
 
 ## Offering it from your server
 

@@ -30,6 +30,7 @@ To report a vulnerability, see [SECURITY.md](../../SECURITY.md).
   (`make fuzz`). Inputs that once failed stay as regression seeds in `testdata/fuzz`.
 - **Dependencies and secrets:** `govulncheck`, Trivy (dependencies, secrets, Dockerfiles),
   gitleaks over the whole history, license checks; images run as non-root users.
+- **Releases** are signed, with signed SBOMs (see below).
 - **End-to-end:** accessibility (axe), no requests leave the app's origin, sign-in flows.
 - **Desktop app:** against a stand-in server and the whole stack — the page never holds
   the token and no cookie is used, pages of other sites get no bridge, no menu, start-up
@@ -54,6 +55,48 @@ Fuses of the packaged app: `RunAsNode`, `EnableNodeOptionsEnvironmentVariable`,
 `EnableNodeCliInspectArguments` and `GrantFileProtocolExtraPrivileges` off;
 `EnableEmbeddedAsarIntegrityValidation`, `OnlyLoadAppFromAsar` and
 `EnableCookieEncryption` on (checked with `npx @electron/fuses read`).
+
+## Verifying a release (0.31)
+
+Releases are signed with the project's key (cosign; the public key is
+[`deploy/cosign.pub`](../../deploy/cosign.pub)). Signing uses no public transparency log,
+so verifying needs only the public key and the registry — also without Internet access.
+
+- **Images:** each image index and every image it names (each platform, the build
+  provenance) is signed:
+
+  ```sh
+  cosign verify --key deploy/cosign.pub --insecure-ignore-tlog \
+    git.calaixo.com:5050/calaxio/cenacle/cenacle-server:0.31.0
+  ```
+
+  (`--insecure-ignore-tlog` only says there is no transparency log to check.)
+
+- **SBOMs:** each platform's image carries a signed SPDX SBOM (made by syft). Verify and
+  read it for the image of your platform, by its digest:
+
+  ```sh
+  cosign verify-attestation --key deploy/cosign.pub --insecure-ignore-tlog --type spdxjson \
+    git.calaixo.com:5050/calaxio/cenacle/cenacle-server@sha256:<digest of linux/amd64>
+  ```
+
+  The same SBOMs are published with each release in the package registry as
+  `cenacle-sbom/<version>/cenacle-<image>-<version>-linux-<arch>.spdx.json`. The images
+  also carry BuildKit's own SBOM and provenance attestations
+  (`docker buildx imagetools inspect <image> --format '{{ json .SBOM }}'`).
+
+- **Desktop app:** `SHA256SUMS` lists the installers and packages of a release, and
+  `SHA256SUMS.sigstore.json` signs it:
+
+  ```sh
+  cosign verify-blob --key deploy/cosign.pub --insecure-ignore-tlog \
+    --bundle SHA256SUMS.sigstore.json SHA256SUMS
+  sha256sum --check --ignore-missing SHA256SUMS
+  ```
+
+The key is set up once per GitLab project with `ci/setup-signing.sh` (it keeps the private
+key only in protected CI/CD variables and protects `v*` tags); a release without it is
+published unsigned and its pipeline says so.
 
 ## Scanning a running installation
 

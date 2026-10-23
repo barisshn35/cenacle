@@ -91,3 +91,21 @@ which uploads every platform manifest itself. Pushing straight from buildkit fai
 GitLab's registry with `blob unknown to registry`: buildkit skips platform manifests
 the registry reports as present, and the registry then rejected the index that
 referenced them. A failure on one registry no longer stops the push to the other.
+
+## Signing releases
+
+`ci/publish-image.sh` signs every published image with cosign and attaches a signed SPDX
+SBOM (syft) to each platform's image; the SBOMs also go to the package registry as
+`cenacle-sbom/<version>/`. The job `desktop-sign` signs the desktop app's `SHA256SUMS`.
+They need the protected CI/CD variables `COSIGN_KEY` (a file) and `COSIGN_PASSWORD`, and
+`v*` tags protected so their pipelines can read them. Set all of it up once with:
+
+```sh
+GITLAB_URL=https://git.calaixo.com GITLAB_PROJECT=calaxio/cenacle \
+GITLAB_TOKEN=<a token with the api scope> ci/setup-signing.sh
+```
+
+and commit the `deploy/cosign.pub` it writes. Signing uses no transparency log
+(`ci/signing-config.json` names no services), so verification works offline with the
+public key alone (`docs/security/README.md`). Without the variables, releases are
+published unsigned.
