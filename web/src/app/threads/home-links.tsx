@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useAI } from '../ai/ai';
 import {
-  AtSignIcon,
   BookmarkIcon,
   CalendarIcon,
   InboxIcon,
+  ListIcon,
   ListChecksIcon,
   MessagesSquareIcon,
   GlobeIcon,
@@ -36,11 +36,11 @@ import { unreadThreadsQuery } from './threads';
 const PRIMARY = new Set(['activity', 'threads', 'saved', 'tasks']);
 
 const LINKS = [
-  { view: 'activity', icon: AtSignIcon },
+  { view: 'activity', icon: InboxIcon },
   { view: 'threads', icon: MessagesSquareIcon },
   { view: 'saved', icon: BookmarkIcon },
   { view: 'tasks', icon: SquareCheckBigIcon },
-  { view: 'unreads', icon: InboxIcon },
+  { view: 'unreads', icon: ListIcon },
   { view: 'events', icon: CalendarIcon },
   { view: 'playbooks', icon: ListChecksIcon },
   { view: 'workflows', icon: ZapIcon },

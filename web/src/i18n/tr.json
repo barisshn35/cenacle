@@ -891,7 +891,7 @@
   },
   "home": {
     "threads": "Yanıt dizileri",
-    "activity": "Etkinlik",
+    "activity": "Gelen kutusu",
     "saved": "Kaydedilenler",
     "unreads": "Tüm okunmamışlar",
     "tasks": "Görevler",
@@ -1729,5 +1729,36 @@
       "offered": "Önerildi; kabul edince paylaşılır.",
       "stop": "{{server}} ile paylaşmayı durdur"
     }
+  },
+  "inbox": {
+    "title": "Gelen kutusu",
+    "columns": {
+      "time": "Saat",
+      "where": "Nerede",
+      "from": "Kimden",
+      "what": "Ne",
+      "status": "Durum",
+      "actions": "İşlemler"
+    },
+    "kind": {
+      "mention": "Sizden bahsetti",
+      "reply": "Dizinizde yanıtladı",
+      "reaction": "{{emoji}} tepkisi verdi"
+    },
+    "status": {
+      "new": "Yeni",
+      "seen": "Görüldü",
+      "you": "@siz"
+    },
+    "open": "Aç",
+    "openNamed": "{{name}} adlı kişinin mesajını aç",
+    "markSeen": "Görüldü say",
+    "markSeenNamed": "{{name}} adlı kişinin mesajını görüldü say",
+    "markAllSeen": "Tümünü görüldü say",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "empty": "Sizi bekleyen bir şey yok. Bahsetmeler, dizilerinizdeki yanıtlar ve mesajlarınıza verilen tepkiler buraya gelir.",
+    "unseen_one": "{{count}} yeni",
+    "unseen_other": "{{count}} yeni"
   }
 }

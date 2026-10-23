@@ -4,17 +4,16 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
-  AtSignIcon,
   BellRingIcon,
   CheckIcon,
   MessageSquareIcon,
   RotateCcwIcon,
-  SmileIcon,
   Trash2Icon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@cenacle/ui/components/button';
+import { cn } from '@cenacle/ui/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,20 +28,19 @@ import { useLayout } from '../../stores/layout';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { channelsQuery, markRead, setReadLocally, type Message } from '../chat/data';
 import { openMessage } from './open-message';
+import { InboxBoard } from './inbox-board';
 import { EventsList } from '../community/events';
 import { PlaybooksList } from '../community/playbooks';
 import { MyTasks } from '../collab/my-tasks';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import {
-  activityQuery,
   applySaved,
   followedThreadsQuery,
   savedQuery,
   saveMessage,
   unreadsQuery,
   unsaveMessage,
-  type ActivityItem,
   type SavedItem,
 } from './threads';
 
@@ -70,8 +68,9 @@ export type HomeView =
   | 'ask'
   | 'federation';
 
+/** Channels are named without "#": their kind is shown by an icon (v0.29). */
 function channelLabel(c: { name: string; kind: string }) {
-  return c.kind === 'direct' || c.kind === 'group' ? c.name : `#${c.name}`;
+  return c.name;
 }
 
 /** The name the person sees for a channel (conversations are named after people). */
@@ -84,22 +83,32 @@ function useChannelNames() {
 function Shell({
   title,
   mobile,
+  wide = false,
   children,
 }: {
   title: string;
   mobile: boolean;
+  /** Boards (the Inbox) use the whole width with 32px gutters. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="view-title">
-      <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-3">
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 max-sm:px-2">
         {mobile && <SidebarTrigger />}
-        <h1 id="view-title" className="text-[0.9375rem] font-semibold">
+        <h1 id="view-title" className="text-[17px] leading-5 font-semibold tracking-[-0.01em]">
           {title}
         </h1>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-3xl flex-col gap-2 p-4">{children}</div>
+        <div
+          className={cn(
+            'mx-auto flex flex-col gap-2 p-4',
+            wide ? 'max-w-7xl sm:px-8 sm:py-6 max-sm:p-0' : 'max-w-3xl',
+          )}
+        >
+          {children}
+        </div>
       </div>
     </main>
   );
@@ -138,9 +147,9 @@ const cardClass =
 export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?: boolean }) {
   const { t } = useTranslation();
   return (
-    <Shell title={t(`home.${view}`)} mobile={mobile}>
+    <Shell title={t(`home.${view}`)} mobile={mobile} wide={view === 'activity'}>
       {view === 'threads' && <ThreadsList />}
-      {view === 'activity' && <ActivityList />}
+      {view === 'activity' && <InboxBoard />}
       {view === 'saved' && <SavedList />}
       {view === 'unreads' && <UnreadsList />}
       {view === 'tasks' && <MyTasks />}
@@ -221,69 +230,6 @@ function ThreadsList() {
             </button>
           </li>
         ))}
-      </ul>
-      {list.hasNextPage && (
-        <Button
-          variant="outline"
-          className="self-center"
-          disabled={list.isFetchingNextPage}
-          onClick={() => void list.fetchNextPage()}
-        >
-          {t('home.more')}
-        </Button>
-      )}
-    </>
-  );
-}
-
-const ACTIVITY_ICONS = {
-  mention: AtSignIcon,
-  reply: MessageSquareIcon,
-  reaction: SmileIcon,
-} as const;
-
-function ActivityList() {
-  const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const ws = useActiveWorkspace().id;
-  const name = useChannelNames();
-  const list = useInfiniteQuery(activityQuery(ws));
-  const time = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
-  if (list.isPending) return <Loading />;
-  if (list.isError) return <Problem error={list.error} retry={() => void list.refetch()} />;
-  const items: ActivityItem[] = list.data.pages.flatMap((p) => p.items);
-  if (items.length === 0) return <Empty>{t('home.noActivity')}</Empty>;
-  return (
-    <>
-      <ul className="flex flex-col gap-2">
-        {items.map((a) => {
-          const Icon = ACTIVITY_ICONS[a.kind];
-          return (
-            <li key={`${a.kind}-${a.message.id}-${a.actor.id}-${a.emoji}`}>
-              <button
-                type="button"
-                data-testid="activity"
-                className={cardClass}
-                onClick={() => openMessage(navigate, a.message)}
-              >
-                <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Icon aria-hidden className="size-3.5" strokeWidth={1.75} />
-                  <span className="truncate">
-                    {t(`home.activity_${a.kind}`, {
-                      name: a.actor.display_name,
-                      channel: name(a.channel),
-                      emoji: a.emoji,
-                    })}
-                  </span>
-                  <time dateTime={a.at} className="ml-auto shrink-0">
-                    {time.format(new Date(a.at))}
-                  </time>
-                </span>
-                <span className="line-clamp-2 break-words">{plainText(a.message.body)}</span>
-              </button>
-            </li>
-          );
-        })}
       </ul>
       {list.hasNextPage && (
         <Button

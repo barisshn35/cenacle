@@ -891,7 +891,7 @@
   },
   "home": {
     "threads": "Threads",
-    "activity": "Activity",
+    "activity": "Inbox",
     "saved": "Saved",
     "unreads": "All unreads",
     "tasks": "Tasks",
@@ -1729,5 +1729,36 @@
       "offered": "Offered; it is shared once they accept.",
       "stop": "Stop sharing with {{server}}"
     }
+  },
+  "inbox": {
+    "title": "Inbox",
+    "columns": {
+      "time": "Time",
+      "where": "Where",
+      "from": "From",
+      "what": "What",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "kind": {
+      "mention": "Mentioned you",
+      "reply": "Replied in your thread",
+      "reaction": "Reacted {{emoji}}"
+    },
+    "status": {
+      "new": "New",
+      "seen": "Seen",
+      "you": "@you"
+    },
+    "open": "Open",
+    "openNamed": "Open, from {{name}}",
+    "markSeen": "Mark seen",
+    "markSeenNamed": "Mark seen, from {{name}}",
+    "markAllSeen": "Mark all seen",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "empty": "Nothing needs you. Mentions, replies in your threads and reactions to your messages arrive here.",
+    "unseen_one": "{{count}} new",
+    "unseen_other": "{{count}} new"
   }
 }

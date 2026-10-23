@@ -22,13 +22,17 @@ import { HomeViewPage, type HomeView } from '../threads/views';
 import { useLocation } from '@tanstack/react-router';
 import type { RightView } from '../../stores/layout';
 
+/** The view across channels at the path, if it is one (threads, inbox, saved, …). */
+function useHomeView() {
+  const path = useLocation({ select: (l) => l.pathname });
+  return /^\/(threads|activity|saved|unreads|tasks|events|playbooks|workflows|compliance|ask|federation)$/.exec(
+    path,
+  )?.[1] as HomeView | undefined;
+}
+
 /** A channel, or a view across channels (threads, activity, saved, unreads). */
 function MainView({ mobile = false }: { mobile?: boolean }) {
-  const path = useLocation({ select: (l) => l.pathname });
-  const view =
-    /^\/(threads|activity|saved|unreads|tasks|events|playbooks|workflows|compliance|ask|federation)$/.exec(
-      path,
-    )?.[1] as HomeView | undefined;
+  const view = useHomeView();
   return view ? <HomeViewPage view={view} mobile={mobile} /> : <ChannelView mobile={mobile} />;
 }
 
@@ -60,10 +64,13 @@ export function AppShell() {
 }
 
 function DesktopShell() {
-  const detailsOpen = useLayout((s) => s.detailsOpen);
+  const panelOpen = useLayout((s) => s.detailsOpen);
   const setDetailsOpen = useLayout((s) => s.setDetailsOpen);
   const rightView = useLayout((s) => s.rightView);
   const detailsRef = usePanelRef();
+  // Views across channels have no channel details; search and threads still open.
+  const view = useHomeView();
+  const detailsOpen = panelOpen && !(view && rightView === 'details');
 
   // Keep the panel in sync with the toggle button.
   useEffect(() => {
@@ -95,6 +102,8 @@ function DesktopShell() {
           collapsedSize={0}
           onResize={(size) => {
             const open = size.inPixels > 0;
+            // Collapsed for a view, the panel keeps the person's choice for channels.
+            if (!open && view && rightView === 'details') return;
             if (open !== useLayout.getState().detailsOpen) setDetailsOpen(open);
           }}
         >
