@@ -20,6 +20,15 @@
 	tls internal
 }
 
+# Browsers keep to https for a year once they have seen it (subdomains are
+# left alone: they may serve other things).
+(security) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
+
 (chat-servers) {
 	dynamic a server 8180 {
 		refresh 5s
@@ -31,6 +40,7 @@
 
 {$CENACLE_DOMAIN} {
 	import tls-{$CENACLE_TLS_MODE:acme}
+	import security
 	encode zstd gzip
 
 	# API and WebSocket go to the chat server; everything else is the SPA.
@@ -67,6 +77,7 @@
 
 {$CENACLE_ID_DOMAIN} {
 	import tls-{$CENACLE_TLS_MODE:acme}
+	import security
 	encode zstd gzip
 	reverse_proxy idp:8190
 }

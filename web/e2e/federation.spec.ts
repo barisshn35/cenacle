@@ -74,9 +74,10 @@ test('a channel shows the servers it is shared with in its details', async ({ pa
     }),
   );
   await page.goto(`/c/${GENERAL.id}`);
-  const details = page.getByRole('complementary', { name: 'Details' });
-  if (!(await details.isVisible()))
-    await page.getByRole('button', { name: 'Channel details' }).click();
+  // The details may be open already (wide screens); open them otherwise.
+  const toggle = page.getByRole('button', { name: 'Channel details', exact: true });
+  await expect(toggle).toBeVisible();
+  if ((await toggle.getAttribute('aria-pressed')) !== 'true') await toggle.click();
   const shares = page.getByTestId('shares');
   await expect(shares).toContainText('Shared with other servers');
   await expect(shares).toContainText('Partner Inc');

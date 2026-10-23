@@ -67,6 +67,8 @@ test.describe('search', () => {
 
     await result.click();
     await expect(page).toHaveURL(new RegExp(`/c/${GENERAL.id}`));
+    // On a phone the search covered the channel: it closes to show the message.
+    if (testInfo.project.name === 'coarse') await expect(panel).toBeHidden();
     const target = page.locator(`[data-message-id="${messages[4]!.id}"]`);
     // Older pages load first; on a busy machine this takes a while.
     await expect(target).toBeInViewport({ timeout: 15_000 });

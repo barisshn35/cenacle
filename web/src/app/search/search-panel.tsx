@@ -10,6 +10,7 @@ import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { ApiError } from '@cenacle/core/api';
+import { useSidebar } from '@cenacle/ui/components/sidebar';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
 import { useActiveWorkspace } from '../chat/active-workspace';
@@ -314,6 +315,7 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
   const navigate = useNavigate();
   const jump = useJump((s) => s.jump);
   const openThread = useLayout((s) => s.openThread);
+  const { isMobile } = useSidebar();
   const nameOf = useChannelName();
   const results = useInfiniteQuery(searchMessagesQuery(q, filters));
   const terms = searchTerms(q);
@@ -330,6 +332,8 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
     );
   }
   const open = (m: SearchMessage) => {
+    // On small screens the panel covers the channel: close it to show the message.
+    if (isMobile) useLayout.getState().setDetailsOpen(false);
     void navigate({ to: '/c/$channelId', params: { channelId: m.channel.id } });
     // A reply opens its thread (the thread shows it highlighted).
     if (m.root_id) {

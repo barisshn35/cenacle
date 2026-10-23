@@ -412,11 +412,20 @@ export function MessageList({ channel }: { channel: Channel }) {
   const setAtBottom = useMarkRead(channel, messages);
   const list = useRef<VirtuosoHandle>(null);
 
-  // Prepending older messages lowers the index of the first row.
+  // Prepending older messages lowers the index of the first row by exactly the
+  // rows added before the oldest message of the newest page (its anchor): day
+  // separators move, so counting messages alone would shift the list by a row.
   const olderCount = useMemo(
     () => (query.data ? query.data.pages.slice(1).reduce((n, p) => n + p.messages.length, 0) : 0),
     [query.data],
   );
+  const anchorId = query.data?.pages[0]?.messages[0]?.id;
+  const firstItemIndex = useMemo(() => {
+    const at = anchorId
+      ? rows.findIndex((r) => r.kind === 'message' && r.message.id === anchorId)
+      : -1;
+    return START_INDEX - (at >= 0 ? at : olderCount);
+  }, [rows, anchorId, olderCount]);
 
   useJumpTo(
     channelId,
@@ -463,7 +472,7 @@ export function MessageList({ channel }: { channel: Channel }) {
         ref={list}
         className="h-full"
         data={rows}
-        firstItemIndex={START_INDEX - olderCount}
+        firstItemIndex={firstItemIndex}
         initialTopMostItemIndex={Math.max(rows.length - 1, 0)}
         computeItemKey={(_, row) => row.key}
         // Stay at the bottom when new messages arrive, if the reader is there.

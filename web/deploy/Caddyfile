@@ -18,8 +18,10 @@
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# Voice messages and video clips record here; nothing else may.
+		Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=()"
 		Cross-Origin-Opener-Policy same-origin
+		Cross-Origin-Resource-Policy same-origin
 		-Server
 	}
 
