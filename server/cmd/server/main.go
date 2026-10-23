@@ -148,7 +148,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 		_ = stopTracing(flushCtx)
 	}()
 
-	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
 	if err != nil {
 		return err
 	}
@@ -436,7 +436,7 @@ func importExport(ctx context.Context, cfg config.Config, log *slog.Logger, args
 	default:
 		return fmt.Errorf("unknown export %q (mattermost or slack)\n\n%s", args[0], usage)
 	}
-	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
 	if err != nil {
 		return err
 	}
@@ -452,7 +452,7 @@ func importExport(ctx context.Context, cfg config.Config, log *slog.Logger, args
 
 // operate runs the status and support-bundle commands.
 func operate(ctx context.Context, cfg config.Config, args []string) error {
-	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
 	if err != nil {
 		return err
 	}
@@ -503,7 +503,7 @@ func operate(ctx context.Context, cfg config.Config, args []string) error {
 }
 
 func migrate(ctx context.Context, cfg config.Config, log *slog.Logger, cmd string) error {
-	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
 	if err != nil {
 		return err
 	}

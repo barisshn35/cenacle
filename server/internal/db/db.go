@@ -13,12 +13,17 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
 
-// Open creates a connection pool. Connections are established lazily, so
-// the server can start (and report "not ready") while the database is down.
-func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
+// Open creates a connection pool of up to maxConns connections (0: the
+// default of pgx, one per CPU, at least 4). Connections are established
+// lazily, so the server can start (and report "not ready") while the database
+// is down.
+func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
 		return nil, fmt.Errorf("parse database url: %w", err)
+	}
+	if maxConns > 0 {
+		cfg.MaxConns = maxConns
 	}
 	cfg.ConnConfig.RuntimeParams["application_name"] = "cenacle-server"
 	if telemetry.TracingEnabled() {

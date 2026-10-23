@@ -52,6 +52,8 @@ files:
 egressAllow: ''
 # Previews of links in messages (public addresses only); false for air-gapped installs.
 linkPreviews: true
+# Database connections one chat server keeps (keep replicas × this below max_connections).
+databaseMaxConns: 25
 # Optional AI: an OpenAI-compatible API of a model you run (empty: no AI).
 ai:
   url: ''

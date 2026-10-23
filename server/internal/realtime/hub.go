@@ -47,10 +47,11 @@ func (h *Hub) Clients() int {
 }
 
 func (h *Hub) broadcast(ev events.Event) {
+	p := prepare(ev) // once, for every connection
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for c := range h.clients {
-		c.deliver(ev)
+		c.deliver(p)
 	}
 }
 

@@ -3,8 +3,6 @@
 package realtime
 
 import (
-	"encoding/json"
-
 	"github.com/barisshn35/cenacle/server/internal/events"
 )
 
@@ -35,12 +33,10 @@ func (a *audience) inChannel(id string) bool {
 	return ok
 }
 
-func (a *audience) allows(ev events.Event) bool {
-	var d eventData
-	if err := json.Unmarshal(ev.Data, &d); err != nil {
-		return false
-	}
-	switch ev.Type {
+// allowsData decides on an event whose data the caller parsed already
+// (once for all connections).
+func (a *audience) allowsData(typ string, d *eventData) bool {
+	switch typ {
 	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted,
 		events.ReactionAdded, events.ReactionRemoved,
 		events.ChannelUpdated, events.ChannelMembersChanged, events.ThreadUpdated,
@@ -71,7 +67,7 @@ func (a *audience) allows(ev events.Event) bool {
 		events.ThreadFollowed, events.ThreadRead, events.SavedChanged:
 		return d.UserID == a.user
 	case events.PresenceChanged, events.UserUpdated:
-		if ev.Type == events.UserUpdated && d.UserID == a.user {
+		if typ == events.UserUpdated && d.UserID == a.user {
 			return true
 		}
 		for _, ws := range d.WorkspaceIDs {

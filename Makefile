@@ -182,6 +182,11 @@ licenses-js: node_modules
 vuln: $(GOVULNCHECK) ## Scan Go code for known vulnerabilities
 	cd $(SERVER_DIR) && $(GOVULNCHECK) ./...
 
+LOAD_SECONDS ?= 20
+.PHONY: load
+load: ## Load test the chat server in process (see server/internal/app/load_test.go)
+	cd $(SERVER_DIR) && LOAD_SECONDS=$(LOAD_SECONDS) go test -tags load -run TestLoad -count=1 -timeout 30m -v ./internal/app/ | grep -v '^=== '
+
 FUZZTIME ?= 30s
 .PHONY: fuzz
 fuzz: ## Fuzz the parsers of what people type (FUZZTIME each)

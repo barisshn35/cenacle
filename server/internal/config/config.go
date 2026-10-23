@@ -38,6 +38,9 @@ type Config struct {
 
 	// DatabaseURL is the PostgreSQL connection string of the chat database.
 	DatabaseURL string
+	// DatabaseMaxConns is the most connections one server keeps (busy
+	// instances wait less with more; mind PostgreSQL's max_connections).
+	DatabaseMaxConns int32
 	// ValkeyAddr is the host:port of the Valkey server.
 	ValkeyAddr string
 	// ValkeyPassword is optional.
@@ -169,6 +172,11 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 		DatabaseURL:    l.str("CENACLE_DATABASE_URL", ""),
 		ValkeyAddr:     l.str("CENACLE_VALKEY_ADDR", "localhost:16379"),
 		ValkeyPassword: l.str("CENACLE_VALKEY_PASSWORD", ""),
+	}
+	if n, err := strconv.Atoi(l.str("CENACLE_DATABASE_MAX_CONNS", "25")); err != nil || n < 2 || n > 500 {
+		l.fail("CENACLE_DATABASE_MAX_CONNS: a number of connections from 2 to 500")
+	} else {
+		cfg.DatabaseMaxConns = int32(n) //nolint:gosec // checked above
 	}
 	cfg.LogLevel = l.level("CENACLE_LOG_LEVEL", slog.LevelInfo)
 	cfg.ShutdownTimeout = l.duration("CENACLE_SHUTDOWN_TIMEOUT", 15*time.Second)

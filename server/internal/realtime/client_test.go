@@ -11,7 +11,7 @@ import (
 func TestSlowClientIsMarkedNotBlocking(t *testing.T) {
 	c := newClient(2)
 	for range 5 { // the hub must never block on a full queue
-		c.deliver(events.Event{ID: "1-0"})
+		c.deliver(prepare(events.Event{ID: "1-0"}))
 	}
 	select {
 	case <-c.slow:

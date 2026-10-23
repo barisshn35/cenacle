@@ -112,9 +112,29 @@ type frame struct {
 	HeartbeatMs int64           `json:"heartbeat_ms,omitempty"`
 }
 
+// prepared is an event made ready once for every connection: its routing
+// data parsed and its frame encoded.
+type prepared struct {
+	ev    events.Event
+	data  eventData
+	valid bool
+	wire  []byte
+}
+
+func prepare(ev events.Event) *prepared {
+	p := &prepared{ev: ev}
+	p.valid = json.Unmarshal(ev.Data, &p.data) == nil
+	f := frame{Op: "event", ID: ev.ID, Type: ev.Type, Data: ev.Data}
+	if ev.ID == "" {
+		f = frame{Op: "ephemeral", Type: ev.Type, Data: ev.Data}
+	}
+	p.wire, _ = json.Marshal(f)
+	return p
+}
+
 // client is one connection's queue between the hub and its writer.
 type client struct {
-	queue  chan events.Event
+	queue  chan *prepared
 	resync chan struct{}
 
 	mu      sync.Mutex
@@ -124,7 +144,7 @@ type client struct {
 
 func newClient(size int) *client {
 	return &client{
-		queue:  make(chan events.Event, size),
+		queue:  make(chan *prepared, size),
 		resync: make(chan struct{}, 1),
 		slow:   make(chan struct{}),
 	}
@@ -133,12 +153,12 @@ func newClient(size int) *client {
 // deliver never blocks the hub: a client whose queue is full is closed and
 // resumes after reconnecting. Short-lived events are dropped instead once
 // the queue is half full: they are not worth a reconnect.
-func (c *client) deliver(ev events.Event) {
-	if ev.ID == "" && len(c.queue) >= cap(c.queue)/2 {
+func (c *client) deliver(p *prepared) {
+	if p.ev.ID == "" && len(c.queue) >= cap(c.queue)/2 {
 		return
 	}
 	select {
-	case c.queue <- ev:
+	case c.queue <- p:
 	default:
 		c.mu.Lock()
 		if !c.tooSlow {
@@ -223,9 +243,15 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sent := start
-	forward := func(ev events.Event) error {
+	sendWire := func(b []byte) error {
+		wctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		return conn.Write(wctx, websocket.MessageText, b)
+	}
+	forward := func(p *prepared) error {
+		ev := p.ev
 		if ev.ID == "" { // short-lived: not ordered, not resumed
-			if !aud.allows(ev) {
+			if !p.valid || !aud.allowsData(ev.Type, &p.data) {
 				return nil
 			}
 			if ev.Type == events.SessionsEnded {
@@ -235,14 +261,14 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 				}
 				return nil
 			}
-			return send(frame{Op: "ephemeral", Type: ev.Type, Data: ev.Data})
+			return sendWire(p.wire)
 		}
 		id, err := events.ParseID(ev.ID)
 		if err != nil || !sent.Less(id) {
 			return nil // already sent
 		}
 		sent = id
-		if !aud.allows(ev) {
+		if !p.valid || !aud.allowsData(ev.Type, &p.data) {
 			return nil
 		}
 		if ev.Type == events.WorkspaceJoined {
@@ -254,10 +280,10 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			}
 			aud = fresh
 		}
-		return send(frame{Op: "event", ID: ev.ID, Type: ev.Type, Data: ev.Data})
+		return sendWire(p.wire)
 	}
 	for _, ev := range backlog {
-		if err := forward(ev); err != nil {
+		if err := forward(prepare(ev)); err != nil {
 			return
 		}
 	}

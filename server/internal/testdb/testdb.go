@@ -14,6 +14,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -77,6 +78,9 @@ func Open(t *testing.T) *pgxpool.Pool {
 		t.Fatal(err)
 	}
 	cfg.ConnConfig.RuntimeParams["search_path"] = schema
+	if n, err := strconv.Atoi(os.Getenv("CENACLE_TEST_DB_MAX_CONNS")); err == nil && n > 0 {
+		cfg.MaxConns = int32(n) //nolint:gosec // a test setting
+	}
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

@@ -54,6 +54,7 @@ spec:
             - { name: CENACLE_DEFAULT_CHANNELS, value: {{ .Values.admin.defaultChannels | quote }} }
             - { name: CENACLE_EGRESS_ALLOW, value: {{ .Values.egressAllow | quote }} }
             - { name: CENACLE_LINK_PREVIEWS, value: {{ .Values.linkPreviews | quote }} }
+            - { name: CENACLE_DATABASE_MAX_CONNS, value: {{ .Values.databaseMaxConns | quote }} }
             - { name: CENACLE_AI_URL, value: {{ .Values.ai.url | quote }} }
             - { name: CENACLE_AI_MODEL, value: {{ .Values.ai.model | quote }} }
             - { name: CENACLE_DRAIN_DELAY, value: {{ .Values.server.drainDelay | quote }} }
