@@ -94,7 +94,7 @@ test('cancelling at Cenacle ID returns to the sign-in page with an explanation',
   await page.goto('/signin');
   await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
   await page.waitForURL(`${IDP_URL}/**`);
-  await page.getByRole('button', { name: 'Cancel sign-in' }).click();
+  await page.getByRole('button', { name: /^Cancel and go back to / }).click();
   await expect(page).toHaveURL(/\/signin\?error=cancelled/);
   await expect(page.getByRole('status')).toContainText('Sign-in was cancelled.');
 });
