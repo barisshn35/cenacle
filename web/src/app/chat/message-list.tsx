@@ -367,8 +367,8 @@ function useJumpTo(
         const box = el?.closest('[role="log"]')?.getBoundingClientRect();
         const r = el?.getBoundingClientRect();
         const inView = !!r && !!box && r.top >= box.top && r.bottom <= box.bottom;
-        // A busy device lays the list out slowly: keep trying for up to 5 s.
-        if (!inView && ++tries < 50) {
+        // A busy device lays the list out slowly: keep trying for up to 10 s.
+        if (!inView && ++tries < 100) {
           setTimeout(bring, 100);
           return;
         }

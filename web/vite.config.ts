@@ -64,12 +64,14 @@ export default defineConfig({
     assetsInlineLimit: 0,
     rolldownOptions: {
       output: {
-        // Third-party code changes less often than ours: separate cache entry.
+        // The framework changes less often than ours: separate cache entries.
+        // Other libraries stay with the code that imports them, so what loads
+        // later (code highlighting, the emoji picker, admin pages) is not part
+        // of the first download.
         codeSplitting: {
           groups: [
             { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
             { name: 'tanstack', test: /node_modules[\\/]@tanstack[\\/]/ },
-            { name: 'vendor', test: /node_modules/ },
           ],
         },
       },

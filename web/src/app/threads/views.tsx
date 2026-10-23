@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { FederationPage } from '../federation/federation-page';
 import { AskPage } from '../ai/ai-ui';
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import {
@@ -32,9 +31,7 @@ import { channelsQuery, markRead, setReadLocally, type Message } from '../chat/d
 import { openMessage } from './open-message';
 import { EventsList } from '../community/events';
 import { PlaybooksList } from '../community/playbooks';
-import { WorkflowsPage } from '../automation/workflows-page';
 import { MyTasks } from '../collab/my-tasks';
-import { CompliancePage } from '../compliance/compliance-page';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import {
@@ -48,6 +45,17 @@ import {
   type ActivityItem,
   type SavedItem,
 } from './threads';
+
+// Pages few people open load when opened.
+const WorkflowsPage = lazy(() =>
+  import('../automation/workflows-page').then((m) => ({ default: m.WorkflowsPage })),
+);
+const CompliancePage = lazy(() =>
+  import('../compliance/compliance-page').then((m) => ({ default: m.CompliancePage })),
+);
+const FederationPage = lazy(() =>
+  import('../federation/federation-page').then((m) => ({ default: m.FederationPage })),
+);
 
 export type HomeView =
   | 'threads'
@@ -138,10 +146,12 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
       {view === 'tasks' && <MyTasks />}
       {view === 'events' && <EventsList />}
       {view === 'playbooks' && <PlaybooksList />}
-      {view === 'workflows' && <WorkflowsPage />}
-      {view === 'compliance' && <CompliancePage />}
-      {view === 'ask' && <AskPage />}
-      {view === 'federation' && <FederationPage />}
+      <Suspense fallback={<Loading />}>
+        {view === 'workflows' && <WorkflowsPage />}
+        {view === 'compliance' && <CompliancePage />}
+        {view === 'ask' && <AskPage />}
+        {view === 'federation' && <FederationPage />}
+      </Suspense>
     </Shell>
   );
 }
