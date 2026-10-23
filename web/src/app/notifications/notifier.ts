@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
+import { groupsQuery, mentionable, mentionsMyGroup, type GroupList } from '../groups/groups';
 import { myProfileQuery, type MyProfile } from '../profile/profiles';
 import { inChannel, type Channel, type Message } from '../chat/data';
 import type { FollowedThread } from '../threads/threads';
@@ -67,7 +68,10 @@ export function notifyIncoming(
     layout.thread?.rootId === message.root_id;
   const watching = inChannel(message) ? viewedChannel() === channel.id : threadOpen;
   if (watching && front) return;
-  const mentioned = message.mentions.some((p) => p.id === selfId);
+  const groups = queryClient.getQueryData<GroupList>(groupsQuery(channel.workspace_id).queryKey);
+  const mentioned =
+    message.mentions.some((p) => p.id === selfId) ||
+    mentionsMyGroup(message.body, mentionable(groups?.groups));
   // A reply kept in its thread tells only those it mentions and its followers
   // (as a mention).
   if (!inChannel(message) && !mentioned && !follows(queryClient, message.root_id!)) return;

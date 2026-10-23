@@ -2028,5 +2028,77 @@
     "create": "Oluştur",
     "saveFailed": "Kenar çubuğundaki değişiklik kaydedilemedi. Tekrar dene.",
     "markReadFailed": "Okundu olarak işaretlenemedi. Tekrar dene."
+  },
+  "userGroups": {
+    "title": "Gruplar",
+    "adminLabel": "Yönetim",
+    "footer": "Kanaldaki grup üyelerine ulaşmak için grubu @tanıtıcı ile an.",
+    "sectionNames": {
+      "mine": "Grupların",
+      "all": "Tüm gruplar",
+      "archived": "Arşiv",
+      "settings": "Grupları kim oluşturur"
+    },
+    "sections": {
+      "mine": "İçinde olduğun gruplar. Bunların anılması seni anmak sayılır.",
+      "all": "Bu çalışma alanının tüm grupları.",
+      "archived": "Arşivlenen gruplar anılamaz. Yöneticileri onları geri getirebilir.",
+      "settings": "Bu çalışma alanında kimlerin grup oluşturabileceğini seç."
+    },
+    "empty": {
+      "mine": "Henüz hiçbir grupta değilsin.",
+      "all": "Henüz grup yok. Bir ekibi tek seferde anmak için bir grup oluştur.",
+      "archived": "Arşivlenmiş grup yok."
+    },
+    "create": "Grup oluştur",
+    "createTitle": "Yeni grup",
+    "created": "@{{handle}} oluşturuldu.",
+    "back": "Gruplara dön",
+    "name": "Ad",
+    "handle": "Tanıtıcı",
+    "handleHint": "Grup @tanıtıcı olarak anılır.",
+    "renameHint": "Önceden gönderilen mesajlarda eski tanıtıcı kalır.",
+    "handleRules": "1–30 küçük harf, rakam, nokta, tire ya da alt çizgi kullan; harf ya da rakamla başlayıp bitsin.",
+    "handleReserved": "Bu sözcük zaten birçok kişiyi anıyor. Başka bir tanıtıcı seç.",
+    "handleTaken": "Bu çalışma alanında bu tanıtıcıyı kullanan başka bir grup var.",
+    "description": "Açıklama (isteğe bağlı)",
+    "followDirectory": "Bir dizin grubunu izle",
+    "directoryGroup": "Dizin grubu",
+    "directoryHint": "Üyeleri, bu çalışma alanında o dizin grubunda olan kişilerdir; dizinle birlikte güncellenir.",
+    "directoryTag": "Dizin",
+    "follows": "{{group}} dizin grubunu izliyor. Üyeleri dizinde değişir.",
+    "members": "Üyeler",
+    "youManage": "Grubu sen yöneteceksin. İçinde olması gerekenleri ekle.",
+    "picked": "Eklenecek kişiler",
+    "people_one": "{{count}} kişi",
+    "people_other": "{{count}} kişi",
+    "member": "Üye",
+    "manager": "Yönetici",
+    "makeManager": "{{person}} yönetici olsun",
+    "unmakeManager": "{{person}} artık yönetici olmasın",
+    "remove": "{{person}} gruptan çıkarılsın",
+    "noMembers": "Bu grupta kimse yok.",
+    "edit": "Düzenle",
+    "leave": "Gruptan ayrıl",
+    "archive": "Grubu arşivle",
+    "restore": "Grubu geri getir",
+    "archived": "Grup arşivlendi. Artık anılamaz.",
+    "archivedNote": "Arşivde: anılması kimseye ulaşmaz.",
+    "loading": "Grup yükleniyor…",
+    "lastManager": "Grubun bir yöneticisi olmalı. Önce başka birini yönetici yap.",
+    "changeFailed": "Grup değiştirilemedi. Tekrar dene.",
+    "whoCreates": "Kimler grup oluşturabilir",
+    "creation": {
+      "members": "Çalışma alanındaki herkes",
+      "admins": "Yalnızca yöneticiler"
+    },
+    "creationHint": {
+      "members": "Üyeler grup oluşturur ve oluşturduklarını yönetir. Misafirler oluşturamaz.",
+      "admins": "Yalnızca sahipler ve yöneticiler grup oluşturur. Var olan gruplar kalır."
+    },
+    "pickerLine_one": "{{name}} · {{count}} kişi",
+    "pickerLine_other": "{{name}} · {{count}} kişi",
+    "toManager": "Yönetici yap",
+    "fromManager": "Yöneticilikten al"
   }
 }

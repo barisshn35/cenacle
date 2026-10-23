@@ -6,7 +6,9 @@ import remarkGfm from 'remark-gfm';
 import { cn } from '@cenacle/ui/lib/utils';
 import { CodeBlock } from './code-block';
 import { mentionId, toMarkdownMentions } from './mentions';
-import { broadcastLink, emojiLink, toMarkdownExtras } from './extras';
+import { broadcastLink, emojiLink, groupLink, toMarkdownExtras } from './extras';
+import { useMentionableGroups, type MentionGroup } from '../../groups/groups';
+import { useActiveWorkspace } from '../active-workspace';
 import { CustomEmojiImage } from '../../richer/emoji';
 import { useCustomEmoji } from '../../richer/use-custom-emoji';
 import type { CustomEmoji } from '../../richer/richer';
@@ -32,6 +34,7 @@ function components(
   selfId: string,
   people: Person[],
   emoji: Map<string, CustomEmoji>,
+  groups: Map<string, MentionGroup>,
   asDocument: boolean,
 ): Components {
   return {
@@ -40,6 +43,9 @@ function components(
       if (name) return <CustomEmojiImage name={name} emoji={emoji} />;
       const many = broadcastLink(href);
       if (many) return <MentionChip name={many} self />;
+      const handle = groupLink(href);
+      const group = handle && groups.get(handle);
+      if (group) return <MentionChip name={group.handle} self={group.is_member} />;
       // Only links made from <@id> for people the server says are mentioned
       // become chips; a typed look-alike stays an ordinary link.
       const id = mentionId(href);
@@ -159,14 +165,16 @@ export const MessageBody = memo(function MessageBody({
 }) {
   const emoji = useCustomEmoji();
   const names = useMemo(() => new Set(emoji.keys()), [emoji]);
+  const groups = useMentionableGroups(useActiveWorkspace().id);
+  const handles = useMemo(() => new Set(groups.keys()), [groups]);
   return (
     <div className="text-[0.9375rem] leading-(--line-height-base,1.625) break-words [&_li>p]:my-0">
       <Markdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize]}
-        components={components(selfId, mentions, emoji, document)}
+        components={components(selfId, mentions, emoji, groups, document)}
       >
-        {toMarkdownExtras(toMarkdownMentions(body, mentions), names, broadcast ?? [])}
+        {toMarkdownExtras(toMarkdownMentions(body, mentions), names, broadcast ?? [], handles)}
       </Markdown>
     </div>
   );

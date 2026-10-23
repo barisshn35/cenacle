@@ -98,6 +98,10 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           const { channel_id, message_id } = ev.data as { channel_id: string; message_id: string };
           setReadLocally(queryClient, channel_id, message_id);
           useUnreadHold.getState().release(channel_id);
+        } else if (ev.type === 'groups.changed') {
+          const { workspace_id } = ev.data as { workspace_id: string };
+          void queryClient.invalidateQueries({ queryKey: ['mention-groups', workspace_id] });
+          void queryClient.invalidateQueries({ queryKey: ['mention-group'] });
         } else if (ev.type === 'sidebar.changed') {
           const { workspace_id } = ev.data as { workspace_id: string };
           void queryClient.invalidateQueries({ queryKey: ['sidebar', workspace_id] });

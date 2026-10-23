@@ -54,6 +54,7 @@ import { usePending, type PendingMessage } from './pending';
 import { useSendMessage } from './send';
 import { toRows, useFormatters, type ReadMark, type Row } from './rows';
 import { useUnreadHold } from './unread-hold';
+import { mentionsMyGroup, useMentionableGroups } from '../groups/groups';
 
 // Virtuoso keeps the scroll position when older pages are prepended if the
 // index of the first item decreases by the number of items added.
@@ -87,7 +88,11 @@ export function MessageRow({
         (b === 'role:admin' && (role === 'admin' || role === 'owner')) ||
         (b === 'role:owner' && role === 'owner'),
     );
-  const mentionsMe = m.mentions.some((p) => p.id === self) || reached;
+  const groups = useMentionableGroups(channel.workspace_id);
+  const mentionsMe =
+    m.mentions.some((p) => p.id === self) ||
+    reached ||
+    (m.author.id !== self && mentionsMyGroup(m.body, groups));
   const highlighted = useJump((s) => s.highlighted === m.id);
   const hasStatus = !!useProfile(m.author.id)?.status;
   const unread = useMarkUnread(m);

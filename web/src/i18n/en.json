@@ -2028,5 +2028,77 @@
     "create": "Create",
     "saveFailed": "Your sidebar change couldn't be saved. Try again.",
     "markReadFailed": "Couldn't mark it read. Try again."
+  },
+  "userGroups": {
+    "title": "Groups",
+    "adminLabel": "Administration",
+    "footer": "Mention a group as @handle to reach the people of it who are in the channel.",
+    "sectionNames": {
+      "mine": "Your groups",
+      "all": "All groups",
+      "archived": "Archived",
+      "settings": "Who creates groups"
+    },
+    "sections": {
+      "mine": "Groups you are in. Their mentions count as mentions of you.",
+      "all": "Every group of this workspace.",
+      "archived": "Archived groups cannot be mentioned. Their managers can restore them.",
+      "settings": "Choose who may create groups in this workspace."
+    },
+    "empty": {
+      "mine": "You are not in any group yet.",
+      "all": "No groups yet. Create one to mention a team at once.",
+      "archived": "No archived groups."
+    },
+    "create": "Create group",
+    "createTitle": "New group",
+    "created": "@{{handle}} created.",
+    "back": "Back to groups",
+    "name": "Name",
+    "handle": "Handle",
+    "handleHint": "People mention the group as @handle.",
+    "renameHint": "Messages already sent keep the old handle.",
+    "handleRules": "Use 1 to 30 lower-case letters, digits, dots, dashes or underscores, starting and ending with a letter or digit.",
+    "handleReserved": "This word already mentions many people. Choose another handle.",
+    "handleTaken": "Another group of this workspace has this handle.",
+    "description": "Description (optional)",
+    "followDirectory": "Follow a directory group",
+    "directoryGroup": "Directory group",
+    "directoryHint": "Its members are the people of this workspace in the directory group, kept up to date from the directory.",
+    "directoryTag": "Directory",
+    "follows": "Follows the directory group {{group}}. Its members change in the directory.",
+    "members": "Members",
+    "youManage": "You manage the group. Add the people who should be in it.",
+    "picked": "People to add",
+    "people_one": "{{count}} person",
+    "people_other": "{{count}} people",
+    "member": "Member",
+    "manager": "Manager",
+    "makeManager": "Make {{person}} a manager",
+    "unmakeManager": "Make {{person}} no longer a manager",
+    "remove": "Remove {{person}} from the group",
+    "noMembers": "Nobody is in this group.",
+    "edit": "Edit",
+    "leave": "Leave group",
+    "archive": "Archive group",
+    "restore": "Restore group",
+    "archived": "Group archived. It can no longer be mentioned.",
+    "archivedNote": "Archived: mentioning it reaches no one.",
+    "loading": "Loading the group…",
+    "lastManager": "The group needs a manager. Make someone else a manager first.",
+    "changeFailed": "The group couldn't be changed. Try again.",
+    "whoCreates": "Who may create groups",
+    "creation": {
+      "members": "Everyone in the workspace",
+      "admins": "Only administrators"
+    },
+    "creationHint": {
+      "members": "Members create groups and manage the ones they create. Guests cannot.",
+      "admins": "Only owners and administrators create groups. Existing groups stay."
+    },
+    "pickerLine_one": "{{name}} · {{count}} person",
+    "pickerLine_other": "{{name}} · {{count}} people",
+    "toManager": "Make manager",
+    "fromManager": "Remove manager"
   }
 }

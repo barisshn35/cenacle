@@ -2,9 +2,9 @@
 import { MENTION_SECRET } from './mentions';
 
 /**
- * Custom emoji (:name:) and mentions of many (@channel, @here, @admins)
- * become links with a fragment that only this page load makes, like person
- * mentions: a typed look-alike stays text.
+ * Custom emoji (:name:), mentions of many (@channel, @here, @admins) and
+ * group mentions (@backend) become links with a fragment that only this page
+ * load makes, like person mentions: a typed look-alike stays text.
  */
 const EMOJI = /:([a-z0-9_+-]{2,32}):/g;
 const BROADCAST = /(^|[^\w@])@(channel|everyone|here|admins|owners)\b/gi;
@@ -23,12 +23,16 @@ export const broadcastKind = (word: string) => {
         : w;
 };
 
+// A group mention: @handle, not inside a word, an address or <@id>.
+const GROUP = /(^|[^\w@<[])@([a-z0-9](?:[a-z0-9._-]{0,28}[a-z0-9])?)/gi;
+
 export function toMarkdownExtras(
   body: string,
   emoji: ReadonlySet<string>,
   broadcast: readonly string[],
+  groups: ReadonlySet<string> = new Set(),
 ): string {
-  if (emoji.size === 0 && broadcast.length === 0) return body;
+  if (emoji.size === 0 && broadcast.length === 0 && groups.size === 0) return body;
   return body
     .split(CODE)
     .map((part, i) => {
@@ -46,9 +50,22 @@ export function toMarkdownExtras(
             : match,
         );
       }
+      if (groups.size > 0) {
+        out = out.replace(GROUP, (match, before: string, handle: string) =>
+          groups.has(handle.toLowerCase())
+            ? `${before}[@${handle}](#group-${handle.toLowerCase()}-${MENTION_SECRET})`
+            : match,
+        );
+      }
       return out;
     })
     .join('');
+}
+
+/** The group handle of a link made by toMarkdownExtras, if href is one. */
+export function groupLink(href: string | undefined): string | undefined {
+  const m = /^#(?:user-content-)?group-([a-z0-9._-]{1,30})-([0-9a-f]{32})$/.exec(href ?? '');
+  return m && m[2] === MENTION_SECRET ? m[1] : undefined;
 }
 
 /** The emoji name of a link made by toMarkdownExtras, if href is one. */

@@ -175,7 +175,7 @@ func (q *Queries) SearchMessagesForAI(ctx context.Context, arg SearchMessagesFor
 }
 
 const setWorkspaceAI = `-- name: SetWorkspaceAI :one
-UPDATE workspaces SET ai_enabled = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled
+UPDATE workspaces SET ai_enabled = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation
 `
 
 type SetWorkspaceAIParams struct {
@@ -198,6 +198,7 @@ func (q *Queries) SetWorkspaceAI(ctx context.Context, arg SetWorkspaceAIParams) 
 		&i.RetentionDays,
 		&i.ClassificationID,
 		&i.AiEnabled,
+		&i.GroupCreation,
 	)
 	return i, err
 }

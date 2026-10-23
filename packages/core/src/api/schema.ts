@@ -2620,6 +2620,109 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/mention-groups': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The workspace's groups (mentioned as @handle), archived ones last */
+    get: operations['listGroups'];
+    put?: never;
+    /**
+     * Create a group; its creator manages it
+     * @description A group following a directory group (`directory_group`, administrators
+     *     only) has that group's people of the workspace as members.
+     */
+    post: operations['createGroup'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/mention-groups/settings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Choose who may create groups (owners and admins) */
+    put: operations['setGroupCreation'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/mention-groups/{group_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    /** A group and its members */
+    get: operations['getGroup'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Rename, describe, archive or restore a group (its managers and administrators) */
+    patch: operations['updateGroup'];
+    trace?: never;
+  };
+  '/api/mention-groups/{group_id}/members': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Add people of the workspace to a group (its managers and administrators) */
+    post: operations['addGroupMembers'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/mention-groups/{group_id}/members/{user_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a member, or leave the group */
+    delete: operations['removeGroupMember'];
+    options?: never;
+    head?: never;
+    /** Make a member a manager of the group or not */
+    patch: operations['setGroupManager'];
+    trace?: never;
+  };
   '/api/runs/{run_id}/items': {
     parameters: {
       query?: never;
@@ -4628,6 +4731,25 @@ export interface components {
       size: number;
       /** Format: date-time */
       created_at: string;
+    };
+    MentionGroup: {
+      /** Format: uuid */
+      id: string;
+      /** @description Mentioned as @handle. */
+      handle: string;
+      name: string;
+      description: string;
+      /** @description The directory group whose people it has, if it follows one. */
+      directory_group: string | null;
+      member_count: number;
+      is_member: boolean;
+      can_manage: boolean;
+      /** @description Archived groups cannot be mentioned. */
+      archived: boolean;
+    };
+    MentionGroupMember: {
+      person: components['schemas']['Person'];
+      manager: boolean;
     };
     /**
      * @description Sections are named by key: `favorites`, `channels` (channels without a
@@ -9851,6 +9973,255 @@ export interface operations {
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  listGroups: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Groups, and whether the person may create one. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            groups: components['schemas']['MentionGroup'][];
+            can_create: boolean;
+            /**
+             * @description Who may create groups.
+             * @enum {string}
+             */
+            creation: 'members' | 'admins';
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          handle: string;
+          name: string;
+          description?: string;
+          member_ids?: string[];
+          directory_group?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MentionGroup'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  setGroupCreation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          creation: 'members' | 'admins';
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The group. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            group: components['schemas']['MentionGroup'];
+            members: components['schemas']['MentionGroupMember'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          handle?: string;
+          name?: string;
+          description?: string;
+          archived?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MentionGroup'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  addGroupMembers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          user_ids: string[];
+        };
+      };
+    };
+    responses: {
+      /** @description Added. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  removeGroupMember: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  setGroupManager: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        group_id: string;
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          manager: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
     };
   };
   updateRunItem: {

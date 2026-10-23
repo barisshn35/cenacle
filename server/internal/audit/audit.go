@@ -73,6 +73,7 @@ const (
 	AIChanged               = "ai.changed"
 	FederationChanged       = "federation.changed"
 	WebAppChanged           = "instance.web_app_changed"
+	MentionGroupChanged     = "mention_group.changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

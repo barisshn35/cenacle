@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import { broadcastKind, broadcastLink, emojiLink, toMarkdownExtras } from './extras';
+import { broadcastKind, broadcastLink, emojiLink, groupLink, toMarkdownExtras } from './extras';
 import { MENTION_SECRET } from './mentions';
 
 const emoji = new Set(['party', 'ship_it']);
@@ -25,6 +25,20 @@ describe('toMarkdownExtras', () => {
     const out = toMarkdownExtras('@here and @channel, mail@here.com', new Set(), ['here']);
     expect(out).toBe(`[@here](#broadcast-here-${MENTION_SECRET}) and @channel, mail@here.com`);
     expect(broadcastLink(`#broadcast-here-${MENTION_SECRET}`)).toBe('here');
+  });
+
+  it('marks mentions of known groups, not addresses or unknown handles', () => {
+    const out = toMarkdownExtras(
+      '@Backend, mail@backend.com, @design and `@backend`',
+      new Set(),
+      [],
+      new Set(['backend']),
+    );
+    expect(out).toBe(
+      `[@Backend](#group-backend-${MENTION_SECRET}), mail@backend.com, @design and \`@backend\``,
+    );
+    expect(groupLink(`#user-content-group-backend-${MENTION_SECRET}`)).toBe('backend');
+    expect(groupLink(`#group-backend-${'0'.repeat(32)}`)).toBeUndefined();
   });
 
   it('names broadcast words as the server does', () => {

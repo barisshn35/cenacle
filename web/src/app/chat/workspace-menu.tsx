@@ -19,7 +19,9 @@ import {
   UserMinusIcon,
   UserPlusIcon,
   UsersIcon,
+  UsersRoundIcon,
 } from 'lucide-react';
+import { GroupsDialog } from '../groups/groups-dialog';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
@@ -84,7 +86,7 @@ const selectClass =
 export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation();
   const [dialog, setDialog] = useState<
-    'settings' | 'invite' | 'integrations' | 'leave' | 'moderation' | null
+    'settings' | 'invite' | 'integrations' | 'leave' | 'moderation' | 'groups' | null
   >(null);
   const admin = isWorkspaceAdmin(workspace);
   const queryClient = useQueryClient();
@@ -130,6 +132,10 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
             <SettingsIcon strokeWidth={1.75} />
             {admin ? t('workspaces.settings') : t('workspaces.members')}
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setDialog('groups')}>
+            <UsersRoundIcon strokeWidth={1.75} />
+            {t('userGroups.title')}
+          </DropdownMenuItem>
           {admin && (
             <DropdownMenuItem onClick={() => setDialog('moderation')}>
               <ShieldIcon strokeWidth={1.75} />
@@ -166,6 +172,7 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
         />
       )}
       {dialog === 'invite' && <InviteDialog workspace={workspace} open onOpenChange={close} />}
+      {dialog === 'groups' && <GroupsDialog workspace={workspace} open onOpenChange={close} />}
       {dialog === 'moderation' && (
         <ModerationDialog workspace={workspace} open onOpenChange={close} />
       )}

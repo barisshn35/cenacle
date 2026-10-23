@@ -78,7 +78,7 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 		return false
 	case events.BannerChanged, events.TermsChanged: // everyone
 		return true
-	case events.CategoriesChanged, events.WorkspaceUpdated, events.WorkspaceMembersChanged,
+	case events.CategoriesChanged, events.WorkspaceUpdated, events.WorkspaceMembersChanged, events.GroupsChanged,
 		events.ReportCreated, events.EventChanged, events.EmojiChanged:
 		return a.workspaces[d.WorkspaceID]
 	case events.WorkspaceJoined:

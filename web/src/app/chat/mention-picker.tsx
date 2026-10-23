@@ -14,8 +14,13 @@ import { useSession } from '../auth/session';
 import { initials } from '../auth/sign-out';
 import { membersQuery } from './data';
 import { textToMentions } from './markdown/mentions';
+import { useActiveWorkspace } from './active-workspace';
+import { useMentionableGroups, type MentionGroup } from '../groups/groups';
+import { UsersRoundIcon } from 'lucide-react';
 
 export type Mentioned = { id: string; display_name: string };
+type Candidate =
+  { kind: 'person'; user: Mentioned & { email: string } } | { kind: 'group'; group: MentionGroup };
 
 /** "@" and what follows it up to the caret, when the caret is in a mention. */
 function mentionQuery(text: string, caret: number): { start: number; query: string } | null {
@@ -27,7 +32,7 @@ function mentionQuery(text: string, caret: number): { start: number; query: stri
 const fold = (s: string) => s.toLocaleLowerCase('tr').normalize('NFD').replace(/\p{M}/gu, '');
 
 /**
- * Suggests channel members while typing "@name": arrow keys choose, Enter or
+ * Suggests channel members and groups while typing "@name": arrow keys choose, Enter or
  * Tab inserts "@Name", Escape closes. The people picked are remembered, so
  * the text can become <@id> mentions when it is sent.
  */
@@ -51,16 +56,28 @@ export function useMentionPicker({
   const [active, setActive] = useState(0);
   const picked = useRef<Mentioned[]>(initial);
   const members = useQuery({ ...membersQuery(channelId), enabled: state !== null });
+  const groups = useMentionableGroups(useActiveWorkspace().id);
 
-  const candidates = state
-    ? (members.data ?? [])
-        .map((m) => m.user)
-        .filter((u) => u.id !== self)
-        .filter((u) => {
-          const q = fold(state.query);
-          return fold(u.display_name).includes(q) || fold(u.email).startsWith(q);
-        })
-        .slice(0, 8)
+  // People of the channel first, then groups (by handle or name).
+  const candidates: Candidate[] = state
+    ? [
+        ...(members.data ?? [])
+          .map((m) => m.user)
+          .filter((u) => u.id !== self)
+          .filter((u) => {
+            const q = fold(state.query);
+            return fold(u.display_name).includes(q) || fold(u.email).startsWith(q);
+          })
+          .slice(0, 8)
+          .map((user) => ({ kind: 'person' as const, user })),
+        ...[...groups.values()]
+          .filter((g) => {
+            const q = fold(state.query);
+            return g.handle.startsWith(q) || fold(g.name).includes(q);
+          })
+          .slice(0, 4)
+          .map((group) => ({ kind: 'group' as const, group })),
+      ]
     : [];
   const open = state !== null && candidates.length > 0;
 
@@ -83,12 +100,15 @@ export function useMentionPicker({
     caret.current = null;
   });
 
-  const pick = (person: Mentioned) => {
+  const pick = (c: Candidate) => {
     if (!state) return;
     const end = input.current?.selectionStart ?? value.length;
-    const inserted = `@${person.display_name} `;
+    // A group is mentioned by its handle as typed; a person becomes <@id> on sending.
+    const inserted = c.kind === 'group' ? `@${c.group.handle} ` : `@${c.user.display_name} `;
     const next = value.slice(0, state.start) + inserted + value.slice(end);
-    if (!picked.current.some((p) => p.id === person.id)) picked.current.push(person);
+    if (c.kind === 'person' && !picked.current.some((p) => p.id === c.user.id)) {
+      picked.current.push(c.user);
+    }
     caret.current = state.start + inserted.length;
     onChange(next);
     setState(null);
@@ -120,15 +140,15 @@ export function useMentionPicker({
   const popup = open ? (
     <div className="absolute bottom-full left-0 z-20 mb-1 w-72 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
       <ul id={listId} role="listbox" aria-label={t('mentions.label')}>
-        {candidates.map((u, i) => (
+        {candidates.map((c, i) => (
           <li
-            key={u.id}
+            key={c.kind === 'group' ? `g-${c.group.id}` : c.user.id}
             role="option"
             aria-selected={i === active}
             // The text box keeps the focus; the pointer picks without taking it.
             onMouseDown={(e) => {
               e.preventDefault();
-              pick(u);
+              pick(c);
             }}
             onMouseEnter={() => setActive(i)}
             className={cn(
@@ -136,21 +156,38 @@ export function useMentionPicker({
               i === active && 'bg-accent text-accent-foreground',
             )}
           >
-            <span
-              aria-hidden
-              className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-semibold"
-            >
-              {initials(u.display_name || u.email)}
-            </span>
-            <span className="truncate">{u.display_name}</span>
-            <span className="truncate text-xs text-muted-foreground">{u.email}</span>
+            {c.kind === 'group' ? (
+              <>
+                <span
+                  aria-hidden
+                  className="flex size-6 shrink-0 items-center justify-center rounded bg-muted"
+                >
+                  <UsersRoundIcon className="size-3.5" strokeWidth={1.75} />
+                </span>
+                <span className="truncate font-medium">@{c.group.handle}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {t('userGroups.pickerLine', { name: c.group.name, count: c.group.member_count })}
+                </span>
+              </>
+            ) : (
+              <>
+                <span
+                  aria-hidden
+                  className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-semibold"
+                >
+                  {initials(c.user.display_name || c.user.email)}
+                </span>
+                <span className="truncate">{c.user.display_name}</span>
+                <span className="truncate text-xs text-muted-foreground">{c.user.email}</span>
+              </>
+            )}
           </li>
         ))}
       </ul>
       <p className="sr-only" role="status">
         {current &&
           t('mentions.active', {
-            name: current.display_name,
+            name: current.kind === 'group' ? `@${current.group.handle}` : current.user.display_name,
             n: active + 1,
             count: candidates.length,
           })}

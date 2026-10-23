@@ -402,6 +402,9 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 	if err := addBroadcastMentions(ctx, q, extra.presence, c, msg); err != nil {
 		return api.Message{}, err
 	}
+	if err := addGroupMentions(ctx, q, c, msg); err != nil {
+		return api.Message{}, err
+	}
 	// What you send, you have read. No channel.read: the sender's other
 	// devices see message.created and move their read position themselves. A
 	// reply kept in its thread leaves the channel's read position alone.

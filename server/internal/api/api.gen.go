@@ -1614,6 +1614,42 @@ func (e SetWorkspaceRoleJSONBodyRole) Valid() bool {
 	}
 }
 
+// Defines values for ListGroups200JSONResponseBodyCreation.
+const (
+	ListGroups200JSONResponseBodyCreationAdmins  ListGroups200JSONResponseBodyCreation = "admins"
+	ListGroups200JSONResponseBodyCreationMembers ListGroups200JSONResponseBodyCreation = "members"
+)
+
+// Valid indicates whether the value is a known member of the ListGroups200JSONResponseBodyCreation enum.
+func (e ListGroups200JSONResponseBodyCreation) Valid() bool {
+	switch e {
+	case ListGroups200JSONResponseBodyCreationAdmins:
+		return true
+	case ListGroups200JSONResponseBodyCreationMembers:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetGroupCreationJSONBodyCreation.
+const (
+	SetGroupCreationJSONBodyCreationAdmins  SetGroupCreationJSONBodyCreation = "admins"
+	SetGroupCreationJSONBodyCreationMembers SetGroupCreationJSONBodyCreation = "members"
+)
+
+// Valid indicates whether the value is a known member of the SetGroupCreationJSONBodyCreation enum.
+func (e SetGroupCreationJSONBodyCreation) Valid() bool {
+	switch e {
+	case SetGroupCreationJSONBodyCreationAdmins:
+		return true
+	case SetGroupCreationJSONBodyCreationMembers:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListReportsParamsStatus.
 const (
 	ListReportsParamsStatusClosed ListReportsParamsStatus = "closed"
@@ -2468,6 +2504,30 @@ type Member struct {
 
 // MemberRole defines model for Member.Role.
 type MemberRole string
+
+// MentionGroup defines model for MentionGroup.
+type MentionGroup struct {
+	// Archived Archived groups cannot be mentioned.
+	Archived    bool   `json:"archived"`
+	CanManage   bool   `json:"can_manage"`
+	Description string `json:"description"`
+
+	// DirectoryGroup The directory group whose people it has, if it follows one.
+	DirectoryGroup *string `json:"directory_group"`
+
+	// Handle Mentioned as @handle.
+	Handle      string             `json:"handle"`
+	Id          openapi_types.UUID `json:"id"`
+	IsMember    bool               `json:"is_member"`
+	MemberCount int                `json:"member_count"`
+	Name        string             `json:"name"`
+}
+
+// MentionGroupMember defines model for MentionGroupMember.
+type MentionGroupMember struct {
+	Manager bool   `json:"manager"`
+	Person  Person `json:"person"`
+}
 
 // Message defines model for Message.
 type Message struct {
@@ -3677,6 +3737,24 @@ type ListUnreadsParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
 }
 
+// UpdateGroupJSONBody defines parameters for UpdateGroup.
+type UpdateGroupJSONBody struct {
+	Archived    *bool   `json:"archived,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Handle      *string `json:"handle,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
+// AddGroupMembersJSONBody defines parameters for AddGroupMembers.
+type AddGroupMembersJSONBody struct {
+	UserIds []openapi_types.UUID `json:"user_ids"`
+}
+
+// SetGroupManagerJSONBody defines parameters for SetGroupManager.
+type SetGroupManagerJSONBody struct {
+	Manager bool `json:"manager"`
+}
+
 // GetPictureParams defines parameters for GetPicture.
 type GetPictureParams struct {
 	// Still The first frame of an animated picture.
@@ -3907,6 +3985,26 @@ type SetMemberTimeoutJSONBody struct {
 	Until *time.Time `json:"until"`
 }
 
+// ListGroups200JSONResponseBodyCreation defines parameters for ListGroups.
+type ListGroups200JSONResponseBodyCreation string
+
+// CreateGroupJSONBody defines parameters for CreateGroup.
+type CreateGroupJSONBody struct {
+	Description    *string               `json:"description,omitempty"`
+	DirectoryGroup *string               `json:"directory_group,omitempty"`
+	Handle         string                `json:"handle"`
+	MemberIds      *[]openapi_types.UUID `json:"member_ids,omitempty"`
+	Name           string                `json:"name"`
+}
+
+// SetGroupCreationJSONBody defines parameters for SetGroupCreation.
+type SetGroupCreationJSONBody struct {
+	Creation SetGroupCreationJSONBodyCreation `json:"creation"`
+}
+
+// SetGroupCreationJSONBodyCreation defines parameters for SetGroupCreation.
+type SetGroupCreationJSONBodyCreation string
+
 // SetWorkspaceNotificationsJSONBody defines parameters for SetWorkspaceNotifications.
 type SetWorkspaceNotificationsJSONBody struct {
 	MutedUntil *time.Time `json:"muted_until"`
@@ -4098,6 +4196,15 @@ type SetThreadFollowingJSONRequestBody SetThreadFollowingJSONBody
 // MarkThreadReadJSONRequestBody defines body for MarkThreadRead for application/json ContentType.
 type MarkThreadReadJSONRequestBody MarkThreadReadJSONBody
 
+// UpdateGroupJSONRequestBody defines body for UpdateGroup for application/json ContentType.
+type UpdateGroupJSONRequestBody UpdateGroupJSONBody
+
+// AddGroupMembersJSONRequestBody defines body for AddGroupMembers for application/json ContentType.
+type AddGroupMembersJSONRequestBody AddGroupMembersJSONBody
+
+// SetGroupManagerJSONRequestBody defines body for SetGroupManager for application/json ContentType.
+type SetGroupManagerJSONRequestBody SetGroupManagerJSONBody
+
 // UpdatePlaybookJSONRequestBody defines body for UpdatePlaybook for application/json ContentType.
 type UpdatePlaybookJSONRequestBody = PlaybookInput
 
@@ -4202,6 +4309,12 @@ type SetWorkspaceRoleJSONRequestBody SetWorkspaceRoleJSONBody
 
 // SetMemberTimeoutJSONRequestBody defines body for SetMemberTimeout for application/json ContentType.
 type SetMemberTimeoutJSONRequestBody SetMemberTimeoutJSONBody
+
+// CreateGroupJSONRequestBody defines body for CreateGroup for application/json ContentType.
+type CreateGroupJSONRequestBody CreateGroupJSONBody
+
+// SetGroupCreationJSONRequestBody defines body for SetGroupCreation for application/json ContentType.
+type SetGroupCreationJSONRequestBody SetGroupCreationJSONBody
 
 // SetWorkspaceNotificationsJSONRequestBody defines body for SetWorkspaceNotifications for application/json ContentType.
 type SetWorkspaceNotificationsJSONRequestBody SetWorkspaceNotificationsJSONBody
@@ -4714,6 +4827,21 @@ type ServerInterface interface {
 	// ListUnreads The unread messages of a workspace's channels (20 latest per channel)
 	// (GET /api/me/unreads)
 	ListUnreads(w http.ResponseWriter, r *http.Request, params ListUnreadsParams)
+	// GetGroup A group and its members
+	// (GET /api/mention-groups/{group_id})
+	GetGroup(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID)
+	// UpdateGroup Rename, describe, archive or restore a group (its managers and administrators)
+	// (PATCH /api/mention-groups/{group_id})
+	UpdateGroup(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID)
+	// AddGroupMembers Add people of the workspace to a group (its managers and administrators)
+	// (POST /api/mention-groups/{group_id}/members)
+	AddGroupMembers(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID)
+	// RemoveGroupMember Remove a member, or leave the group
+	// (DELETE /api/mention-groups/{group_id}/members/{user_id})
+	RemoveGroupMember(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, userId openapi_types.UUID)
+	// SetGroupManager Make a member a manager of the group or not
+	// (PATCH /api/mention-groups/{group_id}/members/{user_id})
+	SetGroupManager(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, userId openapi_types.UUID)
 	// GetMeta What the server offers, before signing in
 	// (GET /api/meta)
 	GetMeta(w http.ResponseWriter, r *http.Request)
@@ -4960,6 +5088,15 @@ type ServerInterface interface {
 	// SetMemberTimeout Time a member out (no messages or reactions in the workspace) or end it
 	// (PUT /api/workspaces/{workspace_id}/members/{user_id}/timeout)
 	SetMemberTimeout(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID)
+	// ListGroups The workspace's groups (mentioned as @handle), archived ones last
+	// (GET /api/workspaces/{workspace_id}/mention-groups)
+	ListGroups(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateGroup Create a group; its creator manages it
+	// (POST /api/workspaces/{workspace_id}/mention-groups)
+	CreateGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetGroupCreation Choose who may create groups (owners and admins)
+	// (PUT /api/workspaces/{workspace_id}/mention-groups/settings)
+	SetGroupCreation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// SetWorkspaceNotifications Mute or unmute a workspace for you
 	// (PUT /api/workspaces/{workspace_id}/notifications)
 	SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -5875,6 +6012,36 @@ func (_ Unimplemented) ListUnreads(w http.ResponseWriter, r *http.Request, param
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetGroup A group and its members
+// (GET /api/mention-groups/{group_id})
+func (_ Unimplemented) GetGroup(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGroup Rename, describe, archive or restore a group (its managers and administrators)
+// (PATCH /api/mention-groups/{group_id})
+func (_ Unimplemented) UpdateGroup(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddGroupMembers Add people of the workspace to a group (its managers and administrators)
+// (POST /api/mention-groups/{group_id}/members)
+func (_ Unimplemented) AddGroupMembers(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveGroupMember Remove a member, or leave the group
+// (DELETE /api/mention-groups/{group_id}/members/{user_id})
+func (_ Unimplemented) RemoveGroupMember(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGroupManager Make a member a manager of the group or not
+// (PATCH /api/mention-groups/{group_id}/members/{user_id})
+func (_ Unimplemented) SetGroupManager(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetMeta What the server offers, before signing in
 // (GET /api/meta)
 func (_ Unimplemented) GetMeta(w http.ResponseWriter, r *http.Request) {
@@ -6364,6 +6531,24 @@ func (_ Unimplemented) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, 
 // SetMemberTimeout Time a member out (no messages or reactions in the workspace) or end it
 // (PUT /api/workspaces/{workspace_id}/members/{user_id}/timeout)
 func (_ Unimplemented) SetMemberTimeout(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroups The workspace's groups (mentioned as @handle), archived ones last
+// (GET /api/workspaces/{workspace_id}/mention-groups)
+func (_ Unimplemented) ListGroups(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateGroup Create a group; its creator manages it
+// (POST /api/workspaces/{workspace_id}/mention-groups)
+func (_ Unimplemented) CreateGroup(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGroupCreation Choose who may create groups (owners and admins)
+// (PUT /api/workspaces/{workspace_id}/mention-groups/settings)
+func (_ Unimplemented) SetGroupCreation(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10412,6 +10597,154 @@ func (siw *ServerInterfaceWrapper) ListUnreads(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// GetGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGroup(w, r, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGroup operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGroup(w, r, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddGroupMembers operation middleware
+func (siw *ServerInterfaceWrapper) AddGroupMembers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddGroupMembers(w, r, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveGroupMember operation middleware
+func (siw *ServerInterfaceWrapper) RemoveGroupMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveGroupMember(w, r, groupId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGroupManager operation middleware
+func (siw *ServerInterfaceWrapper) SetGroupManager(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "group_id" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group_id", chi.URLParam(r, "group_id"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGroupManager(w, r, groupId, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMeta operation middleware
 func (siw *ServerInterfaceWrapper) GetMeta(w http.ResponseWriter, r *http.Request) {
 
@@ -12772,6 +13105,84 @@ func (siw *ServerInterfaceWrapper) SetMemberTimeout(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroups(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateGroup operation middleware
+func (siw *ServerInterfaceWrapper) CreateGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateGroup(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGroupCreation operation middleware
+func (siw *ServerInterfaceWrapper) SetGroupCreation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGroupCreation(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetWorkspaceNotifications operation middleware
 func (siw *ServerInterfaceWrapper) SetWorkspaceNotifications(w http.ResponseWriter, r *http.Request) {
 
@@ -13859,6 +14270,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/sidebar", wrapper.SetSidebar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/mention-groups", wrapper.ListGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/mention-groups", wrapper.CreateGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/mention-groups/settings", wrapper.SetGroupCreation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/mention-groups/{group_id}", wrapper.GetGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/mention-groups/{group_id}", wrapper.UpdateGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/mention-groups/{group_id}/members", wrapper.AddGroupMembers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/mention-groups/{group_id}/members/{user_id}", wrapper.RemoveGroupMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/mention-groups/{group_id}/members/{user_id}", wrapper.SetGroupManager)
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/runs/{run_id}/items", wrapper.UpdateRunItem)

@@ -28,7 +28,12 @@ type Querier interface {
 	// for @here) or those with a workspace role (role).
 	AddBroadcastMentions(ctx context.Context, arg AddBroadcastMentionsParams) error
 	AddChannelGroupMapping(ctx context.Context, arg AddChannelGroupMappingParams) error
+	// AddGroupMentions records a mention for each person of the mentioned groups
+	// (by handle, not archived) who is in the channel, but the author.
+	AddGroupMentions(ctx context.Context, arg AddGroupMentionsParams) error
 	AddMember(ctx context.Context, arg AddMemberParams) (int64, error)
+	// AddMentionGroupMembers adds people of the group's workspace to it.
+	AddMentionGroupMembers(ctx context.Context, arg AddMentionGroupMembersParams) error
 	// AddMentions stores the mentions of a message: only members of its channel.
 	AddMentions(ctx context.Context, arg AddMentionsParams) error
 	AddPollOptions(ctx context.Context, arg AddPollOptionsParams) error
@@ -81,6 +86,7 @@ type Querier interface {
 	CountForms(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountHeldMessages(ctx context.Context, arg CountHeldMessagesParams) (int64, error)
 	CountListItems(ctx context.Context, listID pgtype.UUID) (int32, error)
+	CountMentionGroupManagers(ctx context.Context, groupID pgtype.UUID) (int32, error)
 	CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID) (int64, error)
 	CountPins(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountPollVoters(ctx context.Context, messageIds []pgtype.UUID) ([]CountPollVotersRow, error)
@@ -125,6 +131,7 @@ type Querier interface {
 	CreateLegalHold(ctx context.Context, arg CreateLegalHoldParams) (LegalHold, error)
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
 	CreateListItem(ctx context.Context, arg CreateListItemParams) (ListItem, error)
+	CreateMentionGroup(ctx context.Context, arg CreateMentionGroupParams) (MentionGroup, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
@@ -252,6 +259,7 @@ type Querier interface {
 	// messages hide their files).
 	GetFileForReader(ctx context.Context, id pgtype.UUID) (GetFileForReaderRow, error)
 	GetForm(ctx context.Context, id pgtype.UUID) (Form, error)
+	GetGroupCreation(ctx context.Context, id pgtype.UUID) (string, error)
 	GetInstanceAdmin(ctx context.Context) (User, error)
 	GetInstanceSettings(ctx context.Context) (bool, error)
 	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
@@ -263,6 +271,7 @@ type Querier interface {
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
 	GetMemberTimeout(ctx context.Context, arg GetMemberTimeoutParams) (pgtype.Timestamptz, error)
+	GetMentionGroup(ctx context.Context, id pgtype.UUID) (MentionGroup, error)
 	GetMessage(ctx context.Context, arg GetMessageParams) (GetMessageRow, error)
 	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
 	// GetMessagesByIDs returns messages with their authors and channels.
@@ -410,6 +419,10 @@ type Querier interface {
 	ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelsRow, error)
 	ListMemberIDs(ctx context.Context, channelID pgtype.UUID) ([]pgtype.UUID, error)
 	ListMembers(ctx context.Context, channelID pgtype.UUID) ([]ListMembersRow, error)
+	ListMentionGroupPeople(ctx context.Context, groupID pgtype.UUID) ([]ListMentionGroupPeopleRow, error)
+	// ListMentionGroups returns a workspace's groups with how many people are in
+	// each and whether the user is in it or manages it.
+	ListMentionGroups(ctx context.Context, arg ListMentionGroupsParams) ([]ListMentionGroupsRow, error)
 	ListMentions(ctx context.Context, messageIds []pgtype.UUID) ([]ListMentionsRow, error)
 	ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error)
 	// ListMessagesBefore returns up to row_limit messages of a channel older than
@@ -545,6 +558,7 @@ type Querier interface {
 	ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error
 	RemoteMessageOf(ctx context.Context, arg RemoteMessageOfParams) (pgtype.UUID, error)
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
+	RemoveMentionGroupMember(ctx context.Context, arg RemoveMentionGroupMemberParams) (int64, error)
 	RemovePushEndpoint(ctx context.Context, endpoint string) error
 	RemovePushSubscription(ctx context.Context, arg RemovePushSubscriptionParams) error
 	RemoveReaction(ctx context.Context, arg RemoveReactionParams) (int64, error)
@@ -618,6 +632,7 @@ type Querier interface {
 	SetEmailNotification(ctx context.Context, arg SetEmailNotificationParams) error
 	SetFederationConnectionStatus(ctx context.Context, arg SetFederationConnectionStatusParams) (FederationConnection, error)
 	SetFederationError(ctx context.Context, arg SetFederationErrorParams) error
+	SetGroupCreation(ctx context.Context, arg SetGroupCreationParams) error
 	// SetGuestRoles makes a person a guest wherever they are a member or an
 	// administrator (or takes it back when they are not a guest any more).
 	SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error
@@ -626,6 +641,7 @@ type Querier interface {
 	SetListItemPosition(ctx context.Context, arg SetListItemPositionParams) error
 	SetMemberAttributes(ctx context.Context, arg SetMemberAttributesParams) error
 	SetMemberTimeout(ctx context.Context, arg SetMemberTimeoutParams) (int64, error)
+	SetMentionGroupManager(ctx context.Context, arg SetMentionGroupManagerParams) (int64, error)
 	SetNotificationPrefs(ctx context.Context, arg SetNotificationPrefsParams) error
 	SetNotifyCursor(ctx context.Context, arg SetNotifyCursorParams) error
 	SetOnboarded(ctx context.Context, arg SetOnboardedParams) (int64, error)
@@ -674,6 +690,7 @@ type Querier interface {
 	UpdateLegalHold(ctx context.Context, arg UpdateLegalHoldParams) (LegalHold, error)
 	UpdateList(ctx context.Context, arg UpdateListParams) (List, error)
 	UpdateListItem(ctx context.Context, arg UpdateListItemParams) (ListItem, error)
+	UpdateMentionGroup(ctx context.Context, arg UpdateMentionGroupParams) (MentionGroup, error)
 	UpdatePlaybook(ctx context.Context, arg UpdatePlaybookParams) (Playbook, error)
 	UpdateProfileSettings(ctx context.Context, arg UpdateProfileSettingsParams) error
 	// UpdateUserProfile follows a change of name or address at Cenacle ID.

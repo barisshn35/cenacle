@@ -429,6 +429,9 @@ export interface MockApi {
   unreads: string[];
   /** The person's sidebar arrangement as the fake server keeps it. */
   sidebar: Record<string, unknown>;
+  /** Mention groups as the fake server keeps them (with their members). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  groups: { group: any; members: { person: any; manager: boolean }[] }[];
   /** Channels typing notices were sent for. */
   typing: string[];
   /** Statuses the user chose. */
@@ -740,6 +743,7 @@ export async function mockApi(
     reads: new Map(),
     unreads: [],
     sidebar: { order: [], sections: [], placements: {}, group_unreads: false, collapsed: [] },
+    groups: [],
     reacted: [],
     typing: [],
     statuses: [],
@@ -1059,6 +1063,84 @@ export async function mockApi(
     api.unreads.push(message_id ? `${c.id}:${message_id}` : c.id);
     c.unread_count = Math.max(c.unread_count, 1);
     return route.fulfill({ status: 204 });
+  });
+  const groupSelf = {
+    id: SESSION.user.id,
+    display_name: SESSION.user.display_name,
+    email: SESSION.user.email,
+  };
+  const groupView = (g: MockApi['groups'][number]) => ({
+    ...g.group,
+    member_count: g.members.length,
+    is_member: g.members.some((m) => m.person.id === groupSelf.id),
+  });
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/mention-groups$/, (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        json: { groups: api.groups.map(groupView), can_create: true, creation: 'members' },
+      });
+    }
+    const body = route.request().postDataJSON() as {
+      handle: string;
+      name: string;
+      description?: string;
+      member_ids?: string[];
+    };
+    if (api.groups.some((g) => g.group.handle === body.handle)) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/problem+json',
+        json: { status: 409, code: 'handle_taken', title: 'Conflict' },
+      });
+    }
+    const id = `01a15e50-9999-7000-8000-${String(api.groups.length).padStart(12, '0')}`;
+    const group = {
+      id,
+      handle: body.handle,
+      name: body.name,
+      description: body.description ?? '',
+      directory_group: null,
+      can_manage: true,
+      archived: false,
+    };
+    const others = PEOPLE.filter((p) => body.member_ids?.includes(p.id));
+    api.groups.push({
+      group,
+      members: [
+        { person: groupSelf, manager: true },
+        ...others.map((p) => ({ person: p, manager: false })),
+      ],
+    });
+    return route.fulfill({ status: 201, json: groupView(api.groups.at(-1)!) });
+  });
+  await page.route(/\/api\/mention-groups\/[0-9a-f-]{36}(\/.*)?$/, (route) => {
+    const url = new URL(route.request().url());
+    const [, , , id, , userId] = url.pathname.split('/');
+    const g = api.groups.find((x) => x.group.id === id);
+    if (!g) return route.fulfill({ status: 404, json: { status: 404 } });
+    const method = route.request().method();
+    if (url.pathname.endsWith('/members') && method === 'POST') {
+      const { user_ids } = route.request().postDataJSON() as { user_ids: string[] };
+      for (const p of PEOPLE.filter((x) => user_ids.includes(x.id))) {
+        if (!g.members.some((m) => m.person.id === p.id))
+          g.members.push({ person: p, manager: false });
+      }
+      return route.fulfill({ status: 204 });
+    }
+    if (userId && method === 'DELETE') {
+      g.members = g.members.filter((m) => m.person.id !== userId);
+      return route.fulfill({ status: 204 });
+    }
+    if (userId && method === 'PATCH') {
+      const { manager } = route.request().postDataJSON() as { manager: boolean };
+      g.members = g.members.map((m) => (m.person.id === userId ? { ...m, manager } : m));
+      return route.fulfill({ status: 204 });
+    }
+    if (method === 'PATCH') {
+      Object.assign(g.group, route.request().postDataJSON());
+      return route.fulfill({ json: groupView(g) });
+    }
+    return route.fulfill({ json: { group: groupView(g), members: g.members } });
   });
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/sidebar$/, (route) => {
     if (route.request().method() === 'PUT') {

@@ -4216,6 +4216,196 @@ paths:
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/mention-groups:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [groups]
+      operationId: listGroups
+      summary: The workspace's groups (mentioned as @handle), archived ones last
+      responses:
+        '200':
+          description: Groups, and whether the person may create one.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [groups, can_create, creation]
+                properties:
+                  groups:
+                    type: array
+                    items: { $ref: '#/components/schemas/MentionGroup' }
+                  can_create: { type: boolean }
+                  creation:
+                    type: string
+                    enum: [members, admins]
+                    description: Who may create groups.
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [groups]
+      operationId: createGroup
+      summary: Create a group; its creator manages it
+      description: |
+        A group following a directory group (`directory_group`, administrators
+        only) has that group's people of the workspace as members.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handle, name]
+              properties:
+                handle: { type: string, minLength: 1, maxLength: 30 }
+                name: { type: string, minLength: 1, maxLength: 64 }
+                description: { type: string, maxLength: 500 }
+                member_ids:
+                  type: array
+                  maxItems: 500
+                  items: { type: string, format: uuid }
+                directory_group: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MentionGroup' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/mention-groups/settings:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [groups]
+      operationId: setGroupCreation
+      summary: Choose who may create groups (owners and admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [creation]
+              properties:
+                creation: { type: string, enum: [members, admins] }
+      responses:
+        '204': { description: Changed. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/mention-groups/{group_id}:
+    parameters:
+      - { name: group_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [groups]
+      operationId: getGroup
+      summary: A group and its members
+      responses:
+        '200':
+          description: The group.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [group, members]
+                properties:
+                  group: { $ref: '#/components/schemas/MentionGroup' }
+                  members:
+                    type: array
+                    items: { $ref: '#/components/schemas/MentionGroupMember' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    patch:
+      tags: [groups]
+      operationId: updateGroup
+      summary: Rename, describe, archive or restore a group (its managers and administrators)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                handle: { type: string, minLength: 1, maxLength: 30 }
+                name: { type: string, minLength: 1, maxLength: 64 }
+                description: { type: string, maxLength: 500 }
+                archived: { type: boolean }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MentionGroup' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/mention-groups/{group_id}/members:
+    parameters:
+      - { name: group_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [groups]
+      operationId: addGroupMembers
+      summary: Add people of the workspace to a group (its managers and administrators)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_ids]
+              properties:
+                user_ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items: { type: string, format: uuid }
+      responses:
+        '204': { description: Added. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/mention-groups/{group_id}/members/{user_id}:
+    parameters:
+      - { name: group_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [groups]
+      operationId: setGroupManager
+      summary: Make a member a manager of the group or not
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [manager]
+              properties:
+                manager: { type: boolean }
+      responses:
+        '204': { description: Changed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [groups]
+      operationId: removeGroupMember
+      summary: Remove a member, or leave the group
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
   /api/runs/{run_id}/items:
     parameters:
       - { name: run_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -6790,6 +6980,28 @@ components:
         format: { type: string, enum: [woff2, woff, truetype, opentype] }
         size: { type: integer }
         created_at: { type: string, format: date-time }
+    MentionGroup:
+      type: object
+      required: [id, handle, name, description, directory_group, member_count, is_member, can_manage, archived]
+      properties:
+        id: { type: string, format: uuid }
+        handle: { type: string, description: 'Mentioned as @handle.' }
+        name: { type: string }
+        description: { type: string }
+        directory_group:
+          type: string
+          nullable: true
+          description: The directory group whose people it has, if it follows one.
+        member_count: { type: integer }
+        is_member: { type: boolean }
+        can_manage: { type: boolean }
+        archived: { type: boolean, description: Archived groups cannot be mentioned. }
+    MentionGroupMember:
+      type: object
+      required: [person, manager]
+      properties:
+        person: { $ref: '#/components/schemas/Person' }
+        manager: { type: boolean }
     SidebarLayout:
       type: object
       description: |

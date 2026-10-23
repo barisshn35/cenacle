@@ -41,6 +41,9 @@ const (
 	ChannelUnread = "channel.unread"
 	// SidebarChanged (a person rearranged a workspace's sidebar) goes to them.
 	SidebarChanged = "sidebar.changed"
+	// GroupsChanged (a workspace's mention groups or their members changed)
+	// goes to the members of the workspace.
+	GroupsChanged = "groups.changed"
 	// CategoriesChanged goes to the members of a workspace.
 	CategoriesChanged = "categories.changed"
 	// WorkspaceJoined and WorkspaceLeft go to the user concerned (joined is also

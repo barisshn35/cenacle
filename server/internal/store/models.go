@@ -400,6 +400,31 @@ type ListItem struct {
 	UpdatedAt time.Time     `json:"updated_at"`
 }
 
+type MentionGroup struct {
+	ID             pgtype.UUID        `json:"id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	Handle         string             `json:"handle"`
+	Name           string             `json:"name"`
+	Description    string             `json:"description"`
+	DirectoryGroup pgtype.Text        `json:"directory_group"`
+	CreatedBy      pgtype.UUID        `json:"created_by"`
+	CreatedAt      time.Time          `json:"created_at"`
+	ArchivedAt     pgtype.Timestamptz `json:"archived_at"`
+}
+
+type MentionGroupMember struct {
+	GroupID pgtype.UUID `json:"group_id"`
+	UserID  pgtype.UUID `json:"user_id"`
+	Manager bool        `json:"manager"`
+	AddedAt time.Time   `json:"added_at"`
+}
+
+type MentionGroupPerson struct {
+	GroupID pgtype.UUID `json:"group_id"`
+	UserID  pgtype.UUID `json:"user_id"`
+	Manager bool        `json:"manager"`
+}
+
 type Message struct {
 	ID            pgtype.UUID        `json:"id"`
 	ChannelID     pgtype.UUID        `json:"channel_id"`
@@ -752,6 +777,7 @@ type Workspace struct {
 	RetentionDays    pgtype.Int4 `json:"retention_days"`
 	ClassificationID pgtype.UUID `json:"classification_id"`
 	AiEnabled        bool        `json:"ai_enabled"`
+	GroupCreation    string      `json:"group_creation"`
 }
 
 type WorkspaceAttribute struct {

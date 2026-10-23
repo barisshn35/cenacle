@@ -393,6 +393,9 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 		if err := addBroadcastMentions(r.Context(), q, h.Presence, c, edited); err != nil {
 			return err
 		}
+		if err := addGroupMentions(r.Context(), q, c, edited); err != nil {
+			return err
+		}
 		msgs := []api.Message{messageAPI(edited, m.AuthorName, m.AuthorIsBot)}
 		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
 			return err
