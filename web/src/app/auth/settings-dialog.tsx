@@ -4,6 +4,7 @@ import { useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLinkIcon, LaptopIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { LANGUAGES, setLanguage, type Language } from '../../i18n';
 import { cn } from '@cenacle/ui/lib/utils';
 import { AppearancePanel } from '../appearance/appearance-panel';
 import { UITextsPanel } from '../appearance/ui-texts-panel';
@@ -11,6 +12,7 @@ import { NotificationsPanel } from '../notifications/notifications-panel';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@cenacle/ui/components/button';
 import { ConfirmDialog } from '@cenacle/ui/components/confirm-dialog';
+import { Label } from '@cenacle/ui/components/label';
 import {
   Dialog,
   DialogContent,
@@ -93,7 +95,7 @@ function DeviceRow({ device }: { device: DeviceSession }) {
  * Settings of the signed-in user: signed-in devices with "sign out
  * everywhere" (S3) and the way to two-step verification in Cenacle ID.
  */
-type Tab = 'account' | 'appearance' | 'notifications' | 'texts' | 'announcements';
+type Tab = 'account' | 'appearance' | 'notifications' | 'texts' | 'announcements' | 'language';
 
 export function SettingsDialog({
   open,
@@ -111,8 +113,8 @@ export function SettingsDialog({
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const tabs: Tab[] = session.permissions.create_workspaces
-    ? ['account', 'appearance', 'notifications', 'texts', 'announcements']
-    : ['account', 'appearance', 'notifications'];
+    ? ['account', 'appearance', 'notifications', 'language', 'texts', 'announcements']
+    : ['account', 'appearance', 'notifications', 'language'];
   const [tab, setTab] = useState<Tab>('account');
 
   return (
@@ -165,6 +167,15 @@ export function SettingsDialog({
               aria-labelledby="settings-tab-appearance"
             >
               <AppearancePanel />
+            </div>
+          )}
+          {tab === 'language' && (
+            <div
+              role="tabpanel"
+              id="settings-panel-language"
+              aria-labelledby="settings-tab-language"
+            >
+              <LanguagePanel />
             </div>
           )}
           {tab === 'notifications' && (
@@ -293,5 +304,28 @@ export function SettingsDialog({
         }}
       />
     </>
+  );
+}
+
+/** The language of the interface (English or Turkish). */
+function LanguagePanel() {
+  const { t, i18n } = useTranslation();
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-2 pt-4">
+      <Label htmlFor={id}>{t('appearance.language')}</Label>
+      <select
+        id={id}
+        className="h-9 min-h-target w-full max-w-xs rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        value={i18n.resolvedLanguage}
+        onChange={(e) => setLanguage(e.target.value as Language)}
+      >
+        {LANGUAGES.map((l) => (
+          <option key={l} value={l}>
+            {l === 'en' ? 'English' : 'Türkçe'}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

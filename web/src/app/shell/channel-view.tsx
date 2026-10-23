@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@cenacle/ui/components/button';
-import { Separator } from '@cenacle/ui/components/separator';
 import { SidebarTrigger } from '@cenacle/ui/components/sidebar';
 import { Logo } from '@cenacle/ui/brand';
 import { useLayout } from '../../stores/layout';
@@ -21,19 +20,20 @@ import { isFuture } from '../community/community';
 import { ForumView } from '../community/forum';
 import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { MessageList } from '../chat/message-list';
-import { useSaveAppearance } from '../appearance/use-save-appearance';
-import { AppearanceControls } from './appearance-controls';
 import { CanvasView } from '../collab/canvas-view';
 import { ChannelTabs } from '../collab/channel-tabs';
 import { tabsQuery } from '../collab/collab';
 import { ListView } from '../collab/list-view';
-import { ClassificationBanner } from '../compliance/classification';
+import { GovernanceChip } from '../compliance/classification';
 import { UnlockPanel } from '../compliance/encrypted';
 import { useCanWrite } from '../compliance/e2e';
 
+/** Header buttons that open a panel: Brass while their panel is open. */
+const HEADER_TOGGLE =
+  'text-muted-foreground aria-pressed:bg-[color-mix(in_oklab,var(--accent-brand)_14%,transparent)] aria-pressed:text-accent-brand';
+
 export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
-  const saveAppearance = useSaveAppearance();
   const { id, channel } = useActiveChannel();
   const detailsOpen = useLayout((s) => s.detailsOpen);
   const rightView = useLayout((s) => s.rightView);
@@ -52,7 +52,8 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
 
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="channel-title">
-      <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-3">
+      {/* The 56px band shared by the rail, the sidebar head and the panels. */}
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 max-sm:px-2">
         {mobile && (
           <>
             <SidebarTrigger />
@@ -69,20 +70,21 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           )}
           <h1
             id="channel-title"
-            className="max-w-[60%] shrink-0 truncate text-[0.9375rem] font-semibold"
+            className="max-w-[60%] shrink-0 truncate text-[17px] leading-5 font-semibold tracking-[-0.01em]"
           >
             {name}
           </h1>
           {channel?.topic && (
-            <>
-              <Separator orientation="vertical" className="mx-1 h-4 self-center! max-sm:hidden" />
-              <p className="min-w-0 truncate text-sm text-muted-foreground max-sm:hidden">
-                {channel.topic}
-              </p>
-            </>
+            <p className="min-w-0 truncate text-[13.5px] text-muted-foreground max-sm:hidden">
+              {channel.topic}
+            </p>
           )}
         </div>
-        {!mobile && <AppearanceControls onSave={(change) => saveAppearance.mutate(change)} />}
+        {channel && (
+          <div className="flex min-w-0 shrink max-md:hidden">
+            <GovernanceChip channel={channel} onOpen={() => show('details')} />
+          </div>
+        )}
         {id && channel && !channel.encrypted && <SummarizeButton channelId={id} />}
         <Button
           variant="ghost"
@@ -90,6 +92,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           aria-label={t('search.open')}
           aria-keyshortcuts="Control+Shift+F Meta+Shift+F"
           aria-pressed={showing('search')}
+          className={HEADER_TOGGLE}
           onClick={() => toggle('search')}
         >
           <SearchIcon strokeWidth={1.75} />
@@ -99,13 +102,13 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           size="icon"
           aria-label={t('shell.toggleDetails')}
           aria-pressed={showing('details')}
+          className={HEADER_TOGGLE}
           onClick={() => toggle('details')}
         >
           <PanelRightIcon strokeWidth={1.75} />
         </Button>
       </header>
       {id && channel && <ChannelTabs channel={channel} active={tab?.id} />}
-      {channel && <ClassificationBanner channel={channel} />}
 
       {tab?.canvas_id ? (
         <CanvasView key={tab.canvas_id} canvasId={tab.canvas_id} />

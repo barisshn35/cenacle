@@ -107,10 +107,10 @@ func (h *Handlers) SetMyAppearance(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, in)
 }
 
-// workspaceAppearance reads a workspace's defaults (Corporate in Cenacle's
-// own colors unless its admins chose).
+// workspaceAppearance reads a workspace's defaults (Modern, Geist, in Cenacle's
+// own colors unless its admins chose; v0.29).
 func workspaceAppearance(raw []byte) api.WorkspaceAppearance {
-	a := api.WorkspaceAppearance{Preset: api.ThemePresetCenacle, FontTemplate: api.FontTemplateCorporate}
+	a := api.WorkspaceAppearance{Preset: api.ThemePresetCenacle, FontTemplate: api.FontTemplateModern}
 	stored := a
 	if json.Unmarshal(raw, &stored) == nil && stored.Preset.Valid() && stored.FontTemplate.Valid() {
 		return stored

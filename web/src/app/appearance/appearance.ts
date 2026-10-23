@@ -25,7 +25,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   code: { theme: 'github', line_numbers: false, wrap: false, ligatures: true },
 };
 
-const DEFAULT_WORKSPACE: WorkspaceAppearance = { preset: 'cenacle', font_template: 'corporate' };
+const DEFAULT_WORKSPACE: WorkspaceAppearance = { preset: 'cenacle', font_template: 'modern' };
 
 const json = (body: unknown, method: string): RequestInit => ({
   method,

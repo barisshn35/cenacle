@@ -25,25 +25,36 @@ test('fonts are served locally', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('heading', { level: 1 }).waitFor();
   await page.evaluate(() => document.fonts.ready);
-  expect(await page.evaluate(() => document.fonts.check('16px "Inter Variable"'))).toBe(true);
+  expect(await page.evaluate(() => document.fonts.check('16px "Geist Variable"'))).toBe(true);
   for (const f of fonts) expect(new URL(f).hostname).toBe('127.0.0.1');
 });
 
 test.describe('appearance', () => {
-  test.skip(({ isMobile }) => isMobile, 'selectors are in the desktop header');
+  test.skip(({ isMobile }) => isMobile, 'Settings is on the desktop rail');
+
+  /** Opens a tab of Settings (from the rail). */
+  const openSettings = async (page: import('@playwright/test').Page, tab: string) => {
+    await page
+      .getByRole('navigation', { name: 'Workspaces' })
+      .getByRole('button', { name: 'Settings' })
+      .click();
+    await page.getByRole('tab', { name: tab }).click();
+  };
 
   test('theme and density switch and persist', async ({ page }) => {
     await page.goto('/');
     const html = page.locator('html');
-    await page.getByLabel('Theme').selectOption('dark');
+    await openSettings(page, 'Appearance');
+    await page.getByRole('combobox', { name: 'Theme' }).selectOption('dark');
     await expect(html).toHaveAttribute('data-theme', 'dark');
-    await page.getByLabel('Density').selectOption('comfortable');
+    await page.getByRole('combobox', { name: 'Density' }).selectOption('comfortable');
     await expect(html).toHaveAttribute('data-density', 'comfortable');
     await page.reload();
     await expect(html).toHaveAttribute('data-theme', 'dark');
     await expect(html).toHaveAttribute('data-density', 'comfortable');
 
-    await page.getByLabel('Theme').selectOption('system');
+    await openSettings(page, 'Appearance');
+    await page.getByRole('combobox', { name: 'Theme' }).selectOption('system');
     await page.emulateMedia({ colorScheme: 'light' });
     await expect(html).toHaveAttribute('data-theme', 'light');
     await page.emulateMedia({ colorScheme: 'dark' });
@@ -52,8 +63,10 @@ test.describe('appearance', () => {
 
   test('language switches to Turkish', async ({ page }) => {
     await page.goto('/');
-    await page.getByLabel('Language').selectOption('tr');
+    await openSettings(page, 'Language');
+    await page.getByRole('combobox', { name: 'Language' }).selectOption('tr');
     await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('navigation', { name: 'Çalışma alanları' })).toBeVisible();
   });
 

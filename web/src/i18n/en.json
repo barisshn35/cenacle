@@ -391,7 +391,8 @@
       "appearance": "Appearance",
       "texts": "Interface texts",
       "notifications": "Notifications",
-      "announcements": "Announcements"
+      "announcements": "Announcements",
+      "language": "Language"
     }
   },
   "reactions": {
@@ -1588,7 +1589,16 @@
       "addRule": "Add rule",
       "savedRemoved_one": "Saved. {{count}} member left the channel.",
       "savedRemoved_other": "Saved. {{count}} members left the channel."
-    }
+    },
+    "kept": {
+      "years_one": "kept {{count}} year",
+      "years_other": "kept {{count}} years",
+      "months_one": "kept {{count}} month",
+      "months_other": "kept {{count}} months",
+      "days_one": "kept {{count}} day",
+      "days_other": "kept {{count}} days"
+    },
+    "governance": "Classification and retention: {{label}}. Open the channel details."
   },
   "e2e": {
     "create": "Encrypt end to end",

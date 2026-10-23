@@ -488,7 +488,7 @@ export async function mockApi(
       name: 'Cenacle',
       description: '',
       icon_url: null as string | null,
-      appearance: { preset: 'cenacle', font_template: 'corporate' },
+      appearance: { preset: 'cenacle', font_template: 'modern' },
       is_default: true,
       role: opts.admin ? 'owner' : 'member',
       ...(opts.ai ? { ai_enabled: true } : {}),
@@ -546,7 +546,7 @@ export async function mockApi(
       name,
       description: '',
       icon_url: null,
-      appearance: { preset: 'cenacle', font_template: 'corporate' },
+      appearance: { preset: 'cenacle', font_template: 'modern' },
       is_default: false,
       role: 'owner',
     };

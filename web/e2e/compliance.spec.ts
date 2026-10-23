@@ -51,7 +51,7 @@ const SETTINGS = {
   attributes: [{ key: 'department', name: 'Department' }],
 };
 
-test('channels show the workspace’s default classification banner', async ({ page }) => {
+test('channels show the workspace’s default classification in the header', async ({ page }) => {
   await mockApi(page, { messages: [mockMessage(1, 'Hello')] });
   await page.route(`**/api/workspaces/${DEFAULT_WS}/classifications`, (route) =>
     route.fulfill({
@@ -62,9 +62,10 @@ test('channels show the workspace’s default classification banner', async ({ p
     }),
   );
   await page.goto(`/c/${GENERAL.id}`);
+  // The header's governance chip names it; its description is the chip's hint.
   const banner = page.getByTestId('classification');
   await expect(banner).toContainText('Internal');
-  await expect(banner).toContainText('For employees only');
+  await expect(banner).toHaveAttribute('title', 'For employees only');
   await expectNoAxeViolations(page, '[data-testid="classification"]');
 });
 

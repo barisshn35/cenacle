@@ -1,6 +1,6 @@
 # 0013. Typography: default fonts, font library and font templates
 
-- Status: accepted
+- Status: accepted; the default (decision 1) is superseded by [ADR 0031](0031-interface-rewrite.md) (v0.29)
 - Date: 2026-10-22
 
 ## Context

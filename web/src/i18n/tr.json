@@ -391,7 +391,8 @@
       "appearance": "Görünüm",
       "texts": "Arayüz metinleri",
       "notifications": "Bildirimler",
-      "announcements": "Duyurular"
+      "announcements": "Duyurular",
+      "language": "Dil"
     }
   },
   "reactions": {
@@ -1588,7 +1589,16 @@
       "addRule": "Kural ekle",
       "savedRemoved_one": "Kaydedildi. {{count}} üye kanaldan çıktı.",
       "savedRemoved_other": "Kaydedildi. {{count}} üye kanaldan çıktı."
-    }
+    },
+    "kept": {
+      "years_one": "{{count}} yıl saklanır",
+      "years_other": "{{count}} yıl saklanır",
+      "months_one": "{{count}} ay saklanır",
+      "months_other": "{{count}} ay saklanır",
+      "days_one": "{{count}} gün saklanır",
+      "days_other": "{{count}} gün saklanır"
+    },
+    "governance": "Sınıflandırma ve saklama: {{label}}. Kanal ayrıntılarını açar."
   },
   "e2e": {
     "create": "Uçtan uca şifrele",
