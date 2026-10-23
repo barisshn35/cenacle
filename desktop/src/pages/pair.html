@@ -1,0 +1,61 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'"
+    />
+    <title>Cenacle</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="pair.js" defer></script>
+  </head>
+  <body>
+    <div class="si">
+      <header class="top">
+        <svg aria-hidden="true" viewBox="0 0 48 48">
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="6.5"
+            stroke-linecap="round"
+            d="M10 41V22A14 14 0 0 1 38 22V41"
+          />
+          <path
+            fill="#C9A24B"
+            d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"
+          /></svg
+        ><span>Cenacle</span>
+      </header>
+      <main>
+        <section>
+          <h1 id="title"></h1>
+          <p class="lede" id="lede"></p>
+          <form id="form" novalidate>
+            <label for="address" id="address-label"></label>
+            <input
+              id="address"
+              name="address"
+              autocomplete="url"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+              aria-describedby="example error"
+              autofocus
+            />
+            <p class="hint" id="example"></p>
+            <p class="alert" id="error" role="alert" hidden></p>
+            <button class="primary" id="connect" type="submit"></button>
+            <p class="after" id="next"></p>
+          </form>
+          <div class="recent" id="recent" hidden>
+            <h2 id="recent-title"></h2>
+            <ul id="recent-list"></ul>
+          </div>
+        </section>
+      </main>
+      <footer>Cenacle</footer>
+    </div>
+  </body>
+</html>

@@ -1,9 +1,13 @@
 packages:
   - web
   - idp
+  - desktop
   - packages/*
 saveExact: true
 allowBuilds:
+  electron: true
+  '@electron/fuses': false
+  electron-winstaller: false
   '@parcel/watcher': false
   esbuild: true
 # Install native binaries (e.g. @node-rs/argon2) for every platform the

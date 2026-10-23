@@ -106,6 +106,10 @@ idp:
 
 web:
   replicas: 2
+  # The desktop app's installers and update files, served at /downloads/
+  # (docs/install/desktop.md): the name of a PersistentVolumeClaim holding a
+  # desktop/ folder, mounted read-only. Empty: no downloads.
+  downloadsClaim: ''
   resources:
     requests: { cpu: 10m, memory: 32Mi }
     limits: { memory: 128Mi }

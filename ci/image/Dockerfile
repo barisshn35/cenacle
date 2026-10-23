@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 #
 # The image CI jobs run in: Go, Node.js 24 and 26 with pnpm, the Docker CLI
-# (jobs start their test services next to them) and the system libraries
-# Playwright's Chromium needs. The browser itself is downloaded into the CI
-# cache by the jobs. Bump CI_IMAGE in .gitlab-ci.yml when this file changes.
+# (jobs start their test services next to them), the system libraries
+# Playwright's Chromium needs, and GTK, a keyring library and Xvfb for the
+# desktop app's tests (Electron under a virtual display). The browser itself
+# is downloaded into the CI cache by the jobs. Bump CI_IMAGE in .gitlab-ci.yml
+# when this file changes.
 FROM docker:29.9.2-cli AS docker
 
 FROM golang:1.26.10-trixie
@@ -39,4 +41,6 @@ ENV PATH=/opt/node24/bin:$PATH
 # pnpm runs on whichever Node.js is first on PATH.
 RUN npm install -g --prefix /usr/local "pnpm@$PNPM" \
  && npx -y "playwright@$PLAYWRIGHT" install-deps chromium \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends xvfb xauth libgtk-3-0t64 libnotify4 libsecret-1-0 libxss1 \
  && rm -rf /var/lib/apt/lists/* /root/.npm

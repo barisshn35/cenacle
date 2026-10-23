@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Packages of the desktop app: Windows (NSIS) and Linux (AppImage, deb, rpm),
+# x64 and arm64. macOS comes later. Updates are published under the paired
+# server's /downloads/desktop/ (see docs/install/desktop.md).
+appId: org.cenacle.desktop
+productName: Cenacle
+copyright: Cenacle contributors
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - assets/**
+  - package.json
+asar: true
+afterPack: scripts/fuses.mjs
+protocols:
+  - name: Cenacle
+    schemes: [cenacle]
+publish:
+  provider: generic
+  url: https://example.invalid/downloads/desktop
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  artifactName: Cenacle-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  installerLanguages: [en_US, tr_TR]
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+    - target: rpm
+      arch: [x64, arm64]
+  category: Network;InstantMessaging
+  icon: build/icons
+  maintainer: Cenacle contributors
+  synopsis: Team chat on your own server
+  artifactName: Cenacle-${version}-${arch}.${ext}
+  desktop:
+    entry:
+      MimeType: x-scheme-handler/cenacle
+deb:
+  depends: [libnotify4, libsecret-1-0]
+rpm:
+  depends: [libnotify, libsecret]

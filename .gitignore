@@ -38,3 +38,8 @@ deploy/compose/certs/*
 
 # Generated Cenacle ID assets
 /idp/public/
+desktop/dist/
+desktop/release/
+desktop/assets/fonts/
+desktop/test-results/
+desktop/playwright-report/

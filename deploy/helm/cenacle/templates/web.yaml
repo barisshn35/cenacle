@@ -35,6 +35,9 @@ spec:
             - { name: data, mountPath: /data }
             - { name: config, mountPath: /config }
             - { name: tmp, mountPath: /tmp }
+            {{- if .Values.web.downloadsClaim }}
+            - { name: downloads, mountPath: /downloads, readOnly: true }
+            {{- end }}
           readinessProbe:
             httpGet: { path: /healthz, port: http }
           livenessProbe:
@@ -45,6 +48,10 @@ spec:
         - { name: data, emptyDir: {} }
         - { name: config, emptyDir: {} }
         - { name: tmp, emptyDir: {} }
+        {{- if .Values.web.downloadsClaim }}
+        - name: downloads
+          persistentVolumeClaim: { claimName: {{ .Values.web.downloadsClaim | quote }}, readOnly: true }
+        {{- end }}
       {{- with .Values.web.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

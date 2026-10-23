@@ -19,6 +19,8 @@ export default tseslint.config(
       '**/test-results/**',
       '.bin/**',
       'idp/public/**',
+      'desktop/release/**',
+      'desktop/assets/**',
       'server/**',
       'docs/design/**',
     ],
@@ -32,6 +34,15 @@ export default tseslint.config(
   {
     files: ['idp/**/*.ts', 'scripts/**/*.{js,mjs}'],
     languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['desktop/**/*.{ts,cjs,mjs}'],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    // The desktop app's own pages (plain scripts in its windows).
+    files: ['desktop/src/pages/**/*.js'],
+    languageOptions: { globals: globals.browser, sourceType: 'script' },
   },
   {
     // Plain scripts served to the browser by Cenacle ID.

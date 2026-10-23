@@ -18,7 +18,7 @@ stages: [prepare, lint, test, licenses, build]
 
 variables:
   # Bump when ci/image/Dockerfile changes; the prepare stage builds it once.
-  CI_IMAGE: cenacle-ci:1
+  CI_IMAGE: cenacle-ci:2
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
   TRIVY_IMAGE: aquasec/trivy:0.76.0
   BINFMT_IMAGE: tonistiigi/binfmt:qemu-v10.0.4

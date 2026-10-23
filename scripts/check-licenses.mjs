@@ -28,6 +28,19 @@ const PROD_ALLOWED = new Set([
 
 const DEV_EXTRA = new Set(['CC-BY-4.0', 'CC0-1.0', 'Python-2.0']);
 
+// Single packages with another permissive license, each checked by hand
+// (ADR 0033). The license must match exactly; a new version with another
+// license fails again.
+const PACKAGE_EXCEPTIONS = new Map([
+  // The desktop app's updater reads its YAML files with js-yaml, which uses
+  // argparse: PSF License (Python-2.0), permissive and GPL-compatible.
+  ['argparse', 'Python-2.0'],
+  // Packaging the desktop app only (electron-builder → sanitize-filename);
+  // never shipped. WTFPL: a public-domain-like permissive license.
+  ['truncate-utf8-bytes', 'WTFPL'],
+]);
+const excepted = (pkg, license) => PACKAGE_EXCEPTIONS.get(pkg.name) === license;
+
 const FONT_PACKAGES = new Set([
   '@fontsource-variable/geist',
   '@fontsource-variable/geist-mono',
@@ -77,7 +90,8 @@ for (const [license, pkgs] of Object.entries(listLicenses(true))) {
     prodNames.add(pkg.name);
     const ok = expressionAllowed(
       license,
-      (l) => PROD_ALLOWED.has(l) || (l === 'OFL-1.1' && FONT_PACKAGES.has(pkg.name)),
+      (l) =>
+        PROD_ALLOWED.has(l) || (l === 'OFL-1.1' && FONT_PACKAGES.has(pkg.name)) || excepted(pkg, l),
     );
     if (!ok) violations.push({ scope: 'prod', name: pkg.name, versions: pkg.versions, license });
   }
@@ -88,7 +102,10 @@ for (const [license, pkgs] of Object.entries(listLicenses(false))) {
   for (const pkg of pkgs) {
     if (prodNames.has(pkg.name)) continue;
     devCount++;
-    const ok = expressionAllowed(license, (l) => PROD_ALLOWED.has(l) || DEV_EXTRA.has(l));
+    const ok = expressionAllowed(
+      license,
+      (l) => PROD_ALLOWED.has(l) || DEV_EXTRA.has(l) || excepted(pkg, l),
+    );
     if (!ok) violations.push({ scope: 'dev', name: pkg.name, versions: pkg.versions, license });
   }
 }

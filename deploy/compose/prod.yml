@@ -58,6 +58,9 @@ services:
     image: ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}web:${CENACLE_VERSION}
     read_only: true
     tmpfs: [/tmp, /data, /config]
+    # The desktop app's installers and update files (docs/install/desktop.md).
+    volumes:
+      - ${CENACLE_DOWNLOADS_DIR:-./downloads}:/downloads:ro
     networks: [edge]
 
   migrate:
