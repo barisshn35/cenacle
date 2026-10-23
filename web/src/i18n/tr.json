@@ -168,7 +168,7 @@
     "editFailed": "Değişiklik kaydedilemedi. Tekrar dene.",
     "noChannelsHint": "Listeden bir kanal aç ya da bu çalışma alanının kanallarına göz at.",
     "newMessages": "Yeni mesajlar",
-    "mentionsYou": "Sizden bahsediyor",
+    "mentionsYou": "Senden bahsediyor",
     "typing": {
       "one": "{{name}} yazıyor…",
       "two": "{{first}} ve {{second}} yazıyor…",
@@ -1741,23 +1741,23 @@
       "actions": "İşlemler"
     },
     "kind": {
-      "mention": "Sizden bahsetti",
-      "reply": "Dizinizde yanıtladı",
+      "mention": "Senden bahsetti",
+      "reply": "Dizinde yanıtladı",
       "reaction": "{{emoji}} tepkisi verdi"
     },
     "status": {
       "new": "Yeni",
       "seen": "Görüldü",
-      "you": "@siz"
+      "you": "@sen"
     },
     "open": "Aç",
-    "openNamed": "{{name}} adlı kişinin mesajını aç",
+    "openNamed": "Aç, {{name}} gönderdi",
     "markSeen": "Görüldü say",
-    "markSeenNamed": "{{name}} adlı kişinin mesajını görüldü say",
+    "markSeenNamed": "Görüldü say, {{name}} gönderdi",
     "markAllSeen": "Tümünü görüldü say",
     "today": "Bugün",
     "yesterday": "Dün",
-    "empty": "Sizi bekleyen bir şey yok. Bahsetmeler, dizilerinizdeki yanıtlar ve mesajlarınıza verilen tepkiler buraya gelir.",
+    "empty": "Seni bekleyen bir şey yok. Bahsetmeler, dizilerindeki yanıtlar ve mesajlarına verilen tepkiler buraya gelir.",
     "unseen_one": "{{count}} yeni",
     "unseen_other": "{{count}} yeni"
   }
