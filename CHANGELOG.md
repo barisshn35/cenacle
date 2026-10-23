@@ -8,6 +8,39 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-24
+
+Reading and arranging, groups, edit history, keyboard shortcuts, signed releases
+(ADR 0034).
+
+### Added
+
+- **Mark as unread** from a message's menu, with Alt+click, or for a whole channel from
+  the sidebar; it stays unread while open (`POST /api/channels/{id}/unread`,
+  `channel.unread`). Replies mark their thread unread.
+- **Your own sidebar:** Favorites, sections of your own, moving channels and conversations
+  between sections (drag, or "Move to" in their menu), reordering and folding sections,
+  and unread ones gathered at the top; kept per workspace on the server
+  (`GET`/`PUT /api/workspaces/{id}/sidebar`, `sidebar.changed`).
+- **Groups:** mention a team as `@handle`. Groups have managers, can be archived and
+  restored, and can follow a directory group; administrators choose who creates them. The
+  composer suggests groups after "@", and group mentions count as mentions
+  (`/api/workspaces/{id}/mention-groups`, `/api/mention-groups/{id}`, `groups.changed`).
+- **Edit history:** "(edited)" opens a message's earlier versions; authors can put one
+  back. Owners and admins can show it to everyone (`edit_history` of a workspace); it is
+  part of eDiscovery exports (`GET …/messages/{id}/edits`).
+- **Keyboard shortcuts:** Ctrl+/ lists them; Alt+↑/↓ (unread channels with Shift),
+  Ctrl+. (details panel), Ctrl+Shift+\ (react to the newest message), ↑ and Shift+↑ in an
+  empty message box (edit your last message, reply in a thread), Ctrl+B/I/E and
+  Ctrl+Shift+X to format.
+- **Signed releases:** images, per-platform SPDX SBOMs and the desktop app's `SHA256SUMS`
+  are signed with the project's key (cosign, verifiable offline with
+  `deploy/cosign.pub`); SBOMs are published as `cenacle-sbom/<version>/`.
+
+### Changed
+
+- `POST /api/channels/{id}/read` takes no message to mark everything read.
+
 ## [0.30.0] - 2026-10-24
 
 The desktop app (ADR 0033).
@@ -837,7 +870,10 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.28.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.31.0...HEAD
+[0.31.0]: https://github.com/barisshn35/cenacle/compare/v0.30.0...v0.31.0
+[0.30.0]: https://github.com/barisshn35/cenacle/compare/v0.29.0...v0.30.0
+[0.29.0]: https://github.com/barisshn35/cenacle/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/barisshn35/cenacle/compare/v0.27.1...v0.28.0
 [0.27.1]: https://github.com/barisshn35/cenacle/compare/v0.27.0...v0.27.1
 [0.27.0]: https://github.com/barisshn35/cenacle/compare/v0.26.0...v0.27.0
