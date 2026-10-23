@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {
   BellOffIcon,
+  ChevronDownIcon,
   CompassIcon,
   FoldersIcon,
   LogOutIcon,
   PlusIcon,
   SearchIcon,
   SettingsIcon,
+  SquarePenIcon,
   UsersIcon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -31,7 +33,6 @@ import {
   useSidebar,
 } from '@cenacle/ui/components/sidebar';
 import { Button } from '@cenacle/ui/components/button';
-import { Logo } from '@cenacle/ui/brand';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@cenacle/ui/components/tooltip';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
@@ -88,8 +89,8 @@ function ChannelList({ channels }: { channels: Channel[] }) {
             <SidebarMenuButton
               isActive={isActive}
               className={cn(
-                unread && 'font-semibold text-unread',
-                isMuted && !unread && 'text-muted-foreground',
+                unread && 'font-semibold text-sidebar-foreground',
+                isMuted && !unread && 'opacity-70',
                 (unread || counted) && 'pr-8',
               )}
               render={
@@ -134,7 +135,7 @@ function ChannelList({ channels }: { channels: Channel[] }) {
               </SidebarMenuBadge>
             ) : unread ? (
               <SidebarMenuBadge aria-hidden>
-                <span className="size-2 rounded-full bg-unread" />
+                <span className="size-2 rounded-full bg-sidebar-foreground" />
               </SidebarMenuBadge>
             ) : null}
           </SidebarMenuItem>
@@ -166,6 +167,7 @@ function ChannelsGroups() {
   const channels = useQuery(channelsQuery);
   const categories = useQuery(categoriesQuery(workspaceId));
   const [dialog, setDialog] = useState<'create' | 'browse' | 'categories' | null>(null);
+  const [open, setOpen] = useState(true);
   const close = (open: boolean) => {
     if (!open) setDialog(null);
   };
@@ -179,7 +181,7 @@ function ChannelsGroups() {
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel>{t('shell.channels')}</SidebarGroupLabel>
+        <SectionLabel label={t('shell.channels')} open={open} onToggle={() => setOpen(!open)} />
         {admin && (
           <Tooltip>
             <TooltipTrigger
@@ -195,24 +197,18 @@ function ChannelsGroups() {
             <TooltipContent side="right">{t('channels.createTitle')}</TooltipContent>
           </Tooltip>
         )}
-        <SidebarGroupContent>
+        <SidebarGroupContent hidden={!open}>
           {channels.isPending ? <ChannelListSkeleton /> : <ChannelList channels={loose} />}
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-muted-foreground"
-                onClick={() => setDialog('browse')}
-              >
+              <SidebarMenuButton onClick={() => setDialog('browse')}>
                 <CompassIcon aria-hidden strokeWidth={1.75} />
                 <span>{t('channels.browse')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             {admin && (
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  className="text-muted-foreground"
-                  onClick={() => setDialog('categories')}
-                >
+                <SidebarMenuButton onClick={() => setDialog('categories')}>
                   <FoldersIcon aria-hidden strokeWidth={1.75} />
                   <span>{t('categories.manage')}</span>
                 </SidebarMenuButton>
@@ -246,6 +242,7 @@ function ConversationsGroup() {
   const { id: workspaceId } = useActiveWorkspace();
   const channels = useQuery(channelsQuery);
   const [open, setOpen] = useState(false);
+  const [shown, setShown] = useState(true);
   useWorkspacePresence(workspaceId);
   const list = (channels.data ?? [])
     .filter((c) => c.workspace_id === workspaceId && isConversation(c))
@@ -253,7 +250,7 @@ function ConversationsGroup() {
   if (!workspaceId) return null;
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{t('dm.title')}</SidebarGroupLabel>
+      <SectionLabel label={t('dm.title')} open={shown} onToggle={() => setShown(!shown)} />
       <Tooltip>
         <TooltipTrigger
           render={
@@ -264,11 +261,11 @@ function ConversationsGroup() {
         </TooltipTrigger>
         <TooltipContent side="right">{t('dm.newTitle')}</TooltipContent>
       </Tooltip>
-      <SidebarGroupContent>
+      <SidebarGroupContent hidden={!shown}>
         {list.length > 0 ? (
           <ChannelList channels={list} />
         ) : (
-          <p className="px-2 py-1 text-xs text-muted-foreground">{t('dm.none')}</p>
+          <p className="px-2 py-1 text-xs text-sidebar-muted-foreground">{t('dm.none')}</p>
         )}
       </SidebarGroupContent>
       {open && <NewConversationDialog workspaceId={workspaceId} open onOpenChange={setOpen} />}
@@ -289,22 +286,26 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       role={mobile ? undefined : 'navigation'}
       aria-label={t('shell.channelNav')}
     >
-      <SidebarHeader className="gap-2 border-b border-sidebar-border">
-        {/* The lockup heads the channel list (desktop and the mobile drawer);
-            narrow layouts show the icon in the top bar instead. */}
-        <div className="flex items-center px-2 pt-1.5 pb-1">
-          <Logo variant="lockup" size={24} />
+      <SidebarHeader className="gap-2 border-b border-sidebar-border px-2 pt-2 pb-3">
+        <div className="flex min-h-10 items-center gap-1">
+          <div className="min-w-0 flex-1">
+            {workspace ? (
+              <WorkspaceMenu workspace={workspace} />
+            ) : (
+              <div className="h-8" aria-hidden />
+            )}
+          </div>
+          <NewMessageButton />
         </div>
-        {workspace ? <WorkspaceMenu workspace={workspace} /> : <div className="h-8" aria-hidden />}
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-2 bg-background font-normal text-muted-foreground"
+        <button
+          type="button"
+          className="flex min-h-9 w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-hover px-2.5 text-left text-[13.5px] text-sidebar-muted-foreground transition-colors outline-none hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
           onClick={() => openSwitcher(true)}
         >
-          <SearchIcon aria-hidden strokeWidth={1.75} />
-          <span className="flex-1 text-left">{t('shell.jumpTo')}</span>
-          <Kbd>Ctrl K</Kbd>
-        </Button>
+          <SearchIcon aria-hidden className="size-4" strokeWidth={1.75} />
+          <span className="flex-1">{t('shell.jumpTo')}</span>
+          <Kbd className="bg-transparent font-mono text-sidebar-muted-foreground">Ctrl K</Kbd>
+        </button>
       </SidebarHeader>
 
       <SidebarContent>
@@ -314,14 +315,71 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <CurrentUser onSettings={() => setSettings(true)} />
+        <CurrentUser onSettings={mobile ? () => setSettings(true) : undefined} />
       </SidebarFooter>
       {settings && <SettingsDialog open onOpenChange={setSettings} />}
     </Sidebar>
   );
 }
 
-function CurrentUser({ onSettings }: { onSettings: () => void }) {
+/** Section headers fold their list away; the state is part of the button. */
+function SectionLabel({
+  label,
+  open,
+  onToggle,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <SidebarGroupLabel
+      render={<button type="button" aria-expanded={open} onClick={onToggle} />}
+      className="hit-target w-fit gap-1.5 pr-3 hover:text-sidebar-foreground"
+    >
+      <ChevronDownIcon
+        aria-hidden
+        strokeWidth={1.75}
+        className={cn(
+          'size-3.5! transition-transform duration-(--duration-base) ease-(--ease-out)',
+          !open && '-rotate-90',
+        )}
+      />
+      {label}
+    </SidebarGroupLabel>
+  );
+}
+
+/** Start a direct or group conversation, from the head of the sidebar. */
+function NewMessageButton() {
+  const { t } = useTranslation();
+  const { id: workspaceId } = useActiveWorkspace();
+  const [open, setOpen] = useState(false);
+  if (!workspaceId) return null;
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('dm.compose')}
+              className="text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
+              onClick={() => setOpen(true)}
+            />
+          }
+        >
+          <SquarePenIcon strokeWidth={1.75} />
+        </TooltipTrigger>
+        <TooltipContent side="bottom">{t('dm.compose')}</TooltipContent>
+      </Tooltip>
+      {open && <NewConversationDialog workspaceId={workspaceId} open onOpenChange={setOpen} />}
+    </>
+  );
+}
+
+function CurrentUser({ onSettings }: { onSettings?: () => void }) {
   const { t } = useTranslation();
   const { user } = useSession();
   const signOut = useSignOut();
@@ -338,15 +396,23 @@ function CurrentUser({ onSettings }: { onSettings: () => void }) {
         {profile?.status ? (
           <StatusLine status={profile.status} className="truncate text-xs" />
         ) : (
-          <span className="truncate text-xs text-muted-foreground">
+          <span className="truncate text-xs text-sidebar-muted-foreground">
             {profile?.username ? `@${profile.username}` : user.email}
           </span>
         )}
       </div>
       <ProfileDialogs />
-      <Button variant="ghost" size="icon-sm" aria-label={t('shell.settings')} onClick={onSettings}>
-        <SettingsIcon strokeWidth={1.75} />
-      </Button>
+      {onSettings && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t('shell.settings')}
+          className="text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
+          onClick={onSettings}
+        >
+          <SettingsIcon strokeWidth={1.75} />
+        </Button>
+      )}
       <Tooltip>
         <TooltipTrigger
           render={
@@ -354,6 +420,7 @@ function CurrentUser({ onSettings }: { onSettings: () => void }) {
               variant="ghost"
               size="icon-sm"
               aria-label={t('auth.signOut')}
+              className="text-sidebar-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"
               disabled={signOut.isPending}
               aria-busy={signOut.isPending || undefined}
               onClick={() => signOut.mutate()}

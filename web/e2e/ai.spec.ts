@@ -60,6 +60,8 @@ test('with AI on: a summary only for me, a rewrite I choose to use, and answers 
   await expect(box).toHaveValue('Please ship it on Friday.');
 
   if (testInfo.project.name === 'fine') {
+    // Ask AI is one of the views folded under More.
+    await page.getByRole('button', { name: 'More', exact: true }).click();
     await page.getByRole('link', { name: 'Ask AI' }).click();
   } else {
     await page.goto('/ask'); // the sidebar is a sheet on small screens

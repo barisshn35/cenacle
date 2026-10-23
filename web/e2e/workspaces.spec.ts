@@ -12,11 +12,11 @@ test.describe('workspaces', () => {
     await mockApi(page);
     await page.goto('/');
     const rail = page.getByRole('navigation', { name: 'Workspaces' });
-    await expect(rail.getByRole('link', { name: 'Cenacle' })).toHaveAttribute(
+    await expect(rail.getByRole('link', { name: 'Cenacle', exact: true })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    await rail.getByRole('link', { name: 'Cenacle' }).click();
+    await rail.getByRole('link', { name: 'Cenacle', exact: true }).click();
     await expect(page).toHaveURL(/\/c\//);
   });
 
