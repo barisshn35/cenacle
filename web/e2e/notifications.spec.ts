@@ -25,7 +25,7 @@ test.describe('notifications', () => {
     await expect(list.getByRole('listitem')).toHaveCount(1);
     await expect(list).toContainText('General');
     await expect(list).toContainText('Nothing');
-    await list.getByRole('button', { name: 'Reset, General' }).click();
+    await list.getByRole('button', { name: 'Use my default, General' }).click();
     await expect(dialog.getByText('No channel differs from these settings.')).toBeVisible();
   });
 

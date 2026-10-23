@@ -880,8 +880,8 @@
       "mutedForever": "Sesi sen açana kadar kapalı",
       "mutedUntil": "{{time}} saatine kadar sessiz",
       "ownSound": "Kendi sesi",
-      "reset": "Sıfırla",
-      "resetNamed": "Sıfırla, {{channel}}",
+      "reset": "Varsayılanı kullan",
+      "resetNamed": "Varsayılanı kullan, {{channel}}",
       "unknownChannel": "Ayrıldığın bir kanal"
     }
   },

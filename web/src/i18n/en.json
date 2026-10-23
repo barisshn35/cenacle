@@ -880,8 +880,8 @@
       "mutedForever": "Muted until you unmute",
       "mutedUntil": "Muted until {{time}}",
       "ownSound": "Its own sound",
-      "reset": "Reset",
-      "resetNamed": "Reset, {{channel}}",
+      "reset": "Use my default",
+      "resetNamed": "Use my default, {{channel}}",
       "unknownChannel": "A channel you left"
     }
   },
