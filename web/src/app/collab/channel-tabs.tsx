@@ -61,13 +61,14 @@ export function ChannelTabs({ channel, active }: { channel: Channel; active?: st
       queryClient.invalidateQueries({ queryKey: ['tabs', channel.id] }),
     );
   };
+  // The selected tab is underlined in Brass, the others are quiet text.
   const item =
-    'inline-flex min-h-target shrink-0 items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-foreground';
+    'inline-flex h-10 min-h-target shrink-0 items-center gap-1.5 border-b-2 border-transparent px-1.5 text-[13.5px] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:border-accent-brand aria-[current=page]:font-medium aria-[current=page]:text-foreground';
 
   return (
     <nav
       aria-label={t('collab.tabs.label')}
-      className="flex shrink-0 items-center gap-1 overflow-x-auto border-b px-3 py-1"
+      className="flex shrink-0 items-end gap-3 overflow-x-auto border-b px-4"
     >
       <Link
         to="/c/$channelId"

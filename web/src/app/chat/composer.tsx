@@ -257,10 +257,22 @@ export function Composer({
     ? t('threads.replyPlaceholder')
     : t('shell.composerPlaceholder', { channel: channelName });
   return (
-    <footer className={cn('shrink-0', thread ? 'px-3 pb-3' : 'px-4 pb-4')}>
-      {!thread && <CommandNotes channelId={channelId} />}
+    <footer
+      className={cn(
+        'shrink-0',
+        // In a channel the composer starts at the text column of the speaker grid.
+        thread
+          ? 'px-3 pb-3'
+          : 'grid px-3 pb-4 max-sm:px-4 sm:grid-cols-[var(--speaker-margin)_minmax(0,1fr)] sm:gap-x-(--margin-gap)',
+      )}
+    >
+      {!thread && (
+        <div className="min-w-0 sm:col-start-2">
+          <CommandNotes channelId={channelId} />
+        </div>
+      )}
       <form
-        className="mx-auto max-w-3xl"
+        className={cn('min-w-0', !thread && 'sm:col-start-2')}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -273,7 +285,7 @@ export function Composer({
         {/* The frame holds the text and the send button side by side, so a
             scrollbar of long text never runs under the button. */}
         <div
-          className="relative rounded-xl border border-input bg-card py-1.5 pr-1.5 pl-4 shadow-xs focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-aria-invalid:border-destructive"
+          className="relative rounded-[10px] border border-input bg-background py-1.5 pr-1.5 pl-3.5 transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20 has-aria-invalid:border-destructive"
           onDragOver={(e) => {
             if (permissions.upload_files && e.dataTransfer.types.includes('Files'))
               e.preventDefault();
