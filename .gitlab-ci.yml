@@ -311,7 +311,6 @@ desktop:
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version/$(basename "$file")"
       done
 
-
 # The desktop app's checksums, signed with the project's key (v* tags):
 # SHA256SUMS.sigstore.json next to SHA256SUMS in cenacle-desktop/<version>/.
 desktop-sign:
