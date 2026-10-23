@@ -33,6 +33,7 @@ import {
 import { Attachments } from './attachments';
 import { MessageFiles } from './message-files';
 import { UserAvatar } from '../profile/avatar';
+import { useProfile } from '../profile/profiles';
 import { PersonStatus } from '../profile/person-status';
 import { ProfileCard } from '../profile/profile-card';
 import { BotBadge } from './bot-badge';
@@ -78,17 +79,34 @@ export function MessageRow({
     );
   const mentionsMe = m.mentions.some((p) => p.id === self) || reached;
   const highlighted = useJump((s) => s.highlighted === m.id);
+  const hasStatus = !!useProfile(m.author.id)?.status;
+  const time = (
+    <time
+      dateTime={m.created_at}
+      title={fmt.full.format(at)}
+      className={cn(
+        'font-mono text-xs leading-4 tabular-nums',
+        mentionsMe ? 'font-semibold text-mention' : 'text-muted-foreground',
+      )}
+    >
+      {fmt.time.format(at)}
+    </time>
+  );
   return (
     <div>
       {row.day && (
         <div
           role="separator"
           aria-label={row.day}
-          className="flex items-center gap-3 px-4 pt-4 pb-1"
+          className={cn(SPEAKER_GRID(inThread), 'pt-4 pb-1')}
         >
-          <span aria-hidden className="h-px flex-1 bg-border" />
-          <span className="text-xs font-medium text-muted-foreground">{row.day}</span>
-          <span aria-hidden className="h-px flex-1 bg-border" />
+          <span aria-hidden />
+          <span
+            aria-hidden
+            className="border-b border-border pb-1.5 text-sm font-semibold text-foreground"
+          >
+            {row.day}
+          </span>
         </div>
       )}
       {row.firstUnread && (
@@ -96,71 +114,94 @@ export function MessageRow({
           role="separator"
           aria-label={t('chat.newMessages')}
           data-testid="new-messages"
-          className="flex items-center gap-3 px-4 pt-3"
+          className={cn(SPEAKER_GRID(inThread), 'items-center pt-3')}
         >
-          <span aria-hidden className="h-px flex-1 bg-unread/40" />
-          <span className="text-xs font-semibold text-unread">{t('chat.newMessages')}</span>
-          <span aria-hidden className="h-px flex-1 bg-unread/40" />
+          <span className="text-right text-xs font-semibold text-foreground max-sm:hidden">
+            {t('chat.newMessages')}
+          </span>
+          <span aria-hidden className="h-px bg-foreground" />
         </div>
       )}
       <article
         aria-labelledby={`m-${m.id}-author`}
         data-testid="message"
         className={cn(
-          'group relative flex gap-3 px-4 hover:bg-muted/40 focus-within:bg-muted/40',
-          row.first ? 'pt-3 pb-0.5' : 'py-0.5',
-          editing && 'bg-muted/40',
+          'group relative rounded-[10px] hover:bg-hover focus-within:bg-hover',
+          SPEAKER_GRID(inThread),
+          row.first ? 'pt-2 pb-1' : 'py-0.5',
+          editing && 'bg-hover',
           highlighted && 'bg-accent',
-          // A message for the reader: tinted and marked at the edge (not by color alone:
-          // the mention chip in the text says it too).
-          mentionsMe &&
-            'border-l-3 border-l-mention bg-mention-bg/60 pl-[13px] hover:bg-mention-bg',
         )}
         data-mentions-me={mentionsMe || undefined}
         data-highlighted={highlighted || undefined}
         data-message-id={m.id}
       >
+        {/* The margin holds the who: name and time beside the words (above them
+            on phones), the avatar at its inner edge. A mention of the reader is
+            marked here, with "@" and the time in red, never by a stripe. */}
         {row.first ? (
-          <ProfileCard userId={m.author.id} name={m.author.display_name}>
-            <button
-              type="button"
-              tabIndex={-1}
-              aria-hidden
-              className="h-9 shrink-0 self-start rounded-full outline-none"
-            >
-              <UserAvatar userId={m.author.id} name={m.author.display_name} />
-            </button>
-          </ProfileCard>
-        ) : (
-          <span className="w-9 shrink-0" />
-        )}
-        <div className="min-w-0 flex-1">
-          <PinnedLine message={m} />
-          {!inThread && <RepliedToThread message={m} />}
-          <header className={cn('flex items-baseline gap-2', !row.first && 'sr-only')}>
+          <header className="flex min-w-0 items-start justify-end gap-2 text-right max-sm:justify-start max-sm:text-left">
+            <div className="flex min-w-0 flex-col items-end max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2">
+              <span className="flex max-w-full items-baseline gap-1">
+                {mentionsMe && (
+                  <span className="text-[13px] font-semibold text-mention">
+                    <span aria-hidden>@</span>
+                    <span className="sr-only">{t('chat.mentionsYou')}</span>
+                  </span>
+                )}
+                <ProfileCard userId={m.author.id} name={m.author.display_name}>
+                  <button
+                    type="button"
+                    id={`m-${m.id}-author`}
+                    className="hit-target flex min-w-0 rounded-sm text-[13px] leading-[18px] font-semibold outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <span className="truncate">{m.author.display_name}</span>
+                  </button>
+                </ProfileCard>
+              </span>
+              {time}
+            </div>
             <ProfileCard userId={m.author.id} name={m.author.display_name}>
               <button
                 type="button"
-                id={`m-${m.id}-author`}
-                className="inline-flex min-h-target items-center rounded-sm text-sm font-semibold outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                tabIndex={-1}
+                aria-hidden
+                className="mt-0.5 shrink-0 rounded-full outline-none max-sm:order-1"
               >
-                {m.author.display_name}
+                <UserAvatar userId={m.author.id} name={m.author.display_name} size="xs" />
               </button>
             </ProfileCard>
-            <PersonStatus userId={m.author.id} className="ml-0 text-xs" />
-            {m.author.is_bot && <BotBadge />}
-            <time
-              dateTime={m.created_at}
-              title={fmt.full.format(at)}
-              className="text-xs text-muted-foreground"
-            >
-              {fmt.time.format(at)}
-            </time>
           </header>
+        ) : (
+          <div className="flex justify-end pt-1 pr-8 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden">
+            {time}
+          </div>
+        )}
+        <div className="min-w-0">
+          <PinnedLine message={m} />
+          {!inThread && <RepliedToThread message={m} />}
+          {!row.first && (
+            // Who wrote it, for screen readers: the margin shows it on the first turn only.
+            <header className="sr-only">
+              <ProfileCard userId={m.author.id} name={m.author.display_name}>
+                <button type="button" id={`m-${m.id}-author`} className="min-h-target">
+                  {m.author.display_name}
+                </button>
+              </ProfileCard>
+              <span>{fmt.full.format(at)}</span>
+              {mentionsMe && <span>{t('chat.mentionsYou')}</span>}
+            </header>
+          )}
+          {row.first && (m.author.is_bot || hasStatus) && (
+            <p className="flex items-center gap-1.5 pb-0.5">
+              {m.author.is_bot && <BotBadge />}
+              <PersonStatus userId={m.author.id} className="ml-0 text-xs" />
+            </p>
+          )}
           {editing ? (
             <MessageEditor message={m} />
           ) : (
-            <>
+            <div className="max-w-[72ch] text-[15px] leading-[1.55] max-sm:text-base">
               {m.title && (
                 <p className="text-[0.9375rem] font-semibold" data-testid="post-title">
                   {m.title}
@@ -197,17 +238,12 @@ export function MessageRow({
               <LinkPreviewCard message={m} />
               <ReactionBar message={m} />
               {!inThread && <ThreadSummaryButton message={m} />}
-            </>
+            </div>
           )}
         </div>
         {!editing && (
-          <div className="absolute top-0.5 right-3 flex gap-0.5">
-            {!channel.archived && (
-              <AddReactionButton
-                message={m}
-                className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100 pointer-coarse:opacity-100"
-              />
-            )}
+          <div className="absolute -top-3 right-3 flex gap-0.5 rounded-lg bg-popover p-0.5 opacity-0 shadow-popover transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:static pointer-coarse:col-start-2 pointer-coarse:justify-self-end pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none">
+            {!channel.archived && <AddReactionButton message={m} />}
             {!inThread && !channel.archived && <ReplyButton message={m} />}
             <MessageActions message={m} channel={channel} inThread={inThread} />
           </div>
@@ -216,6 +252,18 @@ export function MessageRow({
     </div>
   );
 }
+
+/**
+ * The speaker grid of a conversation: the margin column (who and when), a
+ * gap, and the words. Narrower in side panels; one column on phones.
+ */
+export const SPEAKER_GRID = (panel = false) =>
+  cn(
+    'grid px-3 max-sm:grid-cols-1 max-sm:gap-y-0.5 max-sm:px-4',
+    panel
+      ? 'grid-cols-[var(--speaker-margin-panel)_minmax(0,1fr)] gap-x-(--margin-gap-panel)'
+      : 'grid-cols-[var(--speaker-margin)_minmax(0,1fr)] gap-x-(--margin-gap)',
+  );
 
 /** A message of the current user that the server has not confirmed yet. */
 export function PendingRow({ p }: { p: PendingMessage }) {

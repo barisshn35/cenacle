@@ -168,6 +168,7 @@
     "editFailed": "Değişiklik kaydedilemedi. Tekrar dene.",
     "noChannelsHint": "Listeden bir kanal aç ya da bu çalışma alanının kanallarına göz at.",
     "newMessages": "Yeni mesajlar",
+    "mentionsYou": "Sizden bahsediyor",
     "typing": {
       "one": "{{name}} yazıyor…",
       "two": "{{first}} ve {{second}} yazıyor…",

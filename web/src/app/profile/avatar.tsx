@@ -5,12 +5,22 @@ import { initials } from '../auth/sign-out';
 import { usePictureUrl } from './format';
 import { useProfile, type Profile } from './profiles';
 
+// Never below 24px, initials never below 11px (docs/design/v0.29).
 const SIZES = {
-  xs: 'size-5 text-[9px]',
-  sm: 'size-7 text-[10px]',
+  xs: 'size-6 text-[11px]',
+  sm: 'size-7 text-[11px]',
   md: 'size-9 text-xs',
   lg: 'size-20 text-2xl',
 } as const;
+
+const TINTS = ['bg-avatar-1', 'bg-avatar-2', 'bg-avatar-3', 'bg-avatar-4', 'bg-avatar-5'] as const;
+
+/** A quiet paper-world tint behind the initials, the same for a name every time. */
+function tint(name: string) {
+  let h = 0;
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return TINTS[h % TINTS.length];
+}
 
 /**
  * A round profile picture, or the initials of the name. Decorative: the name
@@ -39,7 +49,8 @@ export function Avatar({
     <span
       aria-hidden
       className={cn(
-        'relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted font-semibold text-muted-foreground',
+        'relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-avatar-ink',
+        tint(name),
         SIZES[size],
         className,
       )}

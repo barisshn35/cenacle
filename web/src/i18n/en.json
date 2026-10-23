@@ -168,6 +168,7 @@
     "editFailed": "The change could not be saved. Try again.",
     "noChannelsHint": "Open a channel from the list, or browse the channels of this workspace.",
     "newMessages": "New messages",
+    "mentionsYou": "Mentions you",
     "typing": {
       "one": "{{name}} is typing…",
       "two": "{{first}} and {{second}} are typing…",
