@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: Cenacle chat API
-  version: 0.25.0
+  version: 0.26.0
   description: |
     HTTP API of the Cenacle chat server. Every error is an RFC 9457 problem
     (`application/problem+json`) with a stable `code` and the `request_id`.
