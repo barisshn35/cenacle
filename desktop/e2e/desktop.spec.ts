@@ -129,3 +129,36 @@ test('a wrong password keeps the person out and the app paired', async () => {
   expect(app.windows().some((w) => w.url().includes('pair.html'))).toBe(false);
   await app.close();
 });
+
+test('starts quickly and stays within its memory budget', async () => {
+  const data = mkdtempSync(join(tmpdir(), 'cenacle-desktop-'));
+  const started = Date.now();
+  const app = await launch(data);
+  const pair = await app.firstWindow();
+  await expect(pair.getByLabel('Server address')).toBeVisible();
+  const startup = Date.now() - started;
+  await pair.getByLabel('Server address').fill(fake.chat);
+  await pair.getByRole('button', { name: 'Continue' }).click();
+  await signIn(app);
+  const main = await windowAt(app, fake.chat);
+  await expect(main.locator('#who')).toHaveText('Signed in as Ayşe Yılmaz');
+  const memory = await app.evaluate(({ app: a }) =>
+    a.getAppMetrics().reduce((sum, p) => sum + p.memory.workingSetSize, 0),
+  );
+  const byType = await app.evaluate(({ app: a }) =>
+    a.getAppMetrics().map((p) => `${p.type}:${Math.round(p.memory.workingSetSize / 1024)}`),
+  );
+  test
+    .info()
+    .annotations.push(
+      { type: 'processes', description: byType.join(' ') },
+      { type: 'startup', description: `${startup} ms` },
+      { type: 'memory', description: `${Math.round(memory / 1024)} MB` },
+    );
+  // Budgets that catch a regression, not a benchmark: the pairing page within
+  // eight seconds on a CI runner, the working sets of all processes together
+  // under 800 MB (about 580 MB at 0.30 under Xvfb, where drawing is in software).
+  expect(startup).toBeLessThan(8_000);
+  expect(memory / 1024).toBeLessThan(800);
+  await app.close();
+});
