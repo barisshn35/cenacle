@@ -90,7 +90,7 @@ in `.env`. To run the application containers too:
 flowchart LR
   subgraph Clients
     W[Web app<br/>React SPA]
-    D[Desktop<br/>Electron, v0.99]
+    D[Desktop<br/>Electron, v0.30]
   end
   subgraph Edge
     P[Caddy<br/>automatic TLS]
@@ -198,8 +198,22 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.26     | Security testing and hardening                                                        |
 | v0.27     | Optimization and load tests                                                           |
 | **v0.28** | **Release candidate preparation**                                                     |
-| v0.29     | Interface rewrite                                                                     |
-| v0.99     | Desktop app (Electron)                                                                |
+| v0.29     | Interface rewrite, sign-in pairing by server address, optional web app                |
+| v0.30     | Desktop app (Electron)                                                                |
+| v0.31     | Mark unread, personal sidebar sections, user groups, edit history, signed images      |
+| v0.32     | Message priority and acknowledgement, read receipts (off by default), image galleries |
+| v0.33     | App platform: interactive messages and dialogs, bot SDKs, more integrations           |
+| v0.34     | System console, permission schemes, notification content policy                       |
+| v0.35     | SCIM provisioning, session and network policy, federation controls, guest links       |
+| v0.36     | Compliance: data subject requests, audit export and SIEM, archive export, spillage    |
+| v0.37     | Search inside files and canvases, more languages and right-to-left layout             |
+| v0.38     | Importers (Rocket.Chat, Zulip, Discord, Teams), instance migration, more storage      |
+| v0.39     | End-to-end encryption with device keys (MLS)                                          |
+| v0.40     | FIPS 140-3 builds and STIG-hardened images                                            |
+| v0.41     | Full review and gap closing, accessibility conformance report                         |
+| v0.42     | Deep security testing and a penetration test                                          |
+| v0.43     | Performance and soak tests                                                            |
+| v0.99     | Release candidate, extended support policy                                            |
 | v1.0      | Stable: web and desktop                                                               |
 | v1.1      | Voice and video                                                                       |
 | v1.2      | Mobile apps                                                                           |

@@ -8,7 +8,7 @@
 v0.3 signs users in to the chat with Cenacle ID. The kickoff fixes the Mattermost model:
 the chat server is a confidential OIDC client, maps users by the IdP subject and then
 issues its own opaque sessions; the IdP's tokens are not used after sign-in. Web uses an
-`HttpOnly` cookie, other clients (desktop, v0.99) a bearer token. The API is spec-first.
+`HttpOnly` cookie, other clients (desktop, v0.30) a bearer token. The API is spec-first.
 
 ## Decisions
 
