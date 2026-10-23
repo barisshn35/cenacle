@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { createContext, useContext } from 'react';
 import { queryOptions } from '@tanstack/react-query';
-import { getSession, isUnauthenticated, type Session } from '@cenacle/core/api';
+import { ApiError, getSession, isUnauthenticated, type Session } from '@cenacle/core/api';
 
-/** The current session. A 401 is an answer ("signed out"), not a failure to retry. */
+/**
+ * The current session. A 401 ("signed out") and a 403 web_app_off ("not in
+ * browsers") are answers, not failures to retry.
+ */
 export const sessionQuery = queryOptions({
   queryKey: ['session'],
   queryFn: getSession,
   staleTime: 60_000,
-  retry: (failures, err) => !isUnauthenticated(err) && failures < 2,
+  retry: (failures, err) =>
+    !isUnauthenticated(err) &&
+    !(err instanceof ApiError && err.problem.code === 'web_app_off') &&
+    failures < 2,
   // Quick retries: the app cannot show anything without this answer.
   retryDelay: (attempt) => 300 * 2 ** attempt,
   // The router already waited for this query; show its error instead of
@@ -31,6 +37,7 @@ export const SIGNIN_ERRORS = [
   'expired',
   'failed',
   'unavailable',
+  'web_app_off',
   'session_expired',
 ] as const;
 export type SigninError = (typeof SIGNIN_ERRORS)[number];

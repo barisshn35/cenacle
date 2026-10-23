@@ -114,7 +114,7 @@
   "auth": {
     "loading": "Loading Cenacle…",
     "title": "Sign in to Cenacle",
-    "subtitle": "Use your Cenacle ID account to continue.",
+    "subtitle": "You are signing in to the server at this address.",
     "continue": "Continue with Cenacle ID",
     "help": "No account yet? Ask your administrator to create one.",
     "signOut": "Sign out",
@@ -139,7 +139,26 @@
         "title": "Cenacle ID can't be reached right now.",
         "reason": "The sign-in service is starting up or unreachable.",
         "action": "Try again in a moment."
+      },
+      "web_app_off": {
+        "title": "Cenacle is not available in web browsers here.",
+        "reason": "Your administrator turned the web app off.",
+        "action": "Use the Cenacle desktop or mobile app."
       }
+    },
+    "server": "Server address",
+    "thisAddress": "This page's address",
+    "next": "Next you sign in with your username and password at Cenacle ID, then enter a code from your authenticator app.",
+    "stepOf": "Step {{step}} of {{count}}",
+    "footer": {
+      "product": "Cenacle, open source and self-hosted"
+    },
+    "steps": {
+      "title": "Signing in",
+      "server": "Server",
+      "password": "Username and password",
+      "code": "Code from your authenticator app",
+      "passwordNote": "Your password is entered only at Cenacle ID, never in the chat app."
     }
   },
   "chat": {
@@ -408,7 +427,8 @@
       "texts": "Interface texts",
       "notifications": "Notifications",
       "announcements": "Announcements",
-      "language": "Language"
+      "language": "Language",
+      "signIn": "Sign-in"
     }
   },
   "reactions": {
@@ -1760,5 +1780,29 @@
     "empty": "Nothing needs you. Mentions, replies in your threads and reactions to your messages arrive here.",
     "unseen_one": "{{count}} new",
     "unseen_other": "{{count}} new"
+  },
+  "webOff": {
+    "title": "Use the Cenacle app",
+    "lede": "Your organization uses Cenacle only in its desktop and mobile apps. Cenacle in web browsers is turned off for <b>{{address}}</b>.",
+    "getApp": "Ask your IT department for the Cenacle app, then enter this server address in it.",
+    "server": "Server",
+    "address": "Address",
+    "browsers": "Web browsers",
+    "turnedOff": "Turned off by your administrator"
+  },
+  "webApp": {
+    "title": "Cenacle in web browsers",
+    "hint": "Allow using Cenacle at {{address}} in a browser. When off, open browser sessions end and this address only says to use the desktop or mobile app; those keep working.",
+    "label": "Allow web browsers",
+    "forced": "Set on the server with CENACLE_WEB_APP; change it there.",
+    "on": "Cenacle is available in web browsers.",
+    "off": "Cenacle is turned off in web browsers.",
+    "confirmTitle": "Turn off Cenacle in web browsers?",
+    "confirmDescription": "Everyone using a browser is signed out at once, you included. The desktop app arrives with Cenacle 0.30; until then only apps that use the API keep working.",
+    "confirmImpact": "To turn it back on without a browser, set CENACLE_WEB_APP=on on the server and restart it.",
+    "confirm": "Turn off",
+    "failed": "The setting was not saved. Try again.",
+    "policy": "Two-step verification, passkeys and sign-in methods are set in Cenacle ID administration.",
+    "openPolicy": "Open sign-in policy"
   }
 }

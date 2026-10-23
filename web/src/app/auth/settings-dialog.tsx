@@ -24,6 +24,7 @@ import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ApiError } from '@cenacle/core/api';
 import { useSession } from './session';
+import { WebAppPanel } from './web-app-panel';
 import {
   describeDevice,
   devicesQuery,
@@ -95,7 +96,8 @@ function DeviceRow({ device }: { device: DeviceSession }) {
  * Settings of the signed-in user: signed-in devices with "sign out
  * everywhere" (S3) and the way to two-step verification in Cenacle ID.
  */
-type Tab = 'account' | 'appearance' | 'notifications' | 'texts' | 'announcements' | 'language';
+type Tab =
+  'account' | 'appearance' | 'notifications' | 'texts' | 'announcements' | 'language' | 'signIn';
 
 export function SettingsDialog({
   open,
@@ -113,7 +115,7 @@ export function SettingsDialog({
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const tabs: Tab[] = session.permissions.create_workspaces
-    ? ['account', 'appearance', 'notifications', 'language', 'texts', 'announcements']
+    ? ['account', 'appearance', 'notifications', 'language', 'texts', 'announcements', 'signIn']
     : ['account', 'appearance', 'notifications', 'language'];
   const [tab, setTab] = useState<Tab>('account');
 
@@ -194,6 +196,11 @@ export function SettingsDialog({
               aria-labelledby="settings-tab-announcements"
             >
               <AnnouncementsPanel />
+            </div>
+          )}
+          {tab === 'signIn' && (
+            <div role="tabpanel" id="settings-panel-signIn" aria-labelledby="settings-tab-signIn">
+              <WebAppPanel />
             </div>
           )}
           {tab === 'texts' && (

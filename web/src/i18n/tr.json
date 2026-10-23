@@ -114,7 +114,7 @@
   "auth": {
     "loading": "Cenacle yükleniyor…",
     "title": "Cenacle'a giriş yap",
-    "subtitle": "Devam etmek için Cenacle ID hesabını kullan.",
+    "subtitle": "Bu adresteki sunucuya giriş yapıyorsun.",
     "continue": "Cenacle ID ile devam et",
     "help": "Hesabın yok mu? Yöneticinden bir hesap açmasını iste.",
     "signOut": "Çıkış yap",
@@ -139,7 +139,26 @@
         "title": "Cenacle ID'ye şu an ulaşılamıyor.",
         "reason": "Giriş hizmeti başlatılıyor veya erişilemiyor.",
         "action": "Biraz sonra tekrar dene."
+      },
+      "web_app_off": {
+        "title": "Cenacle burada web tarayıcılarında kullanılamıyor.",
+        "reason": "Yöneticin web uygulamasını kapattı.",
+        "action": "Cenacle masaüstü ya da mobil uygulamasını kullan."
       }
+    },
+    "server": "Sunucu adresi",
+    "thisAddress": "Bu sayfanın adresi",
+    "next": "Sonra Cenacle ID'de kullanıcı adın ve parolanla giriş yapıp doğrulama uygulamandaki kodu gireceksin.",
+    "stepOf": "Adım {{step}} / {{count}}",
+    "footer": {
+      "product": "Cenacle, açık kaynak ve kendi sunucunda"
+    },
+    "steps": {
+      "title": "Giriş",
+      "server": "Sunucu",
+      "password": "Kullanıcı adı ve parola",
+      "code": "Doğrulama uygulamasındaki kod",
+      "passwordNote": "Parolanı yalnızca Cenacle ID'ye girersin, sohbet uygulamasına asla."
     }
   },
   "chat": {
@@ -408,7 +427,8 @@
       "texts": "Arayüz metinleri",
       "notifications": "Bildirimler",
       "announcements": "Duyurular",
-      "language": "Dil"
+      "language": "Dil",
+      "signIn": "Giriş"
     }
   },
   "reactions": {
@@ -1760,5 +1780,29 @@
     "empty": "Seni bekleyen bir şey yok. Bahsetmeler, dizilerindeki yanıtlar ve mesajlarına verilen tepkiler buraya gelir.",
     "unseen_one": "{{count}} yeni",
     "unseen_other": "{{count}} yeni"
+  },
+  "webOff": {
+    "title": "Cenacle uygulamasını kullan",
+    "lede": "Kuruluşun Cenacle'ı yalnızca masaüstü ve mobil uygulamalarında kullanıyor. <b>{{address}}</b> için web tarayıcılarında Cenacle kapalı.",
+    "getApp": "Cenacle uygulamasını BT ekibinden iste, sonra uygulamaya bu sunucu adresini gir.",
+    "server": "Sunucu",
+    "address": "Adres",
+    "browsers": "Web tarayıcıları",
+    "turnedOff": "Yöneticin kapattı"
+  },
+  "webApp": {
+    "title": "Web tarayıcılarında Cenacle",
+    "hint": "Cenacle'ın {{address}} adresinde tarayıcıyla kullanılmasına izin ver. Kapalıyken açık tarayıcı oturumları biter ve bu adres yalnızca masaüstü ya da mobil uygulamayı kullanmayı söyler; onlar çalışmaya devam eder.",
+    "label": "Web tarayıcılarına izin ver",
+    "forced": "Sunucuda CENACLE_WEB_APP ile ayarlanmış; oradan değiştir.",
+    "on": "Cenacle web tarayıcılarında kullanılabilir.",
+    "off": "Cenacle web tarayıcılarında kapalı.",
+    "confirmTitle": "Web tarayıcılarında Cenacle kapatılsın mı?",
+    "confirmDescription": "Tarayıcı kullanan herkesin oturumu hemen kapanır, seninki de. Masaüstü uygulaması Cenacle 0.30 ile geliyor; o zamana kadar yalnızca API kullanan uygulamalar çalışır.",
+    "confirmImpact": "Tarayıcı olmadan yeniden açmak için sunucuda CENACLE_WEB_APP=on ayarlayıp yeniden başlat.",
+    "confirm": "Kapat",
+    "failed": "Ayar kaydedilmedi. Yeniden dene.",
+    "policy": "İki adımlı doğrulama, geçiş anahtarları ve giriş yöntemleri Cenacle ID yönetiminde ayarlanır.",
+    "openPolicy": "Giriş politikasını aç"
   }
 }

@@ -12,6 +12,8 @@ import { AppearanceSync } from '../appearance/appearance-sync';
 import { NotificationsSync } from '../notifications/notifications-sync';
 import { RealtimeProvider } from '../chat/realtime';
 import { InstanceBanner } from '../community/banner';
+import { isWebAppOff } from './web-app';
+import { WebOffPage } from './web-off';
 import { TermsGate } from '../community/terms-gate';
 
 /**
@@ -59,6 +61,8 @@ export function RequireSession() {
       </SessionContext.Provider>
     );
   }
+  // The administrators turned the web app off: the server ended this session.
+  if (session.isError && isWebAppOff(session.error)) return <WebOffPage />;
   if (session.isError && !ended) {
     return (
       <main className="flex min-h-svh items-center justify-center p-6">

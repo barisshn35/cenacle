@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
 import {
+  GENERAL,
   SESSION,
   VARIANTS,
   expectNoAxeViolations,
@@ -104,4 +105,88 @@ test('signing out ends the session and opens the Cenacle ID sign-out page', asyn
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/signin$/);
   expect(logoutOrigin).toBe(new URL(page.url()).origin);
+});
+
+test('sign-in names this server and the steps that follow', async ({ page }, testInfo) => {
+  await mockSession(page, null);
+  await page.goto('/signin');
+  await expect(page.getByTestId('signin-server')).toHaveText(new URL(page.url()).host);
+  if (!testInfo.project.name.includes('coarse')) {
+    const steps = page.getByRole('complementary', { name: 'Signing in' });
+    await expect(steps.getByRole('listitem')).toHaveText([
+      '1Server',
+      '2Username and password',
+      '3Code from your authenticator app',
+    ]);
+  } else {
+    await expect(page.getByText('Step 1 of 3')).toBeVisible();
+  }
+  await expectNoAxeViolations(page);
+  await expectTargetSizes(page, testInfo);
+});
+
+test('with the web app off, browsers are told to use the apps', async ({ page }, testInfo) => {
+  await mockSession(page, null);
+  await page.route('**/api/meta', (route) => route.fulfill({ json: { web_app: false } }));
+  await page.goto('/signin');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Use the Cenacle app');
+  await expect(page.getByTestId('web-off')).toContainText(new URL(page.url()).host);
+  await expect(continueLink(page)).toHaveCount(0);
+  await expectNoAxeViolations(page);
+  await expectTargetSizes(page, testInfo);
+
+  // The server also sends sign-ins started anyway back with web_app_off.
+  await page.unroute('**/api/meta');
+  await page.route('**/api/meta', (route) => route.fulfill({ json: { web_app: true } }));
+  await page.goto('/signin?error=web_app_off');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Use the Cenacle app');
+});
+
+test('a browser turned away while signed in shows the same page', async ({ page }) => {
+  await mockApi(page);
+  await page.unroute('**/api/session');
+  await page.route('**/api/session', (route) =>
+    route.fulfill({
+      status: 403,
+      contentType: 'application/problem+json',
+      json: { type: 'about:blank', status: 403, code: 'web_app_off', title: 'Forbidden' },
+    }),
+  );
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Use the Cenacle app');
+});
+
+test('server administrators turn the web app off after confirming', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes('coarse'), 'Settings opens from the rail on desktop');
+  await mockApi(page, { admin: true });
+  let enabled = true;
+  const puts: boolean[] = [];
+  await page.route('**/api/admin/web-app', async (route) => {
+    if (route.request().method() === 'PUT') {
+      enabled = (route.request().postDataJSON() as { enabled: boolean }).enabled;
+      puts.push(enabled);
+    }
+    await route.fulfill({ json: { enabled, forced: false } });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Settings' });
+  await dialog.getByRole('tab', { name: 'Sign-in' }).click();
+  const toggle = dialog.getByRole('switch', { name: 'Allow web browsers' });
+  await expect(toggle).toBeChecked();
+  await expect(dialog.getByRole('link', { name: /Open sign-in policy/ })).toHaveAttribute(
+    'href',
+    /\/account\/admin\/sign-in$/,
+  );
+
+  await toggle.click();
+  const confirm = page.getByRole('alertdialog', { name: 'Turn off Cenacle in web browsers?' });
+  await expect(confirm).toContainText('CENACLE_WEB_APP=on');
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  expect(puts).toEqual([]);
+  await expect(toggle).toBeChecked();
+
+  await toggle.click();
+  await page.getByRole('button', { name: 'Turn off' }).click();
+  await expect.poll(() => puts).toEqual([false]);
 });
