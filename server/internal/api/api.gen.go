@@ -201,6 +201,51 @@ func (e AppearanceTheme) Valid() bool {
 	}
 }
 
+// Defines values for ArchiveFormat.
+const (
+	ArchiveFormatActiance ArchiveFormat = "actiance"
+	ArchiveFormatCsv      ArchiveFormat = "csv"
+	ArchiveFormatEml      ArchiveFormat = "eml"
+)
+
+// Valid indicates whether the value is a known member of the ArchiveFormat enum.
+func (e ArchiveFormat) Valid() bool {
+	switch e {
+	case ArchiveFormatActiance:
+		return true
+	case ArchiveFormatCsv:
+		return true
+	case ArchiveFormatEml:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ArchiveScheduleFormat.
+const (
+	ArchiveScheduleFormatActiance ArchiveScheduleFormat = "actiance"
+	ArchiveScheduleFormatCsv      ArchiveScheduleFormat = "csv"
+	ArchiveScheduleFormatEml      ArchiveScheduleFormat = "eml"
+	ArchiveScheduleFormatOff      ArchiveScheduleFormat = "off"
+)
+
+// Valid indicates whether the value is a known member of the ArchiveScheduleFormat enum.
+func (e ArchiveScheduleFormat) Valid() bool {
+	switch e {
+	case ArchiveScheduleFormatActiance:
+		return true
+	case ArchiveScheduleFormatCsv:
+		return true
+	case ArchiveScheduleFormatEml:
+		return true
+	case ArchiveScheduleFormatOff:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AttachmentColor.
 const (
 	AttachmentColorDanger  AttachmentColor = "danger"
@@ -261,6 +306,27 @@ func (e AttachmentActionType) Valid() bool {
 	case AttachmentActionTypeButton:
 		return true
 	case AttachmentActionTypeSelect:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AuditStreamKind.
+const (
+	AuditStreamKindHttp   AuditStreamKind = "http"
+	AuditStreamKindNone   AuditStreamKind = "none"
+	AuditStreamKindSyslog AuditStreamKind = "syslog"
+)
+
+// Valid indicates whether the value is a known member of the AuditStreamKind enum.
+func (e AuditStreamKind) Valid() bool {
+	switch e {
+	case AuditStreamKindHttp:
+		return true
+	case AuditStreamKindNone:
+		return true
+	case AuditStreamKindSyslog:
 		return true
 	default:
 		return false
@@ -1236,6 +1302,27 @@ func (e SearchChannelKind) Valid() bool {
 	}
 }
 
+// Defines values for SpillageReportStatus.
+const (
+	SpillageReportStatusDismissed SpillageReportStatus = "dismissed"
+	SpillageReportStatusOpen      SpillageReportStatus = "open"
+	SpillageReportStatusRemoved   SpillageReportStatus = "removed"
+)
+
+// Valid indicates whether the value is a known member of the SpillageReportStatus enum.
+func (e SpillageReportStatus) Valid() bool {
+	switch e {
+	case SpillageReportStatusDismissed:
+		return true
+	case SpillageReportStatusOpen:
+		return true
+	case SpillageReportStatusRemoved:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TabKind.
 const (
 	TabKindCanvas TabKind = "canvas"
@@ -1776,6 +1863,24 @@ func (e SearchMessagesParamsHas) Valid() bool {
 	}
 }
 
+// Defines values for DecideSpillageJSONBodyDecision.
+const (
+	DecideSpillageJSONBodyDecisionDismiss DecideSpillageJSONBodyDecision = "dismiss"
+	DecideSpillageJSONBodyDecisionRemove  DecideSpillageJSONBodyDecision = "remove"
+)
+
+// Valid indicates whether the value is a known member of the DecideSpillageJSONBodyDecision enum.
+func (e DecideSpillageJSONBodyDecision) Valid() bool {
+	switch e {
+	case DecideSpillageJSONBodyDecisionDismiss:
+		return true
+	case DecideSpillageJSONBodyDecisionRemove:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetUITextsJSONBodyLocale.
 const (
 	En SetUITextsJSONBodyLocale = "en"
@@ -1833,6 +1938,30 @@ func (e ComposeWithAIJSONBodyAction) Valid() bool {
 	case Shorter:
 		return true
 	case Translate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetArchiveScheduleJSONBodyFormat.
+const (
+	SetArchiveScheduleJSONBodyFormatActiance SetArchiveScheduleJSONBodyFormat = "actiance"
+	SetArchiveScheduleJSONBodyFormatCsv      SetArchiveScheduleJSONBodyFormat = "csv"
+	SetArchiveScheduleJSONBodyFormatEml      SetArchiveScheduleJSONBodyFormat = "eml"
+	SetArchiveScheduleJSONBodyFormatOff      SetArchiveScheduleJSONBodyFormat = "off"
+)
+
+// Valid indicates whether the value is a known member of the SetArchiveScheduleJSONBodyFormat enum.
+func (e SetArchiveScheduleJSONBodyFormat) Valid() bool {
+	switch e {
+	case SetArchiveScheduleJSONBodyFormatActiance:
+		return true
+	case SetArchiveScheduleJSONBodyFormatCsv:
+		return true
+	case SetArchiveScheduleJSONBodyFormatEml:
+		return true
+	case SetArchiveScheduleJSONBodyFormatOff:
 		return true
 	default:
 		return false
@@ -1911,6 +2040,27 @@ func (e ListReportsParamsStatus) Valid() bool {
 	case ListReportsParamsStatusClosed:
 		return true
 	case ListReportsParamsStatusOpen:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListSpillageReportsParamsStatus.
+const (
+	ListSpillageReportsParamsStatusDismissed ListSpillageReportsParamsStatus = "dismissed"
+	ListSpillageReportsParamsStatusOpen      ListSpillageReportsParamsStatus = "open"
+	ListSpillageReportsParamsStatusRemoved   ListSpillageReportsParamsStatus = "removed"
+)
+
+// Valid indicates whether the value is a known member of the ListSpillageReportsParamsStatus enum.
+func (e ListSpillageReportsParamsStatus) Valid() bool {
+	switch e {
+	case ListSpillageReportsParamsStatusDismissed:
+		return true
+	case ListSpillageReportsParamsStatusOpen:
+		return true
+	case ListSpillageReportsParamsStatusRemoved:
 		return true
 	default:
 		return false
@@ -2015,17 +2165,20 @@ type AdminOverview struct {
 
 // AdminUser defines model for AdminUser.
 type AdminUser struct {
-	CreatedAt   time.Time          `json:"created_at"`
-	Deactivated bool               `json:"deactivated"`
-	DisplayName string             `json:"display_name"`
-	Email       string             `json:"email"`
-	Guest       bool               `json:"guest"`
-	Id          openapi_types.UUID `json:"id"`
-	IsAdmin     bool               `json:"is_admin"`
-	LastSeenAt  *time.Time         `json:"last_seen_at"`
-	Sessions    int                `json:"sessions"`
-	Username    string             `json:"username"`
-	Workspaces  int                `json:"workspaces"`
+	CreatedAt   time.Time `json:"created_at"`
+	Deactivated bool      `json:"deactivated"`
+	DisplayName string    `json:"display_name"`
+	Email       string    `json:"email"`
+
+	// Erased Erased at a data subject request.
+	Erased     *bool              `json:"erased,omitempty"`
+	Guest      bool               `json:"guest"`
+	Id         openapi_types.UUID `json:"id"`
+	IsAdmin    bool               `json:"is_admin"`
+	LastSeenAt *time.Time         `json:"last_seen_at"`
+	Sessions   int                `json:"sessions"`
+	Username   string             `json:"username"`
+	Workspaces int                `json:"workspaces"`
 }
 
 // AdminWorkspace defines model for AdminWorkspace.
@@ -2081,6 +2234,29 @@ type AppearancePreset string
 
 // AppearanceTheme defines model for Appearance.Theme.
 type AppearanceTheme string
+
+// ArchiveFormat CSV, Actiance XML (Vantage, Smarsh), or EML files in a ZIP (Global Relay, Proofpoint and mail archives).
+type ArchiveFormat string
+
+// ArchiveSchedule defines model for ArchiveSchedule.
+type ArchiveSchedule struct {
+	// Available The object store is set up (daily exports need it).
+	Available bool `json:"available"`
+	Exports   []struct {
+		CreatedAt time.Time          `json:"created_at"`
+		Day       openapi_types.Date `json:"day"`
+
+		// Format CSV, Actiance XML (Vantage, Smarsh), or EML files in a ZIP (Global Relay, Proofpoint and mail archives).
+		Format   ArchiveFormat      `json:"format"`
+		Id       openapi_types.UUID `json:"id"`
+		Messages int                `json:"messages"`
+		Size     int64              `json:"size"`
+	} `json:"exports"`
+	Format ArchiveScheduleFormat `json:"format"`
+}
+
+// ArchiveScheduleFormat defines model for ArchiveSchedule.Format.
+type ArchiveScheduleFormat string
 
 // AssignedItem defines model for AssignedItem.
 type AssignedItem struct {
@@ -2155,12 +2331,42 @@ type AuditEvent struct {
 		DisplayName string             `json:"display_name"`
 		Id          openapi_types.UUID `json:"id"`
 	} `json:"actor"`
-	At         time.Time              `json:"at"`
-	Detail     map[string]interface{} `json:"detail"`
-	Id         openapi_types.UUID     `json:"id"`
-	TargetId   string                 `json:"target_id"`
-	TargetType string                 `json:"target_type"`
+	At     time.Time              `json:"at"`
+	Detail map[string]interface{} `json:"detail"`
+	Id     openapi_types.UUID     `json:"id"`
+
+	// IpAddress Where it came from (the installation's audit log).
+	IpAddress  *string `json:"ip_address,omitempty"`
+	TargetId   string  `json:"target_id"`
+	TargetType string  `json:"target_type"`
+
+	// Workspace The workspace of the event (the installation's audit log; null for account and instance events).
+	Workspace *struct {
+		Id   openapi_types.UUID `json:"id"`
+		Name string             `json:"name"`
+	} `json:"workspace,omitempty"`
 }
+
+// AuditStream defines model for AuditStream.
+type AuditStream struct {
+	// Address An https URL (http) or host:port (syslog).
+	Address   string `json:"address"`
+	HasSecret *bool  `json:"has_secret,omitempty"`
+
+	// Kind Off, signed NDJSON posted to an HTTPS endpoint, or RFC 5424 syslog over TCP.
+	Kind       AuditStreamKind `json:"kind"`
+	LastError  *string         `json:"last_error,omitempty"`
+	LastSentAt *time.Time      `json:"last_sent_at,omitempty"`
+
+	// Secret HTTP only; signs each request (X-Cenacle-Signature). Empty keeps the saved one.
+	Secret *string `json:"secret,omitempty"`
+
+	// Tls Syslog over TLS (RFC 5425).
+	Tls bool `json:"tls"`
+}
+
+// AuditStreamKind Off, signed NDJSON posted to an HTTPS endpoint, or RFC 5424 syslog over TCP.
+type AuditStreamKind string
 
 // Author defines model for Author.
 type Author struct {
@@ -3632,6 +3838,31 @@ type SlashCommand struct {
 	Url         string             `json:"url"`
 }
 
+// SpillageReport defines model for SpillageReport.
+type SpillageReport struct {
+	// AuthorName Who wrote the message (while the report is open).
+	AuthorName *string `json:"author_name,omitempty"`
+
+	// Body The message (while the report is open
+	Body        *string             `json:"body,omitempty"`
+	ChannelId   *openapi_types.UUID `json:"channel_id"`
+	ChannelName string              `json:"channel_name"`
+	CreatedAt   time.Time           `json:"created_at"`
+	DecidedAt   *time.Time          `json:"decided_at,omitempty"`
+	DecidedBy   *string             `json:"decided_by,omitempty"`
+	Id          openapi_types.UUID  `json:"id"`
+	MessageId   *openapi_types.UUID `json:"message_id"`
+	Note        *string             `json:"note,omitempty"`
+	Reason      string              `json:"reason"`
+
+	// ReportedBy Who reported it.
+	ReportedBy string               `json:"reported_by"`
+	Status     SpillageReportStatus `json:"status"`
+}
+
+// SpillageReportStatus defines model for SpillageReport.Status.
+type SpillageReportStatus string
+
 // Sticker defines model for Sticker.
 type Sticker struct {
 	CreatedBy *openapi_types.UUID `json:"created_by"`
@@ -3947,6 +4178,9 @@ type Workspace struct {
 	// Role Guests see only the channels they are in and the people in them.
 	Role WorkspaceRole `json:"role"`
 
+	// SpillageReviewers Who reviews spillage reports (empty, the owners).
+	SpillageReviewers *[]openapi_types.UUID `json:"spillage_reviewers,omitempty"`
+
 	// TimeoutUntil Until then you may not post or react here (a moderator's timeout).
 	TimeoutUntil *time.Time `json:"timeout_until,omitempty"`
 }
@@ -3985,6 +4219,33 @@ type WsTicket struct {
 	Ticket    string `json:"ticket"`
 }
 
+// ListInstanceAuditParams defines parameters for ListInstanceAudit.
+type ListInstanceAuditParams struct {
+	// Before Events older than this one (cursor).
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Prefix Actions starting with this.
+	Prefix      *string             `form:"prefix,omitempty" json:"prefix,omitempty"`
+	ActorId     *openapi_types.UUID `form:"actor_id,omitempty" json:"actor_id,omitempty"`
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
+	Since       *time.Time          `form:"since,omitempty" json:"since,omitempty"`
+	Until       *time.Time          `form:"until,omitempty" json:"until,omitempty"`
+}
+
+// ExportInstanceAuditParams defines parameters for ExportInstanceAudit.
+type ExportInstanceAuditParams struct {
+	// Before Events older than this one (cursor).
+	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
+
+	// Prefix Actions starting with this.
+	Prefix      *string             `form:"prefix,omitempty" json:"prefix,omitempty"`
+	ActorId     *openapi_types.UUID `form:"actor_id,omitempty" json:"actor_id,omitempty"`
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
+	Since       *time.Time          `form:"since,omitempty" json:"since,omitempty"`
+	Until       *time.Time          `form:"until,omitempty" json:"until,omitempty"`
+}
+
 // AdminSetBotDisabledJSONBody defines parameters for AdminSetBotDisabled.
 type AdminSetBotDisabledJSONBody struct {
 	Disabled bool `json:"disabled"`
@@ -3995,6 +4256,12 @@ type AdminListUsersParams struct {
 	Q         *string             `form:"q,omitempty" json:"q,omitempty"`
 	AfterName *string             `form:"after_name,omitempty" json:"after_name,omitempty"`
 	AfterId   *openapi_types.UUID `form:"after_id,omitempty" json:"after_id,omitempty"`
+}
+
+// EraseUserJSONBody defines parameters for EraseUser.
+type EraseUserJSONBody struct {
+	// Confirm The person's display name
+	Confirm string `json:"confirm"`
 }
 
 // SetWebAppJSONBody defines parameters for SetWebApp.
@@ -4230,6 +4497,11 @@ type ListRepliesParams struct {
 // ReportMessageJSONBody defines parameters for ReportMessage.
 type ReportMessageJSONBody struct {
 	Reason *string `json:"reason,omitempty"`
+}
+
+// ReportSpillageJSONBody defines parameters for ReportSpillage.
+type ReportSpillageJSONBody struct {
+	Reason string `json:"reason"`
 }
 
 // MarkReadJSONBody defines parameters for MarkRead.
@@ -4485,6 +4757,15 @@ type EndAllSessionsJSONBody struct {
 	KeepCurrent bool `json:"keep_current"`
 }
 
+// DecideSpillageJSONBody defines parameters for DecideSpillage.
+type DecideSpillageJSONBody struct {
+	Decision DecideSpillageJSONBodyDecision `json:"decision"`
+	Note     *string                        `json:"note,omitempty"`
+}
+
+// DecideSpillageJSONBodyDecision defines parameters for DecideSpillage.
+type DecideSpillageJSONBodyDecision string
+
 // UpdateChannelTabJSONBody defines parameters for UpdateChannelTab.
 type UpdateChannelTabJSONBody struct {
 	// Position The new place among the tabs, from 0.
@@ -4586,6 +4867,21 @@ type ComposeWithAIJSONBody struct {
 
 // ComposeWithAIJSONBodyAction defines parameters for ComposeWithAI.
 type ComposeWithAIJSONBodyAction string
+
+// ExportArchiveParams defines parameters for ExportArchive.
+type ExportArchiveParams struct {
+	Format ArchiveFormat `form:"format" json:"format"`
+	Since  time.Time     `form:"since" json:"since"`
+	Until  time.Time     `form:"until" json:"until"`
+}
+
+// SetArchiveScheduleJSONBody defines parameters for SetArchiveSchedule.
+type SetArchiveScheduleJSONBody struct {
+	Format SetArchiveScheduleJSONBodyFormat `json:"format"`
+}
+
+// SetArchiveScheduleJSONBodyFormat defines parameters for SetArchiveSchedule.
+type SetArchiveScheduleJSONBodyFormat string
 
 // ListWorkspaceAuditParams defines parameters for ListWorkspaceAudit.
 type ListWorkspaceAuditParams struct {
@@ -4702,10 +4998,26 @@ type ListReportsParams struct {
 // ListReportsParamsStatus defines parameters for ListReports.
 type ListReportsParamsStatus string
 
+// ListSpillageReportsParams defines parameters for ListSpillageReports.
+type ListSpillageReportsParams struct {
+	Status *ListSpillageReportsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListSpillageReportsParamsStatus defines parameters for ListSpillageReports.
+type ListSpillageReportsParamsStatus string
+
+// SetSpillageReviewersJSONBody defines parameters for SetSpillageReviewers.
+type SetSpillageReviewersJSONBody struct {
+	UserIds []openapi_types.UUID `json:"user_ids"`
+}
+
 // AddStickerParams defines parameters for AddSticker.
 type AddStickerParams struct {
 	Name string `form:"name" json:"name"`
 }
+
+// SetAuditStreamJSONRequestBody defines body for SetAuditStream for application/json ContentType.
+type SetAuditStreamJSONRequestBody = AuditStream
 
 // AdminSetBotDisabledJSONRequestBody defines body for AdminSetBotDisabled for application/json ContentType.
 type AdminSetBotDisabledJSONRequestBody AdminSetBotDisabledJSONBody
@@ -4718,6 +5030,9 @@ type SetNotificationPolicyJSONRequestBody = NotificationPolicy
 
 // SetSessionPolicyJSONRequestBody defines body for SetSessionPolicy for application/json ContentType.
 type SetSessionPolicyJSONRequestBody = SessionPolicy
+
+// EraseUserJSONRequestBody defines body for EraseUser for application/json ContentType.
+type EraseUserJSONRequestBody EraseUserJSONBody
 
 // SetWebAppJSONRequestBody defines body for SetWebApp for application/json ContentType.
 type SetWebAppJSONRequestBody SetWebAppJSONBody
@@ -4814,6 +5129,9 @@ type VotePollJSONRequestBody VotePollJSONBody
 
 // ReportMessageJSONRequestBody defines body for ReportMessage for application/json ContentType.
 type ReportMessageJSONRequestBody ReportMessageJSONBody
+
+// ReportSpillageJSONRequestBody defines body for ReportSpillage for application/json ContentType.
+type ReportSpillageJSONRequestBody ReportSpillageJSONBody
 
 // SetChannelNotificationsJSONRequestBody defines body for SetChannelNotifications for application/json ContentType.
 type SetChannelNotificationsJSONRequestBody = ChannelNotificationInput
@@ -4929,6 +5247,9 @@ type UpdateRunItemJSONRequestBody UpdateRunItemJSONBody
 // EndAllSessionsJSONRequestBody defines body for EndAllSessions for application/json ContentType.
 type EndAllSessionsJSONRequestBody EndAllSessionsJSONBody
 
+// DecideSpillageJSONRequestBody defines body for DecideSpillage for application/json ContentType.
+type DecideSpillageJSONRequestBody DecideSpillageJSONBody
+
 // UpdateChannelTabJSONRequestBody defines body for UpdateChannelTab for application/json ContentType.
 type UpdateChannelTabJSONRequestBody UpdateChannelTabJSONBody
 
@@ -4973,6 +5294,9 @@ type ComposeWithAIJSONRequestBody ComposeWithAIJSONBody
 
 // SetWorkspaceAppearanceJSONRequestBody defines body for SetWorkspaceAppearance for application/json ContentType.
 type SetWorkspaceAppearanceJSONRequestBody = WorkspaceAppearance
+
+// SetArchiveScheduleJSONRequestBody defines body for SetArchiveSchedule for application/json ContentType.
+type SetArchiveScheduleJSONRequestBody SetArchiveScheduleJSONBody
 
 // CreateAutomodRuleJSONRequestBody defines body for CreateAutomodRule for application/json ContentType.
 type CreateAutomodRuleJSONRequestBody = AutomodRuleInput
@@ -5036,6 +5360,9 @@ type CreatePlaybookJSONRequestBody = PlaybookInput
 
 // SetSidebarJSONRequestBody defines body for SetSidebar for application/json ContentType.
 type SetSidebarJSONRequestBody = SidebarLayout
+
+// SetSpillageReviewersJSONRequestBody defines body for SetSpillageReviewers for application/json ContentType.
+type SetSpillageReviewersJSONRequestBody SetSpillageReviewersJSONBody
 
 // SetWelcomeJSONRequestBody defines body for SetWelcome for application/json ContentType.
 type SetWelcomeJSONRequestBody = Welcome
@@ -5107,6 +5434,18 @@ func (t *FormValues_AdditionalProperties) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListInstanceAudit The audit log of the whole installation (instance administrators)
+	// (GET /api/admin/audit)
+	ListInstanceAudit(w http.ResponseWriter, r *http.Request, params ListInstanceAuditParams)
+	// GetAuditStream Where the audit log streams to (instance administrators)
+	// (GET /api/admin/audit-stream)
+	GetAuditStream(w http.ResponseWriter, r *http.Request)
+	// SetAuditStream Stream the audit log to a SIEM
+	// (PUT /api/admin/audit-stream)
+	SetAuditStream(w http.ResponseWriter, r *http.Request)
+	// ExportInstanceAudit Download the audit log as NDJSON, newest first (instance administrators)
+	// (GET /api/admin/audit/export)
+	ExportInstanceAudit(w http.ResponseWriter, r *http.Request, params ExportInstanceAuditParams)
 	// AdminListBots Every bot of every workspace (instance administrators)
 	// (GET /api/admin/bots)
 	AdminListBots(w http.ResponseWriter, r *http.Request)
@@ -5137,6 +5476,12 @@ type ServerInterface interface {
 	// AdminListUsers Everyone of the installation, by name (instance administrators)
 	// (GET /api/admin/users)
 	AdminListUsers(w http.ResponseWriter, r *http.Request, params AdminListUsersParams)
+	// EraseUser Erase a person (right to erasure; instance administrators)
+	// (POST /api/admin/users/{user_id}/erase)
+	EraseUser(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID)
+	// ExportUserData Everything stored about a person, for a data subject request (instance administrators)
+	// (GET /api/admin/users/{user_id}/export)
+	ExportUserData(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID)
 	// AdminEndUserSessions Sign someone out everywhere (instance administrators)
 	// (DELETE /api/admin/users/{user_id}/sessions)
 	AdminEndUserSessions(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID)
@@ -5149,6 +5494,9 @@ type ServerInterface interface {
 	// AdminListWorkspaces Every workspace with its size (instance administrators)
 	// (GET /api/admin/workspaces)
 	AdminListWorkspaces(w http.ResponseWriter, r *http.Request)
+	// DownloadArchiveExport Download a daily archive export (owners)
+	// (GET /api/archive-exports/{export_id})
+	DownloadArchiveExport(w http.ResponseWriter, r *http.Request, exportId openapi_types.UUID)
 	// BackchannelLogout OpenID Connect Back-Channel Logout (called by Cenacle ID)
 	// (POST /api/auth/backchannel-logout)
 	BackchannelLogout(w http.ResponseWriter, r *http.Request)
@@ -5386,6 +5734,9 @@ type ServerInterface interface {
 	// RevealMessage Read a burn-on-read message (its text shows for its seconds, once)
 	// (POST /api/channels/{channel_id}/messages/{message_id}/reveal)
 	RevealMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// ReportSpillage Report that a message holds what must not be here (data spillage)
+	// (POST /api/channels/{channel_id}/messages/{message_id}/spillage)
+	ReportSpillage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// SetChannelNotifications What a channel or conversation notifies you of; mute it
 	// (PUT /api/channels/{channel_id}/notifications)
 	SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -5542,6 +5893,9 @@ type ServerInterface interface {
 	// SetAvatar Set your profile picture
 	// (PUT /api/me/avatar)
 	SetAvatar(w http.ResponseWriter, r *http.Request)
+	// ExportMyData Download everything stored about you (NDJSON)
+	// (GET /api/me/export)
+	ExportMyData(w http.ResponseWriter, r *http.Request)
 	// ListMyFonts Fonts you uploaded
 	// (GET /api/me/fonts)
 	ListMyFonts(w http.ResponseWriter, r *http.Request)
@@ -5683,6 +6037,12 @@ type ServerInterface interface {
 	// GetSound A sound you uploaded (only for you)
 	// (GET /api/sounds/{sound_id})
 	GetSound(w http.ResponseWriter, r *http.Request, soundId openapi_types.UUID)
+	// DecideSpillage Remove the message everywhere, or dismiss the report (spillage reviewers)
+	// (POST /api/spillage/{report_id}/decision)
+	DecideSpillage(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// GetSpillageIncident The incident report of a decided spillage report (spillage reviewers)
+	// (GET /api/spillage/{report_id}/incident)
+	GetSpillageIncident(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
 	// DeleteSticker Remove a sticker (who added it, or a workspace admin)
 	// (DELETE /api/stickers/{sticker_id})
 	DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
@@ -5761,6 +6121,15 @@ type ServerInterface interface {
 	// SetWorkspaceAppearance The workspace's default theme preset and font template (owners and admins)
 	// (PUT /api/workspaces/{workspace_id}/appearance)
 	SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ExportArchive The workspace's messages of a period in an archive format (owners)
+	// (GET /api/workspaces/{workspace_id}/archive)
+	ExportArchive(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ExportArchiveParams)
+	// GetArchiveSchedule Daily archive exports of the workspace and the files made (owners)
+	// (GET /api/workspaces/{workspace_id}/archive-schedule)
+	GetArchiveSchedule(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetArchiveSchedule Turn daily archive exports on (in a format) or off (owners)
+	// (PUT /api/workspaces/{workspace_id}/archive-schedule)
+	SetArchiveSchedule(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListAssignedItems Open list rows assigned to me, the soonest due first
 	// (GET /api/workspaces/{workspace_id}/assigned-items)
 	ListAssignedItems(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -5911,6 +6280,12 @@ type ServerInterface interface {
 	// SetSidebar Replace the person's arrangement of the workspace's sidebar
 	// (PUT /api/workspaces/{workspace_id}/sidebar)
 	SetSidebar(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListSpillageReports Spillage reports of the workspace (its spillage reviewers)
+	// (GET /api/workspaces/{workspace_id}/spillage)
+	ListSpillageReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListSpillageReportsParams)
+	// SetSpillageReviewers Choose who reviews spillage reports (owners); empty means the owners
+	// (PUT /api/workspaces/{workspace_id}/spillage-reviewers)
+	SetSpillageReviewers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListStickers The workspace's stickers
 	// (GET /api/workspaces/{workspace_id}/stickers)
 	ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -5940,6 +6315,30 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// ListInstanceAudit The audit log of the whole installation (instance administrators)
+// (GET /api/admin/audit)
+func (_ Unimplemented) ListInstanceAudit(w http.ResponseWriter, r *http.Request, params ListInstanceAuditParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetAuditStream Where the audit log streams to (instance administrators)
+// (GET /api/admin/audit-stream)
+func (_ Unimplemented) GetAuditStream(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetAuditStream Stream the audit log to a SIEM
+// (PUT /api/admin/audit-stream)
+func (_ Unimplemented) SetAuditStream(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ExportInstanceAudit Download the audit log as NDJSON, newest first (instance administrators)
+// (GET /api/admin/audit/export)
+func (_ Unimplemented) ExportInstanceAudit(w http.ResponseWriter, r *http.Request, params ExportInstanceAuditParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // AdminListBots Every bot of every workspace (instance administrators)
 // (GET /api/admin/bots)
@@ -6001,6 +6400,18 @@ func (_ Unimplemented) AdminListUsers(w http.ResponseWriter, r *http.Request, pa
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// EraseUser Erase a person (right to erasure; instance administrators)
+// (POST /api/admin/users/{user_id}/erase)
+func (_ Unimplemented) EraseUser(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ExportUserData Everything stored about a person, for a data subject request (instance administrators)
+// (GET /api/admin/users/{user_id}/export)
+func (_ Unimplemented) ExportUserData(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // AdminEndUserSessions Sign someone out everywhere (instance administrators)
 // (DELETE /api/admin/users/{user_id}/sessions)
 func (_ Unimplemented) AdminEndUserSessions(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID) {
@@ -6022,6 +6433,12 @@ func (_ Unimplemented) SetWebApp(w http.ResponseWriter, r *http.Request) {
 // AdminListWorkspaces Every workspace with its size (instance administrators)
 // (GET /api/admin/workspaces)
 func (_ Unimplemented) AdminListWorkspaces(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DownloadArchiveExport Download a daily archive export (owners)
+// (GET /api/archive-exports/{export_id})
+func (_ Unimplemented) DownloadArchiveExport(w http.ResponseWriter, r *http.Request, exportId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6499,6 +6916,12 @@ func (_ Unimplemented) RevealMessage(w http.ResponseWriter, r *http.Request, cha
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ReportSpillage Report that a message holds what must not be here (data spillage)
+// (POST /api/channels/{channel_id}/messages/{message_id}/spillage)
+func (_ Unimplemented) ReportSpillage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SetChannelNotifications What a channel or conversation notifies you of; mute it
 // (PUT /api/channels/{channel_id}/notifications)
 func (_ Unimplemented) SetChannelNotifications(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -6811,6 +7234,12 @@ func (_ Unimplemented) SetAvatar(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ExportMyData Download everything stored about you (NDJSON)
+// (GET /api/me/export)
+func (_ Unimplemented) ExportMyData(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListMyFonts Fonts you uploaded
 // (GET /api/me/fonts)
 func (_ Unimplemented) ListMyFonts(w http.ResponseWriter, r *http.Request) {
@@ -7093,6 +7522,18 @@ func (_ Unimplemented) GetSound(w http.ResponseWriter, r *http.Request, soundId 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DecideSpillage Remove the message everywhere, or dismiss the report (spillage reviewers)
+// (POST /api/spillage/{report_id}/decision)
+func (_ Unimplemented) DecideSpillage(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSpillageIncident The incident report of a decided spillage report (spillage reviewers)
+// (GET /api/spillage/{report_id}/incident)
+func (_ Unimplemented) GetSpillageIncident(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteSticker Remove a sticker (who added it, or a workspace admin)
 // (DELETE /api/stickers/{sticker_id})
 func (_ Unimplemented) DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID) {
@@ -7246,6 +7687,24 @@ func (_ Unimplemented) ComposeWithAI(w http.ResponseWriter, r *http.Request, wor
 // SetWorkspaceAppearance The workspace's default theme preset and font template (owners and admins)
 // (PUT /api/workspaces/{workspace_id}/appearance)
 func (_ Unimplemented) SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ExportArchive The workspace's messages of a period in an archive format (owners)
+// (GET /api/workspaces/{workspace_id}/archive)
+func (_ Unimplemented) ExportArchive(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ExportArchiveParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetArchiveSchedule Daily archive exports of the workspace and the files made (owners)
+// (GET /api/workspaces/{workspace_id}/archive-schedule)
+func (_ Unimplemented) GetArchiveSchedule(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetArchiveSchedule Turn daily archive exports on (in a format) or off (owners)
+// (PUT /api/workspaces/{workspace_id}/archive-schedule)
+func (_ Unimplemented) SetArchiveSchedule(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7549,6 +8008,18 @@ func (_ Unimplemented) SetSidebar(w http.ResponseWriter, r *http.Request, worksp
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListSpillageReports Spillage reports of the workspace (its spillage reviewers)
+// (GET /api/workspaces/{workspace_id}/spillage)
+func (_ Unimplemented) ListSpillageReports(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params ListSpillageReportsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetSpillageReviewers Choose who reviews spillage reports (owners); empty means the owners
+// (PUT /api/workspaces/{workspace_id}/spillage-reviewers)
+func (_ Unimplemented) SetSpillageReviewers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListStickers The workspace's stickers
 // (GET /api/workspaces/{workspace_id}/stickers)
 func (_ Unimplemented) ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
@@ -7605,6 +8076,243 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListInstanceAudit operation middleware
+func (siw *ServerInterfaceWrapper) ListInstanceAudit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListInstanceAuditParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "prefix" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "prefix", r.URL.Query(), &params.Prefix, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "prefix"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prefix", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "actor_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "actor_id", r.URL.Query(), &params.ActorId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "actor_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "actor_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "since" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "since", r.URL.Query(), &params.Since, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "since"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "since", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "until" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "until", r.URL.Query(), &params.Until, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "until"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "until", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInstanceAudit(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAuditStream operation middleware
+func (siw *ServerInterfaceWrapper) GetAuditStream(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAuditStream(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAuditStream operation middleware
+func (siw *ServerInterfaceWrapper) SetAuditStream(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAuditStream(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportInstanceAudit operation middleware
+func (siw *ServerInterfaceWrapper) ExportInstanceAudit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportInstanceAuditParams
+
+	// ------------- Optional query parameter "before" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "before", r.URL.Query(), &params.Before, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "before"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "before", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "prefix" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "prefix", r.URL.Query(), &params.Prefix, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "prefix"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prefix", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "actor_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "actor_id", r.URL.Query(), &params.ActorId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "actor_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "actor_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "since" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "since", r.URL.Query(), &params.Since, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "since"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "since", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "until" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "until", r.URL.Query(), &params.Until, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "until"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "until", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportInstanceAudit(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // AdminListBots operation middleware
 func (siw *ServerInterfaceWrapper) AdminListBots(w http.ResponseWriter, r *http.Request) {
@@ -7803,6 +8511,58 @@ func (siw *ServerInterfaceWrapper) AdminListUsers(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// EraseUser operation middleware
+func (siw *ServerInterfaceWrapper) EraseUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EraseUser(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportUserData operation middleware
+func (siw *ServerInterfaceWrapper) ExportUserData(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportUserData(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // AdminEndUserSessions operation middleware
 func (siw *ServerInterfaceWrapper) AdminEndUserSessions(w http.ResponseWriter, r *http.Request) {
 
@@ -7862,6 +8622,32 @@ func (siw *ServerInterfaceWrapper) AdminListWorkspaces(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminListWorkspaces(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadArchiveExport operation middleware
+func (siw *ServerInterfaceWrapper) DownloadArchiveExport(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "export_id" -------------
+	var exportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "export_id", chi.URLParam(r, "export_id"), &exportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "export_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadArchiveExport(w, r, exportId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10279,6 +11065,41 @@ func (siw *ServerInterfaceWrapper) RevealMessage(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// ReportSpillage operation middleware
+func (siw *ServerInterfaceWrapper) ReportSpillage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReportSpillage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetChannelNotifications operation middleware
 func (siw *ServerInterfaceWrapper) SetChannelNotifications(w http.ResponseWriter, r *http.Request) {
 
@@ -11633,6 +12454,20 @@ func (siw *ServerInterfaceWrapper) SetAvatar(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ExportMyData operation middleware
+func (siw *ServerInterfaceWrapper) ExportMyData(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportMyData(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMyFonts operation middleware
 func (siw *ServerInterfaceWrapper) ListMyFonts(w http.ResponseWriter, r *http.Request) {
 
@@ -12910,6 +13745,58 @@ func (siw *ServerInterfaceWrapper) GetSound(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// DecideSpillage operation middleware
+func (siw *ServerInterfaceWrapper) DecideSpillage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "report_id" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "report_id", chi.URLParam(r, "report_id"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "report_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DecideSpillage(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSpillageIncident operation middleware
+func (siw *ServerInterfaceWrapper) GetSpillageIncident(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "report_id" -------------
+	var reportId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "report_id", chi.URLParam(r, "report_id"), &reportId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "report_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSpillageIncident(w, r, reportId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteSticker operation middleware
 func (siw *ServerInterfaceWrapper) DeleteSticker(w http.ResponseWriter, r *http.Request) {
 
@@ -13514,6 +14401,126 @@ func (siw *ServerInterfaceWrapper) SetWorkspaceAppearance(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetWorkspaceAppearance(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportArchive operation middleware
+func (siw *ServerInterfaceWrapper) ExportArchive(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportArchiveParams
+
+	// ------------- Required query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "format"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "since" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "since", r.URL.Query(), &params.Since, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "since"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "since", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "until" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "until", r.URL.Query(), &params.Until, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "until"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "until", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportArchive(w, r, workspaceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetArchiveSchedule operation middleware
+func (siw *ServerInterfaceWrapper) GetArchiveSchedule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetArchiveSchedule(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetArchiveSchedule operation middleware
+func (siw *ServerInterfaceWrapper) SetArchiveSchedule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetArchiveSchedule(w, r, workspaceId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15035,6 +16042,74 @@ func (siw *ServerInterfaceWrapper) SetSidebar(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ListSpillageReports operation middleware
+func (siw *ServerInterfaceWrapper) ListSpillageReports(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSpillageReportsParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSpillageReports(w, r, workspaceId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetSpillageReviewers operation middleware
+func (siw *ServerInterfaceWrapper) SetSpillageReviewers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSpillageReviewers(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListStickers operation middleware
 func (siw *ServerInterfaceWrapper) ListStickers(w http.ResponseWriter, r *http.Request) {
 
@@ -15397,6 +16472,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/profiles", wrapper.GetProfiles)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/export", wrapper.ExportMyData)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/me/profile", wrapper.GetMyProfile)
 	})
 	r.Group(func(r chi.Router) {
@@ -15475,6 +16553,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/api/admin/federation-policy", wrapper.SetFederationPolicy)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/audit", wrapper.ListInstanceAudit)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/audit/export", wrapper.ExportInstanceAudit)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/audit-stream", wrapper.GetAuditStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/audit-stream", wrapper.SetAuditStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/users/{user_id}/export", wrapper.ExportUserData)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/admin/users/{user_id}/erase", wrapper.EraseUser)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/admin/web-app", wrapper.GetWebApp)
 	})
 	r.Group(func(r chi.Router) {
@@ -15551,6 +16647,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/guest-links/{token}", wrapper.JoinGuestLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/spillage", wrapper.ReportSpillage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/spillage", wrapper.ListSpillageReports)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/spillage-reviewers", wrapper.SetSpillageReviewers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/spillage/{report_id}/decision", wrapper.DecideSpillage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/spillage/{report_id}/incident", wrapper.GetSpillageIncident)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/archive", wrapper.ExportArchive)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/archive-schedule", wrapper.GetArchiveSchedule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/archive-schedule", wrapper.SetArchiveSchedule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/archive-exports/{export_id}", wrapper.DownloadArchiveExport)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/invites/{token}", wrapper.GetInvite)

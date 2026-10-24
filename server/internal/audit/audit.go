@@ -88,6 +88,15 @@ const (
 	GuestLinkCreated               = "guest_link.created"
 	GuestLinkRevoked               = "guest_link.revoked"
 	GuestLinkJoined                = "guest_link.joined"
+	AuditExported                  = "instance.audit_exported"
+	AuditStreamChanged             = "instance.audit_stream_changed"
+	UserDataExported               = "admin.user_data_exported"
+	UserErased                     = "admin.user_erased"
+	SpillageReported               = "spillage.reported"
+	SpillageDecided                = "spillage.decided"
+	SpillageReviewersChanged       = "spillage.reviewers_changed"
+	ArchiveExported                = "compliance.archive_exported"
+	ArchiveScheduleChanged         = "compliance.archive_schedule_changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

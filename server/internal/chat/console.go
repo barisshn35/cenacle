@@ -201,6 +201,7 @@ func (h *Handlers) AdminListUsers(w http.ResponseWriter, r *http.Request, params
 		out.Users = append(out.Users, api.AdminUser{
 			Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email, Username: u.Username, IsAdmin: u.IsAdmin,
 			Guest: u.DirectoryRole == "guest", Deactivated: u.DeactivatedAt.Valid, LastSeenAt: timeOf(u.LastSeenAt),
+			Erased:    ptr(u.Erased),
 			CreatedAt: u.CreatedAt, Workspaces: int(u.Workspaces), Sessions: int(u.Sessions),
 		})
 	}

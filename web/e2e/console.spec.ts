@@ -158,3 +158,91 @@ test('the system console sets the session and network policy', async ({ page, is
     signin_networks: [],
   });
 });
+
+test('the system console shows the audit log and streams it to a SIEM', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Settings opens from the sidebar on wide screens');
+  await mockApi(page, { admin: true });
+  await page.route('**/api/admin/overview', (route) =>
+    route.fulfill({
+      json: {
+        version: '0.36.0',
+        counts: {
+          users: 1,
+          active_users: 1,
+          bots: 0,
+          workspaces: 1,
+          channels: 1,
+          messages: 0,
+          files: 0,
+          file_bytes: 0,
+        },
+        config: [],
+        jobs: [],
+        failures: [],
+      },
+    }),
+  );
+  const asked: string[] = [];
+  await page.route(/\/api\/admin\/audit\?/, (route) => {
+    asked.push(new URL(route.request().url()).searchParams.get('prefix') ?? '');
+    return route.fulfill({
+      json: {
+        events: [
+          {
+            id: '01a16400-0000-7000-8000-0000000000a1',
+            at: '2026-10-24T10:00:00Z',
+            actor: { id: '01a16400-0000-7000-8000-0000000000b1', display_name: 'Yönetici' },
+            action: 'instance.session_policy_changed',
+            target_type: '',
+            target_id: '',
+            detail: {},
+            workspace: null,
+            ip_address: '10.1.2.3',
+          },
+        ],
+        has_more: false,
+      },
+    });
+  });
+  let saved: unknown;
+  await page.route('**/api/admin/audit-stream', (route) => {
+    const base = {
+      kind: 'none',
+      address: '',
+      tls: true,
+      has_secret: false,
+      last_error: '',
+      last_sent_at: null,
+    };
+    if (route.request().method() === 'PUT') {
+      saved = route.request().postDataJSON();
+      return route.fulfill({ json: { ...base, ...(saved as object), has_secret: true } });
+    }
+    return route.fulfill({ json: base });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'System console' }).click();
+  const console = page.getByRole('dialog', { name: 'System console' });
+  await console.getByRole('tab', { name: /Audit log/ }).click();
+  await expect(console.getByTestId('audit-events')).toContainText(
+    'instance.session_policy_changed',
+  );
+  await expect(console.getByTestId('audit-events')).toContainText('10.1.2.3');
+  await console.getByLabel('Kind').selectOption({ label: 'Federation' });
+  await expect.poll(() => asked.at(-1)).toBe('federation.');
+  await expect(console.getByRole('link', { name: 'Download (NDJSON)' })).toHaveAttribute(
+    'href',
+    '/api/admin/audit/export?prefix=federation.',
+  );
+  await console.getByLabel('Syslog (RFC 5424 over TCP)').check();
+  await console.getByLabel('Receiver (host:port)').fill('siem.example.com:6514');
+  await expectTargetSizes(page, test.info(), '[role="dialog"]');
+  await expectNoAxeViolations(page, '[role="dialog"]');
+  await console.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Streaming settings saved.')).toBeVisible();
+  expect(saved).toEqual({ kind: 'syslog', address: 'siem.example.com:6514', tls: true });
+});

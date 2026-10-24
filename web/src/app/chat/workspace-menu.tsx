@@ -15,6 +15,7 @@ import {
   LogOutIcon,
   ScaleIcon,
   SettingsIcon,
+  ShieldAlertIcon,
   ShieldIcon,
   SparklesIcon,
   UserMinusIcon,
@@ -69,6 +70,7 @@ import {
   invitesQuery,
   inviteLink,
   inviteToken,
+  isSpillageReviewer,
   isWorkspaceAdmin,
   may,
   reloadWorkspaces,
@@ -81,6 +83,7 @@ import {
 import { ModerationDialog, TimeoutSelect } from '../community/moderation';
 import { WelcomeForm } from '../community/admin-panels';
 import { PermissionsSetting } from './permissions-setting';
+import { SpillageDialog } from '../compliance/spillage';
 import { EmojiAndStickers } from '../richer/manage';
 import { dateLocale } from '../../i18n/time-format';
 import { cn } from '@cenacle/ui/lib/utils';
@@ -95,7 +98,7 @@ const selectClass =
 export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation();
   const [dialog, setDialog] = useState<
-    'settings' | 'invite' | 'integrations' | 'leave' | 'moderation' | 'groups' | null
+    'settings' | 'invite' | 'integrations' | 'leave' | 'moderation' | 'groups' | 'spillage' | null
   >(null);
   const admin = isWorkspaceAdmin(workspace);
   const queryClient = useQueryClient();
@@ -151,6 +154,12 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
               {t('community.moderation.open')}
             </DropdownMenuItem>
           )}
+          {isSpillageReviewer(workspace, user.id) && (
+            <DropdownMenuItem onClick={() => setDialog('spillage')}>
+              <ShieldAlertIcon strokeWidth={1.75} />
+              {t('spillage.title')}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => toggleMute()}>
             {wsMuted ? <BellIcon strokeWidth={1.75} /> : <BellOffIcon strokeWidth={1.75} />}
             {wsMuted ? t('notifications.unmuteWorkspace') : t('notifications.muteWorkspace')}
@@ -185,6 +194,7 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
       {dialog === 'moderation' && (
         <ModerationDialog workspace={workspace} open onOpenChange={close} />
       )}
+      {dialog === 'spillage' && <SpillageDialog workspace={workspace} open onOpenChange={close} />}
       {dialog === 'integrations' && (
         <IntegrationsDialog workspace={workspace} open onOpenChange={close} />
       )}

@@ -146,7 +146,7 @@ export function GuestLinksSection({ channel }: { channel: Channel }) {
           <Label htmlFor={`${id}-hours`}>{t('guestLinks.expires')}</Label>
           <select
             id={`${id}-hours`}
-            className="h-9 rounded-md border bg-background px-2 text-sm"
+            className="min-h-target h-9 rounded-md border bg-background px-2 text-sm"
             value={hours}
             onChange={(e) => setHours(Number(e.target.value))}
           >

@@ -202,6 +202,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/me/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download everything stored about you (NDJSON) */
+    get: operations['exportMyData'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/me/profile': {
     parameters: {
       query?: never;
@@ -545,6 +562,108 @@ export interface paths {
      */
     put: operations['setFederationPolicy'];
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/audit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The audit log of the whole installation (instance administrators) */
+    get: operations['listInstanceAudit'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/audit/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Download the audit log as NDJSON, newest first (instance administrators) */
+    get: operations['exportInstanceAudit'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/audit-stream': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Where the audit log streams to (instance administrators) */
+    get: operations['getAuditStream'];
+    /**
+     * Stream the audit log to a SIEM
+     * @description Streaming starts with the events written after the change.
+     */
+    put: operations['setAuditStream'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/users/{user_id}/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * Everything stored about a person, for a data subject request (instance administrators)
+     * @description NDJSON: one line per item, each with its kind (profile, workspace, channel,
+     *     message, reaction, file, session, audit). Recorded in the audit log.
+     */
+    get: operations['exportUserData'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/users/{user_id}/erase': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Erase a person (right to erasure; instance administrators)
+     * @description The account is anonymized and can no longer sign in; their messages are deleted
+     *     unless a legal hold keeps them; their reactions, saved items, scheduled
+     *     messages, devices and sessions go. Cannot be undone.
+     */
+    post: operations['eraseUser'];
     delete?: never;
     options?: never;
     head?: never;
@@ -914,6 +1033,171 @@ export interface paths {
      *     passwords are limited per link and address.
      */
     post: operations['joinGuestLink'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/spillage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Report that a message holds what must not be here (data spillage)
+     * @description The workspace's spillage reviewers decide; the message stays until then.
+     */
+    post: operations['reportSpillage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/spillage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Spillage reports of the workspace (its spillage reviewers) */
+    get: operations['listSpillageReports'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/spillage-reviewers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Choose who reviews spillage reports (owners); empty means the owners */
+    put: operations['setSpillageReviewers'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/spillage/{report_id}/decision': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Remove the message everywhere, or dismiss the report (spillage reviewers)
+     * @description Removal empties the message, its edits, reactions, mentions, saved copies and
+     *     files, also where a legal hold would keep it, tells every device and shared
+     *     server to drop it, and writes the incident report.
+     */
+    post: operations['decideSpillage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/spillage/{report_id}/incident': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    /** The incident report of a decided spillage report (spillage reviewers) */
+    get: operations['getSpillageIncident'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/archive': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The workspace's messages of a period in an archive format (owners) */
+    get: operations['exportArchive'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/archive-schedule': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** Daily archive exports of the workspace and the files made (owners) */
+    get: operations['getArchiveSchedule'];
+    /**
+     * Turn daily archive exports on (in a format) or off (owners)
+     * @description Needs the object store; each day's file is written after the day ends (UTC).
+     */
+    put: operations['setArchiveSchedule'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/archive-exports/{export_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        export_id: string;
+      };
+      cookie?: never;
+    };
+    /** Download a daily archive export (owners) */
+    get: operations['downloadArchiveExport'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -4851,6 +5135,31 @@ export interface components {
       detail: {
         [key: string]: unknown;
       };
+      /** @description The workspace of the event (the installation's audit log; null for account and instance events). */
+      workspace?: {
+        /** Format: uuid */
+        id: string;
+        name: string;
+      } | null;
+      /** @description Where it came from (the installation's audit log). */
+      ip_address?: string;
+    };
+    AuditStream: {
+      /**
+       * @description Off, signed NDJSON posted to an HTTPS endpoint, or RFC 5424 syslog over TCP.
+       * @enum {string}
+       */
+      kind: 'none' | 'http' | 'syslog';
+      /** @description An https URL (http) or host:port (syslog). */
+      address: string;
+      /** @description Syslog over TLS (RFC 5425). */
+      tls: boolean;
+      /** @description HTTP only; signs each request (X-Cenacle-Signature). Empty keeps the saved one. */
+      secret?: string;
+      readonly has_secret?: boolean;
+      readonly last_error?: string;
+      /** Format: date-time */
+      readonly last_sent_at?: string | null;
     };
     Bot: {
       /** Format: uuid */
@@ -5046,6 +5355,8 @@ export interface components {
       persistent_times?: number;
       /** @description Read receipts in conversations are on (administrators turn them on). */
       read_receipts?: boolean;
+      /** @description Who reviews spillage reports (empty, the owners). */
+      spillage_reviewers?: string[];
       /**
        * @description The workspace's permission scheme: each permission's roles (owners may
        *     always). Permissions are create_channels, invite_people,
@@ -5072,6 +5383,53 @@ export interface components {
       expires_at: string;
       max_uses: number | null;
       uses: number;
+    };
+    /**
+     * @description CSV, Actiance XML (Vantage, Smarsh), or EML files in a ZIP (Global Relay, Proofpoint and mail archives).
+     * @enum {string}
+     */
+    ArchiveFormat: 'csv' | 'actiance' | 'eml';
+    ArchiveSchedule: {
+      /** @enum {string} */
+      format: 'off' | 'csv' | 'actiance' | 'eml';
+      /** @description The object store is set up (daily exports need it). */
+      available: boolean;
+      exports: {
+        /** Format: uuid */
+        id: string;
+        format: components['schemas']['ArchiveFormat'];
+        /** Format: date */
+        day: string;
+        /** Format: int64 */
+        size: number;
+        messages: number;
+        /** Format: date-time */
+        created_at: string;
+      }[];
+    };
+    SpillageReport: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      channel_id: string | null;
+      channel_name: string;
+      /** Format: uuid */
+      message_id: string | null;
+      /** @description Who wrote the message (while the report is open). */
+      author_name?: string;
+      /** @description The message (while the report is open */
+      body?: string;
+      reason: string;
+      /** @enum {string} */
+      status: 'open' | 'removed' | 'dismissed';
+      /** @description Who reported it. */
+      reported_by: string;
+      /** Format: date-time */
+      created_at: string;
+      decided_by?: string;
+      /** Format: date-time */
+      decided_at?: string | null;
+      note?: string;
     };
     GuestLink: {
       /** Format: uuid */
@@ -5414,6 +5772,8 @@ export interface components {
       created_at: string;
       workspaces: number;
       sessions: number;
+      /** @description Erased at a data subject request. */
+      erased?: boolean;
     };
     AdminWorkspace: {
       /** Format: uuid */
@@ -6272,6 +6632,28 @@ export interface operations {
       401: components['responses']['Problem'];
     };
   };
+  exportMyData: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Your data, one item per line. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/x-ndjson': string;
+        };
+      };
+      401: components['responses']['Problem'];
+      429: components['responses']['Problem'];
+    };
+  };
   getMyProfile: {
     parameters: {
       query?: never;
@@ -6914,6 +7296,185 @@ export interface operations {
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
+    };
+  };
+  listInstanceAudit: {
+    parameters: {
+      query?: {
+        /** @description Events older than this one (cursor). */
+        before?: string;
+        limit?: number;
+        /** @description Actions starting with this. */
+        prefix?: string;
+        actor_id?: string;
+        workspace_id?: string;
+        since?: string;
+        until?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Events, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            events: components['schemas']['AuditEvent'][];
+            has_more: boolean;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  exportInstanceAudit: {
+    parameters: {
+      query?: {
+        /** @description Events older than this one (cursor). */
+        before?: string;
+        /** @description Actions starting with this. */
+        prefix?: string;
+        actor_id?: string;
+        workspace_id?: string;
+        since?: string;
+        until?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One event per line. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/x-ndjson': string;
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  getAuditStream: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The stream. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AuditStream'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setAuditStream: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AuditStream'];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AuditStream'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  exportUserData: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The data. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/x-ndjson': string;
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  eraseUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description The person's display name */
+          confirm: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Erased. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            messages_erased: number;
+            /** @description Messages a legal hold keeps (erased when it is released). */
+            messages_held: number;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
     };
   };
   getWebApp: {
@@ -7641,6 +8202,271 @@ export interface operations {
       404: components['responses']['Problem'];
       410: components['responses']['Problem'];
       429: components['responses']['Problem'];
+    };
+  };
+  reportSpillage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          reason: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Reported. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpillageReport'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  listSpillageReports: {
+    parameters: {
+      query?: {
+        status?: 'open' | 'removed' | 'dismissed';
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Reports, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            reports: components['schemas']['SpillageReport'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setSpillageReviewers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          user_ids: string[];
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  decideSpillage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          decision: 'remove' | 'dismiss';
+          note?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Decided. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpillageReport'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  getSpillageIncident: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description What happened, who could see it and what was removed (never the content). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  exportArchive: {
+    parameters: {
+      query: {
+        format: components['schemas']['ArchiveFormat'];
+        since: string;
+        until: string;
+      };
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description CSV, Actiance XML, or a ZIP of EML files. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/csv': string;
+          'application/xml': string;
+          'application/zip': string;
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  getArchiveSchedule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The schedule. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ArchiveSchedule'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setArchiveSchedule: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          format: 'off' | 'csv' | 'actiance' | 'eml';
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ArchiveSchedule'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  downloadArchiveExport: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        export_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The file. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/octet-stream': string;
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
     };
   };
   getInvite: {

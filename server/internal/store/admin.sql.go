@@ -74,6 +74,7 @@ func (q *Queries) AdminListBots(ctx context.Context) ([]AdminListBotsRow, error)
 const adminListUsers = `-- name: AdminListUsers :many
 SELECT u.id, u.display_name, u.email, coalesce(u.username, '')::text AS username, u.is_admin,
        coalesce(u.directory_role, '')::text AS directory_role, u.deactivated_at, u.last_seen_at, u.created_at,
+       (u.auth_service = 'erased') AS erased,
        (SELECT count(*) FROM workspace_members wm WHERE wm.user_id = u.id)::int AS workspaces,
        (SELECT count(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now())::int AS sessions
 FROM users u
@@ -102,6 +103,7 @@ type AdminListUsersRow struct {
 	DeactivatedAt pgtype.Timestamptz `json:"deactivated_at"`
 	LastSeenAt    pgtype.Timestamptz `json:"last_seen_at"`
 	CreatedAt     time.Time          `json:"created_at"`
+	Erased        bool               `json:"erased"`
 	Workspaces    int32              `json:"workspaces"`
 	Sessions      int32              `json:"sessions"`
 }
@@ -127,6 +129,7 @@ func (q *Queries) AdminListUsers(ctx context.Context, arg AdminListUsersParams) 
 			&i.DeactivatedAt,
 			&i.LastSeenAt,
 			&i.CreatedAt,
+			&i.Erased,
 			&i.Workspaces,
 			&i.Sessions,
 		); err != nil {

@@ -30,6 +30,7 @@ WHERE NOT is_bot AND deactivated_at IS NULL AND last_seen_at > now() - interval 
 -- with what the system console shows about them.
 SELECT u.id, u.display_name, u.email, coalesce(u.username, '')::text AS username, u.is_admin,
        coalesce(u.directory_role, '')::text AS directory_role, u.deactivated_at, u.last_seen_at, u.created_at,
+       (u.auth_service = 'erased') AS erased,
        (SELECT count(*) FROM workspace_members wm WHERE wm.user_id = u.id)::int AS workspaces,
        (SELECT count(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now())::int AS sessions
 FROM users u

@@ -412,6 +412,19 @@ paths:
           $ref: '#/components/responses/Problem'
         '401':
           $ref: '#/components/responses/Problem'
+  /api/me/export:
+    get:
+      tags: [account]
+      operationId: exportMyData
+      summary: Download everything stored about you (NDJSON)
+      responses:
+        '200':
+          description: Your data, one item per line.
+          content:
+            application/x-ndjson:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
   /api/me/profile:
     get:
       tags: [profiles]
@@ -898,6 +911,142 @@ paths:
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/audit:
+    get:
+      tags: [admin]
+      operationId: listInstanceAudit
+      summary: The audit log of the whole installation (instance administrators)
+      parameters:
+        - { name: before, in: query, schema: { type: string, format: uuid }, description: Events older than this one (cursor). }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: prefix, in: query, schema: { type: string, maxLength: 60 }, description: Actions starting with this. }
+        - { name: actor_id, in: query, schema: { type: string, format: uuid } }
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: until, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: Events, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, has_more]
+                properties:
+                  events:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditEvent' }
+                  has_more: { type: boolean }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/audit/export:
+    get:
+      tags: [admin]
+      operationId: exportInstanceAudit
+      summary: Download the audit log as NDJSON, newest first (instance administrators)
+      parameters:
+        - { name: before, in: query, schema: { type: string, format: uuid }, description: Events older than this one (cursor). }
+        - { name: prefix, in: query, schema: { type: string, maxLength: 60 }, description: Actions starting with this. }
+        - { name: actor_id, in: query, schema: { type: string, format: uuid } }
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: until, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: One event per line.
+          content:
+            application/x-ndjson:
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/audit-stream:
+    get:
+      tags: [admin]
+      operationId: getAuditStream
+      summary: Where the audit log streams to (instance administrators)
+      responses:
+        '200':
+          description: The stream.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditStream' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [admin]
+      operationId: setAuditStream
+      summary: Stream the audit log to a SIEM
+      description: Streaming starts with the events written after the change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuditStream' }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditStream' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/users/{user_id}/export:
+    parameters:
+      - { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [admin]
+      operationId: exportUserData
+      summary: Everything stored about a person, for a data subject request (instance administrators)
+      description: |
+        NDJSON: one line per item, each with its kind (profile, workspace, channel,
+        message, reaction, file, session, audit). Recorded in the audit log.
+      responses:
+        '200':
+          description: The data.
+          content:
+            application/x-ndjson:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/admin/users/{user_id}/erase:
+    parameters:
+      - { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [admin]
+      operationId: eraseUser
+      summary: Erase a person (right to erasure; instance administrators)
+      description: |
+        The account is anonymized and can no longer sign in; their messages are deleted
+        unless a legal hold keeps them; their reactions, saved items, scheduled
+        messages, devices and sessions go. Cannot be undone.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm: { type: string, description: The person's display name, typed to confirm. }
+      responses:
+        '200':
+          description: Erased.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [messages_erased, messages_held]
+                properties:
+                  messages_erased: { type: integer }
+                  messages_held: { type: integer, description: Messages a legal hold keeps (erased when it is released). }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/admin/web-app:
     get:
       tags: [meta]
@@ -1501,6 +1650,204 @@ paths:
         '404': { $ref: '#/components/responses/Problem' }
         '410': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/messages/{message_id}/spillage:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [compliance]
+      operationId: reportSpillage
+      summary: Report that a message holds what must not be here (data spillage)
+      description: The workspace's spillage reviewers decide; the message stays until then.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '201':
+          description: Reported.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpillageReport' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/spillage:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: listSpillageReports
+      summary: Spillage reports of the workspace (its spillage reviewers)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [open, removed, dismissed] } }
+      responses:
+        '200':
+          description: Reports, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reports]
+                properties:
+                  reports:
+                    type: array
+                    items: { $ref: '#/components/schemas/SpillageReport' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/spillage-reviewers:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [compliance]
+      operationId: setSpillageReviewers
+      summary: Choose who reviews spillage reports (owners); empty means the owners
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_ids]
+              properties:
+                user_ids:
+                  type: array
+                  maxItems: 50
+                  items: { type: string, format: uuid }
+      responses:
+        '204': { description: Changed. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/spillage/{report_id}/decision:
+    parameters:
+      - { name: report_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [compliance]
+      operationId: decideSpillage
+      summary: Remove the message everywhere, or dismiss the report (spillage reviewers)
+      description: |
+        Removal empties the message, its edits, reactions, mentions, saved copies and
+        files, also where a legal hold would keep it, tells every device and shared
+        server to drop it, and writes the incident report.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [remove, dismiss] }
+                note: { type: string, maxLength: 2000 }
+      responses:
+        '200':
+          description: Decided.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpillageReport' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/spillage/{report_id}/incident:
+    parameters:
+      - { name: report_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: getSpillageIncident
+      summary: The incident report of a decided spillage report (spillage reviewers)
+      responses:
+        '200':
+          description: What happened, who could see it and what was removed (never the content).
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/archive:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: exportArchive
+      summary: The workspace's messages of a period in an archive format (owners)
+      parameters:
+        - { name: format, in: query, required: true, schema: { $ref: '#/components/schemas/ArchiveFormat' } }
+        - { name: since, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: until, in: query, required: true, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: CSV, Actiance XML, or a ZIP of EML files.
+          content:
+            text/csv: { schema: { type: string } }
+            application/xml: { schema: { type: string } }
+            application/zip: { schema: { type: string, format: binary } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/archive-schedule:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: getArchiveSchedule
+      summary: Daily archive exports of the workspace and the files made (owners)
+      responses:
+        '200':
+          description: The schedule.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ArchiveSchedule' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [compliance]
+      operationId: setArchiveSchedule
+      summary: Turn daily archive exports on (in a format) or off (owners)
+      description: Needs the object store; each day's file is written after the day ends (UTC).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [format]
+              properties:
+                format: { type: string, enum: [off, csv, actiance, eml] }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ArchiveSchedule' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/archive-exports/{export_id}:
+    parameters:
+      - { name: export_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [compliance]
+      operationId: downloadArchiveExport
+      summary: Download a daily archive export (owners)
+      responses:
+        '200':
+          description: The file.
+          content:
+            application/octet-stream: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/invites/{token}:
     parameters:
       - name: token
@@ -7241,6 +7588,36 @@ components:
         detail:
           type: object
           additionalProperties: true
+        workspace:
+          type: object
+          nullable: true
+          description: The workspace of the event (the installation's audit log; null for account and instance events).
+          required: [id, name]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+        ip_address: { type: string, description: "Where it came from (the installation's audit log)." }
+    AuditStream:
+      type: object
+      required: [kind, address, tls]
+      properties:
+        kind:
+          type: string
+          enum: [none, http, syslog]
+          description: Off, signed NDJSON posted to an HTTPS endpoint, or RFC 5424 syslog over TCP.
+        address:
+          type: string
+          maxLength: 500
+          description: An https URL (http) or host:port (syslog).
+        tls: { type: boolean, description: 'Syslog over TLS (RFC 5425).' }
+        secret:
+          type: string
+          writeOnly: true
+          maxLength: 200
+          description: HTTP only; signs each request (X-Cenacle-Signature). Empty keeps the saved one.
+        has_secret: { type: boolean, readOnly: true }
+        last_error: { type: string, readOnly: true }
+        last_sent_at: { type: string, format: date-time, nullable: true, readOnly: true }
     Bot:
       type: object
       required: [id, user_id, name, description, disabled, created_at]
@@ -7450,6 +7827,10 @@ components:
         read_receipts:
           type: boolean
           description: Read receipts in conversations are on (administrators turn them on).
+        spillage_reviewers:
+          type: array
+          description: Who reviews spillage reports (empty, the owners).
+          items: { type: string, format: uuid }
         permissions:
           type: object
           description: |
@@ -7479,6 +7860,45 @@ components:
         expires_at: { type: string, format: date-time }
         max_uses: { type: integer, nullable: true }
         uses: { type: integer }
+    ArchiveFormat:
+      type: string
+      enum: [csv, actiance, eml]
+      description: CSV, Actiance XML (Vantage, Smarsh), or EML files in a ZIP (Global Relay, Proofpoint and mail archives).
+    ArchiveSchedule:
+      type: object
+      required: [format, available, exports]
+      properties:
+        format: { type: string, enum: [off, csv, actiance, eml] }
+        available: { type: boolean, description: The object store is set up (daily exports need it). }
+        exports:
+          type: array
+          items:
+            type: object
+            required: [id, format, day, size, messages, created_at]
+            properties:
+              id: { type: string, format: uuid }
+              format: { $ref: '#/components/schemas/ArchiveFormat' }
+              day: { type: string, format: date }
+              size: { type: integer, format: int64 }
+              messages: { type: integer }
+              created_at: { type: string, format: date-time }
+    SpillageReport:
+      type: object
+      required: [id, channel_id, channel_name, message_id, reason, status, reported_by, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid, nullable: true }
+        channel_name: { type: string }
+        message_id: { type: string, format: uuid, nullable: true }
+        author_name: { type: string, description: Who wrote the message (while the report is open). }
+        body: { type: string, description: The message (while the report is open, for the reviewers). }
+        reason: { type: string }
+        status: { type: string, enum: [open, removed, dismissed] }
+        reported_by: { type: string, description: Who reported it. }
+        created_at: { type: string, format: date-time }
+        decided_by: { type: string }
+        decided_at: { type: string, format: date-time, nullable: true }
+        note: { type: string }
     GuestLink:
       type: object
       required: [id, name, created_at, expires_at, max_uses, uses, guests]
@@ -7874,6 +8294,7 @@ components:
         created_at: { type: string, format: date-time }
         workspaces: { type: integer }
         sessions: { type: integer }
+        erased: { type: boolean, description: Erased at a data subject request. }
     AdminWorkspace:
       type: object
       required: [id, name, is_default, members, channels, created_at]

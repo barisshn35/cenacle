@@ -12,6 +12,99 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const auditEventsAfter = `-- name: AuditEventsAfter :many
+SELECT e.id, e.at, e.actor_id, e.workspace_id, e.action, e.target_type, e.target_id, e.ip_address, e.detail, coalesce(u.display_name, '')::text AS actor_name, coalesce(w.name, '')::text AS workspace_name
+FROM audit_events e
+LEFT JOIN users u ON u.id = e.actor_id
+LEFT JOIN workspaces w ON w.id = e.workspace_id
+WHERE e.id > $1::uuid
+ORDER BY e.id
+LIMIT $2
+`
+
+type AuditEventsAfterParams struct {
+	After    pgtype.UUID `json:"after"`
+	RowLimit int32       `json:"row_limit"`
+}
+
+type AuditEventsAfterRow struct {
+	ID            pgtype.UUID `json:"id"`
+	At            time.Time   `json:"at"`
+	ActorID       pgtype.UUID `json:"actor_id"`
+	WorkspaceID   pgtype.UUID `json:"workspace_id"`
+	Action        string      `json:"action"`
+	TargetType    string      `json:"target_type"`
+	TargetID      string      `json:"target_id"`
+	IpAddress     string      `json:"ip_address"`
+	Detail        []byte      `json:"detail"`
+	ActorName     string      `json:"actor_name"`
+	WorkspaceName string      `json:"workspace_name"`
+}
+
+// AuditEventsAfter returns events after a cursor, oldest first (streaming).
+func (q *Queries) AuditEventsAfter(ctx context.Context, arg AuditEventsAfterParams) ([]AuditEventsAfterRow, error) {
+	rows, err := q.db.Query(ctx, auditEventsAfter, arg.After, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AuditEventsAfterRow
+	for rows.Next() {
+		var i AuditEventsAfterRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.At,
+			&i.ActorID,
+			&i.WorkspaceID,
+			&i.Action,
+			&i.TargetType,
+			&i.TargetID,
+			&i.IpAddress,
+			&i.Detail,
+			&i.ActorName,
+			&i.WorkspaceName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAuditStream = `-- name: GetAuditStream :one
+SELECT audit_stream_kind, audit_stream_address, audit_stream_secret, audit_stream_tls, audit_stream_cursor,
+       audit_stream_error, audit_stream_sent_at
+FROM instance_settings
+`
+
+type GetAuditStreamRow struct {
+	AuditStreamKind    string             `json:"audit_stream_kind"`
+	AuditStreamAddress string             `json:"audit_stream_address"`
+	AuditStreamSecret  string             `json:"audit_stream_secret"`
+	AuditStreamTls     bool               `json:"audit_stream_tls"`
+	AuditStreamCursor  pgtype.UUID        `json:"audit_stream_cursor"`
+	AuditStreamError   string             `json:"audit_stream_error"`
+	AuditStreamSentAt  pgtype.Timestamptz `json:"audit_stream_sent_at"`
+}
+
+func (q *Queries) GetAuditStream(ctx context.Context) (GetAuditStreamRow, error) {
+	row := q.db.QueryRow(ctx, getAuditStream)
+	var i GetAuditStreamRow
+	err := row.Scan(
+		&i.AuditStreamKind,
+		&i.AuditStreamAddress,
+		&i.AuditStreamSecret,
+		&i.AuditStreamTls,
+		&i.AuditStreamCursor,
+		&i.AuditStreamError,
+		&i.AuditStreamSentAt,
+	)
+	return i, err
+}
+
 const insertAuditEvent = `-- name: InsertAuditEvent :exec
 INSERT INTO audit_events (actor_id, workspace_id, action, target_type, target_id, ip_address, detail)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -38,6 +131,98 @@ func (q *Queries) InsertAuditEvent(ctx context.Context, arg InsertAuditEventPara
 		arg.Detail,
 	)
 	return err
+}
+
+const latestAuditEventID = `-- name: LatestAuditEventID :one
+SELECT coalesce((SELECT id FROM audit_events ORDER BY id DESC LIMIT 1), '00000000-0000-0000-0000-000000000000'::uuid)::uuid
+`
+
+func (q *Queries) LatestAuditEventID(ctx context.Context) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, latestAuditEventID)
+	var column_1 pgtype.UUID
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const listInstanceAudit = `-- name: ListInstanceAudit :many
+SELECT e.id, e.at, e.actor_id, e.workspace_id, e.action, e.target_type, e.target_id, e.ip_address, e.detail, coalesce(u.display_name, '')::text AS actor_name, coalesce(w.name, '')::text AS workspace_name
+FROM audit_events e
+LEFT JOIN users u ON u.id = e.actor_id
+LEFT JOIN workspaces w ON w.id = e.workspace_id
+WHERE ($1::uuid IS NULL OR e.id < $1::uuid)
+  AND ($2::text = '' OR starts_with(e.action, $2::text))
+  AND ($3::uuid IS NULL OR e.actor_id = $3::uuid)
+  AND ($4::uuid IS NULL OR e.workspace_id = $4::uuid)
+  AND ($5::timestamptz IS NULL OR e.at >= $5::timestamptz)
+  AND ($6::timestamptz IS NULL OR e.at < $6::timestamptz)
+ORDER BY e.id DESC
+LIMIT $7
+`
+
+type ListInstanceAuditParams struct {
+	Before       pgtype.UUID        `json:"before"`
+	ActionPrefix string             `json:"action_prefix"`
+	ActorID      pgtype.UUID        `json:"actor_id"`
+	WorkspaceID  pgtype.UUID        `json:"workspace_id"`
+	Since        pgtype.Timestamptz `json:"since"`
+	Until        pgtype.Timestamptz `json:"until"`
+	RowLimit     int32              `json:"row_limit"`
+}
+
+type ListInstanceAuditRow struct {
+	ID            pgtype.UUID `json:"id"`
+	At            time.Time   `json:"at"`
+	ActorID       pgtype.UUID `json:"actor_id"`
+	WorkspaceID   pgtype.UUID `json:"workspace_id"`
+	Action        string      `json:"action"`
+	TargetType    string      `json:"target_type"`
+	TargetID      string      `json:"target_id"`
+	IpAddress     string      `json:"ip_address"`
+	Detail        []byte      `json:"detail"`
+	ActorName     string      `json:"actor_name"`
+	WorkspaceName string      `json:"workspace_name"`
+}
+
+// ListInstanceAudit returns the installation's events newest first, before a
+// cursor, filtered by action prefix, actor, workspace and time.
+func (q *Queries) ListInstanceAudit(ctx context.Context, arg ListInstanceAuditParams) ([]ListInstanceAuditRow, error) {
+	rows, err := q.db.Query(ctx, listInstanceAudit,
+		arg.Before,
+		arg.ActionPrefix,
+		arg.ActorID,
+		arg.WorkspaceID,
+		arg.Since,
+		arg.Until,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInstanceAuditRow
+	for rows.Next() {
+		var i ListInstanceAuditRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.At,
+			&i.ActorID,
+			&i.WorkspaceID,
+			&i.Action,
+			&i.TargetType,
+			&i.TargetID,
+			&i.IpAddress,
+			&i.Detail,
+			&i.ActorName,
+			&i.WorkspaceName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listWorkspaceAudit = `-- name: ListWorkspaceAudit :many
@@ -106,4 +291,44 @@ func (q *Queries) ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAudit
 		return nil, err
 	}
 	return items, nil
+}
+
+const setAuditStream = `-- name: SetAuditStream :exec
+UPDATE instance_settings SET audit_stream_kind = $1, audit_stream_address = $2,
+    audit_stream_secret = $3, audit_stream_tls = $4, audit_stream_cursor = $5,
+    audit_stream_error = '', updated_at = now()
+`
+
+type SetAuditStreamParams struct {
+	Kind    string      `json:"kind"`
+	Address string      `json:"address"`
+	Secret  string      `json:"secret"`
+	Tls     bool        `json:"tls"`
+	Cursor  pgtype.UUID `json:"cursor"`
+}
+
+func (q *Queries) SetAuditStream(ctx context.Context, arg SetAuditStreamParams) error {
+	_, err := q.db.Exec(ctx, setAuditStream,
+		arg.Kind,
+		arg.Address,
+		arg.Secret,
+		arg.Tls,
+		arg.Cursor,
+	)
+	return err
+}
+
+const setAuditStreamProgress = `-- name: SetAuditStreamProgress :exec
+UPDATE instance_settings SET audit_stream_cursor = $1, audit_stream_error = $2,
+    audit_stream_sent_at = CASE WHEN $2::text = '' THEN now() ELSE audit_stream_sent_at END
+`
+
+type SetAuditStreamProgressParams struct {
+	Cursor pgtype.UUID `json:"cursor"`
+	Error  string      `json:"error"`
+}
+
+func (q *Queries) SetAuditStreamProgress(ctx context.Context, arg SetAuditStreamProgressParams) error {
+	_, err := q.db.Exec(ctx, setAuditStreamProgress, arg.Cursor, arg.Error)
+	return err
 }

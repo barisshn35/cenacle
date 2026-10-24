@@ -64,7 +64,7 @@ test('a message is reported to the moderators', async ({ page }) => {
   await page.goto(`/c/${GENERAL.id}`);
   const msg = page.getByTestId('message').filter({ hasText: 'Something rude' });
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
-  await page.getByRole('menuitem', { name: 'Report' }).click();
+  await page.getByRole('menuitem', { name: 'Report', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Report message' });
   await dialog.getByLabel('Reason (optional)').fill('Rude');
   await dialog.getByRole('button', { name: 'Report' }).click();

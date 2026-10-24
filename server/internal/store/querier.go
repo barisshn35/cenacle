@@ -52,6 +52,9 @@ type Querier interface {
 	AdminListUsers(ctx context.Context, arg AdminListUsersParams) ([]AdminListUsersRow, error)
 	AdminListWorkspaces(ctx context.Context) ([]AdminListWorkspacesRow, error)
 	ArchiveForm(ctx context.Context, id pgtype.UUID) error
+	// ArchiveMessages returns a page of a workspace's messages written in a
+	// period, oldest first, with what archive formats need.
+	ArchiveMessages(ctx context.Context, arg ArchiveMessagesParams) ([]ArchiveMessagesRow, error)
 	ArchivePlaybook(ctx context.Context, id pgtype.UUID) (int64, error)
 	ArchiveWorkflow(ctx context.Context, id pgtype.UUID) error
 	// AssignUsername gives someone without a @username one made from their
@@ -60,6 +63,8 @@ type Querier interface {
 	// AttachFiles gives a new message the uploader's ready files of the channel
 	// that no message carries yet.
 	AttachFiles(ctx context.Context, arg AttachFilesParams) (int64, error)
+	// AuditEventsAfter returns events after a cursor, oldest first (streaming).
+	AuditEventsAfter(ctx context.Context, arg AuditEventsAfterParams) ([]AuditEventsAfterRow, error)
 	CancelEvent(ctx context.Context, id pgtype.UUID) (int64, error)
 	CancelScheduled(ctx context.Context, id pgtype.UUID) error
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
@@ -120,6 +125,7 @@ type Querier interface {
 	CountWorkflows(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	CreateActiveSharedChannel(ctx context.Context, arg CreateActiveSharedChannelParams) (SharedChannel, error)
+	CreateArchiveExport(ctx context.Context, arg CreateArchiveExportParams) (ArchiveExport, error)
 	CreateAutomodRule(ctx context.Context, arg CreateAutomodRuleParams) (AutomodRule, error)
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
 	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)
@@ -162,6 +168,7 @@ type Querier interface {
 	CreateScheduledMessage(ctx context.Context, arg CreateScheduledMessageParams) (ScheduledMessage, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateSlashCommand(ctx context.Context, arg CreateSlashCommandParams) (SlashCommand, error)
+	CreateSpillageReport(ctx context.Context, arg CreateSpillageReportParams) (SpillageReport, error)
 	CreateSticker(ctx context.Context, arg CreateStickerParams) (Sticker, error)
 	CreateSubmission(ctx context.Context, arg CreateSubmissionParams) (FormSubmission, error)
 	CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (EventSubscription, error)
@@ -174,6 +181,7 @@ type Querier interface {
 	CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams) (Workspace, error)
 	CreateWorkspaceAttribute(ctx context.Context, arg CreateWorkspaceAttributeParams) error
 	CustomEmojiExists(ctx context.Context, arg CustomEmojiExistsParams) (bool, error)
+	DecideSpillageReport(ctx context.Context, arg DecideSpillageReportParams) (SpillageReport, error)
 	DeleteAutomodRule(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteBanner(ctx context.Context) error
 	DeleteCanvas(ctx context.Context, id pgtype.UUID) error
@@ -218,6 +226,7 @@ type Querier interface {
 	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
 	DeleteWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) error
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
+	DetachMessageFiles(ctx context.Context, messageID pgtype.UUID) ([]DetachMessageFilesRow, error)
 	DueFederationConnections(ctx context.Context) ([]pgtype.UUID, error)
 	// DueFeeds lists feeds to read again: every 15 minutes, less often after
 	// failures (up to every 8 hours), in channels that are not archived.
@@ -237,6 +246,14 @@ type Querier interface {
 	// name to the configured kind and flags (and public: everyone is a member);
 	// the topic of an existing channel is kept.
 	EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error)
+	// EraseUser anonymizes an account: no name, address, picture or status; it can
+	// no longer sign in (a new sign-in makes a new account).
+	EraseUser(ctx context.Context, arg EraseUserParams) (User, error)
+	// EraseUserMessages deletes a person's messages that no legal hold keeps (the
+	// purge removes them for good within the restore window) and counts those kept.
+	EraseUserMessages(ctx context.Context, arg EraseUserMessagesParams) (EraseUserMessagesRow, error)
+	// EraseUserTraces removes what a person kept or set for themselves.
+	EraseUserTraces(ctx context.Context, userID pgtype.UUID) error
 	// ExpireBotToken lets a token work until a time (rotation overlap).
 	ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) (BotToken, error)
 	// ExportMessages returns a page of messages for eDiscovery, deleted ones
@@ -266,6 +283,8 @@ type Querier interface {
 	// GetActiveWebhook returns a webhook of an enabled bot with the bot's user.
 	GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetActiveWebhookRow, error)
 	GetAppearance(ctx context.Context, userID pgtype.UUID) ([]byte, error)
+	GetArchiveExport(ctx context.Context, id pgtype.UUID) (ArchiveExport, error)
+	GetAuditStream(ctx context.Context) (GetAuditStreamRow, error)
 	GetAutomodRule(ctx context.Context, id pgtype.UUID) (AutomodRule, error)
 	// ------------------------------------------------------- banner and terms ---
 	GetBanner(ctx context.Context) (InstanceBanner, error)
@@ -334,6 +353,7 @@ type Querier interface {
 	GetSessionPolicy(ctx context.Context) (GetSessionPolicyRow, error)
 	GetSharedChannel(ctx context.Context, arg GetSharedChannelParams) (SharedChannel, error)
 	GetSidebarLayout(ctx context.Context, arg GetSidebarLayoutParams) ([]byte, error)
+	GetSpillageReport(ctx context.Context, id pgtype.UUID) (SpillageReport, error)
 	GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, error)
 	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetTabByCanvas(ctx context.Context, canvasID pgtype.UUID) (ChannelTab, error)
@@ -384,6 +404,7 @@ type Querier interface {
 	JoinWorkspaceViaGroup(ctx context.Context, arg JoinWorkspaceViaGroupParams) (bool, error)
 	// LastMessageAt is when a member last sent a message in a channel (slow mode).
 	LastMessageAt(ctx context.Context, arg LastMessageAtParams) (time.Time, error)
+	LatestAuditEventID(ctx context.Context) (pgtype.UUID, error)
 	// LeaveChannelsViaGroup takes the person out of channels their groups no
 	// longer give: group-given memberships, and any membership of a channel
 	// managed by groups.
@@ -405,6 +426,7 @@ type Querier interface {
 	// ListAllChannels returns the public channels of a workspace and its private
 	// channels the user belongs to, with the user's role ('' when not a member).
 	ListAllChannels(ctx context.Context, arg ListAllChannelsParams) ([]ListAllChannelsRow, error)
+	ListArchiveExports(ctx context.Context, workspaceID pgtype.UUID) ([]ArchiveExport, error)
 	// ListAssignedItems returns the open list rows assigned to a person in the
 	// channels of a workspace they belong to, the soonest due first.
 	ListAssignedItems(ctx context.Context, arg ListAssignedItemsParams) ([]ListAssignedItemsRow, error)
@@ -451,6 +473,9 @@ type Querier interface {
 	// ListGuestLinks returns a channel's links that still work, newest first, with
 	// how many people are in the channel through each.
 	ListGuestLinks(ctx context.Context, channelID pgtype.UUID) ([]ListGuestLinksRow, error)
+	// ListInstanceAudit returns the installation's events newest first, before a
+	// cursor, filtered by action prefix, actor, workspace and time.
+	ListInstanceAudit(ctx context.Context, arg ListInstanceAuditParams) ([]ListInstanceAuditRow, error)
 	// ListInvites returns the invitations of a workspace that can still be used.
 	ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceInvite, error)
 	// ListKnownGroups is every group name people of the instance are in.
@@ -514,6 +539,7 @@ type Querier interface {
 	ListScheduledMessages(ctx context.Context, ownerID pgtype.UUID) ([]ListScheduledMessagesRow, error)
 	// ListSharedChannels returns the channels shared over a connection, with their names.
 	ListSharedChannels(ctx context.Context, connectionID pgtype.UUID) ([]ListSharedChannelsRow, error)
+	ListSpillageReports(ctx context.Context, arg ListSpillageReportsParams) ([]ListSpillageReportsRow, error)
 	// ListStaleFiles finds files to remove: uploads never sent with a message
 	// within a day, and files whose message was purged.
 	ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, error)
@@ -609,6 +635,9 @@ type Querier interface {
 	RecordAIRequest(ctx context.Context, arg RecordAIRequestParams) error
 	RecordFederatedMessage(ctx context.Context, arg RecordFederatedMessageParams) error
 	RecordReminder(ctx context.Context, arg RecordReminderParams) error
+	// RedactMessage empties a spilled message and its traces; legal holds do not
+	// keep spillage.
+	RedactMessage(ctx context.Context, arg RedactMessageParams) (RedactMessageRow, error)
 	ReleaseLegalHold(ctx context.Context, arg ReleaseLegalHoldParams) (LegalHold, error)
 	// ReleaseUsername takes a @username from others when the directory gives it
 	// to someone (they get a new one).
@@ -669,6 +698,11 @@ type Querier interface {
 	SetAdmin(ctx context.Context, arg SetAdminParams) error
 	SetAdminByDirectory(ctx context.Context, arg SetAdminByDirectoryParams) error
 	SetAppearance(ctx context.Context, arg SetAppearanceParams) error
+	// SetArchiveFormat turns daily exports on (from yesterday) or off.
+	SetArchiveFormat(ctx context.Context, arg SetArchiveFormatParams) error
+	SetArchiveLastDay(ctx context.Context, arg SetArchiveLastDayParams) error
+	SetAuditStream(ctx context.Context, arg SetAuditStreamParams) error
+	SetAuditStreamProgress(ctx context.Context, arg SetAuditStreamProgressParams) error
 	// SetAvatar changes the picture of a person and returns the previous one (to
 	// delete).
 	SetAvatar(ctx context.Context, arg SetAvatarParams) (pgtype.UUID, error)
@@ -712,6 +746,7 @@ type Querier interface {
 	SetRunChecklists(ctx context.Context, arg SetRunChecklistsParams) (PlaybookRun, error)
 	SetSavedReminder(ctx context.Context, arg SetSavedReminderParams) error
 	SetSessionPolicy(ctx context.Context, arg SetSessionPolicyParams) error
+	SetSpillageReviewers(ctx context.Context, arg SetSpillageReviewersParams) error
 	// SetThreadFollowing records a choice to follow (from the latest reply on: older
 	// ones count as read) or to stop following a thread.
 	SetThreadFollowing(ctx context.Context, arg SetThreadFollowingParams) error
@@ -732,6 +767,8 @@ type Querier interface {
 	// ---------------------------------------------------------------- welcome ---
 	SetWorkspaceWelcome(ctx context.Context, arg SetWorkspaceWelcomeParams) (Workspace, error)
 	ShareChannel(ctx context.Context, arg ShareChannelParams) (SharedChannel, error)
+	// SpillageExposure is who could see a channel's message when it was removed.
+	SpillageExposure(ctx context.Context, channelID pgtype.UUID) ([]SpillageExposureRow, error)
 	// TakeCanvasTurn gives the user the turn to edit when nobody else holds it;
 	// no row means someone else is editing.
 	TakeCanvasTurn(ctx context.Context, arg TakeCanvasTurnParams) (pgtype.UUID, error)
@@ -778,7 +815,16 @@ type Querier interface {
 	UseGuestLink(ctx context.Context, id pgtype.UUID) (GuestLink, error)
 	// UseInvite counts one use of a valid invitation; no row when it is not valid.
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
+	UserAuditEvents(ctx context.Context, userID pgtype.UUID) ([]UserAuditEventsRow, error)
+	UserChannels(ctx context.Context, userID pgtype.UUID) ([]UserChannelsRow, error)
 	UserExists(ctx context.Context, arg UserExistsParams) (bool, error)
+	UserFiles(ctx context.Context, userID pgtype.UUID) ([]UserFilesRow, error)
+	// UserMessagesAfter returns the messages a person wrote, oldest first, after a
+	// cursor (their data export).
+	UserMessagesAfter(ctx context.Context, arg UserMessagesAfterParams) ([]UserMessagesAfterRow, error)
+	UserReactions(ctx context.Context, userID pgtype.UUID) ([]UserReactionsRow, error)
+	UserSessionsAll(ctx context.Context, userID pgtype.UUID) ([]UserSessionsAllRow, error)
+	UserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]UserWorkspacesRow, error)
 	UsernameTaken(ctx context.Context, arg UsernameTakenParams) (bool, error)
 	UsersForNotifying(ctx context.Context, ids []pgtype.UUID) ([]UsersForNotifyingRow, error)
 	UsersInGroup(ctx context.Context, groupName string) ([]User, error)
@@ -791,6 +837,8 @@ type Querier interface {
 	// WorkspaceRolesFromGroups is, per workspace, the strongest role a person's
 	// groups give them there.
 	WorkspaceRolesFromGroups(ctx context.Context, userID pgtype.UUID) ([]WorkspaceRolesFromGroupsRow, error)
+	// WorkspacesDueForArchive are those with daily exports and a whole day not exported yet.
+	WorkspacesDueForArchive(ctx context.Context) ([]WorkspacesDueForArchiveRow, error)
 	// WorkspacesSharedWith lists the workspaces of a person (their profile
 	// changes go to everyone there).
 	WorkspacesSharedWith(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)

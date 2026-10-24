@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BellIcon,
+  DownloadIcon,
   ExternalLinkIcon,
   GaugeIcon,
   KeyboardIcon,
@@ -244,6 +245,21 @@ export function SettingsDialog({
                   {t('settings.openAccount')}
                   <ExternalLinkIcon aria-hidden strokeWidth={1.75} />
                   <span className="sr-only">{t('settings.newTab')}</span>
+                </a>
+              </section>
+
+              <section aria-labelledby="settings-data" className="flex flex-col gap-2">
+                <h3 id="settings-data" className="text-sm font-semibold">
+                  {t('settings.yourData')}
+                </h3>
+                <p className="text-sm text-muted-foreground">{t('settings.yourDataHint')}</p>
+                <a
+                  href="/api/me/export"
+                  download="cenacle-data.ndjson"
+                  className={buttonVariants({ variant: 'outline', className: 'self-start' })}
+                >
+                  <DownloadIcon aria-hidden strokeWidth={1.75} />
+                  {t('settings.downloadData')}
                 </a>
               </section>
 

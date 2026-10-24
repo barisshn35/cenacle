@@ -512,7 +512,10 @@
     "changeServer": "Change server",
     "checkUpdates": "Check for updates",
     "closeToTray": "Keep Cenacle running in the tray when its window is closed",
-    "sessionNotKept": "This computer has no encrypted key store: you stay signed in only until Cenacle quits."
+    "sessionNotKept": "This computer has no encrypted key store: you stay signed in only until Cenacle quits.",
+    "yourData": "Your data",
+    "yourDataHint": "Download everything Cenacle keeps about you: your profile, messages, reactions, files, devices and what you did (one item per line, NDJSON).",
+    "downloadData": "Download your data"
   },
   "reactions": {
     "label": "Reactions",
@@ -2268,7 +2271,8 @@
       "jobs": "Background jobs",
       "notifications": "Notifications",
       "security": "Security",
-      "federation": "Federation"
+      "federation": "Federation",
+      "audit": "Audit log"
     },
     "sections": {
       "overview": "The installation at a glance and its settings.",
@@ -2278,7 +2282,8 @@
       "jobs": "Work the server does in the background, by kind, and the latest failures.",
       "notifications": "What notifications outside the app may show. Lock screens and inboxes show them.",
       "security": "How long sessions last and which networks may sign in and use the administration.",
-      "federation": "Which other Cenacle servers the workspaces may connect to."
+      "federation": "Which other Cenacle servers the workspaces may connect to.",
+      "audit": "Everything administrators and people did that matters for security, across the installation."
     },
     "counts": {
       "users": "People",
@@ -2310,7 +2315,8 @@
       "running": "Running",
       "retrying": "Retrying",
       "failed": "Failed",
-      "done": "Done (24 h)"
+      "done": "Done (24 h)",
+      "data": "Data"
     },
     "role": {
       "admin": "Administrator",
@@ -2377,7 +2383,53 @@
       "serversHint": "One host name per line, with a port if it has one (chat.example.com, *.partner.org). Connections to servers left out stop sending and receiving.",
       "save": "Save",
       "saved": "Federation settings saved."
-    }
+    },
+    "audit": {
+      "log": "Events",
+      "kind": "Kind",
+      "kinds": {
+        "all": "Everything",
+        "instance": "Installation settings",
+        "admin": "Administration",
+        "workspace": "Workspaces",
+        "channel": "Channels",
+        "federation": "Federation",
+        "guest_link": "Guest links"
+      },
+      "action": "Action",
+      "download": "Download (NDJSON)",
+      "none": "No events.",
+      "when": "When",
+      "who": "Who",
+      "where": "Where",
+      "system": "The system",
+      "installation": "Installation",
+      "more": "Show older",
+      "stream": "Stream to a SIEM",
+      "streamHint": "New events go out within seconds, oldest first; if the receiver is down they wait and go when it is back.",
+      "streams": {
+        "none": "Off",
+        "http": "HTTPS endpoint (signed NDJSON)",
+        "syslog": "Syslog (RFC 5424 over TCP)"
+      },
+      "url": "Endpoint URL",
+      "hostPort": "Receiver (host:port)",
+      "secret": "Signing secret",
+      "secretHint": "Optional: each request carries an X-Cenacle-Signature made with it.",
+      "secretKept": "A secret is saved; leave empty to keep it.",
+      "tls": "Use TLS (RFC 5425)",
+      "streamError": "Last attempt failed: {{error}}",
+      "streamSent": "Last sent {{time}}.",
+      "streamWaiting": "Waiting for new events.",
+      "save": "Save",
+      "streamSaved": "Streaming settings saved."
+    },
+    "exportData": "Download the data of {{name}}",
+    "erase": "Erase {{name}}",
+    "eraseTitle": "Erase {{name}}?",
+    "eraseDescription": "Their name, address, picture and status are removed and they can no longer sign in. Their messages are deleted, except those a legal hold keeps; their reactions, saved items, scheduled messages and devices go. Also delete them in Cenacle ID if they should not sign in again with a new account.",
+    "eraseConfirm": "Erase person",
+    "erased": "Erased: {{erased}} messages deleted, {{held}} kept by legal holds."
   },
   "permissions": {
     "title": "Permission scheme",
@@ -2452,5 +2504,61 @@
     "invalidTitle": "This guest link no longer works.",
     "invalidReason": "It ended, was used up or was ended by the channel's managers.",
     "askAgain": "Ask whoever sent it for a new link."
+  },
+  "spillage": {
+    "action": "Report spillage",
+    "reportTitle": "Report spillage",
+    "reportHint": "This message holds what must not be here (classified, personal or secret). The workspace's spillage reviewers decide whether it is removed everywhere.",
+    "reason": "What is wrong",
+    "send": "Report",
+    "reported": "Reported. The reviewers will decide.",
+    "alreadyReported": "This message was reported already; the reviewers are on it.",
+    "failed": "That did not work. Try again.",
+    "title": "Spillage reports",
+    "hint": "Remove a reported message everywhere (also from legal holds, devices and shared servers) or dismiss the report. Each decision writes an incident report without the content.",
+    "notReviewer": "Only the workspace's spillage reviewers see the reports.",
+    "open_one": "{{count}} open report",
+    "open_other": "{{count}} open reports",
+    "none": "Nothing to decide.",
+    "where": "#{{channel}} · {{author}} · {{time}}",
+    "remove": "Remove everywhere",
+    "dismiss": "Dismiss",
+    "removeTitle": "Remove this message everywhere?",
+    "removeDescription": "Its text, edits, files, reactions, mentions and saved copies are deleted, also where a legal hold would keep them; devices and shared servers are told to drop it. Notifications already shown on devices cannot be taken back.",
+    "removed": "Removed everywhere. The incident report is ready.",
+    "dismissed": "Report dismissed.",
+    "decided": "Decided",
+    "status": {
+      "removed": "Removed",
+      "dismissed": "Dismissed",
+      "open": "Open"
+    },
+    "incident": "Incident report",
+    "reviewers": "Reviewers",
+    "reviewersHint": "Who sees and decides spillage reports. With nobody chosen, the owners do.",
+    "saveReviewers": "Save reviewers",
+    "reviewersSaved": "Reviewers saved."
+  },
+  "archive": {
+    "title": "Archive export",
+    "hint": "The workspace's messages in a format archiving systems take in, with their edits and deletions marked.",
+    "format": "Format",
+    "formats": {
+      "csv": "CSV",
+      "actiance": "Actiance XML",
+      "eml": "E-mail (EML in a ZIP)"
+    },
+    "since": "From",
+    "until": "To",
+    "download": "Download",
+    "daily": "Every day",
+    "off": "Off",
+    "dailyHint": "After each day ends (UTC), its messages are written to the object store; download them here.",
+    "noStorage": "Daily exports need the object store, which this server does not have.",
+    "scheduleSaved": "Daily exports saved.",
+    "messages_one": "{{count}} message",
+    "messages_other": "{{count}} messages",
+    "get": "Download",
+    "failed": "The archive could not be made. Try again."
   }
 }

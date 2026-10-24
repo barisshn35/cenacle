@@ -20,6 +20,17 @@ type AiRequest struct {
 	CreatedAt   time.Time   `json:"created_at"`
 }
 
+type ArchiveExport struct {
+	ID          pgtype.UUID `json:"id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Format      string      `json:"format"`
+	Day         pgtype.Date `json:"day"`
+	ObjectKey   string      `json:"object_key"`
+	Size        int64       `json:"size"`
+	Messages    int32       `json:"messages"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
 type AuditEvent struct {
 	ID          pgtype.UUID `json:"id"`
 	At          time.Time   `json:"at"`
@@ -394,19 +405,26 @@ type InstanceBanner struct {
 }
 
 type InstanceSetting struct {
-	ID                   bool      `json:"id"`
-	WebApp               bool      `json:"web_app"`
-	UpdatedAt            time.Time `json:"updated_at"`
-	PushContents         string    `json:"push_contents"`
-	EmailContents        string    `json:"email_contents"`
-	SessionMaxHours      int32     `json:"session_max_hours"`
-	SessionIdleMinutes   int32     `json:"session_idle_minutes"`
-	GuestSessionMaxHours int32     `json:"guest_session_max_hours"`
-	GuestIdleMinutes     int32     `json:"guest_idle_minutes"`
-	AdminNetworks        []string  `json:"admin_networks"`
-	SigninNetworks       []string  `json:"signin_networks"`
-	FederationMode       string    `json:"federation_mode"`
-	FederationServers    []string  `json:"federation_servers"`
+	ID                   bool               `json:"id"`
+	WebApp               bool               `json:"web_app"`
+	UpdatedAt            time.Time          `json:"updated_at"`
+	PushContents         string             `json:"push_contents"`
+	EmailContents        string             `json:"email_contents"`
+	SessionMaxHours      int32              `json:"session_max_hours"`
+	SessionIdleMinutes   int32              `json:"session_idle_minutes"`
+	GuestSessionMaxHours int32              `json:"guest_session_max_hours"`
+	GuestIdleMinutes     int32              `json:"guest_idle_minutes"`
+	AdminNetworks        []string           `json:"admin_networks"`
+	SigninNetworks       []string           `json:"signin_networks"`
+	FederationMode       string             `json:"federation_mode"`
+	FederationServers    []string           `json:"federation_servers"`
+	AuditStreamKind      string             `json:"audit_stream_kind"`
+	AuditStreamAddress   string             `json:"audit_stream_address"`
+	AuditStreamSecret    string             `json:"audit_stream_secret"`
+	AuditStreamTls       bool               `json:"audit_stream_tls"`
+	AuditStreamCursor    pgtype.UUID        `json:"audit_stream_cursor"`
+	AuditStreamError     string             `json:"audit_stream_error"`
+	AuditStreamSentAt    pgtype.Timestamptz `json:"audit_stream_sent_at"`
 }
 
 type LegalHold struct {
@@ -704,6 +722,22 @@ type SlashCommand struct {
 	CreatedAt   time.Time   `json:"created_at"`
 }
 
+type SpillageReport struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ChannelID   pgtype.UUID        `json:"channel_id"`
+	MessageID   pgtype.UUID        `json:"message_id"`
+	MessageRef  pgtype.UUID        `json:"message_ref"`
+	ReportedBy  pgtype.UUID        `json:"reported_by"`
+	Reason      string             `json:"reason"`
+	Status      string             `json:"status"`
+	CreatedAt   time.Time          `json:"created_at"`
+	DecidedBy   pgtype.UUID        `json:"decided_by"`
+	DecidedAt   pgtype.Timestamptz `json:"decided_at"`
+	Note        string             `json:"note"`
+	Report      []byte             `json:"report"`
+}
+
 type Sticker struct {
 	ID          pgtype.UUID `json:"id"`
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
@@ -848,24 +882,27 @@ type WorkflowTask struct {
 }
 
 type Workspace struct {
-	ID                      pgtype.UUID `json:"id"`
-	Name                    string      `json:"name"`
-	IsDefault               bool        `json:"is_default"`
-	CreatedAt               time.Time   `json:"created_at"`
-	Description             string      `json:"description"`
-	IconID                  pgtype.UUID `json:"icon_id"`
-	Appearance              []byte      `json:"appearance"`
-	Welcome                 []byte      `json:"welcome"`
-	RetentionDays           pgtype.Int4 `json:"retention_days"`
-	ClassificationID        pgtype.UUID `json:"classification_id"`
-	AiEnabled               bool        `json:"ai_enabled"`
-	GroupCreation           string      `json:"group_creation"`
-	EditHistory             string      `json:"edit_history"`
-	PersistentNotifications bool        `json:"persistent_notifications"`
-	PersistentEveryMinutes  int32       `json:"persistent_every_minutes"`
-	PersistentTimes         int32       `json:"persistent_times"`
-	ReadReceipts            bool        `json:"read_receipts"`
-	Permissions             []byte      `json:"permissions"`
+	ID                      pgtype.UUID   `json:"id"`
+	Name                    string        `json:"name"`
+	IsDefault               bool          `json:"is_default"`
+	CreatedAt               time.Time     `json:"created_at"`
+	Description             string        `json:"description"`
+	IconID                  pgtype.UUID   `json:"icon_id"`
+	Appearance              []byte        `json:"appearance"`
+	Welcome                 []byte        `json:"welcome"`
+	RetentionDays           pgtype.Int4   `json:"retention_days"`
+	ClassificationID        pgtype.UUID   `json:"classification_id"`
+	AiEnabled               bool          `json:"ai_enabled"`
+	GroupCreation           string        `json:"group_creation"`
+	EditHistory             string        `json:"edit_history"`
+	PersistentNotifications bool          `json:"persistent_notifications"`
+	PersistentEveryMinutes  int32         `json:"persistent_every_minutes"`
+	PersistentTimes         int32         `json:"persistent_times"`
+	ReadReceipts            bool          `json:"read_receipts"`
+	Permissions             []byte        `json:"permissions"`
+	SpillageReviewers       []pgtype.UUID `json:"spillage_reviewers"`
+	ArchiveFormat           string        `json:"archive_format"`
+	ArchiveLastDay          pgtype.Date   `json:"archive_last_day"`
 }
 
 type WorkspaceAttribute struct {

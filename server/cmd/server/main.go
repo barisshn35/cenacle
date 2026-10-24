@@ -243,6 +243,8 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	deps.Reminders = &chat.Reminders{DB: pool, Queries: queries, Log: log}
 	deps.Feeds = &chat.FeedReader{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	deps.Federation = &chat.FederationSender{DB: pool, Queries: queries, Egress: egressClient, Log: log}
+	deps.Archive = &chat.ArchiveExporter{Queries: queries, Files: files, Host: cfg.PublicURL.Hostname(), Log: log}
+	deps.AuditStream = &chat.AuditForwarder{Queries: queries, Egress: egressClient, Server: cfg.PublicURL.String(), Log: log}
 	if cfg.LinkPreviews {
 		// Anyone can post a link: no allow list, https only.
 		deps.Links = &chat.LinkFetcher{

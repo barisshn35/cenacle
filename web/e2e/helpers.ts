@@ -799,6 +799,11 @@ export async function mockApi(
         const c = all.find((x) => x.id === channel_id);
         if (c) c.unread_count = 0;
       }
+      if (type === 'message.created') {
+        // As the server would: the message is stored, so a refetch has it too.
+        const m = data as MockMessage;
+        if (!m.root_id && !stored.some((x) => x.id === m.id)) stored.push({ ...m, deleted: false });
+      }
       this.seq++;
       const frame = JSON.stringify({ op: 'event', id: `${this.seq}-0`, type, data });
       if (this.socket) this.socket.send(frame);

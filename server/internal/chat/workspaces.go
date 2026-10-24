@@ -45,6 +45,7 @@ func workspaceAPI(w store.Workspace, role string) api.Workspace {
 		PersistentEveryMinutes:  ptr(int(w.PersistentEveryMinutes)),
 		PersistentTimes:         ptr(int(w.PersistentTimes)),
 		ReadReceipts:            ptr(w.ReadReceipts),
+		SpillageReviewers:       ptr(apiUUIDs(w.SpillageReviewers)),
 		Permissions:             ptr(map[string][]string(permissionsOf(w.Permissions))),
 		Can:                     ptr(permissionsOf(w.Permissions).can(role))}
 }

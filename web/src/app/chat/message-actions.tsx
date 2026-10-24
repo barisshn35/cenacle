@@ -15,6 +15,7 @@ import {
   PinIcon,
   PinOffIcon,
   Trash2Icon,
+  ShieldAlertIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -29,6 +30,7 @@ import {
 import { useLayout } from '../../stores/layout';
 import { useSession } from '../auth/session';
 import { ReportDialog } from '../community/moderation';
+import { SpillageReportDialog } from '../compliance/spillage';
 import { ForwardDialog } from '../richer/forward';
 import {
   applySaved,
@@ -75,6 +77,7 @@ export function MessageActions({
   const openThread = useLayout((s) => s.openThread);
   const { user } = useSession();
   const [reporting, setReporting] = useState(false);
+  const [spilled, setSpilled] = useState(false);
   const [forwarding, setForwarding] = useState(false);
   // A burn-on-read message is read once: it is not kept, shared or linked.
   const burn = !!message.burn;
@@ -209,6 +212,12 @@ export function MessageActions({
               {t('community.report.action')}
             </DropdownMenuItem>
           )}
+          {!burn && (
+            <DropdownMenuItem onClick={() => setSpilled(true)}>
+              <ShieldAlertIcon strokeWidth={1.75} />
+              {t('spillage.action')}
+            </DropdownMenuItem>
+          )}
           {(can.edit || can.remove) && <DropdownMenuSeparator />}
           {can.edit && (
             <DropdownMenuItem onClick={() => startEdit(message.id)}>
@@ -225,6 +234,7 @@ export function MessageActions({
         </DropdownMenuContent>
       </DropdownMenu>
       {reporting && <ReportDialog message={message} open onOpenChange={setReporting} />}
+      {spilled && <SpillageReportDialog message={message} open onOpenChange={setSpilled} />}
       {forwarding && <ForwardDialog message={message} open onOpenChange={setForwarding} />}
     </>
   );

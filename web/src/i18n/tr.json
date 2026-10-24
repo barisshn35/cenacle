@@ -512,7 +512,10 @@
     "changeServer": "Sunucuyu değiştir",
     "checkUpdates": "Güncellemeleri denetle",
     "closeToTray": "Pencere kapatılınca Cenacle tepside çalışmaya devam etsin",
-    "sessionNotKept": "Bu bilgisayarda şifreli anahtar deposu yok: Cenacle kapanana kadar girişli kalırsın."
+    "sessionNotKept": "Bu bilgisayarda şifreli anahtar deposu yok: Cenacle kapanana kadar girişli kalırsın.",
+    "yourData": "Verileriniz",
+    "yourDataHint": "Cenacle'ın sizinle ilgili tuttuğu her şeyi indirin: profiliniz, mesajlarınız, tepkileriniz, dosyalarınız, cihazlarınız ve yaptıklarınız (her satıra bir öğe, NDJSON).",
+    "downloadData": "Verilerinizi indirin"
   },
   "reactions": {
     "label": "Tepkiler",
@@ -2268,7 +2271,8 @@
       "jobs": "Arka plan işleri",
       "notifications": "Bildirimler",
       "security": "Güvenlik",
-      "federation": "Federasyon"
+      "federation": "Federasyon",
+      "audit": "Denetim kaydı"
     },
     "sections": {
       "overview": "Kurulumun özeti ve ayarları.",
@@ -2278,7 +2282,8 @@
       "jobs": "Sunucunun arka planda yaptığı işler, türlerine göre, ve son hatalar.",
       "notifications": "Uygulama dışındaki bildirimlerin ne gösterebileceği. Kilit ekranları ve gelen kutuları bunları gösterir.",
       "security": "Oturumların ne kadar süreceği ve hangi ağlardan giriş yapılıp yönetimin kullanılabileceği.",
-      "federation": "Çalışma alanlarının hangi diğer Cenacle sunucularına bağlanabileceği."
+      "federation": "Çalışma alanlarının hangi diğer Cenacle sunucularına bağlanabileceği.",
+      "audit": "Kurulum genelinde, yöneticilerin ve kişilerin güvenlik açısından önemli tüm işlemleri."
     },
     "counts": {
       "users": "Kişi",
@@ -2310,7 +2315,8 @@
       "running": "Çalışıyor",
       "retrying": "Yeniden deneniyor",
       "failed": "Başarısız",
-      "done": "Biten (24 sa)"
+      "done": "Biten (24 sa)",
+      "data": "Veriler"
     },
     "role": {
       "admin": "Yönetici",
@@ -2377,7 +2383,53 @@
       "serversHint": "Her satıra bir ana makine adı, varsa bağlantı noktasıyla (chat.example.com, *.partner.org). Dışarıda kalan sunuculara bağlantılar gönderip almayı bırakır.",
       "save": "Kaydet",
       "saved": "Federasyon ayarları kaydedildi."
-    }
+    },
+    "audit": {
+      "log": "Olaylar",
+      "kind": "Tür",
+      "kinds": {
+        "all": "Hepsi",
+        "instance": "Kurulum ayarları",
+        "admin": "Yönetim",
+        "workspace": "Çalışma alanları",
+        "channel": "Kanallar",
+        "federation": "Federasyon",
+        "guest_link": "Misafir bağlantıları"
+      },
+      "action": "İşlem",
+      "download": "İndir (NDJSON)",
+      "none": "Olay yok.",
+      "when": "Ne zaman",
+      "who": "Kim",
+      "where": "Nerede",
+      "system": "Sistem",
+      "installation": "Kurulum",
+      "more": "Daha eskileri göster",
+      "stream": "SIEM'e akış",
+      "streamHint": "Yeni olaylar saniyeler içinde, en eskisinden başlayarak gönderilir; alıcı kapalıysa beklenir ve geri geldiğinde gönderilir.",
+      "streams": {
+        "none": "Kapalı",
+        "http": "HTTPS uç noktası (imzalı NDJSON)",
+        "syslog": "Syslog (TCP üzerinden RFC 5424)"
+      },
+      "url": "Uç nokta URL'si",
+      "hostPort": "Alıcı (ana makine:bağlantı noktası)",
+      "secret": "İmzalama sırrı",
+      "secretHint": "İsteğe bağlı: her istek bununla oluşturulmuş bir X-Cenacle-Signature taşır.",
+      "secretKept": "Kaydedilmiş bir sır var; korumak için boş bırakın.",
+      "tls": "TLS kullan (RFC 5425)",
+      "streamError": "Son deneme başarısız oldu: {{error}}",
+      "streamSent": "Son gönderim: {{time}}.",
+      "streamWaiting": "Yeni olaylar bekleniyor.",
+      "save": "Kaydet",
+      "streamSaved": "Akış ayarları kaydedildi."
+    },
+    "exportData": "{{name}} kişisinin verilerini indir",
+    "erase": "{{name}} kişisini sil",
+    "eraseTitle": "{{name}} silinsin mi?",
+    "eraseDescription": "Adı, adresi, resmi ve durumu kaldırılır, artık giriş yapamaz. Mesajları silinir, yasal saklamanın tuttukları hariç; tepkileri, kaydettikleri, zamanlanmış mesajları ve cihazları kaldırılır. Yeni bir hesapla yeniden giriş yapmaması gerekiyorsa Cenacle ID'de de silin.",
+    "eraseConfirm": "Kişiyi sil",
+    "erased": "Silindi: {{erased}} mesaj silindi, {{held}} mesaj yasal saklamada kaldı."
   },
   "permissions": {
     "title": "İzin şeması",
@@ -2452,5 +2504,61 @@
     "invalidTitle": "Bu misafir bağlantısı artık çalışmıyor.",
     "invalidReason": "Süresi doldu, kullanım sınırına ulaştı ya da kanal yöneticileri sonlandırdı.",
     "askAgain": "Gönderen kişiden yeni bir bağlantı isteyin."
+  },
+  "spillage": {
+    "action": "Veri sızıntısı bildir",
+    "reportTitle": "Veri sızıntısı bildir",
+    "reportHint": "Bu mesaj burada bulunmaması gereken bir şey içeriyor (gizli, kişisel ya da sır). Çalışma alanının sızıntı inceleyicileri her yerden kaldırılıp kaldırılmayacağına karar verir.",
+    "reason": "Sorun ne",
+    "send": "Bildir",
+    "reported": "Bildirildi. İnceleyiciler karar verecek.",
+    "alreadyReported": "Bu mesaj zaten bildirildi; inceleyiciler ilgileniyor.",
+    "failed": "Olmadı. Yeniden deneyin.",
+    "title": "Sızıntı bildirimleri",
+    "hint": "Bildirilen mesajı her yerden kaldırın (yasal saklamadan, cihazlardan ve paylaşılan sunuculardan da) ya da bildirimi reddedin. Her karar, içeriği içermeyen bir olay raporu yazar.",
+    "notReviewer": "Bildirimleri yalnızca çalışma alanının sızıntı inceleyicileri görür.",
+    "open_one": "{{count}} açık bildirim",
+    "open_other": "{{count}} açık bildirim",
+    "none": "Karar verilecek bir şey yok.",
+    "where": "#{{channel}} · {{author}} · {{time}}",
+    "remove": "Her yerden kaldır",
+    "dismiss": "Reddet",
+    "removeTitle": "Bu mesaj her yerden kaldırılsın mı?",
+    "removeDescription": "Metni, düzenlemeleri, dosyaları, tepkileri, bahsetmeleri ve kaydedilmiş kopyaları silinir; yasal saklamanın tutacağı yerlerden de. Cihazlara ve paylaşılan sunuculara bırakmaları söylenir. Cihazlarda zaten gösterilmiş bildirimler geri alınamaz.",
+    "removed": "Her yerden kaldırıldı. Olay raporu hazır.",
+    "dismissed": "Bildirim reddedildi.",
+    "decided": "Karar verilenler",
+    "status": {
+      "removed": "Kaldırıldı",
+      "dismissed": "Reddedildi",
+      "open": "Açık"
+    },
+    "incident": "Olay raporu",
+    "reviewers": "İnceleyiciler",
+    "reviewersHint": "Sızıntı bildirimlerini kimin görüp karar vereceği. Kimse seçilmezse sahipler karar verir.",
+    "saveReviewers": "İnceleyicileri kaydet",
+    "reviewersSaved": "İnceleyiciler kaydedildi."
+  },
+  "archive": {
+    "title": "Arşiv dışa aktarımı",
+    "hint": "Çalışma alanının mesajları, arşiv sistemlerinin aldığı bir biçimde; düzenlenen ve silinenler işaretli.",
+    "format": "Biçim",
+    "formats": {
+      "csv": "CSV",
+      "actiance": "Actiance XML",
+      "eml": "E-posta (ZIP içinde EML)"
+    },
+    "since": "Başlangıç",
+    "until": "Bitiş",
+    "download": "İndir",
+    "daily": "Her gün",
+    "off": "Kapalı",
+    "dailyHint": "Her gün bittiğinde (UTC) o günün mesajları nesne deposuna yazılır; buradan indirin.",
+    "noStorage": "Günlük dışa aktarım nesne deposu gerektirir; bu sunucuda yok.",
+    "scheduleSaved": "Günlük dışa aktarım kaydedildi.",
+    "messages_one": "{{count}} mesaj",
+    "messages_other": "{{count}} mesaj",
+    "get": "İndir",
+    "failed": "Arşiv oluşturulamadı. Yeniden deneyin."
   }
 }

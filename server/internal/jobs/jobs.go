@@ -216,6 +216,24 @@ func (SendFederationArgs) Kind() string { return "send_federation" }
 // FederationInterval is how often events go to other servers.
 var FederationInterval = 2 * time.Second
 
+// StreamAuditArgs sends new audit events to the SIEM.
+type StreamAuditArgs struct{}
+
+// Kind implements river.JobArgs.
+func (StreamAuditArgs) Kind() string { return "stream_audit" }
+
+// AuditStreamInterval is how often new audit events go to the SIEM.
+var AuditStreamInterval = 5 * time.Second
+
+// ExportArchiveArgs writes whole days of workspaces with daily archive exports.
+type ExportArchiveArgs struct{}
+
+// Kind implements river.JobArgs.
+func (ExportArchiveArgs) Kind() string { return "export_archive" }
+
+// ArchiveInterval is how often finished days are looked for.
+var ArchiveInterval = 10 * time.Minute
+
 // EmailNotificationsArgs e-mails people about what they missed.
 type EmailNotificationsArgs struct{}
 
@@ -340,7 +358,11 @@ type Deps struct {
 	Retention Runner
 	// Federation is optional.
 	Federation Runner
-	Log        *slog.Logger
+	// AuditStream is optional.
+	AuditStream Runner
+	// Archive is optional.
+	Archive Runner
+	Log     *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -391,6 +413,14 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Federation != nil {
 		river.AddWorker(workers, &runnerWorker[SendFederationArgs]{r: d.Federation, what: "federated events sent", log: d.Log})
 		jobs = append(jobs, periodic(FederationInterval, SendFederationArgs{}))
+	}
+	if d.Archive != nil {
+		river.AddWorker(workers, &runnerWorker[ExportArchiveArgs]{r: d.Archive, what: "archive days exported", log: d.Log})
+		jobs = append(jobs, periodic(ArchiveInterval, ExportArchiveArgs{}))
+	}
+	if d.AuditStream != nil {
+		river.AddWorker(workers, &runnerWorker[StreamAuditArgs]{r: d.AuditStream, what: "audit events streamed", log: d.Log})
+		jobs = append(jobs, periodic(AuditStreamInterval, StreamAuditArgs{}))
 	}
 	if d.Retention != nil {
 		river.AddWorker(workers, &runnerWorker[PurgeExpiredArgs]{r: d.Retention, what: "expired messages deleted", log: d.Log})

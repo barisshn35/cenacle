@@ -17,6 +17,13 @@ const json = (body: unknown, method = 'POST'): RequestInit => ({
 export const isWorkspaceAdmin = (w: Pick<Workspace, 'role'> | undefined) =>
   w?.role === 'owner' || w?.role === 'admin';
 
+/** Whether you review spillage reports here: the chosen reviewers, else the owners. */
+export function isSpillageReviewer(w: Workspace | undefined, userId: string): boolean {
+  if (!w) return false;
+  const reviewers = w.spillage_reviewers ?? [];
+  return reviewers.length === 0 ? w.role === 'owner' : reviewers.includes(userId);
+}
+
 /** Workspace permissions the roles may be given (owners always may). */
 export const PERMISSIONS = [
   'create_channels',

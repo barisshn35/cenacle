@@ -114,34 +114,9 @@ func New(p Policy) *Client {
 	c.resolve = func(ctx context.Context, host string) ([]netip.Addr, error) {
 		return net.DefaultResolver.LookupNetIP(ctx, "ip", host)
 	}
-	dialer := &net.Dialer{Timeout: 5 * time.Second}
 	transport := &http.Transport{
-		Proxy: nil, // never through an environment proxy
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			host, port, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, err
-			}
-			var ips []netip.Addr
-			if ip, err := netip.ParseAddr(host); err == nil {
-				ips = []netip.Addr{ip}
-			} else if ips, err = c.resolve(ctx, host); err != nil {
-				return nil, err
-			}
-			lastErr := ErrForbiddenAddress
-			for _, ip := range ips {
-				if !c.policy.allowed(ip) {
-					continue
-				}
-				// Connect to the address that was checked, not to the name again.
-				conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip.Unmap().String(), port))
-				if err == nil {
-					return conn, nil
-				}
-				lastErr = err
-			}
-			return nil, lastErr
-		},
+		Proxy:                 nil, // never through an environment proxy
+		DialContext:           c.Dial,
 		TLSHandshakeTimeout:   5 * time.Second,
 		ResponseHeaderTimeout: p.Timeout,
 		MaxIdleConns:          20,
@@ -155,6 +130,36 @@ func New(p Policy) *Client {
 		},
 	}
 	return c
+}
+
+var dialer = &net.Dialer{Timeout: 5 * time.Second}
+
+// Dial connects to addr (host:port) under the policy: the name is resolved
+// once and only allowed addresses are tried (raw TCP, e.g. syslog).
+func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	var ips []netip.Addr
+	if ip, err := netip.ParseAddr(host); err == nil {
+		ips = []netip.Addr{ip}
+	} else if ips, err = c.resolve(ctx, host); err != nil {
+		return nil, err
+	}
+	lastErr := ErrForbiddenAddress
+	for _, ip := range ips {
+		if !c.policy.allowed(ip) {
+			continue
+		}
+		// Connect to the address that was checked, not to the name again.
+		conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(ip.Unmap().String(), port))
+		if err == nil {
+			return conn, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
 }
 
 // CheckURL validates a destination URL before it is stored (scheme, host).

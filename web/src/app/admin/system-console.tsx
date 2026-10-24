@@ -6,7 +6,10 @@ import {
   BuildingIcon,
   GaugeIcon,
   GlobeIcon,
+  DownloadIcon,
   LogOutIcon,
+  UserXIcon,
+  ScrollTextIcon,
   ShieldIcon,
   UsersIcon,
 } from 'lucide-react';
@@ -26,6 +29,7 @@ import { Board, BoardGroup } from '../shell/board';
 import { boardCell, boardRow } from '../shell/board-styles';
 import { SideNavDialog } from '../shell/side-nav-dialog';
 import { formatSize } from '../chat/files';
+import { AuditPanel } from './audit-panel';
 import { useSystemConsole } from './console-state';
 
 type Overview = components['schemas']['AdminOverview'];
@@ -43,7 +47,8 @@ type Section =
   | 'jobs'
   | 'notifications'
   | 'security'
-  | 'federation';
+  | 'federation'
+  | 'audit';
 
 const json = (method: string, body: unknown): RequestInit => ({
   method,
@@ -95,6 +100,7 @@ export function SystemConsole({ onOpenChange }: { onOpenChange: (open: boolean) 
               { key: 'notifications', label: t('console.names.notifications'), icon: BellIcon },
               { key: 'security', label: t('console.names.security'), icon: ShieldIcon },
               { key: 'federation', label: t('console.names.federation'), icon: GlobeIcon },
+              { key: 'audit', label: t('console.names.audit'), icon: ScrollTextIcon },
             ],
           },
         ]}
@@ -108,6 +114,7 @@ export function SystemConsole({ onOpenChange }: { onOpenChange: (open: boolean) 
           {section === 'notifications' && <NotificationsPanel />}
           {section === 'security' && <SecurityPanel />}
           {section === 'federation' && <FederationPolicyPanel />}
+          {section === 'audit' && <AuditPanel />}
         </div>
       </SideNavDialog>
     </Dialog>
@@ -174,6 +181,7 @@ function PeoplePanel() {
   const [q, setQ] = useState('');
   const query = useDeferredValue(q.trim());
   const [ending, setEnding] = useState<AdminUser | null>(null);
+  const [erasing, setErasing] = useState<AdminUser | null>(null);
   const queryClient = useQueryClient();
   const people = useInfiniteQuery({
     queryKey: ['admin', 'users', query],
@@ -208,9 +216,10 @@ function PeoplePanel() {
           { label: t('console.columns.lastSeen'), width: 'w-[130px]' },
           { label: t('console.columns.workspaces'), width: 'w-[100px]', align: 'end' },
           { label: t('console.columns.sessions'), width: 'w-[150px]', align: 'end' },
+          { label: t('console.columns.data'), width: 'w-[110px]', align: 'end' },
         ]}
       >
-        <BoardGroup span={5}>
+        <BoardGroup span={6}>
           {rows.map((u) => (
             <tr key={u.id} className={boardRow()} data-testid="console-person">
               <td className={boardCell}>
@@ -246,6 +255,26 @@ function PeoplePanel() {
                   </Button>
                 )}
               </td>
+              <td className={`${boardCell} text-right`}>
+                <a
+                  href={`/api/admin/users/${u.id}/export`}
+                  download="cenacle-data.ndjson"
+                  aria-label={t('console.exportData', { name: u.display_name })}
+                  className="inline-flex size-8 items-center justify-center rounded-md hover:bg-muted"
+                >
+                  <DownloadIcon aria-hidden className="size-4" strokeWidth={1.75} />
+                </a>
+                {!u.erased && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={t('console.erase', { name: u.display_name })}
+                    onClick={() => setErasing(u)}
+                  >
+                    <UserXIcon strokeWidth={1.75} />
+                  </Button>
+                )}
+              </td>
             </tr>
           ))}
         </BoardGroup>
@@ -271,6 +300,24 @@ function PeoplePanel() {
           await apiFetch<void>(`/api/admin/users/${ending!.id}/sessions`, { method: 'DELETE' });
           await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
           toast.success(t('console.signedOut', { name: ending!.display_name }));
+        }}
+      />
+      <ConfirmDialog
+        open={!!erasing}
+        onOpenChange={(o) => !o && setErasing(null)}
+        severity="s3"
+        irreversible
+        title={t('console.eraseTitle', { name: erasing?.display_name ?? '' })}
+        description={<p>{t('console.eraseDescription')}</p>}
+        confirmationText={erasing?.display_name}
+        confirmLabel={t('console.eraseConfirm')}
+        onConfirm={async () => {
+          const r = await apiFetch<{ messages_erased: number; messages_held: number }>(
+            `/api/admin/users/${erasing!.id}/erase`,
+            json('POST', { confirm: erasing!.display_name }),
+          );
+          await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+          toast.success(t('console.erased', { erased: r.messages_erased, held: r.messages_held }));
         }}
       />
     </div>
@@ -691,17 +738,17 @@ function FederationPolicyForm({
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-semibold">{t('console.federation.mode')}</legend>
         {(['open', 'allow', 'deny'] as const).map((m) => (
-          <div key={m} className="flex min-h-target items-start gap-2.5 text-sm">
+          <label key={m} className="flex min-h-target items-center gap-2.5 text-sm">
             <input
-              id={`${id}-${m}`}
               type="radio"
               name={`${id}-mode`}
-              className="mt-1 size-4"
+              className="size-4"
+              data-target-exempt
               checked={mode === m}
               onChange={() => setMode(m)}
             />
-            <label htmlFor={`${id}-${m}`}>{t(`console.federation.${m}`)}</label>
-          </div>
+            {t(`console.federation.${m}`)}
+          </label>
         ))}
       </fieldset>
       <div className="grid gap-1.5">
