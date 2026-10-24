@@ -10,6 +10,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [0.37.1] - 2026-10-24
 
+### Added
+
+- **Signed releases:** from this release on, images, their SBOMs and the desktop app's
+  `SHA256SUMS` are signed; verify them with `deploy/cosign.pub` (docs/security).
+
 ### Removed
 
 - The German, French, Spanish and Arabic translations: Cenacle is in English and Turkish.
