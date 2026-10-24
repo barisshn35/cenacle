@@ -8,6 +8,29 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-10-24
+
+Message priority and acknowledgements, read receipts, galleries and formatting
+(ADR 0035).
+
+### Added
+
+- **Message priority:** mark a message important or urgent and ask readers to
+  acknowledge it; everyone sees who did (`message.ack`,
+  `PUT`/`DELETE …/messages/{id}/ack`). An urgent message can remind the people it mentions
+  until they acknowledge it (`message.reminder`); owners and admins choose how often and
+  how many times, or turn reminders off.
+- **Read receipts** in direct and group conversations, off until owners or admins turn
+  them on: your newest message shows "Seen" (or who has seen it). Everyone can keep theirs
+  to themselves in their profile (`GET /api/channels/{id}/reads`, `conversation.read`).
+- **Galleries:** several images in a message show as a grid.
+- **Formatting bar** in the message box (bold, italic, strikethrough, code, link, quote,
+  lists, code block) with a preview of the message.
+
+### Changed
+
+- The message box's tools stay together, with Send at their end, when they wrap.
+
 ## [0.31.0] - 2026-10-24
 
 Reading and arranging, groups, edit history, keyboard shortcuts, signed releases
@@ -870,7 +893,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.31.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.32.0...HEAD
+[0.32.0]: https://github.com/barisshn35/cenacle/compare/v0.31.0...v0.32.0
 [0.31.0]: https://github.com/barisshn35/cenacle/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/barisshn35/cenacle/compare/v0.29.0...v0.30.0
 [0.29.0]: https://github.com/barisshn35/cenacle/compare/v0.28.0...v0.29.0
