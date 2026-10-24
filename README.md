@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.32, message priority and read receipts.** Sign in with Cenacle ID (passwords with
+> **Status: v0.33, interactive apps and SDKs.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
@@ -173,55 +173,55 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 
 ## Roadmap
 
-| Version   | Scope                                                                                     |
-| --------- | ----------------------------------------------------------------------------------------- |
-| v0.1      | Skeleton: services, design system foundations, infrastructure, CI                         |
-| v0.2      | Cenacle ID core (OIDC provider)                                                           |
-| v0.3      | OIDC sign-in in chat, sessions                                                            |
-| v0.4      | Live chat, WebSocket tickets, channel membership, public and private channels             |
-| v0.5      | Editing and deleting messages, channel settings, categories, quick switcher               |
-| v0.6      | Workspaces, roles, invitations                                                            |
-| v0.7      | Direct messages, unread, presence, typing                                                 |
-| v0.8      | TOTP MFA, session management, back-channel logout, audit log                              |
-| v0.9      | Markdown, reactions, mentions, attachments, transactional outbox                          |
-| v0.10     | Bot foundation, Jira to chat                                                              |
-| v0.11     | Slash commands, event subscriptions, scheduled messages and reminders, GitLab, alerts     |
-| v0.12     | Files (S3-compatible object store), previews, viewer, virus scanning                      |
-| v0.13     | Scaling and operations (multiple instances, OpenTelemetry, backups, Helm, air-gapped)     |
-| v0.14     | Identity federation (LDAP/AD, SAML and OIDC, WebAuthn), admin console, guests             |
-| v0.15     | Profiles, profile cards, custom status, channel and workspace settings                    |
-| v0.16     | Appearance: theme presets, typography, fonts, code blocks                                 |
-| v0.17     | Search and notifications (sounds, muting, web push, e-mail)                               |
-| v0.18     | Threads, pins, saved items, activity                                                      |
-| v0.19     | Community and moderation: forums, polls, events, AutoMod, playbooks                       |
-| v0.20     | Link previews, voice messages, forwarding, custom emoji                                   |
-| v0.21     | Automation: workflows, approvals, forms                                                   |
-| v0.22     | Collaboration: canvases, lists, boards, tasks                                             |
-| v0.23     | Compliance: retention, legal hold, eDiscovery, export, access control                     |
-| v0.24     | Optional, self-hosted AI (off by default)                                                 |
-| v0.25     | Federation between servers                                                                |
-| v0.26     | Security testing and hardening                                                            |
-| v0.27     | Optimization and load tests                                                               |
-| v0.28     | Release candidate preparation                                                             |
-| v0.29     | Interface rewrite, sign-in pairing by server address, optional web app                    |
-| v0.30     | Desktop app (Electron) for Windows and Linux                                              |
-| v0.31     | Mark unread, personal sidebar sections, user groups, edit history, signed images          |
-| **v0.32** | **Message priority and acknowledgement, read receipts (off by default), image galleries** |
-| v0.33     | App platform: interactive messages and dialogs, bot SDKs, more integrations               |
-| v0.34     | System console, permission schemes, notification content policy                           |
-| v0.35     | SCIM provisioning, session and network policy, federation controls, guest links           |
-| v0.36     | Compliance: data subject requests, audit export and SIEM, archive export, spillage        |
-| v0.37     | Search inside files and canvases, more languages and right-to-left layout                 |
-| v0.38     | Importers (Rocket.Chat, Zulip, Discord, Teams), instance migration, more storage          |
-| v0.39     | End-to-end encryption with device keys (MLS)                                              |
-| v0.40     | FIPS 140-3 builds and STIG-hardened images                                                |
-| v0.41     | Full review and gap closing, accessibility conformance report                             |
-| v0.42     | Deep security testing and a penetration test                                              |
-| v0.43     | Performance and soak tests                                                                |
-| v0.99     | Release candidate, extended support policy                                                |
-| v1.0      | Stable: web and desktop                                                                   |
-| v1.1      | Voice and video                                                                           |
-| v1.2      | Mobile apps                                                                               |
+| Version   | Scope                                                                                 |
+| --------- | ------------------------------------------------------------------------------------- |
+| v0.1      | Skeleton: services, design system foundations, infrastructure, CI                     |
+| v0.2      | Cenacle ID core (OIDC provider)                                                       |
+| v0.3      | OIDC sign-in in chat, sessions                                                        |
+| v0.4      | Live chat, WebSocket tickets, channel membership, public and private channels         |
+| v0.5      | Editing and deleting messages, channel settings, categories, quick switcher           |
+| v0.6      | Workspaces, roles, invitations                                                        |
+| v0.7      | Direct messages, unread, presence, typing                                             |
+| v0.8      | TOTP MFA, session management, back-channel logout, audit log                          |
+| v0.9      | Markdown, reactions, mentions, attachments, transactional outbox                      |
+| v0.10     | Bot foundation, Jira to chat                                                          |
+| v0.11     | Slash commands, event subscriptions, scheduled messages and reminders, GitLab, alerts |
+| v0.12     | Files (S3-compatible object store), previews, viewer, virus scanning                  |
+| v0.13     | Scaling and operations (multiple instances, OpenTelemetry, backups, Helm, air-gapped) |
+| v0.14     | Identity federation (LDAP/AD, SAML and OIDC, WebAuthn), admin console, guests         |
+| v0.15     | Profiles, profile cards, custom status, channel and workspace settings                |
+| v0.16     | Appearance: theme presets, typography, fonts, code blocks                             |
+| v0.17     | Search and notifications (sounds, muting, web push, e-mail)                           |
+| v0.18     | Threads, pins, saved items, activity                                                  |
+| v0.19     | Community and moderation: forums, polls, events, AutoMod, playbooks                   |
+| v0.20     | Link previews, voice messages, forwarding, custom emoji                               |
+| v0.21     | Automation: workflows, approvals, forms                                               |
+| v0.22     | Collaboration: canvases, lists, boards, tasks                                         |
+| v0.23     | Compliance: retention, legal hold, eDiscovery, export, access control                 |
+| v0.24     | Optional, self-hosted AI (off by default)                                             |
+| v0.25     | Federation between servers                                                            |
+| v0.26     | Security testing and hardening                                                        |
+| v0.27     | Optimization and load tests                                                           |
+| v0.28     | Release candidate preparation                                                         |
+| v0.29     | Interface rewrite, sign-in pairing by server address, optional web app                |
+| v0.30     | Desktop app (Electron) for Windows and Linux                                          |
+| v0.31     | Mark unread, personal sidebar sections, user groups, edit history, signed images      |
+| v0.32     | Message priority and acknowledgement, read receipts (off by default), image galleries |
+| **v0.33** | **App platform: interactive messages and dialogs, bot SDKs, more integrations**       |
+| v0.34     | System console, permission schemes, notification content policy                       |
+| v0.35     | SCIM provisioning, session and network policy, federation controls, guest links       |
+| v0.36     | Compliance: data subject requests, audit export and SIEM, archive export, spillage    |
+| v0.37     | Search inside files and canvases, more languages and right-to-left layout             |
+| v0.38     | Importers (Rocket.Chat, Zulip, Discord, Teams), instance migration, more storage      |
+| v0.39     | End-to-end encryption with device keys (MLS)                                          |
+| v0.40     | FIPS 140-3 builds and STIG-hardened images                                            |
+| v0.41     | Full review and gap closing, accessibility conformance report                         |
+| v0.42     | Deep security testing and a penetration test                                          |
+| v0.43     | Performance and soak tests                                                            |
+| v0.99     | Release candidate, extended support policy                                            |
+| v1.0      | Stable: web and desktop                                                               |
+| v1.1      | Voice and video                                                                       |
+| v1.2      | Mobile apps                                                                           |
 
 ### Installation
 

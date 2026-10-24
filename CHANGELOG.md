@@ -8,6 +8,25 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-10-24
+
+Interactive messages, SDKs for bots and more integrations (ADR 0036).
+
+### Added
+
+- **Interactive messages:** bots' cards can carry buttons and menus; pressing one asks the
+  bot (signed), which can update the message, answer the person or open a **dialog** (a
+  form with text, long text, choices, a checkbox or a date). Slash commands can open
+  dialogs too. Bots receive them at their interactions address (Integrations → the bot →
+  Interactions; `PUT /api/bots/{id}/interactions`, `POST …/messages/{id}/actions`,
+  `POST /api/dialogs/{id}`).
+- **SDKs for bots** in Go and Python (`sdk/`): an API client and signed handlers for
+  commands, interactions and events; Apache License 2.0.
+- **GitHub** webhooks: pushes, pull requests, reviews, issues, comments, workflow runs and
+  releases as cards.
+- **E-mail into a channel:** a webhook that posts e-mails piped from your mail server.
+- **Feeds:** `/feed subscribe <address>` makes a channel follow an RSS or Atom feed.
+
 ## [0.32.0] - 2026-10-24
 
 Message priority and acknowledgements, read receipts, galleries and formatting
@@ -893,7 +912,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.32.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.33.0...HEAD
+[0.33.0]: https://github.com/barisshn35/cenacle/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/barisshn35/cenacle/compare/v0.31.0...v0.32.0
 [0.31.0]: https://github.com/barisshn35/cenacle/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/barisshn35/cenacle/compare/v0.29.0...v0.30.0

@@ -48,6 +48,17 @@ included, was there.
 
 ## Version notes
 
+### 0.33.0
+
+- Migrations: chat `00032_interactivity` (adds `bots.interactions_url`,
+  `bots.interactions_secret` and `dialogs`) and `00033_integrations` (allows GitHub and
+  e-mail webhooks, adds `channel_feeds`). Reversible.
+- Feeds and interactions call out through the same network rules as bots: addresses inside
+  your network need `CENACLE_EGRESS_ALLOW`.
+- Rolling back to 0.32, with the 0.33 images: twice
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`; then the
+  previous `CENACLE_VERSION`. GitHub and e-mail webhooks and feeds are removed.
+
 ### 0.32.0
 
 - Migrations: chat `00030_message_priority` (adds `messages.priority`,
