@@ -48,6 +48,14 @@ included, was there.
 
 ## Version notes
 
+### 0.38.0
+
+- No migration. Existing installs keep S3 (an S3 endpoint means `CENACLE_FILES_BACKEND=s3`).
+- Compose: run `deploy/compose/gen-secrets.sh` once more; it adds the empty
+  `secrets/azure_key` that `prod.yml` now mounts (nothing else changes).
+- To move files between stores, copy the objects (keys stay the same: `files/…`,
+  `thumbs/…`) before switching `CENACLE_FILES_BACKEND`.
+
 ### 0.37.2
 
 - No migration. Only the logo files and icons change; browsers may show the old favicon

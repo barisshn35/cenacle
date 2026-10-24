@@ -8,6 +8,23 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-10-25
+
+Imports from four more chats, moving workspaces between Cenacle servers, and files in
+Azure Blob Storage or a directory (ADR 0041).
+
+### Added
+
+- **Imports from Rocket.Chat, Zulip, Discord and Microsoft Teams** (`server import
+rocketchat|zulip|discord|teams`): one-time, from export files (a directory, `.zip` or
+  `.tar.gz`); people, channels, conversations and messages with their times, mentions and
+  formatting. See docs/operations.
+- **Moving workspaces to another Cenacle server:** `server export <file.zip> [workspace…]`
+  and `server import cenacle <file.zip>`, with threads, reactions, pins, forum titles and
+  tags and files. People keep their accounts when both servers use the same Cenacle ID.
+- **File stores:** Azure Blob Storage (`CENACLE_FILES_BACKEND=azure`) and a directory of
+  the server (`dir`) besides S3; browsers then upload through the chat server.
+
 ## [0.37.2] - 2026-10-24
 
 ### Added
@@ -1020,7 +1037,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.37.2...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.38.0...HEAD
+[0.38.0]: https://github.com/barisshn35/cenacle/compare/v0.37.2...v0.38.0
 [0.37.2]: https://github.com/barisshn35/cenacle/compare/v0.37.1...v0.37.2
 [0.37.1]: https://github.com/barisshn35/cenacle/compare/v0.37.0...v0.37.1
 [0.37.0]: https://github.com/barisshn35/cenacle/compare/v0.36.0...v0.37.0

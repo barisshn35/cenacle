@@ -12,13 +12,14 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.37, search inside files, canvases and lists.** Sign in with Cenacle ID (passwords with
+> **Status: v0.38, importers, workspace moves and more file stores.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
 > canvases, lists and boards next to channels; meet compliance needs (retention, legal
 > holds, eDiscovery, access rules, encrypted channels); use optional AI with a model you
-> run; share channels with other Cenacle servers. Runs on one host or Kubernetes, also
+> run; share channels with other Cenacle servers; move in from Mattermost, Slack, Rocket.Chat,
+> Zulip, Discord or Teams, and move workspaces between servers. Runs on one host or Kubernetes, also
 > offline. Desktop app for Windows and Linux; signed releases with SBOMs. Next: new features toward 1.0 (see the [roadmap](#roadmap)).
 
 ## Highlights
@@ -211,8 +212,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.34   | System console, permission schemes, notification content policy                       |
 | v0.35   | SCIM provisioning, session and network policy, federation controls, guest links       |
 | v0.36   | Compliance: data subject requests, audit export and SIEM, archive export, spillage    |
-| v0.37   | Search inside files and canvases, more languages and right-to-left layout             |
-| v0.38   | Importers (Rocket.Chat, Zulip, Discord, Teams), instance migration, more storage      |
+| v0.37   | Search inside files and canvases, right-to-left ready layout                          |
+| v0.38   | Importers (Rocket.Chat, Zulip, Discord, Teams), workspace moves, Azure and disk files |
 | v0.39   | End-to-end encryption with device keys (MLS)                                          |
 | v0.40   | FIPS 140-3 builds and STIG-hardened images                                            |
 | v0.41   | Full review and gap closing, accessibility conformance report                         |
