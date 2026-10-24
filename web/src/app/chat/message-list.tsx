@@ -49,6 +49,7 @@ import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
 import { useMarkUnread } from './mark-unread';
 import { EditedLabel } from './edit-history';
+import { AckBar, PriorityLabel } from './priority';
 import { AddReactionButton, ReactionBar } from './reactions';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
@@ -243,6 +244,7 @@ export function MessageRow({
                   ))}
                 </p>
               )}
+              <PriorityLabel message={m} />
               {m.burn ? <BurnBody message={m} /> : m.body && <Body message={m} selfId={self} />}
               {m.sticker && <StickerImage sticker={m.sticker} />}
               {m.task && <TaskCard task={m.task} />}
@@ -253,6 +255,7 @@ export function MessageRow({
               <Attachments items={m.attachments} selfId={self} />
               <MessageFiles files={m.files} />
               <LinkPreviewCard message={m} />
+              <AckBar message={m} channel={channel} />
               <ReactionBar message={m} />
               {!inThread && <ThreadSummaryButton message={m} />}
             </div>

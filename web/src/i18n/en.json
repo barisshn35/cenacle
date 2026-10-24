@@ -2149,5 +2149,31 @@
     "reload": "Reload",
     "fullScreen": "Full screen",
     "open": "Keyboard shortcuts"
+  },
+  "priority": {
+    "open": "Message priority",
+    "title": "Priority",
+    "standard": "Standard",
+    "important": "Important",
+    "urgent": "Urgent",
+    "requestAck": "Ask to acknowledge",
+    "persistent": "Remind those mentioned",
+    "persistentHint": "Every {{minutes}} minutes, up to {{times}} times, until they acknowledge it. For urgent messages that mention someone.",
+    "clear": "Clear the priority",
+    "reminding": "Reminding those mentioned",
+    "ack": "Acknowledge",
+    "acked": "Acknowledged",
+    "noAcks": "Nobody has acknowledged it yet.",
+    "acks_one": "Acknowledged by {{names}}",
+    "acks_other": "Acknowledged by {{count}}: {{names}}…",
+    "ackFailed": "Couldn't save your acknowledgement. Try again.",
+    "reminderTitle": "Urgent message from {{name}} waits for you",
+    "settingTitle": "Reminders of urgent messages",
+    "settingHint": "An urgent message can remind the people it mentions until they acknowledge it.",
+    "settingOn": "Allow reminders",
+    "settingEvery": "Every",
+    "settingTimes": "At most",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes"
   }
 }

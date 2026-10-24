@@ -18,7 +18,10 @@ INSERT INTO workspaces (name, is_default) VALUES (@name, @is_default) RETURNING 
 -- name: RenameWorkspace :one
 UPDATE workspaces SET name = coalesce(sqlc.narg(name), name),
     description = coalesce(sqlc.narg(description), description),
-    edit_history = coalesce(sqlc.narg(edit_history), edit_history)
+    edit_history = coalesce(sqlc.narg(edit_history), edit_history),
+    persistent_notifications = coalesce(sqlc.narg(persistent_notifications), persistent_notifications),
+    persistent_every_minutes = coalesce(sqlc.narg(persistent_every_minutes), persistent_every_minutes),
+    persistent_times = coalesce(sqlc.narg(persistent_times), persistent_times)
 WHERE id = @id RETURNING *;
 
 -- name: GetWorkspaceRole :one

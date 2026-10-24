@@ -162,6 +162,15 @@ type PushNotificationsArgs struct{}
 // Kind implements river.JobArgs.
 func (PushNotificationsArgs) Kind() string { return "push_notifications" }
 
+// SendRemindersArgs reminds people of urgent messages they have not acknowledged.
+type SendRemindersArgs struct{}
+
+// Kind implements river.JobArgs.
+func (SendRemindersArgs) Kind() string { return "send_reminders" }
+
+// ReminderInterval is how often due reminders are looked for.
+var ReminderInterval = 30 * time.Second
+
 // FetchLinkPreviewsArgs fetches the previews of new messages' links.
 type FetchLinkPreviewsArgs struct{}
 
@@ -310,6 +319,8 @@ type Deps struct {
 	// Push and Email are optional (web push, e-mail notifications).
 	Push  Runner
 	Email Runner
+	// Reminders is optional (reminders of urgent messages).
+	Reminders Runner
 	// Links is optional (link previews may be turned off).
 	Links Runner
 	// Workflows is optional.
@@ -349,6 +360,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Push != nil {
 		river.AddWorker(workers, &runnerWorker[PushNotificationsArgs]{r: d.Push, what: "web push sent", log: d.Log})
 		jobs = append(jobs, periodic(10*time.Second, PushNotificationsArgs{}))
+	}
+	if d.Reminders != nil {
+		river.AddWorker(workers, &runnerWorker[SendRemindersArgs]{r: d.Reminders, what: "reminders sent", log: d.Log})
+		jobs = append(jobs, periodic(ReminderInterval, SendRemindersArgs{}))
 	}
 	if d.Email != nil {
 		river.AddWorker(workers, &runnerWorker[EmailNotificationsArgs]{r: d.Email, what: "notification e-mails sent", log: d.Log})

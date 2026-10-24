@@ -196,6 +196,9 @@ func decorate(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs []a
 		i := index[uuid(f.MessageID)]
 		msgs[i].Files = append(msgs[i].Files, fileAPI(f))
 	}
+	if err := ackMessages(ctx, q, reader, msgs, index); err != nil {
+		return err
+	}
 	if err := richMessages(ctx, q, reader, msgs, index, ids); err != nil {
 		return err
 	}
@@ -302,4 +305,32 @@ func queueDeliveries(ctx context.Context, q store.Querier, typ string, raw []byt
 		EventType: typ, Payload: raw, ChannelID: pgUUID(channel), ActorID: actorID,
 	})
 	return err
+}
+
+// ackMessages fills in the acknowledgements of the messages that ask for them.
+func ackMessages(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs []api.Message, index map[openapi_types.UUID]int) error {
+	var asking []pgtype.UUID
+	for _, m := range msgs {
+		if m.Ack != nil {
+			asking = append(asking, pgUUID(m.Id))
+		}
+	}
+	if len(asking) == 0 {
+		return nil
+	}
+	acks, err := q.ListAcks(ctx, asking)
+	if err != nil {
+		return err
+	}
+	for _, a := range acks {
+		ack := msgs[index[uuid(a.MessageID)]].Ack
+		ack.Count++
+		if a.UserID == reader {
+			ack.Me = true
+		}
+		if len(ack.People) < 50 {
+			ack.People = append(ack.People, api.Author{Id: uuid(a.UserID), DisplayName: a.DisplayName})
+		}
+	}
+	return nil
 }

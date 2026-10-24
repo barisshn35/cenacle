@@ -14,6 +14,7 @@ import { useQuickSwitcherShortcut } from './quick-switcher-state';
 import { useLive } from './presence-state';
 import {
   addMessage,
+  applyAck,
   applyReaction,
   countIncoming,
   reloadChannels,
@@ -45,7 +46,7 @@ import {
   type SavedItem,
   type ThreadSummary,
 } from '../threads/threads';
-import { notifyIncoming } from '../notifications/notifier';
+import { notifyIncoming, notifyReminder, type Reminder } from '../notifications/notifier';
 
 /**
  * Keeps the live connection open while signed in and applies its events to
@@ -100,6 +101,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           const { channel_id, message_id } = ev.data as { channel_id: string; message_id: string };
           setReadLocally(queryClient, channel_id, message_id);
           useUnreadHold.getState().release(channel_id);
+        } else if (ev.type === 'message.ack') {
+          applyAck(queryClient, ev.data as Parameters<typeof applyAck>[1], selfId);
+        } else if (ev.type === 'message.reminder') {
+          notifyReminder(queryClient, ev.data as Reminder, (channelId) => {
+            void navigateRef.current({ to: '/c/$channelId', params: { channelId } });
+          });
         } else if (ev.type === 'groups.changed') {
           const { workspace_id } = ev.data as { workspace_id: string };
           void queryClient.invalidateQueries({ queryKey: ['mention-groups', workspace_id] });

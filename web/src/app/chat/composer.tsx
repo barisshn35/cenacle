@@ -38,6 +38,8 @@ import {
 } from './data';
 import { FORMAT_KEYS, newestOwn, wrapSelection } from './composer-keys';
 import { useEditing } from './message-state';
+import { PriorityChip, PriorityMenu } from './priority';
+import type { Priority } from './pending';
 import { useLayout } from '../../stores/layout';
 import { useMentionPicker } from './mention-picker';
 import { useSession } from '../auth/session';
@@ -105,6 +107,7 @@ export function Composer({
   const [also, setAlso] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
   const [burn, setBurn] = useState<number | null>(null);
+  const [priority, setPriority] = useState<Priority>({});
   const [confirmMany, setConfirmMany] = useState<number | null>(null);
   const channel = useQuery(channelsQuery).data?.find((c) => c.id === channelId);
   const conversation = !!channel && isConversation(channel);
@@ -258,10 +261,14 @@ export function Composer({
       people,
       uploads.ready,
       thread ? { rootId: thread.rootId, alsoInChannel: also } : undefined,
-      conversation && burn ? { burnSeconds: burn } : {},
+      {
+        ...(conversation && burn ? { burnSeconds: burn } : {}),
+        ...(!thread && (priority.level || priority.requestAck) ? { priority } : {}),
+      },
     );
     uploads.clear();
     setAlso(false);
+    setPriority({});
     clear();
   };
 
@@ -342,6 +349,7 @@ export function Composer({
         <label htmlFor={ids.input} className="sr-only">
           {label}
         </label>
+        {!thread && <PriorityChip value={priority} onClear={() => setPriority({})} />}
         {/* The frame holds the text and the send button side by side, so a
             scrollbar of long text never runs under the button. */}
         <div
@@ -392,75 +400,79 @@ export function Composer({
               placeholder={label}
               className="block min-h-target min-w-40 flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[0.9375rem]"
             />
-            {permissions.upload_files && (
-              <>
-                <input
-                  ref={picker}
-                  type="file"
-                  multiple
-                  hidden
-                  tabIndex={-1}
-                  aria-hidden
-                  onChange={(e) => {
-                    if (e.target.files) addFiles(e.target.files);
-                    e.target.value = '';
-                  }}
+            {/* The tools stay together (with Send at their end) when they wrap. */}
+            <div className="ml-auto flex items-center">
+              {permissions.upload_files && (
+                <>
+                  <input
+                    ref={picker}
+                    type="file"
+                    multiple
+                    hidden
+                    tabIndex={-1}
+                    aria-hidden
+                    onChange={(e) => {
+                      if (e.target.files) addFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label={t('files.attach')}
+                    onClick={() => picker.current?.click()}
+                  >
+                    <PaperclipIcon strokeWidth={1.75} />
+                  </Button>
+                </>
+              )}
+              {!thread && <Shortcuts channelId={channelId} />}
+              {!channel?.encrypted && <RewriteMenu text={body} onUse={change} />}
+              {permissions.upload_files && <Recorder onRecorded={(f) => addFiles([f])} />}
+              {!burn && (
+                <StickerPicker
+                  onPick={(s) =>
+                    send(
+                      channelId,
+                      '',
+                      [],
+                      [],
+                      thread ? { rootId: thread.rootId, alsoInChannel: also } : undefined,
+                      {
+                        sticker: { id: s.id, name: s.name, url: s.url },
+                      },
+                    )
+                  }
                 />
+              )}
+              {!thread && (
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
-                  aria-label={t('files.attach')}
-                  onClick={() => picker.current?.click()}
+                  aria-label={t('community.poll.create')}
+                  onClick={() => setPollOpen(true)}
                 >
-                  <PaperclipIcon strokeWidth={1.75} />
+                  <BarChart3Icon strokeWidth={1.75} />
                 </Button>
-              </>
-            )}
-            {!thread && <Shortcuts channelId={channelId} />}
-            {!channel?.encrypted && <RewriteMenu text={body} onUse={change} />}
-            {permissions.upload_files && <Recorder onRecorded={(f) => addFiles([f])} />}
-            {!burn && (
-              <StickerPicker
-                onPick={(s) =>
-                  send(
-                    channelId,
-                    '',
-                    [],
-                    [],
-                    thread ? { rootId: thread.rootId, alsoInChannel: also } : undefined,
-                    {
-                      sticker: { id: s.id, name: s.name, url: s.url },
-                    },
-                  )
-                }
-              />
-            )}
-            {!thread && (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label={t('community.poll.create')}
-                onClick={() => setPollOpen(true)}
-              >
-                <BarChart3Icon strokeWidth={1.75} />
+              )}
+              {!thread && <PriorityMenu value={priority} onChange={setPriority} />}
+              {!thread && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t('scheduled.open')}
+                  onClick={() => setLater(true)}
+                >
+                  <ClockIcon strokeWidth={1.75} />
+                </Button>
+              )}
+              <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
+                <SendHorizontalIcon strokeWidth={1.75} />
               </Button>
-            )}
-            {!thread && (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label={t('scheduled.open')}
-                onClick={() => setLater(true)}
-              >
-                <ClockIcon strokeWidth={1.75} />
-              </Button>
-            )}
-            <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
-              <SendHorizontalIcon strokeWidth={1.75} />
-            </Button>
+            </div>
           </div>
         </div>
         <div className="mt-1.5 flex justify-between gap-2">

@@ -30,7 +30,14 @@ export const renameWorkspace = (id: string, name: string) =>
   apiFetch<Workspace>(`/api/workspaces/${id}`, json({ name }, 'PATCH'));
 export const updateWorkspace = (
   id: string,
-  patch: { name?: string; description?: string; edit_history?: 'author' | 'everyone' },
+  patch: {
+    name?: string;
+    description?: string;
+    edit_history?: 'author' | 'everyone';
+    persistent_notifications?: boolean;
+    persistent_every_minutes?: number;
+    persistent_times?: number;
+  },
 ) => apiFetch<Workspace>(`/api/workspaces/${id}`, json(patch, 'PATCH'));
 export const setWorkspaceIcon = (id: string, file: Blob) =>
   apiFetch<Workspace>(`/api/workspaces/${id}/icon`, {

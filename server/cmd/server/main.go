@@ -240,6 +240,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	deps.Workflows = &chat.WorkflowRunner{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	deps.Retention = chat.RetentionPurger{Queries: queries}
+	deps.Reminders = &chat.Reminders{DB: pool, Queries: queries, Log: log}
 	deps.Federation = &chat.FederationSender{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	if cfg.LinkPreviews {
 		// Anyone can post a link: no allow list, https only.

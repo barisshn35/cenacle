@@ -560,7 +560,8 @@ func storeMessage(m store.GetMessageRow) store.Message {
 		RootID: m.RootID, AlsoInChannel: m.AlsoInChannel, PinnedAt: m.PinnedAt, PinnedBy: m.PinnedBy,
 		Title: m.Title, Tags: m.Tags,
 		LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
-		TaskID: m.TaskID, SubmissionID: m.SubmissionID}
+		TaskID: m.TaskID, SubmissionID: m.SubmissionID,
+		Priority: m.Priority, AckRequested: m.AckRequested, Persistent: m.Persistent}
 }
 
 // Purger removes deleted messages once they can no longer be restored (a

@@ -140,12 +140,13 @@ UPDATE channel_members SET role = @role WHERE channel_id = @channel_id AND user_
 -- CreateMessage inserts a message; with a nonce the author used before it
 -- returns nothing (see GetMessageByNonce).
 INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files, root_id, also_in_channel, title, tags,
-                      link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id)
+                      link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id,
+                      priority, ack_requested, persistent)
 VALUES (@channel_id, @author_id, @body, @nonce, @attachments, @has_files, sqlc.narg(root_id), @also_in_channel,
         sqlc.narg(title), coalesce(@tags::text[], '{}'),
         sqlc.narg(link_url), CASE WHEN sqlc.narg(link_url)::text IS NULL THEN NULL ELSE 'pending' END,
         sqlc.narg(forward), sqlc.narg(sticker_id), sqlc.narg(burn_seconds), sqlc.narg(task_id),
-        sqlc.narg(submission_id))
+        sqlc.narg(submission_id), sqlc.narg(priority), @ack_requested, @persistent)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
 RETURNING *;
 

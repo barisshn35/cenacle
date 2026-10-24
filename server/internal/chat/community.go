@@ -51,6 +51,11 @@ type postExtras struct {
 	// A workflow's task card or a form's answers.
 	task       pgtype.UUID
 	submission pgtype.UUID
+	// Priority (important, urgent), asking for acknowledgements, reminding
+	// the people mentioned.
+	priority     pgtype.Text
+	ackRequested bool
+	persistent   bool
 }
 
 func (e postExtras) titleText() string { return e.title.String }
@@ -85,6 +90,25 @@ func (h *Handlers) messageExtras(c store.Channel, in api.NewMessage) (postExtras
 			}
 		}
 		out.tags = tags
+	}
+	if in.Priority != nil || in.RequestAck != nil || in.Persistent != nil {
+		if in.RootId != nil {
+			return out, "Replies cannot have a priority or ask for acknowledgements."
+		}
+		if in.Priority != nil {
+			if !in.Priority.Valid() {
+				return out, "priority is important or urgent."
+			}
+			out.priority = pgtype.Text{String: string(*in.Priority), Valid: true}
+		}
+		out.ackRequested = in.RequestAck != nil && *in.RequestAck
+		out.persistent = in.Persistent != nil && *in.Persistent
+		if out.persistent && out.priority.String != "urgent" {
+			return out, "Only urgent messages remind the people they mention."
+		}
+		if out.persistent && len(mentionedIDs(in.Body)) == 0 && len(groupHandles(in.Body)) == 0 {
+			return out, "Persistent notifications need someone mentioned (a person or a group)."
+		}
 	}
 	if in.Poll != nil {
 		p := in.Poll

@@ -15,6 +15,7 @@ type Querier interface {
 	// AcceptSharedChannel records the id the other side gave a channel we offered.
 	AcceptSharedChannel(ctx context.Context, arg AcceptSharedChannelParams) (SharedChannel, error)
 	AcceptTerms(ctx context.Context, arg AcceptTermsParams) error
+	AckMessage(ctx context.Context, arg AckMessageParams) (int64, error)
 	ActivateFederationConnection(ctx context.Context, arg ActivateFederationConnectionParams) (FederationConnection, error)
 	// ActiveSharesOfChannel returns where a channel's events go: active shares of
 	// active connections.
@@ -200,6 +201,10 @@ type Querier interface {
 	DeleteWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) error
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
 	DueFederationConnections(ctx context.Context) ([]pgtype.UUID, error)
+	// DueReminders lists the people persistent messages mention (themselves or
+	// through a group) who are still in the channel, have not acknowledged them
+	// and are due another reminder under their workspace's rules.
+	DueReminders(ctx context.Context) ([]DueRemindersRow, error)
 	EditMessage(ctx context.Context, arg EditMessageParams) (Message, error)
 	// EmailRecipients are people who want e-mail about what they missed and have
 	// a verified address.
@@ -357,6 +362,8 @@ type Querier interface {
 	// LeaveWorkspacesViaGroup takes back group-given memberships no group gives
 	// any more (and the person's channels there); it returns those workspaces.
 	LeaveWorkspacesViaGroup(ctx context.Context, arg LeaveWorkspacesViaGroupParams) ([]pgtype.UUID, error)
+	// ListAcks returns who acknowledged messages, in the order they did.
+	ListAcks(ctx context.Context, messageIds []pgtype.UUID) ([]ListAcksRow, error)
 	// ListActivity returns what happened for a user in the last 30 days, newest
 	// first: mentions, replies in threads they follow and reactions to their
 	// messages, in channels they belong to.
@@ -558,6 +565,7 @@ type Querier interface {
 	QueueFederationDelivery(ctx context.Context, arg QueueFederationDeliveryParams) error
 	RecordAIRequest(ctx context.Context, arg RecordAIRequestParams) error
 	RecordFederatedMessage(ctx context.Context, arg RecordFederatedMessageParams) error
+	RecordReminder(ctx context.Context, arg RecordReminderParams) error
 	ReleaseLegalHold(ctx context.Context, arg ReleaseLegalHoldParams) (LegalHold, error)
 	// ReleaseUsername takes a @username from others when the directory gives it
 	// to someone (they get a new one).
@@ -686,6 +694,7 @@ type Querier interface {
 	// writes low while the idle timeout stays accurate to the minute.
 	TouchSession(ctx context.Context, arg TouchSessionParams) error
 	TouchWebhook(ctx context.Context, id pgtype.UUID) error
+	UnackMessage(ctx context.Context, arg UnackMessageParams) (int64, error)
 	UnshareChannel(ctx context.Context, arg UnshareChannelParams) error
 	UpdateAutomodRule(ctx context.Context, arg UpdateAutomodRuleParams) (AutomodRule, error)
 	UpdateBot(ctx context.Context, arg UpdateBotParams) error

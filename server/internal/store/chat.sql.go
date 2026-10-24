@@ -199,14 +199,15 @@ func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversation
 
 const createMessage = `-- name: CreateMessage :one
 INSERT INTO messages (channel_id, author_id, body, nonce, attachments, has_files, root_id, also_in_channel, title, tags,
-                      link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id)
+                      link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id,
+                      priority, ack_requested, persistent)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
         $9, coalesce($10::text[], '{}'),
         $11, CASE WHEN $11::text IS NULL THEN NULL ELSE 'pending' END,
         $12, $13, $14, $15,
-        $16)
+        $16, $17, $18, $19)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
 `
 
 type CreateMessageParams struct {
@@ -226,6 +227,9 @@ type CreateMessageParams struct {
 	BurnSeconds   pgtype.Int4 `json:"burn_seconds"`
 	TaskID        pgtype.UUID `json:"task_id"`
 	SubmissionID  pgtype.UUID `json:"submission_id"`
+	Priority      pgtype.Text `json:"priority"`
+	AckRequested  bool        `json:"ack_requested"`
+	Persistent    bool        `json:"persistent"`
 }
 
 // CreateMessage inserts a message; with a nonce the author used before it
@@ -248,6 +252,9 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		arg.BurnSeconds,
 		arg.TaskID,
 		arg.SubmissionID,
+		arg.Priority,
+		arg.AckRequested,
+		arg.Persistent,
 	)
 	var i Message
 	err := row.Scan(
@@ -275,6 +282,9 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.BurnSeconds,
 		&i.TaskID,
 		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
 	)
 	return i, err
 }
@@ -294,7 +304,7 @@ func (q *Queries) DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, er
 const deleteMessage = `-- name: DeleteMessage :one
 UPDATE messages SET deleted_at = now(), deleted_by = $1
 WHERE id = $2 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
 `
 
 type DeleteMessageParams struct {
@@ -330,6 +340,9 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (M
 		&i.BurnSeconds,
 		&i.TaskID,
 		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
 	)
 	return i, err
 }
@@ -337,7 +350,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (M
 const editMessage = `-- name: EditMessage :one
 UPDATE messages SET body = $1, edited_at = now()
 WHERE id = $2 AND deleted_at IS NULL
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
 `
 
 type EditMessageParams struct {
@@ -373,6 +386,9 @@ func (q *Queries) EditMessage(ctx context.Context, arg EditMessageParams) (Messa
 		&i.BurnSeconds,
 		&i.TaskID,
 		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
 	)
 	return i, err
 }
@@ -539,7 +555,7 @@ func (q *Queries) GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (s
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, m.priority, m.ack_requested, m.persistent, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.id = $1 AND m.channel_id = $2
@@ -575,6 +591,9 @@ type GetMessageRow struct {
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
 	TaskID        pgtype.UUID        `json:"task_id"`
 	SubmissionID  pgtype.UUID        `json:"submission_id"`
+	Priority      pgtype.Text        `json:"priority"`
+	AckRequested  bool               `json:"ack_requested"`
+	Persistent    bool               `json:"persistent"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -607,6 +626,9 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMess
 		&i.BurnSeconds,
 		&i.TaskID,
 		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
 		&i.AuthorName,
 		&i.AuthorIsBot,
 	)
@@ -614,7 +636,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (GetMess
 }
 
 const getMessageByNonce = `-- name: GetMessageByNonce :one
-SELECT id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id FROM messages WHERE author_id = $1 AND nonce = $2
+SELECT id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent FROM messages WHERE author_id = $1 AND nonce = $2
 `
 
 type GetMessageByNonceParams struct {
@@ -650,6 +672,9 @@ func (q *Queries) GetMessageByNonce(ctx context.Context, arg GetMessageByNoncePa
 		&i.BurnSeconds,
 		&i.TaskID,
 		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
 	)
 	return i, err
 }
@@ -1054,7 +1079,7 @@ func (q *Queries) ListMessageEdits(ctx context.Context, messageID pgtype.UUID) (
 }
 
 const listMessagesBefore = `-- name: ListMessagesBefore :many
-SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, u.display_name AS author_name, u.is_bot AS author_is_bot
+SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, m.priority, m.ack_requested, m.persistent, u.display_name AS author_name, u.is_bot AS author_is_bot
 FROM messages m
 JOIN users u ON u.id = m.author_id
 WHERE m.channel_id = $1
@@ -1096,6 +1121,9 @@ type ListMessagesBeforeRow struct {
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
 	TaskID        pgtype.UUID        `json:"task_id"`
 	SubmissionID  pgtype.UUID        `json:"submission_id"`
+	Priority      pgtype.Text        `json:"priority"`
+	AckRequested  bool               `json:"ack_requested"`
+	Persistent    bool               `json:"persistent"`
 	AuthorName    string             `json:"author_name"`
 	AuthorIsBot   bool               `json:"author_is_bot"`
 }
@@ -1137,6 +1165,9 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.BurnSeconds,
 			&i.TaskID,
 			&i.SubmissionID,
+			&i.Priority,
+			&i.AckRequested,
+			&i.Persistent,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 		); err != nil {
@@ -1265,7 +1296,7 @@ func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) (int
 const restoreMessage = `-- name: RestoreMessage :one
 UPDATE messages SET deleted_at = NULL, deleted_by = NULL
 WHERE id = $1 AND deleted_at > now() - $2::interval
-RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
 `
 
 type RestoreMessageParams struct {
@@ -1302,6 +1333,9 @@ func (q *Queries) RestoreMessage(ctx context.Context, arg RestoreMessageParams) 
 		&i.BurnSeconds,
 		&i.TaskID,
 		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
 	)
 	return i, err
 }

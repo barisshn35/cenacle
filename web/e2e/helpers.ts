@@ -427,6 +427,8 @@ export interface MockApi {
   reads: Map<string, string>;
   /** Marked unread: "channel id" or "channel id:message id". */
   unreads: string[];
+  /** Acknowledgements sent: "PUT <message id>" or "DELETE <message id>". */
+  acks: string[];
   /** The person's sidebar arrangement as the fake server keeps it. */
   sidebar: Record<string, unknown>;
   /** Mention groups as the fake server keeps them (with their members). */
@@ -742,6 +744,7 @@ export async function mockApi(
     sent: [],
     reads: new Map(),
     unreads: [],
+    acks: [],
     sidebar: { order: [], sections: [], placements: {}, group_unreads: false, collapsed: [] },
     groups: [],
     reacted: [],
@@ -920,6 +923,12 @@ export async function mockApi(
     const c = all.find((x) => x.id === id)!;
     return { id: c.id, name: c.name, kind: c.kind, workspace_id: c.workspace_id };
   };
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}\/ack$/, (route) => {
+    api.acks.push(
+      `${route.request().method()} ${route.request().url().split('/messages/')[1]!.split('/')[0]}`,
+    );
+    return route.fulfill({ status: 204 });
+  });
   const edits: Record<string, { body: string; written_at: string; replaced_at: string }[]> = {};
   await page.route(/\/api\/channels\/[0-9a-f-]{36}\/messages\/[0-9a-f-]{36}\/edits$/, (route) => {
     const id = route.request().url().split('/messages/')[1]!.split('/')[0]!;
@@ -988,6 +997,9 @@ export async function mockApi(
       poll?: { options: string[]; multiple?: boolean; anonymous?: boolean };
       sticker_id?: string;
       burn_seconds?: number;
+      priority?: string;
+      request_ack?: boolean;
+      persistent?: boolean;
     };
     api.sent.push(input);
     const message = {
@@ -1009,6 +1021,9 @@ export async function mockApi(
       ...(input.burn_seconds
         ? { burn: { seconds: input.burn_seconds, revealed_at: null, hidden: false } }
         : {}),
+      ...(input.priority ? { priority: input.priority } : {}),
+      ...(input.request_ack ? { ack: { count: 0, me: false, people: [] } } : {}),
+      ...(input.persistent ? { persistent: true } : {}),
       ...(input.poll
         ? {
             poll: {

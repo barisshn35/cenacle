@@ -55,6 +55,7 @@ import {
 import { WorkspaceGroupsSection } from './directory-groups';
 import {
   EditHistorySetting,
+  PersistentSetting,
   WorkspaceAppearanceForm,
   WorkspaceDetailsForm,
 } from './workspace-details';
@@ -412,6 +413,7 @@ function WorkspaceSettingsDialog({
               <>
                 <WorkspaceDetailsForm workspace={workspace} />
                 <EditHistorySetting workspace={workspace} />
+                <PersistentSetting workspace={workspace} />
                 <WorkspaceAppearanceForm workspace={workspace} />
                 <EmojiAndStickers workspace={workspace} />
               </>

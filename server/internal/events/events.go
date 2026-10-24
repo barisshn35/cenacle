@@ -44,6 +44,11 @@ const (
 	// GroupsChanged (a workspace's mention groups or their members changed)
 	// goes to the members of the workspace.
 	GroupsChanged = "groups.changed"
+	// MessageAck (someone acknowledged a message) goes to the channel's
+	// members; MessageReminder (an urgent message waits for an
+	// acknowledgement) to the person reminded.
+	MessageAck      = "message.ack"
+	MessageReminder = "message.reminder"
 	// CategoriesChanged goes to the members of a workspace.
 	CategoriesChanged = "categories.changed"
 	// WorkspaceJoined and WorkspaceLeft go to the user concerned (joined is also

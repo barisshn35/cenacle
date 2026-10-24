@@ -240,3 +240,72 @@ export function EditHistorySetting({ workspace }: { workspace: Workspace }) {
     </fieldset>
   );
 }
+
+const EVERY = [1, 2, 5, 10, 15, 30, 60] as const;
+const TIMES = [3, 6, 10, 20] as const;
+
+/** Whether urgent messages may remind the people they mention, how often and how many times. */
+export function PersistentSetting({ workspace }: { workspace: Workspace }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const ids = { on: useId(), every: useId(), times: useId() };
+  const set = useMutation({
+    mutationFn: (patch: Parameters<typeof updateWorkspace>[1]) =>
+      updateWorkspace(workspace.id, patch),
+    onSuccess: () => reloadWorkspaces(queryClient),
+    onError: () => toast.error(t('channels.changeFailed')),
+  });
+  const on = workspace.persistent_notifications !== false;
+  const select =
+    'h-8 min-h-target rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60';
+  return (
+    <fieldset className="flex flex-col gap-2 border-t pt-5">
+      <legend className="text-sm font-semibold">{t('priority.settingTitle')}</legend>
+      <p className="text-xs text-muted-foreground">{t('priority.settingHint')}</p>
+      <div className="flex min-h-target items-center gap-2.5 text-sm">
+        <input
+          id={ids.on}
+          type="checkbox"
+          className="size-4"
+          checked={on}
+          onChange={(e) => set.mutate({ persistent_notifications: e.target.checked })}
+        />
+        <label htmlFor={ids.on}>{t('priority.settingOn')}</label>
+      </div>
+      <div className="flex flex-wrap items-center gap-4 text-sm">
+        <label htmlFor={ids.every} className="flex items-center gap-2">
+          {t('priority.settingEvery')}
+          <select
+            id={ids.every}
+            className={select}
+            disabled={!on}
+            value={workspace.persistent_every_minutes ?? 5}
+            onChange={(e) => set.mutate({ persistent_every_minutes: Number(e.target.value) })}
+          >
+            {EVERY.map((m) => (
+              <option key={m} value={m}>
+                {t('priority.minutes', { count: m })}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label htmlFor={ids.times} className="flex items-center gap-2">
+          {t('priority.settingTimes')}
+          <select
+            id={ids.times}
+            className={select}
+            disabled={!on}
+            value={workspace.persistent_times ?? 6}
+            onChange={(e) => set.mutate({ persistent_times: Number(e.target.value) })}
+          >
+            {TIMES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+    </fieldset>
+  );
+}

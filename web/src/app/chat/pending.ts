@@ -19,6 +19,8 @@ export interface PendingMessage {
   sticker?: { id: string; name: string; url: string };
   /** Burn-on-read: seconds each recipient can read it for. */
   burnSeconds?: number;
+  /** Priority, asking for acknowledgements, reminding the people mentioned. */
+  priority?: Priority;
   status: 'sending' | 'failed';
   /** Seconds to wait when the server said "too fast". */
   retryAfter?: number;
@@ -44,4 +46,11 @@ export const usePending = create<PendingState>()((set) => ({
 
 export function newNonce(): string {
   return crypto.randomUUID();
+}
+
+/** What the sender chose in the composer's priority menu. */
+export interface Priority {
+  level?: 'important' | 'urgent';
+  requestAck?: boolean;
+  persistent?: boolean;
 }

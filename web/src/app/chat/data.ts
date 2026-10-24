@@ -423,6 +423,38 @@ export function applyReaction(
   });
 }
 
+/** Someone acknowledged a message, or took it back (here or elsewhere). */
+export function applyAck(
+  queryClient: QueryClient,
+  ev: {
+    channel_id: string;
+    message_id: string;
+    user_id: string;
+    display_name: string;
+    acked: boolean;
+  },
+  selfId: string,
+): void {
+  patchMessage(queryClient, ev.channel_id, ev.message_id, (m) => {
+    if (!m.ack) return m;
+    const has = m.ack.people.some((p) => p.id === ev.user_id);
+    if (ev.acked === has) return m;
+    const people = ev.acked
+      ? [...m.ack.people, { id: ev.user_id, display_name: ev.display_name }]
+      : m.ack.people.filter((p) => p.id !== ev.user_id);
+    return {
+      ...m,
+      ack: {
+        count: Math.max(m.ack.count + (ev.acked ? 1 : -1), 0),
+        me: ev.user_id === selfId ? ev.acked : m.ack.me,
+        people,
+      },
+    };
+  });
+}
+export const ackMessage = (m: Pick<Message, 'id' | 'channel_id'>, acked: boolean) =>
+  apiFetch<void>(`${messageUrl(m)}/ack`, { method: acked ? 'PUT' : 'DELETE' });
+
 export const addReaction = (m: Pick<Message, 'id' | 'channel_id'>, emoji: string) =>
   apiFetch<void>(`${messageUrl(m)}/reactions/${encodeURIComponent(emoji)}`, { method: 'PUT' });
 export const removeReaction = (m: Pick<Message, 'id' | 'channel_id'>, emoji: string) =>

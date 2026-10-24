@@ -2149,5 +2149,31 @@
     "reload": "Yeniden yükle",
     "fullScreen": "Tam ekran",
     "open": "Klavye kısayolları"
+  },
+  "priority": {
+    "open": "Mesaj önceliği",
+    "title": "Öncelik",
+    "standard": "Normal",
+    "important": "Önemli",
+    "urgent": "Acil",
+    "requestAck": "Onay iste",
+    "persistent": "Anılanlara hatırlat",
+    "persistentHint": "Onaylayana kadar {{minutes}} dakikada bir, en çok {{times}} kez. Birini anan acil mesajlar için.",
+    "clear": "Önceliği kaldır",
+    "reminding": "Anılanlara hatırlatılıyor",
+    "ack": "Onayla",
+    "acked": "Onaylandı",
+    "noAcks": "Henüz kimse onaylamadı.",
+    "acks_one": "{{names}} onayladı",
+    "acks_other": "{{count}} kişi onayladı: {{names}}…",
+    "ackFailed": "Onayın kaydedilemedi. Tekrar dene.",
+    "reminderTitle": "{{name}} kişisinden acil mesaj seni bekliyor",
+    "settingTitle": "Acil mesaj hatırlatmaları",
+    "settingHint": "Acil bir mesaj, andığı kişilere onaylayana kadar hatırlatılabilir.",
+    "settingOn": "Hatırlatmalara izin ver",
+    "settingEvery": "Sıklık",
+    "settingTimes": "En çok",
+    "minutes_one": "{{count}} dakika",
+    "minutes_other": "{{count}} dakika"
   }
 }

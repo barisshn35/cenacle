@@ -121,6 +121,11 @@ paths:
                   type: string
                   enum: [author, everyone]
                   description: Who sees the earlier versions of edited messages.
+                persistent_notifications:
+                  type: boolean
+                  description: Urgent messages may remind the people they mention.
+                persistent_every_minutes: { type: integer, minimum: 1, maximum: 60 }
+                persistent_times: { type: integer, minimum: 1, maximum: 20 }
       responses:
         '200':
           description: Changed.
@@ -2508,6 +2513,27 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/messages/{message_id}/ack:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [chat]
+      operationId: ackMessage
+      summary: Acknowledge a message that asks for it (channel members get `message.ack`)
+      responses:
+        '204': { description: Acknowledged. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [chat]
+      operationId: unackMessage
+      summary: Take an acknowledgement back
+      responses:
+        '204': { description: Taken back. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/channels/{channel_id}/messages/{message_id}/edits:
     parameters:
       - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -6823,6 +6849,11 @@ components:
           type: string
           enum: [author, everyone]
           description: Who sees the earlier versions of edited messages (their author, or everyone who sees them).
+        persistent_notifications:
+          type: boolean
+          description: Urgent messages may remind the people they mention until they acknowledge them.
+        persistent_every_minutes: { type: integer, description: How often they are reminded. }
+        persistent_times: { type: integer, description: How many times at most. }
     WorkspaceMember:
       type: object
       required: [user, role]
@@ -7369,6 +7400,15 @@ components:
         id: { type: string, format: uuid }
         channel_id: { type: string, format: uuid }
         author: { $ref: '#/components/schemas/Author' }
+        priority:
+          type: string
+          enum: [important, urgent]
+          description: The message's priority (none when standard).
+        ack:
+          $ref: '#/components/schemas/MessageAck'
+        persistent:
+          type: boolean
+          description: The people it mentions are reminded until they acknowledge it.
         body:
           type: string
           description: |
@@ -7550,6 +7590,29 @@ components:
           minimum: 10
           maximum: 86400
           description: Burn-on-read (conversations only)—each recipient sees the text once, for this long.
+        priority:
+          type: string
+          enum: [important, urgent]
+          description: Mark the message important or urgent (not replies).
+        request_ack:
+          type: boolean
+          description: Ask readers to acknowledge the message (not replies).
+        persistent:
+          type: boolean
+          description: |
+            Remind the people it mentions until they acknowledge it (urgent messages with
+            mentions, where the workspace allows it).
+    MessageAck:
+      type: object
+      description: Acknowledgements, when the message asks for them.
+      required: [count, me, people]
+      properties:
+        count: { type: integer }
+        me: { type: boolean, description: The reader acknowledged it. }
+        people:
+          type: array
+          description: Who acknowledged it, first first (up to 50).
+          items: { $ref: '#/components/schemas/Author' }
     Reaction:
       type: object
       required: [emoji, count, me]

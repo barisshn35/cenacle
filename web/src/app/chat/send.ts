@@ -27,6 +27,7 @@ export function useSendMessage() {
         | 'alsoInChannel'
         | 'sticker'
         | 'burnSeconds'
+        | 'priority'
       >,
     ) => {
       const { update, remove } = usePending.getState();
@@ -43,6 +44,9 @@ export function useSendMessage() {
             ...(p.rootId ? { root_id: p.rootId, also_in_channel: !!p.alsoInChannel } : {}),
             ...(p.sticker ? { sticker_id: p.sticker.id } : {}),
             ...(p.burnSeconds ? { burn_seconds: p.burnSeconds } : {}),
+            ...(p.priority?.level ? { priority: p.priority.level } : {}),
+            ...(p.priority?.requestAck ? { request_ack: true } : {}),
+            ...(p.priority?.persistent ? { persistent: true } : {}),
           }),
         });
         addMessage(queryClient, message);
@@ -81,7 +85,7 @@ export function useSendMessage() {
       mentions: PendingMessage['mentions'] = [],
       files: PendingMessage['files'] = [],
       reply?: { rootId: string; alsoInChannel: boolean },
-      extra: Pick<PendingMessage, 'sticker' | 'burnSeconds'> = {},
+      extra: Pick<PendingMessage, 'sticker' | 'burnSeconds' | 'priority'> = {},
     ) => {
       const pending: PendingMessage = {
         nonce: newNonce(),

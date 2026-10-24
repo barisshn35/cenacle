@@ -152,6 +152,7 @@ func (h *Handlers) ListReplies(w http.ResponseWriter, r *http.Request, channelID
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
+			Priority: m.Priority, AckRequested: m.AckRequested, Persistent: m.Persistent,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -454,6 +455,7 @@ func (h *Handlers) ListPins(w http.ResponseWriter, r *http.Request, channelID op
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
+			Priority: m.Priority, AckRequested: m.AckRequested, Persistent: m.Persistent,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {
@@ -473,6 +475,7 @@ func messageOf(m store.GetMessagesByIDsRow) api.Message {
 		Title: m.Title, Tags: m.Tags,
 		LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 		TaskID: m.TaskID, SubmissionID: m.SubmissionID,
+		Priority: m.Priority, AckRequested: m.AckRequested, Persistent: m.Persistent,
 	}, m.AuthorName, m.AuthorIsBot)
 }
 
@@ -758,6 +761,7 @@ func (h *Handlers) ListUnreads(w http.ResponseWriter, r *http.Request, params ap
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
+			Priority: m.Priority, AckRequested: m.AckRequested, Persistent: m.Persistent,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, msgs); err != nil {

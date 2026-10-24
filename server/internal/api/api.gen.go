@@ -828,6 +828,24 @@ func (e MemberRole) Valid() bool {
 	}
 }
 
+// Defines values for MessagePriority.
+const (
+	MessagePriorityImportant MessagePriority = "important"
+	MessagePriorityUrgent    MessagePriority = "urgent"
+)
+
+// Valid indicates whether the value is a known member of the MessagePriority enum.
+func (e MessagePriority) Valid() bool {
+	switch e {
+	case MessagePriorityImportant:
+		return true
+	case MessagePriorityUrgent:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NewChannelKind.
 const (
 	NewChannelKindAnnouncement NewChannelKind = "announcement"
@@ -861,6 +879,24 @@ func (e NewChannelVisibility) Valid() bool {
 	case NewChannelVisibilityPrivate:
 		return true
 	case NewChannelVisibilityPublic:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NewMessagePriority.
+const (
+	NewMessagePriorityImportant NewMessagePriority = "important"
+	NewMessagePriorityUrgent    NewMessagePriority = "urgent"
+)
+
+// Valid indicates whether the value is a known member of the NewMessagePriority enum.
+func (e NewMessagePriority) Valid() bool {
+	switch e {
+	case NewMessagePriorityImportant:
+		return true
+	case NewMessagePriorityUrgent:
 		return true
 	default:
 		return false
@@ -2567,6 +2603,9 @@ type MentionGroupMember struct {
 
 // Message defines model for Message.
 type Message struct {
+	// Ack Acknowledgements, when the message asks for them.
+	Ack *MessageAck `json:"ack,omitempty"`
+
 	// AlsoInChannel A reply its author also sent to the channel.
 	AlsoInChannel *bool        `json:"also_in_channel,omitempty"`
 	Attachments   []Attachment `json:"attachments"`
@@ -2591,10 +2630,16 @@ type Message struct {
 	Mentions []Author `json:"mentions"`
 
 	// Nonce The client's nonce, so the sender can match its pending message.
-	Nonce    string              `json:"nonce"`
-	PinnedAt *time.Time          `json:"pinned_at,omitempty"`
-	PinnedBy *openapi_types.UUID `json:"pinned_by,omitempty"`
-	Poll     *Poll               `json:"poll,omitempty"`
+	Nonce string `json:"nonce"`
+
+	// Persistent The people it mentions are reminded until they acknowledge it.
+	Persistent *bool               `json:"persistent,omitempty"`
+	PinnedAt   *time.Time          `json:"pinned_at,omitempty"`
+	PinnedBy   *openapi_types.UUID `json:"pinned_by,omitempty"`
+	Poll       *Poll               `json:"poll,omitempty"`
+
+	// Priority The message's priority (none when standard).
+	Priority *MessagePriority `json:"priority,omitempty"`
 
 	// Reactions Reactions in the order they were first used; `me` is the reader's own.
 	Reactions []Reaction `json:"reactions"`
@@ -2611,6 +2656,20 @@ type Message struct {
 
 	// Title A forum post's title.
 	Title *string `json:"title,omitempty"`
+}
+
+// MessagePriority The message's priority (none when standard).
+type MessagePriority string
+
+// MessageAck Acknowledgements, when the message asks for them.
+type MessageAck struct {
+	Count int `json:"count"`
+
+	// Me The reader acknowledged it.
+	Me bool `json:"me"`
+
+	// People Who acknowledged it, first first (up to 50).
+	People []Author `json:"people"`
 }
 
 // MessageEdit defines model for MessageEdit.
@@ -2710,7 +2769,17 @@ type NewMessage struct {
 	// FileIds Ready files the sender uploaded into this channel (see createUpload).
 	FileIds *[]openapi_types.UUID `json:"file_ids,omitempty"`
 	Nonce   string                `json:"nonce"`
-	Poll    *NewPoll              `json:"poll,omitempty"`
+
+	// Persistent Remind the people it mentions until they acknowledge it (urgent messages with
+	// mentions, where the workspace allows it).
+	Persistent *bool    `json:"persistent,omitempty"`
+	Poll       *NewPoll `json:"poll,omitempty"`
+
+	// Priority Mark the message important or urgent (not replies).
+	Priority *NewMessagePriority `json:"priority,omitempty"`
+
+	// RequestAck Ask readers to acknowledge the message (not replies).
+	RequestAck *bool `json:"request_ack,omitempty"`
 
 	// RootId Reply in this message's thread (a reply's thread when it is a reply).
 	RootId *openapi_types.UUID `json:"root_id,omitempty"`
@@ -2722,6 +2791,9 @@ type NewMessage struct {
 	// Title Required for posts in forums (not for replies).
 	Title *string `json:"title,omitempty"`
 }
+
+// NewMessagePriority Mark the message important or urgent (not replies).
+type NewMessagePriority string
 
 // NewPoll defines model for NewPoll.
 type NewPoll struct {
@@ -3391,6 +3463,15 @@ type Workspace struct {
 	// NeedsOnboarding The workspace has a welcome you have not seen yet.
 	NeedsOnboarding *bool `json:"needs_onboarding,omitempty"`
 
+	// PersistentEveryMinutes How often they are reminded.
+	PersistentEveryMinutes *int `json:"persistent_every_minutes,omitempty"`
+
+	// PersistentNotifications Urgent messages may remind the people they mention until they acknowledge them.
+	PersistentNotifications *bool `json:"persistent_notifications,omitempty"`
+
+	// PersistentTimes How many times at most.
+	PersistentTimes *int `json:"persistent_times,omitempty"`
+
 	// Role Guests see only the channels they are in and the people in them.
 	Role WorkspaceRole `json:"role"`
 
@@ -3943,8 +4024,13 @@ type RenameWorkspaceJSONBody struct {
 	Description *string `json:"description,omitempty"`
 
 	// EditHistory Who sees the earlier versions of edited messages.
-	EditHistory *RenameWorkspaceJSONBodyEditHistory `json:"edit_history,omitempty"`
-	Name        *string                             `json:"name,omitempty"`
+	EditHistory            *RenameWorkspaceJSONBodyEditHistory `json:"edit_history,omitempty"`
+	Name                   *string                             `json:"name,omitempty"`
+	PersistentEveryMinutes *int                                `json:"persistent_every_minutes,omitempty"`
+
+	// PersistentNotifications Urgent messages may remind the people they mention.
+	PersistentNotifications *bool `json:"persistent_notifications,omitempty"`
+	PersistentTimes         *int  `json:"persistent_times,omitempty"`
 }
 
 // RenameWorkspaceJSONBodyEditHistory defines parameters for RenameWorkspace.
@@ -4634,6 +4720,12 @@ type ServerInterface interface {
 	// EditMessage Edit your own message
 	// (PATCH /api/channels/{channel_id}/messages/{message_id})
 	EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// UnackMessage Take an acknowledgement back
+	// (DELETE /api/channels/{channel_id}/messages/{message_id}/ack)
+	UnackMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// AckMessage Acknowledge a message that asks for it (channel members get `message.ack`)
+	// (PUT /api/channels/{channel_id}/messages/{message_id}/ack)
+	AckMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// ListMessageEdits The earlier versions of an edited message, the newest first
 	// (GET /api/channels/{channel_id}/messages/{message_id}/edits)
 	ListMessageEdits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
@@ -5570,6 +5662,18 @@ func (_ Unimplemented) GetMessage(w http.ResponseWriter, r *http.Request, channe
 // EditMessage Edit your own message
 // (PATCH /api/channels/{channel_id}/messages/{message_id})
 func (_ Unimplemented) EditMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UnackMessage Take an acknowledgement back
+// (DELETE /api/channels/{channel_id}/messages/{message_id}/ack)
+func (_ Unimplemented) UnackMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AckMessage Acknowledge a message that asks for it (channel members get `message.ack`)
+// (PUT /api/channels/{channel_id}/messages/{message_id}/ack)
+func (_ Unimplemented) AckMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8409,6 +8513,76 @@ func (siw *ServerInterfaceWrapper) EditMessage(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EditMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnackMessage operation middleware
+func (siw *ServerInterfaceWrapper) UnackMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnackMessage(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AckMessage operation middleware
+func (siw *ServerInterfaceWrapper) AckMessage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AckMessage(w, r, channelId, messageId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14148,6 +14322,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}", wrapper.EditMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/ack", wrapper.UnackMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/ack", wrapper.AckMessage)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/edits", wrapper.ListMessageEdits)

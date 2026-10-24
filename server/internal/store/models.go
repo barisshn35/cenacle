@@ -450,6 +450,15 @@ type Message struct {
 	BurnSeconds   pgtype.Int4        `json:"burn_seconds"`
 	TaskID        pgtype.UUID        `json:"task_id"`
 	SubmissionID  pgtype.UUID        `json:"submission_id"`
+	Priority      pgtype.Text        `json:"priority"`
+	AckRequested  bool               `json:"ack_requested"`
+	Persistent    bool               `json:"persistent"`
+}
+
+type MessageAck struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	AckedAt   time.Time   `json:"acked_at"`
 }
 
 type MessageEdit struct {
@@ -471,6 +480,13 @@ type MessageReaction struct {
 	Emoji     string      `json:"emoji"`
 	UserID    pgtype.UUID `json:"user_id"`
 	CreatedAt time.Time   `json:"created_at"`
+}
+
+type MessageReminder struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	Sent      int32       `json:"sent"`
+	LastAt    time.Time   `json:"last_at"`
 }
 
 type MessageReport struct {
@@ -774,19 +790,22 @@ type WorkflowTask struct {
 }
 
 type Workspace struct {
-	ID               pgtype.UUID `json:"id"`
-	Name             string      `json:"name"`
-	IsDefault        bool        `json:"is_default"`
-	CreatedAt        time.Time   `json:"created_at"`
-	Description      string      `json:"description"`
-	IconID           pgtype.UUID `json:"icon_id"`
-	Appearance       []byte      `json:"appearance"`
-	Welcome          []byte      `json:"welcome"`
-	RetentionDays    pgtype.Int4 `json:"retention_days"`
-	ClassificationID pgtype.UUID `json:"classification_id"`
-	AiEnabled        bool        `json:"ai_enabled"`
-	GroupCreation    string      `json:"group_creation"`
-	EditHistory      string      `json:"edit_history"`
+	ID                      pgtype.UUID `json:"id"`
+	Name                    string      `json:"name"`
+	IsDefault               bool        `json:"is_default"`
+	CreatedAt               time.Time   `json:"created_at"`
+	Description             string      `json:"description"`
+	IconID                  pgtype.UUID `json:"icon_id"`
+	Appearance              []byte      `json:"appearance"`
+	Welcome                 []byte      `json:"welcome"`
+	RetentionDays           pgtype.Int4 `json:"retention_days"`
+	ClassificationID        pgtype.UUID `json:"classification_id"`
+	AiEnabled               bool        `json:"ai_enabled"`
+	GroupCreation           string      `json:"group_creation"`
+	EditHistory             string      `json:"edit_history"`
+	PersistentNotifications bool        `json:"persistent_notifications"`
+	PersistentEveryMinutes  int32       `json:"persistent_every_minutes"`
+	PersistentTimes         int32       `json:"persistent_times"`
 }
 
 type WorkspaceAttribute struct {

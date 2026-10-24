@@ -157,6 +157,7 @@ func (h *Handlers) ListMessages(w http.ResponseWriter, r *http.Request, channelI
 			Title: m.Title, Tags: m.Tags,
 			LinkUrl: m.LinkUrl, LinkState: m.LinkState, Forward: m.Forward, StickerID: m.StickerID, BurnSeconds: m.BurnSeconds,
 			TaskID: m.TaskID, SubmissionID: m.SubmissionID,
+			Priority: m.Priority, AckRequested: m.AckRequested, Persistent: m.Persistent,
 		}, m.AuthorName, m.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, page.Messages); err != nil {
@@ -360,6 +361,7 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 		HasFiles: len(files) > 0, RootID: reply.root.ID, AlsoInChannel: reply.isReply() && reply.also,
 		Title: extra.title, Tags: extra.tags, LinkUrl: extra.link, Forward: extra.forward,
 		StickerID: extra.sticker, BurnSeconds: extra.burn, TaskID: extra.task, SubmissionID: extra.submission,
+		Priority: extra.priority, AckRequested: extra.ackRequested, Persistent: extra.persistent,
 	})
 	if isNoRows(err) {
 		msg, err = q.GetMessageByNonce(ctx, store.GetMessageByNonceParams{AuthorID: author.ID, Nonce: nonce})
@@ -478,6 +480,15 @@ func messageAPI(m store.Message, authorName string, authorIsBot bool) api.Messag
 	}
 	if m.BurnSeconds.Valid {
 		out.Burn = &api.BurnInfo{Seconds: int(m.BurnSeconds.Int32)}
+	}
+	if m.Priority.Valid {
+		out.Priority = ptr(api.MessagePriority(m.Priority.String))
+	}
+	if m.AckRequested {
+		out.Ack = &api.MessageAck{People: []api.Author{}}
+	}
+	if m.Persistent {
+		out.Persistent = &m.Persistent
 	}
 	if b := broadcasts(m.Body); len(b) > 0 {
 		out.Broadcast = &b

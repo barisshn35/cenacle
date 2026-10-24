@@ -40,7 +40,10 @@ func workspaceAPI(w store.Workspace, role string) api.Workspace {
 	return api.Workspace{Id: uuid(w.ID), Name: w.Name, Description: w.Description,
 		IconUrl: pictureURL(w.IconID, false), Appearance: workspaceAppearance(w.Appearance),
 		IsDefault: w.IsDefault, Role: api.WorkspaceRole(role), AiEnabled: ptr(w.AiEnabled),
-		EditHistory: ptr(api.WorkspaceEditHistory(w.EditHistory))}
+		EditHistory:             ptr(api.WorkspaceEditHistory(w.EditHistory)),
+		PersistentNotifications: ptr(w.PersistentNotifications),
+		PersistentEveryMinutes:  ptr(int(w.PersistentEveryMinutes)),
+		PersistentTimes:         ptr(int(w.PersistentTimes))}
 }
 
 // ListWorkspaces implements api.ServerInterface.
@@ -171,7 +174,26 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 		}
 		params.EditHistory = pgtype.Text{String: string(*in.EditHistory), Valid: true}
 	}
-	if !params.Name.Valid && !params.Description.Valid && !params.EditHistory.Valid {
+	if in.PersistentNotifications != nil {
+		params.PersistentNotifications = pgtype.Bool{Bool: *in.PersistentNotifications, Valid: true}
+	}
+	if in.PersistentEveryMinutes != nil {
+		if *in.PersistentEveryMinutes < 1 || *in.PersistentEveryMinutes > 60 {
+			badRequest(w, r, "persistent_every_minutes is 1 to 60.")
+			return
+		}
+		params.PersistentEveryMinutes = pgtype.Int4{Int32: int32(*in.PersistentEveryMinutes), Valid: true} //nolint:gosec // checked above
+	}
+	if in.PersistentTimes != nil {
+		if *in.PersistentTimes < 1 || *in.PersistentTimes > 20 {
+			badRequest(w, r, "persistent_times is 1 to 20.")
+			return
+		}
+		params.PersistentTimes = pgtype.Int4{Int32: int32(*in.PersistentTimes), Valid: true} //nolint:gosec // checked above
+	}
+	settings := params.EditHistory.Valid || params.PersistentNotifications.Valid ||
+		params.PersistentEveryMinutes.Valid || params.PersistentTimes.Valid
+	if !params.Name.Valid && !params.Description.Valid && !settings {
 		badRequest(w, r, "Change the name, the description or a setting.")
 		return
 	}
@@ -183,6 +205,11 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 	h.publish(r.Context(), events.WorkspaceUpdated, WorkspaceEvent{WorkspaceID: uuid(ws.ID).String()})
 	if in.Name != nil {
 		h.record(r, ws.ID, audit.WorkspaceRenamed, "workspace", uuid(ws.ID).String(), map[string]any{"name": ws.Name})
+	}
+	if params.PersistentNotifications.Valid || params.PersistentEveryMinutes.Valid || params.PersistentTimes.Valid {
+		h.record(r, ws.ID, audit.PersistentNotificationsChanged, "workspace", uuid(ws.ID).String(), map[string]any{
+			"enabled": ws.PersistentNotifications, "every_minutes": ws.PersistentEveryMinutes, "times": ws.PersistentTimes,
+		})
 	}
 	if in.EditHistory != nil {
 		h.record(r, ws.ID, audit.EditHistoryChanged, "workspace", uuid(ws.ID).String(), map[string]any{"edit_history": ws.EditHistory})

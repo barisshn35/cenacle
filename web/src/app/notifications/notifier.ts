@@ -12,6 +12,8 @@ import {
   type NotificationSettings,
 } from './notifications';
 import { playSound } from './sounds';
+import i18next from 'i18next';
+import { toast } from 'sonner';
 import { plainOf } from '../compliance/e2e';
 import { useLayout } from '../../stores/layout';
 
@@ -91,6 +93,49 @@ export function notifyIncoming(
     n.onclick = () => {
       window.focus();
       openChannel(channel.id);
+      n.close();
+    };
+  }
+}
+
+/** An urgent message still waiting for the person's acknowledgement (message.reminder). */
+export interface Reminder {
+  channel_id: string;
+  message_id: string;
+  author_name: string;
+  channel_name: string;
+  channel_kind: string;
+  body: string;
+}
+
+/**
+ * Reminds the person of an urgent message they have not acknowledged: always
+ * with a sound and a note in the app, and a desktop notification when the
+ * page is not in front. It follows no muting: the sender asked for it.
+ */
+export function notifyReminder(
+  queryClient: QueryClient,
+  r: Reminder,
+  openChannel: (channelId: string) => void,
+): void {
+  const settings = queryClient.getQueryData<NotificationSettings>(notificationsQuery.queryKey);
+  if (settings) playSound(soundFor(settings, r.channel_id, 'mention'), settings.prefs.volume);
+  const conversation = r.channel_kind === 'direct' || r.channel_kind === 'group';
+  const title = i18next.t('priority.reminderTitle', { name: r.author_name });
+  toast.warning(title, {
+    description: r.body,
+    duration: 15_000,
+    action: { label: i18next.t('priority.open'), onClick: () => openChannel(r.channel_id) },
+  });
+  if (canNotify() && document.visibilityState !== 'visible') {
+    const n = new Notification(conversation ? title : `${title} · ${r.channel_name}`, {
+      body: r.body,
+      tag: `reminder-${r.message_id}`,
+      requireInteraction: true,
+    });
+    n.onclick = () => {
+      window.focus();
+      openChannel(r.channel_id);
       n.close();
     };
   }

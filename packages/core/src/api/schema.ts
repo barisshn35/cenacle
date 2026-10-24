@@ -1566,6 +1566,27 @@ export interface paths {
     patch: operations['editMessage'];
     trace?: never;
   };
+  '/api/channels/{channel_id}/messages/{message_id}/ack': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Acknowledge a message that asks for it (channel members get `message.ack`) */
+    put: operations['ackMessage'];
+    post?: never;
+    /** Take an acknowledgement back */
+    delete: operations['unackMessage'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/messages/{message_id}/edits': {
     parameters: {
       query?: never;
@@ -4604,6 +4625,12 @@ export interface components {
        * @enum {string}
        */
       edit_history?: 'author' | 'everyone';
+      /** @description Urgent messages may remind the people they mention until they acknowledge them. */
+      persistent_notifications?: boolean;
+      /** @description How often they are reminded. */
+      persistent_every_minutes?: number;
+      /** @description How many times at most. */
+      persistent_times?: number;
     };
     WorkspaceMember: {
       user: components['schemas']['Person'];
@@ -5053,6 +5080,14 @@ export interface components {
       channel_id: string;
       author: components['schemas']['Author'];
       /**
+       * @description The message's priority (none when standard).
+       * @enum {string}
+       */
+      priority?: 'important' | 'urgent';
+      ack?: components['schemas']['MessageAck'];
+      /** @description The people it mentions are reminded until they acknowledge it. */
+      persistent?: boolean;
+      /**
        * @description Markdown (CommonMark with GitHub tables, strikethrough and task lists); clients
        *     render it without raw HTML. `<@user-id>` mentions a person.
        */
@@ -5197,6 +5232,26 @@ export interface components {
       sticker_id?: string;
       /** @description Burn-on-read (conversations only)—each recipient sees the text once, for this long. */
       burn_seconds?: number;
+      /**
+       * @description Mark the message important or urgent (not replies).
+       * @enum {string}
+       */
+      priority?: 'important' | 'urgent';
+      /** @description Ask readers to acknowledge the message (not replies). */
+      request_ack?: boolean;
+      /**
+       * @description Remind the people it mentions until they acknowledge it (urgent messages with
+       *     mentions, where the workspace allows it).
+       */
+      persistent?: boolean;
+    };
+    /** @description Acknowledgements, when the message asks for them. */
+    MessageAck: {
+      count: number;
+      /** @description The reader acknowledged it. */
+      me: boolean;
+      /** @description Who acknowledged it, first first (up to 50). */
+      people: components['schemas']['Author'][];
     };
     Reaction: {
       emoji: string;
@@ -5334,6 +5389,10 @@ export interface operations {
            * @enum {string}
            */
           edit_history?: 'author' | 'everyone';
+          /** @description Urgent messages may remind the people they mention. */
+          persistent_notifications?: boolean;
+          persistent_every_minutes?: number;
+          persistent_times?: number;
         };
       };
     };
@@ -7944,6 +8003,53 @@ export interface operations {
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  ackMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Acknowledged. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  unackMessage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Taken back. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };
