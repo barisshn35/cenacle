@@ -48,6 +48,17 @@ included, was there.
 
 ## Version notes
 
+### 0.36.0
+
+- Migrations: chat `00039_audit_stream`, `00040_privacy`, `00041_spillage` and
+  `00042_archive_exports`. Reversible; nothing changes until someone turns on streaming or
+  daily exports, erases a person or reports spillage.
+- Audit streaming and daily archive exports run in the server's background jobs (every
+  5 seconds and every 10 minutes); daily exports need the object store.
+- Rolling back to 0.35, with the 0.36 images: four times
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`; then the
+  previous `CENACLE_VERSION`. Erased people stay erased.
+
 ### 0.35.0
 
 - Migrations: Cenacle ID `0007_scim` (SCIM tokens and the provider's ids of people and

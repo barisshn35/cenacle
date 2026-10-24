@@ -96,6 +96,11 @@ How many connections a server keeps, the load test and its results: see the
 
 AI features are off until a model you run is configured; see the [AI guide](ai.md).
 
+## Compliance
+
+Audit log export and SIEM streaming, data subject requests, archive exports and data
+spillage: [compliance.md](compliance.md).
+
 ## Federation
 
 A workspace can share channels with a workspace of another Cenacle server (Federation, at

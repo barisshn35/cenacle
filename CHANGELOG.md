@@ -8,6 +8,25 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-10-24
+
+Compliance tooling: audit export and SIEM streaming, data subject requests, archive
+exports and data spillage (ADR 0039).
+
+### Added
+
+- **Audit log of the installation** (System console → Audit log): filter, read, download as
+  NDJSON, and **stream to a SIEM** over HTTPS (signed NDJSON) or syslog (RFC 5424 over TCP,
+  optionally TLS).
+- **Data subject requests:** people download their data (Settings → Account → Your data);
+  administrators download anyone's data and **erase** a person (System console → People);
+  legal holds keep what they hold.
+- **Archive exports** (Compliance → Archive export): CSV, Actiance XML or EML on demand, or
+  every day into the object store.
+- **Data spillage:** anyone reports a message that must not be here; the workspace's
+  spillage reviewers remove it everywhere, also from legal holds, devices and shared
+  servers, with an incident report, or dismiss the report.
+
 ## [0.35.0] - 2026-10-24
 
 Provisioning, session and network policy, federation controls and guest links (ADR 0038).
@@ -962,7 +981,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.35.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.36.0...HEAD
+[0.36.0]: https://github.com/barisshn35/cenacle/compare/v0.35.0...v0.36.0
 [0.35.0]: https://github.com/barisshn35/cenacle/compare/v0.34.0...v0.35.0
 [0.34.0]: https://github.com/barisshn35/cenacle/compare/v0.33.0...v0.34.0
 [0.33.0]: https://github.com/barisshn35/cenacle/compare/v0.32.0...v0.33.0
