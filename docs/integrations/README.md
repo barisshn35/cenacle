@@ -1,7 +1,8 @@
 # Integrations
 
 Integrations run outside Cenacle and talk to it over HTTP. Workspace owners and admins
-manage them in the app: workspace menu → **Integrations**.
+manage them in the app: workspace menu → **Integrations**. Bots written in Go or Python
+can use the [SDKs](../../sdk/README.md), which wrap what follows.
 
 ## Bots and tokens
 
@@ -112,6 +113,49 @@ Cenacle address.
 Cards: pushes (up to five commits), merge requests (opened, merged, closed, approved),
 pipelines that succeed, fail or are cancelled, issues and comments. Other events are
 accepted and ignored.
+
+## GitHub
+
+1. In Cenacle: create a bot (e.g. "GitHub") → Incoming webhooks → **GitHub events**, pick
+   the channel, create, and copy the address.
+2. In GitHub: the repository or organisation → **Settings → Webhooks → Add webhook**.
+   Paste the address as the _Payload URL_, choose `application/json`, and pick _Pushes_,
+   _Pull requests_, _Pull request reviews_, _Issues_, _Issue comments_, _Workflow runs_ and
+   _Releases_ (or "Send me everything": the rest is accepted and ignored).
+
+Cards: pushes (up to five commits), pull requests opened, reopened, ready for review,
+merged or closed, reviews (approved, changes requested), issues opened or closed,
+comments, finished workflow runs and published releases. The address is the secret; a
+GitHub webhook secret is not needed.
+
+## E-mail into a channel
+
+An **E-mails** webhook posts each e-mail it receives as a card: sender, subject, text (the
+plain-text part, or the HTML one as text) and the names of attachments, up to 10 MiB per
+e-mail. Cenacle receives no mail itself: your mail server hands e-mails over. With Postfix,
+for an address such as `ops-channel@example.com`:
+
+```text
+# /etc/aliases
+ops-channel: "|/usr/bin/curl -fsS --data-binary @- https://chat.example.com/api/hooks/cnh_…"
+```
+
+(run `newaliases` afterwards). With a mailbox elsewhere, `fetchmail` with an `mda` running
+the same `curl` works the same way.
+
+## Feeds (RSS, Atom)
+
+A channel follows a feed with a built-in command (its managers):
+
+- `/feed subscribe https://example.com/releases.atom`
+- `/feed list` (anyone in the channel)
+- `/feed unsubscribe https://example.com/releases.atom`
+
+Cenacle reads each feed every 15 minutes (less often while it fails, up to every 8 hours)
+and posts new items as cards from the workspace's **Cenacle** bot, at most five at a time.
+Items the feed had when it was added are not posted. A channel follows up to 20 feeds;
+feeds are read under the same network rules as bots (`CENACLE_EGRESS_ALLOW` for addresses
+inside your network).
 
 ## Alertmanager
 
@@ -263,3 +307,91 @@ hour between attempts, eight attempts in all; then the delivery is marked failed
 **Deliveries** list of a subscription shows each delivery's state, last HTTP status and
 error, and can send any delivery again. Deliveries are kept for 14 days. A delivery can
 arrive more than once: use its id to ignore repeats.
+
+## Interactive messages
+
+A bot's cards can carry up to five **buttons** and **menus**, and a bot can open a
+**dialog** (a form) for the person who used them. Set the bot's interactions address
+under Integrations → the bot → **Interactions**; the signing secret (`cns_…`) is shown once
+and requests are signed as above.
+
+A card with actions (posted with the bot's token, a webhook or a command answer):
+
+```json
+{
+  "title": "Release 1.4",
+  "actions": [
+    { "id": "approve", "type": "button", "text": "Approve", "style": "primary", "value": "1.4" },
+    {
+      "id": "env",
+      "type": "select",
+      "text": "Environment",
+      "options": [{ "text": "Production", "value": "prod" }]
+    }
+  ]
+}
+```
+
+`id` is 1–64 lowercase letters, digits, `-` or `_`; `style` is `default`, `primary` or
+`danger`; a menu has up to 25 options. When someone presses a button or picks an option,
+the bot receives:
+
+```json
+{
+  "type": "action",
+  "action_id": "approve",
+  "value": "1.4",
+  "message_id": "…",
+  "attachment": 0,
+  "user": { "id": "…", "name": "Ayşe Yılmaz" },
+  "channel": { "id": "…", "name": "releases" },
+  "workspace_id": "…"
+}
+```
+
+It answers within 10 seconds with any of:
+
+```json
+{
+  "text": "Approved.",
+  "update": { "text": "Release 1.4", "attachments": [ … ] },
+  "dialog": {
+    "title": "Deploy 1.4",
+    "submit_label": "Deploy",
+    "state": "anything the bot wants back",
+    "elements": [
+      { "name": "reason", "label": "Reason", "type": "text" },
+      { "name": "when", "label": "When", "type": "date", "optional": true },
+      { "name": "env", "label": "Where", "type": "select", "options": [ … ] },
+      { "name": "notify", "label": "Tell the team", "type": "checkbox" }
+    ]
+  }
+}
+```
+
+- `text` is shown to the person only.
+- `update` replaces the message's text and/or cards (not marked edited); leave out what
+  stays.
+- `dialog` opens a form: up to 10 fields of type `text`, `textarea`, `select`, `checkbox` or
+  `date`, with `placeholder`, `help`, `value`, `optional` and `max_length`. A slash command
+  answer can carry a `dialog` too.
+
+Cenacle checks the fields (required ones, lengths, menu options, dates as `YYYY-MM-DD`)
+before the bot receives:
+
+```json
+{
+  "type": "dialog_submission",
+  "dialog_id": "…",
+  "values": { "reason": "hotfix", "when": "", "env": "prod", "notify": true },
+  "state": "anything the bot wants back",
+  "message_id": "…",
+  "user": { … },
+  "channel": { … },
+  "workspace_id": "…"
+}
+```
+
+Answer `{"errors": {"reason": "Say why."}}` to keep the dialog open with those messages, or
+`{}` / `{"text": …, "update": …}` to close it. Dialogs expire after 15 minutes. A bot that
+does not answer, answers an error or invalid JSON shows the person "The app did not answer".

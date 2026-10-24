@@ -18,6 +18,7 @@ async function mockBots(page: Page) {
     description: string;
     disabled: boolean;
     created_at: string;
+    interactions_url?: string | null;
   }[] = [];
   const tokens: {
     id: string;
@@ -181,6 +182,14 @@ async function mockBots(page: Page) {
     resent++;
     return route.fulfill({ status: 204 });
   });
+  await page.route(/\/api\/bots\/[0-9a-f-]{36}\/interactions$/, (route) => {
+    if (route.request().method() === 'PUT') {
+      bots[0]!.interactions_url = (route.request().postDataJSON() as { url: string }).url;
+      return route.fulfill({ json: { secret: 'cns_interactions-0123456789' } });
+    }
+    bots[0]!.interactions_url = null;
+    return route.fulfill({ status: 204 });
+  });
   return { resent: () => resent };
 }
 
@@ -298,4 +307,22 @@ test('messages of bots carry a badge', async ({ page }) => {
   await mockApi(page, { messages: [message] });
   await page.goto(`/c/${GENERAL.id}`);
   await expect(page.getByTestId('message').first().getByTestId('bot-badge')).toHaveText('Bot');
+});
+
+test('a bot gets an interactions address', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'the workspace menu is in the drawer on phones');
+  await mockApi(page, { admin: true });
+  await mockBots(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Workspace menu/ }).click();
+  await page.getByRole('menuitem', { name: 'Integrations' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Integrations' });
+  await dialog.getByRole('button', { name: 'New bot' }).click();
+  await dialog.getByLabel('Name').fill('Deploy');
+  await dialog.getByRole('button', { name: 'Create bot' }).click();
+  await dialog.getByRole('button', { name: 'Interactions' }).click();
+  await dialog.getByLabel('Request address').fill('https://ci.example.com/interactions');
+  await dialog.getByRole('button', { name: 'Turn on' }).click();
+  await expect(dialog.getByTestId('secret')).toHaveText('cns_interactions-0123456789');
+  await expectNoAxeViolations(page, '[role="dialog"]');
 });

@@ -573,7 +573,9 @@
       "generic": "Mesajlar (JSON)",
       "jira": "Jira olayları",
       "gitlab": "GitLab olayları",
-      "alertmanager": "Alertmanager alarmları"
+      "alertmanager": "Alertmanager alarmları",
+      "github": "GitHub olayları",
+      "email": "E-postalar"
     },
     "createWebhook": "Webhook oluştur",
     "webhookCreated": "Webhook adresi:",
@@ -639,8 +641,18 @@
     "webhookCreatedFor": {
       "jira": "Webhook adresi. Jira'da: System → WebHooks → Create; adresi URL olarak yapıştır, issue created, updated, deleted ve comment created olaylarını seç.",
       "gitlab": "Webhook adresi. GitLab'da: Settings → Webhooks → Add new webhook; adresi URL olarak yapıştır, push, merge request, pipeline, issue ve comment olaylarını seç.",
-      "alertmanager": "Webhook adresi. Alertmanager'da webhook_configs ile bir receiver ekle: - url: <bu adres>."
-    }
+      "alertmanager": "Webhook adresi. Alertmanager'da webhook_configs ile bir receiver ekle: - url: <bu adres>.",
+      "github": "Webhook adresi. GitHub'da: depo → Settings → Webhooks → Add webhook; payload URL olarak yapıştır, content type application/json seç ve push, pull request, inceleme, issue, yorum, workflow run ve release olaylarını seç.",
+      "email": "Webhook adresi. Posta sunucun her e-postayı bu adrese iletsin, ör. curl --data-binary @- <bu adres> (entegrasyon rehberine bak)."
+    },
+    "interactions": "Etkileşimler",
+    "interactionsHint": "Botun kartlarındaki düğmeler, menüler ve açtığı pencereler bu adrese, komutlar gibi imzalı olarak gönderilir.",
+    "interactionsUrl": "İstek adresi",
+    "interactionsSet": "Aç",
+    "interactionsUpdate": "Değiştir ve yeni sır al",
+    "interactionsRemove": "Kapat",
+    "interactionsRemoveTitle": "Etkileşimler kapatılsın mı?",
+    "interactionsRemoveDescription": "Botun düğmeleri, menüleri ve pencereleri yeniden açılana kadar çalışmaz."
   },
   "commands": {
     "label": "Komutlar",
@@ -2204,5 +2216,12 @@
     "preview": "Önizleme",
     "previewLabel": "Mesajın önizlemesi",
     "nothing": "Henüz önizlenecek bir şey yok."
+  },
+  "interactions": {
+    "failed": "Uygulama yanıt vermedi. Daha sonra tekrar dene.",
+    "unavailable": "Bu mesajın arkasındaki uygulama şu an etkileşim almıyor.",
+    "dialogFrom": "Bunu bir uygulama istiyor. Girdiklerin ona gider.",
+    "optional": "(isteğe bağlı)",
+    "choose": "Seç…"
   }
 }

@@ -22,6 +22,8 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/integrations/alertmanager"
+	"github.com/barisshn35/cenacle/server/internal/integrations/email"
+	"github.com/barisshn35/cenacle/server/internal/integrations/github"
 	"github.com/barisshn35/cenacle/server/internal/integrations/gitlab"
 	"github.com/barisshn35/cenacle/server/internal/integrations/jira"
 	"github.com/barisshn35/cenacle/server/internal/store"
@@ -36,11 +38,22 @@ const (
 // maxHookBody bounds webhook payloads (Jira's carry the whole issue).
 const maxHookBody = 1 << 20
 
+// maxMailBody is the largest e-mail an e-mail webhook takes.
+const maxMailBody = 10 << 20
+
 func botAPI(b store.Bot, name string) api.Bot {
 	return api.Bot{
 		Id: uuid(b.ID), UserId: uuid(b.UserID), Name: name, Description: b.Description,
 		Disabled: b.DisabledAt.Valid, CreatedAt: b.CreatedAt,
+		InteractionsUrl: textPtr(b.InteractionsUrl),
 	}
+}
+
+func textPtr(t pgtype.Text) *string {
+	if !t.Valid {
+		return nil
+	}
+	return &t.String
 }
 
 func tsPtr(t pgtype.Timestamptz) *time.Time {
@@ -383,7 +396,7 @@ func (h *Handlers) CreateWebhook(w http.ResponseWriter, r *http.Request, botID o
 		return
 	}
 	name, problem := cleanName(in.Name)
-	if problem == "" && !slices.Contains([]string{"generic", "jira", "gitlab", "alertmanager"}, in.Kind) {
+	if problem == "" && !slices.Contains([]string{"generic", "jira", "gitlab", "alertmanager", "github", "email"}, in.Kind) {
 		problem = "kind must be generic, jira, gitlab or alertmanager."
 	}
 	if problem != "" {
@@ -488,18 +501,25 @@ func (h *Handlers) PostWebhook(w http.ResponseWriter, r *http.Request, token str
 			Detail: "Too many messages in a short time."})
 		return
 	}
-	payload, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxHookBody))
+	limit, limitText := int64(maxHookBody), "1 MiB"
+	if hook.Kind == "email" {
+		// E-mails come with their attachments (only their names are shown).
+		limit, limitText = maxMailBody, "10 MiB"
+	}
+	payload, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 	if err != nil {
-		badRequest(w, r, "The body is too large (1 MiB at most).")
+		badRequest(w, r, "The body is too large ("+limitText+" at most).")
 		return
 	}
 
 	var body string
 	var attachments *[]api.Attachment
 	switch hook.Kind {
-	case "jira", "gitlab", "alertmanager":
+	case "jira", "gitlab", "alertmanager", "github", "email":
 		format := map[string]func([]byte) (api.Attachment, bool, error){
-			"jira": jira.Card, "gitlab": gitlab.Card, "alertmanager": alertmanager.Card,
+			"jira": jira.Card, "gitlab": gitlab.Card, "alertmanager": alertmanager.Card, "email": email.Card,
+			// GitHub names the event in a header.
+			"github": func(b []byte) (api.Attachment, bool, error) { return github.Card(r.Header.Get("X-GitHub-Event"), b) },
 		}[hook.Kind]
 		card, ok, err := format(payload)
 		if err != nil {

@@ -573,7 +573,9 @@
       "generic": "Messages (JSON)",
       "jira": "Jira events",
       "gitlab": "GitLab events",
-      "alertmanager": "Alertmanager alerts"
+      "alertmanager": "Alertmanager alerts",
+      "github": "GitHub events",
+      "email": "E-mails"
     },
     "createWebhook": "Create webhook",
     "webhookCreated": "The webhook address:",
@@ -639,8 +641,18 @@
     "webhookCreatedFor": {
       "jira": "The webhook address. In Jira: System → WebHooks → Create, paste it as the URL and pick issue created, updated, deleted and comment created.",
       "gitlab": "The webhook address. In GitLab: Settings → Webhooks → Add new webhook, paste it as the URL and pick push, merge request, pipeline, issue and comment events.",
-      "alertmanager": "The webhook address. In Alertmanager, add a receiver with webhook_configs: - url: <this address>."
-    }
+      "alertmanager": "The webhook address. In Alertmanager, add a receiver with webhook_configs: - url: <this address>.",
+      "github": "The webhook address. In GitHub: the repository → Settings → Webhooks → Add webhook, paste it as the payload URL, content type application/json, and pick pushes, pull requests, reviews, issues, comments, workflow runs and releases.",
+      "email": "The webhook address. Have your mail server pipe each e-mail to it, e.g. curl --data-binary @- <this address> (see the integrations guide)."
+    },
+    "interactions": "Interactions",
+    "interactionsHint": "Buttons and menus on the bot's cards, and the dialogs it opens, are sent here, signed like commands.",
+    "interactionsUrl": "Request address",
+    "interactionsSet": "Turn on",
+    "interactionsUpdate": "Change and get a new secret",
+    "interactionsRemove": "Turn off",
+    "interactionsRemoveTitle": "Turn interactions off?",
+    "interactionsRemoveDescription": "The bot's buttons, menus and dialogs stop working until they are turned on again."
   },
   "commands": {
     "label": "Commands",
@@ -2204,5 +2216,12 @@
     "preview": "Preview",
     "previewLabel": "Preview of the message",
     "nothing": "Nothing to preview yet."
+  },
+  "interactions": {
+    "failed": "The app did not answer. Try again later.",
+    "unavailable": "The app behind this message takes no interactions now.",
+    "dialogFrom": "An app asks for this. What you enter goes to it.",
+    "optional": "(optional)",
+    "choose": "Choose…"
   }
 }

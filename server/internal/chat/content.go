@@ -127,6 +127,13 @@ func cleanAttachments(in *[]api.Attachment) ([]api.Attachment, []byte, string) {
 				c.Fields = &fields
 			}
 		}
+		if a.Actions != nil && len(*a.Actions) > 0 {
+			actions, problem := cleanActions(*a.Actions)
+			if problem != "" {
+				return nil, nil, problem
+			}
+			c.Actions = &actions
+		}
 		if c.Title == nil && c.Text == nil && c.Fields == nil {
 			return nil, nil, "An attachment needs a title, a text or fields."
 		}

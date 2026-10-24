@@ -1225,6 +1225,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/bots/{bot_id}/interactions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Set where the bot receives interactions; a new signing secret is shown once */
+    put: operations['setBotInteractions'];
+    post?: never;
+    /** Stop sending the bot interactions */
+    delete: operations['deleteBotInteractions'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/bots/{bot_id}/tokens/{token_id}/rotate': {
     parameters: {
       query?: never;
@@ -1606,6 +1626,49 @@ export interface paths {
     post?: never;
     /** Take an acknowledgement back */
     delete: operations['unackMessage'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/messages/{message_id}/actions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Press a button or choose in a menu of a bot's card
+     * @description Cenacle sends the bot a signed `action` request; the bot may change the message,
+     *     answer with a note for the person, or open a dialog.
+     */
+    post: operations['runMessageAction'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/dialogs/{dialog_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        dialog_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Submit a dialog a bot opened */
+    post: operations['submitDialog'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -4523,6 +4586,8 @@ export interface components {
       disabled: boolean;
       /** Format: date-time */
       created_at: string;
+      /** @description Where the bot receives button presses, menu choices and dialog submissions. */
+      interactions_url?: string | null;
     };
     BotToken: {
       /** Format: uuid */
@@ -4541,7 +4606,7 @@ export interface components {
       id: string;
       name: string;
       /** @enum {string} */
-      kind: 'generic' | 'jira' | 'gitlab' | 'alertmanager';
+      kind: 'generic' | 'jira' | 'gitlab' | 'alertmanager' | 'github' | 'email';
       /** Format: uuid */
       channel_id: string;
       channel_name: string;
@@ -4559,6 +4624,54 @@ export interface components {
       text?: string;
       attachments?: components['schemas']['Attachment'][];
       message?: components['schemas']['Message'];
+      dialog?: components['schemas']['Dialog'];
+    };
+    /** @description What a bot answered to a button, a menu choice or a dialog. */
+    InteractionResult: {
+      /** @description A note for the person only. */
+      text?: string;
+      dialog?: components['schemas']['Dialog'];
+      /** @description A dialog's fields the bot refused, with why (the dialog stays open). */
+      errors?: {
+        [key: string]: string;
+      };
+    };
+    /** @description A form a bot opened for the person. */
+    Dialog: {
+      /** Format: uuid */
+      id: string;
+      title: string;
+      submit_label: string;
+      elements: components['schemas']['DialogElement'][];
+    };
+    DialogElement: {
+      name: string;
+      label: string;
+      /** @enum {string} */
+      type: 'text' | 'textarea' | 'select' | 'checkbox' | 'date';
+      placeholder?: string;
+      help?: string;
+      optional?: boolean;
+      value?: string;
+      max_length?: number;
+      options?: components['schemas']['ActionOption'][];
+    };
+    /** @description A button or a menu on a bot's card. */
+    AttachmentAction: {
+      id: string;
+      /** @enum {string} */
+      type: 'button' | 'select';
+      /** @description A button's label, a menu's placeholder. */
+      text: string;
+      /** @enum {string} */
+      style?: 'default' | 'primary' | 'danger';
+      /** @description Sent back when the button is pressed. */
+      value?: string;
+      options?: components['schemas']['ActionOption'][];
+    };
+    ActionOption: {
+      text: string;
+      value: string;
     };
     CommandInfo: {
       trigger: string;
@@ -5304,6 +5417,8 @@ export interface components {
         short?: boolean;
       }[];
       footer?: string;
+      /** @description Buttons and menus (bots with an interactions address). */
+      actions?: components['schemas']['AttachmentAction'][];
     };
     MessagePage: {
       messages: components['schemas']['Message'][];
@@ -7135,7 +7250,7 @@ export interface operations {
           /** Format: uuid */
           channel_id: string;
           /** @enum {string} */
-          kind: 'generic' | 'jira' | 'gitlab' | 'alertmanager';
+          kind: 'generic' | 'jira' | 'gitlab' | 'alertmanager' | 'github' | 'email';
         };
       };
     };
@@ -7503,6 +7618,64 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description Queued. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setBotInteractions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          url: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Set. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @description Signs the requests (cns_…); shown once. */
+            secret: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  deleteBotInteractions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
       204: {
         headers: {
           [name: string]: unknown;
@@ -8114,6 +8287,76 @@ export interface operations {
       };
       401: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  runMessageAction: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          attachment: number;
+          action_id: string;
+          /** @description The menu option chosen. */
+          value?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The bot's answer. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InteractionResult'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      502: components['responses']['Problem'];
+    };
+  };
+  submitDialog: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        dialog_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          values: {
+            [key: string]: string;
+          };
+        };
+      };
+    };
+    responses: {
+      /** @description The bot's answer (with errors, the dialog stays open). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InteractionResult'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      502: components['responses']['Problem'];
     };
   };
   listMessageEdits: {

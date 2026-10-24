@@ -6,6 +6,7 @@ import {
   BotIcon,
   CopyIcon,
   KeyRoundIcon,
+  MousePointerClickIcon,
   PlusIcon,
   RadioTowerIcon,
   SquareSlashIcon,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { ApiError } from '@cenacle/core/api';
+import { ApiError, apiFetch } from '@cenacle/core/api';
 import { Button } from '@cenacle/ui/components/button';
 import { ConfirmDialog } from '@cenacle/ui/components/confirm-dialog';
 import {
@@ -426,7 +427,7 @@ function Webhooks({ bot, workspace }: { bot: Bot; workspace: Workspace }) {
           value={kind}
           onChange={(e) => setKind(e.target.value as Webhook['kind'])}
         >
-          {(['generic', 'jira', 'gitlab', 'alertmanager'] as const).map((k) => (
+          {(['generic', 'jira', 'gitlab', 'github', 'alertmanager', 'email'] as const).map((k) => (
             <option key={k} value={k}>
               {t(`bots.kind.${k}`)}
             </option>
@@ -780,7 +781,86 @@ function Events({ bot }: { bot: Bot }) {
   );
 }
 
-const SECTIONS = ['tokens', 'webhooks', 'commands', 'events'] as const;
+/** Where the bot receives button presses, menu choices and dialog submissions. */
+function Interactions({ bot, workspace }: { bot: Bot; workspace: Workspace }) {
+  const { t } = useTranslation();
+  const id = useId();
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState(bot.interactions_url ?? '');
+  const [secret, setSecret] = useState<string>();
+  const [removing, setRemoving] = useState(false);
+  const reload = () => queryClient.invalidateQueries({ queryKey: ['bots', workspace.id] });
+  const save = useMutation({
+    mutationFn: () =>
+      apiFetch<{ secret: string }>(`/api/bots/${bot.id}/interactions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() }),
+      }),
+    onSuccess: async ({ secret }) => {
+      setSecret(secret);
+      await reload();
+    },
+  });
+  return (
+    <section aria-labelledby={`${id}-title`} className="flex flex-col gap-2">
+      <h3 id={`${id}-title`} className="flex items-center gap-2 text-sm font-semibold">
+        <MousePointerClickIcon aria-hidden strokeWidth={1.75} className="size-4" />
+        {t('bots.interactions')}
+      </h3>
+      <p className="text-xs text-muted-foreground">{t('bots.interactionsHint')}</p>
+      {secret && <Secret label={t('bots.signingSecret')} value={secret} />}
+      <form
+        className="grid gap-2 rounded-lg border p-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (url.trim()) save.mutate();
+        }}
+      >
+        <Label htmlFor={`${id}-url`}>{t('bots.interactionsUrl')}</Label>
+        <Input
+          id={`${id}-url`}
+          type="url"
+          value={url}
+          maxLength={2000}
+          placeholder="https://"
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        {save.isError && <InlineError problem={problemOf(save.error)} />}
+        <div className="flex gap-2">
+          <Button type="submit" disabled={!url.trim() || save.isPending}>
+            {bot.interactions_url ? t('bots.interactionsUpdate') : t('bots.interactionsSet')}
+          </Button>
+          {bot.interactions_url && (
+            <Button
+              type="button"
+              variant="outline"
+              className="text-destructive"
+              onClick={() => setRemoving(true)}
+            >
+              {t('bots.interactionsRemove')}
+            </Button>
+          )}
+        </div>
+      </form>
+      <ConfirmDialog
+        open={removing}
+        onOpenChange={setRemoving}
+        severity="s2"
+        title={t('bots.interactionsRemoveTitle')}
+        description={<p>{t('bots.interactionsRemoveDescription')}</p>}
+        confirmLabel={t('bots.interactionsRemove')}
+        onConfirm={async () => {
+          await apiFetch<void>(`/api/bots/${bot.id}/interactions`, { method: 'DELETE' });
+          setUrl('');
+          await reload();
+        }}
+      />
+    </section>
+  );
+}
+
+const SECTIONS = ['tokens', 'webhooks', 'commands', 'events', 'interactions'] as const;
 type Section = (typeof SECTIONS)[number];
 
 function BotDetails({
@@ -850,6 +930,7 @@ function BotDetails({
       {section === 'webhooks' && <Webhooks bot={bot} workspace={workspace} />}
       {section === 'commands' && <Commands bot={bot} />}
       {section === 'events' && <Events bot={bot} />}
+      {section === 'interactions' && <Interactions bot={bot} workspace={workspace} />}
       <ConfirmDialog
         open={confirmDisable}
         onOpenChange={setConfirmDisable}

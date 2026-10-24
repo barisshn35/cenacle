@@ -257,7 +257,7 @@ export function MessageRow({
               <ForwardedQuote message={m} />
               {m.poll && <PollCard message={m} channel={channel} />}
               <EditedLabel message={m} channel={channel} />
-              <Attachments items={m.attachments} selfId={self} />
+              <Attachments items={m.attachments} selfId={self} message={m} />
               <MessageFiles files={m.files} />
               <LinkPreviewCard message={m} />
               <AckBar message={m} channel={channel} />

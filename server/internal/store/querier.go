@@ -87,6 +87,7 @@ type Querier interface {
 	ConversationReads(ctx context.Context, arg ConversationReadsParams) ([]ConversationReadsRow, error)
 	CountActiveRuns(ctx context.Context, playbookID pgtype.UUID) (int32, error)
 	CountAutomodRules(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
+	CountChannelFeeds(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountChannelTabs(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountCustomEmoji(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountForms(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
@@ -124,10 +125,12 @@ type Querier interface {
 	// existing one with the same key (name).
 	CreateConversation(ctx context.Context, arg CreateConversationParams) (Channel, error)
 	CreateCustomEmoji(ctx context.Context, arg CreateCustomEmojiParams) (CustomEmoji, error)
+	CreateDialog(ctx context.Context, arg CreateDialogParams) (pgtype.UUID, error)
 	// ----------------------------------------------------------------- events ---
 	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
 	CreateFederationConnection(ctx context.Context, arg CreateFederationConnectionParams) (FederationConnection, error)
 	CreateFederationInvite(ctx context.Context, arg CreateFederationInviteParams) (FederationInvite, error)
+	CreateFeed(ctx context.Context, arg CreateFeedParams) (ChannelFeed, error)
 	CreateFile(ctx context.Context, arg CreateFileParams) (File, error)
 	CreateForm(ctx context.Context, arg CreateFormParams) (Form, error)
 	// CreateImportedUser creates (or renames) a person from an export. They sign
@@ -170,9 +173,11 @@ type Querier interface {
 	DeleteChannelOffer(ctx context.Context, id pgtype.UUID) error
 	DeleteChannelTab(ctx context.Context, id pgtype.UUID) error
 	DeleteCustomEmoji(ctx context.Context, id pgtype.UUID) error
+	DeleteDialog(ctx context.Context, id pgtype.UUID) error
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
 	DeleteFederationConnection(ctx context.Context, id pgtype.UUID) error
 	DeleteFederationDeliveries(ctx context.Context, ids []pgtype.UUID) error
+	DeleteFeed(ctx context.Context, arg DeleteFeedParams) (int64, error)
 	DeleteFiles(ctx context.Context, ids []pgtype.UUID) error
 	DeleteList(ctx context.Context, id pgtype.UUID) error
 	DeleteListItem(ctx context.Context, id pgtype.UUID) error
@@ -204,6 +209,9 @@ type Querier interface {
 	DeleteWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) error
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
 	DueFederationConnections(ctx context.Context) ([]pgtype.UUID, error)
+	// DueFeeds lists feeds to read again: every 15 minutes, less often after
+	// failures (up to every 8 hours), in channels that are not archived.
+	DueFeeds(ctx context.Context) ([]DueFeedsRow, error)
 	// DueReminders lists the people persistent messages mention (themselves or
 	// through a group) who are still in the channel, have not acknowledged them
 	// and are due another reminder under their workspace's rules.
@@ -222,6 +230,8 @@ type Querier interface {
 	// ExportMessages returns a page of messages for eDiscovery, deleted ones
 	// included, oldest first.
 	ExportMessages(ctx context.Context, arg ExportMessagesParams) ([]ExportMessagesRow, error)
+	FeedChecked(ctx context.Context, arg FeedCheckedParams) error
+	FeedFailed(ctx context.Context, arg FeedFailedParams) error
 	// FindUserByEmail finds the account of an address (a person who signed in
 	// already wins over an earlier import).
 	FindUserByEmail(ctx context.Context, email string) (User, error)
@@ -258,6 +268,7 @@ type Querier interface {
 	GetCompliance(ctx context.Context, id pgtype.UUID) (GetComplianceRow, error)
 	GetCustomEmoji(ctx context.Context, id pgtype.UUID) (CustomEmoji, error)
 	GetDefaultWorkspace(ctx context.Context) (Workspace, error)
+	GetDialog(ctx context.Context, arg GetDialogParams) (GetDialogRow, error)
 	GetDirectoryPhoto(ctx context.Context, id pgtype.UUID) (GetDirectoryPhotoRow, error)
 	GetDirectorySyncState(ctx context.Context) (DirectorySyncState, error)
 	GetEmailNotification(ctx context.Context, userID pgtype.UUID) (GetEmailNotificationRow, error)
@@ -272,6 +283,9 @@ type Querier interface {
 	GetGroupCreation(ctx context.Context, id pgtype.UUID) (string, error)
 	GetInstanceAdmin(ctx context.Context) (User, error)
 	GetInstanceSettings(ctx context.Context) (bool, error)
+	// GetInteractiveBot returns the bot behind a user, when it receives interactions
+	// and is enabled.
+	GetInteractiveBot(ctx context.Context, userID pgtype.UUID) (GetInteractiveBotRow, error)
 	GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInviteByHashRow, error)
 	GetLegalHold(ctx context.Context, id pgtype.UUID) (LegalHold, error)
 	GetLinkPreview(ctx context.Context, url string) (LinkPreview, error)
@@ -385,6 +399,7 @@ type Querier interface {
 	ListBurnReveals(ctx context.Context, arg ListBurnRevealsParams) ([]ListBurnRevealsRow, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
 	ListCategoryIDs(ctx context.Context, workspaceID pgtype.UUID) ([]pgtype.UUID, error)
+	ListChannelFeeds(ctx context.Context, channelID pgtype.UUID) ([]ChannelFeed, error)
 	// ListChannelFiles is the files tab: files of the channel's visible messages,
 	// newest first, with their uploaders.
 	ListChannelFiles(ctx context.Context, arg ListChannelFilesParams) ([]ListChannelFilesRow, error)
@@ -558,6 +573,7 @@ type Querier interface {
 	// PurgeDeletedMessages removes messages that can no longer be restored.
 	// Messages a legal hold keeps stay (for eDiscovery).
 	PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error)
+	PurgeDialogs(ctx context.Context) (int64, error)
 	// PurgeExpiredMessages deletes up to row_limit messages older than their
 	// channel's (or workspace's) retention, except those a legal hold keeps.
 	PurgeExpiredMessages(ctx context.Context, rowLimit int32) (int64, error)
@@ -638,6 +654,7 @@ type Querier interface {
 	SetBanner(ctx context.Context, arg SetBannerParams) (InstanceBanner, error)
 	SetBotDescription(ctx context.Context, arg SetBotDescriptionParams) error
 	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
+	SetBotInteractions(ctx context.Context, arg SetBotInteractionsParams) error
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
 	SetChannelCompliance(ctx context.Context, arg SetChannelComplianceParams) (Channel, error)
 	SetChannelGroupManaged(ctx context.Context, arg SetChannelGroupManagedParams) error
@@ -713,6 +730,9 @@ type Querier interface {
 	UpdateList(ctx context.Context, arg UpdateListParams) (List, error)
 	UpdateListItem(ctx context.Context, arg UpdateListItemParams) (ListItem, error)
 	UpdateMentionGroup(ctx context.Context, arg UpdateMentionGroupParams) (MentionGroup, error)
+	// UpdateMessageByBot replaces the text and cards of a bot's message (answering
+	// an interaction); it is not marked edited.
+	UpdateMessageByBot(ctx context.Context, arg UpdateMessageByBotParams) (Message, error)
 	UpdatePlaybook(ctx context.Context, arg UpdatePlaybookParams) (Playbook, error)
 	UpdateProfileSettings(ctx context.Context, arg UpdateProfileSettingsParams) error
 	// UpdateUserProfile follows a change of name or address at Cenacle ID.

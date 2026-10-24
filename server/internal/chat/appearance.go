@@ -49,7 +49,7 @@ func DefaultAppearance() api.Appearance {
 	a.Fonts.Text, a.Fonts.Code = "inter", "jetbrains-mono"
 	a.FontSize = 14
 	a.LineHeight = api.AppearanceLineHeightNormal
-	a.Code.Theme = api.Github
+	a.Code.Theme = api.AppearanceCodeThemeGithub
 	a.Code.LineNumbers, a.Code.Wrap, a.Code.Ligatures = false, false, true
 	return a
 }

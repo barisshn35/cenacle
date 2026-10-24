@@ -41,6 +41,7 @@ import { FORMAT_KEYS, newestOwn, wrapSelection } from './composer-keys';
 import { useEditing } from './message-state';
 import { PriorityChip, PriorityMenu } from './priority';
 import { FormattingBar } from './formatting-bar';
+import { useBotDialog } from './interactions-state';
 import { MessageBody } from './markdown/message-body';
 import type { Priority } from './pending';
 import { useLayout } from '../../stores/layout';
@@ -237,6 +238,8 @@ export function Composer({
     void runCommand(channelId, command, text)
       .then((r) => {
         if (r.message) addMessage(queryClient, r.message);
+        // An app may open a dialog for the person.
+        if (r.dialog) useBotDialog.getState().open(r.dialog);
         if (r.response_type === 'ephemeral' && (r.text || r.attachments?.length)) {
           addNote({ channelId, command, text: r.text ?? '', attachments: r.attachments ?? [] });
         }

@@ -45,14 +45,16 @@ type AutomodRule struct {
 }
 
 type Bot struct {
-	ID          pgtype.UUID        `json:"id"`
-	WorkspaceID pgtype.UUID        `json:"workspace_id"`
-	UserID      pgtype.UUID        `json:"user_id"`
-	Description string             `json:"description"`
-	CreatedBy   pgtype.UUID        `json:"created_by"`
-	CreatedAt   time.Time          `json:"created_at"`
-	DisabledAt  pgtype.Timestamptz `json:"disabled_at"`
-	IsSystem    bool               `json:"is_system"`
+	ID                 pgtype.UUID        `json:"id"`
+	WorkspaceID        pgtype.UUID        `json:"workspace_id"`
+	UserID             pgtype.UUID        `json:"user_id"`
+	Description        string             `json:"description"`
+	CreatedBy          pgtype.UUID        `json:"created_by"`
+	CreatedAt          time.Time          `json:"created_at"`
+	DisabledAt         pgtype.Timestamptz `json:"disabled_at"`
+	IsSystem           bool               `json:"is_system"`
+	InteractionsUrl    pgtype.Text        `json:"interactions_url"`
+	InteractionsSecret pgtype.Text        `json:"interactions_secret"`
 }
 
 type BotToken struct {
@@ -116,6 +118,21 @@ type ChannelCategory struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
 }
 
+type ChannelFeed struct {
+	ID           pgtype.UUID        `json:"id"`
+	ChannelID    pgtype.UUID        `json:"channel_id"`
+	Url          string             `json:"url"`
+	Title        string             `json:"title"`
+	Seen         []string           `json:"seen"`
+	Etag         string             `json:"etag"`
+	LastModified string             `json:"last_modified"`
+	CheckedAt    pgtype.Timestamptz `json:"checked_at"`
+	Failures     int32              `json:"failures"`
+	LastError    string             `json:"last_error"`
+	CreatedBy    pgtype.UUID        `json:"created_by"`
+	CreatedAt    time.Time          `json:"created_at"`
+}
+
 type ChannelGroupMapping struct {
 	ChannelID pgtype.UUID `json:"channel_id"`
 	GroupName string      `json:"group_name"`
@@ -177,6 +194,16 @@ type CustomEmoji struct {
 	PictureID   pgtype.UUID `json:"picture_id"`
 	CreatedBy   pgtype.UUID `json:"created_by"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type Dialog struct {
+	ID        pgtype.UUID `json:"id"`
+	BotID     pgtype.UUID `json:"bot_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	MessageID pgtype.UUID `json:"message_id"`
+	Spec      []byte      `json:"spec"`
+	ExpiresAt time.Time   `json:"expires_at"`
 }
 
 type DirectorySyncState struct {

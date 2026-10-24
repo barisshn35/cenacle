@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { cn } from '@cenacle/ui/lib/utils';
+import { CardActions } from './interactions';
 import type { components } from '@cenacle/core/api';
 import { MessageBody } from './markdown/message-body';
 
@@ -17,7 +18,16 @@ const STRIPE: Record<NonNullable<Attachment['color']>, string> = {
  * Cards under a message (issues, alerts from bots). The stripe color only
  * repeats what the card says: meaning is never in the color alone.
  */
-export function Attachments({ items, selfId }: { items: Attachment[]; selfId: string }) {
+export function Attachments({
+  items,
+  selfId,
+  message,
+}: {
+  items: Attachment[];
+  selfId: string;
+  /** The message the cards are in: their buttons and menus work there only. */
+  message?: { id: string; channel_id: string };
+}) {
   if (items.length === 0) return null;
   return (
     <div className="mt-1 flex max-w-xl flex-col gap-1.5">
@@ -56,6 +66,9 @@ export function Attachments({ items, selfId }: { items: Attachment[]; selfId: st
             </dl>
           )}
           {a.footer && <p className="mt-1 text-xs text-muted-foreground">{a.footer}</p>}
+          {message && a.actions && a.actions.length > 0 && (
+            <CardActions message={message} index={i} actions={a.actions} />
+          )}
         </article>
       ))}
     </div>

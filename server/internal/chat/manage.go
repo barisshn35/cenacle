@@ -570,6 +570,10 @@ type Purger struct{ Queries store.Querier }
 
 // PurgeDeleted implements jobs.Purger.
 func (p Purger) PurgeDeleted(ctx context.Context) (int64, error) {
+	// Expired dialogs go too.
+	if _, err := p.Queries.PurgeDialogs(ctx); err != nil {
+		return 0, err
+	}
 	return p.Queries.PurgeDeletedMessages(ctx, interval(RestoreWindow))
 }
 

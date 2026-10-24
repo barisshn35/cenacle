@@ -38,28 +38,28 @@ func (e ActivityItemKind) Valid() bool {
 
 // Defines values for AppearanceCodeTheme.
 const (
-	Catppuccin AppearanceCodeTheme = "catppuccin"
-	Github     AppearanceCodeTheme = "github"
-	GithubSoft AppearanceCodeTheme = "github-soft"
-	One        AppearanceCodeTheme = "one"
-	Solarized  AppearanceCodeTheme = "solarized"
-	Vitesse    AppearanceCodeTheme = "vitesse"
+	AppearanceCodeThemeCatppuccin AppearanceCodeTheme = "catppuccin"
+	AppearanceCodeThemeGithub     AppearanceCodeTheme = "github"
+	AppearanceCodeThemeGithubSoft AppearanceCodeTheme = "github-soft"
+	AppearanceCodeThemeOne        AppearanceCodeTheme = "one"
+	AppearanceCodeThemeSolarized  AppearanceCodeTheme = "solarized"
+	AppearanceCodeThemeVitesse    AppearanceCodeTheme = "vitesse"
 )
 
 // Valid indicates whether the value is a known member of the AppearanceCodeTheme enum.
 func (e AppearanceCodeTheme) Valid() bool {
 	switch e {
-	case Catppuccin:
+	case AppearanceCodeThemeCatppuccin:
 		return true
-	case Github:
+	case AppearanceCodeThemeGithub:
 		return true
-	case GithubSoft:
+	case AppearanceCodeThemeGithubSoft:
 		return true
-	case One:
+	case AppearanceCodeThemeOne:
 		return true
-	case Solarized:
+	case AppearanceCodeThemeSolarized:
 		return true
-	case Vitesse:
+	case AppearanceCodeThemeVitesse:
 		return true
 	default:
 		return false
@@ -222,6 +222,45 @@ func (e AttachmentColor) Valid() bool {
 	case AttachmentColorSuccess:
 		return true
 	case AttachmentColorWarning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AttachmentActionStyle.
+const (
+	AttachmentActionStyleDanger  AttachmentActionStyle = "danger"
+	AttachmentActionStyleDefault AttachmentActionStyle = "default"
+	AttachmentActionStylePrimary AttachmentActionStyle = "primary"
+)
+
+// Valid indicates whether the value is a known member of the AttachmentActionStyle enum.
+func (e AttachmentActionStyle) Valid() bool {
+	switch e {
+	case AttachmentActionStyleDanger:
+		return true
+	case AttachmentActionStyleDefault:
+		return true
+	case AttachmentActionStylePrimary:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AttachmentActionType.
+const (
+	AttachmentActionTypeButton AttachmentActionType = "button"
+	AttachmentActionTypeSelect AttachmentActionType = "select"
+)
+
+// Valid indicates whether the value is a known member of the AttachmentActionType enum.
+func (e AttachmentActionType) Valid() bool {
+	switch e {
+	case AttachmentActionTypeButton:
+		return true
+	case AttachmentActionTypeSelect:
 		return true
 	default:
 		return false
@@ -606,6 +645,33 @@ func (e DeliveryStatus) Valid() bool {
 	case DeliveryStatusPending:
 		return true
 	case DeliveryStatusSucceeded:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DialogElementType.
+const (
+	DialogElementTypeCheckbox DialogElementType = "checkbox"
+	DialogElementTypeDate     DialogElementType = "date"
+	DialogElementTypeSelect   DialogElementType = "select"
+	DialogElementTypeText     DialogElementType = "text"
+	DialogElementTypeTextarea DialogElementType = "textarea"
+)
+
+// Valid indicates whether the value is a known member of the DialogElementType enum.
+func (e DialogElementType) Valid() bool {
+	switch e {
+	case DialogElementTypeCheckbox:
+		return true
+	case DialogElementTypeDate:
+		return true
+	case DialogElementTypeSelect:
+		return true
+	case DialogElementTypeText:
+		return true
+	case DialogElementTypeTextarea:
 		return true
 	default:
 		return false
@@ -1218,7 +1284,9 @@ func (e UserFontFormat) Valid() bool {
 // Defines values for WebhookKind.
 const (
 	WebhookKindAlertmanager WebhookKind = "alertmanager"
+	WebhookKindEmail        WebhookKind = "email"
 	WebhookKindGeneric      WebhookKind = "generic"
+	WebhookKindGithub       WebhookKind = "github"
 	WebhookKindGitlab       WebhookKind = "gitlab"
 	WebhookKindJira         WebhookKind = "jira"
 )
@@ -1228,7 +1296,11 @@ func (e WebhookKind) Valid() bool {
 	switch e {
 	case WebhookKindAlertmanager:
 		return true
+	case WebhookKindEmail:
+		return true
 	case WebhookKindGeneric:
+		return true
+	case WebhookKindGithub:
 		return true
 	case WebhookKindGitlab:
 		return true
@@ -1461,7 +1533,9 @@ func (e CreateBotTokenJSONBodyScopes) Valid() bool {
 // Defines values for CreateWebhookJSONBodyKind.
 const (
 	CreateWebhookJSONBodyKindAlertmanager CreateWebhookJSONBodyKind = "alertmanager"
+	CreateWebhookJSONBodyKindEmail        CreateWebhookJSONBodyKind = "email"
 	CreateWebhookJSONBodyKindGeneric      CreateWebhookJSONBodyKind = "generic"
+	CreateWebhookJSONBodyKindGithub       CreateWebhookJSONBodyKind = "github"
 	CreateWebhookJSONBodyKindGitlab       CreateWebhookJSONBodyKind = "gitlab"
 	CreateWebhookJSONBodyKindJira         CreateWebhookJSONBodyKind = "jira"
 )
@@ -1471,7 +1545,11 @@ func (e CreateWebhookJSONBodyKind) Valid() bool {
 	switch e {
 	case CreateWebhookJSONBodyKindAlertmanager:
 		return true
+	case CreateWebhookJSONBodyKindEmail:
+		return true
 	case CreateWebhookJSONBodyKindGeneric:
+		return true
+	case CreateWebhookJSONBodyKindGithub:
 		return true
 	case CreateWebhookJSONBodyKindGitlab:
 		return true
@@ -1764,6 +1842,12 @@ type AccessRule struct {
 	Values []string `json:"values"`
 }
 
+// ActionOption defines model for ActionOption.
+type ActionOption struct {
+	Text  string `json:"text"`
+	Value string `json:"value"`
+}
+
 // ActivityItem defines model for ActivityItem.
 type ActivityItem struct {
 	Actor   Author        `json:"actor"`
@@ -1835,6 +1919,9 @@ type AssignedItem struct {
 
 // Attachment A card under a message, e.g. from a bot (an issue, an alert).
 type Attachment struct {
+	// Actions Buttons and menus (bots with an interactions address).
+	Actions *[]AttachmentAction `json:"actions,omitempty"`
+
 	// Color The stripe on the card's edge (meaning is never the color alone).
 	Color  *AttachmentColor `json:"color,omitempty"`
 	Fields *[]struct {
@@ -1855,6 +1942,26 @@ type Attachment struct {
 
 // AttachmentColor The stripe on the card's edge (meaning is never the color alone).
 type AttachmentColor string
+
+// AttachmentAction A button or a menu on a bot's card.
+type AttachmentAction struct {
+	Id      string                 `json:"id"`
+	Options *[]ActionOption        `json:"options,omitempty"`
+	Style   *AttachmentActionStyle `json:"style,omitempty"`
+
+	// Text A button's label, a menu's placeholder.
+	Text string               `json:"text"`
+	Type AttachmentActionType `json:"type"`
+
+	// Value Sent back when the button is pressed.
+	Value *string `json:"value,omitempty"`
+}
+
+// AttachmentActionStyle defines model for AttachmentAction.Style.
+type AttachmentActionStyle string
+
+// AttachmentActionType defines model for AttachmentAction.Type.
+type AttachmentActionType string
 
 // AttributeDef defines model for AttributeDef.
 type AttributeDef struct {
@@ -1973,8 +2080,11 @@ type Bot struct {
 	Description string             `json:"description"`
 	Disabled    bool               `json:"disabled"`
 	Id          openapi_types.UUID `json:"id"`
-	Name        string             `json:"name"`
-	UserId      openapi_types.UUID `json:"user_id"`
+
+	// InteractionsUrl Where the bot receives button presses, menu choices and dialog submissions.
+	InteractionsUrl *string            `json:"interactions_url,omitempty"`
+	Name            string             `json:"name"`
+	UserId          openapi_types.UUID `json:"user_id"`
 }
 
 // BotToken defines model for BotToken.
@@ -2225,7 +2335,10 @@ type CommandInfo struct {
 // CommandResult defines model for CommandResult.
 type CommandResult struct {
 	Attachments *[]Attachment `json:"attachments,omitempty"`
-	Message     *Message      `json:"message,omitempty"`
+
+	// Dialog A form a bot opened for the person.
+	Dialog  *Dialog  `json:"dialog,omitempty"`
+	Message *Message `json:"message,omitempty"`
 
 	// ResponseType ephemeral is shown only to the caller; in_channel was posted as a message.
 	ResponseType CommandResultResponseType `json:"response_type"`
@@ -2294,6 +2407,30 @@ type DeviceSession struct {
 	LastSeenAt time.Time `json:"last_seen_at"`
 	UserAgent  string    `json:"user_agent"`
 }
+
+// Dialog A form a bot opened for the person.
+type Dialog struct {
+	Elements    []DialogElement    `json:"elements"`
+	Id          openapi_types.UUID `json:"id"`
+	SubmitLabel string             `json:"submit_label"`
+	Title       string             `json:"title"`
+}
+
+// DialogElement defines model for DialogElement.
+type DialogElement struct {
+	Help        *string           `json:"help,omitempty"`
+	Label       string            `json:"label"`
+	MaxLength   *int              `json:"max_length,omitempty"`
+	Name        string            `json:"name"`
+	Optional    *bool             `json:"optional,omitempty"`
+	Options     *[]ActionOption   `json:"options,omitempty"`
+	Placeholder *string           `json:"placeholder,omitempty"`
+	Type        DialogElementType `json:"type"`
+	Value       *string           `json:"value,omitempty"`
+}
+
+// DialogElementType defines model for DialogElement.Type.
+type DialogElementType string
 
 // Event defines model for Event.
 type Event struct {
@@ -2453,6 +2590,18 @@ type GroupMapping struct {
 
 // GroupMappingRole defines model for GroupMapping.Role.
 type GroupMappingRole string
+
+// InteractionResult What a bot answered to a button, a menu choice or a dialog.
+type InteractionResult struct {
+	// Dialog A form a bot opened for the person.
+	Dialog *Dialog `json:"dialog,omitempty"`
+
+	// Errors A dialog's fields the bot refused, with why (the dialog stays open).
+	Errors *map[string]string `json:"errors,omitempty"`
+
+	// Text A note for the person only.
+	Text *string `json:"text,omitempty"`
+}
 
 // Invite defines model for Invite.
 type Invite struct {
@@ -3570,6 +3719,11 @@ type CreateBotCommandJSONBody struct {
 	Url         string  `json:"url"`
 }
 
+// SetBotInteractionsJSONBody defines parameters for SetBotInteractions.
+type SetBotInteractionsJSONBody struct {
+	Url string `json:"url"`
+}
+
 // CreateSubscriptionJSONBody defines parameters for CreateSubscription.
 type CreateSubscriptionJSONBody struct {
 	Events []CreateSubscriptionJSONBodyEvents `json:"events"`
@@ -3706,6 +3860,15 @@ type EditMessageJSONBody struct {
 	Body string `json:"body"`
 }
 
+// RunMessageActionJSONBody defines parameters for RunMessageAction.
+type RunMessageActionJSONBody struct {
+	ActionId   string `json:"action_id"`
+	Attachment int    `json:"attachment"`
+
+	// Value The menu option chosen.
+	Value *string `json:"value,omitempty"`
+}
+
 // ForwardMessageJSONBody defines parameters for ForwardMessage.
 type ForwardMessageJSONBody struct {
 	ChannelId openapi_types.UUID `json:"channel_id"`
@@ -3747,6 +3910,11 @@ type ShareChannelJSONBody struct {
 // MarkUnreadJSONBody defines parameters for MarkUnread.
 type MarkUnreadJSONBody struct {
 	MessageId *openapi_types.UUID `json:"message_id,omitempty"`
+}
+
+// SubmitDialogJSONBody defines parameters for SubmitDialog.
+type SubmitDialogJSONBody struct {
+	Values map[string]string `json:"values"`
 }
 
 // RsvpEventJSONBody defines parameters for RsvpEvent.
@@ -4200,6 +4368,9 @@ type UpdateBotJSONRequestBody UpdateBotJSONBody
 // CreateBotCommandJSONRequestBody defines body for CreateBotCommand for application/json ContentType.
 type CreateBotCommandJSONRequestBody CreateBotCommandJSONBody
 
+// SetBotInteractionsJSONRequestBody defines body for SetBotInteractions for application/json ContentType.
+type SetBotInteractionsJSONRequestBody SetBotInteractionsJSONBody
+
 // CreateSubscriptionJSONRequestBody defines body for CreateSubscription for application/json ContentType.
 type CreateSubscriptionJSONRequestBody CreateSubscriptionJSONBody
 
@@ -4257,6 +4428,9 @@ type CreateMessageJSONRequestBody = NewMessage
 // EditMessageJSONRequestBody defines body for EditMessage for application/json ContentType.
 type EditMessageJSONRequestBody EditMessageJSONBody
 
+// RunMessageActionJSONRequestBody defines body for RunMessageAction for application/json ContentType.
+type RunMessageActionJSONRequestBody RunMessageActionJSONBody
+
 // ForwardMessageJSONRequestBody defines body for ForwardMessage for application/json ContentType.
 type ForwardMessageJSONRequestBody ForwardMessageJSONBody
 
@@ -4283,6 +4457,9 @@ type CreateChannelTabJSONRequestBody = TabInput
 
 // MarkUnreadJSONRequestBody defines body for MarkUnread for application/json ContentType.
 type MarkUnreadJSONRequestBody MarkUnreadJSONBody
+
+// SubmitDialogJSONRequestBody defines body for SubmitDialog for application/json ContentType.
+type SubmitDialogJSONRequestBody SubmitDialogJSONBody
 
 // UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
 type UpdateEventJSONRequestBody = EventInput
@@ -4600,6 +4777,12 @@ type ServerInterface interface {
 	// ResendDelivery Send a delivery again
 	// (POST /api/bots/{bot_id}/deliveries/{delivery_id}/resend)
 	ResendDelivery(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, deliveryId openapi_types.UUID)
+	// DeleteBotInteractions Stop sending the bot interactions
+	// (DELETE /api/bots/{bot_id}/interactions)
+	DeleteBotInteractions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// SetBotInteractions Set where the bot receives interactions; a new signing secret is shown once
+	// (PUT /api/bots/{bot_id}/interactions)
+	SetBotInteractions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
 	// ListSubscriptions A bot's event subscriptions
 	// (GET /api/bots/{bot_id}/subscriptions)
 	ListSubscriptions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
@@ -4735,6 +4918,9 @@ type ServerInterface interface {
 	// AckMessage Acknowledge a message that asks for it (channel members get `message.ack`)
 	// (PUT /api/channels/{channel_id}/messages/{message_id}/ack)
 	AckMessage(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// RunMessageAction Press a button or choose in a menu of a bot's card
+	// (POST /api/channels/{channel_id}/messages/{message_id}/actions)
+	RunMessageAction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// ListMessageEdits The earlier versions of an edited message, the newest first
 	// (GET /api/channels/{channel_id}/messages/{message_id}/edits)
 	ListMessageEdits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
@@ -4819,6 +5005,9 @@ type ServerInterface interface {
 	// MarkUnread Mark a channel or thread unread from a message
 	// (POST /api/channels/{channel_id}/unread)
 	MarkUnread(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// SubmitDialog Submit a dialog a bot opened
+	// (POST /api/dialogs/{dialog_id})
+	SubmitDialog(w http.ResponseWriter, r *http.Request, dialogId openapi_types.UUID)
 	// DeleteCustomEmoji Remove a custom emoji (who added it, or a workspace admin)
 	// (DELETE /api/emoji/{emoji_id})
 	DeleteCustomEmoji(w http.ResponseWriter, r *http.Request, emojiId openapi_types.UUID)
@@ -5419,6 +5608,18 @@ func (_ Unimplemented) ResendDelivery(w http.ResponseWriter, r *http.Request, bo
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteBotInteractions Stop sending the bot interactions
+// (DELETE /api/bots/{bot_id}/interactions)
+func (_ Unimplemented) DeleteBotInteractions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetBotInteractions Set where the bot receives interactions; a new signing secret is shown once
+// (PUT /api/bots/{bot_id}/interactions)
+func (_ Unimplemented) SetBotInteractions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListSubscriptions A bot's event subscriptions
 // (GET /api/bots/{bot_id}/subscriptions)
 func (_ Unimplemented) ListSubscriptions(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
@@ -5689,6 +5890,12 @@ func (_ Unimplemented) AckMessage(w http.ResponseWriter, r *http.Request, channe
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// RunMessageAction Press a button or choose in a menu of a bot's card
+// (POST /api/channels/{channel_id}/messages/{message_id}/actions)
+func (_ Unimplemented) RunMessageAction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListMessageEdits The earlier versions of an edited message, the newest first
 // (GET /api/channels/{channel_id}/messages/{message_id}/edits)
 func (_ Unimplemented) ListMessageEdits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
@@ -5854,6 +6061,12 @@ func (_ Unimplemented) UnarchiveChannel(w http.ResponseWriter, r *http.Request, 
 // MarkUnread Mark a channel or thread unread from a message
 // (POST /api/channels/{channel_id}/unread)
 func (_ Unimplemented) MarkUnread(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SubmitDialog Submit a dialog a bot opened
+// (POST /api/dialogs/{dialog_id})
+func (_ Unimplemented) SubmitDialog(w http.ResponseWriter, r *http.Request, dialogId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7293,6 +7506,58 @@ func (siw *ServerInterfaceWrapper) ResendDelivery(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteBotInteractions operation middleware
+func (siw *ServerInterfaceWrapper) DeleteBotInteractions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteBotInteractions(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetBotInteractions operation middleware
+func (siw *ServerInterfaceWrapper) SetBotInteractions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetBotInteractions(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListSubscriptions operation middleware
 func (siw *ServerInterfaceWrapper) ListSubscriptions(w http.ResponseWriter, r *http.Request) {
 
@@ -8610,6 +8875,41 @@ func (siw *ServerInterfaceWrapper) AckMessage(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// RunMessageAction operation middleware
+func (siw *ServerInterfaceWrapper) RunMessageAction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunMessageAction(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMessageEdits operation middleware
 func (siw *ServerInterfaceWrapper) ListMessageEdits(w http.ResponseWriter, r *http.Request) {
 
@@ -9502,6 +9802,32 @@ func (siw *ServerInterfaceWrapper) MarkUnread(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.MarkUnread(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitDialog operation middleware
+func (siw *ServerInterfaceWrapper) SubmitDialog(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "dialog_id" -------------
+	var dialogId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dialog_id", chi.URLParam(r, "dialog_id"), &dialogId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "dialog_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitDialog(w, r, dialogId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14311,6 +14637,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/bots/{bot_id}/deliveries/{delivery_id}/resend", wrapper.ResendDelivery)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/bots/{bot_id}/interactions", wrapper.DeleteBotInteractions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/bots/{bot_id}/interactions", wrapper.SetBotInteractions)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/bots/{bot_id}/tokens/{token_id}/rotate", wrapper.RotateBotToken)
 	})
 	r.Group(func(r chi.Router) {
@@ -14375,6 +14707,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/ack", wrapper.AckMessage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/actions", wrapper.RunMessageAction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/dialogs/{dialog_id}", wrapper.SubmitDialog)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/edits", wrapper.ListMessageEdits)

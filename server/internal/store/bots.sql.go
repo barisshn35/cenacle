@@ -15,7 +15,7 @@ import (
 const createBot = `-- name: CreateBot :one
 INSERT INTO bots (id, workspace_id, user_id, description, created_by)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system
+RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system, interactions_url, interactions_secret
 `
 
 type CreateBotParams struct {
@@ -44,6 +44,8 @@ func (q *Queries) CreateBot(ctx context.Context, arg CreateBotParams) (Bot, erro
 		&i.CreatedAt,
 		&i.DisabledAt,
 		&i.IsSystem,
+		&i.InteractionsUrl,
+		&i.InteractionsSecret,
 	)
 	return i, err
 }
@@ -138,7 +140,7 @@ const createSystemBot = `-- name: CreateSystemBot :one
 INSERT INTO bots (id, workspace_id, user_id, description, is_system)
 VALUES ($1, $2, $3, 'Reminders and notices from Cenacle', true)
 ON CONFLICT (workspace_id) WHERE is_system DO NOTHING
-RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system
+RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system, interactions_url, interactions_secret
 `
 
 type CreateSystemBotParams struct {
@@ -159,6 +161,8 @@ func (q *Queries) CreateSystemBot(ctx context.Context, arg CreateSystemBotParams
 		&i.CreatedAt,
 		&i.DisabledAt,
 		&i.IsSystem,
+		&i.InteractionsUrl,
+		&i.InteractionsSecret,
 	)
 	return i, err
 }
@@ -251,7 +255,7 @@ func (q *Queries) ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) 
 }
 
 const getActiveBotToken = `-- name: GetActiveBotToken :one
-SELECT t.id, t.bot_id, t.name, t.token_hash, t.scopes, t.created_by, t.created_at, t.last_used_at, t.expires_at, t.revoked_at, b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts
+SELECT t.id, t.bot_id, t.name, t.token_hash, t.scopes, t.created_by, t.created_at, t.last_used_at, t.expires_at, t.revoked_at, b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, b.interactions_url, b.interactions_secret, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts
 FROM bot_tokens t
 JOIN bots b ON b.id = t.bot_id
 JOIN users u ON u.id = b.user_id
@@ -288,6 +292,8 @@ func (q *Queries) GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetA
 		&i.Bot.CreatedAt,
 		&i.Bot.DisabledAt,
 		&i.Bot.IsSystem,
+		&i.Bot.InteractionsUrl,
+		&i.Bot.InteractionsSecret,
 		&i.User.ID,
 		&i.User.AuthService,
 		&i.User.AuthData,
@@ -378,7 +384,7 @@ func (q *Queries) GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetAc
 }
 
 const getBot = `-- name: GetBot :one
-SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.display_name
+SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, b.interactions_url, b.interactions_secret, u.display_name
 FROM bots b JOIN users u ON u.id = b.user_id
 WHERE b.id = $1
 `
@@ -400,6 +406,8 @@ func (q *Queries) GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
 		&i.Bot.CreatedAt,
 		&i.Bot.DisabledAt,
 		&i.Bot.IsSystem,
+		&i.Bot.InteractionsUrl,
+		&i.Bot.InteractionsSecret,
 		&i.DisplayName,
 	)
 	return i, err
@@ -433,7 +441,7 @@ func (q *Queries) GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotTo
 }
 
 const getSystemBot = `-- name: GetSystemBot :one
-SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts
+SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, b.interactions_url, b.interactions_secret, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts
 FROM bots b JOIN users u ON u.id = b.user_id
 WHERE b.workspace_id = $1 AND b.is_system
 `
@@ -455,6 +463,8 @@ func (q *Queries) GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (Ge
 		&i.Bot.CreatedAt,
 		&i.Bot.DisabledAt,
 		&i.Bot.IsSystem,
+		&i.Bot.InteractionsUrl,
+		&i.Bot.InteractionsSecret,
 		&i.User.ID,
 		&i.User.AuthService,
 		&i.User.AuthData,
@@ -522,7 +532,7 @@ func (q *Queries) ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotTo
 }
 
 const listBots = `-- name: ListBots :many
-SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, u.display_name
+SELECT b.id, b.workspace_id, b.user_id, b.description, b.created_by, b.created_at, b.disabled_at, b.is_system, b.interactions_url, b.interactions_secret, u.display_name
 FROM bots b JOIN users u ON u.id = b.user_id
 WHERE b.workspace_id = $1 AND NOT b.is_system
 ORDER BY lower(u.display_name), b.id
@@ -551,6 +561,8 @@ func (q *Queries) ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]List
 			&i.Bot.CreatedAt,
 			&i.Bot.DisabledAt,
 			&i.Bot.IsSystem,
+			&i.Bot.InteractionsUrl,
+			&i.Bot.InteractionsSecret,
 			&i.DisplayName,
 		); err != nil {
 			return nil, err
@@ -649,7 +661,7 @@ func (q *Queries) SetBotDescription(ctx context.Context, arg SetBotDescriptionPa
 const setBotDisabled = `-- name: SetBotDisabled :one
 UPDATE bots SET disabled_at = CASE WHEN $1::boolean THEN coalesce(disabled_at, now()) END
 WHERE id = $2
-RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system
+RETURNING id, workspace_id, user_id, description, created_by, created_at, disabled_at, is_system, interactions_url, interactions_secret
 `
 
 type SetBotDisabledParams struct {
@@ -669,6 +681,8 @@ func (q *Queries) SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) 
 		&i.CreatedAt,
 		&i.DisabledAt,
 		&i.IsSystem,
+		&i.InteractionsUrl,
+		&i.InteractionsSecret,
 	)
 	return i, err
 }

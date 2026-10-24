@@ -39,6 +39,7 @@ var builtins = []api.CommandInfo{
 	{Trigger: "topic", Description: "Set the channel topic", Hint: "topic", Builtin: true},
 	{Trigger: "me", Description: "Say something about yourself", Hint: "text", Builtin: true},
 	{Trigger: "shrug", Description: `Add ¯\_(ツ)_/¯`, Hint: "text", Builtin: true},
+	{Trigger: "feed", Description: "Follow a news feed (RSS, Atom) in this channel", Hint: "subscribe <address> | unsubscribe <address> | list", Builtin: true},
 }
 
 // ListCommands implements api.ServerInterface.
@@ -111,6 +112,8 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 		}
 		h.membersChanged(r.Context(), c, p.User.ID, events.ChannelLeft, toAPI(c, access{}))
 		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeNone})
+	case "feed":
+		h.commandFeed(w, r, p.User, c, role, text)
 	case "topic":
 		if !canManage(c, role) {
 			ephemeral(w, "Only the channel's managers can change its topic.")
@@ -273,6 +276,8 @@ type commandResponse struct {
 	ResponseType string            `json:"response_type"`
 	Text         string            `json:"text"`
 	Attachments  *[]api.Attachment `json:"attachments"`
+	// Dialog opens a form for the caller (bots with an interactions address).
+	Dialog *dialogSpec `json:"dialog"`
 }
 
 func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user store.User, c store.Channel, role access, trigger, text string) {
@@ -323,6 +328,21 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 	clean, raw, problem := cleanAttachments(out.Attachments)
 	if problem != "" {
 		h.commandFailed(w, r, trigger, fmt.Errorf("answer: %s", problem))
+		return
+	}
+	if out.Dialog != nil {
+		bot, err := h.Queries.GetInteractiveBot(r.Context(), row.User.ID)
+		if err != nil {
+			h.commandFailed(w, r, trigger, fmt.Errorf("a dialog needs the bot's interactions address"))
+			return
+		}
+		d, err := h.openDialog(r.Context(), *out.Dialog, bot.ID, user, c, pgtype.UUID{})
+		if err != nil {
+			h.commandFailed(w, r, trigger, err)
+			return
+		}
+		text := out.Text
+		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeEphemeral, Text: &text, Dialog: &d})
 		return
 	}
 	if out.ResponseType != "in_channel" {

@@ -9,6 +9,7 @@ import { useConnection } from './connection';
 import { reloadWorkspaces } from './workspaces';
 import { QuickSwitcher } from './quick-switcher';
 import { ShortcutsDialog } from '../shell/shortcuts';
+import { BotDialogHost } from './interactions';
 import { useAppShortcuts } from '../shell/shortcuts-state';
 import { useQuickSwitcherShortcut } from './quick-switcher-state';
 import { useLive } from './presence-state';
@@ -228,6 +229,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       {children}
       <QuickSwitcher />
       <ShortcutsDialog />
+      <BotDialogHost />
     </>
   );
 }
