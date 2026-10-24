@@ -71,6 +71,10 @@ on a violation. See `docs/adr/0001-monorepo-and-tooling.md` for the exact allow 
 
 Community UI components must carry a header comment with source URL, author and license.
 
+## Translations
+
+How the texts are organized and how to add a language: [docs/translations.md](docs/translations.md).
+
 ## Architecture decisions
 
 Significant decisions (new dependency, schema change, security-relevant design) are

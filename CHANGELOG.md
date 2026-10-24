@@ -8,6 +8,19 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-10-24
+
+Search inside files, canvases and lists; German, French, Spanish and Arabic with a
+right-to-left layout (ADR 0040).
+
+### Added
+
+- **Search inside files:** the text of PDF, Word, Excel, PowerPoint, OpenDocument and text
+  files is found by search, with the matching words shown.
+- **Search in canvases and lists** (Search → Canvases and lists; `GET /api/search/content`).
+- **Languages:** German, French, Spanish and Arabic, in the app, Cenacle ID and the desktop
+  app; Arabic is laid out right to left. How to translate: docs/translations.md.
+
 ## [0.36.0] - 2026-10-24
 
 Compliance tooling: audit export and SIEM streaming, data subject requests, archive
@@ -981,7 +994,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.36.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.37.0...HEAD
+[0.37.0]: https://github.com/barisshn35/cenacle/compare/v0.36.0...v0.37.0
 [0.36.0]: https://github.com/barisshn35/cenacle/compare/v0.35.0...v0.36.0
 [0.35.0]: https://github.com/barisshn35/cenacle/compare/v0.34.0...v0.35.0
 [0.34.0]: https://github.com/barisshn35/cenacle/compare/v0.33.0...v0.34.0

@@ -48,6 +48,16 @@ included, was there.
 
 ## Version notes
 
+### 0.37.0
+
+- Migration: chat `00043_content_search` (file text, search indexes on canvases and list
+  rows). Reversible. Building the indexes takes a moment on large installations.
+- After the upgrade the server reads the text of existing files in the background (needs
+  the object store); search finds them by their text as it goes.
+- Rolling back to 0.36, with the 0.37 images: once
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`; then the
+  previous `CENACLE_VERSION`. The text read from files is dropped.
+
 ### 0.36.0
 
 - Migrations: chat `00039_audit_stream`, `00040_privacy`, `00041_spillage` and
