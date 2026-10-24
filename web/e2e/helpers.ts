@@ -465,6 +465,16 @@ export interface MockApi {
  * ticket endpoint and a WebSocket that says hello. Tests run without the
  * Go server.
  */
+/** The default permission scheme (what 0.33 allowed). */
+const SCHEME = {
+  create_channels: ['admin'],
+  invite_people: ['admin'],
+  manage_categories: ['admin'],
+  custom_emoji: ['admin', 'member'],
+  broadcast_mentions: ['admin', 'member', 'guest'],
+  group_mentions: ['admin', 'member', 'guest'],
+};
+
 export async function mockApi(
   page: Page,
   opts: {
@@ -483,6 +493,8 @@ export async function mockApi(
     ai?: boolean;
     /** The workspace turned read receipts on; how far others read. */
     reads?: { user_id: string; last_read_id: string | null }[];
+    /** The permissions of the user's role (the scheme's defaults otherwise). */
+    can?: string[];
   } = {},
 ): Promise<MockApi> {
   await mockSession(page, {
@@ -505,8 +517,23 @@ export async function mockApi(
       role: opts.admin ? 'owner' : 'member',
       ...(opts.ai ? { ai_enabled: true } : {}),
       ...(opts.reads ? { read_receipts: true } : {}),
+      permissions: { ...SCHEME } as Record<string, string[]>,
+      can:
+        opts.can ??
+        (opts.admin
+          ? Object.keys(SCHEME)
+          : ['custom_emoji', 'broadcast_mentions', 'group_mentions']),
     },
   ];
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/permissions$/, (route) => {
+    const id = route.request().url().split('/').at(-2)!;
+    const ws = workspaces.find((w) => w.id === id)!;
+    const { permissions } = route.request().postDataJSON() as {
+      permissions: Record<string, string[]>;
+    };
+    ws.permissions = { ...SCHEME, ...permissions };
+    return route.fulfill({ json: ws });
+  });
   // Workflows and forms (v0.21): none unless a test adds them.
   await page.route(/\/api\/channels\/[0-9a-f-]{36}\/shortcuts$/, (route) =>
     route.fulfill({ json: { workflows: [], forms: [] } }),
@@ -562,6 +589,8 @@ export async function mockApi(
       appearance: { preset: 'cenacle', font_template: 'modern' },
       is_default: false,
       role: 'owner',
+      permissions: { ...SCHEME } as Record<string, string[]>,
+      can: Object.keys(SCHEME),
     };
     workspaces.push(ws);
     return route.fulfill({ status: 201, json: ws });

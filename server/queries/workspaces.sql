@@ -98,3 +98,6 @@ RETURNING *;
 -- name: RevokeInvite :execrows
 UPDATE workspace_invites SET revoked_at = now()
 WHERE id = @id AND workspace_id = @workspace_id AND revoked_at IS NULL;
+
+-- name: SetWorkspacePermissions :one
+UPDATE workspaces SET permissions = @permissions WHERE id = @id RETURNING *;

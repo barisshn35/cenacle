@@ -912,6 +912,45 @@ func (e MessagePriority) Valid() bool {
 	}
 }
 
+// Defines values for MetaPushContents.
+const (
+	MetaPushContentsFull   MetaPushContents = "full"
+	MetaPushContentsNone   MetaPushContents = "none"
+	MetaPushContentsSender MetaPushContents = "sender"
+)
+
+// Valid indicates whether the value is a known member of the MetaPushContents enum.
+func (e MetaPushContents) Valid() bool {
+	switch e {
+	case MetaPushContentsFull:
+		return true
+	case MetaPushContentsNone:
+		return true
+	case MetaPushContentsSender:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ModerationRule.
+const (
+	ModerationRuleEveryone ModerationRule = "everyone"
+	ModerationRuleManagers ModerationRule = "managers"
+)
+
+// Valid indicates whether the value is a known member of the ModerationRule enum.
+func (e ModerationRule) Valid() bool {
+	switch e {
+	case ModerationRuleEveryone:
+		return true
+	case ModerationRuleManagers:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NewChannelKind.
 const (
 	NewChannelKindAnnouncement NewChannelKind = "announcement"
@@ -963,6 +1002,45 @@ func (e NewMessagePriority) Valid() bool {
 	case NewMessagePriorityImportant:
 		return true
 	case NewMessagePriorityUrgent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPolicyEmailContents.
+const (
+	NotificationPolicyEmailContentsFull   NotificationPolicyEmailContents = "full"
+	NotificationPolicyEmailContentsSender NotificationPolicyEmailContents = "sender"
+)
+
+// Valid indicates whether the value is a known member of the NotificationPolicyEmailContents enum.
+func (e NotificationPolicyEmailContents) Valid() bool {
+	switch e {
+	case NotificationPolicyEmailContentsFull:
+		return true
+	case NotificationPolicyEmailContentsSender:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPolicyPushContents.
+const (
+	NotificationPolicyPushContentsFull   NotificationPolicyPushContents = "full"
+	NotificationPolicyPushContentsNone   NotificationPolicyPushContents = "none"
+	NotificationPolicyPushContentsSender NotificationPolicyPushContents = "sender"
+)
+
+// Valid indicates whether the value is a known member of the NotificationPolicyPushContents enum.
+func (e NotificationPolicyPushContents) Valid() bool {
+	switch e {
+	case NotificationPolicyPushContentsFull:
+		return true
+	case NotificationPolicyPushContentsNone:
+		return true
+	case NotificationPolicyPushContentsSender:
 		return true
 	default:
 		return false
@@ -1863,6 +1941,82 @@ type ActivityItem struct {
 // ActivityItemKind defines model for ActivityItem.Kind.
 type ActivityItemKind string
 
+// AdminBot defines model for AdminBot.
+type AdminBot struct {
+	CreatedAt     time.Time          `json:"created_at"`
+	Disabled      bool               `json:"disabled"`
+	Id            openapi_types.UUID `json:"id"`
+	Interactions  bool               `json:"interactions"`
+	Name          string             `json:"name"`
+	WorkspaceId   openapi_types.UUID `json:"workspace_id"`
+	WorkspaceName string             `json:"workspace_name"`
+}
+
+// AdminOverview defines model for AdminOverview.
+type AdminOverview struct {
+	// Config Settings from the environment (read only here; secrets show as "set").
+	Config []struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	} `json:"config"`
+	Counts struct {
+		// ActiveUsers Seen in the last 30 days.
+		ActiveUsers int64 `json:"active_users"`
+		Bots        int64 `json:"bots"`
+		Channels    int64 `json:"channels"`
+		FileBytes   int64 `json:"file_bytes"`
+		Files       int64 `json:"files"`
+		Messages    int64 `json:"messages"`
+		Users       int64 `json:"users"`
+		Workspaces  int64 `json:"workspaces"`
+	} `json:"counts"`
+
+	// Failures The latest failed attempts of background jobs.
+	Failures []struct {
+		At      time.Time `json:"at"`
+		Attempt int       `json:"attempt"`
+		Error   string    `json:"error"`
+		Kind    string    `json:"kind"`
+		State   string    `json:"state"`
+	} `json:"failures"`
+
+	// Jobs Background jobs by kind and state.
+	Jobs []struct {
+		Available int    `json:"available"`
+		Completed int    `json:"completed"`
+		Discarded int    `json:"discarded"`
+		Kind      string `json:"kind"`
+		Retryable int    `json:"retryable"`
+		Running   int    `json:"running"`
+	} `json:"jobs"`
+	Version string `json:"version"`
+}
+
+// AdminUser defines model for AdminUser.
+type AdminUser struct {
+	CreatedAt   time.Time          `json:"created_at"`
+	Deactivated bool               `json:"deactivated"`
+	DisplayName string             `json:"display_name"`
+	Email       string             `json:"email"`
+	Guest       bool               `json:"guest"`
+	Id          openapi_types.UUID `json:"id"`
+	IsAdmin     bool               `json:"is_admin"`
+	LastSeenAt  *time.Time         `json:"last_seen_at"`
+	Sessions    int                `json:"sessions"`
+	Username    string             `json:"username"`
+	Workspaces  int                `json:"workspaces"`
+}
+
+// AdminWorkspace defines model for AdminWorkspace.
+type AdminWorkspace struct {
+	Channels  int                `json:"channels"`
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+	IsDefault bool               `json:"is_default"`
+	Members   int                `json:"members"`
+	Name      string             `json:"name"`
+}
+
 // Appearance defines model for Appearance.
 type Appearance struct {
 	Code struct {
@@ -2135,11 +2289,20 @@ type Channel struct {
 	// Archived Archived channels are read-only.
 	Archived bool `json:"archived"`
 
+	// CanBroadcast Whether this user can mention @channel, @here and @all here.
+	CanBroadcast *bool `json:"can_broadcast,omitempty"`
+
 	// CanManage Whether this user can add and remove people and change the channel.
 	CanManage bool `json:"can_manage"`
 
 	// CanPost Whether this user can send messages here.
-	CanPost    bool                `json:"can_post"`
+	CanPost bool `json:"can_post"`
+
+	// CanReact Whether this user can react here.
+	CanReact *bool `json:"can_react,omitempty"`
+
+	// CanReply Whether this user can answer in threads here.
+	CanReply   *bool               `json:"can_reply,omitempty"`
 	CategoryId *openapi_types.UUID `json:"category_id"`
 
 	// ClassificationId The channel's own classification (null follows the workspace).
@@ -2175,8 +2338,11 @@ type Channel struct {
 	MemberCount *int `json:"member_count,omitempty"`
 
 	// MentionCount Unread messages that mention the user, counted up to 100.
-	MentionCount int    `json:"mention_count"`
-	Name         string `json:"name"`
+	MentionCount int `json:"mention_count"`
+
+	// Moderation Who may post, answer in threads, react and mention everyone in a channel.
+	Moderation *ChannelModeration `json:"moderation,omitempty"`
+	Name       string             `json:"name"`
 
 	// Participants The other people of a direct or group conversation (empty for channels).
 	Participants []Person `json:"participants"`
@@ -2248,6 +2414,21 @@ type ChannelList struct {
 	Channels []Channel `json:"channels"`
 }
 
+// ChannelModeration Who may post, answer in threads, react and mention everyone in a channel.
+type ChannelModeration struct {
+	// Broadcast Everyone who may post, or only the channel's managers and the workspace's admins.
+	Broadcast ModerationRule `json:"broadcast"`
+
+	// Post Everyone who may post, or only the channel's managers and the workspace's admins.
+	Post ModerationRule `json:"post"`
+
+	// React Everyone who may post, or only the channel's managers and the workspace's admins.
+	React ModerationRule `json:"react"`
+
+	// Reply Everyone who may post, or only the channel's managers and the workspace's admins.
+	Reply ModerationRule `json:"reply"`
+}
+
 // ChannelNotification defines model for ChannelNotification.
 type ChannelNotification struct {
 	ChannelId openapi_types.UUID       `json:"channel_id"`
@@ -2299,7 +2480,10 @@ type ChannelShareStatus string
 
 // ChannelUpdate defines model for ChannelUpdate.
 type ChannelUpdate struct {
-	ForumTags       *[]string                `json:"forum_tags,omitempty"`
+	ForumTags *[]string `json:"forum_tags,omitempty"`
+
+	// Moderation Who may post, answer in threads, react and mention everyone in a channel.
+	Moderation      *ChannelModeration       `json:"moderation,omitempty"`
 	Name            *string                  `json:"name,omitempty"`
 	SlowModeSeconds *int                     `json:"slow_mode_seconds,omitempty"`
 	Topic           *string                  `json:"topic,omitempty"`
@@ -2841,9 +3025,18 @@ type Meta struct {
 	// to update before signing in. CENACLE_DESKTOP_MIN_VERSION.
 	DesktopMinVersion string `json:"desktop_min_version"`
 
+	// PushContents What the apps' own notifications may show (the notification policy).
+	PushContents *MetaPushContents `json:"push_contents,omitempty"`
+
 	// WebApp People may use Cenacle in web browsers.
 	WebApp bool `json:"web_app"`
 }
+
+// MetaPushContents What the apps' own notifications may show (the notification policy).
+type MetaPushContents string
+
+// ModerationRule Everyone who may post, or only the channel's managers and the workspace's admins.
+type ModerationRule string
 
 // MyProfile defines model for MyProfile.
 type MyProfile struct {
@@ -2952,6 +3145,23 @@ type NewPoll struct {
 	Multiple  *bool      `json:"multiple,omitempty"`
 	Options   []string   `json:"options"`
 }
+
+// NotificationPolicy defines model for NotificationPolicy.
+type NotificationPolicy struct {
+	// EmailContents Notification e-mails: the text, or the sender and channel only.
+	EmailContents NotificationPolicyEmailContents `json:"email_contents"`
+
+	// PushContents Web push and the apps' own notifications: the text, the sender and channel
+	// only, or only that something came (lock screens show them).
+	PushContents NotificationPolicyPushContents `json:"push_contents"`
+}
+
+// NotificationPolicyEmailContents Notification e-mails: the text, or the sender and channel only.
+type NotificationPolicyEmailContents string
+
+// NotificationPolicyPushContents Web push and the apps' own notifications: the text, the sender and channel
+// only, or only that something came (lock screens show them).
+type NotificationPolicyPushContents string
 
 // NotificationPrefs defines model for NotificationPrefs.
 type NotificationPrefs struct {
@@ -3595,9 +3805,12 @@ type WorkflowTriggerKind string
 // Workspace defines model for Workspace.
 type Workspace struct {
 	// AiEnabled The workspace turned on the AI features.
-	AiEnabled   *bool               `json:"ai_enabled,omitempty"`
-	Appearance  WorkspaceAppearance `json:"appearance"`
-	Description string              `json:"description"`
+	AiEnabled  *bool               `json:"ai_enabled,omitempty"`
+	Appearance WorkspaceAppearance `json:"appearance"`
+
+	// Can The permissions of your role here.
+	Can         *[]string `json:"can,omitempty"`
+	Description string    `json:"description"`
 
 	// EditHistory Who sees the earlier versions of edited messages (their author, or everyone who sees them).
 	EditHistory *WorkspaceEditHistory `json:"edit_history,omitempty"`
@@ -3612,6 +3825,11 @@ type Workspace struct {
 
 	// NeedsOnboarding The workspace has a welcome you have not seen yet.
 	NeedsOnboarding *bool `json:"needs_onboarding,omitempty"`
+
+	// Permissions The workspace's permission scheme: each permission's roles (owners may
+	// always). Permissions are create_channels, invite_people,
+	// manage_categories, custom_emoji, broadcast_mentions and group_mentions.
+	Permissions *map[string][]string `json:"permissions,omitempty"`
 
 	// PersistentEveryMinutes How often they are reminded.
 	PersistentEveryMinutes *int `json:"persistent_every_minutes,omitempty"`
@@ -3664,6 +3882,18 @@ type WsTicket struct {
 	// ExpiresIn Seconds until the ticket expires.
 	ExpiresIn int    `json:"expires_in"`
 	Ticket    string `json:"ticket"`
+}
+
+// AdminSetBotDisabledJSONBody defines parameters for AdminSetBotDisabled.
+type AdminSetBotDisabledJSONBody struct {
+	Disabled bool `json:"disabled"`
+}
+
+// AdminListUsersParams defines parameters for AdminListUsers.
+type AdminListUsersParams struct {
+	Q         *string             `form:"q,omitempty" json:"q,omitempty"`
+	AfterName *string             `form:"after_name,omitempty" json:"after_name,omitempty"`
+	AfterId   *openapi_types.UUID `form:"after_id,omitempty" json:"after_id,omitempty"`
 }
 
 // SetWebAppJSONBody defines parameters for SetWebApp.
@@ -4334,6 +4564,12 @@ type FinishOnboardingJSONBody struct {
 	JoinChannelIds []openapi_types.UUID `json:"join_channel_ids"`
 }
 
+// SetWorkspacePermissionsJSONBody defines parameters for SetWorkspacePermissions.
+type SetWorkspacePermissionsJSONBody struct {
+	// Permissions Each permission's roles (admin, member, guest).
+	Permissions map[string][]string `json:"permissions"`
+}
+
 // ListReportsParams defines parameters for ListReports.
 type ListReportsParams struct {
 	Status *ListReportsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
@@ -4346,6 +4582,12 @@ type ListReportsParamsStatus string
 type AddStickerParams struct {
 	Name string `form:"name" json:"name"`
 }
+
+// AdminSetBotDisabledJSONRequestBody defines body for AdminSetBotDisabled for application/json ContentType.
+type AdminSetBotDisabledJSONRequestBody AdminSetBotDisabledJSONBody
+
+// SetNotificationPolicyJSONRequestBody defines body for SetNotificationPolicy for application/json ContentType.
+type SetNotificationPolicyJSONRequestBody = NotificationPolicy
 
 // SetWebAppJSONRequestBody defines body for SetWebApp for application/json ContentType.
 type SetWebAppJSONRequestBody SetWebAppJSONBody
@@ -4650,6 +4892,9 @@ type SetWorkspaceNotificationsJSONRequestBody SetWorkspaceNotificationsJSONBody
 // FinishOnboardingJSONRequestBody defines body for FinishOnboarding for application/json ContentType.
 type FinishOnboardingJSONRequestBody FinishOnboardingJSONBody
 
+// SetWorkspacePermissionsJSONRequestBody defines body for SetWorkspacePermissions for application/json ContentType.
+type SetWorkspacePermissionsJSONRequestBody SetWorkspacePermissionsJSONBody
+
 // CreatePlaybookJSONRequestBody defines body for CreatePlaybook for application/json ContentType.
 type CreatePlaybookJSONRequestBody = PlaybookInput
 
@@ -4726,12 +4971,36 @@ func (t *FormValues_AdditionalProperties) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// AdminListBots Every bot of every workspace (instance administrators)
+	// (GET /api/admin/bots)
+	AdminListBots(w http.ResponseWriter, r *http.Request)
+	// AdminSetBotDisabled Turn a bot off or on (instance administrators)
+	// (PATCH /api/admin/bots/{bot_id})
+	AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// GetNotificationPolicy What notifications outside the app may show (instance administrators)
+	// (GET /api/admin/notification-policy)
+	GetNotificationPolicy(w http.ResponseWriter, r *http.Request)
+	// SetNotificationPolicy Choose what notifications outside the app may show
+	// (PUT /api/admin/notification-policy)
+	SetNotificationPolicy(w http.ResponseWriter, r *http.Request)
+	// AdminOverview The installation at a glance (instance administrators)
+	// (GET /api/admin/overview)
+	AdminOverview(w http.ResponseWriter, r *http.Request)
+	// AdminListUsers Everyone of the installation, by name (instance administrators)
+	// (GET /api/admin/users)
+	AdminListUsers(w http.ResponseWriter, r *http.Request, params AdminListUsersParams)
+	// AdminEndUserSessions Sign someone out everywhere (instance administrators)
+	// (DELETE /api/admin/users/{user_id}/sessions)
+	AdminEndUserSessions(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID)
 	// GetWebApp Whether the web app is on (instance administrators)
 	// (GET /api/admin/web-app)
 	GetWebApp(w http.ResponseWriter, r *http.Request)
 	// SetWebApp Turn the web app on or off (instance administrators)
 	// (PUT /api/admin/web-app)
 	SetWebApp(w http.ResponseWriter, r *http.Request)
+	// AdminListWorkspaces Every workspace with its size (instance administrators)
+	// (GET /api/admin/workspaces)
+	AdminListWorkspaces(w http.ResponseWriter, r *http.Request)
 	// BackchannelLogout OpenID Connect Back-Channel Logout (called by Cenacle ID)
 	// (POST /api/auth/backchannel-logout)
 	BackchannelLogout(w http.ResponseWriter, r *http.Request)
@@ -5455,6 +5724,9 @@ type ServerInterface interface {
 	// FinishOnboarding Close the welcome, joining the suggested channels chosen
 	// (POST /api/workspaces/{workspace_id}/onboarded)
 	FinishOnboarding(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetWorkspacePermissions Set which roles may do what in the workspace (owners and admins)
+	// (PUT /api/workspaces/{workspace_id}/permissions)
+	SetWorkspacePermissions(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListPlaybooks Playbooks of a workspace
 	// (GET /api/workspaces/{workspace_id}/playbooks)
 	ListPlaybooks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -5506,6 +5778,48 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// AdminListBots Every bot of every workspace (instance administrators)
+// (GET /api/admin/bots)
+func (_ Unimplemented) AdminListBots(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdminSetBotDisabled Turn a bot off or on (instance administrators)
+// (PATCH /api/admin/bots/{bot_id})
+func (_ Unimplemented) AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetNotificationPolicy What notifications outside the app may show (instance administrators)
+// (GET /api/admin/notification-policy)
+func (_ Unimplemented) GetNotificationPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetNotificationPolicy Choose what notifications outside the app may show
+// (PUT /api/admin/notification-policy)
+func (_ Unimplemented) SetNotificationPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdminOverview The installation at a glance (instance administrators)
+// (GET /api/admin/overview)
+func (_ Unimplemented) AdminOverview(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdminListUsers Everyone of the installation, by name (instance administrators)
+// (GET /api/admin/users)
+func (_ Unimplemented) AdminListUsers(w http.ResponseWriter, r *http.Request, params AdminListUsersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdminEndUserSessions Sign someone out everywhere (instance administrators)
+// (DELETE /api/admin/users/{user_id}/sessions)
+func (_ Unimplemented) AdminEndUserSessions(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetWebApp Whether the web app is on (instance administrators)
 // (GET /api/admin/web-app)
 func (_ Unimplemented) GetWebApp(w http.ResponseWriter, r *http.Request) {
@@ -5515,6 +5829,12 @@ func (_ Unimplemented) GetWebApp(w http.ResponseWriter, r *http.Request) {
 // SetWebApp Turn the web app on or off (instance administrators)
 // (PUT /api/admin/web-app)
 func (_ Unimplemented) SetWebApp(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdminListWorkspaces Every workspace with its size (instance administrators)
+// (GET /api/admin/workspaces)
+func (_ Unimplemented) AdminListWorkspaces(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6964,6 +7284,12 @@ func (_ Unimplemented) FinishOnboarding(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SetWorkspacePermissions Set which roles may do what in the workspace (owners and admins)
+// (PUT /api/workspaces/{workspace_id}/permissions)
+func (_ Unimplemented) SetWorkspacePermissions(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListPlaybooks Playbooks of a workspace
 // (GET /api/workspaces/{workspace_id}/playbooks)
 func (_ Unimplemented) ListPlaybooks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
@@ -7063,6 +7389,173 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// AdminListBots operation middleware
+func (siw *ServerInterfaceWrapper) AdminListBots(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminListBots(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminSetBotDisabled operation middleware
+func (siw *ServerInterfaceWrapper) AdminSetBotDisabled(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bot_id" -------------
+	var botId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bot_id", chi.URLParam(r, "bot_id"), &botId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bot_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminSetBotDisabled(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNotificationPolicy operation middleware
+func (siw *ServerInterfaceWrapper) GetNotificationPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotificationPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetNotificationPolicy operation middleware
+func (siw *ServerInterfaceWrapper) SetNotificationPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetNotificationPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminOverview operation middleware
+func (siw *ServerInterfaceWrapper) AdminOverview(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminOverview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminListUsers operation middleware
+func (siw *ServerInterfaceWrapper) AdminListUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AdminListUsersParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "after_name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after_name", r.URL.Query(), &params.AfterName, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after_name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after_name", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "after_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after_id", r.URL.Query(), &params.AfterId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminListUsers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminEndUserSessions operation middleware
+func (siw *ServerInterfaceWrapper) AdminEndUserSessions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminEndUserSessions(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetWebApp operation middleware
 func (siw *ServerInterfaceWrapper) GetWebApp(w http.ResponseWriter, r *http.Request) {
 
@@ -7082,6 +7575,20 @@ func (siw *ServerInterfaceWrapper) SetWebApp(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetWebApp(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminListWorkspaces operation middleware
+func (siw *ServerInterfaceWrapper) AdminListWorkspaces(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminListWorkspaces(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -13879,6 +14386,32 @@ func (siw *ServerInterfaceWrapper) FinishOnboarding(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// SetWorkspacePermissions operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspacePermissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspacePermissions(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListPlaybooks operation middleware
 func (siw *ServerInterfaceWrapper) ListPlaybooks(w http.ResponseWriter, r *http.Request) {
 
@@ -14412,6 +14945,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/workspaces/{workspace_id}", wrapper.RenameWorkspace)
 	})
 	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/permissions", wrapper.SetWorkspacePermissions)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/workspaces/{workspace_id}/icon", wrapper.DeleteWorkspaceIcon)
 	})
 	r.Group(func(r chi.Router) {
@@ -14476,6 +15012,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/meta", wrapper.GetMeta)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/overview", wrapper.AdminOverview)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/users", wrapper.AdminListUsers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/admin/users/{user_id}/sessions", wrapper.AdminEndUserSessions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/workspaces", wrapper.AdminListWorkspaces)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/bots", wrapper.AdminListBots)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/admin/bots/{bot_id}", wrapper.AdminSetBotDisabled)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/notification-policy", wrapper.GetNotificationPolicy)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/notification-policy", wrapper.SetNotificationPolicy)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/admin/web-app", wrapper.GetWebApp)

@@ -315,6 +315,8 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Files:             files,
 			AdminEmail:        cfg.AdminEmail,
 			PublicURL:         cfg.PublicURL.String(),
+			Version:           version,
+			Settings:          admin.Settings(cfg),
 			AccountURL:        auth.AccountURL(cfg.OIDCIssuer, cfg.PublicURL.String()),
 			EmailAvailable:    cfg.SMTPHost != "",
 			PushPublicKey:     pushPublicKey,

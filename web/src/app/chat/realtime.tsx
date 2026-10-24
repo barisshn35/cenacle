@@ -3,13 +3,15 @@ import { applyCollabEvent } from '../collab/collab';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '../auth/session';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { metaQuery } from '../auth/web-app';
 import { RealtimeClient } from '@cenacle/core/realtime';
 import { useConnection } from './connection';
 import { reloadWorkspaces } from './workspaces';
 import { QuickSwitcher } from './quick-switcher';
 import { ShortcutsDialog } from '../shell/shortcuts';
 import { BotDialogHost } from './interactions';
+import { SystemConsoleHost } from '../admin/system-console';
 import { useAppShortcuts } from '../shell/shortcuts-state';
 import { useQuickSwitcherShortcut } from './quick-switcher-state';
 import { useLive } from './presence-state';
@@ -224,12 +226,15 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
   useQuickSwitcherShortcut();
   useAppShortcuts();
+  // The notification policy is in the server's meta.
+  useQuery(metaQuery);
   return (
     <>
       {children}
       <QuickSwitcher />
       <ShortcutsDialog />
       <BotDialogHost />
+      <SystemConsoleHost />
     </>
   );
 }

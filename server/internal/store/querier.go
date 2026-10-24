@@ -20,6 +20,8 @@ type Querier interface {
 	// ActiveSharesOfChannel returns where a channel's events go: active shares of
 	// active connections.
 	ActiveSharesOfChannel(ctx context.Context, channelID pgtype.UUID) ([]ActiveSharesOfChannelRow, error)
+	// ActiveUserCount counts the people seen in the last 30 days.
+	ActiveUserCount(ctx context.Context) (int64, error)
 	// AddAllUsers makes every member of the channel's workspace a member of it
 	// (guests are added where they work, like bots).
 	AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error)
@@ -44,6 +46,11 @@ type Querier interface {
 	AddPushSubscription(ctx context.Context, arg AddPushSubscriptionParams) error
 	AddReaction(ctx context.Context, arg AddReactionParams) (int64, error)
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
+	AdminListBots(ctx context.Context) ([]AdminListBotsRow, error)
+	// AdminListUsers lists the installation's people by name, after a cursor,
+	// with what the system console shows about them.
+	AdminListUsers(ctx context.Context, arg AdminListUsersParams) ([]AdminListUsersRow, error)
+	AdminListWorkspaces(ctx context.Context) ([]AdminListWorkspacesRow, error)
 	ArchiveForm(ctx context.Context, id pgtype.UUID) error
 	ArchivePlaybook(ctx context.Context, id pgtype.UUID) (int64, error)
 	ArchiveWorkflow(ctx context.Context, id pgtype.UUID) error
@@ -300,6 +307,7 @@ type Querier interface {
 	GetMessageByNonce(ctx context.Context, arg GetMessageByNonceParams) (Message, error)
 	// GetMessagesByIDs returns messages with their authors and channels.
 	GetMessagesByIDs(ctx context.Context, ids []pgtype.UUID) ([]GetMessagesByIDsRow, error)
+	GetNotificationPolicy(ctx context.Context) (GetNotificationPolicyRow, error)
 	GetNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]byte, error)
 	GetNotifyCursor(ctx context.Context, name string) (pgtype.UUID, error)
 	GetPicture(ctx context.Context, id pgtype.UUID) (GetPictureRow, error)
@@ -680,6 +688,7 @@ type Querier interface {
 	SetMemberAttributes(ctx context.Context, arg SetMemberAttributesParams) error
 	SetMemberTimeout(ctx context.Context, arg SetMemberTimeoutParams) (int64, error)
 	SetMentionGroupManager(ctx context.Context, arg SetMentionGroupManagerParams) (int64, error)
+	SetNotificationPolicy(ctx context.Context, arg SetNotificationPolicyParams) error
 	SetNotificationPrefs(ctx context.Context, arg SetNotificationPrefsParams) error
 	SetNotifyCursor(ctx context.Context, arg SetNotifyCursorParams) error
 	SetOnboarded(ctx context.Context, arg SetOnboardedParams) (int64, error)
@@ -702,6 +711,7 @@ type Querier interface {
 	SetWorkspaceIcon(ctx context.Context, arg SetWorkspaceIconParams) (pgtype.UUID, error)
 	SetWorkspaceMemberRole(ctx context.Context, arg SetWorkspaceMemberRoleParams) error
 	SetWorkspaceNotificationPrefs(ctx context.Context, arg SetWorkspaceNotificationPrefsParams) error
+	SetWorkspacePermissions(ctx context.Context, arg SetWorkspacePermissionsParams) (Workspace, error)
 	SetWorkspaceRole(ctx context.Context, arg SetWorkspaceRoleParams) (int64, error)
 	// ---------------------------------------------------------------- welcome ---
 	SetWorkspaceWelcome(ctx context.Context, arg SetWorkspaceWelcomeParams) (Workspace, error)

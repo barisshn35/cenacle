@@ -94,7 +94,7 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Wor
 }
 
 const createWorkspace = `-- name: CreateWorkspace :one
-INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts
+INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions
 `
 
 type CreateWorkspaceParams struct {
@@ -123,12 +123,13 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.PersistentEveryMinutes,
 		&i.PersistentTimes,
 		&i.ReadReceipts,
+		&i.Permissions,
 	)
 	return i, err
 }
 
 const getDefaultWorkspace = `-- name: GetDefaultWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts FROM workspaces WHERE is_default
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions FROM workspaces WHERE is_default
 `
 
 func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
@@ -152,6 +153,7 @@ func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
 		&i.PersistentEveryMinutes,
 		&i.PersistentTimes,
 		&i.ReadReceipts,
+		&i.Permissions,
 	)
 	return i, err
 }
@@ -187,7 +189,7 @@ func (q *Queries) GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInv
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts FROM workspaces WHERE id = $1
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error) {
@@ -211,6 +213,7 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.PersistentEveryMinutes,
 		&i.PersistentTimes,
 		&i.ReadReceipts,
+		&i.Permissions,
 	)
 	return i, err
 }
@@ -322,7 +325,7 @@ func (q *Queries) ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]W
 }
 
 const listUserWorkspaces = `-- name: ListUserWorkspaces :many
-SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, w.welcome, w.retention_days, w.classification_id, w.ai_enabled, w.group_creation, w.edit_history, w.persistent_notifications, w.persistent_every_minutes, w.persistent_times, w.read_receipts, wm.role, wm.timeout_until, wm.onboarded_at
+SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, w.welcome, w.retention_days, w.classification_id, w.ai_enabled, w.group_creation, w.edit_history, w.persistent_notifications, w.persistent_every_minutes, w.persistent_times, w.read_receipts, w.permissions, wm.role, wm.timeout_until, wm.onboarded_at
 FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.user_id = $1
 ORDER BY w.is_default DESC, lower(w.name), w.id
@@ -364,6 +367,7 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([
 			&i.Workspace.PersistentEveryMinutes,
 			&i.Workspace.PersistentTimes,
 			&i.Workspace.ReadReceipts,
+			&i.Workspace.Permissions,
 			&i.Role,
 			&i.TimeoutUntil,
 			&i.OnboardedAt,
@@ -447,7 +451,7 @@ UPDATE workspaces SET name = coalesce($1, name),
     persistent_every_minutes = coalesce($5, persistent_every_minutes),
     persistent_times = coalesce($6, persistent_times),
     read_receipts = coalesce($7, read_receipts)
-WHERE id = $8 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts
+WHERE id = $8 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions
 `
 
 type RenameWorkspaceParams struct {
@@ -491,6 +495,7 @@ func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams
 		&i.PersistentEveryMinutes,
 		&i.PersistentTimes,
 		&i.ReadReceipts,
+		&i.Permissions,
 	)
 	return i, err
 }
@@ -511,6 +516,41 @@ func (q *Queries) RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const setWorkspacePermissions = `-- name: SetWorkspacePermissions :one
+UPDATE workspaces SET permissions = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions
+`
+
+type SetWorkspacePermissionsParams struct {
+	Permissions []byte      `json:"permissions"`
+	ID          pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) SetWorkspacePermissions(ctx context.Context, arg SetWorkspacePermissionsParams) (Workspace, error) {
+	row := q.db.QueryRow(ctx, setWorkspacePermissions, arg.Permissions, arg.ID)
+	var i Workspace
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.IsDefault,
+		&i.CreatedAt,
+		&i.Description,
+		&i.IconID,
+		&i.Appearance,
+		&i.Welcome,
+		&i.RetentionDays,
+		&i.ClassificationID,
+		&i.AiEnabled,
+		&i.GroupCreation,
+		&i.EditHistory,
+		&i.PersistentNotifications,
+		&i.PersistentEveryMinutes,
+		&i.PersistentTimes,
+		&i.ReadReceipts,
+		&i.Permissions,
+	)
+	return i, err
 }
 
 const setWorkspaceRole = `-- name: SetWorkspaceRole :execrows

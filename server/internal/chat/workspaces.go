@@ -44,7 +44,9 @@ func workspaceAPI(w store.Workspace, role string) api.Workspace {
 		PersistentNotifications: ptr(w.PersistentNotifications),
 		PersistentEveryMinutes:  ptr(int(w.PersistentEveryMinutes)),
 		PersistentTimes:         ptr(int(w.PersistentTimes)),
-		ReadReceipts:            ptr(w.ReadReceipts)}
+		ReadReceipts:            ptr(w.ReadReceipts),
+		Permissions:             ptr(map[string][]string(permissionsOf(w.Permissions))),
+		Can:                     ptr(permissionsOf(w.Permissions).can(role))}
 }
 
 // ListWorkspaces implements api.ServerInterface.
@@ -437,7 +439,7 @@ func (h *Handlers) ListInvites(w http.ResponseWriter, r *http.Request, workspace
 	if !ok {
 		return
 	}
-	ws, _, ok := h.administeredWorkspace(w, r, workspaceID, p.User)
+	ws, _, ok := h.requirePermission(w, r, workspaceID, p.User, PermInvite, "Your role in this workspace does not invite people.")
 	if !ok {
 		return
 	}
@@ -468,7 +470,7 @@ func (h *Handlers) CreateInvite(w http.ResponseWriter, r *http.Request, workspac
 	if !decode(w, r, &in) {
 		return
 	}
-	ws, _, ok := h.administeredWorkspace(w, r, workspaceID, p.User)
+	ws, _, ok := h.requirePermission(w, r, workspaceID, p.User, PermInvite, "Your role in this workspace does not invite people.")
 	if !ok {
 		return
 	}
@@ -509,7 +511,7 @@ func (h *Handlers) RevokeInvite(w http.ResponseWriter, r *http.Request, workspac
 	if !ok {
 		return
 	}
-	ws, _, ok := h.administeredWorkspace(w, r, workspaceID, p.User)
+	ws, _, ok := h.requirePermission(w, r, workspaceID, p.User, PermInvite, "Your role in this workspace does not invite people.")
 	if !ok {
 		return
 	}

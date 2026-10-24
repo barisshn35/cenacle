@@ -96,10 +96,16 @@ func categoryNotFound(w http.ResponseWriter, r *http.Request) {
 		Detail: "No category with this id."})
 }
 
-// requireWorkspaceAdmin answers 403 unless the role is owner or admin.
-func requireWorkspaceAdmin(w http.ResponseWriter, r *http.Request, role string) bool {
-	if !isWorkspaceAdmin(role) {
-		forbidden(w, r, httpx.CodeForbidden, "Only the workspace's owners and admins can organize categories.")
+// mayOrganize answers 403 unless the role may organize the workspace's
+// categories (its permission scheme).
+func (h *Handlers) mayOrganize(w http.ResponseWriter, r *http.Request, workspaceID pgtype.UUID, role string) bool {
+	ws, err := h.Queries.GetWorkspace(r.Context(), workspaceID)
+	if err != nil {
+		h.unavailable(w, r, "get workspace", err)
+		return false
+	}
+	if !permissionsOf(ws.Permissions).Allows(PermCategories, role) {
+		forbidden(w, r, httpx.CodeForbidden, "Your role in this workspace does not organize categories.")
 		return false
 	}
 	return true
@@ -125,7 +131,7 @@ func (h *Handlers) managedCategory(w http.ResponseWriter, r *http.Request, id op
 		categoryNotFound(w, r)
 		return c, false
 	}
-	return c, requireWorkspaceAdmin(w, r, role)
+	return c, h.mayOrganize(w, r, c.WorkspaceID, role)
 }
 
 // ListCategories implements api.ServerInterface.
@@ -165,7 +171,7 @@ func (h *Handlers) CreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	role, ok := h.workspaceRole(w, r, in.WorkspaceID, p.User)
-	if !ok || !requireWorkspaceAdmin(w, r, role) {
+	if !ok || !h.mayOrganize(w, r, pgUUID(in.WorkspaceID), role) {
 		return
 	}
 	name, problem := cleanName(in.Name)
@@ -268,7 +274,7 @@ func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, ch
 		forbidden(w, r, httpx.CodeForbidden, "Conversations have no category.")
 		return
 	}
-	if !ok || !requireWorkspaceAdmin(w, r, role.ws) {
+	if !ok || !h.mayOrganize(w, r, c.WorkspaceID, role.ws) {
 		return
 	}
 	category := c.CategoryID
@@ -287,7 +293,7 @@ func (h *Handlers) SetChannelCategory(w http.ResponseWriter, r *http.Request, ch
 	}
 	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
 		ID: c.ID, Name: c.Name, Visibility: c.Visibility, Topic: c.Topic, CategoryID: category,
-		SlowModeSeconds: c.SlowModeSeconds, ForumTags: c.ForumTags,
+		SlowModeSeconds: c.SlowModeSeconds, ForumTags: c.ForumTags, Moderation: c.Moderation,
 	})
 	if err != nil {
 		h.unavailable(w, r, "set channel category", err)

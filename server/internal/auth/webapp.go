@@ -108,7 +108,13 @@ func (h *Handlers) GetMeta(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w, r, "read the web app setting", err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, api.Meta{WebApp: on, DesktopMinVersion: h.DesktopMinVersion})
+	meta := api.Meta{WebApp: on, DesktopMinVersion: h.DesktopMinVersion}
+	// The apps follow the notification policy in their own notifications.
+	if policy, err := h.Users.GetNotificationPolicy(r.Context()); err == nil {
+		contents := api.MetaPushContents(policy.PushContents)
+		meta.PushContents = &contents
+	}
+	httpx.WriteJSON(w, http.StatusOK, meta)
 }
 
 func (h *Handlers) webAppSetting(w http.ResponseWriter, r *http.Request) {

@@ -377,13 +377,15 @@
       "general": "Genel",
       "members": "Üyeler",
       "welcome": "Karşılama",
-      "ai": "Yapay zekâ"
+      "ai": "Yapay zekâ",
+      "permissions": "İzinler"
     },
     "sections": {
       "general": "Adı, açıklaması, görünümü, emojileri ve çıkartmaları.",
       "members": "Bu çalışma alanındaki kişiler ve rolleri; bir çalışma alanında en az bir sahip kalır.",
       "welcome": "Yeni üyelerin ilk gördükleri.",
-      "ai": "Sunucu sunuyorsa bu çalışma alanının yardımcısı."
+      "ai": "Sunucu sunuyorsa bu çalışma alanının yardımcısı.",
+      "permissions": "Hangi rollerin kanal açabileceği, davet edebileceği, herkesi anabileceği ve dahası."
     },
     "editHistory": "Düzenleme geçmişi",
     "editHistoryHint": "Düzenlenen mesajların önceki hallerini kimin göreceği. eKeşif dışa aktarımları onları her zaman içerir.",
@@ -920,7 +922,8 @@
       "reset": "Varsayılanı kullan",
       "resetNamed": "Varsayılanı kullan, {{channel}}",
       "unknownChannel": "Ayrıldığın bir kanal"
-    }
+    },
+    "newActivity": "Yeni etkinlik"
   },
   "search": {
     "title": "Ara",
@@ -2223,5 +2226,128 @@
     "dialogFrom": "Bunu bir uygulama istiyor. Girdiklerin ona gider.",
     "optional": "(isteğe bağlı)",
     "choose": "Seç…"
+  },
+  "console": {
+    "title": "Sistem konsolu",
+    "version": "Cenacle {{version}}",
+    "names": {
+      "overview": "Genel bakış",
+      "people": "Kişiler",
+      "workspaces": "Çalışma alanları",
+      "bots": "Botlar",
+      "jobs": "Arka plan işleri",
+      "notifications": "Bildirimler"
+    },
+    "sections": {
+      "overview": "Kurulumun özeti ve ayarları.",
+      "people": "Giriş yapmış herkes, tüm çalışma alanlarında. Hesaplar Cenacle ID'de yönetilir.",
+      "workspaces": "Tüm çalışma alanları ve büyüklükleri.",
+      "bots": "Tüm çalışma alanlarının botları. Kapatılan bot anahtarlarını ve webhook'larını kullanamaz.",
+      "jobs": "Sunucunun arka planda yaptığı işler, türlerine göre, ve son hatalar.",
+      "notifications": "Uygulama dışındaki bildirimlerin ne gösterebileceği. Kilit ekranları ve gelen kutuları bunları gösterir."
+    },
+    "counts": {
+      "users": "Kişi",
+      "active": "30 günde etkin",
+      "workspaces": "Çalışma alanı",
+      "channels": "Kanal",
+      "messages": "Mesaj",
+      "files": "Dosya",
+      "storage": "Kullanılan alan",
+      "bots": "Bot"
+    },
+    "config": "Ayarlar",
+    "configHint": "Sunucunun ortamından gelir; orada değiştirip yeniden başlat. Sırlar \"set\" olarak görünür.",
+    "findPeople": "Ad, e-posta ya da kullanıcı adıyla kişi bul",
+    "columns": {
+      "person": "Kişi",
+      "role": "Rol",
+      "lastSeen": "Son görülme",
+      "workspaces": "Çalışma alanı",
+      "sessions": "Oturum",
+      "workspace": "Çalışma alanı",
+      "members": "Üye",
+      "channels": "Kanal",
+      "created": "Oluşturuldu",
+      "bot": "Bot",
+      "state": "Durum",
+      "job": "İş",
+      "waiting": "Bekliyor",
+      "running": "Çalışıyor",
+      "retrying": "Yeniden deneniyor",
+      "failed": "Başarısız",
+      "done": "Biten (24 sa)"
+    },
+    "role": {
+      "admin": "Yönetici",
+      "member": "Üye",
+      "guest": "Misafir",
+      "deactivated": "Devre dışı"
+    },
+    "signOut": "{{name}} her yerden çıkış yapsın",
+    "signOutTitle": "{{name}} her yerden çıkarılsın mı?",
+    "signOutDescription": "Tüm cihazlardaki tüm oturumlar kapanır. Hesabı Cenacle ID'de kapatılmadıkça yeniden giriş yapabilir.",
+    "signOutConfirm": "Çıkış yaptır",
+    "signedOut": "{{name}} her yerden çıkarıldı.",
+    "more": "Daha fazla göster",
+    "default": "Varsayılan",
+    "noBots": "Hiçbir çalışma alanında bot yok.",
+    "interactive": "Etkileşimli",
+    "enableBot": "{{name}} açılsın",
+    "disableBot": "{{name}} kapatılsın",
+    "changeFailed": "Değişiklik kaydedilemedi. Tekrar dene.",
+    "noJobs": "Henüz arka plan işi yok.",
+    "failures": "Son hatalar",
+    "noFailures": "Son zamanlarda hata yok.",
+    "attempt": "{{n}}. deneme",
+    "policy": {
+      "push_contents": "Web push ve uygulama bildirimleri",
+      "push_contents_full": "Mesaj",
+      "push_contents_full_hint": "Kimin yazdığı, nereye yazdığı ve metnin başı.",
+      "push_contents_sender": "Gönderen ve kanal",
+      "push_contents_sender_hint": "Kimin, nereye yazdığı; metin olmadan.",
+      "push_contents_none": "Yalnızca bir şey geldiği",
+      "push_contents_none_hint": "Yalnızca \"Yeni etkinlik\": görmek için uygulamayı aç.",
+      "email_contents": "Bildirim e-postaları",
+      "email_contents_full": "Mesajlar",
+      "email_contents_full_hint": "Kimin, nereye, ne zaman yazdığı ve her metnin başı.",
+      "email_contents_sender": "Gönderenler ve kanallar",
+      "email_contents_sender_hint": "Kimin, nereye, ne zaman yazdığı; metinler olmadan."
+    }
+  },
+  "permissions": {
+    "title": "İzin şeması",
+    "hint": "Her rolün bu çalışma alanında neler yapabileceğini işaretleyin. Değişiklikler hemen uygulanır.",
+    "permission": "İzin",
+    "owners": "Sahipler her zaman her şeyi yapabilir. Botlar sahiplerde ve yöneticilerde kalır; grup oluşturmanın Gruplar altında kendi ayarı vardır.",
+    "toggle": "{{role}}: {{permission}}",
+    "names": {
+      "create_channels": "Kanal oluşturma",
+      "invite_people": "Kişi davet etme",
+      "manage_categories": "Kategorileri düzenleme",
+      "custom_emoji": "Özel emoji ekleme",
+      "broadcast_mentions": "Herkesi anma",
+      "group_mentions": "Grupları anma"
+    },
+    "hints": {
+      "create_channels": "Bu çalışma alanının herkese açık ve özel kanalları.",
+      "invite_people": "Davet bağlantıları oluşturma, görme ve iptal etme.",
+      "manage_categories": "Kategori oluşturma ve kanalları kategoriler arasında taşıma.",
+      "custom_emoji": "Buradaki herkesin kullanabileceği emoji yükleme.",
+      "broadcast_mentions": "@channel, @here ve @all kanaldaki herkese bildirim gönderir.",
+      "group_mentions": "Bir grubu anmak grubun kişilerine bildirim gönderir."
+    }
+  },
+  "moderation": {
+    "title": "Moderasyon",
+    "hint": "Eylemleri kanalın yöneticilerine ve çalışma alanının yöneticilerine bırakın.",
+    "actions": {
+      "post": "Mesaj gönderme",
+      "reply": "Dizilerde yanıtlama",
+      "react": "Tepki verme",
+      "broadcast": "Herkesi anma"
+    },
+    "everyone": "Herkes",
+    "managers": "Yalnızca yöneticiler"
   }
 }

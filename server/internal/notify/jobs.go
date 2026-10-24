@@ -149,6 +149,10 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 	if err != nil {
 		online = map[string]string{} // offline it is: better told twice than never
 	}
+	policy, err := q.GetNotificationPolicy(ctx)
+	if err != nil {
+		return 0, err
+	}
 	sent := 0
 	now := p.now()
 	for _, r := range rows {
@@ -169,6 +173,13 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 			Body:  excerpt(r.Body, 160), URL: strings.TrimSuffix(p.PublicURL, "/") + "/c/" + idString(r.ChannelID),
 			Tag: "c-" + idString(r.ChannelID), ChannelID: idString(r.ChannelID),
 		}
+		// The notification policy: lock screens show what is pushed.
+		switch policy.PushContents {
+		case "sender":
+			payload.Body = ""
+		case "none":
+			payload.Title, payload.Body = "Cenacle", newActivity
+		}
 		for _, s := range subs {
 			err := p.Push.Send(ctx, s.Endpoint, s.P256dh, s.Auth, payload)
 			switch {
@@ -183,6 +194,10 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 	}
 	return sent, q.SetNotifyCursor(ctx, store.SetNotifyCursorParams{Name: pushCursor, Cursor: last})
 }
+
+// newActivity is the text of notifications that may show nothing (in both
+// languages: the server does not know people's language).
+const newActivity = "New activity / Yeni etkinlik"
 
 func notificationTitle(author, channel, kind string) string {
 	if kind == "direct" || kind == "group" {
@@ -231,6 +246,10 @@ func (e *Emailer) Run(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err // unsure who is away: try again later
 	}
+	policy, err := q.GetNotificationPolicy(ctx)
+	if err != nil {
+		return 0, err
+	}
 	sent := 0
 	now := e.now()
 	for _, id := range ids {
@@ -259,9 +278,13 @@ func (e *Emailer) Run(ctx context.Context) (int, error) {
 		for _, r := range rows {
 			kind := KindOf(r.ChannelKind, r.Mentioned)
 			if Notifies(who.prefs, Channel{Level: r.Level, MutedUntil: timeOf(r.ChannelMutedUntil), WorkspaceMutedUntil: timeOf(r.WorkspaceMutedUntil)}, kind, now, who.tz) {
+				text := excerpt(r.Body, 300)
+				if policy.EmailContents == "sender" {
+					text = "" // the notification policy keeps the text in the app
+				}
 				lines = append(lines, fmt.Sprintf("%s — %s\n%s\n",
 					notificationTitle(r.AuthorName, r.ChannelName, r.ChannelKind),
-					r.CreatedAt.In(who.tz).Format("2006-01-02 15:04"), excerpt(r.Body, 300)))
+					r.CreatedAt.In(who.tz).Format("2006-01-02 15:04"), text))
 			}
 		}
 		if InQuietHours(who.prefs, now, who.tz) || (who.prefs.PausedUntil != nil && now.Before(*who.prefs.PausedUntil)) {

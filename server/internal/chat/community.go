@@ -38,9 +38,11 @@ const (
 // postExtras are the parts of a message beyond its text: a forum post's
 // title and tags, a poll.
 type postExtras struct {
-	title pgtype.Text
-	tags  []string
-	poll  *api.NewPoll
+	// noGroups: the author may not mention groups (no one is notified).
+	noGroups bool
+	title    pgtype.Text
+	tags     []string
+	poll     *api.NewPoll
 	// link is the first web address of the text (its preview follows).
 	link    pgtype.Text
 	forward []byte

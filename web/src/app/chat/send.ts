@@ -67,7 +67,13 @@ export function useSendMessage() {
         }
         const moderated =
           err instanceof ApiError &&
-          ['automod_blocked', 'timed_out', 'slow_mode'].includes(err.problem.code ?? '');
+          [
+            'automod_blocked',
+            'timed_out',
+            'slow_mode',
+            'broadcast_not_allowed',
+            'read_only_channel',
+          ].includes(err.problem.code ?? '');
         update(p.nonce, {
           status: 'failed',
           retryAfter: err instanceof ApiError ? err.retryAfter : undefined,

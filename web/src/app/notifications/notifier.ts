@@ -12,6 +12,7 @@ import {
   type NotificationSettings,
 } from './notifications';
 import { playSound } from './sounds';
+import { metaQuery, type Meta } from '../auth/web-app';
 import i18next from 'i18next';
 import { toast } from 'sonner';
 import { plainOf } from '../compliance/e2e';
@@ -38,6 +39,17 @@ function follows(queryClient: QueryClient, rootId: string): boolean {
   return queryClient
     .getQueriesData<InfiniteData<{ threads: FollowedThread[] }>>({ queryKey: ['me', 'threads'] })
     .some(([, data]) => data?.pages.some((p) => p.threads.some((t) => t.root.id === rootId)));
+}
+
+/**
+ * What a desktop notification may show under the server's notification
+ * policy: everything, the sender and channel only, or only that something came.
+ */
+function byPolicy(queryClient: QueryClient, title: string, body: string) {
+  const policy = queryClient.getQueryData<Meta>(metaQuery.queryKey)?.push_contents ?? 'full';
+  if (policy === 'none') return { title: 'Cenacle', body: i18next.t('notifications.newActivity') };
+  if (policy === 'sender') return { title, body: '' };
+  return { title, body };
 }
 
 /** Desktop notifications are possible and allowed by the person. */
@@ -84,12 +96,18 @@ export function notifyIncoming(
   playSound(soundFor(settings, channel.id, kind), settings.prefs.volume);
   if (settings.prefs.desktop && canNotify() && document.visibilityState !== 'visible') {
     const conversation = channel.kind === 'direct' || channel.kind === 'group';
-    const n = new Notification(
+    const shown = byPolicy(
+      queryClient,
       conversation
         ? message.author.display_name
         : `${message.author.display_name} · ${channel.name}`,
-      { body: excerpt(message.body), tag: `c-${channel.id}`, silent: true },
+      excerpt(message.body),
     );
+    const n = new Notification(shown.title, {
+      body: shown.body,
+      tag: `c-${channel.id}`,
+      silent: true,
+    });
     n.onclick = () => {
       window.focus();
       openChannel(channel.id);
@@ -128,8 +146,13 @@ export function notifyReminder(
     action: { label: i18next.t('priority.open'), onClick: () => openChannel(r.channel_id) },
   });
   if (canNotify() && document.visibilityState !== 'visible') {
-    const n = new Notification(conversation ? title : `${title} · ${r.channel_name}`, {
-      body: r.body,
+    const shown = byPolicy(
+      queryClient,
+      conversation ? title : `${title} · ${r.channel_name}`,
+      r.body,
+    );
+    const n = new Notification(shown.title, {
+      body: shown.body,
       tag: `reminder-${r.message_id}`,
       requireInteraction: true,
     });

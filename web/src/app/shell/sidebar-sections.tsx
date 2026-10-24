@@ -63,6 +63,7 @@ import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useActiveChannel } from '../chat/active-channel';
 import { useActiveWorkspace } from '../chat/active-workspace';
+import { may } from '../chat/workspaces';
 import { CategoriesDialog } from '../chat/categories-dialog';
 import { ChannelDirectory } from '../chat/channel-directory';
 import { ChannelIcon } from '../chat/channel-icon';
@@ -124,7 +125,9 @@ function ConversationIcon({ channel }: { channel: Channel }) {
  */
 export function SidebarSections() {
   const { t } = useTranslation();
-  const { id: workspaceId, admin } = useActiveWorkspace();
+  const { id: workspaceId, workspace } = useActiveWorkspace();
+  const createChannels = may(workspace, 'create_channels');
+  const organize = may(workspace, 'manage_categories');
   const channels = useQuery(channelsQuery);
   const categories = useQuery(categoriesQuery(workspaceId));
   const muted = useMutedChannels();
@@ -236,7 +239,7 @@ export function SidebarSections() {
             />
             <SectionMenu
               title={titleOf(s)}
-              withAdd={(s.kind === 'channels' && admin) || s.kind === 'direct'}
+              withAdd={(s.kind === 'channels' && createChannels) || s.kind === 'direct'}
               canMove={s.kind !== 'unreads'}
               first={at <= 0}
               last={at === order.length - 1}
@@ -248,7 +251,7 @@ export function SidebarSections() {
               onRemove={() => remove(s.key)}
               onGroupUnreads={(on) => update((l) => ({ ...l, group_unreads: on }))}
             />
-            {s.kind === 'channels' && admin && (
+            {s.kind === 'channels' && createChannels && (
               <AddAction label={t('channels.createTitle')} onClick={() => setDialog('create')} />
             )}
             {s.kind === 'direct' && (
@@ -298,7 +301,7 @@ export function SidebarSections() {
                       <span>{t('channels.browse')}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {admin && (
+                  {organize && (
                     <SidebarMenuItem>
                       <SidebarMenuButton onClick={() => setDialog('categories')}>
                         <FoldersIcon aria-hidden strokeWidth={1.75} />

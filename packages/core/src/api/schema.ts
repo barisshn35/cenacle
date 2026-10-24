@@ -44,6 +44,28 @@ export interface paths {
     patch: operations['renameWorkspace'];
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/permissions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Set which roles may do what in the workspace (owners and admins)
+     * @description Permissions left out keep their defaults. Owners may always do everything.
+     */
+    put: operations['setWorkspacePermissions'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspace_id}/icon': {
     parameters: {
       query?: never;
@@ -355,6 +377,130 @@ export interface paths {
      */
     get: operations['getMeta'];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/overview': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The installation at a glance (instance administrators) */
+    get: operations['adminOverview'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Everyone of the installation, by name (instance administrators) */
+    get: operations['adminListUsers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/users/{user_id}/sessions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Sign someone out everywhere (instance administrators) */
+    delete: operations['adminEndUserSessions'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/workspaces': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Every workspace with its size (instance administrators) */
+    get: operations['adminListWorkspaces'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/bots': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Every bot of every workspace (instance administrators) */
+    get: operations['adminListBots'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/bots/{bot_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Turn a bot off or on (instance administrators) */
+    patch: operations['adminSetBotDisabled'];
+    trace?: never;
+  };
+  '/api/admin/notification-policy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** What notifications outside the app may show (instance administrators) */
+    get: operations['getNotificationPolicy'];
+    /** Choose what notifications outside the app may show */
+    put: operations['setNotificationPolicy'];
     post?: never;
     delete?: never;
     options?: never;
@@ -4770,6 +4916,16 @@ export interface components {
       persistent_times?: number;
       /** @description Read receipts in conversations are on (administrators turn them on). */
       read_receipts?: boolean;
+      /**
+       * @description The workspace's permission scheme: each permission's roles (owners may
+       *     always). Permissions are create_channels, invite_people,
+       *     manage_categories, custom_emoji, broadcast_mentions and group_mentions.
+       */
+      permissions?: {
+        [key: string]: string[];
+      };
+      /** @description The permissions of your role here. */
+      can?: string[];
     };
     WorkspaceMember: {
       user: components['schemas']['Person'];
@@ -4838,6 +4994,13 @@ export interface components {
       can_post: boolean;
       /** @description Whether this user can add and remove people and change the channel. */
       can_manage: boolean;
+      /** @description Whether this user can answer in threads here. */
+      can_reply?: boolean;
+      /** @description Whether this user can react here. */
+      can_react?: boolean;
+      /** @description Whether this user can mention @channel, @here and @all here. */
+      can_broadcast?: boolean;
+      moderation?: components['schemas']['ChannelModeration'];
       /** @description Archived channels are read-only. */
       archived: boolean;
       /** @description How many people are in the channel (the channel directory only). */
@@ -4862,6 +5025,19 @@ export interface components {
       topic?: string;
       slow_mode_seconds?: number;
       forum_tags?: string[];
+      moderation?: components['schemas']['ChannelModeration'];
+    };
+    /**
+     * @description Everyone who may post, or only the channel's managers and the workspace's admins.
+     * @enum {string}
+     */
+    ModerationRule: 'everyone' | 'managers';
+    /** @description Who may post, answer in threads, react and mention everyone in a channel. */
+    ChannelModeration: {
+      post: components['schemas']['ModerationRule'];
+      reply: components['schemas']['ModerationRule'];
+      react: components['schemas']['ModerationRule'];
+      broadcast: components['schemas']['ModerationRule'];
     };
     Presence: {
       /** Format: uuid */
@@ -4985,6 +5161,109 @@ export interface components {
        *     to update before signing in. CENACLE_DESKTOP_MIN_VERSION.
        */
       desktop_min_version: string;
+      /**
+       * @description What the apps' own notifications may show (the notification policy).
+       * @enum {string}
+       */
+      push_contents?: 'full' | 'sender' | 'none';
+    };
+    NotificationPolicy: {
+      /**
+       * @description Web push and the apps' own notifications: the text, the sender and channel
+       *     only, or only that something came (lock screens show them).
+       * @enum {string}
+       */
+      push_contents: 'full' | 'sender' | 'none';
+      /**
+       * @description Notification e-mails: the text, or the sender and channel only.
+       * @enum {string}
+       */
+      email_contents: 'full' | 'sender';
+    };
+    AdminOverview: {
+      version: string;
+      counts: {
+        /** Format: int64 */
+        users: number;
+        /**
+         * Format: int64
+         * @description Seen in the last 30 days.
+         */
+        active_users: number;
+        /** Format: int64 */
+        bots: number;
+        /** Format: int64 */
+        workspaces: number;
+        /** Format: int64 */
+        channels: number;
+        /** Format: int64 */
+        messages: number;
+        /** Format: int64 */
+        files: number;
+        /** Format: int64 */
+        file_bytes: number;
+      };
+      /** @description Settings from the environment (read only here; secrets show as "set"). */
+      config: {
+        name: string;
+        value: string;
+      }[];
+      /** @description Background jobs by kind and state. */
+      jobs: {
+        kind: string;
+        available: number;
+        running: number;
+        retryable: number;
+        discarded: number;
+        completed: number;
+      }[];
+      /** @description The latest failed attempts of background jobs. */
+      failures: {
+        kind: string;
+        state: string;
+        attempt: number;
+        error: string;
+        /** Format: date-time */
+        at: string;
+      }[];
+    };
+    AdminUser: {
+      /** Format: uuid */
+      id: string;
+      display_name: string;
+      email: string;
+      username: string;
+      is_admin: boolean;
+      guest: boolean;
+      deactivated: boolean;
+      /** Format: date-time */
+      last_seen_at: string | null;
+      /** Format: date-time */
+      created_at: string;
+      workspaces: number;
+      sessions: number;
+    };
+    AdminWorkspace: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      is_default: boolean;
+      members: number;
+      channels: number;
+      /** Format: date-time */
+      created_at: string;
+    };
+    AdminBot: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** Format: uuid */
+      workspace_id: string;
+      workspace_name: string;
+      disabled: boolean;
+      interactions: boolean;
+      /** Format: date-time */
+      created_at: string;
     };
     WebAppSetting: {
       enabled: boolean;
@@ -5537,6 +5816,41 @@ export interface operations {
           persistent_times?: number;
           /** @description People see how far others read in conversations (off by default). */
           read_receipts?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workspace'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setWorkspacePermissions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Each permission's roles (admin, member, guest). */
+          permissions: {
+            [key: string]: string[];
+          };
         };
       };
     };
@@ -6126,6 +6440,210 @@ export interface operations {
           'application/json': components['schemas']['Meta'];
         };
       };
+    };
+  };
+  adminOverview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Version, counts, configuration and background jobs. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminOverview'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  adminListUsers: {
+    parameters: {
+      query?: {
+        q?: string;
+        after_name?: string;
+        after_id?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Up to 50 people; next continues the list. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            users: components['schemas']['AdminUser'][];
+            next?: {
+              after_name: string;
+              /** Format: uuid */
+              after_id: string;
+            };
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  adminEndUserSessions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Signed out. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  adminListWorkspaces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workspaces. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            workspaces: components['schemas']['AdminWorkspace'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  adminListBots: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Bots. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            bots: components['schemas']['AdminBot'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  adminSetBotDisabled: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        bot_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          disabled: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getNotificationPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The policy. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NotificationPolicy'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setNotificationPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NotificationPolicy'];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NotificationPolicy'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
     };
   };
   getWebApp: {

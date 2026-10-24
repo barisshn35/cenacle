@@ -59,7 +59,8 @@ ORDER BY m.role = 'manager' DESC, lower(u.display_name), u.id;
 -- name: UpdateChannel :one
 UPDATE channels
 SET name = @name, visibility = @visibility, topic = @topic, category_id = sqlc.narg(category_id),
-    slow_mode_seconds = @slow_mode_seconds, forum_tags = coalesce(@forum_tags::text[], '{}')
+    slow_mode_seconds = @slow_mode_seconds, forum_tags = coalesce(@forum_tags::text[], '{}'),
+    moderation = @moderation
 WHERE id = @id
 RETURNING *;
 

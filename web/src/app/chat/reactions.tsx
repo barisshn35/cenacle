@@ -131,7 +131,14 @@ export function AddReactionButton({
 }
 
 /** Reactions under a message: each toggles the reader's own. */
-export function ReactionBar({ message }: { message: Message }) {
+/** The reactions of a message; without canReact, only your own can be taken back. */
+export function ReactionBar({
+  message,
+  canReact = true,
+}: {
+  message: Message;
+  canReact?: boolean;
+}) {
   const { t } = useTranslation();
   const toggle = useToggleReaction(message);
   if (message.reactions.length === 0) return null;
@@ -142,6 +149,7 @@ export function ReactionBar({ message }: { message: Message }) {
           <button
             type="button"
             aria-pressed={r.me}
+            disabled={!canReact && !r.me}
             aria-label={t(r.me ? 'reactions.chipMine' : 'reactions.chip', {
               emoji: r.emoji,
               count: r.count,
@@ -151,7 +159,7 @@ export function ReactionBar({ message }: { message: Message }) {
               'inline-flex min-h-target min-w-target items-center gap-1 rounded-full border px-2 text-sm tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
               r.me
                 ? 'border-accent-brand/50 bg-accent text-accent-foreground'
-                : 'border-border bg-background hover:bg-muted',
+                : 'border-border bg-background hover:bg-muted disabled:hover:bg-background',
             )}
           >
             <span aria-hidden className="inline-flex">

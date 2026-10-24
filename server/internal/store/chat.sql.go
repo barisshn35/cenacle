@@ -95,7 +95,7 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 const createChannel = `-- name: CreateChannel :one
 INSERT INTO channels (workspace_id, name, topic, kind, is_default, visibility, created_by, encrypted, key_check)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation
 `
 
 type CreateChannelParams struct {
@@ -144,6 +144,7 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 		&i.AccessRules,
 		&i.Encrypted,
 		&i.KeyCheck,
+		&i.Moderation,
 	)
 	return i, err
 }
@@ -152,7 +153,7 @@ const createConversation = `-- name: CreateConversation :one
 INSERT INTO channels (workspace_id, name, kind, visibility, created_by)
 VALUES ($1, $2, $3, 'private', $4)
 ON CONFLICT (workspace_id, (lower(name))) DO UPDATE SET name = EXCLUDED.name
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation
 `
 
 type CreateConversationParams struct {
@@ -193,6 +194,7 @@ func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversation
 		&i.AccessRules,
 		&i.Encrypted,
 		&i.KeyCheck,
+		&i.Moderation,
 	)
 	return i, err
 }
@@ -399,7 +401,7 @@ VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (workspace_id, (lower(name))) DO UPDATE
 SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory,
     visibility = 'public'
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation
 `
 
 type EnsureChannelParams struct {
@@ -445,6 +447,7 @@ func (q *Queries) EnsureChannel(ctx context.Context, arg EnsureChannelParams) (C
 		&i.AccessRules,
 		&i.Encrypted,
 		&i.KeyCheck,
+		&i.Moderation,
 	)
 	return i, err
 }
@@ -467,7 +470,7 @@ func (q *Queries) GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCateg
 }
 
 const getChannel = `-- name: GetChannel :one
-SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check FROM channels WHERE id = $1
+SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation FROM channels WHERE id = $1
 `
 
 func (q *Queries) GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error) {
@@ -494,12 +497,13 @@ func (q *Queries) GetChannel(ctx context.Context, id pgtype.UUID) (Channel, erro
 		&i.AccessRules,
 		&i.Encrypted,
 		&i.KeyCheck,
+		&i.Moderation,
 	)
 	return i, err
 }
 
 const getChannelByName = `-- name: GetChannelByName :one
-SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check FROM channels WHERE workspace_id = $1 AND lower(name) = lower($2)
+SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation FROM channels WHERE workspace_id = $1 AND lower(name) = lower($2)
 `
 
 type GetChannelByNameParams struct {
@@ -531,6 +535,7 @@ func (q *Queries) GetChannelByName(ctx context.Context, arg GetChannelByNamePara
 		&i.AccessRules,
 		&i.Encrypted,
 		&i.KeyCheck,
+		&i.Moderation,
 	)
 	return i, err
 }
@@ -712,7 +717,7 @@ func (q *Queries) JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) (
 }
 
 const listAllChannels = `-- name: ListAllChannels :many
-SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, coalesce(m.role, '')::text AS role,
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, c.moderation, coalesce(m.role, '')::text AS role,
        (SELECT count(*) FROM channel_members x WHERE x.channel_id = c.id)::int AS member_count
 FROM channels c
 LEFT JOIN channel_members m ON m.channel_id = c.id AND m.user_id = $1
@@ -765,6 +770,7 @@ func (q *Queries) ListAllChannels(ctx context.Context, arg ListAllChannelsParams
 			&i.Channel.AccessRules,
 			&i.Channel.Encrypted,
 			&i.Channel.KeyCheck,
+			&i.Channel.Moderation,
 			&i.Role,
 			&i.MemberCount,
 		); err != nil {
@@ -923,7 +929,7 @@ func (q *Queries) ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) 
 }
 
 const listMemberChannels = `-- name: ListMemberChannels :many
-SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, m.role, wm.role AS workspace_role, m.last_read_id,
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, c.moderation, m.role, wm.role AS workspace_role, m.last_read_id,
        -- Unread messages of others, counted up to 100 (clients show "99+").
        (SELECT count(*) FROM (
             SELECT 1 FROM messages x
@@ -986,6 +992,7 @@ func (q *Queries) ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([
 			&i.Channel.AccessRules,
 			&i.Channel.Encrypted,
 			&i.Channel.KeyCheck,
+			&i.Channel.Moderation,
 			&i.Role,
 			&i.WorkspaceRole,
 			&i.LastReadID,
@@ -1344,7 +1351,7 @@ const setChannelArchived = `-- name: SetChannelArchived :one
 UPDATE channels
 SET archived_at = CASE WHEN $1::boolean THEN coalesce(archived_at, now()) END
 WHERE id = $2
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation
 `
 
 type SetChannelArchivedParams struct {
@@ -1376,6 +1383,7 @@ func (q *Queries) SetChannelArchived(ctx context.Context, arg SetChannelArchived
 		&i.AccessRules,
 		&i.Encrypted,
 		&i.KeyCheck,
+		&i.Moderation,
 	)
 	return i, err
 }
@@ -1425,9 +1433,10 @@ func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) 
 const updateChannel = `-- name: UpdateChannel :one
 UPDATE channels
 SET name = $1, visibility = $2, topic = $3, category_id = $4,
-    slow_mode_seconds = $5, forum_tags = coalesce($6::text[], '{}')
-WHERE id = $7
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check
+    slow_mode_seconds = $5, forum_tags = coalesce($6::text[], '{}'),
+    moderation = $7
+WHERE id = $8
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation
 `
 
 type UpdateChannelParams struct {
@@ -1437,6 +1446,7 @@ type UpdateChannelParams struct {
 	CategoryID      pgtype.UUID `json:"category_id"`
 	SlowModeSeconds int32       `json:"slow_mode_seconds"`
 	ForumTags       []string    `json:"forum_tags"`
+	Moderation      []byte      `json:"moderation"`
 	ID              pgtype.UUID `json:"id"`
 }
 
@@ -1448,6 +1458,7 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (C
 		arg.CategoryID,
 		arg.SlowModeSeconds,
 		arg.ForumTags,
+		arg.Moderation,
 		arg.ID,
 	)
 	var i Channel
@@ -1472,6 +1483,7 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (C
 		&i.AccessRules,
 		&i.Encrypted,
 		&i.KeyCheck,
+		&i.Moderation,
 	)
 	return i, err
 }

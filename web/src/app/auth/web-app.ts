@@ -4,6 +4,8 @@ import { ApiError, apiFetch } from '@cenacle/core/api';
 
 export interface Meta {
   web_app: boolean;
+  /** What the apps' own notifications may show (the notification policy). */
+  push_contents?: 'full' | 'sender' | 'none';
 }
 
 export interface WebAppSetting {

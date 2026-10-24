@@ -447,12 +447,7 @@ func (h *Handlers) AddCustomEmoji(w http.ResponseWriter, r *http.Request, worksp
 	if !ok {
 		return
 	}
-	role, ok := h.workspaceRole(w, r, workspaceID, p.User)
-	if !ok {
-		return
-	}
-	if role == WorkspaceGuest {
-		forbidden(w, r, httpx.CodeForbidden, "Guests do not add emoji.")
+	if _, _, ok := h.requirePermission(w, r, workspaceID, p.User, PermEmoji, "Your role in this workspace does not add emoji."); !ok {
 		return
 	}
 	if !emojiNameRE.MatchString(params.Name) {

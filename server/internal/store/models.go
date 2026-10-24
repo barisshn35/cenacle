@@ -108,6 +108,7 @@ type Channel struct {
 	AccessRules      []byte             `json:"access_rules"`
 	Encrypted        bool               `json:"encrypted"`
 	KeyCheck         string             `json:"key_check"`
+	Moderation       []byte             `json:"moderation"`
 }
 
 type ChannelCategory struct {
@@ -375,9 +376,11 @@ type InstanceBanner struct {
 }
 
 type InstanceSetting struct {
-	ID        bool      `json:"id"`
-	WebApp    bool      `json:"web_app"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID            bool      `json:"id"`
+	WebApp        bool      `json:"web_app"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	PushContents  string    `json:"push_contents"`
+	EmailContents string    `json:"email_contents"`
 }
 
 type LegalHold struct {
@@ -835,6 +838,7 @@ type Workspace struct {
 	PersistentEveryMinutes  int32       `json:"persistent_every_minutes"`
 	PersistentTimes         int32       `json:"persistent_times"`
 	ReadReceipts            bool        `json:"read_receipts"`
+	Permissions             []byte      `json:"permissions"`
 }
 
 type WorkspaceAttribute struct {

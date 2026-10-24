@@ -51,6 +51,7 @@ const (
 	CodeGroupManaged     = "group_managed"
 	CodeChannelArchived  = "channel_archived"
 	CodeConfiguredName   = "channel_configured"
+	CodeNoBroadcast      = "broadcast_not_allowed"
 )
 
 // Limits of channel fields (characters).
@@ -85,9 +86,11 @@ func (a access) admin() bool { return isWorkspaceAdmin(a.ws) }
 func isWorkspaceAdmin(role string) bool { return role == WorkspaceOwner || role == WorkspaceAdmin }
 
 // canPost: everyone in standard channels, only workspace owners and admins in
-// announcement channels; nobody in archived ones.
+// announcement channels; nobody in archived ones. A channel's moderation may
+// leave posting to its managers.
 func canPost(c store.Channel, a access) bool {
-	return !c.ArchivedAt.Valid && (c.Kind != KindAnnouncement || a.admin())
+	return !c.ArchivedAt.Valid && (c.Kind != KindAnnouncement || a.admin()) &&
+		(!managersOnly(moderationOf(c).Post) || canManage(c, a))
 }
 
 // canManage: the channel's managers and the workspace's owners and admins;
@@ -105,6 +108,10 @@ func toAPI(c store.Channel, a access) api.Channel {
 		IsDefault:  c.IsDefault, IsMandatory: c.IsMandatory, IsMember: member,
 		CanPost:         member && canPost(c, a),
 		CanManage:       canManage(c, a),
+		CanReply:        ptr(member && canReply(c, a)),
+		CanReact:        ptr(member && canReact(c, a)),
+		CanBroadcast:    ptr(member && canBroadcastHere(c, a)),
+		Moderation:      ptr(moderationAPI(c)),
 		Archived:        c.ArchivedAt.Valid,
 		GroupManaged:    c.GroupManaged,
 		Participants:    []api.Person{},
@@ -249,8 +256,8 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !isWorkspaceAdmin(wsRole) {
-		forbidden(w, r, httpx.CodeForbidden, "Only the workspace's owners and admins can create channels.")
+	if _, _, ok := h.requirePermission(w, r, in.WorkspaceId, p.User, PermCreateChannels,
+		"Your role in this workspace does not create channels."); !ok {
 		return
 	}
 	name, problem := cleanName(in.Name)
@@ -500,6 +507,10 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 	if problem == "" && in.ForumTags != nil {
 		tags, problem = cleanTags(*in.ForumTags, MaxForumTags)
 	}
+	mod := c.Moderation
+	if problem == "" && in.Moderation != nil {
+		mod, problem = cleanModeration(*in.Moderation)
+	}
 	if name != c.Name && h.configured(c.Name) {
 		// The server would create the configured name again at the next start.
 		forbidden(w, r, CodeConfiguredName, "This channel is named in the installation settings.")
@@ -519,8 +530,13 @@ func (h *Handlers) UpdateChannel(w http.ResponseWriter, r *http.Request, channel
 	before := c
 	c, err := h.Queries.UpdateChannel(r.Context(), store.UpdateChannelParams{
 		ID: c.ID, Name: name, Visibility: visibility, Topic: topic, CategoryID: c.CategoryID,
-		SlowModeSeconds: slow, ForumTags: tags,
+		SlowModeSeconds: slow, ForumTags: tags, Moderation: mod,
 	})
+	if err == nil && string(before.Moderation) != string(c.Moderation) {
+		h.record(r, c.WorkspaceID, audit.ChannelModerationChanged, "channel", uuid(c.ID).String(), map[string]any{
+			"channel": c.Name, "moderation": moderationAPI(c),
+		})
+	}
 	if err == nil && before.SlowModeSeconds != c.SlowModeSeconds {
 		h.record(r, c.WorkspaceID, audit.SlowModeChanged, "channel", uuid(c.ID).String(), map[string]any{
 			"channel": c.Name, "seconds": c.SlowModeSeconds,

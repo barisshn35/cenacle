@@ -143,6 +143,46 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/workspaces/{workspace_id}/permissions:
+    parameters:
+      - name: workspace_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [workspaces]
+      operationId: setWorkspacePermissions
+      summary: Set which roles may do what in the workspace (owners and admins)
+      description: |
+        Permissions left out keep their defaults. Owners may always do everything.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: object
+                  description: Each permission's roles (admin, member, guest).
+                  additionalProperties:
+                    type: array
+                    items: { type: string }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/workspaces/{workspace_id}/icon:
     parameters:
       - name: workspace_id
@@ -648,6 +688,150 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Meta' }
+  /api/admin/overview:
+    get:
+      tags: [admin]
+      operationId: adminOverview
+      summary: The installation at a glance (instance administrators)
+      responses:
+        '200':
+          description: Version, counts, configuration and background jobs.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminOverview' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/users:
+    get:
+      tags: [admin]
+      operationId: adminListUsers
+      summary: Everyone of the installation, by name (instance administrators)
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: after_name, in: query, schema: { type: string } }
+        - { name: after_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Up to 50 people; next continues the list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminUser' }
+                  next:
+                    type: object
+                    required: [after_name, after_id]
+                    properties:
+                      after_name: { type: string }
+                      after_id: { type: string, format: uuid }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/users/{user_id}/sessions:
+    parameters:
+      - { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [admin]
+      operationId: adminEndUserSessions
+      summary: Sign someone out everywhere (instance administrators)
+      responses:
+        '204': { description: Signed out. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/admin/workspaces:
+    get:
+      tags: [admin]
+      operationId: adminListWorkspaces
+      summary: Every workspace with its size (instance administrators)
+      responses:
+        '200':
+          description: Workspaces.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [workspaces]
+                properties:
+                  workspaces:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminWorkspace' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/bots:
+    get:
+      tags: [admin]
+      operationId: adminListBots
+      summary: Every bot of every workspace (instance administrators)
+      responses:
+        '200':
+          description: Bots.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bots]
+                properties:
+                  bots:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminBot' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/bots/{bot_id}:
+    parameters:
+      - { name: bot_id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [admin]
+      operationId: adminSetBotDisabled
+      summary: Turn a bot off or on (instance administrators)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [disabled]
+              properties:
+                disabled: { type: boolean }
+      responses:
+        '204': { description: Changed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/admin/notification-policy:
+    get:
+      tags: [admin]
+      operationId: getNotificationPolicy
+      summary: What notifications outside the app may show (instance administrators)
+      responses:
+        '200':
+          description: The policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPolicy' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [admin]
+      operationId: setNotificationPolicy
+      summary: Choose what notifications outside the app may show
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationPolicy' }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPolicy' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/admin/web-app:
     get:
       tags: [meta]
@@ -7055,6 +7239,19 @@ components:
         read_receipts:
           type: boolean
           description: Read receipts in conversations are on (administrators turn them on).
+        permissions:
+          type: object
+          description: |
+            The workspace's permission scheme: each permission's roles (owners may
+            always). Permissions are create_channels, invite_people,
+            manage_categories, custom_emoji, broadcast_mentions and group_mentions.
+          additionalProperties:
+            type: array
+            items: { type: string }
+        can:
+          type: array
+          description: The permissions of your role here.
+          items: { type: string }
     WorkspaceMember:
       type: object
       required: [user, role]
@@ -7146,6 +7343,10 @@ components:
         can_manage:
           type: boolean
           description: Whether this user can add and remove people and change the channel.
+        can_reply: { type: boolean, description: Whether this user can answer in threads here. }
+        can_react: { type: boolean, description: Whether this user can react here. }
+        can_broadcast: { type: boolean, description: 'Whether this user can mention @channel, @here and @all here.' }
+        moderation: { $ref: '#/components/schemas/ChannelModeration' }
         archived:
           type: boolean
           description: Archived channels are read-only.
@@ -7186,6 +7387,20 @@ components:
           type: array
           maxItems: 20
           items: { type: string, minLength: 1, maxLength: 40 }
+        moderation: { $ref: '#/components/schemas/ChannelModeration' }
+    ModerationRule:
+      type: string
+      enum: [everyone, managers]
+      description: Everyone who may post, or only the channel's managers and the workspace's admins.
+    ChannelModeration:
+      type: object
+      description: Who may post, answer in threads, react and mention everyone in a channel.
+      required: [post, reply, react, broadcast]
+      properties:
+        post: { $ref: '#/components/schemas/ModerationRule' }
+        reply: { $ref: '#/components/schemas/ModerationRule' }
+        react: { $ref: '#/components/schemas/ModerationRule' }
+        broadcast: { $ref: '#/components/schemas/ModerationRule' }
     Presence:
       type: object
       required: [user_id, status]
@@ -7322,6 +7537,111 @@ components:
           description: |
             The oldest desktop app this server accepts ("" for any); older apps ask
             to update before signing in. CENACLE_DESKTOP_MIN_VERSION.
+        push_contents:
+          type: string
+          enum: [full, sender, none]
+          description: What the apps' own notifications may show (the notification policy).
+    NotificationPolicy:
+      type: object
+      required: [push_contents, email_contents]
+      properties:
+        push_contents:
+          type: string
+          enum: [full, sender, none]
+          description: |
+            Web push and the apps' own notifications: the text, the sender and channel
+            only, or only that something came (lock screens show them).
+        email_contents:
+          type: string
+          enum: [full, sender]
+          description: "Notification e-mails: the text, or the sender and channel only."
+    AdminOverview:
+      type: object
+      required: [version, counts, config, jobs, failures]
+      properties:
+        version: { type: string }
+        counts:
+          type: object
+          required: [users, active_users, bots, workspaces, channels, messages, files, file_bytes]
+          properties:
+            users: { type: integer, format: int64 }
+            active_users: { type: integer, format: int64, description: Seen in the last 30 days. }
+            bots: { type: integer, format: int64 }
+            workspaces: { type: integer, format: int64 }
+            channels: { type: integer, format: int64 }
+            messages: { type: integer, format: int64 }
+            files: { type: integer, format: int64 }
+            file_bytes: { type: integer, format: int64 }
+        config:
+          type: array
+          description: Settings from the environment (read only here; secrets show as "set").
+          items:
+            type: object
+            required: [name, value]
+            properties:
+              name: { type: string }
+              value: { type: string }
+        jobs:
+          type: array
+          description: Background jobs by kind and state.
+          items:
+            type: object
+            required: [kind, available, running, retryable, discarded, completed]
+            properties:
+              kind: { type: string }
+              available: { type: integer }
+              running: { type: integer }
+              retryable: { type: integer }
+              discarded: { type: integer }
+              completed: { type: integer }
+        failures:
+          type: array
+          description: The latest failed attempts of background jobs.
+          items:
+            type: object
+            required: [kind, state, attempt, error, at]
+            properties:
+              kind: { type: string }
+              state: { type: string }
+              attempt: { type: integer }
+              error: { type: string }
+              at: { type: string, format: date-time }
+    AdminUser:
+      type: object
+      required: [id, display_name, email, username, is_admin, guest, deactivated, last_seen_at, created_at, workspaces, sessions]
+      properties:
+        id: { type: string, format: uuid }
+        display_name: { type: string }
+        email: { type: string }
+        username: { type: string }
+        is_admin: { type: boolean }
+        guest: { type: boolean }
+        deactivated: { type: boolean }
+        last_seen_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        workspaces: { type: integer }
+        sessions: { type: integer }
+    AdminWorkspace:
+      type: object
+      required: [id, name, is_default, members, channels, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        is_default: { type: boolean }
+        members: { type: integer }
+        channels: { type: integer }
+        created_at: { type: string, format: date-time }
+    AdminBot:
+      type: object
+      required: [id, name, workspace_id, workspace_name, disabled, interactions, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        workspace_id: { type: string, format: uuid }
+        workspace_name: { type: string }
+        disabled: { type: boolean }
+        interactions: { type: boolean }
+        created_at: { type: string, format: date-time }
     WebAppSetting:
       type: object
       required: [enabled, forced]

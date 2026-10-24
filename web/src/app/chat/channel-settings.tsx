@@ -30,7 +30,7 @@ import {
   type Channel,
 } from './data';
 import { ChannelGroupsSection } from './directory-groups';
-import { isWorkspaceAdmin, workspacesQuery } from './workspaces';
+import { may, workspacesQuery } from './workspaces';
 
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60';
@@ -39,6 +39,9 @@ const selectClass =
 const SLOW_MODES = [0, 10, 30, 60, 300, 900, 3600] as const;
 
 /** Channel settings for its managers: name, topic, visibility, category; archiving. */
+const MODERATED = ['post', 'reply', 'react', 'broadcast'] as const;
+type ChannelModeration = NonNullable<Channel['moderation']>;
+
 export function ChannelSettingsDialog({
   channel,
   open,
@@ -50,7 +53,10 @@ export function ChannelSettingsDialog({
 }) {
   const { t } = useTranslation();
   const workspaces = useQuery(workspacesQuery);
-  const wsAdmin = isWorkspaceAdmin(workspaces.data?.find((w) => w.id === channel.workspace_id));
+  const wsAdmin = may(
+    workspaces.data?.find((w) => w.id === channel.workspace_id),
+    'manage_categories',
+  );
   const ids = {
     name: useId(),
     topic: useId(),
@@ -61,6 +67,14 @@ export function ChannelSettingsDialog({
     error: useId(),
   };
   const [slow, setSlow] = useState(channel.slow_mode_seconds ?? 0);
+  const [moderation, setModeration] = useState<ChannelModeration>(
+    channel.moderation ?? {
+      post: 'everyone',
+      reply: 'everyone',
+      react: 'everyone',
+      broadcast: 'everyone',
+    },
+  );
   const [tags, setTags] = useState((channel.forum_tags ?? []).join(', '));
   const [name, setName] = useState(channel.name);
   const [topic, setTopic] = useState(channel.topic);
@@ -79,6 +93,7 @@ export function ChannelSettingsDialog({
         topic: topic.trim(),
         visibility,
         slow_mode_seconds: slow,
+        moderation,
         ...(channel.kind === 'forum'
           ? {
               forum_tags: tags
@@ -192,6 +207,32 @@ export function ChannelSettingsDialog({
                 {t('community.moderation.slowModeExplained')}
               </p>
             </div>
+            <fieldset className="grid gap-2" data-testid="channel-moderation">
+              <legend className="text-sm font-medium">{t('moderation.title')}</legend>
+              <p className="text-xs text-muted-foreground">{t('moderation.hint')}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {MODERATED.map((action) => (
+                  <label key={action} className="grid gap-1 text-xs">
+                    <span className="text-muted-foreground">
+                      {t(`moderation.actions.${action}`)}
+                    </span>
+                    <select
+                      className={selectClass}
+                      value={moderation[action]}
+                      onChange={(e) =>
+                        setModeration((m) => ({
+                          ...m,
+                          [action]: e.target.value as ChannelModeration['post'],
+                        }))
+                      }
+                    >
+                      <option value="everyone">{t('moderation.everyone')}</option>
+                      <option value="managers">{t('moderation.managers')}</option>
+                    </select>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             {channel.kind === 'forum' && (
               <div className="grid gap-2">
                 <Label htmlFor={ids.tags}>{t('community.forum.tags')}</Label>

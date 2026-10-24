@@ -17,6 +17,26 @@ const json = (body: unknown, method = 'POST'): RequestInit => ({
 export const isWorkspaceAdmin = (w: Pick<Workspace, 'role'> | undefined) =>
   w?.role === 'owner' || w?.role === 'admin';
 
+/** Workspace permissions the roles may be given (owners always may). */
+export const PERMISSIONS = [
+  'create_channels',
+  'invite_people',
+  'manage_categories',
+  'custom_emoji',
+  'broadcast_mentions',
+  'group_mentions',
+] as const;
+export type Permission = (typeof PERMISSIONS)[number];
+
+/** Whether your role may do something in the workspace (its permission scheme). */
+export function may(
+  w: Pick<Workspace, 'role' | 'can'> | undefined,
+  permission: Permission,
+): boolean {
+  if (!w) return false;
+  return w.can ? w.can.includes(permission) : isWorkspaceAdmin(w);
+}
+
 /** The user's workspaces, the default one first. */
 export const workspacesQuery = queryOptions({
   queryKey: ['workspaces'],
@@ -40,6 +60,8 @@ export const updateWorkspace = (
     read_receipts?: boolean;
   },
 ) => apiFetch<Workspace>(`/api/workspaces/${id}`, json(patch, 'PATCH'));
+export const setWorkspacePermissions = (id: string, permissions: Record<string, string[]>) =>
+  apiFetch<Workspace>(`/api/workspaces/${id}/permissions`, json({ permissions }, 'PUT'));
 export const setWorkspaceIcon = (id: string, file: Blob) =>
   apiFetch<Workspace>(`/api/workspaces/${id}/icon`, {
     method: 'PUT',

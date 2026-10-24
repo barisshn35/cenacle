@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BellIcon,
   ExternalLinkIcon,
+  GaugeIcon,
   KeyboardIcon,
   LanguagesIcon,
   LaptopIcon,
@@ -35,6 +36,7 @@ import { WebAppPanel } from './web-app-panel';
 import { SideNavDialog } from '../shell/side-nav-dialog';
 import { sideNavLink } from '../shell/board-styles';
 import { useShortcutsDialog } from '../shell/shortcuts-state';
+import { useSystemConsole } from '../admin/console-state';
 import { Kbd } from '@cenacle/ui/components/kbd';
 import {
   describeDevice,
@@ -198,6 +200,23 @@ export function SettingsDialog({
                 {t('shortcuts.open')}
                 <Kbd className="ml-auto font-sans">Ctrl /</Kbd>
               </button>
+              {admin && (
+                <button
+                  type="button"
+                  className={sideNavLink}
+                  onClick={() => {
+                    onOpenChange(false);
+                    useSystemConsole.getState().setOpen(true);
+                  }}
+                >
+                  <GaugeIcon
+                    aria-hidden
+                    className="size-4 text-muted-foreground"
+                    strokeWidth={1.75}
+                  />
+                  {t('console.title')}
+                </button>
+              )}
             </>
           }
           footer={<span className="font-mono">{window.location.host}</span>}

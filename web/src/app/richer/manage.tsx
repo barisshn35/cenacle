@@ -9,7 +9,7 @@ import { Button } from '@cenacle/ui/components/button';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { useSession } from '../auth/session';
-import { isWorkspaceAdmin, type Workspace } from '../chat/workspaces';
+import { isWorkspaceAdmin, may, type Workspace } from '../chat/workspaces';
 import {
   addCustomEmoji,
   addSticker,
@@ -24,13 +24,15 @@ import {
 
 type Kind = 'emoji' | 'stickers';
 
-/** Custom emoji and stickers of a workspace: members add them; their adders and admins remove them. */
+/** Custom emoji and stickers of a workspace: whom the scheme lets add them; their adders and admins remove them. */
 export function EmojiAndStickers({ workspace }: { workspace: Workspace }) {
-  if (workspace.role === 'guest') return null;
+  const emoji = may(workspace, 'custom_emoji');
+  const stickers = workspace.role !== 'guest';
+  if (!emoji && !stickers) return null;
   return (
     <>
-      <PictureSet kind="emoji" workspace={workspace} />
-      <PictureSet kind="stickers" workspace={workspace} />
+      {emoji && <PictureSet kind="emoji" workspace={workspace} />}
+      {stickers && <PictureSet kind="stickers" workspace={workspace} />}
     </>
   );
 }

@@ -67,6 +67,10 @@ type Handlers struct {
 	AdminEmail string
 	// PublicURL is the app's origin, for webhook addresses.
 	PublicURL string
+	// Version is the build version; Settings the configuration with secrets
+	// hidden (both for the system console).
+	Version  string
+	Settings map[string]any
 	// AccountURL is Cenacle ID's account page (where people change their name).
 	AccountURL string
 	// EmailAvailable: the installation sends e-mail (SMTP is configured).
@@ -270,10 +274,23 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		badRequest(w, r, problem)
 		return
 	}
+	scheme, ok := h.schemeOf(w, r, c)
+	if !ok {
+		return
+	}
+	if len(broadcasts(body)) > 0 && (!scheme.Allows(PermBroadcast, role.ws) || !canBroadcastHere(c, role)) {
+		forbidden(w, r, CodeNoBroadcast, "You may not mention everyone in this channel.")
+		return
+	}
+	extra.noGroups = !scheme.Allows(PermGroupMentions, role.ws)
 	var reply replyTo
 	if in.RootId != nil {
 		root, ok := h.threadRoot(w, r, c, *in.RootId)
 		if !ok {
+			return
+		}
+		if !canReply(c, role) {
+			forbidden(w, r, CodeReadOnlyChannel, "Only the channel's managers answer in threads here.")
 			return
 		}
 		reply = replyTo{root: root, also: in.AlsoInChannel != nil && *in.AlsoInChannel}
@@ -404,7 +421,9 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 	if err := addBroadcastMentions(ctx, q, extra.presence, c, msg); err != nil {
 		return api.Message{}, err
 	}
-	if err := addGroupMentions(ctx, q, c, msg); err != nil {
+	if extra.noGroups {
+		// The scheme does not let the author notify groups.
+	} else if err := addGroupMentions(ctx, q, c, msg); err != nil {
 		return api.Message{}, err
 	}
 	// What you send, you have read. No channel.read: the sender's other

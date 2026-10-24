@@ -255,6 +255,26 @@ func TestWebPush(t *testing.T) {
 	if n, _ := p.Run(ctx); n != 0 {
 		t.Errorf("online person got %d pushes", n)
 	}
+	// The notification policy keeps the text (and then the sender) off lock screens.
+	presence[s.userID(mert)] = ""
+	if _, err := s.pool.Exec(ctx, "UPDATE instance_settings SET push_contents = 'sender'"); err != nil {
+		t.Fatal(err)
+	}
+	s.send(ayse, general, "secret plan <@"+s.userID(mert)+">", "n-push-5")
+	if n, _ := p.Run(ctx); n != 1 {
+		t.Fatalf("sender policy sent %d", n)
+	}
+	if got := sender.sent[len(sender.sent)-1]; got.Body != "" || got.Title != "Ayşe · General" {
+		t.Errorf("sender policy = %+v", got)
+	}
+	if _, err := s.pool.Exec(ctx, "UPDATE instance_settings SET push_contents = 'none'"); err != nil {
+		t.Fatal(err)
+	}
+	s.send(ayse, general, "secret plan 2 <@"+s.userID(mert)+">", "n-push-6")
+	_, _ = p.Run(ctx)
+	if got := sender.sent[len(sender.sent)-1]; got.Title != "Cenacle" || strings.Contains(got.Body, "secret") {
+		t.Errorf("none policy = %+v", got)
+	}
 }
 
 // --- e-mail ------------------------------------------------------------------------

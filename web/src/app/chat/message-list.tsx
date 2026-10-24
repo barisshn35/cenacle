@@ -261,7 +261,7 @@ export function MessageRow({
               <MessageFiles files={m.files} />
               <LinkPreviewCard message={m} />
               <AckBar message={m} channel={channel} />
-              <ReactionBar message={m} />
+              <ReactionBar message={m} canReact={channel.can_react !== false} />
               {!inThread && <ThreadSummaryButton message={m} />}
               {repliers && <SeenBy channel={channel} message={m} repliers={repliers} />}
             </div>
@@ -269,7 +269,7 @@ export function MessageRow({
         </div>
         {!editing && (
           <div className="absolute -top-3 right-3 flex gap-0.5 rounded-lg bg-popover p-0.5 opacity-0 shadow-popover transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:static pointer-coarse:col-start-2 pointer-coarse:justify-self-end pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none">
-            {!channel.archived && <AddReactionButton message={m} />}
+            {!channel.archived && channel.can_react !== false && <AddReactionButton message={m} />}
             {!inThread && !channel.archived && <ReplyButton message={m} />}
             <MessageActions message={m} channel={channel} inThread={inThread} />
           </div>

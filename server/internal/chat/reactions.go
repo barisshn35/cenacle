@@ -45,7 +45,7 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 		badRequest(w, r, "A reaction is one emoji.")
 		return
 	}
-	c, _, m, ok := h.message(w, r, channelID, messageID, p.User)
+	c, a, m, ok := h.message(w, r, channelID, messageID, p.User)
 	if !ok {
 		return
 	}
@@ -56,6 +56,9 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 		return
 	case c.ArchivedAt.Valid:
 		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
+		return
+	case add && !canReact(c, a):
+		forbidden(w, r, CodeReadOnlyChannel, "Only the channel's managers react here.")
 		return
 	case add && h.timedOut(w, r, c.WorkspaceID, p.User):
 		return

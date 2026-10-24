@@ -11,6 +11,7 @@ import {
   CopyIcon,
   GlobeIcon,
   HandIcon,
+  KeyRoundIcon,
   LogOutIcon,
   ScaleIcon,
   SettingsIcon,
@@ -69,6 +70,7 @@ import {
   inviteLink,
   inviteToken,
   isWorkspaceAdmin,
+  may,
   reloadWorkspaces,
   removeWorkspaceMember,
   revokeInvite,
@@ -78,6 +80,7 @@ import {
 } from './workspaces';
 import { ModerationDialog, TimeoutSelect } from '../community/moderation';
 import { WelcomeForm } from '../community/admin-panels';
+import { PermissionsSetting } from './permissions-setting';
 import { EmojiAndStickers } from '../richer/manage';
 import { dateLocale } from '../../i18n/time-format';
 import { cn } from '@cenacle/ui/lib/utils';
@@ -128,7 +131,7 @@ export function WorkspaceMenu({ workspace }: { workspace: Workspace }) {
           <ChevronDownIcon aria-hidden strokeWidth={1.75} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-60">
-          {admin && (
+          {may(workspace, 'invite_people') && (
             <DropdownMenuItem onClick={() => setDialog('invite')}>
               <UserPlusIcon strokeWidth={1.75} />
               {t('workspaces.invitePeople')}
@@ -253,7 +256,7 @@ function WorkspaceSettingsDialog({
     onError: failed,
   });
 
-  type Section = 'general' | 'members' | 'welcome' | 'ai';
+  type Section = 'general' | 'members' | 'permissions' | 'welcome' | 'ai';
   // Members open the member list; administrators start at the general settings.
   const [section, setSection] = useState<Section>(admin ? 'general' : 'members');
   const go = (to: '/compliance' | '/federation') => {
@@ -356,6 +359,11 @@ function WorkspaceSettingsDialog({
               ...(admin
                 ? [
                     {
+                      key: 'permissions' as const,
+                      label: t('workspaces.sectionNames.permissions'),
+                      icon: KeyRoundIcon,
+                    },
+                    {
                       key: 'welcome' as const,
                       label: t('workspaces.sectionNames.welcome'),
                       icon: HandIcon,
@@ -442,6 +450,7 @@ function WorkspaceSettingsDialog({
               {admin && <WorkspaceGroupsSection workspace={workspace} />}
             </>
           )}
+          {section === 'permissions' && <PermissionsSetting workspace={workspace} />}
           {section === 'welcome' && <WelcomeForm workspace={workspace} />}
           {section === 'ai' && <WorkspaceAIForm workspace={workspace} />}
         </div>

@@ -377,13 +377,15 @@
       "general": "General",
       "members": "Members",
       "welcome": "Welcome",
-      "ai": "AI"
+      "ai": "AI",
+      "permissions": "Permissions"
     },
     "sections": {
       "general": "Its name, description, look, emoji and stickers.",
       "members": "The people in this workspace and their roles; a workspace keeps at least one owner.",
       "welcome": "What new members see first.",
-      "ai": "The assistant of this workspace, when the server offers one."
+      "ai": "The assistant of this workspace, when the server offers one.",
+      "permissions": "Which roles may create channels, invite people, mention everyone and more."
     },
     "editHistory": "Edit history",
     "editHistoryHint": "Who sees the earlier versions of edited messages. eDiscovery exports always include them.",
@@ -920,7 +922,8 @@
       "reset": "Use my default",
       "resetNamed": "Use my default, {{channel}}",
       "unknownChannel": "A channel you left"
-    }
+    },
+    "newActivity": "New activity"
   },
   "search": {
     "title": "Search",
@@ -2223,5 +2226,128 @@
     "dialogFrom": "An app asks for this. What you enter goes to it.",
     "optional": "(optional)",
     "choose": "Choose…"
+  },
+  "console": {
+    "title": "System console",
+    "version": "Cenacle {{version}}",
+    "names": {
+      "overview": "Overview",
+      "people": "People",
+      "workspaces": "Workspaces",
+      "bots": "Bots",
+      "jobs": "Background jobs",
+      "notifications": "Notifications"
+    },
+    "sections": {
+      "overview": "The installation at a glance and its settings.",
+      "people": "Everyone who signed in, across workspaces. Accounts are managed in Cenacle ID.",
+      "workspaces": "Every workspace and its size.",
+      "bots": "Every bot of every workspace. A bot turned off cannot use its tokens or webhooks.",
+      "jobs": "Work the server does in the background, by kind, and the latest failures.",
+      "notifications": "What notifications outside the app may show. Lock screens and inboxes show them."
+    },
+    "counts": {
+      "users": "People",
+      "active": "Active in 30 days",
+      "workspaces": "Workspaces",
+      "channels": "Channels",
+      "messages": "Messages",
+      "files": "Files",
+      "storage": "Stored",
+      "bots": "Bots"
+    },
+    "config": "Settings",
+    "configHint": "From the server's environment; change them there and restart. Secrets show as \"set\".",
+    "findPeople": "Find people by name, e-mail or username",
+    "columns": {
+      "person": "Person",
+      "role": "Role",
+      "lastSeen": "Last seen",
+      "workspaces": "Workspaces",
+      "sessions": "Sessions",
+      "workspace": "Workspace",
+      "members": "Members",
+      "channels": "Channels",
+      "created": "Created",
+      "bot": "Bot",
+      "state": "State",
+      "job": "Job",
+      "waiting": "Waiting",
+      "running": "Running",
+      "retrying": "Retrying",
+      "failed": "Failed",
+      "done": "Done (24 h)"
+    },
+    "role": {
+      "admin": "Administrator",
+      "member": "Member",
+      "guest": "Guest",
+      "deactivated": "Deactivated"
+    },
+    "signOut": "Sign {{name}} out everywhere",
+    "signOutTitle": "Sign {{name}} out everywhere?",
+    "signOutDescription": "Every session ends on every device. They can sign in again unless their account is turned off in Cenacle ID.",
+    "signOutConfirm": "Sign out",
+    "signedOut": "{{name}} is signed out everywhere.",
+    "more": "Show more",
+    "default": "Default",
+    "noBots": "No workspace has bots.",
+    "interactive": "Interactive",
+    "enableBot": "Turn {{name}} on",
+    "disableBot": "Turn {{name}} off",
+    "changeFailed": "The change couldn't be saved. Try again.",
+    "noJobs": "No background jobs yet.",
+    "failures": "Latest failures",
+    "noFailures": "Nothing failed lately.",
+    "attempt": "attempt {{n}}",
+    "policy": {
+      "push_contents": "Web push and app notifications",
+      "push_contents_full": "The message",
+      "push_contents_full_hint": "Who wrote, where and the start of the text.",
+      "push_contents_sender": "Sender and channel",
+      "push_contents_sender_hint": "Who wrote and where, without the text.",
+      "push_contents_none": "Nothing but that something came",
+      "push_contents_none_hint": "\"New activity\" only: open the app to see it.",
+      "email_contents": "Notification e-mails",
+      "email_contents_full": "The messages",
+      "email_contents_full_hint": "Who wrote, where, when and the start of each text.",
+      "email_contents_sender": "Senders and channels",
+      "email_contents_sender_hint": "Who wrote, where and when, without the texts."
+    }
+  },
+  "permissions": {
+    "title": "Permission scheme",
+    "hint": "Tick what each role may do in this workspace. Changes apply at once.",
+    "permission": "Permission",
+    "owners": "Owners may always do everything. Bots stay with the owners and admins; group creation has its own setting under Groups.",
+    "toggle": "{{role}}: {{permission}}",
+    "names": {
+      "create_channels": "Create channels",
+      "invite_people": "Invite people",
+      "manage_categories": "Organize categories",
+      "custom_emoji": "Add custom emoji",
+      "broadcast_mentions": "Mention everyone",
+      "group_mentions": "Mention groups"
+    },
+    "hints": {
+      "create_channels": "Public and private channels of this workspace.",
+      "invite_people": "Create, see and revoke invitation links.",
+      "manage_categories": "Create categories and move channels between them.",
+      "custom_emoji": "Upload emoji everyone here can use.",
+      "broadcast_mentions": "@channel, @here and @all notify everyone in a channel.",
+      "group_mentions": "Mentioning a group notifies its people."
+    }
+  },
+  "moderation": {
+    "title": "Moderation",
+    "hint": "Leave actions to the channel's managers and the workspace's admins.",
+    "actions": {
+      "post": "Send messages",
+      "reply": "Answer in threads",
+      "react": "React",
+      "broadcast": "Mention everyone"
+    },
+    "everyone": "Everyone",
+    "managers": "Managers only"
   }
 }

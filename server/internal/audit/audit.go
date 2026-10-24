@@ -77,6 +77,11 @@ const (
 	EditHistoryChanged             = "workspace.edit_history_changed"
 	PersistentNotificationsChanged = "workspace.persistent_notifications_changed"
 	ReadReceiptsChanged            = "workspace.read_receipts_changed"
+	SessionsEndedByAdmin           = "admin.sessions_ended"
+	BotDisabledByAdmin             = "admin.bot_disabled"
+	NotificationPolicyChanged      = "instance.notification_policy_changed"
+	PermissionsChanged             = "workspace.permissions_changed"
+	ChannelModerationChanged       = "channel.moderation_changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

@@ -7,7 +7,198 @@ package store
 
 import (
 	"context"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const activeUserCount = `-- name: ActiveUserCount :one
+SELECT count(*)::bigint FROM users
+WHERE NOT is_bot AND deactivated_at IS NULL AND last_seen_at > now() - interval '30 days'
+`
+
+// ActiveUserCount counts the people seen in the last 30 days.
+func (q *Queries) ActiveUserCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, activeUserCount)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const adminListBots = `-- name: AdminListBots :many
+SELECT b.id, u.display_name AS name, b.workspace_id, w.name AS workspace_name, b.disabled_at,
+       b.interactions_url, b.created_at
+FROM bots b JOIN users u ON u.id = b.user_id JOIN workspaces w ON w.id = b.workspace_id
+WHERE NOT b.is_system
+ORDER BY lower(w.name), lower(u.display_name)
+`
+
+type AdminListBotsRow struct {
+	ID              pgtype.UUID        `json:"id"`
+	Name            string             `json:"name"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	WorkspaceName   string             `json:"workspace_name"`
+	DisabledAt      pgtype.Timestamptz `json:"disabled_at"`
+	InteractionsUrl pgtype.Text        `json:"interactions_url"`
+	CreatedAt       time.Time          `json:"created_at"`
+}
+
+func (q *Queries) AdminListBots(ctx context.Context) ([]AdminListBotsRow, error) {
+	rows, err := q.db.Query(ctx, adminListBots)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AdminListBotsRow
+	for rows.Next() {
+		var i AdminListBotsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.WorkspaceID,
+			&i.WorkspaceName,
+			&i.DisabledAt,
+			&i.InteractionsUrl,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const adminListUsers = `-- name: AdminListUsers :many
+SELECT u.id, u.display_name, u.email, coalesce(u.username, '')::text AS username, u.is_admin,
+       coalesce(u.directory_role, '')::text AS directory_role, u.deactivated_at, u.last_seen_at, u.created_at,
+       (SELECT count(*) FROM workspace_members wm WHERE wm.user_id = u.id)::int AS workspaces,
+       (SELECT count(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now())::int AS sessions
+FROM users u
+WHERE NOT u.is_bot
+  AND ($1::text = '' OR u.display_name ILIKE '%' || $1 || '%' OR u.email ILIKE '%' || $1 || '%'
+       OR coalesce(u.username, '') ILIKE '%' || $1 || '%')
+  AND ($2::text IS NULL
+       OR (lower(u.display_name), u.id) > ($2::text, $3::uuid))
+ORDER BY lower(u.display_name), u.id
+LIMIT 50
+`
+
+type AdminListUsersParams struct {
+	Q         string      `json:"q"`
+	AfterName pgtype.Text `json:"after_name"`
+	AfterID   pgtype.UUID `json:"after_id"`
+}
+
+type AdminListUsersRow struct {
+	ID            pgtype.UUID        `json:"id"`
+	DisplayName   string             `json:"display_name"`
+	Email         string             `json:"email"`
+	Username      string             `json:"username"`
+	IsAdmin       bool               `json:"is_admin"`
+	DirectoryRole string             `json:"directory_role"`
+	DeactivatedAt pgtype.Timestamptz `json:"deactivated_at"`
+	LastSeenAt    pgtype.Timestamptz `json:"last_seen_at"`
+	CreatedAt     time.Time          `json:"created_at"`
+	Workspaces    int32              `json:"workspaces"`
+	Sessions      int32              `json:"sessions"`
+}
+
+// AdminListUsers lists the installation's people by name, after a cursor,
+// with what the system console shows about them.
+func (q *Queries) AdminListUsers(ctx context.Context, arg AdminListUsersParams) ([]AdminListUsersRow, error) {
+	rows, err := q.db.Query(ctx, adminListUsers, arg.Q, arg.AfterName, arg.AfterID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AdminListUsersRow
+	for rows.Next() {
+		var i AdminListUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayName,
+			&i.Email,
+			&i.Username,
+			&i.IsAdmin,
+			&i.DirectoryRole,
+			&i.DeactivatedAt,
+			&i.LastSeenAt,
+			&i.CreatedAt,
+			&i.Workspaces,
+			&i.Sessions,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const adminListWorkspaces = `-- name: AdminListWorkspaces :many
+SELECT w.id, w.name, w.is_default, w.created_at,
+       (SELECT count(*) FROM workspace_members wm WHERE wm.workspace_id = w.id)::int AS members,
+       (SELECT count(*) FROM channels c WHERE c.workspace_id = w.id AND c.kind NOT IN ('direct', 'group'))::int AS channels
+FROM workspaces w
+ORDER BY w.is_default DESC, lower(w.name)
+`
+
+type AdminListWorkspacesRow struct {
+	ID        pgtype.UUID `json:"id"`
+	Name      string      `json:"name"`
+	IsDefault bool        `json:"is_default"`
+	CreatedAt time.Time   `json:"created_at"`
+	Members   int32       `json:"members"`
+	Channels  int32       `json:"channels"`
+}
+
+func (q *Queries) AdminListWorkspaces(ctx context.Context) ([]AdminListWorkspacesRow, error) {
+	rows, err := q.db.Query(ctx, adminListWorkspaces)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AdminListWorkspacesRow
+	for rows.Next() {
+		var i AdminListWorkspacesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.IsDefault,
+			&i.CreatedAt,
+			&i.Members,
+			&i.Channels,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getNotificationPolicy = `-- name: GetNotificationPolicy :one
+SELECT push_contents, email_contents FROM instance_settings
+`
+
+type GetNotificationPolicyRow struct {
+	PushContents  string `json:"push_contents"`
+	EmailContents string `json:"email_contents"`
+}
+
+func (q *Queries) GetNotificationPolicy(ctx context.Context) (GetNotificationPolicyRow, error) {
+	row := q.db.QueryRow(ctx, getNotificationPolicy)
+	var i GetNotificationPolicyRow
+	err := row.Scan(&i.PushContents, &i.EmailContents)
+	return i, err
+}
 
 const instanceCounts = `-- name: InstanceCounts :one
 SELECT
@@ -59,4 +250,18 @@ func (q *Queries) InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
 		&i.ScheduledPending,
 	)
 	return i, err
+}
+
+const setNotificationPolicy = `-- name: SetNotificationPolicy :exec
+UPDATE instance_settings SET push_contents = $1, email_contents = $2, updated_at = now()
+`
+
+type SetNotificationPolicyParams struct {
+	PushContents  string `json:"push_contents"`
+	EmailContents string `json:"email_contents"`
+}
+
+func (q *Queries) SetNotificationPolicy(ctx context.Context, arg SetNotificationPolicyParams) error {
+	_, err := q.db.Exec(ctx, setNotificationPolicy, arg.PushContents, arg.EmailContents)
+	return err
 }
