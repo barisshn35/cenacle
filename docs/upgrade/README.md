@@ -48,6 +48,19 @@ included, was there.
 
 ## Version notes
 
+### 0.32.0
+
+- Migrations: chat `00030_message_priority` (adds `messages.priority`,
+  `messages.ack_requested`, `messages.persistent`, `message_acks`, `message_reminders` and
+  the workspace's reminder settings) and `00031_read_receipts` (adds
+  `workspaces.read_receipts`, off, and `users.share_read_receipts`, on). Reversible.
+- Read receipts stay off until owners or admins turn them on in the workspace settings.
+- Reminders of urgent messages are allowed by default (every 5 minutes, up to 6 times);
+  turn them off or change them in the workspace settings.
+- Rolling back to 0.31, with the 0.32 images: twice
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`; then
+  the previous `CENACLE_VERSION`. Priorities and acknowledgements are lost.
+
 ### 0.31.0
 
 - Migrations: chat `00027_sidebar` (adds `sidebar_layouts`), `00028_mention_groups` (adds
