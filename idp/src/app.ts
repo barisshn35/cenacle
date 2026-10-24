@@ -20,6 +20,7 @@ import { registerFederation } from './federation/routes.ts';
 import type { ProviderStore } from './federation/store.ts';
 import { registerAdmin } from './admin/routes.ts';
 import { registerDirectoryFeed } from './directory/feed.ts';
+import { registerScim } from './scim/routes.ts';
 import type { ClientMetadata } from './oidc/clients.ts';
 import type { DirectoryAccess } from './accounts/signin.ts';
 import { registerInteractions } from './oidc/interactions.ts';
@@ -236,6 +237,12 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
           audit,
           issuer: opts.oidc.issuer,
           formActionOrigins: opts.oidc.formActionOrigins,
+        });
+        await registerScim(app, {
+          pool: opts.oidc.directory.pool,
+          providers: opts.oidc.federation,
+          audit,
+          issuer: opts.oidc.issuer,
         });
       }
       if (opts.oidc.directory && opts.oidc.clients) {

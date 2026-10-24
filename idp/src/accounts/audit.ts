@@ -27,7 +27,14 @@ export type AuditAction =
   | 'admin.directory.synced'
   | 'admin.provider.created'
   | 'admin.provider.updated'
-  | 'admin.sign_in_policy.changed';
+  | 'admin.sign_in_policy.changed'
+  | 'admin.provider.scim_token'
+  | 'admin.provider.scim_stopped'
+  | 'scim.user.created'
+  | 'scim.user.updated'
+  | 'scim.user.deactivated'
+  | 'scim.user.deleted'
+  | 'scim.group.changed';
 
 export interface AuditEvent {
   id: string;

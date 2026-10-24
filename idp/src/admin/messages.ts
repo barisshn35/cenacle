@@ -191,6 +191,18 @@ const en = {
     save: 'Save',
     saved: 'Saved.',
     invalid: 'Check the highlighted settings: {fields}.',
+    scim: 'Provisioning (SCIM 2.0)',
+    scimLead:
+      'The provider creates, changes and deactivates its people and groups here, before they sign in. With SCIM on, groups come from SCIM, not from sign-ins.',
+    scimOff: 'Off.',
+    scimOn: 'On since {at}.',
+    scimBase: 'SCIM base URL',
+    scimToken: 'Token (shown only now; enter it at the provider as the bearer token)',
+    scimStart: 'Turn on and create a token',
+    scimRenew: 'Create a new token',
+    scimRenewHint: 'The previous token stops working.',
+    scimStop: 'Turn off',
+    scimStopped: 'Provisioning is off. Provisioned accounts stay.',
   },
 };
 
@@ -380,6 +392,18 @@ const tr: typeof en = {
     save: 'Kaydet',
     saved: 'Kaydedildi.',
     invalid: 'İşaretli ayarları kontrol et: {fields}.',
+    scim: 'Hesap sağlama (SCIM 2.0)',
+    scimLead:
+      'Sağlayıcı, kişilerini ve gruplarını daha giriş yapmadan burada oluşturur, değiştirir ve devre dışı bırakır. SCIM açıkken gruplar girişlerden değil SCIM’den gelir.',
+    scimOff: 'Kapalı.',
+    scimOn: '{at} tarihinden beri açık.',
+    scimBase: 'SCIM temel URL’si',
+    scimToken: 'Belirteç (yalnızca şimdi gösterilir; sağlayıcıya taşıyıcı belirteç olarak girin)',
+    scimStart: 'Aç ve belirteç oluştur',
+    scimRenew: 'Yeni belirteç oluştur',
+    scimRenewHint: 'Önceki belirteç çalışmayı bırakır.',
+    scimStop: 'Kapat',
+    scimStopped: 'Hesap sağlama kapalı. Sağlanan hesaplar kalır.',
   },
 };
 

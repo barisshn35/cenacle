@@ -582,7 +582,7 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
     },
   );
 
-  app.get<{ Params: { id: string }; Querystring: { saved?: string } }>(
+  app.get<{ Params: { id: string }; Querystring: { saved?: string; scim_stopped?: string } }>(
     '/account/admin/providers/:id',
     async (request, reply) => {
       if (!(await admin(request, reply))) return;
@@ -603,8 +603,53 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
             config: p.config,
           },
           saved: Boolean(request.query.saved),
+          scim: { since: p.scimSince, stopped: Boolean(request.query.scim_stopped) },
         }),
       );
+    },
+  );
+
+  // SCIM provisioning: a new token is shown once, on the page this answers with.
+  app.post<{ Params: { id: string } }>(
+    '/account/admin/providers/:id/scim/token',
+    async (request, reply) => {
+      const me = await guardPost(request, reply);
+      if (!me) return;
+      const p = await providers.get(request.params.id);
+      if (!p) return reply.code(404).send();
+      const token = await providers.newScimToken(p.id);
+      await audit.record('admin.provider.scim_token', me.id, request.ip, { provider: p.id });
+      const fresh = (await providers.get(p.id))!;
+      return page(
+        reply,
+        200,
+        providerPage({
+          locale: locale(request),
+          issuer,
+          id: p.id,
+          form: {
+            kind: fresh.kind,
+            name: fresh.name,
+            enabled: fresh.enabled,
+            hasSecret: fresh.hasSecret,
+            config: fresh.config,
+          },
+          scim: { since: fresh.scimSince, token },
+        }),
+      );
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/account/admin/providers/:id/scim/stop',
+    async (request, reply) => {
+      const me = await guardPost(request, reply);
+      if (!me) return;
+      const p = await providers.get(request.params.id);
+      if (!p) return reply.code(404).send();
+      await providers.stopScim(p.id);
+      await audit.record('admin.provider.scim_stopped', me.id, request.ip, { provider: p.id });
+      return reply.redirect(`/account/admin/providers/${p.id}?scim_stopped=1`, 303);
     },
   );
 

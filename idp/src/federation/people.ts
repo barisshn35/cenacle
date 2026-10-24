@@ -33,6 +33,19 @@ export async function signInFederated(
     [provider.id, externalId],
   );
   if (existing[0]?.disabled) return { error: 'disabled' };
+  if (!existing[0] && provider.scimSince && person.email && person.emailVerified) {
+    // Provisioned over SCIM under another id (its userName or own id): the
+    // first sign-in binds the account to the provider's id of the person.
+    const { rows: provisioned } = await pool.query<{ disabled: boolean }>(
+      `UPDATE users SET external_id = $2
+       WHERE id = (SELECT id FROM users WHERE source_id = $1 AND scim_managed
+                     AND (email = $3::citext OR lower(scim_user_name) = lower($3)) LIMIT 1)
+         AND NOT EXISTS (SELECT 1 FROM users WHERE source_id = $1 AND external_id = $2)
+       RETURNING disabled_at IS NOT NULL AS disabled`,
+      [provider.id, externalId, person.email.slice(0, 320)],
+    );
+    if (provisioned[0]?.disabled) return { error: 'disabled' };
+  }
 
   let email = person.email && person.emailVerified ? person.email.slice(0, 320) : null;
   if (email && !provider.config.linkByEmail) {
@@ -57,6 +70,16 @@ export async function signInFederated(
     0,
     500,
   );
+  // With SCIM the provider pushes groups; sign-ins keep them as they are.
+  const scim = provider.scimSince !== null;
+  if (scim) {
+    const { rows } = await pool.query<{ name: string }>(
+      `SELECT g.name FROM users u JOIN user_groups ug ON ug.user_id = u.id
+       JOIN directory_groups g ON g.id = ug.group_id WHERE u.source_id = $1 AND u.external_id = $2`,
+      [provider.id, externalId],
+    );
+    groups.splice(0, groups.length, ...rows.map((r) => r.name));
+  }
   const inAny = (wanted: string[]) => wanted.some((g) => groups.includes(g));
   const role: Role = inAny(provider.config.adminGroups)
     ? 'admin'
@@ -67,11 +90,13 @@ export async function signInFederated(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const groupIds = await ensureGroups(
-      client,
-      provider.id,
-      groups.map((name) => ({ externalId: name, name, dn: '' })),
-    );
+    const groupIds = scim
+      ? null
+      : await ensureGroups(
+          client,
+          provider.id,
+          groups.map((name) => ({ externalId: name, name, dn: '' })),
+        );
     const { id } = await upsertPerson(
       client,
       provider.id,

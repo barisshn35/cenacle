@@ -619,6 +619,8 @@ export function providerPage(opts: {
   form: ProviderForm;
   saved?: boolean;
   invalid?: string[];
+  /** SCIM provisioning: on since, and a token just created (shown once). */
+  scim?: { since: Date | null; token?: string; stopped?: boolean };
 }): string {
   const m = ADMIN_MESSAGES[opts.locale].provider;
   const f = opts.form;
@@ -766,8 +768,59 @@ ${value}</textarea>
           ${check('enabled', m.enabled, f.enabled)}`,
         )}
         <div><button type="submit" class="${primary}">${m.save}</button></div>
-      </form>`,
+      </form>
+      ${opts.id && opts.scim ? scimSection(opts.locale, opts.issuer, opts.id, opts.scim) : null}`,
   );
+}
+
+function scimSection(
+  locale: Locale,
+  issuer: string,
+  id: string,
+  scim: { since: Date | null; token?: string; stopped?: boolean },
+): SafeHtml {
+  const m = ADMIN_MESSAGES[locale].provider;
+  const at = scim.since
+    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+        scim.since,
+      )
+    : '';
+  const value = (text: string, v: string, testId: string) =>
+    html`<div class="flex flex-col gap-1">
+      <dt class="${label}">${text}</dt>
+      <dd
+        class="rounded-md bg-muted px-2 py-1.5 font-mono text-xs break-all select-all"
+        data-testid="${testId}"
+      >
+        ${v}
+      </dd>
+    </div>`;
+  const action = (path: string, text: string, kind: string) =>
+    html`<form method="post" action="/account/admin/providers/${id}/scim/${path}">
+      <button type="submit" class="${kind}">${text}</button>
+    </form>`;
+  return html`<section
+    aria-labelledby="scim-title"
+    class="flex flex-col gap-3 rounded-[10px] border border-rule-strong bg-background p-4"
+    data-testid="scim"
+  >
+    <h2 id="scim-title" class="text-sm font-semibold">${m.scim}</h2>
+    <p class="${hint}">${m.scimLead}</p>
+    ${scim.stopped ? noticeBox(m.scimStopped) : null}
+    <p class="text-sm">${scim.since ? format(m.scimOn, { at }) : m.scimOff}</p>
+    <dl class="grid gap-3">
+      ${value(m.scimBase, `${issuer.replace(/\/$/, '')}/scim/v2`, 'scim-base')}
+      ${scim.token ? value(m.scimToken, scim.token, 'scim-token') : null}
+    </dl>
+    <div class="flex flex-wrap items-center gap-2">
+      ${
+        scim.since
+          ? html`${action('token', m.scimRenew, secondary)} ${action('stop', m.scimStop, secondary)}
+              <p class="${hint} basis-full">${m.scimRenewHint}</p>`
+          : action('token', m.scimStart, primary)
+      }
+    </div>
+  </section>`;
 }
 
 /** The sign-in policy: two-step verification required, passkeys allowed. */

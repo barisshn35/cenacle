@@ -20,6 +20,8 @@ export type Provider =
       config: OidcConfig;
       enabled: boolean;
       hasSecret: boolean;
+      /** SCIM provisioning is on (a token exists) since this time. */
+      scimSince: Date | null;
     }
   | {
       id: string;
@@ -28,6 +30,7 @@ export type Provider =
       config: SamlConfig;
       enabled: boolean;
       hasSecret: boolean;
+      scimSince: Date | null;
     };
 
 interface Row {
@@ -37,16 +40,23 @@ interface Row {
   config: unknown;
   secret_enc: Buffer | null;
   enabled: boolean;
+  scim_token_created_at: Date | null;
 }
 
 function toProvider(r: Row): Provider {
-  const base = { id: r.id, name: r.name, enabled: r.enabled, hasSecret: r.secret_enc !== null };
+  const base = {
+    id: r.id,
+    name: r.name,
+    enabled: r.enabled,
+    hasSecret: r.secret_enc !== null,
+    scimSince: r.scim_token_created_at,
+  };
   return r.kind === 'oidc'
     ? { ...base, kind: 'oidc', config: oidcConfigSchema.parse(r.config) }
     : { ...base, kind: 'saml', config: samlConfigSchema.parse(r.config) };
 }
 
-const COLUMNS = 'id, kind, name, config, secret_enc, enabled';
+const COLUMNS = 'id, kind, name, config, secret_enc, enabled, scim_token_created_at';
 /** A sign-in at another provider is finished within this time. */
 const REQUEST_TTL_SECONDS = 600;
 
@@ -128,6 +138,38 @@ export class ProviderStore {
       [id, input.name, JSON.stringify(input.config), input.enabled],
     );
     if (input.secret !== undefined) await this.setSecret(id, input.secret);
+  }
+
+  /**
+   * Turns SCIM provisioning on with a new bearer token (the previous one stops
+   * working) and returns it; only its SHA-256 is kept.
+   */
+  async newScimToken(id: string): Promise<string> {
+    const token = `scim_${randomBytes(32).toString('base64url')}`;
+    await this.pool.query(
+      `UPDATE identity_sources SET scim_token_hash = $2, scim_token_created_at = now()
+       WHERE id = $1 AND kind IN ('oidc', 'saml')`,
+      [id, sha256(token)],
+    );
+    return token;
+  }
+
+  /** Turns SCIM provisioning off; provisioned accounts stay. */
+  async stopScim(id: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE identity_sources SET scim_token_hash = NULL, scim_token_created_at = NULL WHERE id = $1`,
+      [id],
+    );
+  }
+
+  /** The provider a SCIM bearer token belongs to. */
+  async byScimToken(token: string): Promise<Provider | null> {
+    if (!token.startsWith('scim_') || token.length > 200) return null;
+    const { rows } = await this.pool.query<Row>(
+      `SELECT ${COLUMNS} FROM identity_sources WHERE scim_token_hash = $1 AND kind IN ('oidc', 'saml')`,
+      [sha256(token)],
+    );
+    return rows[0] ? toProvider(rows[0]) : null;
   }
 
   private async setSecret(id: string, secret: string) {

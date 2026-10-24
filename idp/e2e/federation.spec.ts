@@ -105,9 +105,34 @@ test('an administrator adds an identity provider', async ({ page }) => {
   await expect(register).toContainText(`${h.issuer}/federation/`);
   await expect(register).toContainText('/acs');
   await axe(page);
+
+  // Provisioning: the token is shown once and lets the provider push people.
+  const scim = page.getByTestId('scim');
+  await expect(scim).toContainText('Off.');
+  await scim.getByRole('button', { name: 'Turn on and create a token' }).click();
+  const token = (await page.getByTestId('scim-token').innerText()).trim();
+  expect(token).toMatch(/^scim_/);
+  await expect(page.getByTestId('scim-base')).toHaveText(`${h.issuer}/scim/v2`);
+  await axe(page);
+  const pushed = await page.request.post(`${h.issuer}/scim/v2/Users`, {
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/scim+json' },
+    data: JSON.stringify({
+      userName: 'grace@example.com',
+      emails: [{ value: 'grace@example.com' }],
+    }),
+  });
+  expect(pushed.status()).toBe(201);
+  await page.getByTestId('scim').getByRole('button', { name: 'Turn off' }).click();
+  await expect(page.getByText('Provisioning is off. Provisioned accounts stay.')).toBeVisible();
+  const refused = await page.request.get(`${h.issuer}/scim/v2/Users`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  expect(refused.status()).toBe(401);
+
   // Off: not offered at sign-in.
   await page.goto(`${h.issuer}/account`);
   await expect(page.getByTestId('provider')).toHaveCount(0);
+  await h.pool.query(`DELETE FROM users WHERE email = 'grace@example.com'`);
   await h.pool.query(`DELETE FROM identity_sources WHERE kind = 'saml'`);
 });
 
