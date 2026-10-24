@@ -4,16 +4,19 @@
 // are committed): the window and installer icons, the tray icon and the dot
 // that marks unread messages on the Windows taskbar.
 import { Resvg } from '@resvg/resvg-js';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const arch = (ink) =>
   `<path fill="none" stroke="${ink}" stroke-width="6.5" stroke-linecap="round" d="M10 41V22A14 14 0 0 1 38 22V41"/><path fill="#C9A24B" d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"/>`;
-// The app icon: the arch in Bone on a Forest tile with rounded corners.
-const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="10.5" fill="#14342B"/><g transform="translate(7.2 6.4) scale(0.7)">${arch('#F3EEE2')}</g></svg>`;
-const tray = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">${arch('#F3EEE2')}</svg>`;
+// The app icon is the brand's dark app icon (web/public/brand).
+const icon = readFileSync(
+  join(root, '..', 'web', 'public', 'brand', 'cenacle-appicon-dark.svg'),
+  'utf8',
+);
+const tray = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">${arch('#F2F2F2')}</svg>`;
 const badge = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#B42318" stroke="#FFFFFF" stroke-width="1.5"/></svg>`;
 
 const render = (svg, size, path) => {

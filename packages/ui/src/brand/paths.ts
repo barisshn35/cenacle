@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// Generated from web/public/brand/*.svg (Cenacle logo pack, Forest & Brass,
+// Generated from web/public/brand/*.svg (Cenacle logo pack, neutral refresh of
 // direction B "Upper room"). Do not edit by hand; update the SVGs instead.
 
 /** Icon on a 48-unit grid: the arch (stroke 6.5, round caps) and the speech bubble. */

@@ -99,7 +99,7 @@ export function Logo({
 }
 
 export interface AppIconProps extends Omit<SVGProps<SVGSVGElement>, 'role' | 'children'> {
-  /** Fixed artwork of the light (Paper) or dark (Night) app icon. */
+  /** Fixed artwork of the light (white) or dark (neutral black) app icon. */
   appearance: 'light' | 'dark';
   size?: number;
 }
@@ -109,8 +109,8 @@ export interface AppIconProps extends Omit<SVGProps<SVGSVGElement>, 'role' | 'ch
  * gallery and documentation; the UI itself uses Logo.
  */
 export function AppIcon({ appearance, size = 64, className, ...props }: AppIconProps) {
-  const bg = appearance === 'light' ? 'var(--brand-paper)' : 'var(--brand-night)';
-  const ink = appearance === 'light' ? 'var(--brand-forest)' : 'var(--brand-bone)';
+  const bg = appearance === 'light' ? '#ffffff' : 'var(--brand-tile-dark)';
+  const ink = appearance === 'light' ? 'var(--brand-ink)' : 'var(--brand-ink-on-dark)';
   return (
     <svg
       viewBox="0 0 64 64"

@@ -156,6 +156,10 @@
   --brand-paper: #faf7f0;
   --brand-night: #0c1a16;
   --brand-bone: #f3eee2;
+  /* Logo inks (neutral refresh, 0.37.2): the logo no longer follows the forest UI. */
+  --brand-ink: #1a1a1a;
+  --brand-ink-on-dark: #f2f2f2;
+  --brand-tile-dark: #121212;
 
   /* --- Light theme: the record on paper, a Forest sidebar ------------ */
   /* Roles from docs/design/v0.29/DESIGN.md: sheet (work area), panel (side
@@ -185,7 +189,7 @@
   /* Form control outlines: >= 3:1 against the sheet (WCAG 1.4.11). */
   --input: #8e8a7e;
   --ring: var(--accent-brand);
-  --logo-ink: var(--brand-forest);
+  --logo-ink: var(--brand-ink);
   --logo-accent: var(--brand-brass);
 
   --panel: var(--secondary);
@@ -263,7 +267,7 @@
   --border: #24352e;
   --input: #6f8279;
   --ring: var(--accent-brand);
-  --logo-ink: var(--brand-bone);
+  --logo-ink: var(--brand-ink-on-dark);
   --logo-accent: var(--brand-brass);
 
   --popover-shadow: 0 8px 24px rgb(0 0 0 / 0.45), 0 0 0 1px #34483f;

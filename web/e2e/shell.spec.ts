@@ -133,7 +133,7 @@ test('the favicon follows the system theme', async ({ page }) => {
     });
   await page.goto('/');
   await page.emulateMedia({ colorScheme: 'light' });
-  expect(await archColor()).toEqual([0x14, 0x34, 0x2b]); // Forest
+  expect(await archColor()).toEqual([0x1a, 0x1a, 0x1a]); // logo ink
   await page.emulateMedia({ colorScheme: 'dark' });
-  expect(await archColor()).toEqual([0xf3, 0xee, 0xe2]); // Bone
+  expect(await archColor()).toEqual([0xf2, 0xf2, 0xf2]); // logo ink on dark
 });

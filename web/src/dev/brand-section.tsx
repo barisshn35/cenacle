@@ -37,6 +37,9 @@ function ratio(fg: string, bg: string) {
 }
 
 const SWATCHES = [
+  '--brand-ink',
+  '--brand-ink-on-dark',
+  '--brand-tile-dark',
   '--brand-forest',
   '--brand-brass',
   '--brand-brass-ink',
@@ -157,9 +160,9 @@ export function BrandSection() {
         <div className="grid gap-3 md:grid-cols-2">
           <Panel theme="light">
             <Img file="cenacle-lockup-black.svg" alt="Cenacle lockup, black" height={24} />
-            <Img file="cenacle-lockup-forest.svg" alt="Cenacle lockup, forest" height={24} />
+            <Img file="cenacle-icon-mono-black.svg" alt="Cenacle icon, mono black" height={32} />
             <Img file="cenacle-icon-black.svg" alt="Cenacle icon, black" height={32} />
-            <Img file="cenacle-icon-forest.svg" alt="Cenacle icon, forest" height={32} />
+            <Img file="cenacle-icon-mono-white.svg" alt="Cenacle icon, mono white" height={32} />
           </Panel>
           <Panel theme="dark">
             <Img file="cenacle-lockup-white.svg" alt="Cenacle lockup, white" height={24} />

@@ -35,7 +35,7 @@ export function WorkspaceRail() {
         to="/"
         aria-label={t('notFound.home')}
         // On the Night rail the arch is drawn in Bone in both themes.
-        style={{ '--logo-ink': 'var(--brand-bone)' } as CSSProperties}
+        style={{ '--logo-ink': 'var(--brand-ink-on-dark)' } as CSSProperties}
         className="flex h-14 w-full shrink-0 items-center justify-center border-b border-sidebar-border outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-inset"
       >
         <Logo variant="icon" size={28} decorative />

@@ -1,18 +1,31 @@
 # Cenacle brand
 
-Identity: **Forest & Brass** palette, **Fraunces** wordmark, icon direction **B "Upper
-room"**: an arch (a room, a shared place) with a speech bubble inside.
+Identity: **Fraunces** wordmark and icon direction **B "Upper room"**: an arch (a room, a
+shared place) with a speech bubble inside. The logo is drawn in a **neutral ink with a brass
+bubble** (refresh of 0.37.2); the interface keeps its Forest & Brass palette.
 
-## Palette
+## Logo inks
 
-| Token               | Value     | Use                                                        |
-| ------------------- | --------- | ---------------------------------------------------------- |
-| `--brand-forest`    | `#14342B` | Main ink: logo arch on light, headings and text on light   |
-| `--brand-brass`     | `#C9A24B` | Logo bubble (every background); UI accent **on dark only** |
-| `--brand-brass-ink` | `#8F6B1F` | UI accent **on light**: links, primary buttons, focus      |
-| `--brand-paper`     | `#FAF7F0` | Light background                                           |
-| `--brand-night`     | `#0C1A16` | Dark background                                            |
-| `--brand-bone`      | `#F3EEE2` | Text and logo arch on dark                                 |
+| Token                 | Value     | Use                                                  |
+| --------------------- | --------- | ---------------------------------------------------- |
+| `--brand-ink`         | `#1A1A1A` | Logo arch and wordmark on white and light grounds    |
+| `--brand-ink-on-dark` | `#F2F2F2` | Logo arch and wordmark on neutral dark grounds       |
+| (on pure black)       | `#FFFFFF` | The `onblack` files                                  |
+| `--brand-brass`       | `#C9A24B` | The bubble, on every ground                          |
+| `--brand-tile-dark`   | `#121212` | Ground of the dark app icon (the light one is white) |
+
+Contrast: ink on white 16.7:1, light ink on #161616 16.2:1; the bubble is a shape, not text.
+
+## Interface palette
+
+| Token               | Value     | Use                                                   |
+| ------------------- | --------- | ----------------------------------------------------- |
+| `--brand-forest`    | `#14342B` | Sidebar and board headers, headings on light          |
+| `--brand-brass`     | `#C9A24B` | UI accent **on dark only**                            |
+| `--brand-brass-ink` | `#8F6B1F` | UI accent **on light**: links, primary buttons, focus |
+| `--brand-paper`     | `#FAF7F0` | Light surfaces                                        |
+| `--brand-night`     | `#0C1A16` | Dark rail                                             |
+| `--brand-bone`      | `#F3EEE2` | Text on Forest and Night                              |
 
 The interface uses the semantic token `--accent-brand` (Brass-ink on light, Brass on
 dark); primary buttons and focus rings follow it. Brand colours are never status colours:
@@ -59,7 +72,7 @@ itself does not animate the logo.
 
 ### Do not
 
-- recolour the logo outside this palette, or use bright brass for the arch on light;
+- recolour the logo outside its inks and brass, or use brass for the arch;
 - stretch, skew or rotate it; change the arch/bubble proportions;
 - add shadows, glows, outlines, gradients or other effects;
 - reset the wordmark in another typeface or retype it as live text;
@@ -77,16 +90,18 @@ WONK 0, tracking −1.5 %), outlined.
 All files are plain-path SVGs (no fonts, scripts or external references). Embedded C2PA
 provenance metadata from the design export is removed from the served copies.
 
-| File (`web/public/brand/`)                       | Use                                  |
-| ------------------------------------------------ | ------------------------------------ |
-| `cenacle-lockup-light.svg` / `-dark.svg`         | Lockup on light / dark backgrounds   |
-| `cenacle-lockup-padded-light.svg` / `-dark.svg`  | Lockup with clear space              |
-| `cenacle-wordmark-light.svg` / `-dark.svg`       | Wordmark alone                       |
-| `cenacle-icon-light.svg` / `-dark.svg`           | Icon                                 |
-| `cenacle-appicon-light.svg` / `-dark.svg`        | App icon with background             |
-| `favicon-16-*.svg`, `favicon-32-*.svg`           | Favicons (16 px with heavier stroke) |
-| `cenacle-{icon,lockup}-{black,forest,white}.svg` | Single-colour versions               |
-| `cenacle-clearspace-guide.svg`                   | Clear space guide                    |
+| File (`web/public/brand/`)                      | Use                                  |
+| ----------------------------------------------- | ------------------------------------ |
+| `cenacle-lockup-light.svg` / `-dark.svg`        | Lockup on light / dark backgrounds   |
+| `cenacle-lockup-padded-light.svg` / `-dark.svg` | Lockup with clear space              |
+| `cenacle-wordmark-light.svg` / `-dark.svg`      | Wordmark alone                       |
+| `cenacle-icon-light.svg` / `-dark.svg`          | Icon                                 |
+| `cenacle-appicon-light.svg` / `-dark.svg`       | App icon with background             |
+| `favicon-16-*.svg`, `favicon-32-*.svg`          | Favicons (16 px with heavier stroke) |
+| `cenacle-{icon,lockup}-{black,white}.svg`       | Single-colour versions               |
+| `cenacle-icon-mono-{black,white}.svg`           | One colour in the logo inks          |
+| `cenacle-{icon,lockup,wordmark}-onblack.svg`    | On pure black (#FFFFFF ink)          |
+| `cenacle-clearspace-guide.svg`                  | Clear space guide                    |
 
 Generated by `make brand` (committed): `web/public/apple-touch-icon.png` (180),
 `icon-192.png`, `icon-512.png` (dark app icon) and `favicon.ico` (32, light favicon).
