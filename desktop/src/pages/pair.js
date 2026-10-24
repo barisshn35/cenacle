@@ -5,7 +5,6 @@
   const fill = (s, v) => s.replace(/\{\{(\w+)\}\}/g, (_, k) => v[k] ?? '');
   const params = new URLSearchParams(location.search);
   document.documentElement.lang = params.get('lang') ?? 'en';
-  document.documentElement.dir = params.get('lang') === 'ar' ? 'rtl' : 'ltr';
 
   const api = window.cenacleLocal;
   const texts = await api.texts();

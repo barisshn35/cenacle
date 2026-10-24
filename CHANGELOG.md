@@ -8,6 +8,13 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.37.1] - 2026-10-24
+
+### Removed
+
+- The German, French, Spanish and Arabic translations: Cenacle is in English and Turkish.
+  Layouts stay ready for right-to-left languages.
+
 ## [0.37.0] - 2026-10-24
 
 Search inside files, canvases and lists; German, French, Spanish and Arabic with a
@@ -994,7 +1001,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.37.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.37.1...HEAD
+[0.37.1]: https://github.com/barisshn35/cenacle/compare/v0.37.0...v0.37.1
 [0.37.0]: https://github.com/barisshn35/cenacle/compare/v0.36.0...v0.37.0
 [0.36.0]: https://github.com/barisshn35/cenacle/compare/v0.35.0...v0.36.0
 [0.35.0]: https://github.com/barisshn35/cenacle/compare/v0.34.0...v0.35.0

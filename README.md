@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.37, search inside files and six languages.** Sign in with Cenacle ID (passwords with
+> **Status: v0.37, search inside files, canvases and lists.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
@@ -29,7 +29,7 @@ air-gapped networks.
   (Authorization Code + PKCE, RFC 9700) and issues its own opaque sessions.
 - **Calm, predictable UI:** WCAG 2.2 target sizes (24/28/44 px) enforced in CI, safe
   patterns for destructive actions, undo instead of surprise, clear errors with request IDs,
-  in English, Turkish, German, French, Spanish and Arabic (right to left).
+  in English and Turkish.
 - **Permissive dependencies only:** a license policy for every dependency, enforced in CI.
 
 ## Quick start (development)

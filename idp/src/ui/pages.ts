@@ -8,10 +8,6 @@ export const LANG_PARAM = 'lang';
 const LANGUAGE_NAMES: Record<Locale, string> = {
   en: 'English',
   tr: 'Türkçe',
-  de: 'Deutsch',
-  fr: 'Français',
-  es: 'Español',
-  ar: 'العربية',
 };
 
 const button =

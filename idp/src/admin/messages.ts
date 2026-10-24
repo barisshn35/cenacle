@@ -1,9 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Texts of the Cenacle ID admin panel (English default, Turkish).
-import { ar } from './locales/ar.ts';
-import { de } from './locales/de.ts';
-import { es } from './locales/es.ts';
-import { fr } from './locales/fr.ts';
 import type { Locale } from '../ui/messages.ts';
 
 const en = {
@@ -413,4 +409,4 @@ const tr: AdminMessages = {
   },
 };
 
-export const ADMIN_MESSAGES: Record<Locale, typeof en> = { en, tr, de, fr, es, ar };
+export const ADMIN_MESSAGES: Record<Locale, typeof en> = { en, tr };

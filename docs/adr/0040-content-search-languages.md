@@ -40,3 +40,10 @@ with physical left/right styling throughout.
   after the upgrade (ten every ten seconds).
 - A new PDF dependency in the server (BSD-3-Clause).
 - Machine-assisted first translations; corrections come from native speakers.
+
+## Amendment (0.37.1)
+
+The German, French, Spanish and Arabic translations were removed again: Cenacle ships in
+English and Turkish only. The language mechanics stay (bundled resources checked in CI,
+`<html dir>`, logical CSS and mirrored icons), so a language can be added later as
+docs/translations.md describes.

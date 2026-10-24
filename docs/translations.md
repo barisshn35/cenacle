@@ -1,7 +1,7 @@
 # Translations
 
-Cenacle ships in English (the source), Turkish, German, French, Spanish and Arabic. Arabic is
-laid out right to left. Everything is bundled: no translation is fetched at run time.
+Cenacle ships in English (the source) and Turkish. Everything is bundled: no translation is
+fetched at run time.
 
 ## Where the texts are
 
@@ -14,7 +14,8 @@ laid out right to left. Everything is bundled: no translation is fetched at run 
 | Desktop menus and dialogs      | `desktop/src/locales/<lang>.ts`                                                  |
 
 The JSON files are i18next resources (nested keys, `{{name}}` placeholders, plural forms as
-`key_one` / `key_other`, and in Arabic `key_zero` … `key_other`). The TypeScript files are
+`key_one` / `key_other`; languages with more plural forms add CLDR's, e.g. Arabic's
+`key_zero` … `key_other`). The TypeScript files are
 checked against the English object's type, so a missing or extra key fails the build.
 
 ## Rules
@@ -23,8 +24,8 @@ checked against the English object's type, so a missing or extra key fails the b
   Cenacle ID) and technical words (`@channel`, SCIM, OIDC, NDJSON, …) as they are.
 - Keep the tone of the English: short, calm, verbs on buttons, sentence case, no
   exclamation marks. The terms are in [docs/ux/glossary.md](ux/glossary.md).
-- `pnpm --filter web test` checks that every language has every key of English and the same
-  placeholders; CI runs it.
+- `pnpm --filter web test` checks that Turkish has every key of English; CI runs it. A new
+  language gets the same check there.
 
 ## Adding a language
 

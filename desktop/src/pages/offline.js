@@ -4,7 +4,6 @@
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   document.documentElement.lang = params.get('lang') ?? 'en';
-  document.documentElement.dir = params.get('lang') === 'ar' ? 'rtl' : 'ltr';
   const host = params.get('host') ?? '';
 
   const texts = (await window.cenacleLocal.texts()).offline;

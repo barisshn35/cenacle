@@ -48,6 +48,11 @@ included, was there.
 
 ## Version notes
 
+### 0.37.1
+
+- No migration. People who chose German, French, Spanish or Arabic see English (the
+  browser's choice falls back to it); they can choose Turkish in Settings → Language.
+
 ### 0.37.0
 
 - Migration: chat `00043_content_search` (file text, search indexes on canvases and list

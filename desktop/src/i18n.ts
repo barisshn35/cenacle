@@ -1,9 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { app } from 'electron';
-import { ar } from './locales/ar.js';
-import { de } from './locales/de.js';
-import { es } from './locales/es.js';
-import { fr } from './locales/fr.js';
 
 // Texts of the app's own parts (menus, dialogs, the pairing and offline
 // pages); everything else is the web app, in the language chosen there.
@@ -182,7 +178,7 @@ const tr: Texts = {
 
 let texts: Texts = en;
 
-const ALL = { en, tr, de, fr, es, ar } as const;
+const ALL = { en, tr } as const;
 type Language = keyof typeof ALL;
 let current: Language = 'en';
 

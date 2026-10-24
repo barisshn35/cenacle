@@ -1,39 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
 import { DEFAULT_WS, expectNoAxeViolations, expectTargetSizes, GENERAL, mockApi } from './helpers';
-import ar from '../src/i18n/ar.json' with { type: 'json' };
-
-test.describe('languages', () => {
-  test.skip(({ isMobile }) => isMobile, 'Settings is on the desktop rail');
-
-  test('Arabic lays the app out right to left', async ({ page }, testInfo) => {
-    await mockApi(page);
-    await page.goto(`/c/${GENERAL.id}`);
-    await page
-      .getByRole('navigation', { name: 'Workspaces' })
-      .getByRole('button', { name: 'Settings' })
-      .click();
-    await page.getByRole('tab', { name: 'Language' }).click();
-    await page.getByRole('combobox', { name: 'Language' }).selectOption('ar');
-    const html = page.locator('html');
-    await expect(html).toHaveAttribute('lang', 'ar');
-    await expect(html).toHaveAttribute('dir', 'rtl');
-    await page.keyboard.press('Escape');
-    const rail = page.getByRole('navigation', { name: ar.glossary.workspaces });
-    await expect(rail).toBeVisible();
-    // The rail is on the right in a right-to-left layout.
-    const box = (await rail.boundingBox())!;
-    expect(box.x).toBeGreaterThan((page.viewportSize()!.width * 2) / 3);
-    await expectTargetSizes(page, testInfo);
-    await expectNoAxeViolations(page);
-
-    // Back to German: left to right again, and it stays after a reload.
-    await page.evaluate(() => localStorage.setItem('cenacle.language', 'de'));
-    await page.reload();
-    await expect(html).toHaveAttribute('lang', 'de');
-    await expect(html).toHaveAttribute('dir', 'ltr');
-  });
-});
 
 test('search finds canvases, list rows and files by their text', async ({ page }, testInfo) => {
   await mockApi(page);

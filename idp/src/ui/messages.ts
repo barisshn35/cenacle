@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// Cenacle ID texts (English default; Turkish, German, French, Spanish, Arabic). Wording follows docs/ux/glossary.md.
-import { ar } from './locales/ar.ts';
-import { de } from './locales/de.ts';
-import { es } from './locales/es.ts';
-import { fr } from './locales/fr.ts';
+// Cenacle ID texts (English default, Turkish). Wording follows docs/ux/glossary.md.
 
-export const LOCALES = ['en', 'tr', 'de', 'fr', 'es', 'ar'] as const;
+export const LOCALES = ['en', 'tr'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 const en = {
@@ -370,10 +366,10 @@ const tr: Messages = {
   },
 };
 
-export const MESSAGES: Record<Locale, Messages> = { en, tr, de, fr, es, ar };
+export const MESSAGES: Record<Locale, Messages> = { en, tr };
 
-/** Languages written right to left. */
-export const directionOf = (l: Locale): 'rtl' | 'ltr' => (l === 'ar' ? 'rtl' : 'ltr');
+/** The writing direction of a language (all left to right for now). */
+export const directionOf = (_l: Locale): 'rtl' | 'ltr' => 'ltr';
 
 export function isLocale(v: unknown): v is Locale {
   return LOCALES.includes(v as Locale);

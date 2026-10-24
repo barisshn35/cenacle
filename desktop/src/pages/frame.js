@@ -4,7 +4,6 @@
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   document.documentElement.lang = params.get('lang') ?? 'en';
-  document.documentElement.dir = params.get('lang') === 'ar' ? 'rtl' : 'ltr';
   const api = window.cenacleLocal;
   const texts = await api.frameTexts();
   $('back').setAttribute('aria-label', texts.back);
