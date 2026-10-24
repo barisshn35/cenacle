@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.33, interactive apps and SDKs.** Sign in with Cenacle ID (passwords with
+> **Status: v0.34, system console and permission schemes.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
@@ -207,8 +207,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 | v0.30     | Desktop app (Electron) for Windows and Linux                                          |
 | v0.31     | Mark unread, personal sidebar sections, user groups, edit history, signed images      |
 | v0.32     | Message priority and acknowledgement, read receipts (off by default), image galleries |
-| **v0.33** | **App platform: interactive messages and dialogs, bot SDKs, more integrations**       |
-| v0.34     | System console, permission schemes, notification content policy                       |
+| v0.33     | App platform: interactive messages and dialogs, bot SDKs, more integrations           |
+| **v0.34** | **System console, permission schemes, notification content policy**                   |
 | v0.35     | SCIM provisioning, session and network policy, federation controls, guest links       |
 | v0.36     | Compliance: data subject requests, audit export and SIEM, archive export, spillage    |
 | v0.37     | Search inside files and canvases, more languages and right-to-left layout             |

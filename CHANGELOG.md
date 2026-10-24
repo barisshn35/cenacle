@@ -8,6 +8,32 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-10-24
+
+System console, permission schemes and channel moderation, notification content policy
+(ADR 0037).
+
+### Added
+
+- **System console** for installation administrators (Settings → System console): an
+  overview with counts, active people, the effective configuration and background jobs;
+  the installation's people (search, sign someone out everywhere), workspaces and bots
+  (turn one off); `/api/admin/…`.
+- **Permission schemes:** owners and admins choose which roles may create channels,
+  invite people, organize categories, add custom emoji, mention everyone and mention
+  groups (workspace settings → Permissions; `PUT /api/workspaces/{id}/permissions`). The
+  defaults are what 0.33 allowed.
+- **Channel moderation:** leave posting, answering in threads, reacting or mentioning
+  everyone to the channel's managers (channel settings → Moderation).
+- **Notification content policy:** web push and desktop notifications show the full text,
+  only the sender and channel, or nothing but that something came; e-mails the full text
+  or only the sender and channel (System console → Notifications).
+
+### Changed
+
+- Mentioning `@channel`, `@here` or `@all` without the right is refused
+  (`broadcast_not_allowed`).
+
 ## [0.33.0] - 2026-10-24
 
 Interactive messages, SDKs for bots and more integrations (ADR 0036).
@@ -912,7 +938,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.33.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.34.0...HEAD
+[0.34.0]: https://github.com/barisshn35/cenacle/compare/v0.33.0...v0.34.0
 [0.33.0]: https://github.com/barisshn35/cenacle/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/barisshn35/cenacle/compare/v0.31.0...v0.32.0
 [0.31.0]: https://github.com/barisshn35/cenacle/compare/v0.30.0...v0.31.0

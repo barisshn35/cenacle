@@ -48,6 +48,17 @@ included, was there.
 
 ## Version notes
 
+### 0.34.0
+
+- Migrations: chat `00034_admin` (adds `instance_settings.push_contents` and
+  `email_contents`, both `full`) and `00035_permissions` (adds `workspaces.permissions`
+  and `channels.moderation`, both empty: the 0.33 rules). Reversible.
+- Nothing changes until someone changes a scheme, a channel's moderation or the
+  notification policy.
+- Rolling back to 0.33, with the 0.34 images: twice
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`; then the
+  previous `CENACLE_VERSION`. Schemes, moderation and the policy are forgotten.
+
 ### 0.33.0
 
 - Migrations: chat `00032_interactivity` (adds `bots.interactions_url`,
