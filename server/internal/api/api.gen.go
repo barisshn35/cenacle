@@ -2714,10 +2714,11 @@ type MyProfile struct {
 	IsBot       bool               `json:"is_bot"`
 
 	// LastSeenAt When they were last online (null when unknown or hidden by them).
-	LastSeenAt     *time.Time     `json:"last_seen_at"`
-	RecentStatuses []CustomStatus `json:"recent_statuses"`
-	ShowLastSeen   bool           `json:"show_last_seen"`
-	Status         *CustomStatus  `json:"status"`
+	LastSeenAt        *time.Time     `json:"last_seen_at"`
+	RecentStatuses    []CustomStatus `json:"recent_statuses"`
+	ShareReadReceipts *bool          `json:"share_read_receipts,omitempty"`
+	ShowLastSeen      bool           `json:"show_last_seen"`
+	Status            *CustomStatus  `json:"status"`
 
 	// Timezone IANA time zone, '' when unknown.
 	Timezone string `json:"timezone"`
@@ -3472,6 +3473,9 @@ type Workspace struct {
 	// PersistentTimes How many times at most.
 	PersistentTimes *int `json:"persistent_times,omitempty"`
 
+	// ReadReceipts Read receipts in conversations are on (administrators turn them on).
+	ReadReceipts *bool `json:"read_receipts,omitempty"`
+
 	// Role Guests see only the channels they are in and the people in them.
 	Role WorkspaceRole `json:"role"`
 
@@ -3814,7 +3818,9 @@ type UploadFontParams struct {
 
 // UpdateMyProfileJSONBody defines parameters for UpdateMyProfile.
 type UpdateMyProfileJSONBody struct {
-	ShowLastSeen *bool `json:"show_last_seen,omitempty"`
+	// ShareReadReceipts Others see how far you read conversations (where a workspace turned read receipts on); off, you see theirs neither.
+	ShareReadReceipts *bool `json:"share_read_receipts,omitempty"`
+	ShowLastSeen      *bool `json:"show_last_seen,omitempty"`
 
 	// Timezone An IANA time zone such as Europe/Istanbul.
 	Timezone *string `json:"timezone,omitempty"`
@@ -4031,6 +4037,9 @@ type RenameWorkspaceJSONBody struct {
 	// PersistentNotifications Urgent messages may remind the people they mention.
 	PersistentNotifications *bool `json:"persistent_notifications,omitempty"`
 	PersistentTimes         *int  `json:"persistent_times,omitempty"`
+
+	// ReadReceipts People see how far others read in conversations (off by default).
+	ReadReceipts *bool `json:"read_receipts,omitempty"`
 }
 
 // RenameWorkspaceJSONBodyEditHistory defines parameters for RenameWorkspace.
@@ -4774,6 +4783,9 @@ type ServerInterface interface {
 	// MarkRead Mark a channel read up to a message
 	// (POST /api/channels/{channel_id}/read)
 	MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListConversationReads How far the others in a conversation have read (read receipts)
+	// (GET /api/channels/{channel_id}/reads)
+	ListConversationReads(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// ListChannelRuns Runs in a channel, newest first (up to 50)
 	// (GET /api/channels/{channel_id}/runs)
 	ListChannelRuns(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -5770,6 +5782,12 @@ func (_ Unimplemented) ListPins(w http.ResponseWriter, r *http.Request, channelI
 // MarkRead Mark a channel read up to a message
 // (POST /api/channels/{channel_id}/read)
 func (_ Unimplemented) MarkRead(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListConversationReads How far the others in a conversation have read (read receipts)
+// (GET /api/channels/{channel_id}/reads)
+func (_ Unimplemented) ListConversationReads(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9163,6 +9181,32 @@ func (siw *ServerInterfaceWrapper) MarkRead(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.MarkRead(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListConversationReads operation middleware
+func (siw *ServerInterfaceWrapper) ListConversationReads(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListConversationReads(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14289,6 +14333,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}", wrapper.UpdateChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/reads", wrapper.ListConversationReads)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/unread", wrapper.MarkUnread)

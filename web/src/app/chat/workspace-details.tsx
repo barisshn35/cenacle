@@ -309,3 +309,32 @@ export function PersistentSetting({ workspace }: { workspace: Workspace }) {
     </fieldset>
   );
 }
+
+/** Read receipts in conversations: off unless the workspace's administrators turn them on. */
+export function ReadReceiptsSetting({ workspace }: { workspace: Workspace }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const id = useId();
+  const set = useMutation({
+    mutationFn: (on: boolean) => updateWorkspace(workspace.id, { read_receipts: on }),
+    onSuccess: () => reloadWorkspaces(queryClient),
+    onError: () => toast.error(t('channels.changeFailed')),
+  });
+  const on = set.isPending ? !!set.variables : !!workspace.read_receipts;
+  return (
+    <fieldset className="flex flex-col gap-2 border-t pt-5">
+      <legend className="text-sm font-semibold">{t('receipts.settingTitle')}</legend>
+      <p className="text-xs text-muted-foreground">{t('receipts.settingHint')}</p>
+      <div className="flex min-h-target items-center gap-2.5 text-sm">
+        <input
+          id={id}
+          type="checkbox"
+          className="size-4"
+          checked={on}
+          onChange={(e) => set.mutate(e.target.checked)}
+        />
+        <label htmlFor={id}>{t('receipts.settingOn')}</label>
+      </div>
+    </fieldset>
+  );
+}

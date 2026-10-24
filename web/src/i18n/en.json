@@ -2175,5 +2175,15 @@
     "settingTimes": "At most",
     "minutes_one": "{{count}} minute",
     "minutes_other": "{{count}} minutes"
+  },
+  "receipts": {
+    "share": "Share my read receipts",
+    "shareHint": "Where a workspace turned read receipts on, others in a conversation see that you read their messages. Off, you see theirs neither.",
+    "settingTitle": "Read receipts",
+    "settingHint": "People see in direct and group conversations who has read their messages. Each person can keep theirs to themselves.",
+    "settingOn": "Show read receipts in conversations",
+    "seen": "Seen",
+    "seenBy": "Seen by {{names}}",
+    "seenByAll": "Seen by everyone"
   }
 }

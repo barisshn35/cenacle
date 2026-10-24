@@ -15,6 +15,7 @@ import { useLive } from './presence-state';
 import {
   addMessage,
   applyAck,
+  applyConversationRead,
   applyReaction,
   countIncoming,
   reloadChannels,
@@ -101,6 +102,11 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           const { channel_id, message_id } = ev.data as { channel_id: string; message_id: string };
           setReadLocally(queryClient, channel_id, message_id);
           useUnreadHold.getState().release(channel_id);
+        } else if (ev.type === 'conversation.read') {
+          applyConversationRead(
+            queryClient,
+            ev.data as Parameters<typeof applyConversationRead>[1],
+          );
         } else if (ev.type === 'message.ack') {
           applyAck(queryClient, ev.data as Parameters<typeof applyAck>[1], selfId);
         } else if (ev.type === 'message.reminder') {

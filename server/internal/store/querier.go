@@ -82,6 +82,9 @@ type Querier interface {
 	ClearExpiredStatuses(ctx context.Context) ([]pgtype.UUID, error)
 	ClearPollVotes(ctx context.Context, arg ClearPollVotesParams) error
 	ClosePoll(ctx context.Context, messageID pgtype.UUID) error
+	// ConversationReads returns how far the other members of a conversation who
+	// share read receipts have read.
+	ConversationReads(ctx context.Context, arg ConversationReadsParams) ([]ConversationReadsRow, error)
 	CountActiveRuns(ctx context.Context, playbookID pgtype.UUID) (int32, error)
 	CountAutomodRules(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountChannelTabs(ctx context.Context, channelID pgtype.UUID) (int32, error)
@@ -563,6 +566,10 @@ type Querier interface {
 	// member of the event's channel and wants this event, except the bot's own messages.
 	QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error)
 	QueueFederationDelivery(ctx context.Context, arg QueueFederationDeliveryParams) error
+	// ReceiptsAllowed tells whether a person sees and shows read receipts in a
+	// channel: a conversation of a workspace that turned them on, and the person
+	// shares theirs.
+	ReceiptsAllowed(ctx context.Context, arg ReceiptsAllowedParams) (bool, error)
 	RecordAIRequest(ctx context.Context, arg RecordAIRequestParams) error
 	RecordFederatedMessage(ctx context.Context, arg RecordFederatedMessageParams) error
 	RecordReminder(ctx context.Context, arg RecordReminderParams) error

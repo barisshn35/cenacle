@@ -129,10 +129,11 @@ func (h *Handlers) myProfile(ctx context.Context, user pgtype.UUID) (api.MyProfi
 		IsBot: pr.IsBot, AvatarUrl: pr.AvatarUrl, AvatarStillUrl: pr.AvatarStillUrl,
 		Timezone: pr.Timezone, Status: pr.Status, LastSeenAt: pr.LastSeenAt,
 		Deactivated: pr.Deactivated, Guest: pr.Guest,
-		UsernameEditable: !row.UsernameFromDirectory,
-		ShowLastSeen:     row.ShowLastSeen,
-		RecentStatuses:   recent,
-		AccountUrl:       h.AccountURL,
+		UsernameEditable:  !row.UsernameFromDirectory,
+		ShowLastSeen:      row.ShowLastSeen,
+		ShareReadReceipts: ptr(row.ShareReadReceipts),
+		RecentStatuses:    recent,
+		AccountUrl:        h.AccountURL,
 	}, nil
 }
 
@@ -213,6 +214,9 @@ func (h *Handlers) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.ShowLastSeen != nil {
 		params.ShowLastSeen = pgtype.Bool{Bool: *in.ShowLastSeen, Valid: true}
+	}
+	if in.ShareReadReceipts != nil {
+		params.ShareReadReceipts = pgtype.Bool{Bool: *in.ShareReadReceipts, Valid: true}
 	}
 	if err := h.Queries.UpdateProfileSettings(ctx, params); err != nil {
 		if isUniqueViolation(err) {

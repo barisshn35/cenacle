@@ -41,7 +41,7 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 		events.ReactionAdded, events.ReactionRemoved,
 		events.ChannelUpdated, events.ChannelMembersChanged, events.ThreadUpdated,
 		events.PollUpdated, events.RunUpdated, events.MessagePreview,
-		events.TabsChanged, events.CanvasUpdated, events.ListChanged, events.MessageAck:
+		events.TabsChanged, events.CanvasUpdated, events.ListChanged, events.MessageAck, events.ConversationRead:
 		return a.inChannel(d.ChannelID)
 	case events.ChannelCreated: // a channel for everyone in its workspace
 		if !a.workspaces[d.Channel.WorkspaceID] {

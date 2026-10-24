@@ -60,6 +60,7 @@ export function EditProfileDialog({
   const [username, setUsername] = useState(me.data?.username ?? '');
   const [timezone, setTimezone] = useState(me.data?.timezone || browserTimeZone());
   const [showLastSeen, setShowLastSeen] = useState(me.data?.show_last_seen ?? true);
+  const [shareReads, setShareReads] = useState(me.data?.share_read_receipts ?? true);
   const zones = useMemo(() => timeZones(), []);
 
   const picture = useMutation({
@@ -84,6 +85,7 @@ export function EditProfileDialog({
         ...(me.data?.username_editable && username !== me.data.username ? { username } : {}),
         timezone,
         show_last_seen: showLastSeen,
+        share_read_receipts: shareReads,
       }),
     onSuccess: (profile) => {
       saved(queryClient, profile);
@@ -250,6 +252,19 @@ export function EditProfileDialog({
               data-target-exempt
             />
             {t('profile.showLastSeen')}
+          </label>
+          <label data-target className="flex min-h-target items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={shareReads}
+              onChange={(e) => setShareReads(e.target.checked)}
+              className="mt-0.5 size-4 accent-primary"
+              data-target-exempt
+            />
+            <span>
+              {t('receipts.share')}
+              <span className="block text-xs text-muted-foreground">{t('receipts.shareHint')}</span>
+            </span>
           </label>
           {save.isError && (
             <InlineError id={ids.error} title={errorTitle} problem={problem ?? { status: 0 }} />

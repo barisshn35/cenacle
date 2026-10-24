@@ -2175,5 +2175,15 @@
     "settingTimes": "En çok",
     "minutes_one": "{{count}} dakika",
     "minutes_other": "{{count}} dakika"
+  },
+  "receipts": {
+    "share": "Okundu bilgimi paylaş",
+    "shareHint": "Okundu bilgisinin açık olduğu çalışma alanlarında, konuşmadaki diğer kişiler mesajlarını okuduğunu görür. Kapalıysa sen de onlarınkini görmezsin.",
+    "settingTitle": "Okundu bilgisi",
+    "settingHint": "Kişiler, birebir ve grup konuşmalarında mesajlarını kimin okuduğunu görür. Herkes kendininkini gizleyebilir.",
+    "settingOn": "Konuşmalarda okundu bilgisini göster",
+    "seen": "Görüldü",
+    "seenBy": "{{names}} gördü",
+    "seenByAll": "Herkes gördü"
   }
 }

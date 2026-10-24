@@ -47,8 +47,10 @@ const (
 	// MessageAck (someone acknowledged a message) goes to the channel's
 	// members; MessageReminder (an urgent message waits for an
 	// acknowledgement) to the person reminded.
-	MessageAck      = "message.ack"
-	MessageReminder = "message.reminder"
+	MessageAck = "message.ack"
+	// ConversationRead (read receipts) goes to the conversation's members.
+	ConversationRead = "conversation.read"
+	MessageReminder  = "message.reminder"
 	// CategoriesChanged goes to the members of a workspace.
 	CategoriesChanged = "categories.changed"
 	// WorkspaceJoined and WorkspaceLeft go to the user concerned (joined is also

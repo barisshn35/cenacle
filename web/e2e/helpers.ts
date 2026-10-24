@@ -481,6 +481,8 @@ export async function mockApi(
     stickers?: typeof STICKERS;
     /** The operator configured a model and the workspace turned AI on. */
     ai?: boolean;
+    /** The workspace turned read receipts on; how far others read. */
+    reads?: { user_id: string; last_read_id: string | null }[];
   } = {},
 ): Promise<MockApi> {
   await mockSession(page, {
@@ -502,6 +504,7 @@ export async function mockApi(
       is_default: true,
       role: opts.admin ? 'owner' : 'member',
       ...(opts.ai ? { ai_enabled: true } : {}),
+      ...(opts.reads ? { read_receipts: true } : {}),
     },
   ];
   // Workflows and forms (v0.21): none unless a test adds them.
@@ -1086,6 +1089,9 @@ export async function mockApi(
     c.mention_count = 0;
     return route.fulfill({ status: 204 });
   });
+  await page.route('**/api/channels/*/reads', (route) =>
+    route.fulfill({ json: { enabled: !!opts.reads, reads: opts.reads ?? [] } }),
+  );
   await page.route('**/api/channels/*/unread', (route) => {
     const c = channelOf(route.request().url());
     const { message_id } = route.request().postDataJSON() as { message_id?: string };

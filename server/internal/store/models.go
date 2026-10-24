@@ -706,6 +706,7 @@ type User struct {
 	RecentStatuses        []byte             `json:"recent_statuses"`
 	UsernameFromDirectory bool               `json:"username_from_directory"`
 	TermsAcceptedID       pgtype.UUID        `json:"terms_accepted_id"`
+	ShareReadReceipts     bool               `json:"share_read_receipts"`
 }
 
 type UserFont struct {
@@ -806,6 +807,7 @@ type Workspace struct {
 	PersistentNotifications bool        `json:"persistent_notifications"`
 	PersistentEveryMinutes  int32       `json:"persistent_every_minutes"`
 	PersistentTimes         int32       `json:"persistent_times"`
+	ReadReceipts            bool        `json:"read_receipts"`
 }
 
 type WorkspaceAttribute struct {

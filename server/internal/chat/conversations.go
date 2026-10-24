@@ -191,7 +191,66 @@ func (h *Handlers) MarkRead(w http.ResponseWriter, r *http.Request, channelID op
 		h.unavailable(w, r, "mark read", err)
 		return
 	}
+	// With read receipts, the others in the conversation see it too.
+	if c.Kind == KindDirect || c.Kind == KindGroup {
+		allowed, err := h.Queries.ReceiptsAllowed(r.Context(), store.ReceiptsAllowedParams{ChannelID: c.ID, UserID: p.User.ID})
+		if err == nil && allowed {
+			h.publish(r.Context(), events.ConversationRead, ConversationReadEvent{
+				ChannelID: uuid(c.ID).String(), UserID: uuid(p.User.ID).String(), MessageID: uuid(message).String(),
+			})
+		}
+	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// ConversationReadEvent is the data of conversation.read: someone in a
+// conversation read up to a message (read receipts).
+type ConversationReadEvent struct {
+	ChannelID string `json:"channel_id"`
+	UserID    string `json:"user_id"`
+	MessageID string `json:"message_id"`
+}
+
+// ListConversationReads implements api.ServerInterface.
+func (h *Handlers) ListConversationReads(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	c, _, ok := h.memberChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	type read struct {
+		UserID     openapi_types.UUID  `json:"user_id"`
+		LastReadID *openapi_types.UUID `json:"last_read_id"`
+	}
+	out := struct {
+		Enabled bool   `json:"enabled"`
+		Reads   []read `json:"reads"`
+	}{Reads: []read{}}
+	allowed, err := h.Queries.ReceiptsAllowed(r.Context(), store.ReceiptsAllowedParams{ChannelID: c.ID, UserID: p.User.ID})
+	if err != nil {
+		h.unavailable(w, r, "read receipts", err)
+		return
+	}
+	if allowed {
+		out.Enabled = true
+		rows, err := h.Queries.ConversationReads(r.Context(), store.ConversationReadsParams{ChannelID: c.ID, UserID: p.User.ID})
+		if err != nil {
+			h.unavailable(w, r, "read receipts", err)
+			return
+		}
+		for _, row := range rows {
+			rd := read{UserID: uuid(row.UserID)}
+			if row.LastReadID.Valid {
+				id := uuid(row.LastReadID)
+				rd.LastReadID = &id
+			}
+			out.Reads = append(out.Reads, rd)
+		}
+	}
+	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
 // markRead moves the read position and tells the user's other devices.

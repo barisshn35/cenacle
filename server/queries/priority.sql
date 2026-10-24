@@ -39,3 +39,18 @@ LIMIT 500;
 -- name: RecordReminder :exec
 INSERT INTO message_reminders (message_id, user_id, sent, last_at) VALUES (@message_id, @user_id, 1, now())
 ON CONFLICT (message_id, user_id) DO UPDATE SET sent = message_reminders.sent + 1, last_at = now();
+
+-- name: ConversationReads :many
+-- ConversationReads returns how far the other members of a conversation who
+-- share read receipts have read.
+SELECT m.user_id, m.last_read_id
+FROM channel_members m JOIN users u ON u.id = m.user_id
+WHERE m.channel_id = @channel_id AND m.user_id <> @user_id AND u.share_read_receipts AND NOT u.is_bot;
+
+-- name: ReceiptsAllowed :one
+-- ReceiptsAllowed tells whether a person sees and shows read receipts in a
+-- channel: a conversation of a workspace that turned them on, and the person
+-- shares theirs.
+SELECT (w.read_receipts AND c.kind IN ('direct', 'group') AND u.share_read_receipts)::boolean
+FROM channels c JOIN workspaces w ON w.id = c.workspace_id, users u
+WHERE c.id = @channel_id AND u.id = @user_id;

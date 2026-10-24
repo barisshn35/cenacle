@@ -115,7 +115,7 @@ func (q *Queries) GetPicture(ctx context.Context, id pgtype.UUID) (GetPictureRow
 const getProfiles = `-- name: GetProfiles :many
 SELECT u.id, u.display_name, u.username, u.username_from_directory, u.email, u.is_bot,
        u.avatar_id, coalesce(p.content_type = 'image/gif', false)::boolean AS avatar_animated,
-       u.timezone, u.show_last_seen, u.last_seen_at, u.deactivated_at, u.directory_role,
+       u.timezone, u.show_last_seen, u.share_read_receipts, u.last_seen_at, u.deactivated_at, u.directory_role,
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_emoji ELSE '' END::text AS status_emoji,
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_text ELSE '' END::text AS status_text,
        u.status_expires_at,
@@ -136,6 +136,7 @@ type GetProfilesRow struct {
 	AvatarAnimated        bool               `json:"avatar_animated"`
 	Timezone              string             `json:"timezone"`
 	ShowLastSeen          bool               `json:"show_last_seen"`
+	ShareReadReceipts     bool               `json:"share_read_receipts"`
 	LastSeenAt            pgtype.Timestamptz `json:"last_seen_at"`
 	DeactivatedAt         pgtype.Timestamptz `json:"deactivated_at"`
 	DirectoryRole         pgtype.Text        `json:"directory_role"`
@@ -167,6 +168,7 @@ func (q *Queries) GetProfiles(ctx context.Context, ids []pgtype.UUID) ([]GetProf
 			&i.AvatarAnimated,
 			&i.Timezone,
 			&i.ShowLastSeen,
+			&i.ShareReadReceipts,
 			&i.LastSeenAt,
 			&i.DeactivatedAt,
 			&i.DirectoryRole,
@@ -325,15 +327,17 @@ UPDATE users SET
     username       = coalesce($1, username),
     timezone       = coalesce($2, timezone),
     show_last_seen = coalesce($3, show_last_seen),
+    share_read_receipts = coalesce($4, share_read_receipts),
     updated_at     = now()
-WHERE id = $4
+WHERE id = $5
 `
 
 type UpdateProfileSettingsParams struct {
-	Username     pgtype.Text `json:"username"`
-	Timezone     pgtype.Text `json:"timezone"`
-	ShowLastSeen pgtype.Bool `json:"show_last_seen"`
-	ID           pgtype.UUID `json:"id"`
+	Username          pgtype.Text `json:"username"`
+	Timezone          pgtype.Text `json:"timezone"`
+	ShowLastSeen      pgtype.Bool `json:"show_last_seen"`
+	ShareReadReceipts pgtype.Bool `json:"share_read_receipts"`
+	ID                pgtype.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateProfileSettings(ctx context.Context, arg UpdateProfileSettingsParams) error {
@@ -341,6 +345,7 @@ func (q *Queries) UpdateProfileSettings(ctx context.Context, arg UpdateProfileSe
 		arg.Username,
 		arg.Timezone,
 		arg.ShowLastSeen,
+		arg.ShareReadReceipts,
 		arg.ID,
 	)
 	return err

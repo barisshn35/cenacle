@@ -56,6 +56,32 @@ export const markRead = (channelId: string, messageId?: string) =>
     `/api/channels/${channelId}/read`,
     json(messageId ? { message_id: messageId } : {}),
   );
+export interface ConversationReads {
+  enabled: boolean;
+  reads: { user_id: string; last_read_id: string | null }[];
+}
+/** How far the others in a conversation read (read receipts, where turned on). */
+export const readsQuery = (channelId: string, enabled: boolean) =>
+  queryOptions({
+    queryKey: ['reads', channelId],
+    queryFn: () => apiFetch<ConversationReads>(`/api/channels/${channelId}/reads`),
+    enabled,
+    staleTime: Infinity,
+  });
+/** Someone in a conversation read further (conversation.read). */
+export function applyConversationRead(
+  queryClient: QueryClient,
+  ev: { channel_id: string; user_id: string; message_id: string },
+) {
+  queryClient.setQueryData<ConversationReads>(['reads', ev.channel_id], (d) => {
+    if (!d) return d;
+    const others = d.reads.filter((r) => r.user_id !== ev.user_id);
+    const before = d.reads.find((r) => r.user_id === ev.user_id)?.last_read_id;
+    const last = before && before > ev.message_id ? before : ev.message_id;
+    return { ...d, reads: [...others, { user_id: ev.user_id, last_read_id: last }] };
+  });
+}
+
 /** Marks a channel unread from a message (without one: its newest message). */
 export const markUnread = (channelId: string, messageId?: string) =>
   apiFetch<void>(

@@ -43,7 +43,8 @@ func workspaceAPI(w store.Workspace, role string) api.Workspace {
 		EditHistory:             ptr(api.WorkspaceEditHistory(w.EditHistory)),
 		PersistentNotifications: ptr(w.PersistentNotifications),
 		PersistentEveryMinutes:  ptr(int(w.PersistentEveryMinutes)),
-		PersistentTimes:         ptr(int(w.PersistentTimes))}
+		PersistentTimes:         ptr(int(w.PersistentTimes)),
+		ReadReceipts:            ptr(w.ReadReceipts)}
 }
 
 // ListWorkspaces implements api.ServerInterface.
@@ -191,7 +192,10 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 		}
 		params.PersistentTimes = pgtype.Int4{Int32: int32(*in.PersistentTimes), Valid: true} //nolint:gosec // checked above
 	}
-	settings := params.EditHistory.Valid || params.PersistentNotifications.Valid ||
+	if in.ReadReceipts != nil {
+		params.ReadReceipts = pgtype.Bool{Bool: *in.ReadReceipts, Valid: true}
+	}
+	settings := params.EditHistory.Valid || params.PersistentNotifications.Valid || params.ReadReceipts.Valid ||
 		params.PersistentEveryMinutes.Valid || params.PersistentTimes.Valid
 	if !params.Name.Valid && !params.Description.Valid && !settings {
 		badRequest(w, r, "Change the name, the description or a setting.")
@@ -210,6 +214,9 @@ func (h *Handlers) RenameWorkspace(w http.ResponseWriter, r *http.Request, works
 		h.record(r, ws.ID, audit.PersistentNotificationsChanged, "workspace", uuid(ws.ID).String(), map[string]any{
 			"enabled": ws.PersistentNotifications, "every_minutes": ws.PersistentEveryMinutes, "times": ws.PersistentTimes,
 		})
+	}
+	if in.ReadReceipts != nil {
+		h.record(r, ws.ID, audit.ReadReceiptsChanged, "workspace", uuid(ws.ID).String(), map[string]any{"read_receipts": ws.ReadReceipts})
 	}
 	if in.EditHistory != nil {
 		h.record(r, ws.ID, audit.EditHistoryChanged, "workspace", uuid(ws.ID).String(), map[string]any{"edit_history": ws.EditHistory})

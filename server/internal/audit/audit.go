@@ -76,6 +76,7 @@ const (
 	MentionGroupChanged            = "mention_group.changed"
 	EditHistoryChanged             = "workspace.edit_history_changed"
 	PersistentNotificationsChanged = "workspace.persistent_notifications_changed"
+	ReadReceiptsChanged            = "workspace.read_receipts_changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

@@ -126,6 +126,9 @@ paths:
                   description: Urgent messages may remind the people they mention.
                 persistent_every_minutes: { type: integer, minimum: 1, maximum: 60 }
                 persistent_times: { type: integer, minimum: 1, maximum: 20 }
+                read_receipts:
+                  type: boolean
+                  description: People see how far others read in conversations (off by default).
       responses:
         '200':
           description: Changed.
@@ -403,6 +406,9 @@ paths:
                   maxLength: 64
                   description: An IANA time zone such as Europe/Istanbul.
                 show_last_seen: { type: boolean }
+                share_read_receipts:
+                  type: boolean
+                  description: Others see how far you read conversations (where a workspace turned read receipts on); off, you see theirs neither.
       responses:
         '200':
           description: Changed.
@@ -2233,6 +2239,37 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/reads:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listConversationReads
+      summary: How far the others in a conversation have read (read receipts)
+      description: |
+        Only in conversations of workspaces that turned read receipts on, for people who
+        share their own; people who keep theirs are left out. Changes come as
+        `conversation.read`.
+      responses:
+        '200':
+          description: Read positions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enabled, reads]
+                properties:
+                  enabled: { type: boolean }
+                  reads:
+                    type: array
+                    items:
+                      type: object
+                      required: [user_id, last_read_id]
+                      properties:
+                        user_id: { type: string, format: uuid }
+                        last_read_id: { type: string, format: uuid, nullable: true }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/channels/{channel_id}/unread:
     parameters:
       - name: channel_id
@@ -6854,6 +6891,9 @@ components:
           description: Urgent messages may remind the people they mention until they acknowledge them.
         persistent_every_minutes: { type: integer, description: How often they are reminded. }
         persistent_times: { type: integer, description: How many times at most. }
+        read_receipts:
+          type: boolean
+          description: Read receipts in conversations are on (administrators turn them on).
     WorkspaceMember:
       type: object
       required: [user, role]
@@ -7328,6 +7368,7 @@ components:
               type: boolean
               description: False when the @username is the directory's sign-in name.
             show_last_seen: { type: boolean }
+            share_read_receipts: { type: boolean }
             recent_statuses:
               type: array
               items: { $ref: '#/components/schemas/CustomStatus' }

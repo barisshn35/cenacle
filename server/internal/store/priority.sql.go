@@ -30,6 +30,44 @@ func (q *Queries) AckMessage(ctx context.Context, arg AckMessageParams) (int64, 
 	return result.RowsAffected(), nil
 }
 
+const conversationReads = `-- name: ConversationReads :many
+SELECT m.user_id, m.last_read_id
+FROM channel_members m JOIN users u ON u.id = m.user_id
+WHERE m.channel_id = $1 AND m.user_id <> $2 AND u.share_read_receipts AND NOT u.is_bot
+`
+
+type ConversationReadsParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+type ConversationReadsRow struct {
+	UserID     pgtype.UUID `json:"user_id"`
+	LastReadID pgtype.UUID `json:"last_read_id"`
+}
+
+// ConversationReads returns how far the other members of a conversation who
+// share read receipts have read.
+func (q *Queries) ConversationReads(ctx context.Context, arg ConversationReadsParams) ([]ConversationReadsRow, error) {
+	rows, err := q.db.Query(ctx, conversationReads, arg.ChannelID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConversationReadsRow
+	for rows.Next() {
+		var i ConversationReadsRow
+		if err := rows.Scan(&i.UserID, &i.LastReadID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const dueReminders = `-- name: DueReminders :many
 SELECT m.id AS message_id, m.channel_id, c.name AS channel_name, c.kind AS channel_kind,
        a.display_name AS author_name,
@@ -131,6 +169,27 @@ func (q *Queries) ListAcks(ctx context.Context, messageIds []pgtype.UUID) ([]Lis
 		return nil, err
 	}
 	return items, nil
+}
+
+const receiptsAllowed = `-- name: ReceiptsAllowed :one
+SELECT (w.read_receipts AND c.kind IN ('direct', 'group') AND u.share_read_receipts)::boolean
+FROM channels c JOIN workspaces w ON w.id = c.workspace_id, users u
+WHERE c.id = $1 AND u.id = $2
+`
+
+type ReceiptsAllowedParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+// ReceiptsAllowed tells whether a person sees and shows read receipts in a
+// channel: a conversation of a workspace that turned them on, and the person
+// shares theirs.
+func (q *Queries) ReceiptsAllowed(ctx context.Context, arg ReceiptsAllowedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, receiptsAllowed, arg.ChannelID, arg.UserID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const recordReminder = `-- name: RecordReminder :exec

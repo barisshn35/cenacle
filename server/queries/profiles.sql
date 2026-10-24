@@ -3,7 +3,7 @@
 -- as none.
 SELECT u.id, u.display_name, u.username, u.username_from_directory, u.email, u.is_bot,
        u.avatar_id, coalesce(p.content_type = 'image/gif', false)::boolean AS avatar_animated,
-       u.timezone, u.show_last_seen, u.last_seen_at, u.deactivated_at, u.directory_role,
+       u.timezone, u.show_last_seen, u.share_read_receipts, u.last_seen_at, u.deactivated_at, u.directory_role,
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_emoji ELSE '' END::text AS status_emoji,
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_text ELSE '' END::text AS status_text,
        u.status_expires_at,
@@ -17,6 +17,7 @@ UPDATE users SET
     username       = coalesce(sqlc.narg(username), username),
     timezone       = coalesce(sqlc.narg(timezone), timezone),
     show_last_seen = coalesce(sqlc.narg(show_last_seen), show_last_seen),
+    share_read_receipts = coalesce(sqlc.narg(share_read_receipts), share_read_receipts),
     updated_at     = now()
 WHERE id = @id;
 

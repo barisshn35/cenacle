@@ -82,6 +82,7 @@ export const updateMyProfile = (patch: {
   username?: string;
   timezone?: string;
   show_last_seen?: boolean;
+  share_read_receipts?: boolean;
 }) => apiFetch<MyProfile>('/api/me/profile', json(patch, 'PATCH'));
 
 export const setCustomStatus = (status: CustomStatus) =>

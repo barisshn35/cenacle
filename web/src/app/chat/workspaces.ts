@@ -37,6 +37,7 @@ export const updateWorkspace = (
     persistent_notifications?: boolean;
     persistent_every_minutes?: number;
     persistent_times?: number;
+    read_receipts?: boolean;
   },
 ) => apiFetch<Workspace>(`/api/workspaces/${id}`, json(patch, 'PATCH'));
 export const setWorkspaceIcon = (id: string, file: Blob) =>

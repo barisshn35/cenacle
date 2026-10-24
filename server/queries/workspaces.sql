@@ -21,7 +21,8 @@ UPDATE workspaces SET name = coalesce(sqlc.narg(name), name),
     edit_history = coalesce(sqlc.narg(edit_history), edit_history),
     persistent_notifications = coalesce(sqlc.narg(persistent_notifications), persistent_notifications),
     persistent_every_minutes = coalesce(sqlc.narg(persistent_every_minutes), persistent_every_minutes),
-    persistent_times = coalesce(sqlc.narg(persistent_times), persistent_times)
+    persistent_times = coalesce(sqlc.narg(persistent_times), persistent_times),
+    read_receipts = coalesce(sqlc.narg(read_receipts), read_receipts)
 WHERE id = @id RETURNING *;
 
 -- name: GetWorkspaceRole :one

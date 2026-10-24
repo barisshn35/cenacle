@@ -1382,6 +1382,30 @@ export interface paths {
     patch: operations['updateChannel'];
     trace?: never;
   };
+  '/api/channels/{channel_id}/reads': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /**
+     * How far the others in a conversation have read (read receipts)
+     * @description Only in conversations of workspaces that turned read receipts on, for people who
+     *     share their own; people who keep theirs are left out. Changes come as
+     *     `conversation.read`.
+     */
+    get: operations['listConversationReads'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/unread': {
     parameters: {
       query?: never;
@@ -4631,6 +4655,8 @@ export interface components {
       persistent_every_minutes?: number;
       /** @description How many times at most. */
       persistent_times?: number;
+      /** @description Read receipts in conversations are on (administrators turn them on). */
+      read_receipts?: boolean;
     };
     WorkspaceMember: {
       user: components['schemas']['Person'];
@@ -5017,6 +5043,7 @@ export interface components {
       /** @description False when the @username is the directory's sign-in name. */
       username_editable: boolean;
       show_last_seen: boolean;
+      share_read_receipts?: boolean;
       recent_statuses: components['schemas']['CustomStatus'][];
       /** @description Where to change the name (Cenacle ID's account page). */
       account_url: string;
@@ -5393,6 +5420,8 @@ export interface operations {
           persistent_notifications?: boolean;
           persistent_every_minutes?: number;
           persistent_times?: number;
+          /** @description People see how far others read in conversations (off by default). */
+          read_receipts?: boolean;
         };
       };
     };
@@ -5678,6 +5707,8 @@ export interface operations {
           /** @description An IANA time zone such as Europe/Istanbul. */
           timezone?: string;
           show_last_seen?: boolean;
+          /** @description Others see how far you read conversations (where a workspace turned read receipts on); off, you see theirs neither. */
+          share_read_receipts?: boolean;
         };
       };
     };
@@ -7697,6 +7728,38 @@ export interface operations {
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listConversationReads: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Read positions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            enabled: boolean;
+            reads: {
+              /** Format: uuid */
+              user_id: string;
+              /** Format: uuid */
+              last_read_id: string | null;
+            }[];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };

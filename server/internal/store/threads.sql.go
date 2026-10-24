@@ -267,7 +267,7 @@ func (q *Queries) GetThreadFollow(ctx context.Context, arg GetThreadFollowParams
 }
 
 const getUsersByIDs = `-- name: GetUsersByIDs :many
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id FROM users WHERE id = ANY($1::uuid[])
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts FROM users WHERE id = ANY($1::uuid[])
 `
 
 func (q *Queries) GetUsersByIDs(ctx context.Context, ids []pgtype.UUID) ([]User, error) {
@@ -306,6 +306,7 @@ func (q *Queries) GetUsersByIDs(ctx context.Context, ids []pgtype.UUID) ([]User,
 			&i.RecentStatuses,
 			&i.UsernameFromDirectory,
 			&i.TermsAcceptedID,
+			&i.ShareReadReceipts,
 		); err != nil {
 			return nil, err
 		}

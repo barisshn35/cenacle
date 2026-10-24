@@ -32,6 +32,7 @@ import { cn } from '@cenacle/ui/lib/utils';
 import { useSession } from '../auth/session';
 import {
   flatten,
+  isConversation,
   markRead,
   messagesQuery,
   setReadLocally,
@@ -50,6 +51,7 @@ import { MessageActions, MessageEditor } from './message-actions';
 import { useMarkUnread } from './mark-unread';
 import { EditedLabel } from './edit-history';
 import { AckBar, PriorityLabel } from './priority';
+import { SeenBy } from './read-receipts';
 import { AddReactionButton, ReactionBar } from './reactions';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
@@ -67,10 +69,13 @@ export function MessageRow({
   fmt,
   channel,
   inThread = false,
+  repliers,
 }: {
   row: Extract<Row, { kind: 'message' }>;
   fmt: ReturnType<typeof useFormatters>;
   channel: Channel;
+  /** One's newest message in a conversation: who answered since (for "Seen"). */
+  repliers?: string[];
   /** Shown in the thread panel: no thread summary or way into the thread. */
   inThread?: boolean;
 }) {
@@ -258,6 +263,7 @@ export function MessageRow({
               <AckBar message={m} channel={channel} />
               <ReactionBar message={m} />
               {!inThread && <ThreadSummaryButton message={m} />}
+              {repliers && <SeenBy channel={channel} message={m} repliers={repliers} />}
             </div>
           )}
         </div>
@@ -482,6 +488,17 @@ function useJumpTo(
   }, [target, rows, loading, hasNextPage, pages, fetchNextPage, list, done, t, onFound]);
 }
 
+/** One's newest message in a conversation, and who wrote after it. */
+function newestOwnIn(channel: Channel, messages: Message[], self: string) {
+  if (!isConversation(channel)) return undefined;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]!.author.id === self) {
+      return { id: messages[i]!.id, repliers: messages.slice(i + 1).map((m) => m.author.id) };
+    }
+  }
+  return undefined;
+}
+
 export function MessageList({ channel }: { channel: Channel }) {
   const { id: channelId, name: channelName } = channel;
   const { t } = useTranslation();
@@ -507,6 +524,8 @@ export function MessageList({ channel }: { channel: Channel }) {
     [messages, pending, fmt.day, mark],
   );
   const markAtBottom = useMarkRead(channel, messages, !!hold);
+  // One's newest message in a conversation shows who has seen it.
+  const lastOwn = newestOwnIn(channel, messages, self);
   const list = useRef<VirtuosoHandle>(null);
   // Whether the reader is at the end. Virtuoso's own following lets go when
   // rows change height as they arrive (the reader's own messages from another
@@ -627,7 +646,12 @@ export function MessageList({ channel }: { channel: Channel }) {
         }}
         itemContent={(_, row) =>
           row.kind === 'message' ? (
-            <MessageRow row={row} fmt={fmt} channel={channel} />
+            <MessageRow
+              row={row}
+              fmt={fmt}
+              channel={channel}
+              repliers={row.message.id === lastOwn?.id ? lastOwn.repliers : undefined}
+            />
           ) : (
             <PendingRow p={row.pending} />
           )
