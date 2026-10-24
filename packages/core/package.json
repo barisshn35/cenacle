@@ -1,6 +1,6 @@
 {
   "name": "@cenacle/core",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "private": true,
   "description": "Cenacle client core: API/WebSocket client, shared types and local storage.",
   "license": "Apache-2.0",
