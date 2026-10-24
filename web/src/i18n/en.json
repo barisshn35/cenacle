@@ -712,7 +712,10 @@
       "document": "Documents",
       "media": "Audio and video",
       "other": "Other"
-    }
+    },
+    "gallery": "{{count}} images",
+    "openMore_one": "Open {{name}} and {{count}} more image",
+    "openMore_other": "Open {{name}} and {{count}} more images"
   },
   "groups": {
     "title": "Directory groups",
@@ -2185,5 +2188,21 @@
     "seen": "Seen",
     "seenBy": "Seen by {{names}}",
     "seenByAll": "Seen by everyone"
+  },
+  "formatting": {
+    "label": "Formatting",
+    "toggle": "Show formatting",
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "code": "Code",
+    "link": "Link",
+    "quote": "Quote",
+    "bullets": "Bulleted list",
+    "numbers": "Numbered list",
+    "codeBlock": "Code block",
+    "preview": "Preview",
+    "previewLabel": "Preview of the message",
+    "nothing": "Nothing to preview yet."
   }
 }

@@ -44,3 +44,64 @@ export function newestOwn(messages: Message[], selfId: string): Message | undefi
   }
   return undefined;
 }
+
+/**
+ * Starts each selected line with a prefix ("> ", "- ", "1. "), or takes it
+ * away when every line has it; numbered lists count up.
+ */
+export function prefixLines(
+  value: string,
+  start: number,
+  end: number,
+  prefix: '> ' | '- ' | '1. ',
+): { value: string; start: number; end: number } {
+  const from = value.lastIndexOf('\n', start - 1) + 1;
+  const toBreak = value.indexOf('\n', end);
+  const to = toBreak === -1 ? value.length : toBreak;
+  const lines = value.slice(from, to).split('\n');
+  const marker = prefix === '1. ' ? /^\d+\. / : new RegExp(`^${prefix.replace(/[.>-]/g, '\\$&')}`);
+  const all = lines.every((l) => marker.test(l));
+  const changed = lines.map((l, i) =>
+    all ? l.replace(marker, '') : (prefix === '1. ' ? `${i + 1}. ` : prefix) + l,
+  );
+  const block = changed.join('\n');
+  return {
+    value: value.slice(0, from) + block + value.slice(to),
+    start: from,
+    end: from + block.length,
+  };
+}
+
+/** Makes the selection a link; the address placeholder is selected for typing over. */
+export function linkSelection(
+  value: string,
+  start: number,
+  end: number,
+  placeholder = 'https://',
+): { value: string; start: number; end: number } {
+  const text = value.slice(start, end) || 'link';
+  const inserted = `[${text}](${placeholder})`;
+  const at = start + text.length + 3;
+  return {
+    value: value.slice(0, start) + inserted + value.slice(end),
+    start: at,
+    end: at + placeholder.length,
+  };
+}
+
+/** Puts the selected lines in a fenced code block. */
+export function codeBlock(
+  value: string,
+  start: number,
+  end: number,
+): { value: string; start: number; end: number } {
+  const selected = value.slice(start, end);
+  const before = start > 0 && value[start - 1] !== '\n' ? '\n' : '';
+  const block = `${before}\`\`\`\n${selected}\n\`\`\`\n`;
+  const at = start + before.length + 4;
+  return {
+    value: value.slice(0, start) + block + value.slice(end),
+    start: at,
+    end: at + selected.length,
+  };
+}

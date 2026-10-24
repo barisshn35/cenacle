@@ -712,7 +712,10 @@
       "document": "Belgeler",
       "media": "Ses ve video",
       "other": "Diğer"
-    }
+    },
+    "gallery": "{{count}} görsel",
+    "openMore_one": "{{name}} ve {{count}} görsel daha aç",
+    "openMore_other": "{{name}} ve {{count}} görsel daha aç"
   },
   "groups": {
     "title": "Dizin grupları",
@@ -2185,5 +2188,21 @@
     "seen": "Görüldü",
     "seenBy": "{{names}} gördü",
     "seenByAll": "Herkes gördü"
+  },
+  "formatting": {
+    "label": "Biçimlendirme",
+    "toggle": "Biçimlendirmeyi göster",
+    "bold": "Kalın",
+    "italic": "İtalik",
+    "strike": "Üstü çizili",
+    "code": "Kod",
+    "link": "Bağlantı",
+    "quote": "Alıntı",
+    "bullets": "Madde işaretli liste",
+    "numbers": "Numaralı liste",
+    "codeBlock": "Kod bloğu",
+    "preview": "Önizleme",
+    "previewLabel": "Mesajın önizlemesi",
+    "nothing": "Henüz önizlenecek bir şey yok."
   }
 }

@@ -83,39 +83,105 @@ export function MessageFiles({ files }: { files: FileInfo[] | undefined }) {
           <ClipPlayer key={f.id} file={f} />
         ),
       )}
-      {images.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5" aria-label={t('files.images')}>
-          {images.map((f, i) => {
-            // Previews keep the image's shape within 320×240.
+      {images.length === 1 && (
+        <ul className="flex" aria-label={t('files.images')}>
+          {images.map((f) => {
+            // A single preview keeps the image's shape within 320×240.
             const ratio = f.width && f.height ? f.width / f.height : 4 / 3;
             const h = Math.min(240, 320 / ratio);
             return (
               <li key={f.id}>
-                <button
-                  type="button"
-                  data-testid="image"
-                  aria-label={t('files.openImage', { name: f.name })}
-                  onClick={() => setOpen(i)}
-                  className="block overflow-hidden rounded-lg border bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <img
-                    src={f.has_thumbnail ? thumbnailUrl(f.id) : fileUrl(f.id)}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    style={{ height: h, width: h * ratio }}
-                    className="object-cover motion-safe:transition-opacity"
-                  />
-                </button>
+                <ImageTile
+                  file={f}
+                  onOpen={() => setOpen(0)}
+                  style={{ height: h, width: h * ratio }}
+                />
               </li>
             );
           })}
         </ul>
       )}
+      {images.length > 1 && <Gallery images={images} onOpen={setOpen} />}
       {others.map((f) => (
         <FileCard key={f.id} file={f} />
       ))}
       <Lightbox images={images} index={open} onClose={() => setOpen(null)} />
     </div>
+  );
+}
+
+function ImageTile({
+  file,
+  onOpen,
+  style,
+  className,
+  more,
+}: {
+  file: FileInfo;
+  onOpen: () => void;
+  style?: React.CSSProperties;
+  className?: string;
+  /** Images not shown, counted on the last tile. */
+  more?: number;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      data-testid="image"
+      aria-label={
+        more
+          ? t('files.openMore', { name: file.name, count: more })
+          : t('files.openImage', { name: file.name })
+      }
+      onClick={onOpen}
+      className={`relative block overflow-hidden rounded-lg border bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${className ?? ''}`}
+      style={style}
+    >
+      <img
+        src={file.has_thumbnail ? thumbnailUrl(file.id) : fileUrl(file.id)}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="size-full object-cover motion-safe:transition-opacity"
+      />
+      {!!more && (
+        <span
+          aria-hidden
+          className="absolute inset-0 flex items-center justify-center bg-foreground/55 text-xl font-semibold text-background"
+        >
+          +{more}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * Several images as one gallery (v0.32): two side by side, three with the
+ * first larger, four or more in a square of four, the last one counting the
+ * rest. Each opens the viewer at itself.
+ */
+function Gallery({ images, onOpen }: { images: FileInfo[]; onOpen: (i: number) => void }) {
+  const { t } = useTranslation();
+  const shown = images.slice(0, 4);
+  const more = images.length - shown.length;
+  return (
+    <ul
+      aria-label={t('files.gallery', { count: images.length })}
+      data-testid="gallery"
+      className="grid w-full max-w-[480px] auto-rows-[150px] grid-cols-2 gap-1 sm:auto-rows-[180px]"
+    >
+      {shown.map((f, i) => (
+        <li key={f.id} className={images.length === 3 && i === 0 ? 'row-span-2' : undefined}>
+          <ImageTile
+            file={f}
+            className="size-full"
+            onOpen={() => onOpen(i)}
+            more={i === shown.length - 1 && more > 0 ? more : undefined}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }

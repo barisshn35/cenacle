@@ -8,6 +8,7 @@ import {
   ClockIcon,
   PaperclipIcon,
   SendHorizontalIcon,
+  TypeIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -39,6 +40,8 @@ import {
 import { FORMAT_KEYS, newestOwn, wrapSelection } from './composer-keys';
 import { useEditing } from './message-state';
 import { PriorityChip, PriorityMenu } from './priority';
+import { FormattingBar } from './formatting-bar';
+import { MessageBody } from './markdown/message-body';
 import type { Priority } from './pending';
 import { useLayout } from '../../stores/layout';
 import { useMentionPicker } from './mention-picker';
@@ -62,6 +65,8 @@ const drafts = new DraftStore();
 
 /** Mentions of many people; above this many members they are confirmed first. */
 const BROADCAST = /(^|[^\w@])@(channel|everyone|here)\b/i;
+/** Where the composer remembers whether its formatting bar is shown. */
+const FORMATTING_KEY = 'cenacle.formatting';
 const CONFIRM_ABOVE = 5;
 
 function ConnectionNotice() {
@@ -108,6 +113,25 @@ export function Composer({
   const [pollOpen, setPollOpen] = useState(false);
   const [burn, setBurn] = useState<number | null>(null);
   const [priority, setPriority] = useState<Priority>({});
+  // The formatting bar stays as the person left it (on this device).
+  const [formatting, setFormatting] = useState(() => {
+    try {
+      return localStorage.getItem(FORMATTING_KEY) === 'on';
+    } catch {
+      return false;
+    }
+  });
+  const [preview, setPreview] = useState(false);
+  const toggleFormatting = () => {
+    const on = !formatting;
+    setFormatting(on);
+    if (!on) setPreview(false);
+    try {
+      localStorage.setItem(FORMATTING_KEY, on ? 'on' : 'off');
+    } catch {
+      // Private windows: for this page only.
+    }
+  };
   const [confirmMany, setConfirmMany] = useState<number | null>(null);
   const channel = useQuery(channelsQuery).data?.find((c) => c.id === channelId);
   const conversation = !!channel && isConversation(channel);
@@ -269,6 +293,7 @@ export function Composer({
     uploads.clear();
     setAlso(false);
     setPriority({});
+    setPreview(false);
     clear();
   };
 
@@ -366,12 +391,36 @@ export function Composer({
         >
           {mentions.popup}
           {!thread && commands.popup}
+          {formatting && (
+            <FormattingBar
+              input={input}
+              value={body}
+              onChange={typed}
+              preview={preview}
+              onPreview={setPreview}
+            />
+          )}
+          {preview && (
+            <div
+              className="min-h-target py-1.5"
+              data-testid="composer-preview"
+              aria-label={t('formatting.previewLabel')}
+              role="region"
+            >
+              {trimmed ? (
+                <MessageBody body={body} mentions={[]} selfId={self} />
+              ) : (
+                <p className="text-sm text-muted-foreground">{t('formatting.nothing')}</p>
+              )}
+            </div>
+          )}
           <UploadList uploads={uploads} />
           {/* The buttons wrap below the text on narrow screens rather than squeeze it. */}
           <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
             <textarea
               id={ids.input}
               ref={input}
+              hidden={preview}
               rows={1}
               value={body}
               onChange={(e) => {
@@ -457,6 +506,16 @@ export function Composer({
                   <BarChart3Icon strokeWidth={1.75} />
                 </Button>
               )}
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={t('formatting.toggle')}
+                aria-pressed={formatting}
+                onClick={toggleFormatting}
+              >
+                <TypeIcon strokeWidth={1.75} />
+              </Button>
               {!thread && <PriorityMenu value={priority} onChange={setPriority} />}
               {!thread && (
                 <Button
