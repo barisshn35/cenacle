@@ -8,6 +8,20 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.37.2] - 2026-10-24
+
+### Added
+
+- **Mobile app (early):** `mobile/` builds Android and iOS apps with Capacitor. They pair
+  with a server like the desktop app and open its web app; build steps in
+  `mobile/README.md`.
+
+### Changed
+
+- **Logo:** the logo is drawn in a neutral ink (near black on light, near white on dark)
+  with the brass bubble, in the web app, Cenacle ID, favicons and the desktop and mobile
+  icons. The interface colours do not change.
+
 ## [0.37.1] - 2026-10-24
 
 ### Added
@@ -1006,7 +1020,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.37.1...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.37.2...HEAD
+[0.37.2]: https://github.com/barisshn35/cenacle/compare/v0.37.1...v0.37.2
 [0.37.1]: https://github.com/barisshn35/cenacle/compare/v0.37.0...v0.37.1
 [0.37.0]: https://github.com/barisshn35/cenacle/compare/v0.36.0...v0.37.0
 [0.36.0]: https://github.com/barisshn35/cenacle/compare/v0.35.0...v0.36.0

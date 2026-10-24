@@ -3,8 +3,8 @@ apiVersion: v2
 name: cenacle
 description: Self-hosted team chat (Cenacle) with its identity server (Cenacle ID).
 type: application
-version: 0.37.1
-appVersion: '0.37.1'
+version: 0.37.2
+appVersion: '0.37.2'
 home: https://github.com/barisshn35/cenacle
 sources: [https://github.com/barisshn35/cenacle]
 keywords: [chat, self-hosted, oidc]

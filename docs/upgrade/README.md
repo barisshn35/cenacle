@@ -48,6 +48,11 @@ included, was there.
 
 ## Version notes
 
+### 0.37.2
+
+- No migration. Only the logo files and icons change; browsers may show the old favicon
+  until their cache refreshes.
+
 ### 0.37.1
 
 - No migration. People who chose German, French, Spanish or Arabic see English (the
