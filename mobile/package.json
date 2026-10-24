@@ -1,0 +1,22 @@
+{
+  "name": "@cenacle/mobile",
+  "version": "0.37.1",
+  "private": true,
+  "description": "Cenacle mobile app (Capacitor) for Android and iOS.",
+  "license": "AGPL-3.0-only",
+  "author": "Cenacle contributors",
+  "homepage": "https://git.calaixo.com/calaxio/cenacle",
+  "scripts": {
+    "assets": "node scripts/assets.mjs",
+    "sync": "cap sync",
+    "android:debug": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

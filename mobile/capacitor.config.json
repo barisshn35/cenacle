@@ -1,0 +1,15 @@
+{
+  "appId": "com.calaixo.cenacle",
+  "appName": "Cenacle",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  }
+}

@@ -21,6 +21,8 @@ export default tseslint.config(
       'idp/public/**',
       'desktop/release/**',
       'desktop/assets/**',
+      'mobile/android/**',
+      'mobile/ios/**',
       'server/**',
       'docs/design/**',
     ],
@@ -42,6 +44,11 @@ export default tseslint.config(
   {
     // The desktop app's own pages (plain scripts in its windows).
     files: ['desktop/src/pages/**/*.js'],
+    languageOptions: { globals: globals.browser, sourceType: 'script' },
+  },
+  {
+    // The mobile app's own page (the pairing page in the WebView).
+    files: ['mobile/www/**/*.js'],
     languageOptions: { globals: globals.browser, sourceType: 'script' },
   },
   {

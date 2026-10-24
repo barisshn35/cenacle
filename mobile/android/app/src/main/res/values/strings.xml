@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cenacle</string>
+    <string name="title_activity_main">Cenacle</string>
+    <string name="package_name">com.calaixo.cenacle</string>
+    <string name="custom_url_scheme">com.calaixo.cenacle</string>
+</resources>

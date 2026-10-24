@@ -2,6 +2,7 @@ packages:
   - web
   - idp
   - desktop
+  - mobile
   - packages/*
 saveExact: true
 allowBuilds:
