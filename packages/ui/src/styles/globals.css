@@ -48,3 +48,27 @@
     }
   }
 }
+
+/* Right-to-left languages: icons that point a way point the other way. */
+[dir='rtl']
+  :is(
+    .lucide-chevron-left,
+    .lucide-chevron-right,
+    .lucide-chevrons-left,
+    .lucide-chevrons-right,
+    .lucide-arrow-left,
+    .lucide-arrow-right,
+    .lucide-corner-down-right,
+    .lucide-reply,
+    .lucide-forward,
+    .lucide-undo-2,
+    .lucide-redo-2,
+    .lucide-log-out,
+    .lucide-log-in,
+    .lucide-panel-left,
+    .lucide-panel-right,
+    .lucide-send,
+    .lucide-external-link
+  ) {
+  transform: scaleX(-1);
+}

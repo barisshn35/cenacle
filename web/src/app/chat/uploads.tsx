@@ -21,7 +21,7 @@ export function UploadList({
           key={u.key}
           data-testid="upload"
           className={cn(
-            'relative flex w-56 items-center gap-2 overflow-hidden rounded-lg border bg-background py-1 pr-1 pl-2 text-sm',
+            'relative flex w-56 items-center gap-2 overflow-hidden rounded-lg border bg-background py-1 pe-1 ps-2 text-sm',
             u.status === 'failed' && 'border-destructive/60',
           )}
         >

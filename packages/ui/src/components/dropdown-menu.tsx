@@ -71,12 +71,12 @@ function DropdownMenuCheckboxItem({
     <MenuPrimitive.CheckboxItem
       data-slot="dropdown-menu-checkbox-item"
       className={cn(
-        "relative flex min-h-target cursor-default items-center gap-2 rounded-md py-1.5 pr-2 pl-8 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative flex min-h-target cursor-default items-center gap-2 rounded-md py-1.5 pe-2 ps-8 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
     >
-      <span className="pointer-events-none absolute left-2 flex size-4 items-center justify-center">
+      <span className="pointer-events-none absolute start-2 flex size-4 items-center justify-center">
         <MenuPrimitive.CheckboxItemIndicator>
           <CheckIcon strokeWidth={1.75} />
         </MenuPrimitive.CheckboxItemIndicator>
@@ -102,7 +102,7 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<'kbd
     <kbd
       data-slot="dropdown-menu-shortcut"
       className={cn(
-        'ml-auto pl-4 font-sans text-xs tracking-wide text-muted-foreground',
+        'ms-auto ps-4 font-sans text-xs tracking-wide text-muted-foreground',
         className,
       )}
       {...props}
@@ -144,7 +144,7 @@ function DropdownMenuSubTrigger({
       {...props}
     >
       {children}
-      <ChevronRightIcon aria-hidden strokeWidth={1.75} className="ml-auto" />
+      <ChevronRightIcon aria-hidden strokeWidth={1.75} className="ms-auto" />
     </MenuPrimitive.SubmenuTrigger>
   );
 }

@@ -38,7 +38,7 @@ export function ForwardedQuote({ message }: { message: Message }) {
   return (
     <figure
       data-testid="forwarded"
-      className="mt-1 max-w-xl rounded-lg border border-l-3 border-l-muted-foreground/40 bg-muted/30 px-3 py-2"
+      className="mt-1 max-w-xl rounded-lg border border-s-3 border-s-muted-foreground/40 bg-muted/30 px-3 py-2"
     >
       <figcaption className="mb-0.5 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
         <ForwardIcon aria-hidden className="size-3.5" strokeWidth={1.75} />

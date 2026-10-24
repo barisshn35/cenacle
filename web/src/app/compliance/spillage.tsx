@@ -67,7 +67,7 @@ export function SpillageReportDialog({
           <DialogTitle>{t('spillage.reportTitle')}</DialogTitle>
           <DialogDescription>{t('spillage.reportHint')}</DialogDescription>
         </DialogHeader>
-        <blockquote className="line-clamp-3 border-l-2 pl-3 text-sm text-muted-foreground">
+        <blockquote className="line-clamp-3 border-s-2 ps-3 text-sm text-muted-foreground">
           {plainText(message.body)}
         </blockquote>
         <div className="grid gap-1">
@@ -175,7 +175,7 @@ export function SpillageDialog({
                         time: when.format(new Date(r.created_at)),
                       })}
                     </p>
-                    <blockquote className="line-clamp-4 border-l-2 border-destructive/60 pl-3">
+                    <blockquote className="line-clamp-4 border-s-2 border-destructive/60 ps-3">
                       {r.body ? plainText(r.body) : ''}
                     </blockquote>
                     <p>
@@ -215,7 +215,7 @@ export function SpillageDialog({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="ml-auto"
+                        className="ms-auto"
                         onClick={() => void download(r)}
                       >
                         <DownloadIcon strokeWidth={1.75} />

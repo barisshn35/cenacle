@@ -203,7 +203,7 @@ export function GuestLinksSection({ channel }: { channel: Channel }) {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="ml-auto"
+                className="ms-auto"
                 disabled={revoke.isPending}
                 onClick={() => revoke.mutate(l.id)}
               >

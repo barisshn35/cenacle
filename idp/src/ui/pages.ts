@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { html, raw, type SafeHtml } from './html.ts';
-import { format, LOCALES, MESSAGES, type Locale } from './messages.ts';
+import { directionOf, format, LOCALES, MESSAGES, type Locale } from './messages.ts';
 
 /** Query parameter that switches the page language (remembered in a cookie). */
 export const LANG_PARAM = 'lang';
 
-const LANGUAGE_NAMES: Record<Locale, string> = { en: 'English', tr: 'Türkçe' };
+const LANGUAGE_NAMES: Record<Locale, string> = {
+  en: 'English',
+  tr: 'Türkçe',
+  de: 'Deutsch',
+  fr: 'Français',
+  es: 'Español',
+  ar: 'العربية',
+};
 
 const button =
   'inline-flex min-h-target min-w-target h-11 w-full items-center justify-center gap-2 rounded-[10px] px-4 text-[14.5px] font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50';
@@ -160,7 +167,7 @@ export function layout({
 }: LayoutOptions): string {
   const m = MESSAGES[locale];
   const languages = languagePath
-    ? html`<nav aria-label="${m.language}" class="flex gap-1 text-sm">
+    ? html`<nav aria-label="${m.language}" class="flex flex-wrap gap-1 text-sm">
         ${LOCALES.map((l) =>
           l === locale
             ? html`<span
@@ -211,7 +218,7 @@ export function layout({
         ${signin ? html`<div class="hidden lg:block">${signinRecord(locale, signin)}</div>` : null}
       </main>`;
 
-  return `<!doctype html>${html`<html lang="${locale}">
+  return `<!doctype html>${html`<html lang="${locale}" dir="${directionOf(locale)}">
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />

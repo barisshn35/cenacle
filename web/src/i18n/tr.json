@@ -943,7 +943,8 @@
     "kind": "Neyi arayacağın",
     "tabs": {
       "messages": "Mesajlar",
-      "files": "Dosyalar"
+      "files": "Dosyalar",
+      "content": "Tuvaller ve listeler"
     },
     "filters": "Süzgeçler",
     "scope": "Nerede",
@@ -968,7 +969,10 @@
     "found_one": "{{count}} sonuç",
     "found_other": "{{count}} sonuç",
     "more": "Daha fazla göster",
-    "notLoaded": "Bu mesaj burada gösterilemeyecek kadar eski."
+    "notLoaded": "Bu mesaj burada gösterilemeyecek kadar eski.",
+    "noContent": "Tuval ya da liste satırı bulunamadı.",
+    "canvases": "Tuvaller",
+    "listItems": "Liste satırları"
   },
   "threads": {
     "title": "Yanıt dizisi",

@@ -9,7 +9,7 @@ import {
   type DensityPreference,
   type ThemePreference,
 } from '@cenacle/ui/theme';
-import { LANGUAGES, setLanguage, type Language } from '../../i18n';
+import { LANGUAGE_NAMES, LANGUAGES, setLanguage, type Language } from '../../i18n';
 
 const selectClass =
   'min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -77,7 +77,7 @@ export function AppearanceControls({
       >
         {LANGUAGES.map((l) => (
           <option key={l} value={l}>
-            {l === 'en' ? 'English' : 'Türkçe'}
+            {LANGUAGE_NAMES[l]}
           </option>
         ))}
       </select>

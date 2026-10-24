@@ -138,7 +138,7 @@ export function useMentionPicker({
 
   const current = candidates[active];
   const popup = open ? (
-    <div className="absolute bottom-full left-0 z-20 mb-1 w-72 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+    <div className="absolute bottom-full start-0 z-20 mb-1 w-72 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
       <ul id={listId} role="listbox" aria-label={t('mentions.label')}>
         {candidates.map((c, i) => (
           <li

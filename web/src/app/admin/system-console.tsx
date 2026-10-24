@@ -241,9 +241,9 @@ function PeoplePanel() {
               <td className={`${boardCell} font-mono text-xs`}>
                 {u.last_seen_at ? when.format(new Date(u.last_seen_at)) : '—'}
               </td>
-              <td className={`${boardCell} text-right font-mono text-xs`}>{u.workspaces}</td>
-              <td className={`${boardCell} text-right`}>
-                <span className="mr-2 font-mono text-xs">{u.sessions}</span>
+              <td className={`${boardCell} text-end font-mono text-xs`}>{u.workspaces}</td>
+              <td className={`${boardCell} text-end`}>
+                <span className="me-2 font-mono text-xs">{u.sessions}</span>
                 {u.sessions > 0 && (
                   <Button
                     size="icon-sm"
@@ -255,7 +255,7 @@ function PeoplePanel() {
                   </Button>
                 )}
               </td>
-              <td className={`${boardCell} text-right`}>
+              <td className={`${boardCell} text-end`}>
                 <a
                   href={`/api/admin/users/${u.id}/export`}
                   download="cenacle-data.ndjson"
@@ -349,11 +349,11 @@ function WorkspacesPanel() {
             <td className={boardCell}>
               <span className="text-sm font-medium">{w.name}</span>
               {w.is_default && (
-                <span className="ml-2 text-xs text-muted-foreground">{t('console.default')}</span>
+                <span className="ms-2 text-xs text-muted-foreground">{t('console.default')}</span>
               )}
             </td>
-            <td className={`${boardCell} text-right font-mono text-xs`}>{w.members}</td>
-            <td className={`${boardCell} text-right font-mono text-xs`}>{w.channels}</td>
+            <td className={`${boardCell} text-end font-mono text-xs`}>{w.members}</td>
+            <td className={`${boardCell} text-end font-mono text-xs`}>{w.channels}</td>
             <td className={`${boardCell} font-mono text-xs`}>
               {when.format(new Date(w.created_at))}
             </td>
@@ -396,13 +396,13 @@ function BotsPanel() {
             <td className={boardCell}>
               <span className="text-sm font-medium">{b.name}</span>
               {b.interactions && (
-                <span className="ml-2 text-xs text-muted-foreground">
+                <span className="ms-2 text-xs text-muted-foreground">
                   {t('console.interactive')}
                 </span>
               )}
             </td>
             <td className={`${boardCell} truncate text-sm`}>{b.workspace_name}</td>
-            <td className={`${boardCell} text-right`}>
+            <td className={`${boardCell} text-end`}>
               <Button
                 size="sm"
                 variant="outline"
@@ -452,7 +452,7 @@ function JobsPanel({ overview }: { overview?: Overview }) {
               <tr key={j.kind} className={boardRow(j.discarded > 0 || j.retryable > 0)}>
                 <td className={`${boardCell} font-mono text-xs`}>{j.kind}</td>
                 {[j.available, j.running, j.retryable, j.discarded, j.completed].map((v, i) => (
-                  <td key={i} className={`${boardCell} text-right font-mono text-xs`}>
+                  <td key={i} className={`${boardCell} text-end font-mono text-xs`}>
                     {v}
                   </td>
                 ))}

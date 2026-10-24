@@ -18,7 +18,7 @@ import {
   UserIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { LANGUAGES, setLanguage, type Language } from '../../i18n';
+import { LANGUAGE_NAMES, LANGUAGES, setLanguage, type Language } from '../../i18n';
 import { getTimeFormat, setTimeFormat, type TimeFormat } from '../../i18n/time-format';
 import { AppearancePanel } from '../appearance/appearance-panel';
 import { UITextsPanel } from '../appearance/ui-texts-panel';
@@ -85,7 +85,7 @@ function DeviceRow({ device }: { device: DeviceSession }) {
         <p className="truncate text-sm font-medium">
           {name}
           {device.current && (
-            <span className="ml-2 rounded-md bg-muted px-1.5 py-0.5 text-xs font-normal">
+            <span className="ms-2 rounded-md bg-muted px-1.5 py-0.5 text-xs font-normal">
               {t('settings.thisDevice')}
             </span>
           )}
@@ -180,7 +180,7 @@ export function SettingsDialog({
                 {t('settings.cenacleId')}
                 <ExternalLinkIcon
                   aria-hidden
-                  className="ml-auto size-3.5 text-muted-foreground"
+                  className="ms-auto size-3.5 text-muted-foreground"
                   strokeWidth={1.75}
                 />
                 <span className="sr-only">{t('settings.newTab')}</span>
@@ -199,7 +199,7 @@ export function SettingsDialog({
                   strokeWidth={1.75}
                 />
                 {t('shortcuts.open')}
-                <Kbd className="ml-auto font-sans">Ctrl /</Kbd>
+                <Kbd className="ms-auto font-sans">Ctrl /</Kbd>
               </button>
               {admin && (
                 <button
@@ -430,7 +430,7 @@ function LanguagePanel() {
         >
           {LANGUAGES.map((l) => (
             <option key={l} value={l}>
-              {l === 'en' ? 'English' : 'Türkçe'}
+              {LANGUAGE_NAMES[l]}
             </option>
           ))}
         </select>

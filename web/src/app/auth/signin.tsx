@@ -155,7 +155,7 @@ export function SigninPage() {
           <span className="font-mono text-[15px] break-all" data-testid="signin-server">
             {serverAddress()}
           </span>
-          <span className="ml-auto flex items-center gap-1 text-[12.5px] text-muted-foreground">
+          <span className="ms-auto flex items-center gap-1 text-[12.5px] text-muted-foreground">
             <LockIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
             {t('auth.thisAddress')}
           </span>

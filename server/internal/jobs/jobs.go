@@ -225,6 +225,15 @@ func (StreamAuditArgs) Kind() string { return "stream_audit" }
 // AuditStreamInterval is how often new audit events go to the SIEM.
 var AuditStreamInterval = 5 * time.Second
 
+// ReadFileTextArgs reads the text of new files for search.
+type ReadFileTextArgs struct{}
+
+// Kind implements river.JobArgs.
+func (ReadFileTextArgs) Kind() string { return "read_file_text" }
+
+// FileTextInterval is how often new files are read.
+var FileTextInterval = 10 * time.Second
+
 // ExportArchiveArgs writes whole days of workspaces with daily archive exports.
 type ExportArchiveArgs struct{}
 
@@ -362,7 +371,9 @@ type Deps struct {
 	AuditStream Runner
 	// Archive is optional.
 	Archive Runner
-	Log     *slog.Logger
+	// FileText is optional.
+	FileText Runner
+	Log      *slog.Logger
 }
 
 // NewClient returns a River client with the periodic jobs; Start it to work.
@@ -413,6 +424,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Federation != nil {
 		river.AddWorker(workers, &runnerWorker[SendFederationArgs]{r: d.Federation, what: "federated events sent", log: d.Log})
 		jobs = append(jobs, periodic(FederationInterval, SendFederationArgs{}))
+	}
+	if d.FileText != nil {
+		river.AddWorker(workers, &runnerWorker[ReadFileTextArgs]{r: d.FileText, what: "file texts read", log: d.Log})
+		jobs = append(jobs, periodic(FileTextInterval, ReadFileTextArgs{}))
 	}
 	if d.Archive != nil {
 		river.AddWorker(workers, &runnerWorker[ExportArchiveArgs]{r: d.Archive, what: "archive days exported", log: d.Log})

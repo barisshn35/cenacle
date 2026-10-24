@@ -1,0 +1,66 @@
+{
+  "close": "Schließen",
+  "sidebar": {
+    "title": "Seitenleiste",
+    "description": "Navigation für Arbeitsbereiche und Kanäle.",
+    "toggle": "Seitenleiste ein- oder ausblenden"
+  },
+  "resize": {
+    "handle": "Bereichsgröße ändern"
+  },
+  "toast": {
+    "region": "Benachrichtigungen"
+  },
+  "confirm": {
+    "cancel": "Abbrechen",
+    "typeToConfirm": "Geben Sie zur Bestätigung <strong>{{name}}</strong> ein",
+    "typeToConfirmLabel": "Geben Sie zur Bestätigung {{name}} ein",
+    "mismatch": "Der Name stimmt noch nicht überein.",
+    "irreversible": "Dies kann nicht rückgängig gemacht werden.",
+    "working": "Wird ausgeführt…",
+    "failed": "Die Aktion konnte nicht abgeschlossen werden. Es wurde nichts geändert. Versuchen Sie es erneut."
+  },
+  "undo": {
+    "action": "Rückgängig"
+  },
+  "errors": {
+    "codeLabel": "Fehlercode",
+    "requestIdLabel": "Anfrage-ID",
+    "retry": "Erneut versuchen",
+    "server_error": {
+      "title": "Bei uns ist etwas schiefgelaufen.",
+      "reason": "Der Server konnte die Anfrage nicht abschließen.",
+      "action": "Versuchen Sie es erneut. Wenn das Problem weiter besteht, geben Sie Ihrem Administrator die unten stehende Anfrage-ID."
+    },
+    "network_error": {
+      "title": "Cenacle ist nicht erreichbar.",
+      "reason": "Ihr Gerät ist möglicherweise offline, oder der Server ist nicht erreichbar.",
+      "action": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "forbidden": {
+      "title": "Sie haben keine Berechtigung dafür.",
+      "reason": "Ihre Rolle in diesem Arbeitsbereich erlaubt diese Aktion nicht.",
+      "action": "Bitten Sie einen Administrator des Arbeitsbereichs um Zugriff."
+    },
+    "not_found": {
+      "title": "Diese Seite existiert nicht.",
+      "reason": "Sie wurde möglicherweise verschoben oder gelöscht.",
+      "action": "Prüfen Sie die Adresse oder gehen Sie zurück."
+    },
+    "rate_limited": {
+      "title": "Sie sind etwas zu schnell.",
+      "reason": "In kurzer Zeit wurden zu viele Anfragen gesendet.",
+      "action": "Versuchen Sie es in {{seconds}} Sekunden erneut."
+    },
+    "session_expired": {
+      "title": "Ihre Sitzung ist beendet.",
+      "reason": "Zu Ihrer Sicherheit wurden Sie abgemeldet.",
+      "action": "Melden Sie sich erneut an. Ihre Entwürfe und Ihre Position bleiben erhalten."
+    },
+    "service_unavailable": {
+      "title": "Cenacle ist vorübergehend nicht verfügbar.",
+      "reason": "Der Dienst wird gerade gestartet oder gewartet.",
+      "action": "Versuchen Sie es gleich erneut."
+    }
+  }
+}

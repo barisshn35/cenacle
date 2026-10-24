@@ -12,16 +12,120 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const pendingFileTexts = `-- name: PendingFileTexts :many
+SELECT id, name, content_type, size FROM files
+WHERE content_state = 'pending' AND status = 'ready'
+ORDER BY id
+LIMIT $1
+`
+
+type PendingFileTextsRow struct {
+	ID          pgtype.UUID `json:"id"`
+	Name        string      `json:"name"`
+	ContentType string      `json:"content_type"`
+	Size        int64       `json:"size"`
+}
+
+func (q *Queries) PendingFileTexts(ctx context.Context, rowLimit int32) ([]PendingFileTextsRow, error) {
+	rows, err := q.db.Query(ctx, pendingFileTexts, rowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PendingFileTextsRow
+	for rows.Next() {
+		var i PendingFileTextsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ContentType,
+			&i.Size,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchCanvases = `-- name: SearchCanvases :many
+SELECT t.id AS tab_id, t.title, t.channel_id, c.name AS channel_name, c.kind AS channel_kind, c.workspace_id,
+       v.updated_at,
+       left(v.body, 20000)::text AS content_head
+FROM canvases v
+JOIN channel_tabs t ON t.canvas_id = v.id
+JOIN channel_members cm ON cm.channel_id = v.channel_id AND cm.user_id = $1
+JOIN channels c ON c.id = v.channel_id
+WHERE cenacle_search_vector(v.body) @@ cenacle_search_query($2)
+  AND ($3::uuid IS NULL OR c.workspace_id = $3::uuid)
+ORDER BY v.updated_at DESC
+LIMIT 20
+`
+
+type SearchCanvasesParams struct {
+	UserID      pgtype.UUID `json:"user_id"`
+	Query       string      `json:"query"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+type SearchCanvasesRow struct {
+	TabID       pgtype.UUID `json:"tab_id"`
+	Title       string      `json:"title"`
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	ChannelName string      `json:"channel_name"`
+	ChannelKind string      `json:"channel_kind"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+	ContentHead string      `json:"content_head"`
+}
+
+// SearchCanvases finds canvases of the user's channels by their text.
+func (q *Queries) SearchCanvases(ctx context.Context, arg SearchCanvasesParams) ([]SearchCanvasesRow, error) {
+	rows, err := q.db.Query(ctx, searchCanvases, arg.UserID, arg.Query, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchCanvasesRow
+	for rows.Next() {
+		var i SearchCanvasesRow
+		if err := rows.Scan(
+			&i.TabID,
+			&i.Title,
+			&i.ChannelID,
+			&i.ChannelName,
+			&i.ChannelKind,
+			&i.WorkspaceID,
+			&i.UpdatedAt,
+			&i.ContentHead,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchFiles = `-- name: SearchFiles :many
 SELECT f.id, f.channel_id, f.message_id, f.name, f.content_type, f.size, f.width, f.height,
        f.has_thumbnail, f.created_at, u.id AS uploader_id, u.display_name AS uploader_name,
-       c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
+       c.name AS channel_name, c.kind AS channel_kind, c.workspace_id,
+       (f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1))::boolean AS in_content,
+       CASE WHEN f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1)
+            THEN left(f.content_text, 20000) ELSE '' END::text AS content_head
 FROM files f
-JOIN channel_members cm ON cm.channel_id = f.channel_id AND cm.user_id = $1
+JOIN channel_members cm ON cm.channel_id = f.channel_id AND cm.user_id = $2
 JOIN channels c ON c.id = f.channel_id
 JOIN users u ON u.id = f.uploader_id
 WHERE f.message_id IS NOT NULL AND f.status = 'ready'
-  AND cenacle_search_vector(f.name) @@ cenacle_search_query($2)
+  AND (cenacle_search_vector(f.name) @@ cenacle_search_query($1)
+       OR (f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1)))
   AND ($3::uuid IS NULL OR c.workspace_id = $3::uuid)
   AND ($4::uuid IS NULL OR f.id < $4::uuid)
 ORDER BY f.id DESC
@@ -29,8 +133,8 @@ LIMIT $5
 `
 
 type SearchFilesParams struct {
-	UserID      pgtype.UUID `json:"user_id"`
 	Query       string      `json:"query"`
+	UserID      pgtype.UUID `json:"user_id"`
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
 	Before      pgtype.UUID `json:"before"`
 	RowLimit    int32       `json:"row_limit"`
@@ -52,13 +156,16 @@ type SearchFilesRow struct {
 	ChannelName  string      `json:"channel_name"`
 	ChannelKind  string      `json:"channel_kind"`
 	WorkspaceID  pgtype.UUID `json:"workspace_id"`
+	InContent    bool        `json:"in_content"`
+	ContentHead  string      `json:"content_head"`
 }
 
-// SearchFiles finds files by name in the user's channels, newest first.
+// SearchFiles finds files by name or by their text in the user's channels,
+// newest first, with the matching words of the text.
 func (q *Queries) SearchFiles(ctx context.Context, arg SearchFilesParams) ([]SearchFilesRow, error) {
 	rows, err := q.db.Query(ctx, searchFiles,
-		arg.UserID,
 		arg.Query,
+		arg.UserID,
 		arg.WorkspaceID,
 		arg.Before,
 		arg.RowLimit,
@@ -86,6 +193,71 @@ func (q *Queries) SearchFiles(ctx context.Context, arg SearchFilesParams) ([]Sea
 			&i.ChannelName,
 			&i.ChannelKind,
 			&i.WorkspaceID,
+			&i.InContent,
+			&i.ContentHead,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchListItems = `-- name: SearchListItems :many
+SELECT i.id, i.title AS item_title, t.id AS tab_id, t.title AS list_title, t.channel_id,
+       c.name AS channel_name, c.kind AS channel_kind, c.workspace_id, i.updated_at
+FROM list_items i
+JOIN channel_tabs t ON t.list_id = i.list_id
+JOIN lists l ON l.id = i.list_id
+JOIN channel_members cm ON cm.channel_id = l.channel_id AND cm.user_id = $1
+JOIN channels c ON c.id = l.channel_id
+WHERE cenacle_search_vector(i.title || ' ' || i."values"::text) @@ cenacle_search_query($2)
+  AND ($3::uuid IS NULL OR c.workspace_id = $3::uuid)
+ORDER BY i.updated_at DESC
+LIMIT 20
+`
+
+type SearchListItemsParams struct {
+	UserID      pgtype.UUID `json:"user_id"`
+	Query       string      `json:"query"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+type SearchListItemsRow struct {
+	ID          pgtype.UUID `json:"id"`
+	ItemTitle   string      `json:"item_title"`
+	TabID       pgtype.UUID `json:"tab_id"`
+	ListTitle   string      `json:"list_title"`
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	ChannelName string      `json:"channel_name"`
+	ChannelKind string      `json:"channel_kind"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+}
+
+// SearchListItems finds rows of the lists of the user's channels.
+func (q *Queries) SearchListItems(ctx context.Context, arg SearchListItemsParams) ([]SearchListItemsRow, error) {
+	rows, err := q.db.Query(ctx, searchListItems, arg.UserID, arg.Query, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchListItemsRow
+	for rows.Next() {
+		var i SearchListItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ItemTitle,
+			&i.TabID,
+			&i.ListTitle,
+			&i.ChannelID,
+			&i.ChannelName,
+			&i.ChannelKind,
+			&i.WorkspaceID,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -206,4 +378,19 @@ func (q *Queries) SearchQueryValid(ctx context.Context, query string) (bool, err
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const setFileText = `-- name: SetFileText :exec
+UPDATE files SET content_text = $1, content_state = $2 WHERE id = $3
+`
+
+type SetFileTextParams struct {
+	ContentText  pgtype.Text `json:"content_text"`
+	ContentState string      `json:"content_state"`
+	ID           pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) SetFileText(ctx context.Context, arg SetFileTextParams) error {
+	_, err := q.db.Exec(ctx, setFileText, arg.ContentText, arg.ContentState, arg.ID)
+	return err
 }

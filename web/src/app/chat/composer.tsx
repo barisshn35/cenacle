@@ -381,7 +381,7 @@ export function Composer({
         {/* The frame holds the text and the send button side by side, so a
             scrollbar of long text never runs under the button. */}
         <div
-          className="relative rounded-[10px] border border-input bg-background py-1.5 pr-1.5 pl-3.5 transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20 has-aria-invalid:border-destructive"
+          className="relative rounded-[10px] border border-input bg-background py-1.5 pe-1.5 ps-3.5 transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20 has-aria-invalid:border-destructive"
           onDragOver={(e) => {
             if (permissions.upload_files && e.dataTransfer.types.includes('Files'))
               e.preventDefault();
@@ -453,7 +453,7 @@ export function Composer({
               className="block min-h-target min-w-40 flex-1 resize-none overflow-hidden bg-transparent py-1.5 text-base outline-none placeholder:text-muted-foreground md:text-[0.9375rem]"
             />
             {/* The tools stay together (with Send at their end) when they wrap. */}
-            <div className="ml-auto flex items-center">
+            <div className="ms-auto flex items-center">
               {permissions.upload_files && (
                 <>
                   <input

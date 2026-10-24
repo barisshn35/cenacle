@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { apiFetch, type components } from '@cenacle/core/api';
 import { Button } from '@cenacle/ui/components/button';
 import { Label } from '@cenacle/ui/components/label';
-import { applyUITexts, LANGUAGES, originalText, type Language } from '../../i18n';
+import { applyUITexts, LANGUAGE_NAMES, LANGUAGES, originalText, type Language } from '../../i18n';
 
 type UITexts = components['schemas']['UITexts'];
 
@@ -34,7 +34,7 @@ export function UITextsPanel() {
         >
           {LANGUAGES.map((l) => (
             <option key={l} value={l}>
-              {l === 'en' ? 'English' : 'Türkçe'}
+              {LANGUAGE_NAMES[l]}
             </option>
           ))}
         </select>

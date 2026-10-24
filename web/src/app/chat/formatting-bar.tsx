@@ -81,7 +81,7 @@ export function FormattingBar({
     <div
       role="toolbar"
       aria-label={t('formatting.label')}
-      className="-ml-2 flex flex-wrap items-center gap-0.5 border-b pb-1"
+      className="-ms-2 flex flex-wrap items-center gap-0.5 border-b pb-1"
     >
       {FORMATS.map(({ key, icon: Icon, keys, edit }) => (
         <Tooltip key={key}>
@@ -101,7 +101,7 @@ export function FormattingBar({
           </TooltipTrigger>
           <TooltipContent side="top">
             {t(`formatting.${key}`)}
-            {keys && <span className="ml-2 text-muted-foreground">{keys}</span>}
+            {keys && <span className="ms-2 text-muted-foreground">{keys}</span>}
           </TooltipContent>
         </Tooltip>
       ))}
@@ -110,7 +110,7 @@ export function FormattingBar({
         size="sm"
         variant={preview ? 'secondary' : 'ghost'}
         aria-pressed={preview}
-        className="ml-auto"
+        className="ms-auto"
         onClick={() => onPreview(!preview)}
       >
         <EyeIcon aria-hidden strokeWidth={1.75} />

@@ -988,7 +988,7 @@ export function IntegrationsDialog({
                     <button
                       type="button"
                       onClick={() => setSelected(b.id)}
-                      className="flex min-h-target w-full items-center gap-2 px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="flex min-h-target w-full items-center gap-2 px-3 py-2 text-start text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
                       <BotIcon
                         aria-hidden

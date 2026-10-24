@@ -218,7 +218,7 @@ export function EventsList() {
       <div className="flex flex-wrap items-center gap-3 max-sm:px-4">
         <p className="text-xs text-muted-foreground">{t('community.events.zone', { zone })}</p>
         {ws.workspace?.role !== 'guest' && (
-          <Button className="ml-auto" onClick={() => setEditing('new')}>
+          <Button className="ms-auto" onClick={() => setEditing('new')}>
             <PlusIcon strokeWidth={1.75} />
             {t('community.events.new')}
           </Button>

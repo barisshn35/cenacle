@@ -5,8 +5,10 @@ package chat
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/auth"
@@ -140,7 +142,59 @@ func (h *Handlers) SearchFiles(w http.ResponseWriter, r *http.Request, params ap
 			MessageId: uuid(f.MessageID), Name: f.Name, ContentType: f.ContentType, Size: f.Size,
 			HasThumbnail: f.HasThumbnail, CreatedAt: f.CreatedAt,
 			Uploader: api.Author{Id: uuid(f.UploaderID), DisplayName: f.UploaderName},
+			Excerpt:  ptr(excerpt(f.ContentHead, q)),
 		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"results": out, "has_more": more})
+}
+
+// SearchContent implements api.ServerInterface.
+func (h *Handlers) SearchContent(w http.ResponseWriter, r *http.Request, params api.SearchContentParams) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	q, ok := h.searchable(w, r, params.Q)
+	if !ok {
+		return
+	}
+	ws := optUUID((*[16]byte)(params.WorkspaceId))
+	canvases, err := h.Queries.SearchCanvases(r.Context(), store.SearchCanvasesParams{UserID: p.User.ID, Query: q, WorkspaceID: ws})
+	if err != nil {
+		h.unavailable(w, r, "search canvases", err)
+		return
+	}
+	items, err := h.Queries.SearchListItems(r.Context(), store.SearchListItemsParams{UserID: p.User.ID, Query: q, WorkspaceID: ws})
+	if err != nil {
+		h.unavailable(w, r, "search lists", err)
+		return
+	}
+	type canvasHit struct {
+		TabID     openapi_types.UUID `json:"tab_id"`
+		Title     string             `json:"title"`
+		Channel   api.SearchChannel  `json:"channel"`
+		Excerpt   string             `json:"excerpt"`
+		UpdatedAt time.Time          `json:"updated_at"`
+	}
+	type itemHit struct {
+		ID        openapi_types.UUID `json:"id"`
+		Title     string             `json:"title"`
+		TabID     openapi_types.UUID `json:"tab_id"`
+		ListTitle string             `json:"list_title"`
+		Channel   api.SearchChannel  `json:"channel"`
+		UpdatedAt time.Time          `json:"updated_at"`
+	}
+	out := struct {
+		Canvases []canvasHit `json:"canvases"`
+		Items    []itemHit   `json:"items"`
+	}{Canvases: []canvasHit{}, Items: []itemHit{}}
+	for _, c := range canvases {
+		out.Canvases = append(out.Canvases, canvasHit{uuid(c.TabID), c.Title,
+			searchChannel(c.ChannelID, c.WorkspaceID, c.ChannelName, c.ChannelKind), excerpt(c.ContentHead, q), c.UpdatedAt})
+	}
+	for _, i := range items {
+		out.Items = append(out.Items, itemHit{uuid(i.ID), i.ItemTitle, uuid(i.TabID), i.ListTitle,
+			searchChannel(i.ChannelID, i.WorkspaceID, i.ChannelName, i.ChannelKind), i.UpdatedAt})
+	}
+	httpx.WriteJSON(w, http.StatusOK, out)
 }

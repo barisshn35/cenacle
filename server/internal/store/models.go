@@ -346,6 +346,8 @@ type File struct {
 	MediaKind    pgtype.Text        `json:"media_kind"`
 	DurationMs   pgtype.Int4        `json:"duration_ms"`
 	Waveform     []byte             `json:"waveform"`
+	ContentText  pgtype.Text        `json:"content_text"`
+	ContentState string             `json:"content_state"`
 }
 
 type Form struct {

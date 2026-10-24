@@ -99,7 +99,7 @@ export function AuditPanel() {
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm" data-testid="audit-events">
               <thead>
-                <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+                <tr className="border-b bg-muted/40 text-start text-xs text-muted-foreground">
                   <th scope="col" className="px-3 py-2 font-medium">
                     {t('console.audit.when')}
                   </th>

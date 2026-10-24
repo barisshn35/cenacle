@@ -78,7 +78,7 @@ export function ForumView({ channel }: { channel: Channel }) {
             </div>
           )}
           {channel.can_post && !channel.archived && (
-            <Button className="ml-auto" onClick={() => setWriting(true)}>
+            <Button className="ms-auto" onClick={() => setWriting(true)}>
               <PlusIcon strokeWidth={1.75} />
               {t('community.forum.newPost')}
             </Button>
@@ -98,7 +98,7 @@ export function ForumView({ channel }: { channel: Channel }) {
                   type="button"
                   data-testid="forum-post"
                   onClick={() => openThread({ channelId: channel.id, rootId: m.id })}
-                  className="flex w-full flex-col gap-1.5 rounded-[10px] border border-rule-strong bg-background px-4 py-3 text-left outline-none hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="flex w-full flex-col gap-1.5 rounded-[10px] border border-rule-strong bg-background px-4 py-3 text-start outline-none hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <span className="font-semibold">{m.title ?? plainText(m.body, 80)}</span>
                   {!!m.tags?.length && (
@@ -119,7 +119,7 @@ export function ForumView({ channel }: { channel: Channel }) {
                   <span className="flex items-center gap-2 text-xs text-muted-foreground">
                     <UserAvatar userId={m.author.id} name={m.author.display_name} size="xs" />
                     <span>{m.author.display_name}</span>
-                    <span className="ml-auto flex items-center gap-1">
+                    <span className="ms-auto flex items-center gap-1">
                       <MessageSquareIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
                       {t('threads.replies', { count: m.thread?.reply_count ?? 0 })}
                     </span>

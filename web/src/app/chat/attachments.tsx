@@ -7,11 +7,11 @@ import { MessageBody } from './markdown/message-body';
 type Attachment = components['schemas']['Attachment'];
 
 const STRIPE: Record<NonNullable<Attachment['color']>, string> = {
-  neutral: 'border-l-attachment-stripe-default',
-  info: 'border-l-attachment-stripe-info',
-  success: 'border-l-attachment-stripe-success',
-  warning: 'border-l-attachment-stripe-warning',
-  danger: 'border-l-attachment-stripe-danger',
+  neutral: 'border-s-attachment-stripe-default',
+  info: 'border-s-attachment-stripe-info',
+  success: 'border-s-attachment-stripe-success',
+  warning: 'border-s-attachment-stripe-warning',
+  danger: 'border-s-attachment-stripe-danger',
 };
 
 /**
@@ -36,7 +36,7 @@ export function Attachments({
           key={i}
           data-testid="attachment"
           className={cn(
-            'rounded-md border border-l-4 bg-card px-3 py-2 text-sm',
+            'rounded-md border border-s-4 bg-card px-3 py-2 text-sm',
             STRIPE[a.color ?? 'neutral'],
           )}
         >

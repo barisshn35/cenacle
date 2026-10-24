@@ -50,7 +50,7 @@ export function Lightbox({
       <DialogContent className="flex max-h-[95svh] w-auto flex-col gap-3 p-3 sm:max-w-[min(95vw,1400px)]">
         {image && (
           <>
-            <div className="flex items-center gap-2 pr-10">
+            <div className="flex items-center gap-2 pe-10">
               <div className="min-w-0 flex-1">
                 <DialogTitle className="truncate text-sm font-semibold">{image.name}</DialogTitle>
                 <DialogDescription className="text-xs">
@@ -85,7 +85,7 @@ export function Lightbox({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="absolute left-2"
+                    className="absolute start-2"
                     aria-label={t('files.previous')}
                     onClick={() => step(-1)}
                   >
@@ -94,7 +94,7 @@ export function Lightbox({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="absolute right-2"
+                    className="absolute end-2"
                     aria-label={t('files.next')}
                     onClick={() => step(1)}
                   >

@@ -55,9 +55,9 @@ export function SideNavDialog<K extends string>({
     <DialogContent className="grid h-[min(90svh,52rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-5xl md:grid-cols-[236px_minmax(0,1fr)] md:grid-rows-1">
       <nav
         aria-label={title}
-        className="flex min-h-0 flex-col gap-1 border-b bg-secondary px-3 pt-5 pb-3 md:border-r md:border-b-0"
+        className="flex min-h-0 flex-col gap-1 border-b bg-secondary px-3 pt-5 pb-3 md:border-e md:border-b-0"
       >
-        <div className="px-2.5 pb-3 max-md:pr-10">
+        <div className="px-2.5 pb-3 max-md:pe-10">
           <DialogTitle className="text-[17px] font-semibold">{title}</DialogTitle>
           <DialogDescription className="text-xs">{subtitle}</DialogDescription>
         </div>
@@ -95,7 +95,7 @@ export function SideNavDialog<K extends string>({
                     document.getElementById(`${id}-tab-${next}`)?.focus();
                   }}
                   className={cn(
-                    'flex h-8 min-h-target shrink-0 items-center gap-2.5 rounded-[7px] px-2.5 text-left text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                    'flex h-8 min-h-target shrink-0 items-center gap-2.5 rounded-[7px] px-2.5 text-start text-sm whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                     value === key ? 'bg-accent font-semibold' : 'hover:bg-muted',
                   )}
                 >
@@ -106,7 +106,7 @@ export function SideNavDialog<K extends string>({
                   />
                   {label}
                   {count !== undefined && (
-                    <span className="ml-auto pl-2 font-mono text-xs font-normal text-muted-foreground">
+                    <span className="ms-auto ps-2 font-mono text-xs font-normal text-muted-foreground">
                       {count}
                     </span>
                   )}

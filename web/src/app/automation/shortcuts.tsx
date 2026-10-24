@@ -48,7 +48,7 @@ export function Shortcuts({ channelId }: { channelId: string }) {
   };
 
   const item =
-    'flex min-h-target w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50';
+    'flex min-h-target w-full items-start gap-2 rounded-md px-2 py-1.5 text-start text-sm outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50';
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>

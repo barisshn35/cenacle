@@ -1201,7 +1201,7 @@ paths:
     get:
       tags: [search]
       operationId: searchFiles
-      summary: Search files of your channels by name
+      summary: Search files of your channels by name and by the text inside them
       parameters:
         - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
         - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
@@ -1220,6 +1220,50 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/SearchFile' }
                   has_more: { type: boolean }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/search/content:
+    get:
+      tags: [search]
+      operationId: searchContent
+      summary: Search the canvases and lists of your channels
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+        - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Matching canvases and list rows (20 each at most, newest first).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [canvases, items]
+                properties:
+                  canvases:
+                    type: array
+                    items:
+                      type: object
+                      required: [tab_id, title, channel, excerpt, updated_at]
+                      properties:
+                        tab_id: { type: string, format: uuid }
+                        title: { type: string }
+                        channel: { $ref: '#/components/schemas/SearchChannel' }
+                        excerpt: { type: string, description: 'The matching words, between « and ».' }
+                        updated_at: { type: string, format: date-time }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, title, tab_id, list_title, channel, updated_at]
+                      properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        tab_id: { type: string, format: uuid }
+                        list_title: { type: string }
+                        channel: { $ref: '#/components/schemas/SearchChannel' }
+                        updated_at: { type: string, format: date-time }
         '400':
           $ref: '#/components/responses/Problem'
         '401':
@@ -8362,13 +8406,14 @@ components:
         has_thumbnail: { type: boolean }
         created_at: { type: string, format: date-time }
         uploader: { $ref: '#/components/schemas/Author' }
+        excerpt: { type: string, description: 'Where the text inside the file matches, the words between « and » (empty when the name matched).' }
     SearchChannel:
       type: object
       required: [id, name, kind, workspace_id]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
-        kind: { type: string, enum: [standard, announcement, direct, group] }
+        kind: { type: string, enum: [standard, announcement, direct, group, forum] }
         workspace_id: { type: string, format: uuid }
     NotificationSound:
       type: string

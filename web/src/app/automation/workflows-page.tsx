@@ -1112,7 +1112,7 @@ export function WorkflowsPage() {
               >
                 <span className="flex items-center gap-2">
                   <span className="font-semibold">{w.name}</span>
-                  <span className="ml-auto">{state(w)}</span>
+                  <span className="ms-auto">{state(w)}</span>
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {triggerText(w)} · {t('automation.admin.stepCount', { count: w.steps.length })}

@@ -193,7 +193,7 @@ export function EditProfileDialog({
             <div className="relative">
               <span
                 aria-hidden
-                className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground"
+                className="absolute top-1/2 start-3 -translate-y-1/2 text-sm text-muted-foreground"
               >
                 @
               </span>
@@ -203,7 +203,7 @@ export function EditProfileDialog({
                 maxLength={30}
                 autoComplete="off"
                 spellCheck={false}
-                className="pl-7"
+                className="ps-7"
                 disabled={!p?.username_editable}
                 aria-describedby={`${ids.username}-hint${save.isError ? ` ${ids.error}` : ''}`}
                 aria-invalid={problem?.code === 'username_taken' || undefined}

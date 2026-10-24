@@ -93,14 +93,14 @@ function components(
     },
     blockquote({ children }) {
       return (
-        <blockquote className="my-1 border-l-3 pl-3 text-muted-foreground">{children}</blockquote>
+        <blockquote className="my-1 border-s-3 ps-3 text-muted-foreground">{children}</blockquote>
       );
     },
     ul({ children }) {
-      return <ul className="my-1 list-disc pl-5">{children}</ul>;
+      return <ul className="my-1 list-disc ps-5">{children}</ul>;
     },
     ol({ children }) {
-      return <ol className="my-1 list-decimal pl-5">{children}</ol>;
+      return <ol className="my-1 list-decimal ps-5">{children}</ol>;
     },
     p({ children }) {
       return <p className="my-0.5 first:mt-0 last:mb-0">{children}</p>;
@@ -113,7 +113,7 @@ function components(
       );
     },
     th({ children }) {
-      return <th className="border px-2 py-1 text-left font-semibold">{children}</th>;
+      return <th className="border px-2 py-1 text-start font-semibold">{children}</th>;
     },
     td({ children }) {
       return <td className="border px-2 py-1">{children}</td>;

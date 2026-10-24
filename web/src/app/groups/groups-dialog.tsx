@@ -187,7 +187,7 @@ function GroupRows({
               <button
                 type="button"
                 onClick={() => onOpen(g.id)}
-                className="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-start outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span
                   aria-hidden
@@ -211,7 +211,7 @@ function GroupRows({
                       : t('userGroups.member')}
                   </span>
                 )}
-                <span className="w-20 text-right font-mono text-xs text-muted-foreground">
+                <span className="w-20 text-end font-mono text-xs text-muted-foreground">
                   {t('userGroups.people', { count: g.member_count })}
                 </span>
               </button>
@@ -454,7 +454,7 @@ function CreateGroup({
 
 function BackButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <Button type="button" variant="ghost" size="sm" className="-ml-2 w-fit" onClick={onClick}>
+    <Button type="button" variant="ghost" size="sm" className="-ms-2 w-fit" onClick={onClick}>
       <ArrowLeftIcon aria-hidden strokeWidth={1.75} />
       {label}
     </Button>

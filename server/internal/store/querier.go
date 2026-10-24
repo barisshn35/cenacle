@@ -608,6 +608,7 @@ type Querier interface {
 	// their channel and workspace settings. A reply kept in its thread is only for
 	// the people it mentions and those following the thread, as a mention.
 	NotifyCandidates(ctx context.Context, arg NotifyCandidatesParams) ([]NotifyCandidatesRow, error)
+	PendingFileTexts(ctx context.Context, rowLimit int32) ([]PendingFileTextsRow, error)
 	// PeopleSharingChannels is everyone who is in a channel of the workspace with
 	// the person (what a guest may see of a workspace).
 	PeopleSharingChannels(ctx context.Context, arg PeopleSharingChannelsParams) ([]pgtype.UUID, error)
@@ -677,8 +678,13 @@ type Querier interface {
 	SaveCanvas(ctx context.Context, arg SaveCanvasParams) (pgtype.UUID, error)
 	SaveDirectorySyncState(ctx context.Context, cursor string) error
 	SaveWorkflowRun(ctx context.Context, arg SaveWorkflowRunParams) error
-	// SearchFiles finds files by name in the user's channels, newest first.
+	// SearchCanvases finds canvases of the user's channels by their text.
+	SearchCanvases(ctx context.Context, arg SearchCanvasesParams) ([]SearchCanvasesRow, error)
+	// SearchFiles finds files by name or by their text in the user's channels,
+	// newest first, with the matching words of the text.
 	SearchFiles(ctx context.Context, arg SearchFilesParams) ([]SearchFilesRow, error)
+	// SearchListItems finds rows of the lists of the user's channels.
+	SearchListItems(ctx context.Context, arg SearchListItemsParams) ([]SearchListItemsRow, error)
 	// SearchMessages finds messages of the channels and conversations the user is
 	// in, newest first, with filters; before is the cursor (a message id).
 	SearchMessages(ctx context.Context, arg SearchMessagesParams) ([]SearchMessagesRow, error)
@@ -727,6 +733,7 @@ type Querier interface {
 	SetFederationConnectionStatus(ctx context.Context, arg SetFederationConnectionStatusParams) (FederationConnection, error)
 	SetFederationError(ctx context.Context, arg SetFederationErrorParams) error
 	SetFederationPolicy(ctx context.Context, arg SetFederationPolicyParams) error
+	SetFileText(ctx context.Context, arg SetFileTextParams) error
 	SetGroupCreation(ctx context.Context, arg SetGroupCreationParams) error
 	// SetGuestRoles makes a person a guest wherever they are a member or an
 	// administrator (or takes it back when they are not a guest any more).

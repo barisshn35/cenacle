@@ -172,7 +172,7 @@ export function CustomStatusDialog({
                   <li key={`${s.emoji}|${s.text}`}>
                     <button
                       type="button"
-                      className="flex min-h-target w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="flex min-h-target w-full items-center gap-2 rounded-md px-2 text-start text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
                       onClick={() => pick(s, c)}
                     >
                       <span aria-hidden className="w-5 text-center">
@@ -180,7 +180,7 @@ export function CustomStatusDialog({
                       </span>
                       <span className="truncate">{s.text || s.emoji}</span>
                       {c && c !== 'never' && (
-                        <span className="ml-auto text-xs text-muted-foreground">
+                        <span className="ms-auto text-xs text-muted-foreground">
                           {t(`profile.clear.${c}`)}
                         </span>
                       )}

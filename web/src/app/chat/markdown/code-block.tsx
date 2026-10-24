@@ -41,7 +41,7 @@ export function CodeBlock({ code, language }: { code: string; language?: string 
           return (
             <span key={i} className="contents">
               {settings.line_numbers && (
-                <span aria-hidden className="text-right text-muted-foreground select-none">
+                <span aria-hidden className="text-end text-muted-foreground select-none">
                   {i + 1}
                 </span>
               )}

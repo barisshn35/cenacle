@@ -25,7 +25,7 @@ export function CommandNotes({ channelId }: { channelId: string }) {
           key={n.id}
           data-testid="command-note"
           className={
-            'flex items-start gap-2 rounded-lg border bg-muted/50 py-1.5 pr-1 pl-3 text-sm ' +
+            'flex items-start gap-2 rounded-lg border bg-muted/50 py-1.5 pe-1 ps-3 text-sm ' +
             (n.error ? 'border-destructive/50' : 'border-border')
           }
         >

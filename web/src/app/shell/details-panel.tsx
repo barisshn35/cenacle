@@ -32,7 +32,7 @@ export function DetailsPanel() {
   return (
     <aside
       aria-labelledby="details-title"
-      className="flex h-full flex-col overflow-y-auto border-l bg-secondary"
+      className="flex h-full flex-col overflow-y-auto border-s bg-secondary"
     >
       <header className="flex h-14 shrink-0 items-center justify-between border-b px-5">
         <h2 id="details-title" className="text-[15px] font-semibold">

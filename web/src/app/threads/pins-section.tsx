@@ -35,7 +35,7 @@ export function PinsSection({ channelId }: { channelId: string }) {
                     ? openThread({ channelId, rootId: m.root_id })
                     : jump({ channelId, messageId: m.id })
                 }
-                className="flex w-full flex-col gap-0.5 rounded-lg px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex w-full flex-col gap-0.5 rounded-lg px-2 py-1.5 text-start text-sm outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="flex gap-2 text-xs text-muted-foreground">
                   <span className="truncate font-medium text-foreground">

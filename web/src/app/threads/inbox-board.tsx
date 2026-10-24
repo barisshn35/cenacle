@@ -152,7 +152,7 @@ function Board({ ws }: { ws: string }) {
                     >
                       <button
                         type="button"
-                        className="flex w-full min-w-0 flex-col gap-1 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                        className="flex w-full min-w-0 flex-col gap-1 text-start outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                         onClick={() => open(a)}
                       >
                         <span className="flex items-baseline gap-2 text-[13px]">
@@ -163,7 +163,7 @@ function Board({ ws }: { ws: string }) {
                             {time.format(new Date(a.at))}
                           </time>
                           <span className="truncate text-muted-foreground">{a.channel.name}</span>
-                          <span className="ml-auto">{status(a, lit)}</span>
+                          <span className="ms-auto">{status(a, lit)}</span>
                         </span>
                         <span className="text-[14px]">
                           <span className="font-semibold">{a.actor.display_name}</span> · {what(a)}
@@ -181,7 +181,7 @@ function Board({ ws }: { ws: string }) {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[10px] border border-rule-strong">
-          <table className="w-full min-w-[56rem] table-fixed border-collapse text-left">
+          <table className="w-full min-w-[56rem] table-fixed border-collapse text-start">
             <colgroup>
               <col className="w-[96px]" />
               <col className="w-[188px]" />

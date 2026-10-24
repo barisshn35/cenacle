@@ -53,7 +53,7 @@ export function PersonLine({
             <ProfileCard userId={person.id} name={name}>
               <button
                 type="button"
-                className="inline-flex min-h-target items-center rounded-sm text-left outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="inline-flex min-h-target items-center rounded-sm text-start outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {name}
               </button>
@@ -63,11 +63,11 @@ export function PersonLine({
           )}
           <PersonStatus userId={person.id} />
           {person.is_bot && (
-            <span className="ml-2 align-middle">
+            <span className="ms-2 align-middle">
               <BotBadge />
             </span>
           )}
-          {badge && <span className="ml-2 text-xs text-muted-foreground">{badge}</span>}
+          {badge && <span className="ms-2 text-xs text-muted-foreground">{badge}</span>}
         </p>
         <p className="truncate text-xs text-muted-foreground">{person.email}</p>
       </div>

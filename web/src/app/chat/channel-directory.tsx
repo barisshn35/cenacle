@@ -83,14 +83,14 @@ export function ChannelDirectory({
             <span className="sr-only">{t('channels.searchDirectory')}</span>
             <SearchIcon
               aria-hidden
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground"
               strokeWidth={1.75}
             />
             <Input
               type="search"
               value={query}
               placeholder={t('channels.searchDirectory')}
-              className="pl-9"
+              className="ps-9"
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
@@ -167,7 +167,7 @@ export function ChannelDirectory({
                     <p className="col-span-2 line-clamp-2 text-[13px] text-muted-foreground max-sm:order-last sm:col-span-1">
                       {c.topic || '—'}
                     </p>
-                    <span className="text-right font-mono text-[13px] text-muted-foreground max-sm:hidden">
+                    <span className="text-end font-mono text-[13px] text-muted-foreground max-sm:hidden">
                       {c.member_count !== undefined ? (
                         <>
                           <span aria-hidden>{c.member_count}</span>

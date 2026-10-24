@@ -210,7 +210,7 @@ export function VoicePlayer({ file }: { file: FileInfo }) {
   return (
     <div
       data-testid="voice"
-      className="flex w-full max-w-sm items-center gap-3 rounded-full border bg-card py-1 pr-4 pl-1"
+      className="flex w-full max-w-sm items-center gap-3 rounded-full border bg-card py-1 pe-4 ps-1"
     >
       <Button
         type="button"

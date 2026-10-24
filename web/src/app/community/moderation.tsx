@@ -71,7 +71,7 @@ export function ReportDialog({
           <DialogTitle>{t('community.report.title')}</DialogTitle>
           <DialogDescription>{t('community.report.hint')}</DialogDescription>
         </DialogHeader>
-        <blockquote className="line-clamp-3 border-l-2 pl-3 text-sm text-muted-foreground">
+        <blockquote className="line-clamp-3 border-s-2 ps-3 text-sm text-muted-foreground">
           {plainText(message.body)}
         </blockquote>
         <div className="grid gap-1">

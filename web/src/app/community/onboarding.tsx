@@ -65,7 +65,7 @@ function Onboarding({ workspaceId, name }: { workspaceId: string; name: string }
             <h3 id="welcome-rules" className="text-sm font-semibold">
               {t('community.welcome.rules')}
             </h3>
-            <ol className="list-decimal space-y-1 pl-5 text-sm">
+            <ol className="list-decimal space-y-1 ps-5 text-sm">
               {welcome.data.rules.map((r, i) => (
                 <li key={i}>{r}</li>
               ))}

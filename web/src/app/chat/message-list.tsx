@@ -139,7 +139,7 @@ export function MessageRow({
           data-testid="new-messages"
           className={cn(SPEAKER_GRID(inThread), 'items-center pt-3')}
         >
-          <span className="text-right text-xs font-semibold text-foreground max-sm:hidden">
+          <span className="text-end text-xs font-semibold text-foreground max-sm:hidden">
             {t('chat.newMessages')}
           </span>
           <span aria-hidden className="h-px bg-foreground" />
@@ -170,7 +170,7 @@ export function MessageRow({
             on phones), the avatar at its inner edge. A mention of the reader is
             marked here, with "@" and the time in red, never by a stripe. */}
         {row.first ? (
-          <header className="flex min-w-0 items-start justify-end gap-2 text-right max-sm:justify-start max-sm:text-left">
+          <header className="flex min-w-0 items-start justify-end gap-2 text-end max-sm:justify-start max-sm:text-start">
             <div className="flex min-w-0 flex-col items-end max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2">
               <span className="flex max-w-full items-baseline gap-1">
                 {mentionsMe && (
@@ -203,7 +203,7 @@ export function MessageRow({
             </ProfileCard>
           </header>
         ) : (
-          <div className="flex justify-end pt-1 pr-8 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden">
+          <div className="flex justify-end pt-1 pe-8 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden">
             {time}
           </div>
         )}
@@ -225,7 +225,7 @@ export function MessageRow({
           {row.first && (m.author.is_bot || hasStatus) && (
             <p className="flex items-center gap-1.5 pb-0.5">
               {m.author.is_bot && <BotBadge />}
-              <PersonStatus userId={m.author.id} className="ml-0 text-xs" />
+              <PersonStatus userId={m.author.id} className="ms-0 text-xs" />
             </p>
           )}
           {editing ? (
@@ -268,7 +268,7 @@ export function MessageRow({
           )}
         </div>
         {!editing && (
-          <div className="absolute -top-3 right-3 flex gap-0.5 rounded-lg bg-popover p-0.5 opacity-0 shadow-popover transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:static pointer-coarse:col-start-2 pointer-coarse:justify-self-end pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none">
+          <div className="absolute -top-3 end-3 flex gap-0.5 rounded-lg bg-popover p-0.5 opacity-0 shadow-popover transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:static pointer-coarse:col-start-2 pointer-coarse:justify-self-end pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none">
             {!channel.archived && channel.can_react !== false && <AddReactionButton message={m} />}
             {!inThread && !channel.archived && <ReplyButton message={m} />}
             <MessageActions message={m} channel={channel} inThread={inThread} />

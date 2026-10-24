@@ -524,7 +524,7 @@ function ChannelList({
                 <>
                   <BellOffIcon
                     aria-hidden
-                    className="ml-auto size-3.5 shrink-0 opacity-70"
+                    className="ms-auto size-3.5 shrink-0 opacity-70"
                     strokeWidth={1.75}
                   />
                   <span className="sr-only">{t('notifications.mutedLabel')}</span>
@@ -540,14 +540,14 @@ function ChannelList({
             {counted ? (
               <SidebarMenuBadge
                 aria-hidden
-                className="rounded-full bg-mention text-mention-foreground group-focus-within/menu-item:pointer-fine:opacity-0 group-hover/menu-item:pointer-fine:opacity-0 group-has-[[aria-expanded=true]]/menu-item:opacity-0 peer-data-active/menu-button:text-mention-foreground peer-hover/menu-button:text-mention-foreground pointer-coarse:right-8"
+                className="rounded-full bg-mention text-mention-foreground group-focus-within/menu-item:pointer-fine:opacity-0 group-hover/menu-item:pointer-fine:opacity-0 group-has-[[aria-expanded=true]]/menu-item:opacity-0 peer-data-active/menu-button:text-mention-foreground peer-hover/menu-button:text-mention-foreground pointer-coarse:end-8"
               >
                 {count > 99 ? '99+' : count}
               </SidebarMenuBadge>
             ) : unread ? (
               <SidebarMenuBadge
                 aria-hidden
-                className="group-focus-within/menu-item:pointer-fine:opacity-0 group-hover/menu-item:pointer-fine:opacity-0 group-has-[[aria-expanded=true]]/menu-item:opacity-0 pointer-coarse:right-8"
+                className="group-focus-within/menu-item:pointer-fine:opacity-0 group-hover/menu-item:pointer-fine:opacity-0 group-has-[[aria-expanded=true]]/menu-item:opacity-0 pointer-coarse:end-8"
               >
                 <span className="size-2 rounded-full bg-sidebar-foreground" />
               </SidebarMenuBadge>
@@ -696,7 +696,7 @@ function SectionLabel({
           onDragEnd={onDragEnd}
         />
       }
-      className="hit-target w-fit max-w-[calc(100%-4.5rem)] gap-1.5 pr-3 hover:text-sidebar-foreground"
+      className="hit-target w-fit max-w-[calc(100%-4.5rem)] gap-1.5 pe-3 hover:text-sidebar-foreground"
     >
       <ChevronDownIcon
         aria-hidden

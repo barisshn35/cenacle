@@ -95,7 +95,7 @@ export function useCommandPicker({
 
   const current = candidates[active];
   const popup = open ? (
-    <div className="absolute bottom-full left-0 z-20 mb-1 w-96 max-w-[calc(100vw-2rem)] rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+    <div className="absolute bottom-full start-0 z-20 mb-1 w-96 max-w-[calc(100vw-2rem)] rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
       <ul id={listId} role="listbox" aria-label={t('commands.label')}>
         {candidates.map((c, i) => (
           <li
@@ -114,7 +114,7 @@ export function useCommandPicker({
           >
             <span className="truncate">
               <span className="font-mono font-medium">/{c.trigger}</span>
-              {c.hint && <span className="ml-2 text-xs text-muted-foreground">{c.hint}</span>}
+              {c.hint && <span className="ms-2 text-xs text-muted-foreground">{c.hint}</span>}
             </span>
             <span className="truncate text-xs text-muted-foreground">
               {c.builtin

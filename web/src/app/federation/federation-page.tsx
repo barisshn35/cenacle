@@ -175,7 +175,7 @@ function Connections({ ws, connections }: { ws: string; connections: FederationC
                 <span className="font-medium">{c.name}</span>
                 <span className="text-muted-foreground">{c.url}</span>
                 <span className="text-muted-foreground">{t(`federation.status.${c.status}`)}</span>
-                <span className="ml-auto flex gap-2">
+                <span className="ms-auto flex gap-2">
                   {c.status !== 'pending' && (
                     <Button
                       variant="outline"

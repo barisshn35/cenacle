@@ -197,7 +197,7 @@ export function BrandSection() {
           <tbody>
             {PAIRS.map(([fg, bg, min], i) => (
               <tr key={fg + bg} className="border-b">
-                <td className="py-1.5 pr-3">
+                <td className="py-1.5 pe-3">
                   {min >= 4.5 ? (
                     // Text pair: sample text in the foreground color.
                     <span
@@ -220,7 +220,7 @@ export function BrandSection() {
                     </span>
                   )}
                 </td>
-                <td className="py-1.5 pr-3 font-mono text-xs">
+                <td className="py-1.5 pe-3 font-mono text-xs">
                   {fg} / {bg}
                 </td>
                 <td className="py-1.5 tabular-nums" data-ratio={ratios[i]?.toFixed(2)}>

@@ -27,7 +27,7 @@ export function LinkPreviewCard({ message }: { message: Message }) {
   return (
     <div
       data-testid="link-preview"
-      className="relative mt-1 flex max-w-lg gap-3 overflow-hidden rounded-lg border border-l-3 border-l-muted-foreground/40 bg-card p-3 text-sm"
+      className="relative mt-1 flex max-w-lg gap-3 overflow-hidden rounded-lg border border-s-3 border-s-muted-foreground/40 bg-card p-3 text-sm"
     >
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs text-muted-foreground">{p.site_name || host}</p>
@@ -57,7 +57,7 @@ export function LinkPreviewCard({ message }: { message: Message }) {
         <Button
           size="icon-xs"
           variant="ghost"
-          className="absolute top-1 right-1"
+          className="absolute top-1 end-1"
           aria-label={t('richer.preview.remove')}
           onClick={() => {
             hideLinkPreview(message).catch(() => toast.error(t('richer.preview.failed')));

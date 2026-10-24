@@ -62,7 +62,7 @@ export function StatusMenu({ name }: { name: string }) {
       >
         {/* Decoration: the button's name is the status. */}
         <Avatar name={name} profile={profile} size="sm" className="size-8" cssInitials />
-        <PresenceIndicator presence={status} className="absolute -right-1 -bottom-1" />
+        <PresenceIndicator presence={status} className="absolute -end-1 -bottom-1" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" className="w-56">
         {CHOICES.map((choice) => (

@@ -943,7 +943,8 @@
     "kind": "What to search",
     "tabs": {
       "messages": "Messages",
-      "files": "Files"
+      "files": "Files",
+      "content": "Canvases and lists"
     },
     "filters": "Filters",
     "scope": "Where",
@@ -968,7 +969,10 @@
     "found_one": "{{count}} result",
     "found_other": "{{count}} results",
     "more": "Show more",
-    "notLoaded": "That message is too far back to show here."
+    "notLoaded": "That message is too far back to show here.",
+    "noContent": "No canvases or list rows found.",
+    "canvases": "Canvases",
+    "listItems": "List rows"
   },
   "threads": {
     "title": "Thread",

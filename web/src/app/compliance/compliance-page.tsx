@@ -344,12 +344,12 @@ function MemberAttributes({ ws, settings }: { ws: string; settings: Compliance }
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs text-muted-foreground">
-              <th scope="col" className="py-1 pr-2 font-medium">
+            <tr className="text-start text-xs text-muted-foreground">
+              <th scope="col" className="py-1 pe-2 font-medium">
                 {t('compliance.members.person')}
               </th>
               {settings.attributes.map((a) => (
-                <th key={a.key} scope="col" className="py-1 pr-2 font-medium">
+                <th key={a.key} scope="col" className="py-1 pe-2 font-medium">
                   {a.name}
                 </th>
               ))}
@@ -363,11 +363,11 @@ function MemberAttributes({ ws, settings }: { ws: string; settings: Compliance }
               .filter((m) => !m.user.is_bot)
               .map((m) => (
                 <tr key={m.user.id} className="border-t">
-                  <th scope="row" className="py-1 pr-2 text-left font-normal">
+                  <th scope="row" className="py-1 pe-2 text-start font-normal">
                     {m.user.display_name}
                   </th>
                   {settings.attributes.map((a) => (
-                    <td key={a.key} className="py-1 pr-2">
+                    <td key={a.key} className="py-1 pe-2">
                       <Input
                         aria-label={`${a.name}, ${m.user.display_name}`}
                         maxLength={100}
@@ -454,7 +454,7 @@ function Holds({ ws }: { ws: string }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="ml-auto"
+                  className="ms-auto"
                   onClick={() => setReleasing(h)}
                 >
                   {t('compliance.holds.release')}

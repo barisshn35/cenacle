@@ -101,7 +101,7 @@ export function ListView({ listId }: { listId: string }) {
       data-testid="list"
     >
       <header className="flex flex-wrap items-center gap-2 px-6 pt-5 pb-3">
-        <h2 id={`${id}-title`} className="font-display mr-auto text-2xl font-medium">
+        <h2 id={`${id}-title`} className="font-display me-auto text-2xl font-medium">
           {list.title}
         </h2>
         {board && (
@@ -365,7 +365,7 @@ function Table({ list }: { list: ItemList }) {
     <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
       <table className="w-full border-separate border-spacing-0 text-sm">
         <thead>
-          <tr className="text-left text-xs text-muted-foreground">
+          <tr className="text-start text-xs text-muted-foreground">
             <th scope="col" className="sticky top-0 border-b bg-background px-2 py-2 font-medium">
               {t('collab.list.title')}
             </th>
@@ -386,7 +386,7 @@ function Table({ list }: { list: ItemList }) {
         <tbody>
           {list.items.map((item, i) => (
             <tr key={item.id} className="align-middle" data-testid="list-row">
-              <th scope="row" className="min-w-48 border-b px-1 py-0.5 text-left font-normal">
+              <th scope="row" className="min-w-48 border-b px-1 py-0.5 text-start font-normal">
                 <CommitInput
                   aria-label={t('collab.list.title')}
                   value={item.title}

@@ -29,7 +29,7 @@ export function Board({
     <div className="overflow-x-auto rounded-[10px] border border-rule-strong bg-background">
       <table
         aria-label={label}
-        className={cn('w-full table-fixed border-collapse text-left', minWidth)}
+        className={cn('w-full table-fixed border-collapse text-start', minWidth)}
       >
         <colgroup>
           {columns.map((c, i) => (
@@ -42,7 +42,7 @@ export function Board({
               <th
                 key={i}
                 scope="col"
-                className={cn('px-3 font-medium', c.align === 'end' && 'text-right')}
+                className={cn('px-3 font-medium', c.align === 'end' && 'text-end')}
               >
                 {c.label}
               </th>
@@ -78,7 +78,7 @@ export function BoardGroup({
           >
             {label}
             {count !== undefined && (
-              <span className="ml-2 font-mono font-normal text-muted-foreground">{count}</span>
+              <span className="ms-2 font-mono font-normal text-muted-foreground">{count}</span>
             )}
           </th>
         </tr>
@@ -138,7 +138,7 @@ export function BoardTabs<K extends string>({
           </button>
         ))}
       </div>
-      {note && <p className="mb-2.5 ml-auto text-xs text-muted-foreground">{note}</p>}
+      {note && <p className="mb-2.5 ms-auto text-xs text-muted-foreground">{note}</p>}
     </div>
   );
 }
@@ -160,7 +160,7 @@ export function BoardSection({
       <div className="flex min-h-8 items-center gap-2.5">
         <h2 className="text-[15px] font-semibold">{title}</h2>
         {count !== undefined && <span className="text-[13px] text-muted-foreground">{count}</span>}
-        {actions && <div className="ml-auto flex gap-2">{actions}</div>}
+        {actions && <div className="ms-auto flex gap-2">{actions}</div>}
       </div>
       {children}
     </section>

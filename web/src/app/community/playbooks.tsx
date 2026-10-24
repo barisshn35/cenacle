@@ -142,7 +142,7 @@ export function PlaybooksList() {
     <>
       {ws.admin && (
         <div className="flex max-sm:px-4">
-          <Button className="ml-auto" onClick={() => setEditing('new')}>
+          <Button className="ms-auto" onClick={() => setEditing('new')}>
             <PlusIcon strokeWidth={1.75} />
             {t('community.playbooks.new')}
           </Button>
@@ -166,7 +166,7 @@ export function PlaybooksList() {
                     </span>
                     <span className="flex items-center gap-2 text-[13px]">
                       {runChannel(r)}
-                      <span className="ml-auto">{runOpen(r)}</span>
+                      <span className="ms-auto">{runOpen(r)}</span>
                     </span>
                   </li>
                 );
@@ -580,7 +580,7 @@ function RunCard({ run, canPost }: { run: Run; canPost: boolean }) {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="flex min-h-target items-center gap-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex min-h-target items-center gap-2 text-start outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <span className="min-w-0 flex-1 truncate font-medium">{run.name}</span>
         <span className="text-xs text-muted-foreground tabular-nums">

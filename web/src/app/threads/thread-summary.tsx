@@ -24,7 +24,7 @@ export function ThreadSummaryButton({ message }: { message: Message }) {
       type="button"
       data-testid="thread-summary"
       onClick={() => openThread({ channelId: message.channel_id, rootId: message.id })}
-      className="mt-1 flex min-h-target items-center gap-2 rounded-md px-1 -ml-1 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="mt-1 flex min-h-target items-center gap-2 rounded-md px-1 -ms-1 text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <span className="flex -space-x-1.5" aria-hidden>
         {thread.participants.map((p) => (

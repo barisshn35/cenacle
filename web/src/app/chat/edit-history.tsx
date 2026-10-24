@@ -119,7 +119,7 @@ function EditHistoryDialog({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="ml-auto"
+                    className="ms-auto"
                     disabled={restore.isPending}
                     onClick={() => restore.mutate(e.body)}
                   >

@@ -34,7 +34,7 @@ export function StatusLine({ status, className }: { status: CustomStatus; classN
     : null;
   return (
     <p className={className} data-testid="custom-status">
-      {status.emoji && <span className="mr-1">{status.emoji}</span>}
+      {status.emoji && <span className="me-1">{status.emoji}</span>}
       {status.text}
       {until && (
         <span className="text-muted-foreground"> · {t('profile.until', { time: until })}</span>
@@ -102,7 +102,7 @@ function CardBody({ userId, name, onDone }: { userId: string; name: string; onDo
           {!profile?.is_bot && (
             <PresenceIndicator
               presence={presence}
-              className="absolute right-0.5 bottom-0.5 size-4 bg-popover [&_svg]:size-3.5"
+              className="absolute end-0.5 bottom-0.5 size-4 bg-popover [&_svg]:size-3.5"
             />
           )}
         </span>

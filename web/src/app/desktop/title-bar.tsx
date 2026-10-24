@@ -51,7 +51,7 @@ export function DesktopTitleBar({ tone = 'sidebar' }: { tone?: 'sidebar' | 'page
       className={cn(
         'flex h-9 shrink-0 items-center gap-2 pl-3.5 text-[13px] font-semibold select-none [-webkit-app-region:drag] [app-region:drag]',
         // Room for the window's buttons (Window Controls Overlay).
-        'pr-[calc(100vw-env(titlebar-area-x,0px)-env(titlebar-area-width,100vw)+12px)]',
+        'pe-[calc(100vw-env(titlebar-area-x,0px)-env(titlebar-area-width,100vw)+12px)]',
         tone === 'sidebar'
           ? 'bg-sidebar text-sidebar-foreground'
           : 'border-b bg-panel text-foreground',

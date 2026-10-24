@@ -28,7 +28,7 @@ export function ThreadPanel() {
   return (
     <aside
       aria-labelledby="thread-title"
-      className="flex h-full flex-col border-l bg-background"
+      className="flex h-full flex-col border-s bg-background"
       data-testid="thread-panel"
     >
       <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-3">

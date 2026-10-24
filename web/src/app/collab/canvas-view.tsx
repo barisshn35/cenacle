@@ -207,7 +207,7 @@ export function CanvasView({ canvasId }: { canvasId: string }) {
             </p>
           </>
         ) : (draft ?? canvas.body) ? (
-          <div className="rounded-lg [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&>div>*+*]:mt-3">
+          <div className="rounded-lg [&_ol]:list-decimal [&_ol]:ps-6 [&_ul]:list-disc [&_ul]:ps-6 [&>div>*+*]:mt-3">
             <MessageBody body={draft ?? canvas.body} mentions={[]} selfId={self} document />
           </div>
         ) : (

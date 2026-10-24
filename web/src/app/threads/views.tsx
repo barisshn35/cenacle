@@ -116,7 +116,7 @@ function Shell({
               </h1>
               {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
             </div>
-            {actions && <div className="ml-auto flex gap-2">{actions}</div>}
+            {actions && <div className="ms-auto flex gap-2">{actions}</div>}
           </div>
           {children}
         </div>
@@ -260,7 +260,7 @@ function ThreadsList() {
               data-unread={th.unread_count > 0 || undefined}
               className="overflow-hidden rounded-[10px] border border-rule-strong bg-background max-sm:rounded-none max-sm:border-x-0"
             >
-              <header className="flex min-h-12 flex-wrap items-center gap-x-2.5 gap-y-1 border-b bg-secondary py-2 pr-2.5 pl-4">
+              <header className="flex min-h-12 flex-wrap items-center gap-x-2.5 gap-y-1 border-b bg-secondary py-2 pe-2.5 ps-4">
                 <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
                   <ChannelIcon
                     channel={ch.icon}
@@ -276,7 +276,7 @@ function ThreadsList() {
                     </time>
                   </span>
                 )}
-                <span className="ml-auto flex items-center gap-2">
+                <span className="ms-auto flex items-center gap-2">
                   {th.mention_count > 0 && (
                     <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-mention px-1 text-[11px] font-semibold text-mention-foreground">
                       {th.mention_count}
@@ -316,9 +316,9 @@ function ThreadsList() {
                   </Button>
                 </span>
               </header>
-              <div className="py-2.5 pr-4 pl-2 max-sm:px-0">
+              <div className="py-2.5 pe-4 ps-2 max-sm:px-0">
                 <div className={cn(SPEAKER_GRID(), 'py-1')}>
-                  <div className="flex min-w-0 items-start justify-end gap-2 text-right max-sm:justify-start max-sm:text-left">
+                  <div className="flex min-w-0 items-start justify-end gap-2 text-end max-sm:justify-start max-sm:text-start">
                     <div className="flex min-w-0 flex-col items-end max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2">
                       <span className="max-w-full truncate text-[13px] leading-[18px] font-semibold">
                         {root.author.display_name}
@@ -516,7 +516,7 @@ function SavedList() {
                 >
                   <ClockIcon strokeWidth={1.75} />
                   {t(`saved.reminders.${r}`)}
-                  <span className="ml-auto font-mono text-xs text-muted-foreground">
+                  <span className="ms-auto font-mono text-xs text-muted-foreground">
                     {r === 'tomorrow' || r === 'week'
                       ? date.format(new Date(at))
                       : clock.format(new Date(at))}
@@ -561,7 +561,7 @@ function SavedList() {
   const message = (s: SavedItem) => (
     <button
       type="button"
-      className="line-clamp-2 w-full rounded-sm text-left text-[14px] break-words outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="line-clamp-2 w-full rounded-sm text-start text-[14px] break-words outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
       onClick={() => openMessage(navigate, s.message)}
     >
       {plainText(s.message.body)}
@@ -606,7 +606,7 @@ function SavedList() {
                     >
                       <div className="flex items-start gap-3 text-[13px]">
                         {where(s)}
-                        <span className="ml-auto shrink-0 text-right">{reminder(s)}</span>
+                        <span className="ms-auto shrink-0 text-end">{reminder(s)}</span>
                       </div>
                       <span className="flex items-center gap-2 text-[13.5px]">
                         <UserAvatar
@@ -729,7 +729,7 @@ function UnreadsList() {
                 <li key={m.id}>
                   <button
                     type="button"
-                    className="flex w-full gap-3 px-4 py-2 text-left text-sm outline-none hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+                    className="flex w-full gap-3 px-4 py-2 text-start text-sm outline-none hover:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50"
                     onClick={() => openMessage(navigate, m)}
                   >
                     <UserAvatar userId={m.author.id} name={m.author.display_name} size="sm" />

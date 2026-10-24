@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+import type { Texts } from '../i18n.js';
+
+export const ar: Texts = {
+  appName: 'Cenacle',
+  menu: {
+    file: 'ملف',
+    changeServer: 'تغيير الخادم…',
+    signOut: 'تسجيل الخروج',
+    closeToTray: 'مواصلة التشغيل في علبة النظام عند الإغلاق',
+    quit: 'إنهاء Cenacle',
+    edit: 'تحرير',
+    view: 'عرض',
+    reload: 'إعادة التحميل',
+    actualSize: 'الحجم الفعلي',
+    zoomIn: 'تكبير',
+    zoomOut: 'تصغير',
+    fullScreen: 'ملء الشاشة',
+    window: 'نافذة',
+    help: 'تعليمات',
+    about: 'حول Cenacle',
+    checkUpdates: 'التحقق من وجود تحديثات…',
+    show: 'إظهار Cenacle',
+  },
+  pair: {
+    title: 'الاتصال بخادم Cenacle الخاص بك',
+    lede: 'أدخل عنوان خادم Cenacle الخاص بمؤسستك. يزوّدك قسم تقنية المعلومات بهذا العنوان.',
+    address: 'عنوان الخادم',
+    example: 'على سبيل المثال chat.yourcompany.com',
+    connect: 'متابعة',
+    connecting: 'جارٍ التحقق من الخادم…',
+    recent: 'المستخدمة سابقًا',
+    remove: 'إزالة {{origin}} من القائمة',
+    next: 'بعد ذلك تسجّل الدخول باسم المستخدم وكلمة المرور، ثم برمز من تطبيق المصادقة.',
+    errors: {
+      invalid: 'هذا ليس عنوان خادم. تحقق منه وحاول مرة أخرى.',
+      insecure: 'يجب أن يستخدم الخادم https. لا يعمل http العادي إلا لهذا الكمبيوتر (localhost).',
+      unreachable: 'يتعذّر الوصول إلى الخادم. تحقق من العنوان ومن اتصالك.',
+      notCenacle: 'لا يستجيب هذا العنوان كما يستجيب خادم Cenacle.',
+      tooOld: 'يتطلب هذا الخادم Cenacle {{version}} أو أحدث. حدّث التطبيق أولًا.',
+    },
+  },
+  signIn: {
+    title: 'تسجيل الدخول إلى {{host}}',
+    failedTitle: 'لم ينجح تسجيل الدخول',
+    failed: {
+      cancelled: 'أُلغي تسجيل الدخول.',
+      expired: 'استغرق تسجيل الدخول وقتًا طويلًا. حاول مرة أخرى.',
+      failed: 'تعذّر التحقق من رد Cenacle ID. حاول مرة أخرى.',
+      unavailable: 'يتعذّر الوصول إلى Cenacle ID حاليًا. حاول مرة أخرى بعد قليل.',
+      exchange: 'لم يقبل الخادم تسجيل الدخول. حاول مرة أخرى.',
+    },
+    retry: 'حاول مرة أخرى',
+    close: 'إغلاق',
+    notKept:
+      'لا يحتوي هذا الكمبيوتر على مخزن مفاتيح مشفّر، لذا يبقى تسجيل دخولك قائمًا حتى إنهاء Cenacle فقط.',
+  },
+  offline: {
+    title: 'يتعذّر على Cenacle الوصول إلى {{host}}',
+    lede: 'تحقق من اتصالك. سيعيد Cenacle المحاولة تلقائيًا.',
+    retry: 'حاول الآن',
+    changeServer: 'تغيير الخادم',
+  },
+  update: {
+    availableTitle: 'الإصدار Cenacle {{version}} متاح',
+    available: 'هل تريد تنزيله الآن؟ يُعاد تشغيل Cenacle لتثبيته عندما تختار ذلك.',
+    download: 'تنزيل',
+    later: 'لاحقًا',
+    readyTitle: 'الإصدار Cenacle {{version}} جاهز',
+    ready: 'أعد تشغيل Cenacle لإكمال التحديث.',
+    restart: 'إعادة التشغيل الآن',
+    none: 'لديك أحدث إصدار من Cenacle.',
+    failed: 'لم ينجح التحقق من وجود تحديثات.',
+    package:
+      'الإصدار Cenacle {{version}} متاح. ثبّته باستخدام مدير الحزم أو من صفحة التنزيل على خادمك.',
+    ok: 'موافق',
+  },
+  external: {
+    loading: 'جارٍ فتح {{host}}…',
+  },
+  frame: {
+    back: 'رجوع',
+    reload: 'إعادة التحميل',
+    secure: 'اتصال آمن',
+    insecure: 'اتصال غير آمن',
+  },
+};

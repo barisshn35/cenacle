@@ -1,0 +1,66 @@
+{
+  "close": "Fermer",
+  "sidebar": {
+    "title": "Barre latérale",
+    "description": "Navigation entre les espaces de travail et les canaux.",
+    "toggle": "Afficher ou masquer la barre latérale"
+  },
+  "resize": {
+    "handle": "Redimensionner le panneau"
+  },
+  "toast": {
+    "region": "Notifications"
+  },
+  "confirm": {
+    "cancel": "Annuler",
+    "typeToConfirm": "Pour confirmer, saisissez <strong>{{name}}</strong>",
+    "typeToConfirmLabel": "Pour confirmer, saisissez {{name}}",
+    "mismatch": "Le nom ne correspond pas encore.",
+    "irreversible": "Cette action est irréversible.",
+    "working": "En cours…",
+    "failed": "L’action n’a pas pu aboutir. Rien n’a été modifié. Réessayez."
+  },
+  "undo": {
+    "action": "Annuler"
+  },
+  "errors": {
+    "codeLabel": "Code d’erreur",
+    "requestIdLabel": "ID de la requête",
+    "retry": "Réessayer",
+    "server_error": {
+      "title": "Un problème est survenu de notre côté.",
+      "reason": "Le serveur n’a pas pu traiter la requête.",
+      "action": "Réessayez. Si le problème persiste, communiquez l’ID de requête ci-dessous à votre administrateur."
+    },
+    "network_error": {
+      "title": "Impossible de joindre Cenacle.",
+      "reason": "Votre appareil est peut-être hors ligne, ou le serveur est injoignable.",
+      "action": "Vérifiez votre connexion et réessayez."
+    },
+    "forbidden": {
+      "title": "Vous n’avez pas l’autorisation d’effectuer cette action.",
+      "reason": "Votre rôle dans cet espace de travail ne permet pas cette action.",
+      "action": "Demandez l’accès à un administrateur de l’espace de travail."
+    },
+    "not_found": {
+      "title": "Cette page n’existe pas.",
+      "reason": "Elle a peut-être été déplacée ou supprimée.",
+      "action": "Vérifiez l’adresse ou revenez en arrière."
+    },
+    "rate_limited": {
+      "title": "Vous allez un peu vite.",
+      "reason": "Trop de requêtes ont été envoyées en peu de temps.",
+      "action": "Réessayez dans {{seconds}} secondes."
+    },
+    "session_expired": {
+      "title": "Votre session a pris fin.",
+      "reason": "Par sécurité, vous avez été déconnecté.",
+      "action": "Reconnectez-vous. Vos brouillons et votre position sont conservés."
+    },
+    "service_unavailable": {
+      "title": "Cenacle est temporairement indisponible.",
+      "reason": "Le service démarre ou est en maintenance.",
+      "action": "Réessayez dans un instant."
+    }
+  }
+}

@@ -1282,6 +1282,7 @@ func (e ScheduledMessageKind) Valid() bool {
 const (
 	SearchChannelKindAnnouncement SearchChannelKind = "announcement"
 	SearchChannelKindDirect       SearchChannelKind = "direct"
+	SearchChannelKindForum        SearchChannelKind = "forum"
 	SearchChannelKindGroup        SearchChannelKind = "group"
 	SearchChannelKindStandard     SearchChannelKind = "standard"
 )
@@ -1292,6 +1293,8 @@ func (e SearchChannelKind) Valid() bool {
 	case SearchChannelKindAnnouncement:
 		return true
 	case SearchChannelKindDirect:
+		return true
+	case SearchChannelKindForum:
 		return true
 	case SearchChannelKindGroup:
 		return true
@@ -3733,9 +3736,12 @@ type SearchChannelKind string
 
 // SearchFile defines model for SearchFile.
 type SearchFile struct {
-	Channel      SearchChannel      `json:"channel"`
-	ContentType  string             `json:"content_type"`
-	CreatedAt    time.Time          `json:"created_at"`
+	Channel     SearchChannel `json:"channel"`
+	ContentType string        `json:"content_type"`
+	CreatedAt   time.Time     `json:"created_at"`
+
+	// Excerpt Where the text inside the file matches, the words between « and » (empty when the name matched).
+	Excerpt      *string            `json:"excerpt,omitempty"`
 	HasThumbnail bool               `json:"has_thumbnail"`
 	Id           openapi_types.UUID `json:"id"`
 	MessageId    openapi_types.UUID `json:"message_id"`
@@ -4724,6 +4730,12 @@ type UpdateRunItemJSONBody struct {
 	Done       *bool               `json:"done,omitempty"`
 	Item       int                 `json:"item"`
 	Skipped    *bool               `json:"skipped,omitempty"`
+}
+
+// SearchContentParams defines parameters for SearchContent.
+type SearchContentParams struct {
+	Q           string              `form:"q" json:"q"`
+	WorkspaceId *openapi_types.UUID `form:"workspace_id,omitempty" json:"workspace_id,omitempty"`
 }
 
 // SearchFilesParams defines parameters for SearchFiles.
@@ -6016,7 +6028,10 @@ type ServerInterface interface {
 	// CancelScheduled Cancel a scheduled message or reminder
 	// (DELETE /api/scheduled/{scheduled_id})
 	CancelScheduled(w http.ResponseWriter, r *http.Request, scheduledId openapi_types.UUID)
-	// SearchFiles Search files of your channels by name
+	// SearchContent Search the canvases and lists of your channels
+	// (GET /api/search/content)
+	SearchContent(w http.ResponseWriter, r *http.Request, params SearchContentParams)
+	// SearchFiles Search files of your channels by name and by the text inside them
 	// (GET /api/search/files)
 	SearchFiles(w http.ResponseWriter, r *http.Request, params SearchFilesParams)
 	// SearchMessages Search the messages of your channels and conversations
@@ -7480,7 +7495,13 @@ func (_ Unimplemented) CancelScheduled(w http.ResponseWriter, r *http.Request, s
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// SearchFiles Search files of your channels by name
+// SearchContent Search the canvases and lists of your channels
+// (GET /api/search/content)
+func (_ Unimplemented) SearchContent(w http.ResponseWriter, r *http.Request, params SearchContentParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SearchFiles Search files of your channels by name and by the text inside them
 // (GET /api/search/files)
 func (_ Unimplemented) SearchFiles(w http.ResponseWriter, r *http.Request, params SearchFilesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -13442,6 +13463,52 @@ func (siw *ServerInterfaceWrapper) CancelScheduled(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// SearchContent operation middleware
+func (siw *ServerInterfaceWrapper) SearchContent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchContentParams
+
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "workspace_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "workspace_id", r.URL.Query(), &params.WorkspaceId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "workspace_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchContent(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SearchFiles operation middleware
 func (siw *ServerInterfaceWrapper) SearchFiles(w http.ResponseWriter, r *http.Request) {
 
@@ -16590,6 +16657,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/search/files", wrapper.SearchFiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/search/content", wrapper.SearchContent)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/me/notifications", wrapper.GetNotificationSettings)

@@ -3,17 +3,41 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { uiResources } from '@cenacle/ui/i18n';
 import { safeStorage } from '@cenacle/ui/lib/storage';
+import ar from './ar.json';
+import de from './de.json';
 import en from './en.json';
+import es from './es.json';
+import fr from './fr.json';
 import tr from './tr.json';
 
-export const LANGUAGES = ['en', 'tr'] as const;
+export const LANGUAGES = ['en', 'tr', 'de', 'fr', 'es', 'ar'] as const;
 export type Language = (typeof LANGUAGES)[number];
+
+/** Each language's name in itself (the language menus show these). */
+export const LANGUAGE_NAMES: Record<Language, string> = {
+  en: 'English',
+  tr: 'Türkçe',
+  de: 'Deutsch',
+  fr: 'Français',
+  es: 'Español',
+  ar: 'العربية',
+};
+
+/** Languages written right to left. */
+const RTL: ReadonlySet<string> = new Set(['ar']);
+
+/** The writing direction of a language. */
+export const directionOf = (lng: string): 'rtl' | 'ltr' => (RTL.has(lng) ? 'rtl' : 'ltr');
 
 const STORAGE_KEY = 'cenacle.language';
 
 export const resources = {
   en: { app: en, ...uiResources.en },
   tr: { app: tr, ...uiResources.tr },
+  de: { app: de, ...uiResources.de },
+  fr: { app: fr, ...uiResources.fr },
+  es: { app: es, ...uiResources.es },
+  ar: { app: ar, ...uiResources.ar },
 } as const;
 
 function isLanguage(v: unknown): v is Language {
@@ -34,9 +58,12 @@ export function setLanguage(lng: Language): void {
 }
 
 export function initI18n(lng: Language = detectLanguage()) {
-  i18next.on('languageChanged', (l) => {
+  const apply = (l: string) => {
     document.documentElement.lang = l;
-  });
+    document.documentElement.dir = directionOf(l);
+  };
+  i18next.on('languageChanged', apply);
+  apply(lng);
   // Resources are bundled: no network requests for translations.
   return i18next.use(initReactI18next).init({
     lng,

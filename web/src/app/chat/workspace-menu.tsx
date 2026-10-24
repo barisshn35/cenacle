@@ -292,7 +292,7 @@ function WorkspaceSettingsDialog({
               <p className="truncate text-sm font-semibold">
                 {name}
                 {self && (
-                  <span className="ml-1 font-normal text-muted-foreground">
+                  <span className="ms-1 font-normal text-muted-foreground">
                     {t('workspaces.you')}
                   </span>
                 )}

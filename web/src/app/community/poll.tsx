@@ -88,7 +88,7 @@ export function PollCard({ message, channel }: { message: Message; channel: Chan
             {(voted || poll.closed) && (
               <span
                 aria-hidden
-                className="absolute inset-y-0 left-0 bg-primary/10 motion-safe:transition-[width]"
+                className="absolute inset-y-0 start-0 bg-primary/10 motion-safe:transition-[width]"
                 style={{ width: `${share}%` }}
               />
             )}
@@ -122,7 +122,7 @@ export function PollCard({ message, channel }: { message: Message; channel: Chan
           <Button
             size="sm"
             variant="ghost"
-            className="ml-auto"
+            className="ms-auto"
             disabled={close.isPending}
             onClick={() => close.mutate()}
           >

@@ -34,7 +34,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <Sidebar
       collapsible={mobile ? 'offcanvas' : 'none'}
-      className={mobile ? undefined : 'h-full w-full border-r border-sidebar-border'}
+      className={mobile ? undefined : 'h-full w-full border-e border-sidebar-border'}
       role={mobile ? undefined : 'navigation'}
       aria-label={t('shell.channelNav')}
     >
@@ -51,7 +51,7 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
         </div>
         <button
           type="button"
-          className="flex min-h-9 w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-hover px-2.5 text-left text-[13.5px] text-sidebar-muted-foreground transition-colors outline-none hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          className="flex min-h-9 w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-hover px-2.5 text-start text-[13.5px] text-sidebar-muted-foreground transition-colors outline-none hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
           onClick={() => openSwitcher(true)}
         >
           <SearchIcon aria-hidden className="size-4" strokeWidth={1.75} />

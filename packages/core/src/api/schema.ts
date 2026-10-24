@@ -764,8 +764,25 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Search files of your channels by name */
+    /** Search files of your channels by name and by the text inside them */
     get: operations['searchFiles'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/search/content': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Search the canvases and lists of your channels */
+    get: operations['searchContent'];
     put?: never;
     post?: never;
     delete?: never;
@@ -5838,13 +5855,15 @@ export interface components {
       /** Format: date-time */
       created_at: string;
       uploader: components['schemas']['Author'];
+      /** @description Where the text inside the file matches, the words between « and » (empty when the name matched). */
+      excerpt?: string;
     };
     SearchChannel: {
       /** Format: uuid */
       id: string;
       name: string;
       /** @enum {string} */
-      kind: 'standard' | 'announcement' | 'direct' | 'group';
+      kind: 'standard' | 'announcement' | 'direct' | 'group' | 'forum';
       /** Format: uuid */
       workspace_id: string;
     };
@@ -7670,6 +7689,53 @@ export interface operations {
           'application/json': {
             results: components['schemas']['SearchFile'][];
             has_more: boolean;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  searchContent: {
+    parameters: {
+      query: {
+        q: string;
+        workspace_id?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Matching canvases and list rows (20 each at most, newest first). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            canvases: {
+              /** Format: uuid */
+              tab_id: string;
+              title: string;
+              channel: components['schemas']['SearchChannel'];
+              /** @description The matching words, between « and ». */
+              excerpt: string;
+              /** Format: date-time */
+              updated_at: string;
+            }[];
+            items: {
+              /** Format: uuid */
+              id: string;
+              title: string;
+              /** Format: uuid */
+              tab_id: string;
+              list_title: string;
+              channel: components['schemas']['SearchChannel'];
+              /** Format: date-time */
+              updated_at: string;
+            }[];
           };
         };
       };

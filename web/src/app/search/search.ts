@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { infiniteQueryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 import { apiFetch, type components } from '@cenacle/core/api';
 
 export type SearchMessage = components['schemas']['SearchMessage'];
@@ -91,4 +91,47 @@ export function plainText(body: string, n = 280): string {
     .replace(/\s+/g, ' ')
     .trim();
   return text.length > n ? `${text.slice(0, n)}…` : text;
+}
+
+export type ContentResults = {
+  canvases: {
+    tab_id: string;
+    title: string;
+    channel: SearchFile['channel'];
+    excerpt: string;
+    updated_at: string;
+  }[];
+  items: {
+    id: string;
+    title: string;
+    tab_id: string;
+    list_title: string;
+    channel: SearchFile['channel'];
+    updated_at: string;
+  }[];
+};
+
+/** Canvases and list rows of your channels. */
+export const searchContentQuery = (q: string, workspaceId: string | undefined) =>
+  queryOptions({
+    queryKey: ['search', 'content', q, workspaceId],
+    queryFn: () => {
+      const p = new URLSearchParams({ q });
+      if (workspaceId) p.set('workspace_id', workspaceId);
+      return apiFetch<ContentResults>(`/api/search/content?${p.toString()}`);
+    },
+    enabled: q.trim() !== '',
+    staleTime: 30_000,
+  });
+
+/** An excerpt with its match between « and », as parts to mark. */
+export function excerptParts(excerpt: string): { text: string; mark: boolean }[] {
+  return excerpt
+    .split(/(«[^»]*»)/)
+    .filter(Boolean)
+    .map((part) =>
+      part.startsWith('«') && part.endsWith('»')
+        ? { text: part.slice(1, -1), mark: true }
+        : { text: part, mark: false },
+    );
 }

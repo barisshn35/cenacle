@@ -19,8 +19,10 @@ import { fileUrl, formatSize } from '../chat/files';
 import { useJump } from '../chat/jump';
 import { FileTypeIcon } from '../chat/message-files';
 import {
+  excerptParts,
   markTerms,
   plainText,
+  searchContentQuery,
   searchFilesQuery,
   searchMessagesQuery,
   searchTerms,
@@ -33,7 +35,7 @@ import { dateLocale } from '../../i18n/time-format';
 const selectClass =
   'min-h-target h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
-type Tab = 'messages' | 'files';
+type Tab = 'messages' | 'files' | 'content';
 
 /** Words found in a result, marked. */
 function Marked({ text, terms }: { text: string; terms: string[] }) {
@@ -96,7 +98,7 @@ export function SearchPanel() {
   return (
     <aside
       aria-labelledby="search-title"
-      className="flex h-full flex-col overflow-y-auto border-l bg-background"
+      className="flex h-full flex-col overflow-y-auto border-s bg-background"
       data-testid="search-panel"
     >
       <header className="flex min-h-12 items-center justify-between border-b px-3">
@@ -120,7 +122,7 @@ export function SearchPanel() {
           <SearchIcon
             aria-hidden
             strokeWidth={1.75}
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 start-2.5 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             ref={input}
@@ -130,7 +132,7 @@ export function SearchPanel() {
             maxLength={200}
             placeholder={t('search.placeholder')}
             aria-describedby={`${ids.q}-hint`}
-            className="pl-8"
+            className="ps-8"
             onChange={(e) => setText(e.target.value)}
           />
           <p id={`${ids.q}-hint`} className="mt-1 text-xs text-muted-foreground">
@@ -138,7 +140,7 @@ export function SearchPanel() {
           </p>
         </div>
         <div role="tablist" aria-label={t('search.kind')} className="flex gap-1">
-          {(['messages', 'files'] as const).map((k) => (
+          {(['messages', 'files', 'content'] as const).map((k) => (
             <Button
               key={k}
               role="tab"
@@ -222,8 +224,10 @@ export function SearchPanel() {
           <p className="px-1 text-sm text-muted-foreground">{t('search.empty')}</p>
         ) : tab === 'messages' ? (
           <MessageResults q={q} filters={filters} />
-        ) : (
+        ) : tab === 'files' ? (
           <FileResults q={q} workspaceId={scope === 'all' ? undefined : workspaceId} />
+        ) : (
+          <ContentResults q={q} workspaceId={scope === 'all' ? undefined : workspaceId} />
         )}
       </div>
     </aside>
@@ -359,7 +363,7 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
               type="button"
               data-testid="search-result"
               onClick={() => open(m)}
-              className="flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-left text-sm outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-start text-sm outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <span className="flex min-w-0 items-baseline gap-2 text-xs text-muted-foreground">
                 <span className="truncate font-medium text-foreground">
@@ -370,7 +374,7 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
                     ? nameOf(m.channel)
                     : `#${nameOf(m.channel)}`}
                 </span>
-                <time dateTime={m.created_at} className="ml-auto shrink-0">
+                <time dateTime={m.created_at} className="ms-auto shrink-0">
                   {date.format(new Date(m.created_at))}
                 </time>
               </span>
@@ -433,6 +437,11 @@ function FileResults({ q, workspaceId }: { q: string; workspaceId: string | unde
                   <Marked text={f.name} terms={terms} />
                 </span>
               </a>
+              {f.excerpt && (
+                <p className="line-clamp-2 text-xs" data-testid="search-file-excerpt">
+                  <Excerpt text={f.excerpt} />
+                </p>
+              )}
               <p className="truncate text-xs text-muted-foreground">
                 {f.uploader.display_name} · {nameOf(f.channel)} ·{' '}
                 {date.format(new Date(f.created_at))} · {formatSize(f.size, i18n.language)}
@@ -459,6 +468,108 @@ function FileResults({ q, workspaceId }: { q: string; workspaceId: string | unde
         >
           {t('search.more')}
         </Button>
+      )}
+    </>
+  );
+}
+
+/** The words the server matched, between « and », marked. */
+function Excerpt({ text }: { text: string }) {
+  return (
+    <>
+      {excerptParts(text).map((p, i) =>
+        p.mark ? (
+          <mark key={i} className="rounded-sm bg-mention-bg px-0.5 text-foreground">
+            {p.text}
+          </mark>
+        ) : (
+          <span key={i}>{p.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+/** Canvases and list rows that match, opening their tab. */
+function ContentResults({ q, workspaceId }: { q: string; workspaceId: string | undefined }) {
+  const { t, i18n } = useTranslation();
+  const nameOf = useChannelName();
+  const navigate = useNavigate();
+  const results = useQuery(searchContentQuery(q, workspaceId));
+  const terms = searchTerms(q);
+  const date = new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' });
+  if (results.isPending) return <Skeleton className="h-16" />;
+  if (results.isError)
+    return <Problem error={results.error} retry={() => void results.refetch()} />;
+  const { canvases, items } = results.data;
+  if (canvases.length === 0 && items.length === 0) {
+    return (
+      <p role="status" className="px-1 text-sm text-muted-foreground">
+        {t('search.noContent')}
+      </p>
+    );
+  }
+  const open = (channelId: string, tab: string) =>
+    void navigate({ to: '/c/$channelId', params: { channelId }, search: { tab } });
+  return (
+    <>
+      <p role="status" className="sr-only">
+        {t('search.found', { count: canvases.length + items.length })}
+      </p>
+      {canvases.length > 0 && (
+        <section aria-label={t('search.canvases')} className="flex flex-col gap-1">
+          <h3 className="px-1 pt-1 text-xs font-medium text-muted-foreground">
+            {t('search.canvases')}
+          </h3>
+          <ul className="flex flex-col gap-1" data-testid="search-canvases">
+            {canvases.map((c) => (
+              <li key={c.tab_id}>
+                <button
+                  type="button"
+                  className="flex w-full min-h-target flex-col items-start rounded-md px-1 py-1 text-start text-sm hover:bg-muted"
+                  onClick={() => open(c.channel.id, c.tab_id)}
+                >
+                  <span className="font-medium">
+                    <Marked text={c.title} terms={terms} />
+                  </span>
+                  {c.excerpt && (
+                    <span className="line-clamp-2 text-xs">
+                      <Excerpt text={c.excerpt} />
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {nameOf(c.channel)} · {date.format(new Date(c.updated_at))}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {items.length > 0 && (
+        <section aria-label={t('search.listItems')} className="flex flex-col gap-1 pt-2">
+          <h3 className="px-1 text-xs font-medium text-muted-foreground">
+            {t('search.listItems')}
+          </h3>
+          <ul className="flex flex-col gap-1" data-testid="search-items">
+            {items.map((i) => (
+              <li key={i.id}>
+                <button
+                  type="button"
+                  className="flex w-full min-h-target flex-col items-start rounded-md px-1 py-1 text-start text-sm hover:bg-muted"
+                  onClick={() => open(i.channel.id, i.tab_id)}
+                >
+                  <span>
+                    <Marked text={i.title} terms={terms} />
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {i.list_title} · {nameOf(i.channel)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </>
   );

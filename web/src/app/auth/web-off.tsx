@@ -61,7 +61,7 @@ export function WebOffPage() {
                   strokeWidth={1.75}
                 />
                 {t(`webOff.download.${f.platform}`, { kind: t(`webOff.kinds.${f.kind}`) })}
-                <span className="ml-auto font-mono text-xs font-normal text-muted-foreground">
+                <span className="ms-auto font-mono text-xs font-normal text-muted-foreground">
                   {f.arch} · {formatSize(f.size, i18n.language)}
                 </span>
               </a>

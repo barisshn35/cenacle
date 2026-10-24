@@ -42,7 +42,7 @@ function Cell({
           type="button"
           aria-label={edit.label}
           onClick={edit.onClick}
-          className="hit-target absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="hit-target absolute top-1/2 end-2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <PencilIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
         </button>
@@ -76,7 +76,7 @@ export function TitleBlock({ channel }: { channel: Channel }) {
     <>
       <dl
         aria-label={t('channels.titleBlock.channel')}
-        className="grid grid-cols-2 overflow-hidden rounded-[10px] border border-rule-strong bg-background [&>div]:border-border [&>div:nth-child(n+2)]:border-t [&>div:nth-child(2n+1):not(:first-child)]:border-l"
+        className="grid grid-cols-2 overflow-hidden rounded-[10px] border border-rule-strong bg-background [&>div]:border-border [&>div:nth-child(n+2)]:border-t [&>div:nth-child(2n+1):not(:first-child)]:border-s"
       >
         <Cell
           label={t('channels.titleBlock.channel')}
@@ -90,7 +90,7 @@ export function TitleBlock({ channel }: { channel: Channel }) {
               : undefined
           }
         >
-          <span className="flex items-center gap-2 pr-6 text-[22px] leading-7 font-semibold tracking-[-0.01em]">
+          <span className="flex items-center gap-2 pe-6 text-[22px] leading-7 font-semibold tracking-[-0.01em]">
             <ChannelIcon channel={channel} className="size-4 shrink-0" />
             <span className="truncate">{channel.name}</span>
           </span>

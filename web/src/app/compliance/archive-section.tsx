@@ -183,7 +183,7 @@ export function ArchiveSection({ ws }: { ws: string }) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="ml-auto"
+                    className="ms-auto"
                     onClick={() =>
                       void save(
                         `/api/archive-exports/${e.id}`,

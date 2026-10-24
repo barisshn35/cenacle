@@ -56,7 +56,7 @@ function Answer({ answer }: { answer: AIAnswer }) {
           <summary className="min-h-target cursor-pointer text-muted-foreground">
             {t('ai.sources', { count: answer.sources.length })}
           </summary>
-          <ol className="mt-1 flex list-decimal flex-col gap-1 pl-6">
+          <ol className="mt-1 flex list-decimal flex-col gap-1 ps-6">
             {answer.sources.map((s) => (
               <li key={s.message_id}>
                 <Link

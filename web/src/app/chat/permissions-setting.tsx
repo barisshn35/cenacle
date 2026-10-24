@@ -50,7 +50,7 @@ export function PermissionsSetting({ workspace }: { workspace: Workspace }) {
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm" data-testid="permissions-table">
           <thead>
-            <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+            <tr className="border-b bg-muted/40 text-start text-xs text-muted-foreground">
               <th scope="col" className="px-3 py-2 font-medium">
                 {t('permissions.permission')}
               </th>
@@ -64,7 +64,7 @@ export function PermissionsSetting({ workspace }: { workspace: Workspace }) {
           <tbody>
             {PERMISSIONS.map((permission) => (
               <tr key={permission} className="border-b last:border-b-0">
-                <th scope="row" className="px-3 py-2 text-left font-normal">
+                <th scope="row" className="px-3 py-2 text-start font-normal">
                   <span className="block font-medium">{t(`permissions.names.${permission}`)}</span>
                   <span className="block text-xs text-muted-foreground">
                     {t(`permissions.hints.${permission}`)}
