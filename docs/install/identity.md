@@ -74,8 +74,30 @@ container.
 - **Link by e-mail** makes an existing account with the same address the provider's — only
   when the provider vouches for the address (OIDC `email_verified`; for SAML, the "vouches
   for the e-mail addresses" setting). Turn it on only for providers that verify addresses.
-- Providers do not tell Cenacle ID when someone leaves: block them at the provider (they can
-  no longer sign in) and disable their account in **Accounts** to end their sessions.
+- Without provisioning, providers do not tell Cenacle ID when someone leaves: block them at
+  the provider (they can no longer sign in) and disable their account in **Accounts** to end
+  their sessions. With SCIM (below) the provider does this itself.
+
+### Provisioning (SCIM 2.0)
+
+With SCIM the provider creates, changes and deactivates its people and groups in Cenacle ID
+before they sign in; deactivating someone there ends their sessions within a minute.
+
+1. On the provider's page in **Administration → Identity providers**, choose **Turn on and
+   create a token**. Copy the token: it is shown once.
+2. At the provider, add a SCIM 2.0 application (Entra ID: _Enterprise application →
+   Provisioning_; Okta: _SCIM provisioning_; Keycloak: a SCIM extension) with the **SCIM
+   base URL** shown (`https://<id-domain>/scim/v2`) and the token as the bearer token.
+3. Map `userName`, `emails`, `displayName` (or `name`), `active` and, for groups,
+   `displayName` and `members`. `externalId` is optional.
+
+- People are matched at their first sign-in by their verified e-mail address and are then
+  bound to the provider's id; someone who signed in before provisioning started is taken
+  over when the provider pushes them.
+- With SCIM on, **groups come from SCIM**, not from sign-ins. The administrator and guest
+  groups of the provider still decide roles.
+- Deleting a person over SCIM deactivates the account (their messages keep their author).
+- A new token replaces the old one; **Turn off** stops provisioning and keeps the accounts.
 
 ## Passkeys
 

@@ -48,6 +48,23 @@ included, was there.
 
 ## Version notes
 
+### 0.35.0
+
+- Migrations: Cenacle ID `0007_scim` (SCIM tokens and the provider's ids of people and
+  groups) and chat `00036_session_policy`, `00037_federation_controls` and
+  `00038_guest_links`. All reversible; nothing changes until someone sets a policy, turns on
+  SCIM or creates a guest link.
+- The operator's `CENACLE_SESSION_IDLE_TIMEOUT` and `CENACLE_SESSION_MAX_AGE` stay the upper
+  limits; the session policy in the system console can only shorten them.
+- If the administration network policy locks every administrator out, clear it:
+  `docker compose -f prod.yml --env-file .env.prod exec postgres psql -U postgres -d cenacle_chat -c "UPDATE instance_settings SET admin_networks = '{}'"`
+  (the server reads it again within ten seconds).
+- Rolling back to 0.34, with the 0.35 images: three times
+  `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down` and once
+  `docker compose -f prod.yml --env-file .env.prod run --rm idp-migrate node dist/cli.js migrate down`;
+  then the previous `CENACLE_VERSION`. Guests of guest links are deactivated; provisioned
+  accounts stay.
+
 ### 0.34.0
 
 - Migrations: chat `00034_admin` (adds `instance_settings.push_contents` and

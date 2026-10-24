@@ -8,6 +8,30 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-10-24
+
+Provisioning, session and network policy, federation controls and guest links (ADR 0038).
+
+### Added
+
+- **SCIM 2.0 provisioning** in Cenacle ID, per identity provider: Entra ID, Okta, Keycloak
+  and others create, change and deactivate people and groups before they sign in
+  (Administration → Identity providers → Provisioning; `https://<id-domain>/scim/v2`).
+- **Session and network policy** (System console → Security): how long sessions last and how
+  long they may go unused, shorter limits for guests, and the networks that may sign in or
+  use the administration.
+- **Federation controls:** which servers workspaces may connect to (System console →
+  Federation); per connection what it may send here and how often; a federation activity
+  list on the Federation page.
+- **Guest links:** channel managers let someone from outside join one channel with a
+  password until a set time, without an account (Channel settings → Guest links;
+  `/guest/<link>`). A new `guest_links` permission decides who may create them.
+
+### Changed
+
+- With SCIM on for a provider, groups come from SCIM instead of sign-ins.
+- The channel settings dialog scrolls when it is taller than the window.
+
 ## [0.34.0] - 2026-10-24
 
 System console, permission schemes and channel moderation, notification content policy
@@ -938,7 +962,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.34.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.35.0...HEAD
+[0.35.0]: https://github.com/barisshn35/cenacle/compare/v0.34.0...v0.35.0
 [0.34.0]: https://github.com/barisshn35/cenacle/compare/v0.33.0...v0.34.0
 [0.33.0]: https://github.com/barisshn35/cenacle/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/barisshn35/cenacle/compare/v0.31.0...v0.32.0
