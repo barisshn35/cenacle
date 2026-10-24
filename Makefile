@@ -136,6 +136,7 @@ lint: lint-go lint-js lint-helm ## Run all linters
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT)
 	cd $(SERVER_DIR) && $(GOLANGCI_LINT) run ./...
+	cd sdk/go && $(GOLANGCI_LINT) run ./...
 
 .PHONY: lint-helm
 lint-helm: $(HELM) ## Lint the Helm chart and render it with test values
@@ -153,6 +154,8 @@ test: test-go test-js ## Run all unit tests
 .PHONY: test-go
 test-go:
 	cd $(SERVER_DIR) && go test -race ./...
+	cd sdk/go && go test -race ./...
+	cd sdk/python && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
 
 .PHONY: test-js
 test-js: node_modules

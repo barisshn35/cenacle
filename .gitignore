@@ -43,3 +43,6 @@ desktop/release/
 desktop/assets/fonts/
 desktop/test-results/
 desktop/playwright-report/
+
+# Python
+__pycache__/
