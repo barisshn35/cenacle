@@ -113,7 +113,7 @@ func Valkey(t *testing.T) *cache.Client {
 
 // Storage returns the test object store (a bucket shared by tests; keys are
 // unique per file).
-func Storage(t *testing.T) *storage.Store {
+func Storage(t *testing.T) *storage.S3 {
 	t.Helper()
 	s, err := storage.New(storage.Config{
 		Endpoint:  env(t, "CENACLE_TEST_S3_ENDPOINT"),

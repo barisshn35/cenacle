@@ -14,6 +14,7 @@ job="${CI_JOB_ID:-local}"
 label="cenacle-ci-job=$job"
 PG_IMAGE=postgres:18.6-alpine3.24
 VALKEY_IMAGE=valkey/valkey:9.0.6-alpine
+AZURITE_IMAGE=mcr.microsoft.com/azure-storage/azurite:3.35.0
 PASSWORD=ci-only-password
 
 wait_healthy() {
@@ -58,6 +59,15 @@ for service in "$@"; do
       wait_healthy "ci-$job-valkey"
       ;;
     garage) deploy/compose/garage/run-ci.sh ;;
+    azurite)
+      # Azure Blob Storage emulator; its well-known development key is public.
+      docker run -d --name "ci-$job-azurite" --label "$label" -p "127.0.0.1:${port:-10010}:10000" \
+        "$AZURITE_IMAGE" azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck >/dev/null
+      for _ in $(seq 30); do
+        curl -s -o /dev/null "http://127.0.0.1:${port:-10010}/" && break
+        sleep 1
+      done
+      ;;
     ldap)
       docker build -q -t cenacle-ci-ldap deploy/compose/ldap >/dev/null
       docker run -d --name "ci-$job-ldap" --label "$label" -p "127.0.0.1:${port:-13389}:3389" \

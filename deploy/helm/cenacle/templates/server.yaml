@@ -70,7 +70,16 @@ spec:
             {{- if .Values.metrics.enabled }}
             - { name: CENACLE_METRICS_ADDR, value: ':9090' }
             {{- end }}
-            {{- if .Values.s3.endpoint }}
+            {{- $files := .Values.files.backend | default (ternary "s3" "" (ne .Values.s3.endpoint "")) }}
+            {{- if $files }}
+            - { name: CENACLE_FILES_BACKEND, value: {{ $files | quote }} }
+            {{- if eq $files "azure" }}
+            - { name: CENACLE_AZURE_ACCOUNT, value: {{ .Values.azure.account | quote }} }
+            - { name: CENACLE_AZURE_CONTAINER, value: {{ .Values.azure.container | quote }} }
+            - { name: CENACLE_AZURE_ENDPOINT, value: {{ .Values.azure.endpoint | quote }} }
+            - name: CENACLE_AZURE_KEY
+              {{- include "cenacle.secret" (dict "root" . "key" "azure-key") | nindent 14 }}
+            {{- else }}
             - { name: CENACLE_S3_ENDPOINT, value: {{ .Values.s3.endpoint | quote }} }
             - { name: CENACLE_S3_REGION, value: {{ .Values.s3.region | quote }} }
             - { name: CENACLE_S3_BUCKET, value: {{ .Values.s3.bucket | quote }} }
@@ -79,6 +88,7 @@ spec:
               {{- include "cenacle.secret" (dict "root" . "key" "s3-access-key") | nindent 14 }}
             - name: CENACLE_S3_SECRET_KEY
               {{- include "cenacle.secret" (dict "root" . "key" "s3-secret-key") | nindent 14 }}
+            {{- end }}
             - { name: CENACLE_FILES_MAX_SIZE_MB, value: {{ .Values.files.maxSizeMB | quote }} }
             - { name: CENACLE_CLAMAV_ADDR, value: {{ .Values.files.clamavAddr | quote }} }
             {{- end }}

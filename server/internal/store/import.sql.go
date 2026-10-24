@@ -121,6 +121,23 @@ func (q *Queries) CreateImportedUser(ctx context.Context, arg CreateImportedUser
 	return i, err
 }
 
+const findImportedMessage = `-- name: FindImportedMessage :one
+SELECT id FROM messages WHERE author_id = $1 AND nonce = $2
+`
+
+type FindImportedMessageParams struct {
+	AuthorID pgtype.UUID `json:"author_id"`
+	Nonce    string      `json:"nonce"`
+}
+
+// FindImportedMessage finds a message imported before (for its replies).
+func (q *Queries) FindImportedMessage(ctx context.Context, arg FindImportedMessageParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, findImportedMessage, arg.AuthorID, arg.Nonce)
+	var id pgtype.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const findUserByEmail = `-- name: FindUserByEmail :one
 SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id FROM users WHERE email <> '' AND lower(email) = lower($1)
 ORDER BY (auth_service = 'import') LIMIT 1
@@ -197,6 +214,28 @@ func (q *Queries) FindWorkspaceByName(ctx context.Context, name string) (Workspa
 	return i, err
 }
 
+const followImportedThreads = `-- name: FollowImportedThreads :exec
+INSERT INTO thread_follows (user_id, root_id, last_read_id)
+SELECT p.user_id, p.root_id,
+    (SELECT x.id FROM messages x WHERE x.root_id = p.root_id ORDER BY x.id DESC LIMIT 1)
+FROM (
+    SELECT r.author_id AS user_id, r.root_id FROM messages r
+    WHERE r.channel_id = $1 AND r.root_id IS NOT NULL
+    UNION
+    SELECT root.author_id, root.id FROM messages root
+    WHERE root.channel_id = $1
+      AND EXISTS (SELECT 1 FROM messages r WHERE r.root_id = root.id)
+) p
+ON CONFLICT DO NOTHING
+`
+
+// FollowImportedThreads makes the authors of imported threads follow them,
+// read to the end.
+func (q *Queries) FollowImportedThreads(ctx context.Context, channelID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, followImportedThreads, channelID)
+	return err
+}
+
 const getInstanceAdmin = `-- name: GetInstanceAdmin :one
 SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id FROM users WHERE is_admin ORDER BY created_at LIMIT 1
 `
@@ -237,38 +276,132 @@ func (q *Queries) GetInstanceAdmin(ctx context.Context) (User, error) {
 	return i, err
 }
 
-const importMessage = `-- name: ImportMessage :execrows
-INSERT INTO messages (id, channel_id, author_id, body, nonce, created_at)
-VALUES (uuidv7($1::interval), $2, $3, $4, $5, $6)
+const importFile = `-- name: ImportFile :one
+INSERT INTO files (workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $5)
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state
+`
+
+type ImportFileParams struct {
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ChannelID   pgtype.UUID        `json:"channel_id"`
+	UploaderID  pgtype.UUID        `json:"uploader_id"`
+	MessageID   pgtype.UUID        `json:"message_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Name        string             `json:"name"`
+	ContentType string             `json:"content_type"`
+	Size        int64              `json:"size"`
+}
+
+// ImportFile records a file of an imported message; its bytes are stored and
+// checked next (status uploading until then).
+func (q *Queries) ImportFile(ctx context.Context, arg ImportFileParams) (File, error) {
+	row := q.db.QueryRow(ctx, importFile,
+		arg.WorkspaceID,
+		arg.ChannelID,
+		arg.UploaderID,
+		arg.MessageID,
+		arg.CreatedAt,
+		arg.Name,
+		arg.ContentType,
+		arg.Size,
+	)
+	var i File
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ChannelID,
+		&i.UploaderID,
+		&i.MessageID,
+		&i.AttachedAt,
+		&i.Name,
+		&i.ContentType,
+		&i.Size,
+		&i.Status,
+		&i.Width,
+		&i.Height,
+		&i.HasThumbnail,
+		&i.CreatedAt,
+		&i.MediaKind,
+		&i.DurationMs,
+		&i.Waveform,
+		&i.ContentText,
+		&i.ContentState,
+	)
+	return i, err
+}
+
+const importMessage = `-- name: ImportMessage :one
+INSERT INTO messages (id, channel_id, author_id, body, nonce, created_at, root_id, also_in_channel,
+    pinned_at, pinned_by, title, tags, has_files)
+VALUES (uuidv7($1::interval), $2, $3, $4, $5, $6,
+    $7, $8, $9, $10, $11,
+    $12::text[], $13)
 ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
+RETURNING id
 `
 
 type ImportMessageParams struct {
-	Shift     pgtype.Interval `json:"shift"`
-	ChannelID pgtype.UUID     `json:"channel_id"`
-	AuthorID  pgtype.UUID     `json:"author_id"`
-	Body      string          `json:"body"`
-	Nonce     string          `json:"nonce"`
-	CreatedAt time.Time       `json:"created_at"`
+	Shift         pgtype.Interval    `json:"shift"`
+	ChannelID     pgtype.UUID        `json:"channel_id"`
+	AuthorID      pgtype.UUID        `json:"author_id"`
+	Body          string             `json:"body"`
+	Nonce         string             `json:"nonce"`
+	CreatedAt     time.Time          `json:"created_at"`
+	RootID        pgtype.UUID        `json:"root_id"`
+	AlsoInChannel bool               `json:"also_in_channel"`
+	PinnedAt      pgtype.Timestamptz `json:"pinned_at"`
+	PinnedBy      pgtype.UUID        `json:"pinned_by"`
+	Title         pgtype.Text        `json:"title"`
+	Tags          []string           `json:"tags"`
+	HasFiles      bool               `json:"has_files"`
 }
 
 // ImportMessage stores a message from an export with its original time (its
 // id is made from that time, shift = created_at - now(), so it sorts into the
-// history); importing the
-// same message again does nothing.
-func (q *Queries) ImportMessage(ctx context.Context, arg ImportMessageParams) (int64, error) {
-	result, err := q.db.Exec(ctx, importMessage,
+// history); importing the same message again stores nothing (no row).
+func (q *Queries) ImportMessage(ctx context.Context, arg ImportMessageParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, importMessage,
 		arg.Shift,
 		arg.ChannelID,
 		arg.AuthorID,
 		arg.Body,
 		arg.Nonce,
 		arg.CreatedAt,
+		arg.RootID,
+		arg.AlsoInChannel,
+		arg.PinnedAt,
+		arg.PinnedBy,
+		arg.Title,
+		arg.Tags,
+		arg.HasFiles,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	var id pgtype.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const importReaction = `-- name: ImportReaction :exec
+INSERT INTO message_reactions (message_id, emoji, user_id, created_at)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT DO NOTHING
+`
+
+type ImportReactionParams struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	Emoji     string      `json:"emoji"`
+	UserID    pgtype.UUID `json:"user_id"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+func (q *Queries) ImportReaction(ctx context.Context, arg ImportReactionParams) error {
+	_, err := q.db.Exec(ctx, importReaction,
+		arg.MessageID,
+		arg.Emoji,
+		arg.UserID,
+		arg.CreatedAt,
+	)
+	return err
 }
 
 const markChannelReadForAll = `-- name: MarkChannelReadForAll :exec

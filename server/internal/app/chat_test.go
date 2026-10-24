@@ -31,6 +31,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
+	"github.com/barisshn35/cenacle/server/internal/storage"
 	"github.com/barisshn35/cenacle/server/internal/store"
 	"github.com/barisshn35/cenacle/server/internal/testdb"
 )
@@ -80,7 +81,9 @@ func newShared(t *testing.T) shared {
 
 type options struct {
 	// files connects the test object store (and a scanner, when set).
-	files       bool
+	files bool
+	// dir keeps the files in a directory instead (uploads go to the server).
+	dir         bool
 	scanner     *clamav.Scanner
 	settings    realtime.Settings
 	perWindow   int64
@@ -135,7 +138,15 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	})
 	files := chat.NewFiles(nil, nil, 0)
 	var maxFileSize int64
-	if o.files {
+	var uploads http.Handler
+	switch {
+	case o.dir:
+		d, err := storage.NewDir(t.TempDir(), srv.URL+app.UploadsPath, sh.valkey)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files, uploads, maxFileSize = chat.NewFiles(d, o.scanner, 5<<20), d, 5<<20
+	case o.files:
 		files = chat.NewFiles(testdb.Storage(t), o.scanner, 5<<20)
 		maxFileSize = 5 << 20
 	}
@@ -158,6 +169,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Presence: presence, Cookies: cookies, PublicURL: public,
 			Settings: o.settings, Log: log,
 		},
+		Uploads: uploads,
 	})
 	// With short server timeouts, idle keep-alive connections are closed under
 	// the client; a reused one would fail a POST with EOF.

@@ -40,8 +40,8 @@ keep_or_write s3_access_key "GK$(hex 12)"
 keep_or_write s3_secret_key "$(hex 32)"
 
 # Optional credentials of services you connect (empty unless you write them in):
-# the SMTP password and the AI model's API key.
-for f in smtp_password ai_api_key; do
+# the SMTP password, the AI model's API key and the Azure Blob Storage key.
+for f in smtp_password ai_api_key azure_key; do
   [ -e "secrets/$f" ] || : > "secrets/$f"
   chmod 644 "secrets/$f"
 done

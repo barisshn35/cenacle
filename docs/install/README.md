@@ -60,6 +60,7 @@ checks access first. Settings (in `.env.prod`):
 | Setting                     | Default                      | Meaning                                                                                                                                 |
 | --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `CENACLE_FILES_MAX_SIZE_MB` | `100`                        | The largest file.                                                                                                                       |
+| `CENACLE_FILES_BACKEND`     | `s3`                         | Where files are kept: `s3`, `azure` (Azure Blob Storage), `dir` (a directory of the server) or `off`.                                   |
 | `CENACLE_S3_ENDPOINT`       | `http://garage:3900`         | Another S3 service instead of Garage (then also `CENACLE_S3_UPLOAD_URL` and the keys); empty: files are off.                            |
 | `CENACLE_S3_REGION`         | `garage`                     | The region the S3 service expects.                                                                                                      |
 | `CENACLE_S3_BUCKET`         | `cenacle-files`              | The bucket; Caddy passes uploads to `/<bucket>/` on the chat domain.                                                                    |
@@ -67,6 +68,15 @@ checks access first. Settings (in `.env.prod`):
 | `CENACLE_CLAMAV_ADDR`       | (none)                       | A clamd to scan every file, e.g. `clamav:3310` with `--profile clamav`. Rejected files are deleted.                                     |
 
 With `CENACLE_S3_ENDPOINT=` (empty) files are off and the app hides the attach button.
+
+**Azure Blob Storage:** set `CENACLE_FILES_BACKEND=azure`, `CENACLE_AZURE_ACCOUNT`,
+`CENACLE_AZURE_CONTAINER` (default `cenacle-files`, which must exist) and write the account
+key into `secrets/azure_key`; `CENACLE_AZURE_ENDPOINT` names another cloud or an emulator.
+**A directory:** `CENACLE_FILES_BACKEND=dir` and `CENACLE_FILES_DIR=/data/files` on a volume
+of the server (every chat server must mount the same one). With both, browsers upload to
+the chat server (`/api/uploads`, with a one-time ticket for the file's key and size), which
+writes the file; garage and the `/<bucket>/` route are then not needed. Keep the timeouts of
+a proxy in front long enough for the largest file.
 
 Virus scanning: start the stack with `--profile clamav` and set
 `CENACLE_CLAMAV_ADDR=clamav:3310`. ClamAV (GPL-2.0) runs as its own container, downloads

@@ -58,7 +58,7 @@ var errFilesUnavailable = errors.New("files unavailable")
 
 // Files are the object store and the checks of uploads.
 type Files struct {
-	Store   *storage.Store
+	Store   storage.Store
 	Scanner *clamav.Scanner // nil: files are not scanned
 	MaxSize int64
 	// previews bounds concurrent image decoding (memory).
@@ -66,7 +66,7 @@ type Files struct {
 }
 
 // NewFiles prepares file handling; store nil means files are off.
-func NewFiles(store *storage.Store, scanner *clamav.Scanner, maxSize int64) *Files {
+func NewFiles(store storage.Store, scanner *clamav.Scanner, maxSize int64) *Files {
 	return &Files{Store: store, Scanner: scanner, MaxSize: maxSize, previews: make(chan struct{}, 4)}
 }
 
@@ -324,6 +324,26 @@ func (h *Handlers) CompleteUpload(w http.ResponseWriter, r *http.Request, fileID
 func blocked(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusUnprocessableEntity, Code: CodeFileBlocked,
 		Detail: "The virus scanner rejected this file."})
+}
+
+// Open reads the bytes of a file.
+func (fs *Files) Open(ctx context.Context, f store.File) (storage.Object, error) {
+	return fs.Store.Open(ctx, fileKey(f.ID))
+}
+
+// Ingest stores the bytes of a file recorded by the server itself (an
+// import) and checks them as an upload: scanned, images recognized, previews
+// made.
+func (fs *Files) Ingest(ctx context.Context, q *store.Queries, f store.File, r io.Reader) error {
+	if err := fs.Store.Put(ctx, fileKey(f.ID), r, f.Size, f.ContentType); err != nil {
+		return err
+	}
+	done, err := fs.check(ctx, f)
+	if err != nil {
+		return err
+	}
+	_, err = q.FinishUpload(ctx, done)
+	return err
 }
 
 // check scans an uploaded file, recognizes images and makes their preview.

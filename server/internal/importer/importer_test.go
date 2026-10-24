@@ -111,7 +111,7 @@ func TestImportIntoCenacle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := importer.Import(ctx, pool, d, log)
+	res, err := importer.Import(ctx, pool, d, log, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestImportIntoCenacle(t *testing.T) {
 		t.Errorf("result = %+v", res)
 	}
 	// Importing again adds nothing.
-	again, err := importer.Import(ctx, pool, d, log)
+	again, err := importer.Import(ctx, pool, d, log, nil)
 	if err != nil || again.Users+again.Channels+again.Messages+again.Workspaces != 0 {
 		t.Errorf("again = %+v, %v", again, err)
 	}
@@ -169,7 +169,7 @@ func TestImportSlack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := importer.Import(ctx, pool, d, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	res, err := importer.Import(ctx, pool, d, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

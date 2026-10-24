@@ -20,3 +20,10 @@ regexTarget = "line"
 regexes = [
   '''json: \{ token, secret: 'cnb_rotated-0123456789' \}''',
 ]
+
+[[allowlists]]
+description = "Azurite's published development account key (the Azure Storage emulator)"
+regexTarget = "match"
+regexes = [
+  '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''',
+]

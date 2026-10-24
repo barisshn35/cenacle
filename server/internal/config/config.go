@@ -103,7 +103,10 @@ type Config struct {
 	// DesktopMinVersion is the oldest desktop app the server accepts ("" any).
 	DesktopMinVersion string
 
-	// Files: an S3-compatible object store; without an endpoint, files are off.
+	// FilesBackend keeps files: "s3" (an S3-compatible object store), "azure"
+	// (Azure Blob Storage) or "dir" (a directory); "" turns files off.
+	FilesBackend string
+	// S3: an S3-compatible object store.
 	S3Endpoint  string
 	S3Region    string
 	S3Bucket    string
@@ -112,6 +115,13 @@ type Config struct {
 	// S3UploadURL is where browsers post uploads (default: the app's origin
 	// and the bucket as path, served by the proxy).
 	S3UploadURL string
+	// Azure Blob Storage: account, shared key, container, optional endpoint.
+	AzureAccount   string
+	AzureKey       string
+	AzureContainer string
+	AzureEndpoint  string
+	// FilesDir is the directory of the "dir" backend (absolute).
+	FilesDir string
 	// FilesMaxSize is the largest file in bytes.
 	FilesMaxSize int64
 	// ClamAVAddr is a clamd TCP address (host:port) to scan files; empty: no scan.
@@ -219,6 +229,24 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.S3AccessKey = l.str("CENACLE_S3_ACCESS_KEY", "")
 	cfg.S3SecretKey = l.str("CENACLE_S3_SECRET_KEY", "")
 	cfg.S3UploadURL = strings.TrimSpace(l.str("CENACLE_S3_UPLOAD_URL", ""))
+	cfg.AzureAccount = strings.TrimSpace(l.str("CENACLE_AZURE_ACCOUNT", ""))
+	cfg.AzureKey = strings.TrimSpace(l.str("CENACLE_AZURE_KEY", ""))
+	cfg.AzureContainer = strings.TrimSpace(l.str("CENACLE_AZURE_CONTAINER", "cenacle-files"))
+	cfg.AzureEndpoint = strings.TrimSpace(l.str("CENACLE_AZURE_ENDPOINT", ""))
+	cfg.FilesDir = strings.TrimSpace(l.str("CENACLE_FILES_DIR", ""))
+	// Without a choice, an S3 endpoint turns S3 on (as before 0.38).
+	backend := ""
+	if cfg.S3Endpoint != "" {
+		backend = "s3"
+	}
+	cfg.FilesBackend = strings.TrimSpace(l.str("CENACLE_FILES_BACKEND", backend))
+	switch cfg.FilesBackend {
+	case "", "s3", "azure", "dir":
+	case "off":
+		cfg.FilesBackend = ""
+	default:
+		l.fail("CENACLE_FILES_BACKEND: s3, azure, dir or off, got %q", cfg.FilesBackend)
+	}
 	if mb, err := strconv.Atoi(l.str("CENACLE_FILES_MAX_SIZE_MB", "100")); err != nil || mb < 1 || mb > 10240 {
 		l.fail("CENACLE_FILES_MAX_SIZE_MB: a number of megabytes from 1 to 10240")
 	} else {
@@ -442,7 +470,20 @@ func (l *loader) validate(cfg *Config) {
 }
 
 func (l *loader) validateServe(cfg *Config) {
-	if cfg.S3Endpoint != "" {
+	switch cfg.FilesBackend {
+	case "azure":
+		if cfg.AzureAccount == "" || cfg.AzureKey == "" || cfg.AzureContainer == "" {
+			l.fail("CENACLE_AZURE_ACCOUNT, CENACLE_AZURE_KEY and CENACLE_AZURE_CONTAINER are required with CENACLE_FILES_BACKEND=azure")
+		}
+		if u, err := url.Parse(cfg.AzureEndpoint); cfg.AzureEndpoint != "" &&
+			(err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https")) {
+			l.fail("CENACLE_AZURE_ENDPOINT: must be an http(s) URL, got %q", cfg.AzureEndpoint)
+		}
+	case "dir":
+		if !strings.HasPrefix(cfg.FilesDir, "/") {
+			l.fail("CENACLE_FILES_DIR: an absolute directory is required with CENACLE_FILES_BACKEND=dir")
+		}
+	case "s3":
 		if u, err := url.Parse(cfg.S3Endpoint); err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 			l.fail("CENACLE_S3_ENDPOINT: must be an http(s) URL, got %q", cfg.S3Endpoint)
 		}

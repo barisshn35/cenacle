@@ -261,6 +261,8 @@ type Querier interface {
 	ExportMessages(ctx context.Context, arg ExportMessagesParams) ([]ExportMessagesRow, error)
 	FeedChecked(ctx context.Context, arg FeedCheckedParams) error
 	FeedFailed(ctx context.Context, arg FeedFailedParams) error
+	// FindImportedMessage finds a message imported before (for its replies).
+	FindImportedMessage(ctx context.Context, arg FindImportedMessageParams) (pgtype.UUID, error)
 	// FindUserByEmail finds the account of an address (a person who signed in
 	// already wins over an earlier import).
 	FindUserByEmail(ctx context.Context, email string) (User, error)
@@ -271,6 +273,9 @@ type Querier interface {
 	// FinishUpload records what the server found out about an uploaded file.
 	FinishUpload(ctx context.Context, arg FinishUploadParams) (File, error)
 	FinishWorkflowTask(ctx context.Context, arg FinishWorkflowTaskParams) (WorkflowTask, error)
+	// FollowImportedThreads makes the authors of imported threads follow them,
+	// read to the end.
+	FollowImportedThreads(ctx context.Context, channelID pgtype.UUID) error
 	// FollowThread makes people follow a thread unless they chose otherwise before.
 	FollowThread(ctx context.Context, arg FollowThreadParams) error
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
@@ -375,11 +380,14 @@ type Querier interface {
 	GetWorkspaceMemberName(ctx context.Context, arg GetWorkspaceMemberNameParams) (string, error)
 	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
 	GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRoleParams) (string, error)
+	// ImportFile records a file of an imported message; its bytes are stored and
+	// checked next (status uploading until then).
+	ImportFile(ctx context.Context, arg ImportFileParams) (File, error)
 	// ImportMessage stores a message from an export with its original time (its
 	// id is made from that time, shift = created_at - now(), so it sorts into the
-	// history); importing the
-	// same message again does nothing.
-	ImportMessage(ctx context.Context, arg ImportMessageParams) (int64, error)
+	// history); importing the same message again stores nothing (no row).
+	ImportMessage(ctx context.Context, arg ImportMessageParams) (pgtype.UUID, error)
+	ImportReaction(ctx context.Context, arg ImportReactionParams) error
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	// InsertOutboxEvent records an event and wakes the relay (notifications are
 	// delivered when the transaction commits).
@@ -596,6 +604,19 @@ type Querier interface {
 	// followed threads of a person after a message id and older than a moment,
 	// oldest first.
 	MissedForEmail(ctx context.Context, arg MissedForEmailParams) ([]MissedForEmailRow, error)
+	MoveExportChannelMembers(ctx context.Context, channelID pgtype.UUID) ([]MoveExportChannelMembersRow, error)
+	// MoveExportChannels lists the channels and conversations of a workspace.
+	MoveExportChannels(ctx context.Context, workspaceID pgtype.UUID) ([]Channel, error)
+	MoveExportFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error)
+	// MoveExportMessages pages through the messages of a channel that are not
+	// deleted, oldest first (roots before their replies).
+	MoveExportMessages(ctx context.Context, arg MoveExportMessagesParams) ([]MoveExportMessagesRow, error)
+	MoveExportReactions(ctx context.Context, messageIds []pgtype.UUID) ([]MoveExportReactionsRow, error)
+	MoveExportUsers(ctx context.Context, ids []pgtype.UUID) ([]MoveExportUsersRow, error)
+	MoveExportWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]MoveExportWorkspaceMembersRow, error)
+	// Reading a workspace for a Cenacle export (server export).
+	// MoveExportWorkspaces lists the workspaces to export: the named ones, or all.
+	MoveExportWorkspaces(ctx context.Context, names []string) ([]Workspace, error)
 	// NewestChannelMessage returns the newest message of others shown in a
 	// channel's timeline (one's own messages never count as unread).
 	NewestChannelMessage(ctx context.Context, arg NewestChannelMessageParams) (pgtype.UUID, error)

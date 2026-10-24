@@ -94,9 +94,14 @@ test-go:
     CENACLE_TEST_S3_ENDPOINT: http://127.0.0.1:13900
     CENACLE_TEST_S3_ACCESS_KEY: $CI_S3_ACCESS_KEY
     CENACLE_TEST_S3_SECRET_KEY: $CI_S3_SECRET_KEY
+    CENACLE_TEST_AZURE_ENDPOINT: http://127.0.0.1:10010/devstoreaccount1
+    CENACLE_TEST_AZURE_ACCOUNT: devstoreaccount1
+    # Azurite's published development key, not a secret.
+    CENACLE_TEST_AZURE_KEY: Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+    CENACLE_TEST_AZURE_CONTAINER: cenacle-test
   before_script:
     - ci/services.sh stop
-    - ci/services.sh postgres-chat:5432 valkey garage
+    - ci/services.sh postgres-chat:5432 valkey garage azurite
   script:
     - make test-go
     - make vuln

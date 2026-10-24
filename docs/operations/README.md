@@ -110,34 +110,71 @@ each other at their public address; the connection shows when the other side was
 heard from and the last delivery error. Pausing a connection keeps events queued until it
 resumes.
 
-## Moving from Mattermost or Slack
+## Moving from another chat
 
 Cenacle imports the history of another chat once, from its export files (it never
-connects to the other product):
+connects to the other product). An export is a file or a directory; mount it into a
+one-off `server` container:
 
 ```sh
-# Mattermost: mmctl export create; mmctl export download …; unzip, then:
-docker compose … run --rm -v "$PWD/export.jsonl:/import.jsonl:ro" server \
-  import mattermost /import.jsonl [workspace-for-direct-messages]
-# Slack: workspace settings → Import/Export Data → Export; then:
-docker compose … run --rm -v "$PWD/slack-export.zip:/import.zip:ro" server \
-  import slack /import.zip "Workspace name"
+docker compose … run --rm -v "$PWD/export:/import:ro" server import <source> /import …
 ```
 
-| From Mattermost           | In Cenacle                                                     |
-| ------------------------- | -------------------------------------------------------------- |
-| Team                      | Workspace (by display name; created if missing)                |
-| User                      | Person, matched by e-mail address to existing accounts         |
-| Public / private channel  | Public / private channel; channel admins become its managers   |
-| Direct and group messages | Conversations in the given workspace (default: the first team) |
-| Posts and replies         | Messages with their original times (replies follow their post) |
-| `@username`               | Mentions                                                       |
+| Source      | Export to bring                                                                                         | Command                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Mattermost  | `mmctl export create`, `mmctl export download`, unzipped `.jsonl`                                       | `import mattermost <file> [dm-workspace]`        |
+| Slack       | Workspace settings → Import/Export Data → Export (`.zip`)                                               | `import slack <zip> <workspace>`                 |
+| Rocket.Chat | `mongoexport` of `users`, `rocketchat_room`, `rocketchat_subscription` and `rocketchat_message` (JSON)  | `import rocketchat <dir-or-archive> <workspace>` |
+| Zulip       | Organization settings → Export organization (or `manage.py export`), the `.tar.gz`                      | `import zulip <tar.gz> [workspace]`              |
+| Discord     | [DiscordChatExporter](https://github.com/Tyrrrz/DiscordChatExporter), format JSON, one file per channel | `import discord <dir-or-archive> [workspace]`    |
+| Teams       | Messages saved from Microsoft Graph, laid out as below                                                  | `import teams <dir-or-archive> [workspace]`      |
 
-From Slack: users, public channels (`channels.json`), private channels (`groups.json`),
-direct and group messages, and messages with mentions, links and formatting converted to
-Markdown; join and leave notices are skipped.
+A Rocket.Chat export, for example:
+
+```sh
+for c in users rocketchat_room rocketchat_subscription rocketchat_message; do
+  mongoexport --uri "$MONGO_URL" --collection "$c" --out "export/$c.json"
+done
+```
+
+A Teams export is the JSON Microsoft Graph returns (an array, or a page with `value`):
+`users.json` (`GET /users`, optional: names and addresses), `teams/<team>/<channel>.json`
+(`GET /teams/{id}/channels/{id}/messages?$expand=replies`) and `chats/<chat>.json`
+(`GET /chats/{id}/messages`). Message HTML becomes Markdown.
+
+What comes over: workspaces (a Mattermost team, a Zulip organization, a Discord server, a
+Teams team; Slack and Rocket.Chat go into the workspace you name), people, public and
+private channels with their managers, direct and group conversations, and messages with
+their original times, mentions, links and formatting. Join and leave notices and other
+system messages are skipped. Zulip topics are kept: the first message of a topic starts
+with the topic in bold. Discord attachments stay links to Discord.
 
 People who do not have a Cenacle account yet get one without a way to sign in. When they
 first sign in with Cenacle ID under the same **verified** e-mail address, that account
-becomes theirs, with their history. Imported history counts as read. Running an import again
-adds only what is missing. Files, reactions and custom emoji are not imported yet.
+becomes theirs, with their history. Discord does not export addresses: those people keep
+their names and messages but cannot sign in. Imported history counts as read. Running an
+import again adds only what is missing. Files, reactions and custom emoji of other chats
+are not imported.
+
+## Moving workspaces to another Cenacle server
+
+To move a whole server to a new host, restore a backup there (see
+[backup](../backup/README.md)): nothing is lost. To move **some workspaces** (to split a
+server, or to merge two), export them and import them on the other server:
+
+```sh
+# On the old server (no workspace names: all of them):
+docker compose … run --rm -v "$PWD:/out" server export /out/acme.zip "Acme"
+# On the new server:
+docker compose … run --rm -v "$PWD/acme.zip:/import.zip:ro" server import cenacle /import.zip
+```
+
+The export holds the workspaces, their people with their roles, channels and conversations
+with their members, and messages with threads, reactions, pins, forum titles and tags and
+their files. People are found on the new server by their Cenacle ID account when both
+servers use the same Cenacle ID, else by verified address, else they get an account to
+claim as above. A workspace whose name exists on the new server receives the channels;
+channels with the same name receive the messages (merging). Encrypted channels stay
+behind: their messages can only be read with the passphrase. Settings, bots, polls,
+canvases, lists and workflows are not part of an export. Exports are readable by the same
+or a newer Cenacle.

@@ -24,14 +24,49 @@ RETURNING *;
 -- name: FindWorkspaceByName :one
 SELECT * FROM workspaces WHERE lower(name) = lower(@name) ORDER BY created_at LIMIT 1;
 
--- name: ImportMessage :execrows
+-- name: ImportMessage :one
 -- ImportMessage stores a message from an export with its original time (its
 -- id is made from that time, shift = created_at - now(), so it sorts into the
--- history); importing the
--- same message again does nothing.
-INSERT INTO messages (id, channel_id, author_id, body, nonce, created_at)
-VALUES (uuidv7(sqlc.arg(shift)::interval), @channel_id, @author_id, @body, @nonce, @created_at)
-ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING;
+-- history); importing the same message again stores nothing (no row).
+INSERT INTO messages (id, channel_id, author_id, body, nonce, created_at, root_id, also_in_channel,
+    pinned_at, pinned_by, title, tags, has_files)
+VALUES (uuidv7(sqlc.arg(shift)::interval), @channel_id, @author_id, @body, @nonce, @created_at,
+    sqlc.narg(root_id), @also_in_channel, sqlc.narg(pinned_at), sqlc.narg(pinned_by), sqlc.narg(title),
+    @tags::text[], @has_files)
+ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
+RETURNING id;
+
+-- name: FindImportedMessage :one
+-- FindImportedMessage finds a message imported before (for its replies).
+SELECT id FROM messages WHERE author_id = @author_id AND nonce = @nonce;
+
+-- name: ImportReaction :exec
+INSERT INTO message_reactions (message_id, emoji, user_id, created_at)
+VALUES (@message_id, @emoji, @user_id, @created_at)
+ON CONFLICT DO NOTHING;
+
+-- name: ImportFile :one
+-- ImportFile records a file of an imported message; its bytes are stored and
+-- checked next (status uploading until then).
+INSERT INTO files (workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, created_at)
+VALUES (@workspace_id, @channel_id, @uploader_id, @message_id, @created_at, @name, @content_type, @size, @created_at)
+RETURNING *;
+
+-- name: FollowImportedThreads :exec
+-- FollowImportedThreads makes the authors of imported threads follow them,
+-- read to the end.
+INSERT INTO thread_follows (user_id, root_id, last_read_id)
+SELECT p.user_id, p.root_id,
+    (SELECT x.id FROM messages x WHERE x.root_id = p.root_id ORDER BY x.id DESC LIMIT 1)
+FROM (
+    SELECT r.author_id AS user_id, r.root_id FROM messages r
+    WHERE r.channel_id = @channel_id AND r.root_id IS NOT NULL
+    UNION
+    SELECT root.author_id, root.id FROM messages root
+    WHERE root.channel_id = @channel_id
+      AND EXISTS (SELECT 1 FROM messages r WHERE r.root_id = root.id)
+) p
+ON CONFLICT DO NOTHING;
 
 -- name: MarkChannelReadForAll :exec
 -- MarkChannelReadForAll makes the history of an imported channel read.

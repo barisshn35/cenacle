@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -82,6 +83,25 @@ commands:
                    direct messages go to dm-workspace, default the first team)
   import slack <export.zip> <workspace>
                    import a Slack export into a workspace (created if missing)
+  import rocketchat <export> <workspace>
+                   import a mongoexport of Rocket.Chat (users, rooms,
+                   subscriptions, messages) into a workspace
+  import zulip <export.tar.gz> [workspace]
+                   import a Zulip organization export (default workspace:
+                   the organization's name)
+  import discord <export> [workspace]
+                   import DiscordChatExporter JSON files (each server becomes
+                   a workspace unless one is given)
+  import teams <export> [workspace]
+                   import Microsoft Teams messages saved from Microsoft Graph
+                   (each team becomes a workspace unless one is given)
+  import cenacle <export.zip>
+                   import a Cenacle export (from server export) with threads,
+                   reactions, pins and files
+                   An <export> is a directory, a .zip or a .tar.gz.
+  export <file.zip> [workspace...]
+                   export workspaces (default: all of them) to move them to
+                   another Cenacle server
   healthcheck      probe /healthz of the local server
   version          print the build version`
 
@@ -104,7 +124,7 @@ func run(args []string) error {
 		// Distroless images have no curl; the binary probes itself.
 		// Only CENACLE_HTTP_ADDR is read, so a broken config cannot hide liveness.
 		return healthcheck(os.Getenv("CENACLE_HTTP_ADDR"))
-	case "serve", "migrate", "status", "support-bundle", "import":
+	case "serve", "migrate", "status", "support-bundle", "import", "export":
 	default:
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
 	}
@@ -129,6 +149,8 @@ func run(args []string) error {
 		return operate(ctx, cfg, args)
 	case "import":
 		return importExport(ctx, cfg, log, args[1:])
+	case "export":
+		return exportWorkspaces(ctx, cfg, log, args[1:])
 	}
 	return serve(ctx, cfg, log)
 }
@@ -192,7 +214,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 
 	// Requests to bots (slash commands, event deliveries) never reach private
 	// networks unless the operator allows them.
-	// Files: an S3-compatible object store, when configured.
+	// Files: an object store, when configured.
 	files := chat.NewFiles(nil, nil, 0)
 	var maxFileSize int64 // 0: files are off
 	var draining atomic.Bool
@@ -205,15 +227,11 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			return nil
 		},
 	}}
-	if cfg.S3Endpoint != "" {
-		objects, err := storage.New(storage.Config{
-			Endpoint: cfg.S3Endpoint, Region: cfg.S3Region, Bucket: cfg.S3Bucket,
-			AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey,
-			UploadURL: cmp.Or(cfg.S3UploadURL, strings.TrimSuffix(cfg.PublicURL.String(), "/")+"/"+cfg.S3Bucket+"/"),
-		})
-		if err != nil {
-			return err
-		}
+	objects, uploads, err := openFiles(cfg, valkey)
+	if err != nil {
+		return err
+	}
+	if objects != nil {
 		var scanner *clamav.Scanner
 		if cfg.ClamAVAddr != "" {
 			scanner = &clamav.Scanner{Addr: cfg.ClamAVAddr}
@@ -347,6 +365,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Settings:  realtime.DefaultSettings,
 			Log:       log,
 		},
+		Uploads: uploads,
 	})
 	if telemetry.TracingEnabled() {
 		handler = otelhttp.NewHandler(handler, "http")
@@ -412,6 +431,36 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	return nil
 }
 
+// openFiles opens the configured file store (nil when files are off) and, for
+// stores browsers cannot reach, the handler that receives their uploads.
+func openFiles(cfg config.Config, tickets storage.Tickets) (storage.Store, http.Handler, error) {
+	uploads := strings.TrimSuffix(cfg.PublicURL.String(), "/") + app.UploadsPath
+	switch cfg.FilesBackend {
+	case "s3":
+		s, err := storage.New(storage.Config{
+			Endpoint: cfg.S3Endpoint, Region: cfg.S3Region, Bucket: cfg.S3Bucket,
+			AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey,
+			UploadURL: cmp.Or(cfg.S3UploadURL, strings.TrimSuffix(cfg.PublicURL.String(), "/")+"/"+cfg.S3Bucket+"/"),
+		})
+		return s, nil, err
+	case "azure":
+		a, err := storage.NewAzure(storage.AzureConfig{
+			Account: cfg.AzureAccount, Key: cfg.AzureKey, Container: cfg.AzureContainer, Endpoint: cfg.AzureEndpoint,
+		}, uploads, tickets)
+		if err != nil {
+			return nil, nil, err
+		}
+		return a, a, nil
+	case "dir":
+		d, err := storage.NewDir(cfg.FilesDir, uploads, tickets)
+		if err != nil {
+			return nil, nil, err
+		}
+		return d, d, nil
+	}
+	return nil, nil, nil
+}
+
 // importExport reads another chat's export into Cenacle.
 func importExport(ctx context.Context, cfg config.Config, log *slog.Logger, args []string) error {
 	if len(args) < 2 {
@@ -444,20 +493,103 @@ func importExport(ctx context.Context, cfg config.Config, log *slog.Logger, args
 		if data, err = importer.ReadSlack(&zr.Reader, args[2]); err != nil {
 			return fmt.Errorf("reading the export: %w", err)
 		}
+	case "cenacle":
+		fsys, closeExport, err := importer.Open(args[1])
+		if err != nil {
+			return err
+		}
+		defer func() { _ = closeExport() }()
+		if data, err = importer.ReadCenacle(fsys); err != nil {
+			return fmt.Errorf("reading the export: %w", err)
+		}
+	case "rocketchat", "zulip", "discord", "teams":
+		workspace := ""
+		if len(args) > 2 {
+			workspace = args[2]
+		}
+		if args[0] == "rocketchat" && workspace == "" {
+			return errors.New("import rocketchat needs the export and a workspace name\n\n" + usage)
+		}
+		fsys, closeExport, err := importer.Open(args[1])
+		if err != nil {
+			return err
+		}
+		defer func() { _ = closeExport() }()
+		read := map[string]func(fs.FS, string) (importer.Data, error){
+			"rocketchat": importer.ReadRocketChat, "zulip": importer.ReadZulip,
+			"discord": importer.ReadDiscord, "teams": importer.ReadTeams,
+		}[args[0]]
+		if data, err = read(fsys, workspace); err != nil {
+			return fmt.Errorf("reading the export: %w", err)
+		}
 	default:
-		return fmt.Errorf("unknown export %q (mattermost or slack)\n\n%s", args[0], usage)
+		return fmt.Errorf("unknown export %q (mattermost, slack, rocketchat, zulip, discord, teams or cenacle)\n\n%s", args[0], usage)
 	}
 	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
 	if err != nil {
 		return err
 	}
 	defer pool.Close()
+	files, closeFiles, err := commandFiles(cfg)
+	if err != nil {
+		return err
+	}
+	defer closeFiles()
 	log.Info("import starting", "people", len(data.Users), "channels", len(data.Channels), "messages", len(data.Messages))
-	res, err := importer.Import(ctx, pool, data, log)
+	res, err := importer.Import(ctx, pool, data, log, files)
 	if err != nil {
 		return err
 	}
 	log.Info("import finished", "result", res.String())
+	return nil
+}
+
+// commandFiles opens the file store for a command (nil when files are off).
+func commandFiles(cfg config.Config) (*chat.Files, func(), error) {
+	valkey := cache.New(cfg.ValkeyAddr, cfg.ValkeyPassword)
+	objects, _, err := openFiles(cfg, valkey)
+	if err != nil || objects == nil {
+		valkey.Close()
+		return nil, func() {}, err
+	}
+	var scanner *clamav.Scanner
+	if cfg.ClamAVAddr != "" {
+		scanner = &clamav.Scanner{Addr: cfg.ClamAVAddr}
+	}
+	return chat.NewFiles(objects, scanner, cfg.FilesMaxSize), valkey.Close, nil
+}
+
+// exportWorkspaces writes a Cenacle export.
+func exportWorkspaces(ctx context.Context, cfg config.Config, log *slog.Logger, args []string) error {
+	if len(args) < 1 {
+		return errors.New(usage)
+	}
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	files, closeFiles, err := commandFiles(cfg)
+	if err != nil {
+		return err
+	}
+	defer closeFiles()
+	if files == nil {
+		log.Warn("files are off: the export holds messages without their files")
+	}
+	out, err := os.OpenFile(args[0], os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) //nolint:gosec // the operator names the file
+	if err != nil {
+		return err
+	}
+	res, err := importer.Export(ctx, store.New(pool), out, args[1:], version, files, log)
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		_ = os.Remove(args[0]) //nolint:gosec // the file this command just created
+		return err
+	}
+	log.Info("export finished", "file", args[0], "result", res.String())
 	return nil
 }
 
@@ -471,12 +603,11 @@ func operate(ctx context.Context, cfg config.Config, args []string) error {
 	valkey := cache.New(cfg.ValkeyAddr, cfg.ValkeyPassword)
 	defer valkey.Close()
 	checks := []health.Checker{db.Checker{Pool: pool}, valkey}
-	if cfg.S3Endpoint != "" {
-		objects, err := storage.New(storage.Config{Endpoint: cfg.S3Endpoint, Region: cfg.S3Region, Bucket: cfg.S3Bucket,
-			AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey})
-		if err != nil {
-			return err
-		}
+	objects, _, err := openFiles(cfg, valkey)
+	if err != nil {
+		return err
+	}
+	if objects != nil {
 		checks = append(checks, objects)
 	}
 	migration := func(ctx context.Context) (int64, error) {

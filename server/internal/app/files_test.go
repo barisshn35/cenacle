@@ -105,7 +105,12 @@ func pngImage(t *testing.T, w, h int) []byte {
 }
 
 func TestFilesUploadSendAndServe(t *testing.T) {
-	s := newStack(t, newShared(t), options{files: true})
+	t.Run("s3", func(t *testing.T) { testFilesUploadSendAndServe(t, options{files: true}) })
+	t.Run("dir", func(t *testing.T) { testFilesUploadSendAndServe(t, options{files: true, dir: true}) })
+}
+
+func testFilesUploadSendAndServe(t *testing.T, o options) {
+	s := newStack(t, newShared(t), o)
 	admin := s.admin()
 	ayse := s.user("sub-a", "Ayşe")
 	general := s.general(ayse)

@@ -111,7 +111,14 @@ services:
       CENACLE_AI_API_KEY: ${CENACLE_AI_API_KEY:-}
       CENACLE_AI_API_KEY_FILE: /run/secrets/ai_api_key
       CENACLE_AI_TIMEOUT: ${CENACLE_AI_TIMEOUT:-2m}
-      # Files: the bundled Garage (or set an S3 service of your own).
+      # Files: the bundled Garage (or set an S3 service of your own), Azure Blob
+      # Storage (CENACLE_FILES_BACKEND=azure) or a directory (dir).
+      CENACLE_FILES_BACKEND: ${CENACLE_FILES_BACKEND:-}
+      CENACLE_AZURE_ACCOUNT: ${CENACLE_AZURE_ACCOUNT:-}
+      CENACLE_AZURE_CONTAINER: ${CENACLE_AZURE_CONTAINER:-cenacle-files}
+      CENACLE_AZURE_ENDPOINT: ${CENACLE_AZURE_ENDPOINT:-}
+      CENACLE_AZURE_KEY_FILE: /run/secrets/azure_key
+      CENACLE_FILES_DIR: ${CENACLE_FILES_DIR:-}
       CENACLE_S3_ENDPOINT: ${CENACLE_S3_ENDPOINT-http://garage:3900}
       CENACLE_S3_REGION: ${CENACLE_S3_REGION:-garage}
       CENACLE_S3_BUCKET: ${CENACLE_S3_BUCKET:-cenacle-files}
@@ -143,6 +150,7 @@ services:
         s3_secret_key,
         smtp_password,
         ai_api_key,
+        azure_key,
       ]
     networks: [edge, data, files]
     depends_on:
@@ -319,3 +327,5 @@ secrets:
   # Optional (empty unless used): instead of CENACLE_SMTP_PASSWORD / CENACLE_AI_API_KEY.
   smtp_password: { file: ./secrets/smtp_password }
   ai_api_key: { file: ./secrets/ai_api_key }
+  # Optional: the account key of Azure Blob Storage (CENACLE_FILES_BACKEND=azure).
+  azure_key: { file: ./secrets/azure_key }

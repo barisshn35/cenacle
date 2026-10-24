@@ -29,6 +29,9 @@ type Deps struct {
 	Auth     *auth.Handlers
 	Chat     *chat.Handlers
 	Realtime *realtime.Handler
+	// Uploads takes browser uploads when the file store is not reached by
+	// browsers (Azure, a directory); the form's ticket authorizes them.
+	Uploads http.Handler
 }
 
 // apiServer implements the generated api.ServerInterface by composing the
@@ -45,6 +48,9 @@ type (
 	chatHandlers = chat.Handlers
 )
 
+// UploadsPath is where browsers upload when the server receives files.
+const UploadsPath = "/api/uploads"
+
 // NewRouter returns the root handler. Every error response, including
 // unknown routes and panics, is application/problem+json with a request ID.
 func NewRouter(d Deps) http.Handler {
@@ -60,6 +66,9 @@ func NewRouter(d Deps) http.Handler {
 	h := &health.Handler{Checkers: d.Checkers, Timeout: d.ReadyTimeout, Log: d.Log}
 	r.Get("/healthz", h.Healthz)
 	r.Get("/readyz", h.Readyz)
+	if d.Uploads != nil {
+		r.Post(UploadsPath, d.Uploads.ServeHTTP)
+	}
 
 	if d.Auth != nil {
 		a := d.Auth

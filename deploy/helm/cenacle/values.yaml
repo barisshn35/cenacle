@@ -38,6 +38,14 @@ s3:
     service: ''
     port: 3900
 
+# Azure Blob Storage (files.backend: azure). The account key is the
+# "azure-key" key of existingSecret. Browsers upload through the chat server.
+azure:
+  account: ''
+  container: cenacle-files
+  # Empty: https://<account>.blob.core.windows.net (set it for other clouds).
+  endpoint: ''
+
 admin:
   # The instance administrator's verified e-mail address at Cenacle ID.
   email: ''
@@ -45,6 +53,9 @@ admin:
   defaultChannels: General
 
 files:
+  # Where files are kept: s3 (s3.* above) or azure (azure.* below). Empty: s3
+  # when s3.endpoint is set, else files are off.
+  backend: ''
   maxSizeMB: 100
   # A clamd address (host:port) to scan files; empty: no scanning.
   clamavAddr: ''
