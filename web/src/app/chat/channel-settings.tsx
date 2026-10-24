@@ -30,6 +30,7 @@ import {
   type Channel,
 } from './data';
 import { ChannelGroupsSection } from './directory-groups';
+import { GuestLinksSection } from './guest-links';
 import { may, workspacesQuery } from './workspaces';
 
 const selectClass =
@@ -53,10 +54,10 @@ export function ChannelSettingsDialog({
 }) {
   const { t } = useTranslation();
   const workspaces = useQuery(workspacesQuery);
-  const wsAdmin = may(
-    workspaces.data?.find((w) => w.id === channel.workspace_id),
-    'manage_categories',
-  );
+  const workspace = workspaces.data?.find((w) => w.id === channel.workspace_id);
+  const wsAdmin = may(workspace, 'manage_categories');
+  const guestLinks =
+    may(workspace, 'guest_links') && channel.can_manage && !channel.encrypted && !channel.archived;
   const ids = {
     name: useId(),
     topic: useId(),
@@ -143,7 +144,7 @@ export function ChannelSettingsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-md">
           <form onSubmit={submit} className="grid gap-4">
             <DialogHeader>
               <DialogTitle>{t('channels.settingsTitle', { channel: channel.name })}</DialogTitle>
@@ -290,6 +291,7 @@ export function ChannelSettingsDialog({
           {channel.visibility === 'private' && !channel.is_default && (
             <ChannelGroupsSection channel={channel} />
           )}
+          {guestLinks && <GuestLinksSection channel={channel} />}
         </DialogContent>
       </Dialog>
       <ConfirmDialog

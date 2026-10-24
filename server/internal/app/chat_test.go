@@ -152,7 +152,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			AccountURL:        "http://id.test/account",
 			PushPublicKey:     pushKeyFunc(o.pushKey),
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
-			Presence: presence, LinkPreviews: true, AI: o.ai,
+			Presence: presence, LinkPreviews: true, AI: o.ai, Sessions: sessions,
 		},
 		Realtime: &realtime.Handler{
 			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Presence: presence, Cookies: cookies, PublicURL: public,

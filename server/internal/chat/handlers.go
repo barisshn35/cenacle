@@ -78,8 +78,12 @@ type Handlers struct {
 	// PushPublicKey gives the web push (VAPID) public key; nil: web push is off.
 	PushPublicKey func(ctx context.Context) (string, error)
 	Limiter       RateLimiter
-	Cookies       auth.Cookies
-	Log           *slog.Logger
+	// Sessions start the sessions of guest links; TrustProxy reads their
+	// client address behind the reverse proxy.
+	Sessions   *auth.Sessions
+	TrustProxy bool
+	Cookies    auth.Cookies
+	Log        *slog.Logger
 	// Configured lists the channels of the installation settings, which keep
 	// their names.
 	Configured []string

@@ -68,6 +68,11 @@ func (c Cookies) setSession(w http.ResponseWriter, token string, expires time.Ti
 // renewSession sets the session cookie of r again, so a session without a
 // limit outlives the browser's cookie limit while it is used. Bearer tokens
 // (desktop and mobile apps) have no cookie to renew.
+// SetSession sets the session cookie (sessions started outside the sign-in flow).
+func (c Cookies) SetSession(w http.ResponseWriter, token string, expires time.Time) {
+	c.setSession(w, token, expires)
+}
+
 func (c Cookies) renewSession(w http.ResponseWriter, r *http.Request, expires time.Time) {
 	if cookie, err := r.Cookie(c.SessionName()); err == nil && cookie.Value != "" {
 		c.setSession(w, cookie.Value, expires)

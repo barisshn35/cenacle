@@ -140,11 +140,13 @@ type Querier interface {
 	CreateFeed(ctx context.Context, arg CreateFeedParams) (ChannelFeed, error)
 	CreateFile(ctx context.Context, arg CreateFileParams) (File, error)
 	CreateForm(ctx context.Context, arg CreateFormParams) (Form, error)
+	CreateGuestLink(ctx context.Context, arg CreateGuestLinkParams) (GuestLink, error)
 	// CreateImportedUser creates (or renames) a person from an export. They sign
 	// in later with Cenacle ID under the same verified address (ClaimImportedUser).
 	CreateImportedUser(ctx context.Context, arg CreateImportedUserParams) (User, error)
 	CreateInvite(ctx context.Context, arg CreateInviteParams) (WorkspaceInvite, error)
 	CreateLegalHold(ctx context.Context, arg CreateLegalHoldParams) (LegalHold, error)
+	CreateLinkGuest(ctx context.Context, arg CreateLinkGuestParams) (User, error)
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
 	CreateListItem(ctx context.Context, arg CreateListItemParams) (ListItem, error)
 	CreateMentionGroup(ctx context.Context, arg CreateMentionGroupParams) (MentionGroup, error)
@@ -186,6 +188,7 @@ type Querier interface {
 	DeleteFederationDeliveries(ctx context.Context, ids []pgtype.UUID) error
 	DeleteFeed(ctx context.Context, arg DeleteFeedParams) (int64, error)
 	DeleteFiles(ctx context.Context, ids []pgtype.UUID) error
+	DeleteLinkGuestSessions(ctx context.Context) error
 	DeleteList(ctx context.Context, id pgtype.UUID) error
 	DeleteListItem(ctx context.Context, id pgtype.UUID) error
 	DeleteMentions(ctx context.Context, messageID pgtype.UUID) error
@@ -228,6 +231,8 @@ type Querier interface {
 	// a verified address.
 	EmailRecipients(ctx context.Context) ([]pgtype.UUID, error)
 	EndCanvasTurn(ctx context.Context, arg EndCanvasTurnParams) (pgtype.UUID, error)
+	// EndLinkGuests deactivates the people of revoked and expired links.
+	EndLinkGuests(ctx context.Context) (int64, error)
 	// EnsureChannel creates a configured channel or brings an existing one of that
 	// name to the configured kind and flags (and public: everyone is a member);
 	// the topic of an existing channel is kept.
@@ -290,6 +295,7 @@ type Querier interface {
 	GetFileForReader(ctx context.Context, id pgtype.UUID) (GetFileForReaderRow, error)
 	GetForm(ctx context.Context, id pgtype.UUID) (Form, error)
 	GetGroupCreation(ctx context.Context, id pgtype.UUID) (string, error)
+	GetGuestLinkByHash(ctx context.Context, tokenHash []byte) (GetGuestLinkByHashRow, error)
 	GetInstanceAdmin(ctx context.Context) (User, error)
 	GetInstanceSettings(ctx context.Context) (bool, error)
 	// GetInteractiveBot returns the bot behind a user, when it receives interactions
@@ -442,6 +448,9 @@ type Querier interface {
 	ListFollowedThreads(ctx context.Context, arg ListFollowedThreadsParams) ([]ListFollowedThreadsRow, error)
 	ListFormSubmissions(ctx context.Context, arg ListFormSubmissionsParams) ([]ListFormSubmissionsRow, error)
 	ListForms(ctx context.Context, workspaceID pgtype.UUID) ([]Form, error)
+	// ListGuestLinks returns a channel's links that still work, newest first, with
+	// how many people are in the channel through each.
+	ListGuestLinks(ctx context.Context, channelID pgtype.UUID) ([]ListGuestLinksRow, error)
 	// ListInvites returns the invitations of a workspace that can still be used.
 	ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceInvite, error)
 	// ListKnownGroups is every group name people of the instance are in.
@@ -632,6 +641,7 @@ type Querier interface {
 	// RevokeEmailAdminsExcept takes the administrator flag from everyone who held
 	// it only by the configured address, but one person (the address moved).
 	RevokeEmailAdminsExcept(ctx context.Context, id pgtype.UUID) error
+	RevokeGuestLink(ctx context.Context, arg RevokeGuestLinkParams) (int64, error)
 	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
 	// SaveCanvas writes a new body over the version it was edited from, and ends
 	// the writer's turn; no row means the canvas changed in between.
@@ -764,6 +774,8 @@ type Querier interface {
 	UpsertWorkspaceGroupMapping(ctx context.Context, arg UpsertWorkspaceGroupMappingParams) (WorkspaceGroupMapping, error)
 	// UseFederationInvite takes an unused, unexpired invitation (once).
 	UseFederationInvite(ctx context.Context, tokenHash []byte) (FederationInvite, error)
+	// UseGuestLink counts a use of a link that still works.
+	UseGuestLink(ctx context.Context, id pgtype.UUID) (GuestLink, error)
 	// UseInvite counts one use of a valid invitation; no row when it is not valid.
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
 	UserExists(ctx context.Context, arg UserExistsParams) (bool, error)

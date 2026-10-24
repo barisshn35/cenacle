@@ -108,6 +108,19 @@ func (s *Sessions) idle() pgtype.Interval { return interval(orNoLimit(s.IdleTime
 // Create starts a session for userID and returns its token. idpSID is the
 // identity provider's session it came from ("" if unknown).
 func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client ClientInfo, idpSID string) (string, store.Session, error) {
+	return s.create(ctx, userID, client, idpSID, time.Now().Add(orNoLimit(s.MaxAge)))
+}
+
+// CreateUntil starts a session that ends at until at the latest (guest links).
+func (s *Sessions) CreateUntil(ctx context.Context, userID pgtype.UUID, client ClientInfo, until time.Time) (string, store.Session, error) {
+	end := time.Now().Add(orNoLimit(s.MaxAge))
+	if until.Before(end) {
+		end = until
+	}
+	return s.create(ctx, userID, client, "", end)
+}
+
+func (s *Sessions) create(ctx context.Context, userID pgtype.UUID, client ClientInfo, idpSID string, expires time.Time) (string, store.Session, error) {
 	policy, err := s.Policy(ctx)
 	if err != nil {
 		return "", store.Session{}, err
@@ -119,7 +132,7 @@ func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client Client
 	sess, err := s.Queries.CreateSession(ctx, store.CreateSessionParams{
 		UserID:    userID,
 		TokenHash: hash,
-		ExpiresAt: time.Now().Add(orNoLimit(s.MaxAge)),
+		ExpiresAt: expires,
 		UserAgent: client.userAgent(),
 		IpAddress: client.IP,
 		IdpSid:    idpSID,
@@ -182,6 +195,13 @@ func (s *Sessions) Delete(ctx context.Context, id pgtype.UUID) error {
 
 // DeleteExpired removes sessions that can no longer be used.
 func (s *Sessions) DeleteExpired(ctx context.Context) (int64, error) {
+	// The people of revoked and expired guest links leave with them.
+	if _, err := s.Queries.EndLinkGuests(ctx); err != nil {
+		return 0, fmt.Errorf("end link guests: %w", err)
+	}
+	if err := s.Queries.DeleteLinkGuestSessions(ctx); err != nil {
+		return 0, fmt.Errorf("end link guest sessions: %w", err)
+	}
 	return s.Queries.DeleteExpiredSessions(ctx, s.idle())
 }
 

@@ -25,6 +25,7 @@ export const PERMISSIONS = [
   'custom_emoji',
   'broadcast_mentions',
   'group_mentions',
+  'guest_links',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 

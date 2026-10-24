@@ -18,6 +18,7 @@ import { sessionQuery, signinSearchFor, validateSigninSearch } from './auth/sess
 import { queryClient } from './query-client';
 import { ChannelIndex } from './chat/channel-index';
 import { InvitePage } from './chat/invite-page';
+import { GuestPage } from './chat/guest-links';
 
 const rootRoute = createRootRoute({
   component: RootLayout,
@@ -101,6 +102,12 @@ const homeRoutes = (
   }),
 );
 
+const guestRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guest/$token',
+  component: GuestPage,
+});
+
 const signinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/signin',
@@ -135,6 +142,7 @@ export const router = createRouter({
   routeTree: rootRoute.addChildren([
     appRoute.addChildren([indexRoute, workspaceRoute, inviteRoute, channelRoute, ...homeRoutes]),
     signinRoute,
+    guestRoute,
     galleryRoute,
   ]),
   defaultPreload: 'intent',

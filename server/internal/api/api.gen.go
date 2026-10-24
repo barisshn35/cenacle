@@ -2822,6 +2822,29 @@ type GroupMapping struct {
 // GroupMappingRole defines model for GroupMapping.Role.
 type GroupMappingRole string
 
+// GuestLink defines model for GuestLink.
+type GuestLink struct {
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+
+	// Guests People in the channel through this link.
+	Guests  int                `json:"guests"`
+	Id      openapi_types.UUID `json:"id"`
+	MaxUses *int               `json:"max_uses"`
+	Name    string             `json:"name"`
+	Uses    int                `json:"uses"`
+}
+
+// GuestLinkPreview defines model for GuestLinkPreview.
+type GuestLinkPreview struct {
+	ChannelName string    `json:"channel_name"`
+	ExpiresAt   time.Time `json:"expires_at"`
+
+	// Valid False when expired
+	Valid         bool   `json:"valid"`
+	WorkspaceName string `json:"workspace_name"`
+}
+
 // InteractionResult What a bot answered to a button, a menu choice or a dialog.
 type InteractionResult struct {
 	// Dialog A form a bot opened for the person.
@@ -3905,7 +3928,8 @@ type Workspace struct {
 
 	// Permissions The workspace's permission scheme: each permission's roles (owners may
 	// always). Permissions are create_channels, invite_people,
-	// manage_categories, custom_emoji, broadcast_mentions and group_mentions.
+	// manage_categories, custom_emoji, broadcast_mentions, group_mentions and
+	// guest_links.
 	Permissions *map[string][]string `json:"permissions,omitempty"`
 
 	// PersistentEveryMinutes How often they are reminded.
@@ -4143,6 +4167,16 @@ type CreateUploadJSONBody struct {
 // CreateUploadJSONBodyMediaKind defines parameters for CreateUpload.
 type CreateUploadJSONBodyMediaKind string
 
+// CreateGuestLinkJSONBody defines parameters for CreateGuestLink.
+type CreateGuestLinkJSONBody struct {
+	ExpiresInHours int  `json:"expires_in_hours"`
+	MaxUses        *int `json:"max_uses,omitempty"`
+
+	// Name Who or what the link is for.
+	Name     *string `json:"name,omitempty"`
+	Password string  `json:"password"`
+}
+
 // AddChannelMemberJSONBody defines parameters for AddChannelMember.
 type AddChannelMemberJSONBody struct {
 	UserId openapi_types.UUID `json:"user_id"`
@@ -4262,6 +4296,13 @@ type SubmitFormJSONBody struct {
 
 	// Values Answers by field id: text, a number as text, YYYY-MM-DD, "true"/"false", a user id, or a list for multiselect.
 	Values FormValues `json:"values"`
+}
+
+// JoinGuestLinkJSONBody defines parameters for JoinGuestLink.
+type JoinGuestLinkJSONBody struct {
+	// Name Your name as others see it.
+	Name     string `json:"name"`
+	Password string `json:"password"`
 }
 
 // PostWebhookJSONBody defines parameters for PostWebhook.
@@ -4747,6 +4788,9 @@ type CreateUploadJSONRequestBody CreateUploadJSONBody
 // SetChannelGroupsJSONRequestBody defines body for SetChannelGroups for application/json ContentType.
 type SetChannelGroupsJSONRequestBody = ChannelGroups
 
+// CreateGuestLinkJSONRequestBody defines body for CreateGuestLink for application/json ContentType.
+type CreateGuestLinkJSONRequestBody CreateGuestLinkJSONBody
+
 // AddChannelMemberJSONRequestBody defines body for AddChannelMember for application/json ContentType.
 type AddChannelMemberJSONRequestBody AddChannelMemberJSONBody
 
@@ -4812,6 +4856,9 @@ type UpdateFormJSONRequestBody = FormInput
 
 // SubmitFormJSONRequestBody defines body for SubmitForm for application/json ContentType.
 type SubmitFormJSONRequestBody SubmitFormJSONBody
+
+// JoinGuestLinkJSONRequestBody defines body for JoinGuestLink for application/json ContentType.
+type JoinGuestLinkJSONRequestBody JoinGuestLinkJSONBody
 
 // PostWebhookJSONRequestBody defines body for PostWebhook for application/json ContentType.
 type PostWebhookJSONRequestBody PostWebhookJSONBody
@@ -5249,6 +5296,15 @@ type ServerInterface interface {
 	// SetChannelGroups Set the directory groups of a channel
 	// (PUT /api/channels/{channel_id}/groups)
 	SetChannelGroups(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListGuestLinks The channel's guest links that still work (its managers)
+	// (GET /api/channels/{channel_id}/guest-links)
+	ListGuestLinks(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// CreateGuestLink Let someone from outside join this channel for a while, with a password
+	// (POST /api/channels/{channel_id}/guest-links)
+	CreateGuestLink(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// RevokeGuestLink End a guest link; the people who came with it leave
+	// (DELETE /api/channels/{channel_id}/guest-links/{link_id})
+	RevokeGuestLink(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, linkId openapi_types.UUID)
 	// JoinChannel Join a public channel
 	// (POST /api/channels/{channel_id}/join)
 	JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -5435,6 +5491,12 @@ type ServerInterface interface {
 	// SubmitForm Fill in a form; the answers are posted in a channel
 	// (POST /api/forms/{form_id}/submissions)
 	SubmitForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID)
+	// GetGuestLink What a guest link leads to (no sign-in)
+	// (GET /api/guest-links/{token})
+	GetGuestLink(w http.ResponseWriter, r *http.Request, token string)
+	// JoinGuestLink Join the channel of a guest link with its password (no sign-in)
+	// (POST /api/guest-links/{token})
+	JoinGuestLink(w http.ResponseWriter, r *http.Request, token string)
 	// PostWebhook Post into a channel through an incoming webhook
 	// (POST /api/hooks/{token})
 	PostWebhook(w http.ResponseWriter, r *http.Request, token string)
@@ -6257,6 +6319,24 @@ func (_ Unimplemented) SetChannelGroups(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListGuestLinks The channel's guest links that still work (its managers)
+// (GET /api/channels/{channel_id}/guest-links)
+func (_ Unimplemented) ListGuestLinks(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateGuestLink Let someone from outside join this channel for a while, with a password
+// (POST /api/channels/{channel_id}/guest-links)
+func (_ Unimplemented) CreateGuestLink(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeGuestLink End a guest link; the people who came with it leave
+// (DELETE /api/channels/{channel_id}/guest-links/{link_id})
+func (_ Unimplemented) RevokeGuestLink(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, linkId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // JoinChannel Join a public channel
 // (POST /api/channels/{channel_id}/join)
 func (_ Unimplemented) JoinChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
@@ -6626,6 +6706,18 @@ func (_ Unimplemented) ListFormSubmissions(w http.ResponseWriter, r *http.Reques
 // SubmitForm Fill in a form; the answers are posted in a channel
 // (POST /api/forms/{form_id}/submissions)
 func (_ Unimplemented) SubmitForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuestLink What a guest link leads to (no sign-in)
+// (GET /api/guest-links/{token})
+func (_ Unimplemented) GetGuestLink(w http.ResponseWriter, r *http.Request, token string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// JoinGuestLink Join the channel of a guest link with its password (no sign-in)
+// (POST /api/guest-links/{token})
+func (_ Unimplemented) JoinGuestLink(w http.ResponseWriter, r *http.Request, token string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9133,6 +9225,93 @@ func (siw *ServerInterfaceWrapper) SetChannelGroups(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListGuestLinks operation middleware
+func (siw *ServerInterfaceWrapper) ListGuestLinks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGuestLinks(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateGuestLink operation middleware
+func (siw *ServerInterfaceWrapper) CreateGuestLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateGuestLink(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeGuestLink operation middleware
+func (siw *ServerInterfaceWrapper) RevokeGuestLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "link_id" -------------
+	var linkId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "link_id", chi.URLParam(r, "link_id"), &linkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "link_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeGuestLink(w, r, channelId, linkId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // JoinChannel operation middleware
 func (siw *ServerInterfaceWrapper) JoinChannel(w http.ResponseWriter, r *http.Request) {
 
@@ -11018,6 +11197,58 @@ func (siw *ServerInterfaceWrapper) SubmitForm(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SubmitForm(w, r, formId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuestLink operation middleware
+func (siw *ServerInterfaceWrapper) GetGuestLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", chi.URLParam(r, "token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuestLink(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// JoinGuestLink operation middleware
+func (siw *ServerInterfaceWrapper) JoinGuestLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", chi.URLParam(r, "token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.JoinGuestLink(w, r, token)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15305,6 +15536,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/workspaces/{workspace_id}/invites/{invite_id}", wrapper.RevokeInvite)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/guest-links", wrapper.ListGuestLinks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/guest-links", wrapper.CreateGuestLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/channels/{channel_id}/guest-links/{link_id}", wrapper.RevokeGuestLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/guest-links/{token}", wrapper.GetGuestLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/guest-links/{token}", wrapper.JoinGuestLink)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/invites/{token}", wrapper.GetInvite)

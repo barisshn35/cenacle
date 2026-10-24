@@ -473,6 +473,7 @@ const SCHEME = {
   custom_emoji: ['admin', 'member'],
   broadcast_mentions: ['admin', 'member', 'guest'],
   group_mentions: ['admin', 'member', 'guest'],
+  guest_links: ['admin'],
 };
 
 export async function mockApi(

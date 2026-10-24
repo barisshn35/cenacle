@@ -27,6 +27,7 @@ const (
 	PermEmoji          = "custom_emoji"
 	PermBroadcast      = "broadcast_mentions"
 	PermGroupMentions  = "group_mentions"
+	PermGuestLinks     = "guest_links"
 )
 
 // Roles a permission scheme names (owners always may).
@@ -40,6 +41,7 @@ var DefaultPermissions = map[string][]string{
 	PermEmoji:          {WorkspaceAdmin, WorkspaceMember},
 	PermBroadcast:      {WorkspaceAdmin, WorkspaceMember, WorkspaceGuest},
 	PermGroupMentions:  {WorkspaceAdmin, WorkspaceMember, WorkspaceGuest},
+	PermGuestLinks:     {WorkspaceAdmin},
 }
 
 // Permissions are a workspace's scheme: each permission's roles.
@@ -82,7 +84,7 @@ func (p Permissions) can(role string) []string {
 }
 
 var permissionOrder = []string{
-	PermCreateChannels, PermInvite, PermCategories, PermEmoji, PermBroadcast, PermGroupMentions,
+	PermCreateChannels, PermInvite, PermCategories, PermEmoji, PermBroadcast, PermGroupMentions, PermGuestLinks,
 }
 
 // requirePermission answers 403 unless the user's role in the workspace may.

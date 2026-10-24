@@ -2391,7 +2391,8 @@
       "manage_categories": "Kategorileri düzenleme",
       "custom_emoji": "Özel emoji ekleme",
       "broadcast_mentions": "Herkesi anma",
-      "group_mentions": "Grupları anma"
+      "group_mentions": "Grupları anma",
+      "guest_links": "Misafir bağlantısı oluşturma"
     },
     "hints": {
       "create_channels": "Bu çalışma alanının herkese açık ve özel kanalları.",
@@ -2399,7 +2400,8 @@
       "manage_categories": "Kategori oluşturma ve kanalları kategoriler arasında taşıma.",
       "custom_emoji": "Buradaki herkesin kullanabileceği emoji yükleme.",
       "broadcast_mentions": "@channel, @here ve @all kanaldaki herkese bildirim gönderir.",
-      "group_mentions": "Bir grubu anmak grubun kişilerine bildirim gönderir."
+      "group_mentions": "Bir grubu anmak grubun kişilerine bildirim gönderir.",
+      "guest_links": "Kanal yöneticileri, dışarıdan birinin parolayla ve bir süreliğine tek bir kanala katılmasına izin verir."
     }
   },
   "moderation": {
@@ -2413,5 +2415,42 @@
     },
     "everyone": "Herkes",
     "managers": "Yalnızca yöneticiler"
+  },
+  "guestLinks": {
+    "title": "Misafir bağlantıları",
+    "hint": "Dışarıdan biri bağlantı ve parolasıyla, bağlantı sona erene kadar yalnızca bu kanala katılır. Hesap gerekmez.",
+    "name": "Kimin için (isteğe bağlı)",
+    "password": "Parola",
+    "passwordHint": "En az 8 karakter. Bağlantıdan ayrı gönderin.",
+    "expires": "Sona erme",
+    "hours": {
+      "1": "1 saat",
+      "24": "1 gün",
+      "168": "1 hafta",
+      "720": "30 gün"
+    },
+    "maxUses": "En fazla kişi",
+    "unlimited": "Sınırsız",
+    "create": "Misafir bağlantısı oluştur",
+    "created": "Misafir bağlantısı",
+    "createdHint": "Şimdi kopyalayın; yeniden gösterilmez.",
+    "copy": "Misafir bağlantısını kopyala",
+    "copied": "Bağlantı kopyalandı.",
+    "copyFailed": "Kopyalanamadı; bağlantıyı seçip kopyalayın.",
+    "unnamed": "Misafir bağlantısı",
+    "until": "{{time}} tarihine kadar",
+    "guests_one": "{{count}} misafir",
+    "guests_other": "{{count}} misafir",
+    "revoke": "Bağlantıyı sonlandır",
+    "revoked": "Bağlantı sonlandırıldı; misafirleri kanaldan ayrıldı.",
+    "joinTitle": "#{{channel}} kanalına katıl",
+    "joinSubtitle": "{{time}} tarihine kadar {{workspace}} misafiri.",
+    "yourName": "Adınız",
+    "join": "Misafir olarak katıl",
+    "joinNote": "Yalnızca bu kanalı ve kişilerini görürsünüz. Bağlantı sona erince ayrılırsınız.",
+    "wrongPassword": "Parola doğru değil.",
+    "invalidTitle": "Bu misafir bağlantısı artık çalışmıyor.",
+    "invalidReason": "Süresi doldu, kullanım sınırına ulaştı ya da kanal yöneticileri sonlandırdı.",
+    "askAgain": "Gönderen kişiden yeni bir bağlantı isteyin."
   }
 }

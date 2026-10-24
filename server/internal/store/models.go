@@ -359,6 +359,20 @@ type FormSubmission struct {
 	CreatedAt   time.Time   `json:"created_at"`
 }
 
+type GuestLink struct {
+	ID           pgtype.UUID        `json:"id"`
+	ChannelID    pgtype.UUID        `json:"channel_id"`
+	Name         string             `json:"name"`
+	TokenHash    []byte             `json:"token_hash"`
+	PasswordHash string             `json:"password_hash"`
+	CreatedBy    pgtype.UUID        `json:"created_by"`
+	CreatedAt    time.Time          `json:"created_at"`
+	ExpiresAt    time.Time          `json:"expires_at"`
+	MaxUses      pgtype.Int4        `json:"max_uses"`
+	Uses         int32              `json:"uses"`
+	RevokedAt    pgtype.Timestamptz `json:"revoked_at"`
+}
+
 type IncomingWebhook struct {
 	ID         pgtype.UUID        `json:"id"`
 	BotID      pgtype.UUID        `json:"bot_id"`
@@ -749,6 +763,7 @@ type User struct {
 	UsernameFromDirectory bool               `json:"username_from_directory"`
 	TermsAcceptedID       pgtype.UUID        `json:"terms_accepted_id"`
 	ShareReadReceipts     bool               `json:"share_read_receipts"`
+	GuestLinkID           pgtype.UUID        `json:"guest_link_id"`
 }
 
 type UserFont struct {

@@ -852,6 +852,74 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/guest-links': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** The channel's guest links that still work (its managers) */
+    get: operations['listGuestLinks'];
+    put?: never;
+    /**
+     * Let someone from outside join this channel for a while, with a password
+     * @description The channel's managers, when the workspace's permission scheme lets their role
+     *     (guest_links). The link is shown once.
+     */
+    post: operations['createGuestLink'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/guest-links/{link_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        link_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** End a guest link; the people who came with it leave */
+    delete: operations['revokeGuestLink'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/guest-links/{token}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    /** What a guest link leads to (no sign-in) */
+    get: operations['getGuestLink'];
+    put?: never;
+    /**
+     * Join the channel of a guest link with its password (no sign-in)
+     * @description Starts a session that ends with the link (its expiry or revocation). Wrong
+     *     passwords are limited per link and address.
+     */
+    post: operations['joinGuestLink'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/invites/{token}': {
     parameters: {
       query?: never;
@@ -4981,7 +5049,8 @@ export interface components {
       /**
        * @description The workspace's permission scheme: each permission's roles (owners may
        *     always). Permissions are create_channels, invite_people,
-       *     manage_categories, custom_emoji, broadcast_mentions and group_mentions.
+       *     manage_categories, custom_emoji, broadcast_mentions, group_mentions and
+       *     guest_links.
        */
       permissions?: {
         [key: string]: string[];
@@ -5003,6 +5072,27 @@ export interface components {
       expires_at: string;
       max_uses: number | null;
       uses: number;
+    };
+    GuestLink: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      max_uses: number | null;
+      uses: number;
+      /** @description People in the channel through this link. */
+      guests: number;
+    };
+    GuestLinkPreview: {
+      channel_name: string;
+      workspace_name: string;
+      /** @description False when expired */
+      valid: boolean;
+      /** Format: date-time */
+      expires_at: string;
     };
     InvitePreview: {
       /** Format: uuid */
@@ -7400,6 +7490,157 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+    };
+  };
+  listGuestLinks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Links, newest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            links: components['schemas']['GuestLink'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createGuestLink: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Who or what the link is for. */
+          name?: string;
+          expires_in_hours: number;
+          password: string;
+          max_uses?: number;
+        };
+      };
+    };
+    responses: {
+      /** @description The link, with its token (shown only now). */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            link: components['schemas']['GuestLink'];
+            token: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  revokeGuestLink: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        link_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revoked. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getGuestLink: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The channel and whether the link can be used. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GuestLinkPreview'];
+        };
+      };
+      404: components['responses']['Problem'];
+    };
+  };
+  joinGuestLink: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description Your name as others see it. */
+          name: string;
+          password: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Joined; the session cookie is set. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** Format: uuid */
+            channel_id: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      410: components['responses']['Problem'];
+      429: components['responses']['Problem'];
     };
   };
   getInvite: {

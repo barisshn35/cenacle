@@ -85,6 +85,9 @@ const (
 	SessionPolicyChanged           = "instance.session_policy_changed"
 	FederationPolicyChanged        = "instance.federation_policy_changed"
 	FederationRefused              = "federation.refused"
+	GuestLinkCreated               = "guest_link.created"
+	GuestLinkRevoked               = "guest_link.revoked"
+	GuestLinkJoined                = "guest_link.joined"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

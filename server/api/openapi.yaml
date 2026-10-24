@@ -1384,6 +1384,123 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/guest-links:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listGuestLinks
+      summary: The channel's guest links that still work (its managers)
+      responses:
+        '200':
+          description: Links, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [links]
+                properties:
+                  links:
+                    type: array
+                    items: { $ref: '#/components/schemas/GuestLink' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: createGuestLink
+      summary: Let someone from outside join this channel for a while, with a password
+      description: |
+        The channel's managers, when the workspace's permission scheme lets their role
+        (guest_links). The link is shown once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expires_in_hours, password]
+              properties:
+                name: { type: string, maxLength: 80, description: Who or what the link is for. }
+                expires_in_hours: { type: integer, minimum: 1, maximum: 720 }
+                password: { type: string, minLength: 8, maxLength: 200 }
+                max_uses: { type: integer, minimum: 1, maximum: 1000 }
+      responses:
+        '201':
+          description: The link, with its token (shown only now).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [link, token]
+                properties:
+                  link: { $ref: '#/components/schemas/GuestLink' }
+                  token: { type: string }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/guest-links/{link_id}:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: link_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: revokeGuestLink
+      summary: End a guest link; the people who came with it leave
+      responses:
+        '204': { description: Revoked. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/guest-links/{token}:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string, maxLength: 100 } }
+    get:
+      tags: [chat]
+      operationId: getGuestLink
+      summary: What a guest link leads to (no sign-in)
+      security: []
+      responses:
+        '200':
+          description: The channel and whether the link can be used.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GuestLinkPreview' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: joinGuestLink
+      summary: Join the channel of a guest link with its password (no sign-in)
+      description: |
+        Starts a session that ends with the link (its expiry or revocation). Wrong
+        passwords are limited per link and address.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, password]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80, description: Your name as others see it. }
+                password: { type: string, maxLength: 200 }
+      responses:
+        '201':
+          description: Joined; the session cookie is set.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [channel_id]
+                properties:
+                  channel_id: { type: string, format: uuid }
+        '400': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '410': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
   /api/invites/{token}:
     parameters:
       - name: token
@@ -7338,7 +7455,8 @@ components:
           description: |
             The workspace's permission scheme: each permission's roles (owners may
             always). Permissions are create_channels, invite_people,
-            manage_categories, custom_emoji, broadcast_mentions and group_mentions.
+            manage_categories, custom_emoji, broadcast_mentions, group_mentions and
+            guest_links.
           additionalProperties:
             type: array
             items: { type: string }
@@ -7361,6 +7479,25 @@ components:
         expires_at: { type: string, format: date-time }
         max_uses: { type: integer, nullable: true }
         uses: { type: integer }
+    GuestLink:
+      type: object
+      required: [id, name, created_at, expires_at, max_uses, uses, guests]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        max_uses: { type: integer, nullable: true }
+        uses: { type: integer }
+        guests: { type: integer, description: People in the channel through this link. }
+    GuestLinkPreview:
+      type: object
+      required: [channel_name, workspace_name, valid, expires_at]
+      properties:
+        channel_name: { type: string }
+        workspace_name: { type: string }
+        valid: { type: boolean, description: False when expired, used up or revoked. }
+        expires_at: { type: string, format: date-time }
     InvitePreview:
       type: object
       required: [workspace_id, workspace_name, valid, is_member]

@@ -2391,7 +2391,8 @@
       "manage_categories": "Organize categories",
       "custom_emoji": "Add custom emoji",
       "broadcast_mentions": "Mention everyone",
-      "group_mentions": "Mention groups"
+      "group_mentions": "Mention groups",
+      "guest_links": "Create guest links"
     },
     "hints": {
       "create_channels": "Public and private channels of this workspace.",
@@ -2399,7 +2400,8 @@
       "manage_categories": "Create categories and move channels between them.",
       "custom_emoji": "Upload emoji everyone here can use.",
       "broadcast_mentions": "@channel, @here and @all notify everyone in a channel.",
-      "group_mentions": "Mentioning a group notifies its people."
+      "group_mentions": "Mentioning a group notifies its people.",
+      "guest_links": "Channel managers let someone from outside join one channel for a while, with a password."
     }
   },
   "moderation": {
@@ -2413,5 +2415,42 @@
     },
     "everyone": "Everyone",
     "managers": "Managers only"
+  },
+  "guestLinks": {
+    "title": "Guest links",
+    "hint": "Someone from outside joins only this channel, with the link and its password, until the link ends. No account is needed.",
+    "name": "For whom (optional)",
+    "password": "Password",
+    "passwordHint": "At least 8 characters. Send it separately from the link.",
+    "expires": "Ends after",
+    "hours": {
+      "1": "1 hour",
+      "24": "1 day",
+      "168": "1 week",
+      "720": "30 days"
+    },
+    "maxUses": "People at most",
+    "unlimited": "No limit",
+    "create": "Create guest link",
+    "created": "Guest link",
+    "createdHint": "Copy it now; it is not shown again.",
+    "copy": "Copy guest link",
+    "copied": "Link copied.",
+    "copyFailed": "Could not copy; select the link and copy it.",
+    "unnamed": "Guest link",
+    "until": "until {{time}}",
+    "guests_one": "{{count}} guest",
+    "guests_other": "{{count}} guests",
+    "revoke": "End link",
+    "revoked": "The link ended; its guests left the channel.",
+    "joinTitle": "Join #{{channel}}",
+    "joinSubtitle": "A guest of {{workspace}} until {{time}}.",
+    "yourName": "Your name",
+    "join": "Join as a guest",
+    "joinNote": "You see only this channel and its people. You leave when the link ends.",
+    "wrongPassword": "The password is not right.",
+    "invalidTitle": "This guest link no longer works.",
+    "invalidReason": "It ended, was used up or was ended by the channel's managers.",
+    "askAgain": "Ask whoever sent it for a new link."
   }
 }
