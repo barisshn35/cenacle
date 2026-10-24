@@ -866,6 +866,38 @@ paths:
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/federation-policy:
+    get:
+      tags: [admin]
+      operationId: getFederationPolicy
+      summary: Which servers workspaces may connect to (instance administrators)
+      responses:
+        '200':
+          description: The policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FederationPolicy' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [admin]
+      operationId: setFederationPolicy
+      summary: Set which servers workspaces may connect to
+      description: Connections to servers it leaves out stop sending and receiving.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FederationPolicy' }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FederationPolicy' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/admin/web-app:
     get:
       tags: [meta]
@@ -1618,6 +1650,10 @@ paths:
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: prefix
+          in: query
+          schema: { type: string, maxLength: 60 }
+          description: Only actions starting with this (federation. for the federation activity).
       responses:
         '200':
           description: Events, newest first.
@@ -6129,16 +6165,17 @@ paths:
     patch:
       tags: [federation]
       operationId: updateFederationConnection
-      summary: Pause or resume a connection (owners and admins)
+      summary: Pause or resume a connection, or change what it takes in (owners and admins)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [enabled]
+              minProperties: 1
               properties:
                 enabled: { type: boolean }
+                policy: { $ref: '#/components/schemas/ConnectionPolicy' }
       responses:
         '200':
           description: The connection.
@@ -6318,6 +6355,7 @@ components:
         status: { type: string, enum: [pending, active, disabled] }
         last_error: { type: string }
         last_seen_at: { type: string, format: date-time, nullable: true }
+        policy: { $ref: '#/components/schemas/ConnectionPolicy' }
         shared:
           type: array
           items:
@@ -6327,6 +6365,28 @@ components:
               channel_id: { type: string, format: uuid }
               channel_name: { type: string }
               status: { type: string, enum: [offered, active] }
+    ConnectionPolicy:
+      type: object
+      description: What this server takes in from the other one, and how often it may send.
+      required: [receive_messages, receive_reactions, receive_edits, requests_per_minute]
+      properties:
+        receive_messages: { type: boolean, description: New messages of its people. }
+        receive_reactions: { type: boolean }
+        receive_edits: { type: boolean, description: Edits and deletions of its people's messages. }
+        requests_per_minute: { type: integer, minimum: 1, maximum: 6000 }
+    FederationPolicy:
+      type: object
+      required: [mode, servers]
+      properties:
+        mode:
+          type: string
+          enum: [open, allow, deny]
+          description: Every server, only the listed ones, or all but the listed ones.
+        servers:
+          type: array
+          maxItems: 500
+          description: Host names, optionally with a port; *.example.com covers its subdomains.
+          items: { type: string }
     ChannelOffer:
       type: object
       required: [id, connection_id, connection_name, name, topic, created_at]

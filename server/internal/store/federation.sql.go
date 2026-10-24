@@ -41,7 +41,7 @@ func (q *Queries) AcceptSharedChannel(ctx context.Context, arg AcceptSharedChann
 const activateFederationConnection = `-- name: ActivateFederationConnection :one
 UPDATE federation_connections SET remote_id = $1, status = 'active', last_error = ''
 WHERE id = $2
-RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at
+RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute
 `
 
 type ActivateFederationConnectionParams struct {
@@ -64,6 +64,10 @@ func (q *Queries) ActivateFederationConnection(ctx context.Context, arg Activate
 		&i.LastSeenAt,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.ReceiveMessages,
+		&i.ReceiveReactions,
+		&i.ReceiveEdits,
+		&i.RequestsPerMinute,
 	)
 	return i, err
 }
@@ -171,7 +175,7 @@ func (q *Queries) CreateActiveSharedChannel(ctx context.Context, arg CreateActiv
 const createFederationConnection = `-- name: CreateFederationConnection :one
 INSERT INTO federation_connections (workspace_id, name, url, secret, remote_id, status, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at
+RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute
 `
 
 type CreateFederationConnectionParams struct {
@@ -207,6 +211,10 @@ func (q *Queries) CreateFederationConnection(ctx context.Context, arg CreateFede
 		&i.LastSeenAt,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.ReceiveMessages,
+		&i.ReceiveReactions,
+		&i.ReceiveEdits,
+		&i.RequestsPerMinute,
 	)
 	return i, err
 }
@@ -322,7 +330,7 @@ func (q *Queries) GetChannelOffer(ctx context.Context, id pgtype.UUID) (ChannelO
 }
 
 const getFederationConnection = `-- name: GetFederationConnection :one
-SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at FROM federation_connections WHERE id = $1
+SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute FROM federation_connections WHERE id = $1
 `
 
 func (q *Queries) GetFederationConnection(ctx context.Context, id pgtype.UUID) (FederationConnection, error) {
@@ -340,6 +348,10 @@ func (q *Queries) GetFederationConnection(ctx context.Context, id pgtype.UUID) (
 		&i.LastSeenAt,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.ReceiveMessages,
+		&i.ReceiveReactions,
+		&i.ReceiveEdits,
+		&i.RequestsPerMinute,
 	)
 	return i, err
 }
@@ -488,7 +500,7 @@ func (q *Queries) ListChannelShares(ctx context.Context, channelID pgtype.UUID) 
 }
 
 const listFederationConnections = `-- name: ListFederationConnections :many
-SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at FROM federation_connections WHERE workspace_id = $1 ORDER BY lower(name)
+SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute FROM federation_connections WHERE workspace_id = $1 ORDER BY lower(name)
 `
 
 func (q *Queries) ListFederationConnections(ctx context.Context, workspaceID pgtype.UUID) ([]FederationConnection, error) {
@@ -512,6 +524,10 @@ func (q *Queries) ListFederationConnections(ctx context.Context, workspaceID pgt
 			&i.LastSeenAt,
 			&i.CreatedBy,
 			&i.CreatedAt,
+			&i.ReceiveMessages,
+			&i.ReceiveReactions,
+			&i.ReceiveEdits,
+			&i.RequestsPerMinute,
 		); err != nil {
 			return nil, err
 		}
@@ -639,8 +655,52 @@ func (q *Queries) RetryFederationDeliveries(ctx context.Context, ids []pgtype.UU
 	return err
 }
 
+const setFederationConnectionPolicy = `-- name: SetFederationConnectionPolicy :one
+UPDATE federation_connections SET receive_messages = $1, receive_reactions = $2,
+    receive_edits = $3, requests_per_minute = $4
+WHERE id = $5
+RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute
+`
+
+type SetFederationConnectionPolicyParams struct {
+	ReceiveMessages   bool        `json:"receive_messages"`
+	ReceiveReactions  bool        `json:"receive_reactions"`
+	ReceiveEdits      bool        `json:"receive_edits"`
+	RequestsPerMinute int32       `json:"requests_per_minute"`
+	ID                pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) SetFederationConnectionPolicy(ctx context.Context, arg SetFederationConnectionPolicyParams) (FederationConnection, error) {
+	row := q.db.QueryRow(ctx, setFederationConnectionPolicy,
+		arg.ReceiveMessages,
+		arg.ReceiveReactions,
+		arg.ReceiveEdits,
+		arg.RequestsPerMinute,
+		arg.ID,
+	)
+	var i FederationConnection
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Url,
+		&i.Secret,
+		&i.RemoteID,
+		&i.Status,
+		&i.LastError,
+		&i.LastSeenAt,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.ReceiveMessages,
+		&i.ReceiveReactions,
+		&i.ReceiveEdits,
+		&i.RequestsPerMinute,
+	)
+	return i, err
+}
+
 const setFederationConnectionStatus = `-- name: SetFederationConnectionStatus :one
-UPDATE federation_connections SET status = $1 WHERE id = $2 RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at
+UPDATE federation_connections SET status = $1 WHERE id = $2 RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute
 `
 
 type SetFederationConnectionStatusParams struct {
@@ -663,6 +723,10 @@ func (q *Queries) SetFederationConnectionStatus(ctx context.Context, arg SetFede
 		&i.LastSeenAt,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.ReceiveMessages,
+		&i.ReceiveReactions,
+		&i.ReceiveEdits,
+		&i.RequestsPerMinute,
 	)
 	return i, err
 }

@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -109,6 +110,7 @@ func hashToken(t string) []byte {
 func connectionAPI(c store.FederationConnection, shared []store.ListSharedChannelsRow) api.FederationConnection {
 	out := api.FederationConnection{Id: uuid(c.ID), Name: c.Name, Url: c.Url,
 		Status: api.FederationConnectionStatus(c.Status), LastError: c.LastError, LastSeenAt: timeOf(c.LastSeenAt),
+		Policy: ptr(connectionPolicyAPI(c)),
 		Shared: []struct {
 			ChannelId   openapi_types.UUID                   `json:"channel_id"`
 			ChannelName string                               `json:"channel_name"`
@@ -227,6 +229,13 @@ func (h *Handlers) ConnectFederation(w http.ResponseWriter, r *http.Request, wor
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadGateway, Code: CodeFederation, Detail: "This server cannot reach others."})
 		return
 	}
+	if allowed, err := serverAllowed(r.Context(), h.Queries, code.URL); err != nil {
+		h.unavailable(w, r, "federation policy", err)
+		return
+	} else if !allowed {
+		federationDenied(w, r, code.URL)
+		return
+	}
 	conn, err := h.Queries.CreateFederationConnection(r.Context(), store.CreateFederationConnectionParams{
 		WorkspaceID: pgUUID(workspaceID), Name: name, Url: strings.TrimRight(code.URL, "/"), Secret: code.Secret,
 		Status: "pending", CreatedBy: p.User.ID,
@@ -325,16 +334,33 @@ func (h *Handlers) UpdateFederationConnection(w http.ResponseWriter, r *http.Req
 		badRequest(w, r, "The connection is not set up yet.")
 		return
 	}
-	status := "disabled"
-	if in.Enabled {
-		status = "active"
-	}
-	c, err := h.Queries.SetFederationConnectionStatus(r.Context(), store.SetFederationConnectionStatusParams{ID: c.ID, Status: status})
-	if err != nil {
-		h.unavailable(w, r, "update connection", err)
+	if in.Policy != nil && (in.Policy.RequestsPerMinute < 1 || in.Policy.RequestsPerMinute > 6000) {
+		badRequest(w, r, "requests_per_minute is 1 to 6000.")
 		return
 	}
-	h.record(r, c.WorkspaceID, audit.FederationChanged, "workspace", uuid(c.WorkspaceID).String(), map[string]any{"change": status, "name": c.Name})
+	var err error
+	if in.Enabled != nil {
+		status := "disabled"
+		if *in.Enabled {
+			status = "active"
+		}
+		if c, err = h.Queries.SetFederationConnectionStatus(r.Context(), store.SetFederationConnectionStatusParams{ID: c.ID, Status: status}); err != nil {
+			h.unavailable(w, r, "update connection", err)
+			return
+		}
+		h.record(r, c.WorkspaceID, audit.FederationChanged, "workspace", uuid(c.WorkspaceID).String(), map[string]any{"change": status, "name": c.Name})
+	}
+	if pol := in.Policy; pol != nil {
+		if c, err = h.Queries.SetFederationConnectionPolicy(r.Context(), store.SetFederationConnectionPolicyParams{
+			ID: c.ID, ReceiveMessages: pol.ReceiveMessages, ReceiveReactions: pol.ReceiveReactions,
+			ReceiveEdits: pol.ReceiveEdits, RequestsPerMinute: int32(pol.RequestsPerMinute), //nolint:gosec // checked above
+		}); err != nil {
+			h.unavailable(w, r, "update connection", err)
+			return
+		}
+		h.record(r, c.WorkspaceID, audit.FederationChanged, "workspace", uuid(c.WorkspaceID).String(),
+			map[string]any{"change": "policy", "name": c.Name, "policy": pol})
+	}
 	shared, _ := h.Queries.ListSharedChannels(r.Context(), c.ID)
 	httpx.WriteJSON(w, http.StatusOK, connectionAPI(c, shared))
 }
@@ -605,6 +631,15 @@ func (h *Handlers) FederationConnect(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, r, "The request names no server address or connection.")
 		return
 	}
+	if allowed, err := serverAllowed(r.Context(), h.Queries, in.URL); err != nil {
+		h.unavailable(w, r, "federation policy", err)
+		return
+	} else if !allowed {
+		h.record(r, inv.WorkspaceID, audit.FederationRefused, "workspace", uuid(inv.WorkspaceID).String(),
+			map[string]any{"server": serverHost(in.URL), "reason": "policy"})
+		federationDenied(w, r, in.URL)
+		return
+	}
 	var conn store.FederationConnection
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
 		if _, err := q.UseFederationInvite(r.Context(), hashToken(in.Token)); err != nil {
@@ -651,6 +686,22 @@ func (h *Handlers) FederationEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	if conn.Status != "active" {
 		forbidden(w, r, CodeFederation, "This connection is paused here.")
+		return
+	}
+	if allowed, err := serverAllowed(r.Context(), h.Queries, conn.Url); err != nil {
+		h.unavailable(w, r, "federation policy", err)
+		return
+	} else if !allowed {
+		federationDenied(w, r, conn.Url)
+		return
+	}
+	if over, wait, err := h.overRate(r.Context(), conn); err != nil {
+		h.unavailable(w, r, "federation rate", err)
+		return
+	} else if over {
+		w.Header().Set("Retry-After", strconv.Itoa(max(1, int(wait.Seconds()))))
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusTooManyRequests, Code: httpx.CodeRateLimited,
+			Detail: "This connection sends more than its limit; try again later."})
 		return
 	}
 	var in struct {
@@ -713,6 +764,9 @@ func (h *Handlers) applyFederated(ctx context.Context, q *store.Queries, conn st
 	c, err := q.GetChannel(ctx, share.ChannelID)
 	if err != nil {
 		return err
+	}
+	if !takes(conn, ev.Type) {
+		return nil // this server's policy for the connection leaves it out
 	}
 	switch ev.Type {
 	case events.MessageCreated:
@@ -1015,6 +1069,13 @@ func (f *FederationSender) send(ctx context.Context, id pgtype.UUID) (int, error
 	conn, err := f.Queries.GetFederationConnection(ctx, id)
 	if err != nil {
 		return 0, err
+	}
+	if allowed, err := serverAllowed(ctx, f.Queries, conn.Url); err != nil {
+		return 0, err
+	} else if !allowed {
+		// Kept until the policy allows the server again (or the connection goes).
+		return 0, f.Queries.SetFederationError(ctx, store.SetFederationErrorParams{ID: id,
+			LastError: "This server's federation policy does not allow " + serverHost(conn.Url) + "."})
 	}
 	n := 0
 	err = inTx(ctx, f.DB, func(q *store.Queries) error {

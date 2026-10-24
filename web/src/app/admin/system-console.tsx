@@ -5,6 +5,7 @@ import {
   BotIcon,
   BuildingIcon,
   GaugeIcon,
+  GlobeIcon,
   LogOutIcon,
   ShieldIcon,
   UsersIcon,
@@ -33,8 +34,16 @@ type AdminWorkspace = components['schemas']['AdminWorkspace'];
 type AdminBot = components['schemas']['AdminBot'];
 type Policy = components['schemas']['NotificationPolicy'];
 type SessionPolicy = components['schemas']['SessionPolicy'];
+type FederationPolicy = components['schemas']['FederationPolicy'];
 type Section =
-  'overview' | 'people' | 'workspaces' | 'bots' | 'jobs' | 'notifications' | 'security';
+  | 'overview'
+  | 'people'
+  | 'workspaces'
+  | 'bots'
+  | 'jobs'
+  | 'notifications'
+  | 'security'
+  | 'federation';
 
 const json = (method: string, body: unknown): RequestInit => ({
   method,
@@ -85,6 +94,7 @@ export function SystemConsole({ onOpenChange }: { onOpenChange: (open: boolean) 
               { key: 'jobs', label: t('console.names.jobs'), icon: ActivityIcon },
               { key: 'notifications', label: t('console.names.notifications'), icon: BellIcon },
               { key: 'security', label: t('console.names.security'), icon: ShieldIcon },
+              { key: 'federation', label: t('console.names.federation'), icon: GlobeIcon },
             ],
           },
         ]}
@@ -97,6 +107,7 @@ export function SystemConsole({ onOpenChange }: { onOpenChange: (open: boolean) 
           {section === 'jobs' && <JobsPanel overview={overview.data} />}
           {section === 'notifications' && <NotificationsPanel />}
           {section === 'security' && <SecurityPanel />}
+          {section === 'federation' && <FederationPolicyPanel />}
         </div>
       </SideNavDialog>
     </Dialog>
@@ -618,6 +629,104 @@ function SecurityForm({
       <div>
         <Button type="submit" disabled={save.isPending}>
           {t('console.security.save')}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Which servers the workspaces may connect to. */
+function FederationPolicyPanel() {
+  const queryClient = useQueryClient();
+  const policy = useQuery({
+    queryKey: ['admin', 'federation-policy'],
+    queryFn: () => apiFetch<FederationPolicy>('/api/admin/federation-policy'),
+  });
+  if (!policy.data) return <Skeleton className="h-40" />;
+  return (
+    <FederationPolicyForm
+      policy={policy.data}
+      onSaved={(p) => queryClient.setQueryData(['admin', 'federation-policy'], p)}
+    />
+  );
+}
+
+function FederationPolicyForm({
+  policy,
+  onSaved,
+}: {
+  policy: FederationPolicy;
+  onSaved: (p: FederationPolicy) => void;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  const [mode, setMode] = useState(policy.mode);
+  const [servers, setServers] = useState(policy.servers.join('\n'));
+  const save = useMutation({
+    mutationFn: () =>
+      apiFetch<FederationPolicy>(
+        '/api/admin/federation-policy',
+        json('PUT', {
+          mode,
+          servers: servers
+            .split(/[\n,]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+        }),
+      ),
+    onSuccess: (p) => {
+      onSaved(p);
+      toast.success(t('console.federation.saved'));
+    },
+  });
+  const problem = save.error instanceof ApiError ? save.error.problem : undefined;
+  return (
+    <form
+      className="flex max-w-xl flex-col gap-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-sm font-semibold">{t('console.federation.mode')}</legend>
+        {(['open', 'allow', 'deny'] as const).map((m) => (
+          <div key={m} className="flex min-h-target items-start gap-2.5 text-sm">
+            <input
+              id={`${id}-${m}`}
+              type="radio"
+              name={`${id}-mode`}
+              className="mt-1 size-4"
+              checked={mode === m}
+              onChange={() => setMode(m)}
+            />
+            <label htmlFor={`${id}-${m}`}>{t(`console.federation.${m}`)}</label>
+          </div>
+        ))}
+      </fieldset>
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${id}-servers`}>{t('console.federation.servers')}</Label>
+        <textarea
+          id={`${id}-servers`}
+          className="min-h-24 rounded-md border bg-background px-3 py-2 font-mono text-sm"
+          value={servers}
+          spellCheck={false}
+          disabled={mode === 'open'}
+          aria-describedby={`${id}-servers-hint`}
+          onChange={(e) => setServers(e.target.value)}
+        />
+        <p id={`${id}-servers-hint`} className="text-xs text-muted-foreground">
+          {t('console.federation.serversHint')}
+        </p>
+      </div>
+      {problem && (
+        <p role="alert" className="text-sm text-destructive">
+          {problem.detail ?? t('console.changeFailed')}
+        </p>
+      )}
+      <div>
+        <Button type="submit" disabled={save.isPending}>
+          {t('console.federation.save')}
         </Button>
       </div>
     </form>

@@ -46,14 +46,16 @@ FROM audit_events e
 LEFT JOIN users u ON u.id = e.actor_id
 WHERE e.workspace_id = $1
   AND ($2::uuid IS NULL OR e.id < $2::uuid)
+  AND ($3::text = '' OR starts_with(e.action, $3::text))
 ORDER BY e.id DESC
-LIMIT $3
+LIMIT $4
 `
 
 type ListWorkspaceAuditParams struct {
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	Before      pgtype.UUID `json:"before"`
-	RowLimit    int32       `json:"row_limit"`
+	WorkspaceID  pgtype.UUID `json:"workspace_id"`
+	Before       pgtype.UUID `json:"before"`
+	ActionPrefix string      `json:"action_prefix"`
+	RowLimit     int32       `json:"row_limit"`
 }
 
 type ListWorkspaceAuditRow struct {
@@ -71,7 +73,12 @@ type ListWorkspaceAuditRow struct {
 
 // ListWorkspaceAudit returns a workspace's events newest first, before a cursor.
 func (q *Queries) ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAuditParams) ([]ListWorkspaceAuditRow, error) {
-	rows, err := q.db.Query(ctx, listWorkspaceAudit, arg.WorkspaceID, arg.Before, arg.RowLimit)
+	rows, err := q.db.Query(ctx, listWorkspaceAudit,
+		arg.WorkspaceID,
+		arg.Before,
+		arg.ActionPrefix,
+		arg.RowLimit,
+	)
 	if err != nil {
 		return nil, err
 	}

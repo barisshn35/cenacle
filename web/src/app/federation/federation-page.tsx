@@ -25,6 +25,7 @@ import {
   type FederationConnection,
 } from './federation';
 import { dateLocale } from '../../i18n/time-format';
+import { ConnectionPolicyForm, FederationActivity } from './connection-policy';
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   const id = useId();
@@ -70,6 +71,9 @@ export function FederationPage() {
       <div className="flex min-w-0 flex-col gap-4">
         {query.data.offers.length > 0 && <Offers ws={ws} offers={query.data.offers} />}
         <Connections ws={ws} connections={query.data.connections} />
+        <Section title={t('federation.activity.title')} hint={t('federation.activity.hint')}>
+          <FederationActivity ws={ws} />
+        </Section>
       </div>
       <div className="flex min-w-0 flex-col gap-4">
         <Invite ws={ws} />
@@ -141,7 +145,11 @@ function Connections({ ws, connections }: { ws: string; connections: FederationC
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<FederationConnection | null>(null);
-  const reload = () => queryClient.invalidateQueries({ queryKey: federationQuery(ws).queryKey });
+  const reload = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: federationQuery(ws).queryKey }),
+      queryClient.invalidateQueries({ queryKey: ['federation-activity', ws] }),
+    ]);
   const time = new Intl.DateTimeFormat(dateLocale(i18n.language), {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -201,6 +209,9 @@ function Connections({ ws, connections }: { ws: string; connections: FederationC
                   reason={c.last_error}
                   politeness="status"
                 />
+              )}
+              {c.status !== 'pending' && (
+                <ConnectionPolicyForm connection={c} onSaved={() => void reload()} />
               )}
               {c.shared.length > 0 && (
                 <p className="text-xs text-muted-foreground">

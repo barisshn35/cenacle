@@ -53,6 +53,7 @@ func (h *Handlers) ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, wo
 	}
 	rows, err := h.Queries.ListWorkspaceAudit(r.Context(), store.ListWorkspaceAuditParams{
 		WorkspaceID: pgUUID(workspaceID), Before: before, RowLimit: int32(limit + 1), //nolint:gosec // 2..101
+		ActionPrefix: deref1(params.Prefix),
 	})
 	if err != nil {
 		h.unavailable(w, r, "list audit events", err)

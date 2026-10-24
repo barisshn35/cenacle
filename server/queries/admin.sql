@@ -64,3 +64,9 @@ FROM instance_settings;
 UPDATE instance_settings SET session_max_hours = @session_max_hours, session_idle_minutes = @session_idle_minutes,
     guest_session_max_hours = @guest_session_max_hours, guest_idle_minutes = @guest_idle_minutes,
     admin_networks = @admin_networks, signin_networks = @signin_networks, updated_at = now();
+
+-- name: GetFederationPolicy :one
+SELECT federation_mode, federation_servers FROM instance_settings;
+
+-- name: SetFederationPolicy :exec
+UPDATE instance_settings SET federation_mode = @federation_mode, federation_servers = @federation_servers, updated_at = now();

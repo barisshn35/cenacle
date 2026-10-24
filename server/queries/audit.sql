@@ -9,5 +9,6 @@ FROM audit_events e
 LEFT JOIN users u ON u.id = e.actor_id
 WHERE e.workspace_id = @workspace_id
   AND (sqlc.narg(before)::uuid IS NULL OR e.id < sqlc.narg(before)::uuid)
+  AND (@action_prefix::text = '' OR starts_with(e.action, @action_prefix::text))
 ORDER BY e.id DESC
 LIMIT @row_limit;

@@ -1963,6 +1963,31 @@
       "share": "Paylaş",
       "offered": "Önerildi; kabul edince paylaşılır.",
       "stop": "{{server}} ile paylaşmayı durdur"
+    },
+    "policy": {
+      "title": "Bu bağlantının buraya gönderebilecekleri",
+      "receive_messages": "Yeni mesajlar",
+      "receive_reactions": "Tepkiler",
+      "receive_edits": "Mesajlarının düzenlenmesi ve silinmesi",
+      "rate": "Dakikada en fazla istek",
+      "save": "Kaydet",
+      "saved": "Bağlantı ayarları kaydedildi."
+    },
+    "activity": {
+      "title": "Etkinlik",
+      "hint": "Kurulan, duraklatılan ve değiştirilen bağlantılar ile reddedilen sunucular.",
+      "none": "Henüz bir şey yok.",
+      "changed": "{{name}} değişti",
+      "connected": "{{name}} ile bağlantı kuruldu",
+      "active": "{{name}} sürdürüldü",
+      "disabled": "{{name}} duraklatıldı",
+      "policy": "{{name}} bağlantısının gönderebilecekleri değişti",
+      "removed": "{{name}} kaldırıldı",
+      "refused": "{{server}} sunucusundan gelen bağlantı reddedildi (federasyon politikası)",
+      "invited": "{{name}} için davet oluşturuldu",
+      "accepted": "{{name}} tarafından paylaşılan bir kanal kabul edildi",
+      "shared": "Bir kanal {{name}} ile paylaşıldı",
+      "unshared": "Bir kanal artık {{name}} ile paylaşılmıyor"
     }
   },
   "inbox": {
@@ -2242,7 +2267,8 @@
       "bots": "Botlar",
       "jobs": "Arka plan işleri",
       "notifications": "Bildirimler",
-      "security": "Güvenlik"
+      "security": "Güvenlik",
+      "federation": "Federasyon"
     },
     "sections": {
       "overview": "Kurulumun özeti ve ayarları.",
@@ -2251,7 +2277,8 @@
       "bots": "Tüm çalışma alanlarının botları. Kapatılan bot anahtarlarını ve webhook'larını kullanamaz.",
       "jobs": "Sunucunun arka planda yaptığı işler, türlerine göre, ve son hatalar.",
       "notifications": "Uygulama dışındaki bildirimlerin ne gösterebileceği. Kilit ekranları ve gelen kutuları bunları gösterir.",
-      "security": "Oturumların ne kadar süreceği ve hangi ağlardan giriş yapılıp yönetimin kullanılabileceği."
+      "security": "Oturumların ne kadar süreceği ve hangi ağlardan giriş yapılıp yönetimin kullanılabileceği.",
+      "federation": "Çalışma alanlarının hangi diğer Cenacle sunucularına bağlanabileceği."
     },
     "counts": {
       "users": "Kişi",
@@ -2340,6 +2367,16 @@
       "networksHint": "Her satıra bir adres ya da CIDR aralığı (10.0.0.0/8, 2001:db8::/32). Boş: her ağ. Adresiniz {{address}}; listeler bunu içermelidir.",
       "save": "Kaydet",
       "saved": "Güvenlik ayarları kaydedildi."
+    },
+    "federation": {
+      "mode": "Çalışma alanları şunlara bağlanabilir",
+      "open": "Her sunucuya",
+      "allow": "Yalnızca aşağıda listelenen sunuculara",
+      "deny": "Aşağıda listelenenler dışındaki her sunucuya",
+      "servers": "Sunucular",
+      "serversHint": "Her satıra bir ana makine adı, varsa bağlantı noktasıyla (chat.example.com, *.partner.org). Dışarıda kalan sunuculara bağlantılar gönderip almayı bırakır.",
+      "save": "Kaydet",
+      "saved": "Federasyon ayarları kaydedildi."
     }
   },
   "permissions": {

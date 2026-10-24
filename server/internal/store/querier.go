@@ -283,6 +283,7 @@ type Querier interface {
 	GetEvent(ctx context.Context, id pgtype.UUID) (Event, error)
 	GetFederationConnection(ctx context.Context, id pgtype.UUID) (FederationConnection, error)
 	GetFederationInviteByHash(ctx context.Context, tokenHash []byte) (FederationInvite, error)
+	GetFederationPolicy(ctx context.Context) (GetFederationPolicyRow, error)
 	GetFile(ctx context.Context, id pgtype.UUID) (File, error)
 	// GetFileForReader returns a file with the message it belongs to (deleted
 	// messages hide their files).
@@ -678,8 +679,10 @@ type Querier interface {
 	// SetDirectoryProfile keeps a chosen @username for people without a directory one.
 	SetDirectoryProfile(ctx context.Context, arg SetDirectoryProfileParams) error
 	SetEmailNotification(ctx context.Context, arg SetEmailNotificationParams) error
+	SetFederationConnectionPolicy(ctx context.Context, arg SetFederationConnectionPolicyParams) (FederationConnection, error)
 	SetFederationConnectionStatus(ctx context.Context, arg SetFederationConnectionStatusParams) (FederationConnection, error)
 	SetFederationError(ctx context.Context, arg SetFederationErrorParams) error
+	SetFederationPolicy(ctx context.Context, arg SetFederationPolicyParams) error
 	SetGroupCreation(ctx context.Context, arg SetGroupCreationParams) error
 	// SetGuestRoles makes a person a guest wherever they are a member or an
 	// administrator (or takes it back when they are not a guest any more).

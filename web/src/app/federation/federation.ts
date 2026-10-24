@@ -34,6 +34,10 @@ export const connect = (workspaceId: string, code: string, name: string) =>
   );
 export const setConnectionEnabled = (id: string, enabled: boolean) =>
   apiFetch<FederationConnection>(`/api/federation/connections/${id}`, json({ enabled }, 'PATCH'));
+export const setConnectionPolicy = (
+  id: string,
+  policy: components['schemas']['ConnectionPolicy'],
+) => apiFetch<FederationConnection>(`/api/federation/connections/${id}`, json({ policy }, 'PATCH'));
 export const removeConnection = (id: string) =>
   apiFetch<void>(`/api/federation/connections/${id}`, { method: 'DELETE' });
 export const acceptOffer = (id: string) =>

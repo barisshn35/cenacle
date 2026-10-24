@@ -1963,6 +1963,31 @@
       "share": "Share",
       "offered": "Offered; it is shared once they accept.",
       "stop": "Stop sharing with {{server}}"
+    },
+    "policy": {
+      "title": "What this connection may send here",
+      "receive_messages": "New messages",
+      "receive_reactions": "Reactions",
+      "receive_edits": "Edits and deletions of its messages",
+      "rate": "Requests per minute at most",
+      "save": "Save",
+      "saved": "Connection settings saved."
+    },
+    "activity": {
+      "title": "Activity",
+      "hint": "Connections made, paused and changed, and servers refused.",
+      "none": "Nothing yet.",
+      "changed": "{{name}} changed",
+      "connected": "Connected to {{name}}",
+      "active": "{{name}} resumed",
+      "disabled": "{{name}} paused",
+      "policy": "What {{name}} may send changed",
+      "removed": "{{name}} removed",
+      "refused": "Refused a connection from {{server}} (federation policy)",
+      "invited": "Invitation created for {{name}}",
+      "accepted": "A channel shared by {{name}} accepted",
+      "shared": "A channel shared with {{name}}",
+      "unshared": "A channel no longer shared with {{name}}"
     }
   },
   "inbox": {
@@ -2242,7 +2267,8 @@
       "bots": "Bots",
       "jobs": "Background jobs",
       "notifications": "Notifications",
-      "security": "Security"
+      "security": "Security",
+      "federation": "Federation"
     },
     "sections": {
       "overview": "The installation at a glance and its settings.",
@@ -2251,7 +2277,8 @@
       "bots": "Every bot of every workspace. A bot turned off cannot use its tokens or webhooks.",
       "jobs": "Work the server does in the background, by kind, and the latest failures.",
       "notifications": "What notifications outside the app may show. Lock screens and inboxes show them.",
-      "security": "How long sessions last and which networks may sign in and use the administration."
+      "security": "How long sessions last and which networks may sign in and use the administration.",
+      "federation": "Which other Cenacle servers the workspaces may connect to."
     },
     "counts": {
       "users": "People",
@@ -2340,6 +2367,16 @@
       "networksHint": "One address or CIDR range per line (10.0.0.0/8, 2001:db8::/32). Empty: every network. Your address is {{address}}; the lists must include it.",
       "save": "Save",
       "saved": "Security settings saved."
+    },
+    "federation": {
+      "mode": "Workspaces may connect to",
+      "open": "Any server",
+      "allow": "Only the servers listed below",
+      "deny": "Any server except those listed below",
+      "servers": "Servers",
+      "serversHint": "One host name per line, with a port if it has one (chat.example.com, *.partner.org). Connections to servers left out stop sending and receiving.",
+      "save": "Save",
+      "saved": "Federation settings saved."
     }
   },
   "permissions": {

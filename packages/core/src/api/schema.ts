@@ -530,6 +530,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/federation-policy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Which servers workspaces may connect to (instance administrators) */
+    get: operations['getFederationPolicy'];
+    /**
+     * Set which servers workspaces may connect to
+     * @description Connections to servers it leaves out stop sending and receiving.
+     */
+    put: operations['setFederationPolicy'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/web-app': {
     parameters: {
       query?: never;
@@ -3962,7 +3983,7 @@ export interface paths {
     delete: operations['deleteFederationConnection'];
     options?: never;
     head?: never;
-    /** Pause or resume a connection (owners and admins) */
+    /** Pause or resume a connection, or change what it takes in (owners and admins) */
     patch: operations['updateFederationConnection'];
     trace?: never;
   };
@@ -4092,6 +4113,7 @@ export interface components {
       last_error: string;
       /** Format: date-time */
       last_seen_at?: string | null;
+      policy?: components['schemas']['ConnectionPolicy'];
       shared: {
         /** Format: uuid */
         channel_id: string;
@@ -4099,6 +4121,24 @@ export interface components {
         /** @enum {string} */
         status: 'offered' | 'active';
       }[];
+    };
+    /** @description What this server takes in from the other one, and how often it may send. */
+    ConnectionPolicy: {
+      /** @description New messages of its people. */
+      receive_messages: boolean;
+      receive_reactions: boolean;
+      /** @description Edits and deletions of its people's messages. */
+      receive_edits: boolean;
+      requests_per_minute: number;
+    };
+    FederationPolicy: {
+      /**
+       * @description Every server, only the listed ones, or all but the listed ones.
+       * @enum {string}
+       */
+      mode: 'open' | 'allow' | 'deny';
+      /** @description Host names, optionally with a port; *.example.com covers its subdomains. */
+      servers: string[];
     };
     ChannelOffer: {
       /** Format: uuid */
@@ -6737,6 +6777,55 @@ export interface operations {
       403: components['responses']['Problem'];
     };
   };
+  getFederationPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The policy. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FederationPolicy'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setFederationPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FederationPolicy'];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FederationPolicy'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
   getWebApp: {
     parameters: {
       query?: never;
@@ -7607,6 +7696,8 @@ export interface operations {
         /** @description Events older than this one (cursor). */
         before?: string;
         limit?: number;
+        /** @description Only actions starting with this (federation. for the federation activity). */
+        prefix?: string;
       };
       header?: never;
       path: {
@@ -13169,7 +13260,8 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          enabled: boolean;
+          enabled?: boolean;
+          policy?: components['schemas']['ConnectionPolicy'];
         };
       };
     };

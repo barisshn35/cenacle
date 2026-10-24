@@ -280,17 +280,21 @@ type FederatedMessage struct {
 }
 
 type FederationConnection struct {
-	ID          pgtype.UUID        `json:"id"`
-	WorkspaceID pgtype.UUID        `json:"workspace_id"`
-	Name        string             `json:"name"`
-	Url         string             `json:"url"`
-	Secret      string             `json:"secret"`
-	RemoteID    pgtype.UUID        `json:"remote_id"`
-	Status      string             `json:"status"`
-	LastError   string             `json:"last_error"`
-	LastSeenAt  pgtype.Timestamptz `json:"last_seen_at"`
-	CreatedBy   pgtype.UUID        `json:"created_by"`
-	CreatedAt   time.Time          `json:"created_at"`
+	ID                pgtype.UUID        `json:"id"`
+	WorkspaceID       pgtype.UUID        `json:"workspace_id"`
+	Name              string             `json:"name"`
+	Url               string             `json:"url"`
+	Secret            string             `json:"secret"`
+	RemoteID          pgtype.UUID        `json:"remote_id"`
+	Status            string             `json:"status"`
+	LastError         string             `json:"last_error"`
+	LastSeenAt        pgtype.Timestamptz `json:"last_seen_at"`
+	CreatedBy         pgtype.UUID        `json:"created_by"`
+	CreatedAt         time.Time          `json:"created_at"`
+	ReceiveMessages   bool               `json:"receive_messages"`
+	ReceiveReactions  bool               `json:"receive_reactions"`
+	ReceiveEdits      bool               `json:"receive_edits"`
+	RequestsPerMinute int32              `json:"requests_per_minute"`
 }
 
 type FederationDelivery struct {
@@ -387,6 +391,8 @@ type InstanceSetting struct {
 	GuestIdleMinutes     int32     `json:"guest_idle_minutes"`
 	AdminNetworks        []string  `json:"admin_networks"`
 	SigninNetworks       []string  `json:"signin_networks"`
+	FederationMode       string    `json:"federation_mode"`
+	FederationServers    []string  `json:"federation_servers"`
 }
 
 type LegalHold struct {

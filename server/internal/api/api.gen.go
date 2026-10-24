@@ -738,6 +738,27 @@ func (e FederationConnectionStatus) Valid() bool {
 	}
 }
 
+// Defines values for FederationPolicyMode.
+const (
+	FederationPolicyModeAllow FederationPolicyMode = "allow"
+	FederationPolicyModeDeny  FederationPolicyMode = "deny"
+	FederationPolicyModeOpen  FederationPolicyMode = "open"
+)
+
+// Valid indicates whether the value is a known member of the FederationPolicyMode enum.
+func (e FederationPolicyMode) Valid() bool {
+	switch e {
+	case FederationPolicyModeAllow:
+		return true
+	case FederationPolicyModeDeny:
+		return true
+	case FederationPolicyModeOpen:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FileInfoMediaKind.
 const (
 	FileInfoMediaKindClip  FileInfoMediaKind = "clip"
@@ -2544,6 +2565,17 @@ type Compliance struct {
 	RetentionDays *int `json:"retention_days"`
 }
 
+// ConnectionPolicy What this server takes in from the other one, and how often it may send.
+type ConnectionPolicy struct {
+	// ReceiveEdits Edits and deletions of its people's messages.
+	ReceiveEdits bool `json:"receive_edits"`
+
+	// ReceiveMessages New messages of its people.
+	ReceiveMessages   bool `json:"receive_messages"`
+	ReceiveReactions  bool `json:"receive_reactions"`
+	RequestsPerMinute int  `json:"requests_per_minute"`
+}
+
 // CustomEmoji defines model for CustomEmoji.
 type CustomEmoji struct {
 	CreatedBy *openapi_types.UUID `json:"created_by"`
@@ -2653,7 +2685,10 @@ type FederationConnection struct {
 	LastError  string             `json:"last_error"`
 	LastSeenAt *time.Time         `json:"last_seen_at,omitempty"`
 	Name       string             `json:"name"`
-	Shared     []struct {
+
+	// Policy What this server takes in from the other one, and how often it may send.
+	Policy *ConnectionPolicy `json:"policy,omitempty"`
+	Shared []struct {
 		ChannelId   openapi_types.UUID               `json:"channel_id"`
 		ChannelName string                           `json:"channel_name"`
 		Status      FederationConnectionSharedStatus `json:"status"`
@@ -2667,6 +2702,18 @@ type FederationConnectionSharedStatus string
 
 // FederationConnectionStatus defines model for FederationConnection.Status.
 type FederationConnectionStatus string
+
+// FederationPolicy defines model for FederationPolicy.
+type FederationPolicy struct {
+	// Mode Every server, only the listed ones, or all but the listed ones.
+	Mode FederationPolicyMode `json:"mode"`
+
+	// Servers Host names, optionally with a port; *.example.com covers its subdomains.
+	Servers []string `json:"servers"`
+}
+
+// FederationPolicyMode Every server, only the listed ones, or all but the listed ones.
+type FederationPolicyMode string
 
 // FileInfo defines model for FileInfo.
 type FileInfo struct {
@@ -4187,7 +4234,10 @@ type RsvpEventJSONBodyStatus string
 
 // UpdateFederationConnectionJSONBody defines parameters for UpdateFederationConnection.
 type UpdateFederationConnectionJSONBody struct {
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Policy What this server takes in from the other one, and how often it may send.
+	Policy *ConnectionPolicy `json:"policy,omitempty"`
 }
 
 // FederationConnectJSONBody defines parameters for FederationConnect.
@@ -4501,6 +4551,9 @@ type ListWorkspaceAuditParams struct {
 	// Before Events older than this one (cursor).
 	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
 	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Prefix Only actions starting with this (federation. for the federation activity).
+	Prefix *string `form:"prefix,omitempty" json:"prefix,omitempty"`
 }
 
 // CreateBotJSONBody defines parameters for CreateBot.
@@ -4615,6 +4668,9 @@ type AddStickerParams struct {
 
 // AdminSetBotDisabledJSONRequestBody defines body for AdminSetBotDisabled for application/json ContentType.
 type AdminSetBotDisabledJSONRequestBody AdminSetBotDisabledJSONBody
+
+// SetFederationPolicyJSONRequestBody defines body for SetFederationPolicy for application/json ContentType.
+type SetFederationPolicyJSONRequestBody = FederationPolicy
 
 // SetNotificationPolicyJSONRequestBody defines body for SetNotificationPolicy for application/json ContentType.
 type SetNotificationPolicyJSONRequestBody = NotificationPolicy
@@ -5010,6 +5066,12 @@ type ServerInterface interface {
 	// AdminSetBotDisabled Turn a bot off or on (instance administrators)
 	// (PATCH /api/admin/bots/{bot_id})
 	AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// GetFederationPolicy Which servers workspaces may connect to (instance administrators)
+	// (GET /api/admin/federation-policy)
+	GetFederationPolicy(w http.ResponseWriter, r *http.Request)
+	// SetFederationPolicy Set which servers workspaces may connect to
+	// (PUT /api/admin/federation-policy)
+	SetFederationPolicy(w http.ResponseWriter, r *http.Request)
 	// GetNotificationPolicy What notifications outside the app may show (instance administrators)
 	// (GET /api/admin/notification-policy)
 	GetNotificationPolicy(w http.ResponseWriter, r *http.Request)
@@ -5331,7 +5393,7 @@ type ServerInterface interface {
 	// DeleteFederationConnection Remove a connection; its channels stop being shared (owners and admins)
 	// (DELETE /api/federation/connections/{connection_id})
 	DeleteFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID)
-	// UpdateFederationConnection Pause or resume a connection (owners and admins)
+	// UpdateFederationConnection Pause or resume a connection, or change what it takes in (owners and admins)
 	// (PATCH /api/federation/connections/{connection_id})
 	UpdateFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID)
 	// DeclineChannelOffer Decline a shared channel (owners and admins)
@@ -5826,6 +5888,18 @@ func (_ Unimplemented) AdminListBots(w http.ResponseWriter, r *http.Request) {
 // AdminSetBotDisabled Turn a bot off or on (instance administrators)
 // (PATCH /api/admin/bots/{bot_id})
 func (_ Unimplemented) AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetFederationPolicy Which servers workspaces may connect to (instance administrators)
+// (GET /api/admin/federation-policy)
+func (_ Unimplemented) GetFederationPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetFederationPolicy Set which servers workspaces may connect to
+// (PUT /api/admin/federation-policy)
+func (_ Unimplemented) SetFederationPolicy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6471,7 +6545,7 @@ func (_ Unimplemented) DeleteFederationConnection(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// UpdateFederationConnection Pause or resume a connection (owners and admins)
+// UpdateFederationConnection Pause or resume a connection, or change what it takes in (owners and admins)
 // (PATCH /api/federation/connections/{connection_id})
 func (_ Unimplemented) UpdateFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -7471,6 +7545,34 @@ func (siw *ServerInterfaceWrapper) AdminSetBotDisabled(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminSetBotDisabled(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFederationPolicy operation middleware
+func (siw *ServerInterfaceWrapper) GetFederationPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFederationPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetFederationPolicy operation middleware
+func (siw *ServerInterfaceWrapper) SetFederationPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetFederationPolicy(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -13260,6 +13362,19 @@ func (siw *ServerInterfaceWrapper) ListWorkspaceAudit(w http.ResponseWriter, r *
 		return
 	}
 
+	// ------------- Optional query parameter "prefix" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "prefix", r.URL.Query(), &params.Prefix, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "prefix"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prefix", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListWorkspaceAudit(w, r, workspaceId, params)
 	}))
@@ -15121,6 +15236,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/admin/session-policy", wrapper.SetSessionPolicy)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/federation-policy", wrapper.GetFederationPolicy)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/federation-policy", wrapper.SetFederationPolicy)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/admin/web-app", wrapper.GetWebApp)

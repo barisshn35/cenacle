@@ -143,3 +143,9 @@ SELECT remote_message_id FROM federated_messages WHERE connection_id = @connecti
 
 -- name: GetFederationInviteByHash :one
 SELECT * FROM federation_invites WHERE token_hash = @token_hash AND used_at IS NULL AND expires_at > now();
+
+-- name: SetFederationConnectionPolicy :one
+UPDATE federation_connections SET receive_messages = @receive_messages, receive_reactions = @receive_reactions,
+    receive_edits = @receive_edits, requests_per_minute = @requests_per_minute
+WHERE id = @id
+RETURNING *;

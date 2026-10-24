@@ -184,6 +184,22 @@ func (q *Queries) AdminListWorkspaces(ctx context.Context) ([]AdminListWorkspace
 	return items, nil
 }
 
+const getFederationPolicy = `-- name: GetFederationPolicy :one
+SELECT federation_mode, federation_servers FROM instance_settings
+`
+
+type GetFederationPolicyRow struct {
+	FederationMode    string   `json:"federation_mode"`
+	FederationServers []string `json:"federation_servers"`
+}
+
+func (q *Queries) GetFederationPolicy(ctx context.Context) (GetFederationPolicyRow, error) {
+	row := q.db.QueryRow(ctx, getFederationPolicy)
+	var i GetFederationPolicyRow
+	err := row.Scan(&i.FederationMode, &i.FederationServers)
+	return i, err
+}
+
 const getNotificationPolicy = `-- name: GetNotificationPolicy :one
 SELECT push_contents, email_contents FROM instance_settings
 `
@@ -279,6 +295,20 @@ func (q *Queries) InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
 		&i.ScheduledPending,
 	)
 	return i, err
+}
+
+const setFederationPolicy = `-- name: SetFederationPolicy :exec
+UPDATE instance_settings SET federation_mode = $1, federation_servers = $2, updated_at = now()
+`
+
+type SetFederationPolicyParams struct {
+	FederationMode    string   `json:"federation_mode"`
+	FederationServers []string `json:"federation_servers"`
+}
+
+func (q *Queries) SetFederationPolicy(ctx context.Context, arg SetFederationPolicyParams) error {
+	_, err := q.db.Exec(ctx, setFederationPolicy, arg.FederationMode, arg.FederationServers)
+	return err
 }
 
 const setNotificationPolicy = `-- name: SetNotificationPolicy :exec

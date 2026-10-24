@@ -83,3 +83,65 @@ test('a channel shows the servers it is shared with in its details', async ({ pa
   await expect(shares).toContainText('Partner Inc');
   await expectNoAxeViolations(page, '[data-testid="shares"]');
 });
+
+test('admins choose what a connection may send and see the federation activity', async ({
+  page,
+}, testInfo) => {
+  await mockApi(page, { messages: [], admin: true });
+  const conn = {
+    ...CONN,
+    policy: {
+      receive_messages: true,
+      receive_reactions: true,
+      receive_edits: true,
+      requests_per_minute: 120,
+    },
+  };
+  await page.route(`**/api/workspaces/${DEFAULT_WS}/federation`, (route) =>
+    route.fulfill({ json: { connections: [conn], offers: [] } }),
+  );
+  await page.route(`**/api/workspaces/${DEFAULT_WS}/audit?*`, (route) =>
+    route.fulfill({
+      json: {
+        events: [
+          {
+            id: '01a16200-0000-7000-8000-0000000000e1',
+            at: '2026-10-24T10:00:00Z',
+            action: 'federation.refused',
+            target_type: 'workspace',
+            target_id: DEFAULT_WS,
+            detail: { server: 'evil.example', reason: 'policy' },
+          },
+        ],
+        has_more: false,
+      },
+    }),
+  );
+  let sent: unknown;
+  await page.route(`**/api/federation/connections/${CONN.id}`, (route) => {
+    sent = route.request().postDataJSON();
+    return route.fulfill({ json: conn });
+  });
+  await page.goto('/federation');
+  const root = page.getByTestId('federation');
+  await expect(root.getByTestId('federation-activity')).toContainText(
+    'Refused a connection from evil.example',
+  );
+  await root.getByText('What this connection may send here').click();
+  const policy = root.getByTestId('connection-policy');
+  await policy.getByLabel('Reactions').uncheck();
+  await policy.getByLabel('Requests per minute at most').fill('30');
+  await page.mouse.move(0, 0);
+  await expectTargetSizes(page, testInfo, '[data-testid="federation"]');
+  await expectNoAxeViolations(page, '[data-testid="federation"]');
+  await policy.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Connection settings saved.')).toBeVisible();
+  expect(sent).toEqual({
+    policy: {
+      receive_messages: true,
+      receive_reactions: false,
+      receive_edits: true,
+      requests_per_minute: 30,
+    },
+  });
+});
