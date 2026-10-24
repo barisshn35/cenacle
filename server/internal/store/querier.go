@@ -254,7 +254,8 @@ type Querier interface {
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
 	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
 	// GetActiveSession returns the session of a token hash with its user, unless
-	// it passed its absolute expiry or was idle for longer than idle_timeout.
+	// it passed its absolute expiry, was idle for longer than idle_timeout or is
+	// older than max_age (guests: their own limits; the session policy).
 	GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error)
 	GetActiveTerms(ctx context.Context) (TermsOfService, error)
 	// GetActiveWebhook returns a webhook of an enabled bot with the bot's user.
@@ -323,6 +324,7 @@ type Querier interface {
 	GetRsvp(ctx context.Context, arg GetRsvpParams) (EventRsvp, error)
 	GetRun(ctx context.Context, id pgtype.UUID) (PlaybookRun, error)
 	GetSaved(ctx context.Context, arg GetSavedParams) (SavedMessage, error)
+	GetSessionPolicy(ctx context.Context) (GetSessionPolicyRow, error)
 	GetSharedChannel(ctx context.Context, arg GetSharedChannelParams) (SharedChannel, error)
 	GetSidebarLayout(ctx context.Context, arg GetSidebarLayoutParams) ([]byte, error)
 	GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, error)
@@ -696,6 +698,7 @@ type Querier interface {
 	SetRsvp(ctx context.Context, arg SetRsvpParams) error
 	SetRunChecklists(ctx context.Context, arg SetRunChecklistsParams) (PlaybookRun, error)
 	SetSavedReminder(ctx context.Context, arg SetSavedReminderParams) error
+	SetSessionPolicy(ctx context.Context, arg SetSessionPolicyParams) error
 	// SetThreadFollowing records a choice to follow (from the latest reply on: older
 	// ones count as read) or to stop following a thread.
 	SetThreadFollowing(ctx context.Context, arg SetThreadFollowingParams) error

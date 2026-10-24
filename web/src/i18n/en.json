@@ -144,6 +144,11 @@
         "title": "Cenacle is not available in web browsers here.",
         "reason": "Your administrator turned the web app off.",
         "action": "Use the Cenacle desktop or mobile app."
+      },
+      "network": {
+        "title": "You can't sign in from this network.",
+        "reason": "Your administrator allows sign-in only from certain networks.",
+        "action": "Connect to your organization's network or VPN and try again."
       }
     },
     "server": "Server address",
@@ -2236,7 +2241,8 @@
       "workspaces": "Workspaces",
       "bots": "Bots",
       "jobs": "Background jobs",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "security": "Security"
     },
     "sections": {
       "overview": "The installation at a glance and its settings.",
@@ -2244,7 +2250,8 @@
       "workspaces": "Every workspace and its size.",
       "bots": "Every bot of every workspace. A bot turned off cannot use its tokens or webhooks.",
       "jobs": "Work the server does in the background, by kind, and the latest failures.",
-      "notifications": "What notifications outside the app may show. Lock screens and inboxes show them."
+      "notifications": "What notifications outside the app may show. Lock screens and inboxes show them.",
+      "security": "How long sessions last and which networks may sign in and use the administration."
     },
     "counts": {
       "users": "People",
@@ -2313,6 +2320,26 @@
       "email_contents_full_hint": "Who wrote, where, when and the start of each text.",
       "email_contents_sender": "Senders and channels",
       "email_contents_sender_hint": "Who wrote, where and when, without the texts."
+    },
+    "security": {
+      "sessions": "Sessions",
+      "sessionsHint": "0 means no limit. Shorter limits end sessions that are already older.",
+      "operator": "The server's own limits also apply: {{limits}}.",
+      "operatorHours_one": "{{count}} hour after sign-in",
+      "operatorHours_other": "{{count}} hours after sign-in",
+      "operatorMinutes_one": "{{count}} minute unused",
+      "operatorMinutes_other": "{{count}} minutes unused",
+      "session_max_hours": "End sessions after",
+      "session_idle_minutes": "End unused sessions after",
+      "guest_session_max_hours": "Guests: end sessions after",
+      "guest_idle_minutes": "Guests: end unused sessions after",
+      "hours": "hours",
+      "minutes": "minutes",
+      "adminNetworks": "Networks that may use the administration",
+      "signinNetworks": "Networks that may sign in",
+      "networksHint": "One address or CIDR range per line (10.0.0.0/8, 2001:db8::/32). Empty: every network. Your address is {{address}}; the lists must include it.",
+      "save": "Save",
+      "saved": "Security settings saved."
     }
   },
   "permissions": {

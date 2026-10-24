@@ -94,3 +94,67 @@ test('the system console shows the installation and sets the notification policy
   await console.getByLabel('Nothing but that something came').check();
   await expect.poll(() => policy.push_contents).toBe('none');
 });
+
+test('the system console sets the session and network policy', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Settings opens from the sidebar on wide screens');
+  await mockApi(page, { admin: true });
+  let saved: Record<string, unknown> | undefined;
+  await page.route('**/api/admin/overview', (route) =>
+    route.fulfill({
+      json: {
+        version: '0.35.0',
+        counts: {
+          users: 1,
+          active_users: 1,
+          bots: 0,
+          workspaces: 1,
+          channels: 1,
+          messages: 0,
+          files: 0,
+          file_bytes: 0,
+        },
+        config: [],
+        jobs: [],
+        failures: [],
+      },
+    }),
+  );
+  await page.route('**/api/admin/session-policy', (route) => {
+    const base = {
+      session_max_hours: 0,
+      session_idle_minutes: 0,
+      guest_session_max_hours: 0,
+      guest_idle_minutes: 0,
+      admin_networks: [],
+      signin_networks: [],
+      operator_max_hours: 720,
+      operator_idle_minutes: 0,
+      your_address: '10.1.2.3',
+    };
+    if (route.request().method() === 'PUT') {
+      saved = route.request().postDataJSON() as Record<string, unknown>;
+      return route.fulfill({ json: { ...base, ...saved } });
+    }
+    return route.fulfill({ json: base });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'System console' }).click();
+  const console = page.getByRole('dialog', { name: 'System console' });
+  await console.getByRole('tab', { name: /Security/ }).click();
+  await expect(console.getByText('Your address is 10.1.2.3')).toBeVisible();
+  await console.getByLabel('Guests: end sessions after').fill('8');
+  await console
+    .getByLabel('Networks that may use the administration')
+    .fill('10.0.0.0/8\n192.168.1.7');
+  await expectTargetSizes(page, test.info(), '[role="dialog"]');
+  await expectNoAxeViolations(page, '[role="dialog"]');
+  await console.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Security settings saved.')).toBeVisible();
+  expect(saved).toMatchObject({
+    guest_session_max_hours: 8,
+    session_max_hours: 0,
+    admin_networks: ['10.0.0.0/8', '192.168.1.7'],
+    signin_networks: [],
+  });
+});

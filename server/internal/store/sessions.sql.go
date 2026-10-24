@@ -183,12 +183,16 @@ FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1
   AND s.expires_at > now()
-  AND s.last_seen_at > now() - $2::interval
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN $2::interval ELSE $3::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN $4::interval ELSE $5::interval END
 `
 
 type GetActiveSessionParams struct {
-	TokenHash   []byte          `json:"token_hash"`
-	IdleTimeout pgtype.Interval `json:"idle_timeout"`
+	TokenHash        []byte          `json:"token_hash"`
+	GuestIdleTimeout pgtype.Interval `json:"guest_idle_timeout"`
+	IdleTimeout      pgtype.Interval `json:"idle_timeout"`
+	GuestMaxAge      pgtype.Interval `json:"guest_max_age"`
+	MaxAge           pgtype.Interval `json:"max_age"`
 }
 
 type GetActiveSessionRow struct {
@@ -197,9 +201,16 @@ type GetActiveSessionRow struct {
 }
 
 // GetActiveSession returns the session of a token hash with its user, unless
-// it passed its absolute expiry or was idle for longer than idle_timeout.
+// it passed its absolute expiry, was idle for longer than idle_timeout or is
+// older than max_age (guests: their own limits; the session policy).
 func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (GetActiveSessionRow, error) {
-	row := q.db.QueryRow(ctx, getActiveSession, arg.TokenHash, arg.IdleTimeout)
+	row := q.db.QueryRow(ctx, getActiveSession,
+		arg.TokenHash,
+		arg.GuestIdleTimeout,
+		arg.IdleTimeout,
+		arg.GuestMaxAge,
+		arg.MaxAge,
+	)
 	var i GetActiveSessionRow
 	err := row.Scan(
 		&i.Session.ID,
@@ -243,20 +254,31 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 }
 
 const listUserSessions = `-- name: ListUserSessions :many
-SELECT id, user_id, token_hash, created_at, last_seen_at, expires_at, user_agent, ip_address, idp_sid FROM sessions
-WHERE user_id = $1 AND expires_at > now()
-  AND last_seen_at > now() - $2::interval
-ORDER BY last_seen_at DESC, id DESC
+SELECT s.id, s.user_id, s.token_hash, s.created_at, s.last_seen_at, s.expires_at, s.user_agent, s.ip_address, s.idp_sid FROM sessions s JOIN users u ON u.id = s.user_id
+WHERE s.user_id = $1
+  AND s.expires_at > now()
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN $2::interval ELSE $3::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN $4::interval ELSE $5::interval END
+ORDER BY s.last_seen_at DESC, s.id DESC
 `
 
 type ListUserSessionsParams struct {
-	UserID      pgtype.UUID     `json:"user_id"`
-	IdleTimeout pgtype.Interval `json:"idle_timeout"`
+	UserID           pgtype.UUID     `json:"user_id"`
+	GuestIdleTimeout pgtype.Interval `json:"guest_idle_timeout"`
+	IdleTimeout      pgtype.Interval `json:"idle_timeout"`
+	GuestMaxAge      pgtype.Interval `json:"guest_max_age"`
+	MaxAge           pgtype.Interval `json:"max_age"`
 }
 
 // ListUserSessions returns a user's usable sessions, most recently used first.
 func (q *Queries) ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error) {
-	rows, err := q.db.Query(ctx, listUserSessions, arg.UserID, arg.IdleTimeout)
+	rows, err := q.db.Query(ctx, listUserSessions,
+		arg.UserID,
+		arg.GuestIdleTimeout,
+		arg.IdleTimeout,
+		arg.GuestMaxAge,
+		arg.MaxAge,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -287,22 +309,32 @@ func (q *Queries) ListUserSessions(ctx context.Context, arg ListUserSessionsPara
 
 const sessionIsActive = `-- name: SessionIsActive :one
 SELECT EXISTS (
-    SELECT 1 FROM sessions
-    WHERE id = $1
-      AND expires_at > now()
-      AND last_seen_at > now() - $2::interval
+    SELECT 1 FROM sessions s JOIN users u ON u.id = s.user_id
+    WHERE s.id = $1
+  AND s.expires_at > now()
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN $2::interval ELSE $3::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN $4::interval ELSE $5::interval END
 )
 `
 
 type SessionIsActiveParams struct {
-	ID          pgtype.UUID     `json:"id"`
-	IdleTimeout pgtype.Interval `json:"idle_timeout"`
+	ID               pgtype.UUID     `json:"id"`
+	GuestIdleTimeout pgtype.Interval `json:"guest_idle_timeout"`
+	IdleTimeout      pgtype.Interval `json:"idle_timeout"`
+	GuestMaxAge      pgtype.Interval `json:"guest_max_age"`
+	MaxAge           pgtype.Interval `json:"max_age"`
 }
 
 // SessionIsActive checks a session without recording use (long-lived
 // WebSocket connections re-check their session with it).
 func (q *Queries) SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error) {
-	row := q.db.QueryRow(ctx, sessionIsActive, arg.ID, arg.IdleTimeout)
+	row := q.db.QueryRow(ctx, sessionIsActive,
+		arg.ID,
+		arg.GuestIdleTimeout,
+		arg.IdleTimeout,
+		arg.GuestMaxAge,
+		arg.MaxAge,
+	)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

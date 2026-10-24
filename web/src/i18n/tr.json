@@ -144,6 +144,11 @@
         "title": "Cenacle burada web tarayıcılarında kullanılamıyor.",
         "reason": "Yöneticin web uygulamasını kapattı.",
         "action": "Cenacle masaüstü ya da mobil uygulamasını kullan."
+      },
+      "network": {
+        "title": "Bu ağdan giriş yapamazsınız.",
+        "reason": "Yöneticiniz girişe yalnızca belirli ağlardan izin veriyor.",
+        "action": "Kurumunuzun ağına ya da VPN'ine bağlanıp yeniden deneyin."
       }
     },
     "server": "Sunucu adresi",
@@ -2236,7 +2241,8 @@
       "workspaces": "Çalışma alanları",
       "bots": "Botlar",
       "jobs": "Arka plan işleri",
-      "notifications": "Bildirimler"
+      "notifications": "Bildirimler",
+      "security": "Güvenlik"
     },
     "sections": {
       "overview": "Kurulumun özeti ve ayarları.",
@@ -2244,7 +2250,8 @@
       "workspaces": "Tüm çalışma alanları ve büyüklükleri.",
       "bots": "Tüm çalışma alanlarının botları. Kapatılan bot anahtarlarını ve webhook'larını kullanamaz.",
       "jobs": "Sunucunun arka planda yaptığı işler, türlerine göre, ve son hatalar.",
-      "notifications": "Uygulama dışındaki bildirimlerin ne gösterebileceği. Kilit ekranları ve gelen kutuları bunları gösterir."
+      "notifications": "Uygulama dışındaki bildirimlerin ne gösterebileceği. Kilit ekranları ve gelen kutuları bunları gösterir.",
+      "security": "Oturumların ne kadar süreceği ve hangi ağlardan giriş yapılıp yönetimin kullanılabileceği."
     },
     "counts": {
       "users": "Kişi",
@@ -2313,6 +2320,26 @@
       "email_contents_full_hint": "Kimin, nereye, ne zaman yazdığı ve her metnin başı.",
       "email_contents_sender": "Gönderenler ve kanallar",
       "email_contents_sender_hint": "Kimin, nereye, ne zaman yazdığı; metinler olmadan."
+    },
+    "security": {
+      "sessions": "Oturumlar",
+      "sessionsHint": "0 sınır yok demektir. Kısaltılan sınırlar, daha eski olan oturumları da sonlandırır.",
+      "operator": "Sunucunun kendi sınırları da geçerlidir: {{limits}}.",
+      "operatorHours_one": "girişten {{count}} saat sonra",
+      "operatorHours_other": "girişten {{count}} saat sonra",
+      "operatorMinutes_one": "{{count}} dakika kullanılmayınca",
+      "operatorMinutes_other": "{{count}} dakika kullanılmayınca",
+      "session_max_hours": "Oturumları şu süre sonra sonlandır",
+      "session_idle_minutes": "Kullanılmayan oturumları şu süre sonra sonlandır",
+      "guest_session_max_hours": "Misafirler: oturumları şu süre sonra sonlandır",
+      "guest_idle_minutes": "Misafirler: kullanılmayan oturumları şu süre sonra sonlandır",
+      "hours": "saat",
+      "minutes": "dakika",
+      "adminNetworks": "Yönetimi kullanabilecek ağlar",
+      "signinNetworks": "Giriş yapabilecek ağlar",
+      "networksHint": "Her satıra bir adres ya da CIDR aralığı (10.0.0.0/8, 2001:db8::/32). Boş: her ağ. Adresiniz {{address}}; listeler bunu içermelidir.",
+      "save": "Kaydet",
+      "saved": "Güvenlik ayarları kaydedildi."
     }
   },
   "permissions": {

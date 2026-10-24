@@ -6,13 +6,14 @@ import {
   BuildingIcon,
   GaugeIcon,
   LogOutIcon,
+  ShieldIcon,
   UsersIcon,
 } from 'lucide-react';
 import { useDeferredValue, useId, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { apiFetch, type components } from '@cenacle/core/api';
+import { ApiError, apiFetch, type components } from '@cenacle/core/api';
 import { Button } from '@cenacle/ui/components/button';
 import { ConfirmDialog } from '@cenacle/ui/components/confirm-dialog';
 import { Dialog } from '@cenacle/ui/components/dialog';
@@ -31,7 +32,9 @@ type AdminUser = components['schemas']['AdminUser'];
 type AdminWorkspace = components['schemas']['AdminWorkspace'];
 type AdminBot = components['schemas']['AdminBot'];
 type Policy = components['schemas']['NotificationPolicy'];
-type Section = 'overview' | 'people' | 'workspaces' | 'bots' | 'jobs' | 'notifications';
+type SessionPolicy = components['schemas']['SessionPolicy'];
+type Section =
+  'overview' | 'people' | 'workspaces' | 'bots' | 'jobs' | 'notifications' | 'security';
 
 const json = (method: string, body: unknown): RequestInit => ({
   method,
@@ -81,6 +84,7 @@ export function SystemConsole({ onOpenChange }: { onOpenChange: (open: boolean) 
               { key: 'bots', label: t('console.names.bots'), icon: BotIcon },
               { key: 'jobs', label: t('console.names.jobs'), icon: ActivityIcon },
               { key: 'notifications', label: t('console.names.notifications'), icon: BellIcon },
+              { key: 'security', label: t('console.names.security'), icon: ShieldIcon },
             ],
           },
         ]}
@@ -92,6 +96,7 @@ export function SystemConsole({ onOpenChange }: { onOpenChange: (open: boolean) 
           {section === 'bots' && <BotsPanel />}
           {section === 'jobs' && <JobsPanel overview={overview.data} />}
           {section === 'notifications' && <NotificationsPanel />}
+          {section === 'security' && <SecurityPanel />}
         </div>
       </SideNavDialog>
     </Dialog>
@@ -479,6 +484,143 @@ function NotificationsPanel() {
       {group('push_contents', ['full', 'sender', 'none'])}
       {group('email_contents', ['full', 'sender'])}
     </div>
+  );
+}
+
+const LIMITS = [
+  ['session_max_hours', 'hours'],
+  ['session_idle_minutes', 'minutes'],
+  ['guest_session_max_hours', 'hours'],
+  ['guest_idle_minutes', 'minutes'],
+] as const;
+
+/** How long sessions last and which networks may sign in and administer. */
+function SecurityPanel() {
+  const queryClient = useQueryClient();
+  const policy = useQuery({
+    queryKey: ['admin', 'session-policy'],
+    queryFn: () => apiFetch<SessionPolicy>('/api/admin/session-policy'),
+  });
+  if (!policy.data) return <Skeleton className="h-60" />;
+  return (
+    <SecurityForm
+      policy={policy.data}
+      onSaved={(p) => queryClient.setQueryData(['admin', 'session-policy'], p)}
+    />
+  );
+}
+
+function SecurityForm({
+  policy,
+  onSaved,
+}: {
+  policy: SessionPolicy;
+  onSaved: (p: SessionPolicy) => void;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  const [limits, setLimits] = useState(() =>
+    Object.fromEntries(LIMITS.map(([k]) => [k, String(policy[k])])),
+  );
+  const [adminNets, setAdminNets] = useState(policy.admin_networks.join('\n'));
+  const [signinNets, setSigninNets] = useState(policy.signin_networks.join('\n'));
+  const lines = (v: string) =>
+    v
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  const save = useMutation({
+    mutationFn: () =>
+      apiFetch<SessionPolicy>(
+        '/api/admin/session-policy',
+        json('PUT', {
+          ...Object.fromEntries(LIMITS.map(([k]) => [k, Number(limits[k]) || 0])),
+          admin_networks: lines(adminNets),
+          signin_networks: lines(signinNets),
+        }),
+      ),
+    onSuccess: (p) => {
+      onSaved(p);
+      toast.success(t('console.security.saved'));
+    },
+  });
+  const problem = save.error instanceof ApiError ? save.error.problem : undefined;
+  const operator = [
+    policy.operator_max_hours
+      ? t('console.security.operatorHours', { count: policy.operator_max_hours })
+      : '',
+    policy.operator_idle_minutes
+      ? t('console.security.operatorMinutes', { count: policy.operator_idle_minutes })
+      : '',
+  ].filter(Boolean);
+  return (
+    <form
+      className="flex max-w-xl flex-col gap-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <fieldset className="grid gap-3 sm:grid-cols-2">
+        <legend className="mb-1 text-sm font-semibold">{t('console.security.sessions')}</legend>
+        <p className="text-xs text-muted-foreground sm:col-span-2">
+          {t('console.security.sessionsHint')}
+          {operator.length > 0 &&
+            ` ${t('console.security.operator', { limits: operator.join(', ') })}`}
+        </p>
+        {LIMITS.map(([key, unit]) => (
+          <div key={key} className="grid gap-1">
+            <Label htmlFor={`${id}-${key}`}>{t(`console.security.${key}`)}</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id={`${id}-${key}`}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="w-28"
+                value={limits[key]}
+                onChange={(e) => setLimits((l) => ({ ...l, [key]: e.target.value }))}
+              />
+              <span className="text-xs text-muted-foreground">{t(`console.security.${unit}`)}</span>
+            </div>
+          </div>
+        ))}
+      </fieldset>
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${id}-admin`}>{t('console.security.adminNetworks')}</Label>
+        <textarea
+          id={`${id}-admin`}
+          className="min-h-20 rounded-md border bg-background px-3 py-2 font-mono text-sm"
+          value={adminNets}
+          spellCheck={false}
+          aria-describedby={`${id}-admin-hint`}
+          onChange={(e) => setAdminNets(e.target.value)}
+        />
+        <p id={`${id}-admin-hint`} className="text-xs text-muted-foreground">
+          {t('console.security.networksHint', { address: policy.your_address ?? '' })}
+        </p>
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${id}-signin`}>{t('console.security.signinNetworks')}</Label>
+        <textarea
+          id={`${id}-signin`}
+          className="min-h-20 rounded-md border bg-background px-3 py-2 font-mono text-sm"
+          value={signinNets}
+          spellCheck={false}
+          onChange={(e) => setSigninNets(e.target.value)}
+        />
+      </div>
+      {problem && (
+        <p role="alert" className="text-sm text-destructive">
+          {problem.detail ?? t('console.changeFailed')}
+        </p>
+      )}
+      <div>
+        <Button type="submit" disabled={save.isPending}>
+          {t('console.security.save')}
+        </Button>
+      </div>
+    </form>
   );
 }
 

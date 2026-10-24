@@ -54,3 +54,13 @@ SELECT b.id, u.display_name AS name, b.workspace_id, w.name AS workspace_name, b
 FROM bots b JOIN users u ON u.id = b.user_id JOIN workspaces w ON w.id = b.workspace_id
 WHERE NOT b.is_system
 ORDER BY lower(w.name), lower(u.display_name);
+
+-- name: GetSessionPolicy :one
+SELECT session_max_hours, session_idle_minutes, guest_session_max_hours, guest_idle_minutes,
+       admin_networks, signin_networks
+FROM instance_settings;
+
+-- name: SetSessionPolicy :exec
+UPDATE instance_settings SET session_max_hours = @session_max_hours, session_idle_minutes = @session_idle_minutes,
+    guest_session_max_hours = @guest_session_max_hours, guest_idle_minutes = @guest_idle_minutes,
+    admin_networks = @admin_networks, signin_networks = @signin_networks, updated_at = now();

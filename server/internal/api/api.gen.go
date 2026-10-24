@@ -3497,6 +3497,36 @@ type Session struct {
 	User        User        `json:"user"`
 }
 
+// SessionPolicy defines model for SessionPolicy.
+type SessionPolicy struct {
+	// AdminNetworks Addresses and CIDR ranges that may use the administration (empty, every network).
+	AdminNetworks []string `json:"admin_networks"`
+
+	// GuestIdleMinutes Guests: a shorter idle time (0: as everyone).
+	GuestIdleMinutes int `json:"guest_idle_minutes"`
+
+	// GuestSessionMaxHours Guests: a shorter lifetime (0: as everyone).
+	GuestSessionMaxHours int `json:"guest_session_max_hours"`
+
+	// OperatorIdleMinutes The operator's limit (CENACLE_SESSION_IDLE_TIMEOUT; 0, none).
+	OperatorIdleMinutes *int `json:"operator_idle_minutes,omitempty"`
+
+	// OperatorMaxHours The operator's limit (CENACLE_SESSION_MAX_AGE; 0, none).
+	OperatorMaxHours *int `json:"operator_max_hours,omitempty"`
+
+	// SessionIdleMinutes Sessions end after this long unused (0: no limit).
+	SessionIdleMinutes int `json:"session_idle_minutes"`
+
+	// SessionMaxHours Sessions end this long after sign-in (0: no limit).
+	SessionMaxHours int `json:"session_max_hours"`
+
+	// SigninNetworks Addresses and CIDR ranges that may sign in (empty, every network).
+	SigninNetworks []string `json:"signin_networks"`
+
+	// YourAddress The address this request came from.
+	YourAddress *string `json:"your_address,omitempty"`
+}
+
 // SidebarLayout Sections are named by key: `favorites`, `channels` (channels without a
 // category), `direct` (conversations), a category's id or a section's id.
 type SidebarLayout struct {
@@ -4589,6 +4619,9 @@ type AdminSetBotDisabledJSONRequestBody AdminSetBotDisabledJSONBody
 // SetNotificationPolicyJSONRequestBody defines body for SetNotificationPolicy for application/json ContentType.
 type SetNotificationPolicyJSONRequestBody = NotificationPolicy
 
+// SetSessionPolicyJSONRequestBody defines body for SetSessionPolicy for application/json ContentType.
+type SetSessionPolicyJSONRequestBody = SessionPolicy
+
 // SetWebAppJSONRequestBody defines body for SetWebApp for application/json ContentType.
 type SetWebAppJSONRequestBody SetWebAppJSONBody
 
@@ -4986,6 +5019,12 @@ type ServerInterface interface {
 	// AdminOverview The installation at a glance (instance administrators)
 	// (GET /api/admin/overview)
 	AdminOverview(w http.ResponseWriter, r *http.Request)
+	// GetSessionPolicy How long sessions last and which networks may sign in (instance administrators)
+	// (GET /api/admin/session-policy)
+	GetSessionPolicy(w http.ResponseWriter, r *http.Request)
+	// SetSessionPolicy Set how long sessions last and which networks may sign in
+	// (PUT /api/admin/session-policy)
+	SetSessionPolicy(w http.ResponseWriter, r *http.Request)
 	// AdminListUsers Everyone of the installation, by name (instance administrators)
 	// (GET /api/admin/users)
 	AdminListUsers(w http.ResponseWriter, r *http.Request, params AdminListUsersParams)
@@ -5805,6 +5844,18 @@ func (_ Unimplemented) SetNotificationPolicy(w http.ResponseWriter, r *http.Requ
 // AdminOverview The installation at a glance (instance administrators)
 // (GET /api/admin/overview)
 func (_ Unimplemented) AdminOverview(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSessionPolicy How long sessions last and which networks may sign in (instance administrators)
+// (GET /api/admin/session-policy)
+func (_ Unimplemented) GetSessionPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetSessionPolicy Set how long sessions last and which networks may sign in
+// (PUT /api/admin/session-policy)
+func (_ Unimplemented) SetSessionPolicy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7462,6 +7513,34 @@ func (siw *ServerInterfaceWrapper) AdminOverview(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminOverview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSessionPolicy operation middleware
+func (siw *ServerInterfaceWrapper) GetSessionPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSessionPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetSessionPolicy operation middleware
+func (siw *ServerInterfaceWrapper) SetSessionPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSessionPolicy(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15036,6 +15115,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/admin/notification-policy", wrapper.SetNotificationPolicy)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/session-policy", wrapper.GetSessionPolicy)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/session-policy", wrapper.SetSessionPolicy)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/admin/web-app", wrapper.GetWebApp)

@@ -58,6 +58,9 @@ type Principal struct {
 	IP string
 	// Bot is set for requests with a bot token (Session is empty then).
 	Bot *BotPrincipal
+	// AdminNetwork: the request comes from a network the session policy lets
+	// use the administration (every network when it names none).
+	AdminNetwork bool
 }
 
 // ClientInfo describes the client a session is used from.
@@ -84,6 +87,8 @@ type Sessions struct {
 	IdleTimeout time.Duration
 	// MaxAge is the absolute lifetime of a session; 0: no limit.
 	MaxAge time.Duration
+
+	cache policyCache
 }
 
 // noLimit stands for "no limit" in the database: a session lasts until it is
@@ -103,6 +108,13 @@ func (s *Sessions) idle() pgtype.Interval { return interval(orNoLimit(s.IdleTime
 // Create starts a session for userID and returns its token. idpSID is the
 // identity provider's session it came from ("" if unknown).
 func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client ClientInfo, idpSID string) (string, store.Session, error) {
+	policy, err := s.Policy(ctx)
+	if err != nil {
+		return "", store.Session{}, err
+	}
+	if !InNetworks(client.IP, policy.SignInNetworks) {
+		return "", store.Session{}, ErrNetworkNotAllowed
+	}
 	token, hash := newToken()
 	sess, err := s.Queries.CreateSession(ctx, store.CreateSessionParams{
 		UserID:    userID,
@@ -123,9 +135,13 @@ func (s *Sessions) Authenticate(ctx context.Context, token string, client Client
 	if !validTokenFormat(token) {
 		return Principal{}, ErrNoSession
 	}
+	l, err := s.limits(ctx)
+	if err != nil {
+		return Principal{}, err
+	}
 	row, err := s.Queries.GetActiveSession(ctx, store.GetActiveSessionParams{
-		TokenHash:   hashToken(token),
-		IdleTimeout: s.idle(),
+		TokenHash: hashToken(token), IdleTimeout: l.idle, GuestIdleTimeout: l.guestIdle,
+		MaxAge: l.maxAge, GuestMaxAge: l.guestMaxAge,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Principal{}, ErrNoSession
@@ -140,13 +156,23 @@ func (s *Sessions) Authenticate(ctx context.Context, token string, client Client
 	}); err != nil {
 		return Principal{}, fmt.Errorf("touch session: %w", err)
 	}
-	return Principal{Session: row.Session, User: row.User}, nil
+	policy, err := s.Policy(ctx)
+	if err != nil {
+		return Principal{}, err
+	}
+	return Principal{Session: row.Session, User: row.User, AdminNetwork: InNetworks(client.IP, policy.AdminNetworks)}, nil
 }
 
 // SessionActive reports whether a session can still be used, without
 // recording use.
 func (s *Sessions) SessionActive(ctx context.Context, id pgtype.UUID) (bool, error) {
-	return s.Queries.SessionIsActive(ctx, store.SessionIsActiveParams{ID: id, IdleTimeout: s.idle()})
+	l, err := s.limits(ctx)
+	if err != nil {
+		return false, err
+	}
+	return s.Queries.SessionIsActive(ctx, store.SessionIsActiveParams{
+		ID: id, IdleTimeout: l.idle, GuestIdleTimeout: l.guestIdle, MaxAge: l.maxAge, GuestMaxAge: l.guestMaxAge,
+	})
 }
 
 // Delete ends a session.

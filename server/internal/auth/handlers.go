@@ -42,6 +42,7 @@ const (
 	signinFailed      = "failed"      // the IdP response did not verify
 	signinUnavailable = "unavailable" // Cenacle ID or the database is unreachable
 	signinWebAppOff   = "web_app_off" // the web app is turned off on this server
+	signinNetwork     = "network"     // the session policy does not allow this network
 )
 
 // FlowStore keeps the state of sign-ins in progress. Take must return a value
@@ -184,7 +185,10 @@ func (h *Handlers) AuthCallback(w http.ResponseWriter, r *http.Request, params a
 	if err != nil {
 		code := signinFailed
 		var unavailable errUnavailable
-		if errors.As(err, &unavailable) {
+		switch {
+		case errors.Is(err, ErrNetworkNotAllowed):
+			code = signinNetwork
+		case errors.As(err, &unavailable):
 			code = signinUnavailable
 		}
 		log.WarnContext(ctx, "sign-in failed", "error", err)

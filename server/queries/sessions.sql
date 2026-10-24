@@ -5,13 +5,15 @@ RETURNING *;
 
 -- name: GetActiveSession :one
 -- GetActiveSession returns the session of a token hash with its user, unless
--- it passed its absolute expiry or was idle for longer than idle_timeout.
+-- it passed its absolute expiry, was idle for longer than idle_timeout or is
+-- older than max_age (guests: their own limits; the session policy).
 SELECT sqlc.embed(s), sqlc.embed(u)
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = @token_hash
   AND s.expires_at > now()
-  AND s.last_seen_at > now() - sqlc.arg(idle_timeout)::interval;
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_idle_timeout)::interval ELSE sqlc.arg(idle_timeout)::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_max_age)::interval ELSE sqlc.arg(max_age)::interval END;
 
 -- name: TouchSession :exec
 -- TouchSession records use of a session at most once per minute, which keeps
@@ -32,18 +34,21 @@ WHERE expires_at <= now()
 -- SessionIsActive checks a session without recording use (long-lived
 -- WebSocket connections re-check their session with it).
 SELECT EXISTS (
-    SELECT 1 FROM sessions
-    WHERE id = @id
-      AND expires_at > now()
-      AND last_seen_at > now() - sqlc.arg(idle_timeout)::interval
+    SELECT 1 FROM sessions s JOIN users u ON u.id = s.user_id
+    WHERE s.id = @id
+  AND s.expires_at > now()
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_idle_timeout)::interval ELSE sqlc.arg(idle_timeout)::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_max_age)::interval ELSE sqlc.arg(max_age)::interval END
 );
 
 -- name: ListUserSessions :many
 -- ListUserSessions returns a user's usable sessions, most recently used first.
-SELECT * FROM sessions
-WHERE user_id = @user_id AND expires_at > now()
-  AND last_seen_at > now() - sqlc.arg(idle_timeout)::interval
-ORDER BY last_seen_at DESC, id DESC;
+SELECT s.* FROM sessions s JOIN users u ON u.id = s.user_id
+WHERE s.user_id = @user_id
+  AND s.expires_at > now()
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_idle_timeout)::interval ELSE sqlc.arg(idle_timeout)::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_max_age)::interval ELSE sqlc.arg(max_age)::interval END
+ORDER BY s.last_seen_at DESC, s.id DESC;
 
 -- name: DeleteUserSession :execrows
 DELETE FROM sessions WHERE id = @id AND user_id = @user_id;

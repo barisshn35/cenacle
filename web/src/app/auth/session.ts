@@ -38,6 +38,7 @@ export const SIGNIN_ERRORS = [
   'failed',
   'unavailable',
   'web_app_off',
+  'network',
   'session_expired',
 ] as const;
 export type SigninError = (typeof SIGNIN_ERRORS)[number];

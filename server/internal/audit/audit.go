@@ -82,6 +82,7 @@ const (
 	NotificationPolicyChanged      = "instance.notification_policy_changed"
 	PermissionsChanged             = "workspace.permissions_changed"
 	ChannelModerationChanged       = "channel.moderation_changed"
+	SessionPolicyChanged           = "instance.session_policy_changed"
 )
 
 // Event is one entry; Workspace is the zero UUID for account events.

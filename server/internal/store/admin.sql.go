@@ -200,6 +200,35 @@ func (q *Queries) GetNotificationPolicy(ctx context.Context) (GetNotificationPol
 	return i, err
 }
 
+const getSessionPolicy = `-- name: GetSessionPolicy :one
+SELECT session_max_hours, session_idle_minutes, guest_session_max_hours, guest_idle_minutes,
+       admin_networks, signin_networks
+FROM instance_settings
+`
+
+type GetSessionPolicyRow struct {
+	SessionMaxHours      int32    `json:"session_max_hours"`
+	SessionIdleMinutes   int32    `json:"session_idle_minutes"`
+	GuestSessionMaxHours int32    `json:"guest_session_max_hours"`
+	GuestIdleMinutes     int32    `json:"guest_idle_minutes"`
+	AdminNetworks        []string `json:"admin_networks"`
+	SigninNetworks       []string `json:"signin_networks"`
+}
+
+func (q *Queries) GetSessionPolicy(ctx context.Context) (GetSessionPolicyRow, error) {
+	row := q.db.QueryRow(ctx, getSessionPolicy)
+	var i GetSessionPolicyRow
+	err := row.Scan(
+		&i.SessionMaxHours,
+		&i.SessionIdleMinutes,
+		&i.GuestSessionMaxHours,
+		&i.GuestIdleMinutes,
+		&i.AdminNetworks,
+		&i.SigninNetworks,
+	)
+	return i, err
+}
+
 const instanceCounts = `-- name: InstanceCounts :one
 SELECT
     (SELECT count(*) FROM users WHERE NOT is_bot)                     AS people,
@@ -263,5 +292,32 @@ type SetNotificationPolicyParams struct {
 
 func (q *Queries) SetNotificationPolicy(ctx context.Context, arg SetNotificationPolicyParams) error {
 	_, err := q.db.Exec(ctx, setNotificationPolicy, arg.PushContents, arg.EmailContents)
+	return err
+}
+
+const setSessionPolicy = `-- name: SetSessionPolicy :exec
+UPDATE instance_settings SET session_max_hours = $1, session_idle_minutes = $2,
+    guest_session_max_hours = $3, guest_idle_minutes = $4,
+    admin_networks = $5, signin_networks = $6, updated_at = now()
+`
+
+type SetSessionPolicyParams struct {
+	SessionMaxHours      int32    `json:"session_max_hours"`
+	SessionIdleMinutes   int32    `json:"session_idle_minutes"`
+	GuestSessionMaxHours int32    `json:"guest_session_max_hours"`
+	GuestIdleMinutes     int32    `json:"guest_idle_minutes"`
+	AdminNetworks        []string `json:"admin_networks"`
+	SigninNetworks       []string `json:"signin_networks"`
+}
+
+func (q *Queries) SetSessionPolicy(ctx context.Context, arg SetSessionPolicyParams) error {
+	_, err := q.db.Exec(ctx, setSessionPolicy,
+		arg.SessionMaxHours,
+		arg.SessionIdleMinutes,
+		arg.GuestSessionMaxHours,
+		arg.GuestIdleMinutes,
+		arg.AdminNetworks,
+		arg.SigninNetworks,
+	)
 	return err
 }

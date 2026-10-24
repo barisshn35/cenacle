@@ -136,6 +136,11 @@ func (h *Handlers) requireInstanceAdmin(w http.ResponseWriter, r *http.Request) 
 			Detail: "Only server administrators can change this."})
 		return p, false
 	}
+	if !p.AdminNetwork {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusForbidden, Code: CodeAdminNetwork,
+			Detail: "The administration is not available from this network."})
+		return p, false
+	}
 	return p, true
 }
 

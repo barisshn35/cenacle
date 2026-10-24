@@ -38,7 +38,7 @@ func configValue(v any) string {
 // AdminOverview implements api.ServerInterface.
 func (h *Handlers) AdminOverview(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	ctx := r.Context()
@@ -177,7 +177,7 @@ func (h *Handlers) jobStates(ctx context.Context) ([]jobRow, []failureRow, error
 // AdminListUsers implements api.ServerInterface.
 func (h *Handlers) AdminListUsers(w http.ResponseWriter, r *http.Request, params api.AdminListUsersParams) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	arg := store.AdminListUsersParams{Q: strings.TrimSpace(deref1(params.Q))}
@@ -217,7 +217,7 @@ func (h *Handlers) AdminListUsers(w http.ResponseWriter, r *http.Request, params
 // AdminEndUserSessions implements api.ServerInterface.
 func (h *Handlers) AdminEndUserSessions(w http.ResponseWriter, r *http.Request, userID openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	ctx := r.Context()
@@ -242,7 +242,7 @@ func (h *Handlers) AdminEndUserSessions(w http.ResponseWriter, r *http.Request, 
 // AdminListWorkspaces implements api.ServerInterface.
 func (h *Handlers) AdminListWorkspaces(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	rows, err := h.Queries.AdminListWorkspaces(r.Context())
@@ -263,7 +263,7 @@ func (h *Handlers) AdminListWorkspaces(w http.ResponseWriter, r *http.Request) {
 // AdminListBots implements api.ServerInterface.
 func (h *Handlers) AdminListBots(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	rows, err := h.Queries.AdminListBots(r.Context())
@@ -285,7 +285,7 @@ func (h *Handlers) AdminListBots(w http.ResponseWriter, r *http.Request) {
 // AdminSetBotDisabled implements api.ServerInterface.
 func (h *Handlers) AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, botID openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	var in api.AdminSetBotDisabledJSONBody
@@ -307,7 +307,7 @@ func (h *Handlers) AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, b
 // GetNotificationPolicy implements api.ServerInterface.
 func (h *Handlers) GetNotificationPolicy(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	pol, err := h.Queries.GetNotificationPolicy(r.Context())
@@ -323,7 +323,7 @@ func (h *Handlers) GetNotificationPolicy(w http.ResponseWriter, r *http.Request)
 // SetNotificationPolicy implements api.ServerInterface.
 func (h *Handlers) SetNotificationPolicy(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	var in api.NotificationPolicy

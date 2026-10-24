@@ -832,6 +832,40 @@ paths:
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/session-policy:
+    get:
+      tags: [admin]
+      operationId: getSessionPolicy
+      summary: How long sessions last and which networks may sign in (instance administrators)
+      responses:
+        '200':
+          description: The policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionPolicy' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [admin]
+      operationId: setSessionPolicy
+      summary: Set how long sessions last and which networks may sign in
+      description: |
+        Shorter limits end existing sessions too. Administration networks must include
+        the address the change comes from.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SessionPolicy' }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionPolicy' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/admin/web-app:
     get:
       tags: [meta]
@@ -7555,6 +7589,28 @@ components:
           type: string
           enum: [full, sender]
           description: "Notification e-mails: the text, or the sender and channel only."
+    SessionPolicy:
+      type: object
+      required:
+        [session_max_hours, session_idle_minutes, guest_session_max_hours, guest_idle_minutes, admin_networks, signin_networks]
+      properties:
+        session_max_hours: { type: integer, minimum: 0, maximum: 87600, description: 'Sessions end this long after sign-in (0: no limit).' }
+        session_idle_minutes: { type: integer, minimum: 0, maximum: 525600, description: 'Sessions end after this long unused (0: no limit).' }
+        guest_session_max_hours: { type: integer, minimum: 0, maximum: 87600, description: 'Guests: a shorter lifetime (0: as everyone).' }
+        guest_idle_minutes: { type: integer, minimum: 0, maximum: 525600, description: 'Guests: a shorter idle time (0: as everyone).' }
+        admin_networks:
+          type: array
+          maxItems: 100
+          description: Addresses and CIDR ranges that may use the administration (empty, every network).
+          items: { type: string }
+        signin_networks:
+          type: array
+          maxItems: 100
+          description: Addresses and CIDR ranges that may sign in (empty, every network).
+          items: { type: string }
+        operator_max_hours: { type: integer, readOnly: true, description: "The operator's limit (CENACLE_SESSION_MAX_AGE; 0, none)." }
+        operator_idle_minutes: { type: integer, readOnly: true, description: "The operator's limit (CENACLE_SESSION_IDLE_TIMEOUT; 0, none)." }
+        your_address: { type: string, readOnly: true, description: The address this request came from. }
     AdminOverview:
       type: object
       required: [version, counts, config, jobs, failures]

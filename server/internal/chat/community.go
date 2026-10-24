@@ -853,9 +853,13 @@ func (h *Handlers) FinishOnboarding(w http.ResponseWriter, r *http.Request, work
 
 // ------------------------------------------------------- banner and terms ---
 
-func requireInstanceAdmin(w http.ResponseWriter, r *http.Request, user store.User) bool {
-	if !user.IsAdmin {
+func requireInstanceAdmin(w http.ResponseWriter, r *http.Request, p auth.Principal) bool {
+	if !p.User.IsAdmin {
 		forbidden(w, r, httpx.CodeForbidden, "Only instance administrators do this.")
+		return false
+	}
+	if !p.AdminNetwork {
+		forbidden(w, r, auth.CodeAdminNetwork, "The administration is not available from this network.")
 		return false
 	}
 	return true
@@ -889,7 +893,7 @@ func (h *Handlers) SetBanner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in api.BannerInput
-	if !decode(w, r, &in) || !requireInstanceAdmin(w, r, p.User) {
+	if !decode(w, r, &in) || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	text := strings.TrimSpace(in.Text)
@@ -924,7 +928,7 @@ func (h *Handlers) SetBanner(w http.ResponseWriter, r *http.Request) {
 // RemoveBanner implements api.ServerInterface.
 func (h *Handlers) RemoveBanner(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
@@ -1038,7 +1042,7 @@ func (h *Handlers) SetTerms(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in api.SetTermsJSONBody
-	if !decode(w, r, &in) || !requireInstanceAdmin(w, r, p.User) {
+	if !decode(w, r, &in) || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	text := strings.TrimSpace(in.Text)
@@ -1073,7 +1077,7 @@ func (h *Handlers) SetTerms(w http.ResponseWriter, r *http.Request) {
 // WithdrawTerms implements api.ServerInterface.
 func (h *Handlers) WithdrawTerms(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
-	if !ok || !requireInstanceAdmin(w, r, p.User) {
+	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	err := h.inTx(r.Context(), func(q *store.Queries) error {

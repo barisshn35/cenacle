@@ -376,11 +376,17 @@ type InstanceBanner struct {
 }
 
 type InstanceSetting struct {
-	ID            bool      `json:"id"`
-	WebApp        bool      `json:"web_app"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	PushContents  string    `json:"push_contents"`
-	EmailContents string    `json:"email_contents"`
+	ID                   bool      `json:"id"`
+	WebApp               bool      `json:"web_app"`
+	UpdatedAt            time.Time `json:"updated_at"`
+	PushContents         string    `json:"push_contents"`
+	EmailContents        string    `json:"email_contents"`
+	SessionMaxHours      int32     `json:"session_max_hours"`
+	SessionIdleMinutes   int32     `json:"session_idle_minutes"`
+	GuestSessionMaxHours int32     `json:"guest_session_max_hours"`
+	GuestIdleMinutes     int32     `json:"guest_idle_minutes"`
+	AdminNetworks        []string  `json:"admin_networks"`
+	SigninNetworks       []string  `json:"signin_networks"`
 }
 
 type LegalHold struct {

@@ -508,6 +508,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/session-policy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** How long sessions last and which networks may sign in (instance administrators) */
+    get: operations['getSessionPolicy'];
+    /**
+     * Set how long sessions last and which networks may sign in
+     * @description Shorter limits end existing sessions too. Administration networks must include
+     *     the address the change comes from.
+     */
+    put: operations['setSessionPolicy'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/web-app': {
     parameters: {
       query?: never;
@@ -5180,6 +5202,26 @@ export interface components {
        */
       email_contents: 'full' | 'sender';
     };
+    SessionPolicy: {
+      /** @description Sessions end this long after sign-in (0: no limit). */
+      session_max_hours: number;
+      /** @description Sessions end after this long unused (0: no limit). */
+      session_idle_minutes: number;
+      /** @description Guests: a shorter lifetime (0: as everyone). */
+      guest_session_max_hours: number;
+      /** @description Guests: a shorter idle time (0: as everyone). */
+      guest_idle_minutes: number;
+      /** @description Addresses and CIDR ranges that may use the administration (empty, every network). */
+      admin_networks: string[];
+      /** @description Addresses and CIDR ranges that may sign in (empty, every network). */
+      signin_networks: string[];
+      /** @description The operator's limit (CENACLE_SESSION_MAX_AGE; 0, none). */
+      readonly operator_max_hours?: number;
+      /** @description The operator's limit (CENACLE_SESSION_IDLE_TIMEOUT; 0, none). */
+      readonly operator_idle_minutes?: number;
+      /** @description The address this request came from. */
+      readonly your_address?: string;
+    };
     AdminOverview: {
       version: string;
       counts: {
@@ -6639,6 +6681,55 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['NotificationPolicy'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  getSessionPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The policy. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SessionPolicy'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setSessionPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SessionPolicy'];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SessionPolicy'];
         };
       };
       400: components['responses']['Problem'];

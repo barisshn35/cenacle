@@ -302,8 +302,7 @@ func (h *Handlers) SetUITexts(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !p.User.IsAdmin {
-		forbidden(w, r, httpx.CodeForbidden, "Only instance administrators change interface texts.")
+	if !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	var in api.SetUITextsJSONBody

@@ -54,9 +54,7 @@ func (h *Handlers) ListSessions(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rows, err := h.Users.ListUserSessions(r.Context(), store.ListUserSessionsParams{
-		UserID: p.User.ID, IdleTimeout: h.Sessions.idle(),
-	})
+	rows, err := h.Sessions.ListUserSessions(r.Context(), p.User.ID)
 	if err != nil {
 		h.unavailable(w, r, "list sessions", err)
 		return
