@@ -174,6 +174,30 @@ test-e2e:
       - idp/test-results
       - desktop/test-results
 
+# The web journeys in Firefox and WebKit (Safari) as well, on release tags
+# (docs/qa/test-plan.md), in Playwright's image, which has both engines.
+test-e2e-browsers:
+  stage: test
+  needs: [lint-js]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
+  timeout: 1h
+  variables:
+    E2E_BROWSERS: all
+    # The image's own browsers, not the cache of the other jobs' Chromium.
+    PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+  script:
+    - npm install -g --prefix /usr/local "pnpm@12.14.0"
+    - pnpm install --frozen-lockfile --store-dir "$PNPM_STORE" --filter "@cenacle/web..."
+    - pnpm --filter @cenacle/web exec playwright test --project=firefox --project=webkit --workers=4
+  artifacts:
+    when: on_failure
+    expire_in: 7 days
+    paths:
+      - web/playwright-report
+      - web/test-results
+
 security:
   stage: test
   needs: [lint-go, lint-js]

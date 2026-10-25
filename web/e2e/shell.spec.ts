@@ -116,7 +116,10 @@ test('brand icons and manifest are served from our origin', async ({ page, reque
   }
 });
 
-test('the favicon follows the system theme', async ({ page }) => {
+test('the favicon follows the system theme', async ({ page, browserName }) => {
+  // Firefox and WebKit do not pass an emulated colour scheme into SVG images
+  // drawn on a canvas, which is how this test reads the icon.
+  test.skip(browserName !== 'chromium', 'reads the icon through a canvas (Chromium)');
   // Samples the arch stroke of /favicon.svg drawn at 64 px.
   const archColor = async () =>
     page.evaluate(async () => {

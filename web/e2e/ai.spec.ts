@@ -66,7 +66,7 @@ test('with AI on: a summary only for me, a rewrite I choose to use, and answers 
   await rewrite.getByRole('button', { name: 'Use this text' }).click();
   await expect(box).toHaveValue('Please ship it on Friday.');
 
-  if (testInfo.project.name === 'fine') {
+  if (testInfo.project.name !== 'coarse') {
     // Ask AI is one of the views folded under More.
     await page.getByRole('button', { name: 'More', exact: true }).click();
     await page.getByRole('link', { name: 'Ask AI' }).click();

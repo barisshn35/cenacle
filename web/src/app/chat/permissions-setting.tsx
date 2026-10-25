@@ -77,7 +77,7 @@ export function PermissionsSetting({ workspace }: { workspace: Workspace }) {
                       <label className="inline-flex min-h-target min-w-target cursor-pointer items-center justify-center">
                         <input
                           type="checkbox"
-                          className="hit-target size-4"
+                          className="size-target shrink-0 accent-primary"
                           checked={on}
                           aria-label={t('permissions.toggle', {
                             role: t(`workspaces.roles.${role}`),

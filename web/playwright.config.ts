@@ -19,6 +19,20 @@ export default defineConfig({
     { name: 'fine', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 900 } } },
     // Touch: pointer is coarse, targets >= 44 px.
     { name: 'coarse', use: { ...devices['Pixel 7'] } },
+    // The other engines (E2E_BROWSERS=all; release tags): the same journeys
+    // with a mouse in Firefox and in WebKit (Safari).
+    ...(process.env.E2E_BROWSERS === 'all'
+      ? [
+          {
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 900 } },
+          },
+          {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 900 } },
+          },
+        ]
+      : []),
   ],
   webServer: {
     // The component gallery only exists in the dev server.

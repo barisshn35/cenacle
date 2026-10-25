@@ -49,6 +49,17 @@
   }
 }
 
+/*
+ * The focus ring of a select is an outline: WebKit (Safari) draws no shadow
+ * around a select, so the ring utilities would not show there. Outside the
+ * layers, so that it wins over them; it looks the same in every browser.
+ */
+select:focus-visible {
+  box-shadow: none;
+  outline: 3px solid color-mix(in oklab, var(--ring) 50%, transparent);
+  outline-offset: 0;
+}
+
 /* Right-to-left languages: icons that point a way point the other way. */
 [dir='rtl']
   :is(

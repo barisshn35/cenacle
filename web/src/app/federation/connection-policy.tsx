@@ -59,7 +59,7 @@ export function ConnectionPolicyForm({
           <label key={key} className="flex min-h-target items-center gap-2.5">
             <input
               type="checkbox"
-              className="hit-target size-4 accent-primary"
+              className="size-target shrink-0 accent-primary"
               checked={policy[key]}
               onChange={(e) => setPolicy((p) => ({ ...p, [key]: e.target.checked }))}
             />

@@ -8,6 +8,31 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- **AI notice:** before a person's first AI request Cenacle shows what is sent, to which
+  model and server, and what is kept; they accept or decline. The server refuses AI requests
+  until they accept (`ai_consent`), the answer is kept per model (a new model asks again),
+  audited, part of the data download and removed when the person is erased. Settings → AI
+  shows and changes it. Optional `CENACLE_AI_POLICY_URL` links the operator's page about the
+  model server (migration 00047).
+- **Privacy:** [docs/privacy.md](docs/privacy.md) lists what Cenacle stores, why, for how
+  long and what leaves the server. `CENACLE_PRIVACY_URL` links a server's own privacy policy
+  from Settings → Account.
+- **Desktop app, Windows:** MSIX packages (x64, arm64) for the Microsoft Store, which signs
+  them; an MSI for organizations (x64, all users, silent install) that leaves updates to the
+  organization; policies from Group Policy or Intune (templates in English and Turkish) or
+  `/etc/cenacle/desktop-policy.json` on Linux: the server, a locked server, updates off;
+  builds signed with an organization's own certificate
+  ([enterprise deployment](docs/desktop/enterprise-deployment.md)).
+- **Desktop app, Linux:** rpm packages and the checksums are signed with GPG when the
+  project's key is set up (`ci/setup-linux-signing.sh`).
+- **Support policy:** extended support releases (ESR) from 1.0 on, supported for 12 months,
+  one every 6 months ([releases and support](docs/operations/support-policy.md)); CI runs on
+  `release-<major>.<minor>` branches.
+- The web journeys also run in Firefox and WebKit (`E2E_BROWSERS=all`).
+- [docs/qa/test-plan.md](docs/qa/test-plan.md): how a release candidate is tested.
+
 ## [0.43.0] - 2026-10-25
 
 Performance with years of data and over long runs: tests with two million messages and
