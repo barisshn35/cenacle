@@ -82,6 +82,23 @@ test.describe('search', () => {
     await expectNoAxeViolations(page, '[data-testid="search-panel"]');
     await expectTargetSizes(page, testInfo, '[data-testid="search-panel"]');
 
+    // The highlight is short: note every message that gets it, so a busy
+    // machine cannot miss it between two checks.
+    await page.evaluate(() => {
+      const seen: string[] = [];
+      (window as unknown as { highlightedSeen: string[] }).highlightedSeen = seen;
+      new MutationObserver((records) => {
+        for (const r of records) {
+          const el = r.target as HTMLElement;
+          if (el.dataset.highlighted === 'true' && el.dataset.messageId)
+            seen.push(el.dataset.messageId);
+        }
+      }).observe(document.body, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-highlighted'],
+      });
+    });
     await result.click();
     await expect(page).toHaveURL(new RegExp(`/c/${GENERAL.id}`));
     // On a phone the search covered the channel: it closes to show the message.
@@ -89,8 +106,12 @@ test.describe('search', () => {
     const target = page.locator(`[data-message-id="${messages[4]!.id}"]`);
     // Older pages load first; on a busy machine this takes a while.
     await expect(target).toBeInViewport({ timeout: 15_000 });
-    await expect(target).toHaveAttribute('data-highlighted', 'true');
-    await expect(target).not.toHaveAttribute('data-highlighted', 'true', { timeout: 5000 });
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { highlightedSeen: string[] }).highlightedSeen),
+      )
+      .toContain(messages[4]!.id);
+    await expect(target).not.toHaveAttribute('data-highlighted', 'true', { timeout: 8000 });
   });
 
   test('says when nothing matches', async ({ page }) => {
