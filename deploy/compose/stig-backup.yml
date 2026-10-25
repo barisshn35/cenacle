@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# The STIG profile together with WAL-G archiving. stig.yml and backup.yml each
+# set PostgreSQL's command and Compose replaces it (the last file wins), so
+# this file names both sets of flags. Put it last:
+#   docker compose -f prod.yml -f backup.yml -f stig.yml -f stig-backup.yml \
+#     --env-file .env.prod up -d
+
+services:
+  postgres:
+    command:
+      - postgres
+      # backup.yml: continuous archiving.
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=/usr/local/bin/wal-g wal-push %p
+      - -c
+      - archive_timeout=60
+      # stig.yml: connections, disconnections and slow statements; SCRAM only.
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+      - -c
+      - log_min_duration_statement=5000
+      - -c
+      - password_encryption=scram-sha-256

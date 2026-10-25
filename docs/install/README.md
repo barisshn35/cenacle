@@ -27,7 +27,9 @@ registry asks for credentials, `docker login git.calaixo.com:5050` once before `
 Every setting can also be read from a file: `CENACLE_X_FILE=/run/secrets/x` instead of
 `CENACLE_X` (the same for `IDP_*`); setting both is an error. `prod.yml` reads the
 credentials from `secrets/` this way. `secrets/smtp_password` and `secrets/ai_api_key`
-start empty; write a password or key there instead of into `.env.prod`.
+start empty; write the password or key either there or into `.env.prod`
+(`CENACLE_SMTP_PASSWORD`, `CENACLE_AI_API_KEY`). An empty file does not count as set, so
+only both with content is an error.
 
 Back up `secrets/` and `.env.prod` together with the databases
 ([backup guide](../backup/README.md)).
@@ -65,15 +67,24 @@ checks access first. Settings (in `.env.prod`):
 | `CENACLE_S3_REGION`         | `garage`                     | The region the S3 service expects.                                                                                                      |
 | `CENACLE_S3_BUCKET`         | `cenacle-files`              | The bucket; Caddy passes uploads to `/<bucket>/` on the chat domain.                                                                    |
 | `CENACLE_S3_UPLOAD_URL`     | `https://<domain>/<bucket>/` | Where browsers post uploads. For an external S3 service, its bucket URL; allow `POST` from the app's origin in the bucket's CORS rules. |
-| `CENACLE_CLAMAV_ADDR`       | (none)                       | A clamd to scan every file, e.g. `clamav:3310` with `--profile clamav`. Rejected files are deleted.                                     |
+| `CENACLE_CLAMAV_ADDR`       | (none)                       | A clamd to scan every file, e.g. `clamav:3310` with the `clamav` profile. Rejected files are deleted.                                   |
 
-With `CENACLE_S3_ENDPOINT=` (empty) files are off and the app hides the attach button.
+With `CENACLE_S3_ENDPOINT=` (empty) or `CENACLE_FILES_BACKEND=off` files are off and the
+app hides the attach button.
+
+Garage runs in every stack (it is small); with files kept elsewhere it simply stays
+unused.
+
+An S3 service on another origin than the chat domain: also set `CENACLE_UPLOAD_ORIGIN` to
+that origin (for example `https://s3.example.com`), which the web app's content security
+policy then allows browsers to upload to.
 
 **Azure Blob Storage:** set `CENACLE_FILES_BACKEND=azure`, `CENACLE_AZURE_ACCOUNT`,
 `CENACLE_AZURE_CONTAINER` (default `cenacle-files`, which must exist) and write the account
 key into `secrets/azure_key`; `CENACLE_AZURE_ENDPOINT` names another cloud or an emulator.
-**A directory:** `CENACLE_FILES_BACKEND=dir` and `CENACLE_FILES_DIR=/data/files` on a volume
-of the server (every chat server must mount the same one). With both, browsers upload to
+**A directory:** `CENACLE_FILES_BACKEND=dir`; `prod.yml` keeps the files on the
+`files-data` volume at `CENACLE_FILES_DIR` (default `/data/files`). Every chat server must
+mount the same one (on several hosts: shared storage). With both, browsers upload to
 the chat server (`/api/uploads`, with a one-time ticket for the file's key and size), which
 writes the file; garage and the `/<bucket>/` route are then not needed. Keep the timeouts of
 a proxy in front long enough for the largest file.
@@ -116,6 +127,11 @@ server's help:
 
 Cenacle ID keeps up to 10 database connections (`IDP_DATABASE_POOL_MAX`); keep the sum of
 all chat servers' and Cenacle ID's connections below PostgreSQL's `max_connections`.
+
+The chat server's root file system is read-only; archive exports and imports are staged
+in `/tmp`, a memory file system of `CENACLE_TMP_SIZE` (default `1g`, counted against the
+server's memory). For exports or imports larger than that, raise it, or mount a volume at
+`/tmp` in a compose override (or point `TMPDIR` at a mounted volume).
 
 ### First account and Cenacle ID operations
 

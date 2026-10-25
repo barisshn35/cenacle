@@ -263,3 +263,57 @@ func TestLoadSessionLimits(t *testing.T) {
 		t.Fatal("expected an error for an invalid limit")
 	}
 }
+
+func TestLoadValueWinsOverEmptyFile(t *testing.T) {
+	// prod.yml always mounts secrets/smtp_password; an empty one leaves the
+	// password to CENACLE_SMTP_PASSWORD.
+	cfg, err := Load(env(map[string]string{
+		"CENACLE_DATABASE_URL":       "postgres://localhost/chat",
+		"CENACLE_SMTP_PASSWORD":      "pw",
+		"CENACLE_SMTP_PASSWORD_FILE": "/run/secrets/smtp_password",
+	}), files(map[string]string{"/run/secrets/smtp_password": "\n"}))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.SMTPPassword != "pw" {
+		t.Errorf("SMTPPassword = %q", cfg.SMTPPassword)
+	}
+	// Both with content stays an error.
+	_, err = Load(env(map[string]string{
+		"CENACLE_DATABASE_URL":       "postgres://localhost/chat",
+		"CENACLE_SMTP_PASSWORD":      "pw",
+		"CENACLE_SMTP_PASSWORD_FILE": "/run/secrets/smtp_password",
+	}), files(map[string]string{"/run/secrets/smtp_password": "other\n"}))
+	if err == nil || !strings.Contains(err.Error(), "CENACLE_SMTP_PASSWORD and") {
+		t.Fatalf("err = %v, want both set", err)
+	}
+}
+
+func TestLoadFilesBackend(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		env  map[string]string
+		want string
+	}{
+		{"unset without endpoint", nil, ""},
+		{"unset with endpoint", map[string]string{"CENACLE_S3_ENDPOINT": "http://garage:3900"}, "s3"},
+		// prod.yml passes ${CENACLE_FILES_BACKEND:-}: empty must not turn files off.
+		{"empty with endpoint", map[string]string{"CENACLE_FILES_BACKEND": "", "CENACLE_S3_ENDPOINT": "http://garage:3900"}, "s3"},
+		{"off with endpoint", map[string]string{"CENACLE_FILES_BACKEND": "off", "CENACLE_S3_ENDPOINT": "http://garage:3900"}, ""},
+		{"dir", map[string]string{"CENACLE_FILES_BACKEND": "dir", "CENACLE_S3_ENDPOINT": "http://garage:3900"}, "dir"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := map[string]string{"CENACLE_DATABASE_URL": "postgres://localhost/chat"}
+			for k, v := range tc.env {
+				m[k] = v
+			}
+			cfg, err := Load(env(m), files(nil))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if cfg.FilesBackend != tc.want {
+				t.Errorf("FilesBackend = %q, want %q", cfg.FilesBackend, tc.want)
+			}
+		})
+	}
+}

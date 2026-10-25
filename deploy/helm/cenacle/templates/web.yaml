@@ -24,7 +24,7 @@ spec:
       # No Kubernetes API access: no service account token in the pod.
       automountServiceAccountToken: false
       securityContext:
-        {{- include "cenacle.podSecurity" . | nindent 8 }}
+        {{- include "cenacle.podSecurity" 10001 | nindent 8 }}
       containers:
         - name: web
           image: {{ include "cenacle.image" (dict "root" . "component" "web") }}
@@ -33,6 +33,12 @@ spec:
             {{- include "cenacle.containerSecurity" . | nindent 12 }}
           ports:
             - { name: http, containerPort: 8080 }
+          {{- if and (eq (include "cenacle.filesBackend" .) "s3") .Values.s3.uploadURL }}
+          {{- $upload := urlParse .Values.s3.uploadURL }}
+          env:
+            # Browsers upload to another origin: the content security policy allows it.
+            - { name: CENACLE_UPLOAD_ORIGIN, value: {{ printf "%s://%s" $upload.scheme $upload.host | quote }} }
+          {{- end }}
           volumeMounts:
             - { name: data, mountPath: /data }
             - { name: config, mountPath: /config }

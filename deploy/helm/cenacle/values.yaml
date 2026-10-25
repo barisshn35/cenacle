@@ -20,8 +20,10 @@ idDomain: id.example.com
 # A Secret you create with these keys (see docs/install/kubernetes.md):
 #   chat-database-url, idp-database-url, valkey-password (may be empty),
 #   chat-client-secret, idp-key-encryption-key, idp-cookie-keys,
-#   s3-access-key, s3-secret-key
+#   s3-access-key, s3-secret-key (files.backend s3), azure-key (azure)
 # and, when used: smtp-password, ai-api-key
+# The pods read the required keys as files (/run/secrets/cenacle/<key>); the
+# optional ones (valkey-password, smtp-password, ai-api-key) as variables.
 existingSecret: cenacle
 
 valkey:
@@ -55,9 +57,13 @@ admin:
   defaultChannels: General
 
 files:
-  # Where files are kept: s3 (s3.* above) or azure (azure.* below). Empty: s3
-  # when s3.endpoint is set, else files are off.
+  # Where files are kept: s3 (s3.* above), azure (azure.* above), dir (a
+  # volume, files.dir below) or off. Empty: s3 when s3.endpoint is set, else off.
   backend: ''
+  dir:
+    # With backend dir: a ReadWriteMany PersistentVolumeClaim you create, which
+    # every server replica mounts at /data/files.
+    existingClaim: ''
   maxSizeMB: 100
   # A clamd address (host:port) to scan files; empty: no scanning.
   clamavAddr: ''
@@ -96,6 +102,19 @@ server:
   replicas: 2
   # /readyz fails this long before a pod stops (rolling upgrades).
   drainDelay: 10s
+  # debug, info, warn or error
+  logLevel: info
+  # Signed-in devices end after this long unused, and at the latest after the
+  # maximum age (durations such as 168h and 720h); none: until people sign out.
+  sessionIdleTimeout: none
+  sessionMaxAge: none
+  # on or off overrides the administrators' web app setting (recovery); empty
+  # leaves it to them.
+  webApp: ''
+  # The oldest desktop app accepted, e.g. 0.30.0; empty: any.
+  desktopMinVersion: ''
+  # The largest /tmp, where archive exports and imports are staged.
+  tmpSize: 1Gi
   resources:
     requests: { cpu: 100m, memory: 128Mi }
     limits: { memory: 512Mi }
@@ -107,6 +126,12 @@ server:
 idp:
   replicas: 1
   loginRateLimit: 10
+  # fatal, error, warn, info, debug or trace
+  logLevel: info
+  # Database connections each Cenacle ID pod keeps.
+  databasePoolMax: 10
+  # How long a rotated-out signing key stays published, in seconds (7 days).
+  keyRetiredGraceSeconds: 604800
   # A notice people accept before signing in (STIG notice and consent banner).
   signinNotice: ''
   # Share Cenacle ID cookies across subdomains, e.g. example.com.

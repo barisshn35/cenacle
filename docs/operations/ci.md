@@ -90,7 +90,23 @@ The images are built once into an OCI archive and copied to each registry with s
 which uploads every platform manifest itself. Pushing straight from buildkit failed on
 GitLab's registry with `blob unknown to registry`: buildkit skips platform manifests
 the registry reports as present, and the registry then rejected the index that
-referenced them. A failure on one registry no longer stops the push to the other.
+referenced them. A failure on one registry no longer stops the push to the other, nor
+signing the image there. A version tag that already exists is never overwritten: the job
+fails unless the registry already holds exactly this image (a re-run of the same
+pipeline). The minor tag (`0.40`) moves with every release.
+
+## Releasing
+
+A release bumps the version in every one of these files, in one commit
+(`chore: release X.Y.Z`), before the `vX.Y.Z` tag:
+
+- `package.json`, `packages/core/package.json`, `packages/ui/package.json`,
+  `web/package.json`, `idp/package.json`, `desktop/package.json`, `mobile/package.json`
+- `deploy/helm/cenacle/Chart.yaml` (`version` and `appVersion`)
+- `deploy/compose/.env.prod.example` (`CENACLE_VERSION`)
+- `sdk/python/pyproject.toml` (`version`)
+- `CHANGELOG.md` (the `[Unreleased]` section becomes the release) and, when operators must
+  act, `docs/upgrade/README.md`
 
 ## Signing releases
 

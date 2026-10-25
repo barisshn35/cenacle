@@ -53,7 +53,8 @@ WORKDIR /app
 COPY --from=build --chown=root:root /out ./
 EXPOSE 8190
 # Unprivileged "node" user (uid 1000); application files stay read-only for it.
-USER node
+# Numeric, so Kubernetes can check runAsNonRoot.
+USER 1000:1000
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.IDP_PORT||8190)+'/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
 # Maintenance commands: docker compose run --rm idp node dist/cli.js <migrate|keys|users> ...
@@ -67,9 +68,9 @@ COPY --from=fips-provider /out/usr/local/ssl/fipsmodule.cnf /etc/ssl/fipsmodule.
 COPY idp/fips/openssl.cnf /etc/ssl/cenacle-fips.cnf
 ENV OPENSSL_CONF=/etc/ssl/cenacle-fips.cnf \
     OPENSSL_MODULES=/usr/local/lib/ossl-modules
-USER node
+USER 1000:1000
 CMD ["node", "--enable-fips", "--enable-source-maps", "dist/server.js"]
 
 # The default image (the last stage).
 FROM runtime
-USER node
+USER 1000:1000

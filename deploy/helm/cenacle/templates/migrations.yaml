@@ -27,7 +27,7 @@ spec:
       # No Kubernetes API access: no service account token in the pod.
       automountServiceAccountToken: false
       securityContext:
-        {{- include "cenacle.podSecurity" $ | nindent 8 }}
+        {{- include "cenacle.podSecurity" (ternary 65532 1000 (eq $component "server")) | nindent 8 }}
       containers:
         - name: migrate
           image: {{ include "cenacle.image" (dict "root" $ "component" $component) }}
@@ -41,7 +41,21 @@ spec:
           {{- else }}
           command: [node, dist/cli.js, migrate, up]
           env:
-            - name: IDP_DATABASE_URL
-              {{- include "cenacle.secret" (dict "root" $ "key" "idp-database-url") | nindent 14 }}
+            - { name: IDP_DATABASE_URL_FILE, value: /run/secrets/cenacle/idp-database-url }
           {{- end }}
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/cenacle, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        {{- if eq $component "server" }}
+        {{- include "cenacle.serverSecrets" (dict "root" $ "serve" false) | nindent 8 }}
+        {{- else }}
+        - name: secrets
+          secret:
+            secretName: {{ $.Values.existingSecret }}
+            items:
+              - { key: idp-database-url, path: idp-database-url }
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
 {{- end }}

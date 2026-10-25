@@ -8,6 +8,7 @@
 # walg-backup service takes a base backup daily, both to an S3 bucket named in
 # secrets/walg.env (start from walg.env.example). Point it at storage that is
 # not this host. Restoring: docs/backup.
+# With stig.yml as well, add stig-backup.yml last (both set PostgreSQL's command).
 
 services:
   postgres:
@@ -31,6 +32,9 @@ services:
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
+    logging:
+      driver: local
+      options: { max-size: 20m, max-file: '5' }
     user: '70:70' # the postgres user of the image
     entrypoint: [/usr/local/bin/walg-backup]
     environment:

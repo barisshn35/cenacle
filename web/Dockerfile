@@ -31,7 +31,7 @@ RUN pnpm --filter @cenacle/web exec vite build
 
 FROM alpine:3.24.2
 RUN apk add --no-cache ca-certificates mailcap \
- && adduser -D -H -u 10001 cenacle \
+ && addgroup -g 10001 cenacle && adduser -D -H -u 10001 -G cenacle cenacle \
  && mkdir -p /data /config /etc/caddy \
  && chown cenacle:cenacle /data /config
 COPY --from=caddy /out/caddy /usr/bin/caddy
@@ -39,7 +39,8 @@ ENV XDG_DATA_HOME=/data \
     XDG_CONFIG_HOME=/config
 COPY web/deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/web/dist /srv
-USER cenacle
+# Numeric, so Kubernetes can check runAsNonRoot.
+USER 10001:10001
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 CMD ["wget", "-qO-", "http://127.0.0.1:8080/healthz"]
 CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

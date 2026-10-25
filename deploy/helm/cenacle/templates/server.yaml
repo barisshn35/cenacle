@@ -27,7 +27,7 @@ spec:
       # No Kubernetes API access: no service account token in the pod.
       automountServiceAccountToken: false
       securityContext:
-        {{- include "cenacle.podSecurity" . | nindent 8 }}
+        {{- include "cenacle.podSecurity" 65532 | nindent 8 }}
       # The drain delay plus the graceful shutdown.
       terminationGracePeriodSeconds: 45
       containers:
@@ -49,8 +49,12 @@ spec:
             - { name: CENACLE_OIDC_ISSUER, value: {{ printf "https://%s" .Values.idDomain | quote }} }
             - name: CENACLE_OIDC_BACKCHANNEL_URL
               value: {{ printf "http://%s-idp:8190" (include "cenacle.fullname" .) | quote }}
-            - name: CENACLE_OIDC_CLIENT_SECRET
-              {{- include "cenacle.secret" (dict "root" . "key" "chat-client-secret") | nindent 14 }}
+            - { name: CENACLE_OIDC_CLIENT_SECRET_FILE, value: /run/secrets/cenacle/chat-client-secret }
+            - { name: CENACLE_LOG_LEVEL, value: {{ .Values.server.logLevel | quote }} }
+            - { name: CENACLE_SESSION_IDLE_TIMEOUT, value: {{ .Values.server.sessionIdleTimeout | quote }} }
+            - { name: CENACLE_SESSION_MAX_AGE, value: {{ .Values.server.sessionMaxAge | quote }} }
+            - { name: CENACLE_WEB_APP, value: {{ .Values.server.webApp | quote }} }
+            - { name: CENACLE_DESKTOP_MIN_VERSION, value: {{ .Values.server.desktopMinVersion | quote }} }
             - { name: CENACLE_ADMIN_EMAIL, value: {{ .Values.admin.email | quote }} }
             - { name: CENACLE_ANNOUNCEMENT_CHANNEL, value: {{ .Values.admin.announcementChannel | quote }} }
             - { name: CENACLE_DEFAULT_CHANNELS, value: {{ .Values.admin.defaultChannels | quote }} }
@@ -72,24 +76,25 @@ spec:
             {{- if .Values.metrics.enabled }}
             - { name: CENACLE_METRICS_ADDR, value: ':9090' }
             {{- end }}
-            {{- $files := .Values.files.backend | default (ternary "s3" "" (ne .Values.s3.endpoint "")) }}
+            {{- $files := include "cenacle.filesBackend" . }}
             {{- if $files }}
             - { name: CENACLE_FILES_BACKEND, value: {{ $files | quote }} }
             {{- if eq $files "azure" }}
             - { name: CENACLE_AZURE_ACCOUNT, value: {{ .Values.azure.account | quote }} }
             - { name: CENACLE_AZURE_CONTAINER, value: {{ .Values.azure.container | quote }} }
             - { name: CENACLE_AZURE_ENDPOINT, value: {{ .Values.azure.endpoint | quote }} }
-            - name: CENACLE_AZURE_KEY
-              {{- include "cenacle.secret" (dict "root" . "key" "azure-key") | nindent 14 }}
-            {{- else }}
+            - { name: CENACLE_AZURE_KEY_FILE, value: /run/secrets/cenacle/azure-key }
+            {{- else if eq $files "dir" }}
+            - { name: CENACLE_FILES_DIR, value: /data/files }
+            {{- else if eq $files "s3" }}
             - { name: CENACLE_S3_ENDPOINT, value: {{ .Values.s3.endpoint | quote }} }
             - { name: CENACLE_S3_REGION, value: {{ .Values.s3.region | quote }} }
             - { name: CENACLE_S3_BUCKET, value: {{ .Values.s3.bucket | quote }} }
             - { name: CENACLE_S3_UPLOAD_URL, value: {{ .Values.s3.uploadURL | quote }} }
-            - name: CENACLE_S3_ACCESS_KEY
-              {{- include "cenacle.secret" (dict "root" . "key" "s3-access-key") | nindent 14 }}
-            - name: CENACLE_S3_SECRET_KEY
-              {{- include "cenacle.secret" (dict "root" . "key" "s3-secret-key") | nindent 14 }}
+            - { name: CENACLE_S3_ACCESS_KEY_FILE, value: /run/secrets/cenacle/s3-access-key }
+            - { name: CENACLE_S3_SECRET_KEY_FILE, value: /run/secrets/cenacle/s3-secret-key }
+            {{- else }}
+            {{- fail (printf "files.backend: s3, azure, dir or off, got %q" $files) }}
             {{- end }}
             - { name: CENACLE_FILES_MAX_SIZE_MB, value: {{ .Values.files.maxSizeMB | quote }} }
             - { name: CENACLE_CLAMAV_ADDR, value: {{ .Values.files.clamavAddr | quote }} }
@@ -119,6 +124,13 @@ spec:
             {{- with .Values.server.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/cenacle, readOnly: true }
+            # Archive exports and imports are staged here (the root is read-only).
+            - { name: tmp, mountPath: /tmp }
+            {{- if eq $files "dir" }}
+            - { name: files, mountPath: /data/files }
+            {{- end }}
           readinessProbe:
             httpGet: { path: /readyz, port: http }
             periodSeconds: 5
@@ -129,6 +141,16 @@ spec:
             failureThreshold: 6
           resources:
             {{- toYaml .Values.server.resources | nindent 12 }}
+      volumes:
+        {{- include "cenacle.serverSecrets" (dict "root" . "serve" true) | nindent 8 }}
+        - name: tmp
+          emptyDir: { sizeLimit: {{ .Values.server.tmpSize | quote }} }
+        {{- if eq $files "dir" }}
+        # Every replica keeps files in the same place: a ReadWriteMany claim.
+        - name: files
+          persistentVolumeClaim:
+            claimName: {{ required "files.dir.existingClaim: a ReadWriteMany PersistentVolumeClaim is needed with files.backend=dir" .Values.files.dir.existingClaim | quote }}
+        {{- end }}
       {{- with .Values.server.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

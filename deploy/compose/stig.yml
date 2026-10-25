@@ -4,6 +4,8 @@
 # escalation and, where possible, with a read-only root file system.
 #   docker compose -f prod.yml -f stig.yml --env-file .env.prod up -d
 # With FIPS images, set CENACLE_IMAGE_VARIANT=-fips in .env.prod.
+# With backup.yml as well, add stig-backup.yml last: both files set
+# PostgreSQL's command, and Compose keeps only the last one.
 
 x-limits: &limits
   pids_limit: 512

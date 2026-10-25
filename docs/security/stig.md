@@ -14,6 +14,11 @@ cd deploy/compose
 docker compose -f prod.yml -f stig.yml --env-file .env.prod up -d
 ```
 
+With continuous archiving ([backup](../backup/README.md)), add `backup.yml` and then
+`stig-backup.yml` last: `-f prod.yml -f backup.yml -f stig.yml -f stig-backup.yml`. Both
+`stig.yml` and `backup.yml` set PostgreSQL's command, and Compose keeps only the last one;
+`stig-backup.yml` names both sets of flags.
+
 Kubernetes: `image.fips: true`, `idp.signinNotice`, and the chart's defaults (below).
 
 ## Requirement areas

@@ -12,7 +12,7 @@ Cenacle: a backup that has never been restored is not a backup.
 | Secrets                      | `deploy/compose/secrets/`                                     | every password and key (see below)        |
 | Settings                     | `deploy/compose/.env.prod`, `idp/clients.json`                | domains, version, registered applications |
 | IdP signing keys             | IdP database, encrypted with `secrets/idp_key_encryption_key` | validating issued tokens across restores  |
-| Object store                 | S3-compatible store (Garage by default)                       | uploaded files                            |
+| Files                        | Garage (default), your S3, Azure Blob Storage or a directory  | uploaded files                            |
 | TLS state                    | `caddy-data` volume, `certs/` (`CENACLE_TLS_MODE=files`)      | optional with Let's Encrypt (re-issued)   |
 
 Valkey holds only ephemeral data (presence, typing, short-lived tickets, caches) and does
@@ -76,6 +76,11 @@ docker compose -f prod.yml -f backup.yml --env-file .env.prod up -d --build
 docker compose -f prod.yml -f backup.yml --env-file .env.prod logs walg-backup
 ```
 
+With the STIG profile as well, add `stig-backup.yml` last:
+`-f prod.yml -f backup.yml -f stig.yml -f stig-backup.yml`. `stig.yml` and `backup.yml`
+both set PostgreSQL's command and Compose keeps only the last one, so without it either
+archiving or the STIG logging settings are silently dropped.
+
 The PostgreSQL image stays the same Alpine image, with WAL-G added; the data volume does
 not change. Check archiving with
 `psql -U postgres -c "SELECT archived_count, failed_count FROM pg_stat_archiver"`.
@@ -125,3 +130,16 @@ Restore copies the objects back (`rclone sync /backup/… cenacle:cenacle-files`
 also keeps snapshots of its own metadata every six hours (`metadata_auto_snapshot_interval`).
 The `garage-data` volume can be backed up as a whole while Garage is stopped. With your own
 S3 service, use its versioning or replication instead.
+
+**Azure Blob Storage** (`CENACLE_FILES_BACKEND=azure`): the container holds the same
+`files/` and `thumbs/` blobs. Turn on soft delete and versioning for blobs (or object
+replication to another account), or copy the container with `azcopy sync` or `rclone`
+(type `azureblob`). Keep `secrets/azure_key` with the other secrets.
+
+**A directory** (`CENACLE_FILES_BACKEND=dir`): the files are plain files below
+`CENACLE_FILES_DIR`, on the `files-data` volume with `prod.yml` (on Kubernetes, the claim in
+`files.dir.existingClaim`). Copy it with any file backup tool, for example
+`docker run --rm -v cenacle_files-data:/data/files:ro -v /backup:/backup alpine tar -C /data -czf /backup/files-$(date +%Y%m%d).tar.gz files`;
+restore by unpacking it into the volume while the server is stopped (the files must stay
+owned by uid 65532). Files being uploaded are written to `.upload-*` names first; those
+need no backup.

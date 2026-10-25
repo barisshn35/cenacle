@@ -20,7 +20,9 @@ store come from your platform (operators, managed services or Garage).
    ```
 
    Optional keys: `smtp-password` (e-mail) and `ai-api-key` (a model server that wants
-   one). Keep a copy of this Secret with your backups: without `idp-key-encryption-key`
+   one); `azure-key` instead of the S3 keys with `files.backend=azure`. The pods read the
+   required keys as files under `/run/secrets/cenacle` (`*_FILE` settings), the optional
+   ones as variables. Keep a copy of this Secret with your backups: without `idp-key-encryption-key`
    Cenacle ID cannot read its signing keys or directory settings
    ([backup guide](../backup/README.md)).
 
@@ -42,12 +44,39 @@ Migrations run as Helm hooks before every install and upgrade; pods are replaced
 time with a drain delay ([operations](../operations/README.md#upgrades-without-downtime)).
 Uploads go from browsers to the bucket through the ingress (`POST /<bucket>/`, signed
 forms only); with an external S3 service set `s3.uploadURL` to its bucket URL and allow
-`POST` from the chat domain in its CORS rules instead.
+`POST` from the chat domain in its CORS rules instead (the web app's content security
+policy then allows that origin).
+
+Files elsewhere: `files.backend=azure` with `azure.*`, or `files.backend=dir` with
+`files.dir.existingClaim`, a ReadWriteMany PersistentVolumeClaim every server replica
+mounts at `/data/files`; `files.backend=off` turns files off. Archive exports and imports
+are staged in the server's `/tmp`, an `emptyDir` of at most `server.tmpSize` (default
+`1Gi`).
+
+The pods run as the images' users (server 65532, Cenacle ID 1000, web 10001) with a
+read-only root file system.
 
 Ingress controllers close idle connections; raise the timeout for `/ws` (e.g. nginx:
 `nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"`) and the request body size for
 uploads (`proxy-body-size` at least `files.maxSizeMB`).
 
 Options: `metrics.serviceMonitor.enabled` (Prometheus Operator), `otlpEndpoint`,
-`networkPolicy.enabled`, `podDisruptionBudget`, resources and scheduling per component.
-See [`values.yaml`](../../deploy/helm/cenacle/values.yaml).
+`networkPolicy.enabled`, `podDisruptionBudget`, resources and scheduling per component;
+`server.logLevel`, `server.sessionIdleTimeout`, `server.sessionMaxAge`, `server.webApp`,
+`server.desktopMinVersion`, `idp.logLevel`, `idp.databasePoolMax` and
+`idp.keyRetiredGraceSeconds` match the settings of the
+[Compose installation](README.md). See
+[`values.yaml`](../../deploy/helm/cenacle/values.yaml).
+
+Any other setting goes into `server.extraEnv` or `idp.extraEnv`, lists of container
+environment variables (values or `valueFrom` references):
+
+```yaml
+server:
+  extraEnv:
+    - { name: CENACLE_SHUTDOWN_TIMEOUT, value: 30s }
+    - { name: CENACLE_READY_TIMEOUT, value: 5s }
+```
+
+Do not repeat a variable the chart already sets; change its value instead (a duplicate
+name makes upgrades of the Deployment unreliable).

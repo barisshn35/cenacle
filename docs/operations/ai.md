@@ -20,7 +20,7 @@ Then in `.env.prod`:
 CENACLE_AI_URL=http://ollama:11434/v1
 CENACLE_AI_MODEL=qwen2.5:7b-instruct
 # API key only if your server asks for one: in secrets/ai_api_key
-# (or CENACLE_AI_API_KEY=…)
+# or here (CENACLE_AI_API_KEY=…), not in both
 # CENACLE_AI_TIMEOUT=2m
 ```
 

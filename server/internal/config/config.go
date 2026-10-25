@@ -5,7 +5,8 @@
 // Configuration comes from environment variables prefixed with CENACLE_.
 // Every variable can alternatively be read from a file by setting
 // <NAME>_FILE to a path, which is how Docker/Compose secrets are consumed.
-// Setting both <NAME> and <NAME>_FILE is an error.
+// Setting both <NAME> and <NAME>_FILE is an error unless one of them is
+// empty (compose passes unset settings as "" and mounts empty secret files).
 package config
 
 import (
@@ -234,12 +235,12 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.AzureContainer = strings.TrimSpace(l.str("CENACLE_AZURE_CONTAINER", "cenacle-files"))
 	cfg.AzureEndpoint = strings.TrimSpace(l.str("CENACLE_AZURE_ENDPOINT", ""))
 	cfg.FilesDir = strings.TrimSpace(l.str("CENACLE_FILES_DIR", ""))
-	// Without a choice, an S3 endpoint turns S3 on (as before 0.38).
-	backend := ""
-	if cfg.S3Endpoint != "" {
-		backend = "s3"
+	// Without a choice (unset or empty, as compose passes it), an S3 endpoint
+	// turns S3 on (as before 0.38); "off" turns files off.
+	cfg.FilesBackend = strings.TrimSpace(l.str("CENACLE_FILES_BACKEND", ""))
+	if cfg.FilesBackend == "" && cfg.S3Endpoint != "" {
+		cfg.FilesBackend = "s3"
 	}
-	cfg.FilesBackend = strings.TrimSpace(l.str("CENACLE_FILES_BACKEND", backend))
 	switch cfg.FilesBackend {
 	case "", "s3", "azure", "dir":
 	case "off":
@@ -331,6 +332,11 @@ func (l *loader) str(key, def string) string {
 	switch {
 	// An empty value does not count: compose passes unset settings as "".
 	case ok && val != "" && fileOK:
+		// Nor does an empty file: compose mounts optional secrets (SMTP
+		// password, AI key) whether used or not, so the variable may set them.
+		if b, err := l.readFile(file); err == nil && strings.TrimSpace(string(b)) == "" {
+			return val
+		}
 		l.fail("%s and %s_FILE are both set; use only one", key, key)
 		return def
 	case fileOK:

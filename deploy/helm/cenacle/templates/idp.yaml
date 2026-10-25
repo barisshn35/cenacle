@@ -51,7 +51,7 @@ spec:
       # No Kubernetes API access: no service account token in the pod.
       automountServiceAccountToken: false
       securityContext:
-        {{- include "cenacle.podSecurity" . | nindent 8 }}
+        {{- include "cenacle.podSecurity" 1000 | nindent 8 }}
       containers:
         - name: idp
           image: {{ include "cenacle.image" (dict "root" . "component" "idp") }}
@@ -72,6 +72,9 @@ spec:
             - { name: IDP_COOKIE_KEYS_FILE, value: /run/secrets/cenacle/idp-cookie-keys }
             - { name: IDP_CLIENTS_FILE, value: /etc/cenacle/clients.json }
             - { name: IDP_LOGIN_RATE_LIMIT, value: {{ .Values.idp.loginRateLimit | quote }} }
+            - { name: IDP_LOG_LEVEL, value: {{ .Values.idp.logLevel | quote }} }
+            - { name: IDP_DATABASE_POOL_MAX, value: {{ .Values.idp.databasePoolMax | quote }} }
+            - { name: IDP_KEY_RETIRED_GRACE_SECONDS, value: {{ .Values.idp.keyRetiredGraceSeconds | quote }} }
             {{- with .Values.idp.signinNotice }}
             - { name: IDP_SIGNIN_NOTICE, value: {{ . | quote }} }
             {{- end }}

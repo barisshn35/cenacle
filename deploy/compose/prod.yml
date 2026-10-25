@@ -58,6 +58,10 @@ services:
     image: ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}web:${CENACLE_VERSION}
     read_only: true
     tmpfs: [/tmp, /data, /config]
+    environment:
+      # An upload origin other than the app's (CENACLE_S3_UPLOAD_URL), allowed in
+      # the content security policy, e.g. https://s3.example.com.
+      CENACLE_UPLOAD_ORIGIN: ${CENACLE_UPLOAD_ORIGIN:-}
     # The desktop app's installers and update files (docs/install/desktop.md).
     volumes:
       - ${CENACLE_DOWNLOADS_DIR:-./downloads}:/downloads:ro
@@ -69,6 +73,7 @@ services:
     image: *server-image
     command: [migrate, up]
     read_only: true
+    tmpfs: [/tmp]
     environment: &server-env
       CENACLE_ENV: production
       CENACLE_DATABASE_URL_FILE: /run/secrets/chat_database_url
@@ -86,6 +91,9 @@ services:
     # The drain delay plus the graceful shutdown.
     stop_grace_period: 30s
     read_only: true
+    # Archive exports and imports are staged in /tmp (memory); raise the size for
+    # large ones or mount a volume there (docs/install).
+    tmpfs: ['/tmp:size=${CENACLE_TMP_SIZE:-1g}']
     environment:
       <<: *server-env
       CENACLE_PUBLIC_URL: https://${CENACLE_DOMAIN}
@@ -98,6 +106,7 @@ services:
       CENACLE_SESSION_IDLE_TIMEOUT: ${CENACLE_SESSION_IDLE_TIMEOUT:-none}
       CENACLE_SESSION_MAX_AGE: ${CENACLE_SESSION_MAX_AGE:-none}
       CENACLE_WEB_APP: ${CENACLE_WEB_APP:-}
+      CENACLE_DESKTOP_MIN_VERSION: ${CENACLE_DESKTOP_MIN_VERSION:-}
       CENACLE_ADMIN_EMAIL: ${CENACLE_ADMIN_EMAIL:-}
       CENACLE_ANNOUNCEMENT_CHANNEL: ${CENACLE_ANNOUNCEMENT_CHANNEL-Central}
       CENACLE_DEFAULT_CHANNELS: ${CENACLE_DEFAULT_CHANNELS-General}
@@ -118,7 +127,8 @@ services:
       CENACLE_AZURE_CONTAINER: ${CENACLE_AZURE_CONTAINER:-cenacle-files}
       CENACLE_AZURE_ENDPOINT: ${CENACLE_AZURE_ENDPOINT:-}
       CENACLE_AZURE_KEY_FILE: /run/secrets/azure_key
-      CENACLE_FILES_DIR: ${CENACLE_FILES_DIR:-}
+      # The dir backend keeps files on the files-data volume.
+      CENACLE_FILES_DIR: ${CENACLE_FILES_DIR:-/data/files}
       CENACLE_S3_ENDPOINT: ${CENACLE_S3_ENDPOINT-http://garage:3900}
       CENACLE_S3_REGION: ${CENACLE_S3_REGION:-garage}
       CENACLE_S3_BUCKET: ${CENACLE_S3_BUCKET:-cenacle-files}
@@ -152,6 +162,9 @@ services:
         ai_api_key,
         azure_key,
       ]
+    volumes:
+      # Files of CENACLE_FILES_BACKEND=dir (unused otherwise).
+      - files-data:/data/files
     networks: [edge, data, files]
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -189,6 +202,8 @@ services:
       # A notice people accept before signing in (STIG notice and consent banner).
       IDP_SIGNIN_NOTICE: ${IDP_SIGNIN_NOTICE:-}
       IDP_LOG_LEVEL: ${IDP_LOG_LEVEL:-info}
+      IDP_DATABASE_POOL_MAX: ${IDP_DATABASE_POOL_MAX:-}
+      IDP_KEY_RETIRED_GRACE_SECONDS: ${IDP_KEY_RETIRED_GRACE_SECONDS:-}
       # Used inside clients.json (${CENACLE_DOMAIN}).
       CENACLE_DOMAIN: ${CENACLE_DOMAIN}
     secrets: [idp_database_url, idp_key_encryption_key, idp_cookie_keys, chat_client_secret]
@@ -312,6 +327,7 @@ volumes:
   postgres-data:
   valkey-data:
   garage-data:
+  files-data:
   clamav-data:
 
 secrets:
