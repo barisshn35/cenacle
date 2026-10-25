@@ -48,6 +48,16 @@ included, was there.
 
 ## Version notes
 
+### 0.39.0
+
+- Migration: chat `00044_mls` (end-to-end encryption with device keys). Reversible:
+  rolling back deletes messages of channels encrypted with device keys, and those
+  channels stay encrypted and unreadable.
+- Channels encrypted with a passphrase keep working; new encrypted channels use device
+  keys.
+- Proxies: requests to `/api/channels/…/e2e/commits` carry the group's state (up to a few
+  hundred KB for large groups); keep request body limits above 2 MB.
+
 ### 0.38.0
 
 - No migration. Existing installs keep S3 (an S3 endpoint means `CENACLE_FILES_BACKEND=s3`).

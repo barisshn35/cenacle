@@ -8,6 +8,29 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-10-25
+
+End-to-end encryption with device keys (MLS, RFC 9420) instead of a shared passphrase
+(ADR 0042).
+
+### Added
+
+- **Encryption with device keys:** channel managers (anyone in a conversation) turn on
+  end-to-end encryption; every device has its own key and joins the channel's MLS group
+  on its own; people who leave and removed devices are taken out. Files are encrypted in
+  the browser. New encrypted channels use it.
+- **Device verification:** fingerprints of the devices that can read a channel (channel
+  details), marked verified on your device; your devices in Settings → Account, where you
+  remove those you no longer use.
+- **Recovery key and history backups:** a recovery key keeps what your devices read and
+  brings it to a new device.
+- **Escrow (optional):** instance administrators can require recovery keys to be sealed
+  for an organization key; `server e2e-escrow` opens a person's backups offline, audited.
+
+### Changed
+
+- Scheduled messages are not available in channels encrypted with device keys.
+
 ## [0.38.0] - 2026-10-25
 
 Imports from four more chats, moving workspaces between Cenacle servers, and files in
@@ -1037,7 +1060,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.38.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.39.0...HEAD
+[0.39.0]: https://github.com/barisshn35/cenacle/compare/v0.38.0...v0.39.0
 [0.38.0]: https://github.com/barisshn35/cenacle/compare/v0.37.2...v0.38.0
 [0.37.2]: https://github.com/barisshn35/cenacle/compare/v0.37.1...v0.37.2
 [0.37.1]: https://github.com/barisshn35/cenacle/compare/v0.37.0...v0.37.1

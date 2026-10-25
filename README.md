@@ -12,12 +12,12 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.38, importers, workspace moves and more file stores.** Sign in with Cenacle ID (passwords with
+> **Status: v0.39, end-to-end encryption with device keys.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
 > canvases, lists and boards next to channels; meet compliance needs (retention, legal
-> holds, eDiscovery, access rules, encrypted channels); use optional AI with a model you
+> holds, eDiscovery, access rules, end-to-end encryption with device keys); use optional AI with a model you
 > run; share channels with other Cenacle servers; move in from Mattermost, Slack, Rocket.Chat,
 > Zulip, Discord or Teams, and move workspaces between servers. Runs on one host or Kubernetes, also
 > offline. Desktop app for Windows and Linux; signed releases with SBOMs. Next: new features toward 1.0 (see the [roadmap](#roadmap)).
