@@ -8,6 +8,27 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-10-25
+
+FIPS 140-3 images and a STIG profile (ADR 0043).
+
+### Added
+
+- **FIPS 140-3 images:** `cenacle-server-fips` and `cenacle-proxy-fips` (Go Cryptographic
+  Module v1.0.0) and `cenacle-idp-fips` (OpenSSL FIPS provider 3.1.2); in FIPS mode
+  Cenacle ID hashes passwords with PBKDF2-HMAC-SHA-512. `CENACLE_IMAGE_VARIANT=-fips`
+  (Compose) or `image.fips` (Helm). See docs/security/fips.md.
+- **STIG profile:** `deploy/compose/stig.yml` (limits, no core dumps, PostgreSQL logging)
+  and docs/security/stig.md, which maps the requirement areas to Cenacle's settings.
+- **Sign-in notice:** `IDP_SIGNIN_NOTICE`, a notice people accept before signing in.
+- `server version` and `server status` show whether FIPS 140-3 mode is on.
+
+### Changed
+
+- The Helm chart does not mount service account tokens into pods.
+- CI checks every image for setuid/setgid files and runs it read-only without
+  capabilities.
+
 ## [0.39.0] - 2026-10-25
 
 End-to-end encryption with device keys (MLS, RFC 9420) instead of a shared passphrase
@@ -1060,7 +1081,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.39.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.40.0...HEAD
+[0.40.0]: https://github.com/barisshn35/cenacle/compare/v0.39.0...v0.40.0
 [0.39.0]: https://github.com/barisshn35/cenacle/compare/v0.38.0...v0.39.0
 [0.38.0]: https://github.com/barisshn35/cenacle/compare/v0.37.2...v0.38.0
 [0.37.2]: https://github.com/barisshn35/cenacle/compare/v0.37.1...v0.37.2

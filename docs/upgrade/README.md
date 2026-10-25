@@ -48,6 +48,13 @@ included, was there.
 
 ## Version notes
 
+### 0.40.0
+
+- No migration. To move to FIPS images, set `CENACLE_IMAGE_VARIANT=-fips` (Compose) or
+  `image.fips: true` (Helm) and restart; Cenacle ID moves passwords to PBKDF2 as people
+  sign in (directory and federated accounts are not affected).
+- Helm: pods no longer mount a service account token.
+
 ### 0.39.0
 
 - Migration: chat `00044_mls` (end-to-end encryption with device keys). Reversible:
