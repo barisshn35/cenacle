@@ -327,17 +327,20 @@ FROM (
     FROM message_mentions mm
     JOIN messages m ON m.id = mm.message_id
     WHERE mm.user_id = $1 AND m.author_id <> $1 AND m.deleted_at IS NULL
+      AND m.created_at > now() - interval '30 days'
     UNION ALL
     SELECT 'reply', m.id, m.channel_id, m.author_id, '', m.created_at
     FROM thread_follows tf
     JOIN messages m ON m.root_id = tf.root_id
     WHERE tf.user_id = $1 AND tf.following AND m.author_id <> $1 AND m.deleted_at IS NULL
+      AND m.created_at > now() - interval '30 days'
       AND NOT EXISTS (SELECT 1 FROM message_mentions mm WHERE mm.message_id = m.id AND mm.user_id = $1)
     UNION ALL
     SELECT 'reaction', m.id, m.channel_id, r.user_id, r.emoji, r.created_at
     FROM messages m
     JOIN message_reactions r ON r.message_id = m.id
     WHERE m.author_id = $1 AND r.user_id <> $1 AND m.deleted_at IS NULL
+      AND r.created_at > now() - interval '30 days'
 ) a
 JOIN channel_members cm ON cm.channel_id = a.channel_id AND cm.user_id = $1
 JOIN channels c ON c.id = a.channel_id

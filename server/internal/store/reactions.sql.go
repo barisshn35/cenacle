@@ -12,8 +12,8 @@ import (
 )
 
 const addBroadcastMentions = `-- name: AddBroadcastMentions :exec
-INSERT INTO message_mentions (message_id, user_id, kind)
-SELECT $1, m.user_id, $2
+INSERT INTO message_mentions (message_id, user_id, kind, channel_id)
+SELECT $1, m.user_id, $2, m.channel_id
 FROM channel_members m
 JOIN channels c ON c.id = m.channel_id
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = m.user_id
@@ -49,8 +49,8 @@ func (q *Queries) AddBroadcastMentions(ctx context.Context, arg AddBroadcastMent
 }
 
 const addMentions = `-- name: AddMentions :exec
-INSERT INTO message_mentions (message_id, user_id)
-SELECT $1, m.user_id FROM channel_members m
+INSERT INTO message_mentions (message_id, user_id, channel_id)
+SELECT $1, m.user_id, m.channel_id FROM channel_members m
 WHERE m.channel_id = $2 AND m.user_id = ANY($3::uuid[])
 ON CONFLICT DO NOTHING
 `

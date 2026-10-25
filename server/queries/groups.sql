@@ -56,8 +56,8 @@ ORDER BY p.manager DESC, lower(u.display_name);
 -- name: AddGroupMentions :exec
 -- AddGroupMentions records a mention for each person of the mentioned groups
 -- (by handle, not archived) who is in the channel, but the author.
-INSERT INTO message_mentions (message_id, user_id, kind)
-SELECT DISTINCT @message_id::uuid, p.user_id, 'group'
+INSERT INTO message_mentions (message_id, user_id, kind, channel_id)
+SELECT DISTINCT @message_id::uuid, p.user_id, 'group', m.channel_id
 FROM mention_groups g
 JOIN mention_group_people p ON p.group_id = g.id
 JOIN channel_members m ON m.channel_id = @channel_id AND m.user_id = p.user_id

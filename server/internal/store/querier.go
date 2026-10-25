@@ -535,6 +535,8 @@ type Querier interface {
 	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelIDsRow, error)
 	// ListMemberChannels returns the channels a user belongs to with the user's
 	// roles in each and in its workspace: mandatory ones first, then by name.
+	// The unread bound is written as one range (the nil uuid when nothing has been
+	// read) so that both counts walk an index from the last read message on.
 	ListMemberChannels(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelsRow, error)
 	ListMemberIDs(ctx context.Context, channelID pgtype.UUID) ([]pgtype.UUID, error)
 	ListMembers(ctx context.Context, channelID pgtype.UUID) ([]ListMembersRow, error)

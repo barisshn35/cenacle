@@ -584,6 +584,7 @@ type MessageMention struct {
 	MessageID pgtype.UUID `json:"message_id"`
 	UserID    pgtype.UUID `json:"user_id"`
 	Kind      string      `json:"kind"`
+	ChannelID pgtype.UUID `json:"channel_id"`
 }
 
 type MessageReaction struct {

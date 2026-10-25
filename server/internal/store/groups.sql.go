@@ -13,8 +13,8 @@ import (
 )
 
 const addGroupMentions = `-- name: AddGroupMentions :exec
-INSERT INTO message_mentions (message_id, user_id, kind)
-SELECT DISTINCT $1::uuid, p.user_id, 'group'
+INSERT INTO message_mentions (message_id, user_id, kind, channel_id)
+SELECT DISTINCT $1::uuid, p.user_id, 'group', m.channel_id
 FROM mention_groups g
 JOIN mention_group_people p ON p.group_id = g.id
 JOIN channel_members m ON m.channel_id = $2 AND m.user_id = p.user_id

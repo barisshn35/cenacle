@@ -1,20 +1,23 @@
 -- name: ListMemberChannels :many
 -- ListMemberChannels returns the channels a user belongs to with the user's
 -- roles in each and in its workspace: mandatory ones first, then by name.
+-- The unread bound is written as one range (the nil uuid when nothing has been
+-- read) so that both counts walk an index from the last read message on.
 SELECT sqlc.embed(c), m.role, wm.role AS workspace_role, m.last_read_id,
        -- Unread messages of others, counted up to 100 (clients show "99+").
        (SELECT count(*) FROM (
             SELECT 1 FROM messages x
-            WHERE x.channel_id = c.id AND x.deleted_at IS NULL AND x.author_id <> @user_id
+            WHERE x.channel_id = c.id
+              AND x.id > coalesce(m.last_read_id, '00000000-0000-0000-0000-000000000000'::uuid)
+              AND x.deleted_at IS NULL AND x.author_id <> @user_id
               AND (x.root_id IS NULL OR x.also_in_channel)
-              AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
             LIMIT 100) unread)::int AS unread_count,
        -- Unread messages that mention the user, also up to 100.
        (SELECT count(*) FROM (
             SELECT 1 FROM message_mentions mm JOIN messages x ON x.id = mm.message_id
-            WHERE mm.user_id = @user_id AND x.channel_id = c.id AND x.deleted_at IS NULL
-              AND (x.root_id IS NULL OR x.also_in_channel)
-              AND (m.last_read_id IS NULL OR x.id > m.last_read_id)
+            WHERE mm.user_id = @user_id AND mm.channel_id = c.id
+              AND mm.message_id > coalesce(m.last_read_id, '00000000-0000-0000-0000-000000000000'::uuid)
+              AND x.deleted_at IS NULL AND (x.root_id IS NULL OR x.also_in_channel)
             LIMIT 100) mentioned)::int AS mention_count
 FROM channels c
 JOIN channel_members m ON m.channel_id = c.id AND m.user_id = @user_id

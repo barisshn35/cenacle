@@ -78,6 +78,7 @@ func Open(t *testing.T) *pgxpool.Pool {
 		t.Fatal(err)
 	}
 	cfg.ConnConfig.RuntimeParams["search_path"] = schema
+	cfg.ConnConfig.RuntimeParams["jit"] = "off" // as the server (db.Open)
 	if n, err := strconv.Atoi(os.Getenv("CENACLE_TEST_DB_MAX_CONNS")); err == nil && n > 0 {
 		cfg.MaxConns = int32(n) //nolint:gosec // a test setting
 	}

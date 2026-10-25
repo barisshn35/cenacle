@@ -150,6 +150,11 @@ func TestLoad(t *testing.T) {
 	}
 	senders.Wait()
 	time.Sleep(3 * time.Second) // the last events arrive
+	// A server's tables are analyzed as they grow (autovacuum); this one grew
+	// within seconds, so do it here, or reading measures the planner guessing.
+	if _, err := s.pool.Exec(context.Background(), "ANALYZE"); err != nil {
+		t.Fatal(err)
+	}
 	cancel()
 	readers.Wait()
 

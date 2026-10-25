@@ -19,8 +19,8 @@ ORDER BY message_id, min(created_at);
 
 -- name: AddMentions :exec
 -- AddMentions stores the mentions of a message: only members of its channel.
-INSERT INTO message_mentions (message_id, user_id)
-SELECT @message_id, m.user_id FROM channel_members m
+INSERT INTO message_mentions (message_id, user_id, channel_id)
+SELECT @message_id, m.user_id, m.channel_id FROM channel_members m
 WHERE m.channel_id = @channel_id AND m.user_id = ANY(@user_ids::uuid[])
 ON CONFLICT DO NOTHING;
 
@@ -28,8 +28,8 @@ ON CONFLICT DO NOTHING;
 -- AddBroadcastMentions records a mention of many (@channel, @here, @admins)
 -- for each member it reaches: everyone but the author, those online (users,
 -- for @here) or those with a workspace role (role).
-INSERT INTO message_mentions (message_id, user_id, kind)
-SELECT @message_id, m.user_id, @kind
+INSERT INTO message_mentions (message_id, user_id, kind, channel_id)
+SELECT @message_id, m.user_id, @kind, m.channel_id
 FROM channel_members m
 JOIN channels c ON c.id = m.channel_id
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = m.user_id

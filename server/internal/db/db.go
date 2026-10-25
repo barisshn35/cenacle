@@ -26,6 +26,11 @@ func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error
 		cfg.MaxConns = maxConns
 	}
 	cfg.ConnConfig.RuntimeParams["application_name"] = "cenacle-server"
+	// The server runs short indexed queries: compiling them (JIT) costs more
+	// than it saves. Set as a connection parameter, it can be overridden in the URL.
+	if _, set := cfg.ConnConfig.RuntimeParams["jit"]; !set {
+		cfg.ConnConfig.RuntimeParams["jit"] = "off"
+	}
 	if telemetry.TracingEnabled() {
 		cfg.ConnConfig.Tracer = otelpgx.NewTracer()
 	}
