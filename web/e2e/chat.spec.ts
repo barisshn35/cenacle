@@ -256,3 +256,22 @@ test.describe('private channels', () => {
     await expect(details).toContainText('Everyone can find and join it.');
   });
 });
+
+test('on a phone the author and time stand above the words, never over them', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, 'the one-column layout of phones');
+  await mockApi(page, {
+    messages: [mockMessage(1, 'Good morning everyone, the release is ready.')],
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  const message = page.getByTestId('message').first();
+  await expect(message).toContainText('Good morning');
+  // One column: nothing (such as the touch toolbar) may open a second one.
+  const columns = await message.evaluate((el) => getComputedStyle(el).gridTemplateColumns);
+  expect(columns.trim().split(/\s+/)).toHaveLength(1);
+  const who = await message.locator('header').first().boundingBox();
+  const words = await message.getByText('Good morning').boundingBox();
+  expect(who!.y + who!.height).toBeLessThanOrEqual(words!.y + 1);
+});

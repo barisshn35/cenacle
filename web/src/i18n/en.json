@@ -287,7 +287,7 @@
       "none": "None",
       "retention": "Retention",
       "keptForever": "Kept",
-      "workspaceRetention": "Workspace’s",
+      "workspaceRetention": "Workspace policy",
       "created": "Created",
       "pinned": "Pinned",
       "retentionNote": "Messages older than {{period}} are deleted, except those under legal hold.",
@@ -1743,7 +1743,7 @@
       "done": "Done"
     },
     "tasks": {
-      "none": "Nothing waits for you. Approvals, forms and list rows assigned to you show here.",
+      "none": "Nothing waits for you right now.",
       "waiting": "Waiting for you",
       "assigned": "Assigned to you",
       "due": "Due {{date}}",

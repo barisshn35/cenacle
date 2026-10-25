@@ -41,7 +41,6 @@ import { SideNavDialog } from '../shell/side-nav-dialog';
 import { sideNavLink } from '../shell/board-styles';
 import { useShortcutsDialog } from '../shell/shortcuts-state';
 import { useSystemConsole } from '../admin/console-state';
-import { Kbd } from '@cenacle/ui/components/kbd';
 import {
   describeDevice,
   devicesQuery,
@@ -209,6 +208,7 @@ export function SettingsDialog({
               <button
                 type="button"
                 className={sideNavLink}
+                aria-keyshortcuts="Control+/"
                 onClick={() => {
                   onOpenChange(false);
                   useShortcutsDialog.getState().setOpen(true);
@@ -220,7 +220,6 @@ export function SettingsDialog({
                   strokeWidth={1.75}
                 />
                 {t('shortcuts.open')}
-                <Kbd className="ms-auto font-sans">Ctrl /</Kbd>
               </button>
               {admin && (
                 <button

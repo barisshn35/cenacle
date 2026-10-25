@@ -96,7 +96,7 @@ export function TitleBlock({ channel }: { channel: Channel }) {
           </span>
         </Cell>
         <Cell label={t('channels.titleBlock.owner')}>
-          <span className="block truncate">
+          <span className="line-clamp-2 break-words">
             {managers.length > 0
               ? managers.map((m) => m.user.display_name).join(', ')
               : t('channels.titleBlock.noOwner')}

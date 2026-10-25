@@ -287,7 +287,7 @@
       "none": "Yok",
       "retention": "Saklama",
       "keptForever": "Süresiz",
-      "workspaceRetention": "Çalışma alanınınki",
+      "workspaceRetention": "Çalışma alanı kuralı",
       "created": "Oluşturuldu",
       "pinned": "Sabitlenen",
       "retentionNote": "Saklama süresini ({{period}}) aşan mesajlar, yasal saklamadakiler dışında silinir.",
@@ -1743,7 +1743,7 @@
       "done": "Bitti"
     },
     "tasks": {
-      "none": "Sizi bekleyen bir şey yok. Onaylar, formlar ve size atanan liste satırları burada görünür.",
+      "none": "Şu an sizi bekleyen bir şey yok.",
       "waiting": "Sizi bekleyenler",
       "assigned": "Size atananlar",
       "due": "Bitiş: {{date}}",

@@ -26,7 +26,8 @@ export function formatSize(bytes: number, locale: string): string {
   return new Intl.NumberFormat(locale, {
     style: 'unit',
     unit: units[i],
-    unitDisplay: 'short',
+    // "0 bytes", not "0 byte"; "1.2 MB" for the larger units.
+    unitDisplay: i === 0 ? 'long' : 'short',
     maximumFractionDigits: i === 0 ? 0 : 1,
   }).format(n);
 }
