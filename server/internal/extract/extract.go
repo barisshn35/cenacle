@@ -15,6 +15,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/ledongthuc/pdf"
@@ -93,6 +94,26 @@ func Text(r io.ReaderAt, size int64, contentType, name string) (string, error) {
 	return clip(normalize(out)), nil
 }
 
+// Bounds of reading a PDF. The library interprets a page's whole content
+// stream and keeps everything it decodes, and a few kilobytes of a PDF can
+// inflate to gigabytes: decompressed sizes are measured (and stopped at the
+// bound) before anything is interpreted, decoded text is capped as it grows,
+// and a file gets a time budget. Ordinary pages hold well under 100 KiB of
+// content and fonts' ToUnicode maps a few KiB.
+const (
+	maxPageContent = 2 << 20  // decompressed content stream of one page
+	maxPDFContent  = 32 << 20 // all pages together
+	maxCMap        = 1 << 20  // one font's ToUnicode map
+	pdfTime        = 30 * time.Second
+	// decodeChunk is how many bytes of a string are decoded at once (a
+	// multiple of the 1, 2 and 4 byte codes): one code may map to a long
+	// text, so a long string is never decoded in one go.
+	decodeChunk = 16
+)
+
+// errStop ends the interpretation of a page (enough text, or out of time).
+var errStop = errors.New("extract: stop")
+
 // pdfText reads the text of every page; a broken PDF is an error, not a panic.
 func pdfText(r io.ReaderAt, size int64) (out string, err error) {
 	defer func() {
@@ -104,20 +125,114 @@ func pdfText(r io.ReaderAt, size int64) (out string, err error) {
 	if err != nil {
 		return "", err
 	}
+	deadline := time.Now().Add(pdfTime)
+	budget := int64(maxPDFContent)
 	var b strings.Builder
-	for i := 1; i <= doc.NumPage() && b.Len() < MaxText*4; i++ {
+	for i := 1; i <= doc.NumPage() && b.Len() < MaxText*4 && time.Now().Before(deadline); i++ {
 		page := doc.Page(i)
 		if page.V.IsNull() {
 			continue
 		}
-		text, err := page.GetPlainText(nil)
-		if err != nil {
-			continue
+		content := page.V.Key("Contents")
+		n, ok := streamSize(content, maxPageContent)
+		if !ok {
+			continue // too large, not a single stream, or unreadable
 		}
-		b.WriteString(text)
+		if budget -= n; budget < 0 {
+			break
+		}
+		pageText(&b, page, content, deadline)
 		b.WriteString("\n")
 	}
 	return b.String(), nil
+}
+
+// streamSize measures a stream's decompressed size, reading at most limit+1
+// bytes; ok is false when it is larger than limit or cannot be read.
+func streamSize(v pdf.Value, limit int64) (n int64, ok bool) {
+	if v.Kind() != pdf.Stream {
+		return 0, false
+	}
+	defer func() {
+		if recover() != nil {
+			n, ok = 0, false
+		}
+	}()
+	rc := v.Reader()
+	defer func() { _ = rc.Close() }()
+	n, err := io.Copy(io.Discard, io.LimitReader(rc, limit+1))
+	return n, err == nil && n <= limit
+}
+
+// rawEncoding passes codes through (unknown or oversized font maps).
+type rawEncoding struct{}
+
+func (rawEncoding) Decode(raw string) string { return raw }
+
+// pageText appends a page's text to b (as Page.GetPlainText does, but within
+// the bounds): a broken page adds what was read before it broke.
+func pageText(b *strings.Builder, page pdf.Page, content pdf.Value, deadline time.Time) {
+	defer func() { _ = recover() }() // errStop or a malformed page
+	fonts := page.Resources().Key("Font")
+	encoders := map[string]pdf.TextEncoding{}
+	var enc pdf.TextEncoding = rawEncoding{}
+	show := func(s string) {
+		for len(s) > 0 {
+			k := min(len(s), decodeChunk)
+			b.WriteString(enc.Decode(s[:k]))
+			s = s[k:]
+			if b.Len() >= MaxText*4 || time.Now().After(deadline) {
+				panic(errStop)
+			}
+		}
+	}
+	pdf.Interpret(content, func(stk *pdf.Stack, op string) {
+		n := stk.Len()
+		args := make([]pdf.Value, n)
+		for i := n - 1; i >= 0; i-- {
+			args[i] = stk.Pop()
+		}
+		if time.Now().After(deadline) {
+			panic(errStop)
+		}
+		switch op {
+		case "T*":
+			show("\n")
+		case "Tf":
+			if len(args) != 2 {
+				return
+			}
+			name := args[0].Name()
+			e, ok := encoders[name]
+			if !ok {
+				e = rawEncoding{}
+				font := fonts.Key(name)
+				// Font.Encoder parses the ToUnicode map on every call: once
+				// per font, and only a map of sensible size.
+				if m := font.Key("ToUnicode"); font.IsNull() {
+					// an unknown font: codes as they are
+				} else if m.Kind() != pdf.Stream || func() bool { _, ok := streamSize(m, maxCMap); return ok }() {
+					e = (pdf.Font{V: font}).Encoder()
+				}
+				encoders[name] = e
+			}
+			enc = e
+		case "\"", "'", "Tj":
+			if len(args) > 0 {
+				show(args[len(args)-1].RawString())
+			}
+		case "TJ":
+			if len(args) != 1 {
+				return
+			}
+			v := args[0]
+			for i := 0; i < v.Len(); i++ {
+				if x := v.Index(i); x.Kind() == pdf.String {
+					show(x.RawString())
+				}
+			}
+		}
+	})
 }
 
 // zipText collects the character data of the XML parts a name filter picks,

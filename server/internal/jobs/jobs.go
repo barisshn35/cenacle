@@ -17,6 +17,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivermigrate"
+	"github.com/riverqueue/river/rivertype"
 )
 
 // Purger removes deleted messages that can no longer be restored.
@@ -254,7 +255,23 @@ type runnerWorker[T river.JobArgs] struct {
 	r    Runner
 	what string
 	log  *slog.Logger
+	// timeout replaces River's default of a minute (zero keeps it).
+	timeout time.Duration
 }
+
+// Timeout implements river.Worker.
+func (w *runnerWorker[T]) Timeout(*river.Job[T]) time.Duration { return w.timeout }
+
+// Time limits of the jobs that may run longer than River's default minute.
+// Push and e-mail note their progress as they go, so a run cut short loses
+// nothing; the others are bounded by what one run takes on.
+const (
+	NotifyTimeout    = 5 * time.Minute  // a run of web push or e-mail
+	FileTextTimeout  = 15 * time.Minute // a batch of files (each read is bounded)
+	ArchiveTimeout   = time.Hour        // whole days of a workspace
+	AuditTimeout     = 10 * time.Minute // a backlog for a SIEM that was away
+	DirectoryTimeout = 15 * time.Minute // a full directory sync
+)
 
 func (w *runnerWorker[T]) Work(ctx context.Context, _ *river.Job[T]) error {
 	n, err := w.r.Run(ctx)
@@ -279,6 +296,11 @@ type directoryWorker struct {
 	river.WorkerDefaults[SyncDirectoryArgs]
 	dir Directory
 	log *slog.Logger
+}
+
+// Timeout implements river.Worker.
+func (w *directoryWorker) Timeout(*river.Job[SyncDirectoryArgs]) time.Duration {
+	return DirectoryTimeout
 }
 
 func (w *directoryWorker) Work(ctx context.Context, _ *river.Job[SyncDirectoryArgs]) error {
@@ -376,6 +398,20 @@ type Deps struct {
 	Log      *slog.Logger
 }
 
+// PeriodicOpts are the insert options of every periodic job: at most one
+// of a kind waits or runs at a time, so a run that outlasts its interval is
+// not joined by a second one doing (or sending) the same work. A failed run
+// is not retried: the next interval runs it again anyway, and a retry
+// waiting for its backoff would otherwise run next to that.
+func PeriodicOpts() *river.InsertOpts {
+	return &river.InsertOpts{
+		MaxAttempts: 1,
+		UniqueOpts: river.UniqueOpts{ByState: []rivertype.JobState{
+			rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRunning, rivertype.JobStateScheduled,
+		}},
+	}
+}
+
 // NewClient returns a River client with the periodic jobs; Start it to work.
 func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	workers := river.NewWorkers()
@@ -383,7 +419,7 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	river.AddWorker(workers, &sessionsWorker{cleaner: d.Sessions, log: d.Log})
 	periodic := func(every time.Duration, args river.JobArgs) *river.PeriodicJob {
 		return river.NewPeriodicJob(river.PeriodicInterval(every),
-			func() (river.JobArgs, *river.InsertOpts) { return args, nil },
+			func() (river.JobArgs, *river.InsertOpts) { return args, PeriodicOpts() },
 			&river.PeriodicJobOpts{RunOnStart: true})
 	}
 	jobs := []*river.PeriodicJob{
@@ -402,7 +438,7 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 			periodic(time.Hour, PruneFilesArgs{}))
 	}
 	if d.Push != nil {
-		river.AddWorker(workers, &runnerWorker[PushNotificationsArgs]{r: d.Push, what: "web push sent", log: d.Log})
+		river.AddWorker(workers, &runnerWorker[PushNotificationsArgs]{r: d.Push, what: "web push sent", log: d.Log, timeout: NotifyTimeout})
 		jobs = append(jobs, periodic(10*time.Second, PushNotificationsArgs{}))
 	}
 	if d.Feeds != nil {
@@ -414,7 +450,7 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 		jobs = append(jobs, periodic(ReminderInterval, SendRemindersArgs{}))
 	}
 	if d.Email != nil {
-		river.AddWorker(workers, &runnerWorker[EmailNotificationsArgs]{r: d.Email, what: "notification e-mails sent", log: d.Log})
+		river.AddWorker(workers, &runnerWorker[EmailNotificationsArgs]{r: d.Email, what: "notification e-mails sent", log: d.Log, timeout: NotifyTimeout})
 		jobs = append(jobs, periodic(time.Minute, EmailNotificationsArgs{}))
 	}
 	if d.Workflows != nil {
@@ -426,15 +462,15 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 		jobs = append(jobs, periodic(FederationInterval, SendFederationArgs{}))
 	}
 	if d.FileText != nil {
-		river.AddWorker(workers, &runnerWorker[ReadFileTextArgs]{r: d.FileText, what: "file texts read", log: d.Log})
+		river.AddWorker(workers, &runnerWorker[ReadFileTextArgs]{r: d.FileText, what: "file texts read", log: d.Log, timeout: FileTextTimeout})
 		jobs = append(jobs, periodic(FileTextInterval, ReadFileTextArgs{}))
 	}
 	if d.Archive != nil {
-		river.AddWorker(workers, &runnerWorker[ExportArchiveArgs]{r: d.Archive, what: "archive days exported", log: d.Log})
+		river.AddWorker(workers, &runnerWorker[ExportArchiveArgs]{r: d.Archive, what: "archive days exported", log: d.Log, timeout: ArchiveTimeout})
 		jobs = append(jobs, periodic(ArchiveInterval, ExportArchiveArgs{}))
 	}
 	if d.AuditStream != nil {
-		river.AddWorker(workers, &runnerWorker[StreamAuditArgs]{r: d.AuditStream, what: "audit events streamed", log: d.Log})
+		river.AddWorker(workers, &runnerWorker[StreamAuditArgs]{r: d.AuditStream, what: "audit events streamed", log: d.Log, timeout: AuditTimeout})
 		jobs = append(jobs, periodic(AuditStreamInterval, StreamAuditArgs{}))
 	}
 	if d.Retention != nil {

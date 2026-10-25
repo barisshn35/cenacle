@@ -281,15 +281,9 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		badRequest(w, r, problem)
 		return
 	}
-	scheme, ok := h.schemeOf(w, r, c)
-	if !ok {
+	if extra.noGroups, ok = h.mentionRights(w, r, c, role, body); !ok {
 		return
 	}
-	if len(broadcasts(body)) > 0 && (!scheme.Allows(PermBroadcast, role.ws) || !canBroadcastHere(c, role)) {
-		forbidden(w, r, CodeNoBroadcast, "You may not mention everyone in this channel.")
-		return
-	}
-	extra.noGroups = !scheme.Allows(PermGroupMentions, role.ws)
 	var reply replyTo
 	if in.RootId != nil {
 		root, ok := h.threadRoot(w, r, c, *in.RootId)
@@ -361,6 +355,21 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 // postMessage stores a message with its mentions, marks it read for its
 // author and records message.created, inside the caller's transaction. A
 // nonce the author used before returns that message (a retry).
+// mentionRights checks that the author may mention everyone in body here, and
+// says whether their group mentions notify no one (the scheme's rules). Every
+// way of writing a message goes through it: sending, editing, forwarding, commands.
+func (h *Handlers) mentionRights(w http.ResponseWriter, r *http.Request, c store.Channel, role access, body string) (noGroups, ok bool) {
+	scheme, ok := h.schemeOf(w, r, c)
+	if !ok {
+		return false, false
+	}
+	if len(broadcasts(body)) > 0 && (!scheme.Allows(PermBroadcast, role.ws) || !canBroadcastHere(c, role)) {
+		forbidden(w, r, CodeNoBroadcast, "You may not mention everyone in this channel.")
+		return false, false
+	}
+	return !scheme.Allows(PermGroupMentions, role.ws), true
+}
+
 func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, files ...pgtype.UUID) (api.Message, error) {
 	return postMessageTo(ctx, q, c, author, body, nonce, rawAttachments, replyTo{}, postExtras{}, files...)
 }

@@ -96,13 +96,19 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 	if !h.allowMessage(w, r, p.User) {
 		return
 	}
+	// In an encrypted channel the server must not get text to keep or pass
+	// on (reminders, bots): only commands about the channel itself work.
+	if c.Encrypted && command != "join" && command != "leave" && command != "topic" {
+		ephemeral(w, "This channel is encrypted end to end: this command cannot be used in it.")
+		return
+	}
 	switch command {
 	case "remind":
 		h.remind(w, r, p.User, c, text, in.Timezone)
 	case "join":
-		h.commandJoin(w, r, p.User, c, text)
+		h.commandJoin(w, r, p.User, c, role, text)
 	case "leave":
-		if c.IsMandatory || isConversation(c) {
+		if c.IsMandatory || isConversation(c) || c.GroupManaged {
 			ephemeral(w, "You cannot leave this channel.")
 			return
 		}
@@ -115,7 +121,7 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 	case "feed":
 		h.commandFeed(w, r, p.User, c, role, text)
 	case "topic":
-		if !canManage(c, role) {
+		if !canManage(c, role) || c.ArchivedAt.Valid {
 			ephemeral(w, "Only the channel's managers can change its topic.")
 			return
 		}
@@ -143,14 +149,15 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 			ephemeral(w, "Usage: /me text")
 			return
 		}
-		h.postAsCommand(w, r, c, role, p.User, body, nil)
+		h.postOwnCommand(w, r, c, role, p.User, body)
 	default:
 		h.customCommand(w, r, p.User, c, role, command, text)
 	}
 }
 
-// postAsCommand posts a message for a command (as its author or a bot).
-func (h *Handlers) postAsCommand(w http.ResponseWriter, r *http.Request, c store.Channel, role access, author store.User, body string, rawAttachments []byte) {
+// postOwnCommand posts what a command writes in its user's name (/me, /shrug),
+// held to the same rules as a message they send.
+func (h *Handlers) postOwnCommand(w http.ResponseWriter, r *http.Request, c store.Channel, role access, author store.User, body string) {
 	if c.ArchivedAt.Valid || !canPost(c, role) {
 		ephemeral(w, "You cannot send messages in this channel.")
 		return
@@ -159,14 +166,26 @@ func (h *Handlers) postAsCommand(w http.ResponseWriter, r *http.Request, c store
 		ephemeral(w, "This channel is encrypted end to end: commands cannot write in it.")
 		return
 	}
-	if rawAttachments == nil {
-		rawAttachments = []byte("[]")
+	if h.timedOut(w, r, c.WorkspaceID, author) || h.slowedDown(w, r, c, role, author) {
+		return
+	}
+	noGroups, ok := h.mentionRights(w, r, c, role, body)
+	if !ok {
+		return
+	}
+	flags, ok := h.automod(w, r, c, role, body)
+	if !ok {
+		return
 	}
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
-		out, err = postMessage(r.Context(), q, c, author, body, "cmd-"+randomNonce(), rawAttachments)
-		return err
+		out, err = postMessageTo(r.Context(), q, c, author, body, "cmd-"+randomNonce(), []byte("[]"), replyTo{},
+			postExtras{presence: h.Presence, noGroups: noGroups})
+		if err != nil {
+			return err
+		}
+		return flagMessage(r.Context(), q, c, out.Id, flags)
 	})
 	if err != nil {
 		h.unavailable(w, r, "post command message", err)
@@ -175,19 +194,36 @@ func (h *Handlers) postAsCommand(w http.ResponseWriter, r *http.Request, c store
 	httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeInChannel, Message: &out})
 }
 
-func (h *Handlers) commandJoin(w http.ResponseWriter, r *http.Request, user store.User, from store.Channel, name string) {
+func (h *Handlers) commandJoin(w http.ResponseWriter, r *http.Request, user store.User, from store.Channel, role access, name string) {
 	if name == "" {
 		ephemeral(w, "Usage: /join channel name")
 		return
 	}
 	c, err := h.Queries.GetChannelByName(r.Context(), store.GetChannelByNameParams{WorkspaceID: from.WorkspaceID, Name: strings.TrimPrefix(name, "#")})
-	if isNoRows(err) || (err == nil && (c.Visibility == Private || isConversation(c) || c.ArchivedAt.Valid)) {
+	// Guests are only in the channels they were added to, as with JoinChannel.
+	if isNoRows(err) || role.ws == WorkspaceGuest ||
+		(err == nil && (c.Visibility == Private || isConversation(c) || c.ArchivedAt.Valid)) {
 		ephemeral(w, fmt.Sprintf("No open public channel is named %q.", name))
 		return
 	}
 	if err != nil {
 		h.unavailable(w, r, "find channel", err)
 		return
+	}
+	if c.GroupManaged {
+		ephemeral(w, "Membership of this channel follows directory groups.")
+		return
+	}
+	if rules := accessRules(c); len(rules) > 0 {
+		raw, err := h.Queries.GetMemberAttributes(r.Context(), store.GetMemberAttributesParams{WorkspaceID: c.WorkspaceID, UserID: user.ID})
+		if err != nil && !isNoRows(err) {
+			h.unavailable(w, r, "get attributes", err)
+			return
+		}
+		if !meetsRules(rules, attributesOf(raw)) {
+			ephemeral(w, "This channel is for members with certain attributes (e.g. department).")
+			return
+		}
 	}
 	n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: user.ID, Role: RoleMember})
 	if err != nil {
@@ -196,6 +232,7 @@ func (h *Handlers) commandJoin(w http.ResponseWriter, r *http.Request, user stor
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, user.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember}))
+		h.memberJoined(r.Context(), c, user)
 	}
 	ephemeral(w, fmt.Sprintf("You are in %s.", c.Name))
 }

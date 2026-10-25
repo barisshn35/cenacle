@@ -15,6 +15,7 @@ import (
 const acceptSharedChannel = `-- name: AcceptSharedChannel :one
 UPDATE shared_channels SET remote_channel_id = $1, status = 'active'
 WHERE channel_id = $2 AND connection_id = $3
+  AND NOT EXISTS (SELECT 1 FROM channels c WHERE c.id = $2 AND c.encrypted)
 RETURNING channel_id, connection_id, remote_channel_id, status, created_at
 `
 
@@ -25,6 +26,7 @@ type AcceptSharedChannelParams struct {
 }
 
 // AcceptSharedChannel records the id the other side gave a channel we offered.
+// A channel encrypted end to end since it was offered is not shared after all.
 func (q *Queries) AcceptSharedChannel(ctx context.Context, arg AcceptSharedChannelParams) (SharedChannel, error) {
 	row := q.db.QueryRow(ctx, acceptSharedChannel, arg.RemoteChannelID, arg.ChannelID, arg.ConnectionID)
 	var i SharedChannel

@@ -81,6 +81,11 @@ func (h *Handlers) threadRoot(w http.ResponseWriter, r *http.Request, c store.Ch
 		badRequest(w, r, "The message to reply to is not in this channel or was deleted.")
 		return root, false
 	}
+	// A burn-on-read message is read once: it has no thread to show it again in.
+	if err == nil && root.BurnSeconds.Valid {
+		badRequest(w, r, "Burn-on-read messages cannot be replied to.")
+		return root, false
+	}
 	if err != nil {
 		h.unavailable(w, r, "get thread root", err)
 		return root, false
@@ -325,6 +330,7 @@ func (h *Handlers) ListThreads(w http.ResponseWriter, r *http.Request, params ap
 			ID: t.ID, ChannelID: t.ChannelID, AuthorID: t.AuthorID, Body: t.Body, Nonce: t.Nonce,
 			CreatedAt: t.CreatedAt, EditedAt: t.EditedAt, Attachments: t.Attachments,
 			PinnedAt: t.PinnedAt, PinnedBy: t.PinnedBy, Title: t.Title, Tags: t.Tags,
+			BurnSeconds: t.BurnSeconds,
 		}, t.AuthorName, t.AuthorIsBot)
 	}
 	if err := decorate(r.Context(), h.Queries, p.User.ID, roots); err != nil {

@@ -106,7 +106,7 @@ func Apply(ctx context.Context, q Querier, user store.User, p Profile, adminEmai
 				return err
 			}
 		}
-		channels, err := q.JoinDefaultChannels(ctx, user.ID)
+		channels, err := q.JoinDefaultChannels(ctx, store.JoinDefaultChannelsParams{UserID: user.ID})
 		if err != nil {
 			return err
 		}

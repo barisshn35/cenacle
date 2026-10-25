@@ -195,6 +195,13 @@ func TestClassificationsAndAccessRules(t *testing.T) {
 	if status, code := problemCode(t, s, http.MethodPost, "/api/channels/"+finance.ID+"/join", mert, nil); status != http.StatusForbidden || code != chat.CodeAccessRules {
 		t.Errorf("Mert joins = %d %s", status, code)
 	}
+	// The /join command keeps to the same rules.
+	s.run(mert, s.general(mert), "join", "Finance")
+	for _, m := range s.members(ayse, finance.ID) {
+		if m.User.ID == s.userID(mert) {
+			t.Error("Mert joined Finance with /join")
+		}
+	}
 	var listed struct{ Channels []api.Channel }
 	s.call(http.MethodGet, "/api/channels", ayse, nil, &listed)
 	for _, c := range listed.Channels {

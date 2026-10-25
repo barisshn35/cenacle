@@ -71,11 +71,14 @@ func (h *Handlers) messageExtras(c store.Channel, in api.NewMessage) (postExtras
 		if !post {
 			return out, "Only posts in forums have titles."
 		}
+		if c.Encrypted {
+			return out, "Posts of an encrypted forum cannot have titles the server would read."
+		}
 		if title == "" || utf8.RuneCountInString(title) > 200 {
 			return out, "A title has 1 to 200 characters."
 		}
 		out.title = pgtype.Text{String: title, Valid: true}
-	} else if post {
+	} else if post && !c.Encrypted {
 		return out, "A forum post needs a title."
 	}
 	if in.Tags != nil {
@@ -415,6 +418,10 @@ func (h *Handlers) eventInput(w http.ResponseWriter, r *http.Request, workspace 
 			forbidden(w, r, httpx.CodeForbidden, "You cannot post in that channel.")
 			return out, false
 		}
+		// Its notice in the channel follows the mention rules of messages.
+		if _, ok := h.mentionRights(w, r, c, role, out.Title+"\n"+out.Description); !ok {
+			return out, false
+		}
 		out.ChannelID = c.ID
 	}
 	return out, true
@@ -434,7 +441,9 @@ func (h *Handlers) ListEvents(w http.ResponseWriter, r *http.Request, workspaceI
 	if params.From != nil {
 		after = *params.From
 	}
-	list, err := h.Queries.ListEvents(r.Context(), store.ListEventsParams{WorkspaceID: pgUUID(workspaceID), After: after})
+	list, err := h.Queries.ListEvents(r.Context(), store.ListEventsParams{
+		WorkspaceID: pgUUID(workspaceID), After: after, UserID: p.User.ID, Guest: role == WorkspaceGuest,
+	})
 	if err != nil {
 		h.unavailable(w, r, "list events", err)
 		return
@@ -497,6 +506,10 @@ func (h *Handlers) CreateEvent(w http.ResponseWriter, r *http.Request, workspace
 			if e.Description != "" {
 				body += "\n\n" + e.Description
 			}
+			// The notice fits in a message (the description alone may fill one).
+			if runes := []rune(body); len(runes) > 4000 {
+				body = string(runes[:3999]) + "…"
+			}
 			if _, err := postMessage(r.Context(), q, c, p.User, body, "event-"+uuid(e.ID).String(), []byte("[]")); err != nil && !errors.Is(err, errEncrypted) { // encrypted channels get no notice
 				return err
 			}
@@ -524,6 +537,12 @@ func (h *Handlers) editableEvent(w http.ResponseWriter, r *http.Request, id open
 	role, ok := h.workspaceRole(w, r, uuid(e.WorkspaceID), user)
 	if !ok {
 		return e, role, false
+	}
+	// An event of a channel is only for those who can see the channel.
+	if e.ChannelID.Valid {
+		if _, _, ok := h.visibleChannel(w, r, uuid(e.ChannelID), user); !ok {
+			return e, role, false
+		}
 	}
 	return e, role, true
 }

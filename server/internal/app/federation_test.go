@@ -138,6 +138,23 @@ func TestFederatedChannel(t *testing.T) {
 		t.Errorf("deliveries left = %d", n)
 	}
 
+	// An archived channel takes nothing more from there, without holding up
+	// the other server's deliveries.
+	if _, err := acme.pool.Exec(context.Background(), "UPDATE channels SET archived_at = now() WHERE id = $1", general); err != nil {
+		t.Fatal(err)
+	}
+	partner.send(admin, mirror.Id.String(), "Too late", "fed-nonce-late")
+	federate(t, acme, partner)
+	if n := acme.count(`SELECT count(*) FROM messages WHERE body = 'Too late' AND channel_id = '` + general + `'`); n != 0 {
+		t.Errorf("an archived channel took a message")
+	}
+	if n := partner.count(`SELECT count(*) FROM federation_deliveries`); n != 0 {
+		t.Errorf("deliveries left there = %d", n)
+	}
+	if _, err := acme.pool.Exec(context.Background(), "UPDATE channels SET archived_at = NULL WHERE id = $1", general); err != nil {
+		t.Fatal(err)
+	}
+
 	// Unsigned or wrongly signed requests are refused.
 	req, _ := http.NewRequest(http.MethodPost, acme.srv.URL+"/api/federation/v1/events", bytes.NewReader([]byte(`{"events":[]}`)))
 	req.Header.Set(chat.FederationHeader, "c="+acmeConn+",t=1,v1=00")

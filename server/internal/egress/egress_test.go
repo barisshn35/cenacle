@@ -50,13 +50,18 @@ func TestBlocksSpecialUseAddresses(t *testing.T) {
 		t.Errorf("redirect followed: %v %v", res.Status, err)
 	}
 
-	for _, ip := range []string{"10.1.2.3", "192.168.1.1", "169.254.169.254", "::1", "fd00::1", "::ffff:127.0.0.1", "100.64.0.1"} {
+	for _, ip := range []string{"10.1.2.3", "192.168.1.1", "169.254.169.254", "::1", "fd00::1", "::ffff:127.0.0.1", "100.64.0.1",
+		// IPv6 forms that carry an IPv4 address (NAT64, 6to4, IPv4-compatible).
+		"64:ff9b::a00:1", "64:ff9b:1::a00:1", "2002:a00:1::1", "2002:5db8:d822::1", "::a00:1", "::",
+		"3fff::1", "5f00::1"} {
 		if strict.policy.allowed(netip.MustParseAddr(ip)) {
 			t.Errorf("%s allowed", ip)
 		}
 	}
-	if !strict.policy.allowed(netip.MustParseAddr("93.184.216.34")) {
-		t.Error("public address blocked")
+	for _, ip := range []string{"93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"} {
+		if !strict.policy.allowed(netip.MustParseAddr(ip)) {
+			t.Errorf("public address %s blocked", ip)
+		}
 	}
 }
 

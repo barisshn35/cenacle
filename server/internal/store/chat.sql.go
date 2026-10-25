@@ -694,15 +694,22 @@ INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, $1
 FROM channels c
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = $1 AND wm.role <> 'guest'
-WHERE c.is_default
+WHERE c.is_default AND c.archived_at IS NULL AND c.access_rules = '[]'::jsonb
+  AND ($2::uuid IS NULL OR c.workspace_id = $2::uuid)
 ON CONFLICT DO NOTHING
 RETURNING channel_id
 `
 
+type JoinDefaultChannelsParams struct {
+	UserID      pgtype.UUID `json:"user_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
 // JoinDefaultChannels makes a user a member of every default channel of the
-// workspaces they belong to and returns the channels they newly joined.
-func (q *Queries) JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error) {
-	rows, err := q.db.Query(ctx, joinDefaultChannels, userID)
+// workspaces they belong to (or of one of them) and returns the channels they
+// newly joined. Archived channels and channels with access rules are left out.
+func (q *Queries) JoinDefaultChannels(ctx context.Context, arg JoinDefaultChannelsParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, joinDefaultChannels, arg.UserID, arg.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}

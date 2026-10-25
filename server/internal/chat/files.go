@@ -73,6 +73,17 @@ func NewFiles(store storage.Store, scanner *clamav.Scanner, maxSize int64) *File
 func fileKey(id pgtype.UUID) string  { return "files/" + uuid(id).String() }
 func thumbKey(id pgtype.UUID) string { return "thumbs/" + uuid(id).String() }
 
+// uploadKey is where a browser's upload lands on backends that stage uploads.
+func uploadKey(id pgtype.UUID) string { return "uploads/" + uuid(id).String() }
+
+// formKey is the key a new upload is sent to.
+func (fs *Files) formKey(id pgtype.UUID) string {
+	if _, ok := fs.Store.(storage.Staged); ok {
+		return uploadKey(id)
+	}
+	return fileKey(id)
+}
+
 func fileAPI(f store.File) api.FileInfo {
 	out := api.FileInfo{Id: uuid(f.ID), Name: f.Name, ContentType: f.ContentType, Size: f.Size,
 		HasThumbnail: f.HasThumbnail}
@@ -259,7 +270,7 @@ func (h *Handlers) CreateUpload(w http.ResponseWriter, r *http.Request, channelI
 		h.unavailable(w, r, "create file", err)
 		return
 	}
-	form, err := h.Files.Store.UploadForm(r.Context(), fileKey(f.ID), f.Size, uploadValid)
+	form, err := h.Files.Store.UploadForm(r.Context(), h.Files.formKey(f.ID), f.Size, uploadValid)
 	if err != nil {
 		h.unavailable(w, r, "upload form", err)
 		return
@@ -301,6 +312,14 @@ func (h *Handlers) CompleteUpload(w http.ResponseWriter, r *http.Request, fileID
 	case "blocked":
 		blocked(w, r)
 		return
+	}
+	// The upload moves to the file's key now; what arrives later under the
+	// upload key again is never checked or served.
+	if st, ok := h.Files.Store.(storage.Staged); ok {
+		if err := st.Promote(r.Context(), uploadKey(f.ID), fileKey(f.ID)); err != nil && !errors.Is(err, storage.ErrNotFound) {
+			h.unavailable(w, r, "promote upload", err)
+			return
+		}
 	}
 	size, err := h.Files.Store.Size(r.Context(), fileKey(f.ID))
 	if errors.Is(err, storage.ErrNotFound) || (err == nil && size != f.Size) {
@@ -449,6 +468,9 @@ func (h *Handlers) DeleteUpload(w http.ResponseWriter, r *http.Request, fileID o
 
 func (fs *Files) remove(ctx context.Context, f store.File) {
 	_ = fs.Store.Remove(ctx, fileKey(f.ID))
+	if _, ok := fs.Store.(storage.Staged); ok {
+		_ = fs.Store.Remove(ctx, uploadKey(f.ID))
+	}
 	if f.HasThumbnail {
 		_ = fs.Store.Remove(ctx, thumbKey(f.ID))
 	}
@@ -622,6 +644,9 @@ func (fs *Files) PruneFiles(ctx context.Context, q *store.Queries) (int, error) 
 	for _, f := range rows {
 		if err := fs.Store.Remove(ctx, fileKey(f.ID)); err != nil {
 			continue // try again next time
+		}
+		if _, ok := fs.Store.(storage.Staged); ok {
+			_ = fs.Store.Remove(ctx, uploadKey(f.ID))
 		}
 		if f.HasThumbnail {
 			_ = fs.Store.Remove(ctx, thumbKey(f.ID))

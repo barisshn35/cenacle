@@ -857,20 +857,33 @@ func (q *Queries) ListEventRsvps(ctx context.Context, eventIds []pgtype.UUID) ([
 }
 
 const listEvents = `-- name: ListEvents :many
-SELECT id, workspace_id, channel_id, title, description, location, starts_at, ends_at, created_by, created_at, canceled_at FROM events
-WHERE workspace_id = $1 AND ends_at > $2 AND canceled_at IS NULL
-ORDER BY starts_at, id
+SELECT id, workspace_id, channel_id, title, description, location, starts_at, ends_at, created_by, created_at, canceled_at FROM events e
+WHERE e.workspace_id = $1 AND e.ends_at > $2 AND e.canceled_at IS NULL
+  AND (e.channel_id IS NULL
+    OR EXISTS (SELECT 1 FROM channel_members m WHERE m.channel_id = e.channel_id AND m.user_id = $3)
+    OR (NOT $4::bool AND EXISTS (
+          SELECT 1 FROM channels c WHERE c.id = e.channel_id AND c.visibility = 'public'
+            AND c.kind IN ('standard', 'announcement', 'forum'))))
+ORDER BY e.starts_at, e.id
 LIMIT 100
 `
 
 type ListEventsParams struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
 	After       time.Time   `json:"after"`
+	UserID      pgtype.UUID `json:"user_id"`
+	Guest       bool        `json:"guest"`
 }
 
-// ListEvents returns a workspace's events that end after a moment, soonest first.
+// ListEvents returns a workspace's events that end after a moment, soonest first:
+// those of channels the user can see (guests: their own channels) or of none.
 func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error) {
-	rows, err := q.db.Query(ctx, listEvents, arg.WorkspaceID, arg.After)
+	rows, err := q.db.Query(ctx, listEvents,
+		arg.WorkspaceID,
+		arg.After,
+		arg.UserID,
+		arg.Guest,
+	)
 	if err != nil {
 		return nil, err
 	}

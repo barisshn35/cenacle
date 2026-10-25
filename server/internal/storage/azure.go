@@ -194,15 +194,23 @@ func (a *Azure) Open(ctx context.Context, key string) (Object, error) {
 }
 
 // Put implements Store: one request for a small object, blocks for a large
-// one.
-func (a *Azure) Put(ctx context.Context, key string, r io.Reader, _ int64, contentType string) error {
+// one. Like Dir.Put it is whole or nothing: the blob is committed only when
+// the reader ended cleanly and, when size is known, after exactly size bytes
+// (uncommitted blocks are dropped by the service).
+func (a *Azure) Put(ctx context.Context, key string, r io.Reader, size int64, contentType string) error {
 	buf := make([]byte, azureBlock)
-	var ids []string
+	var (
+		ids   []string
+		total int64
+	)
 	for i := 0; ; i++ {
-		n, err := io.ReadFull(r, buf)
-		last := errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
-		if err != nil && !last {
+		n, last, err := readBlock(r, buf)
+		if err != nil {
 			return err
+		}
+		total += int64(n)
+		if size >= 0 && (total > size || last && total != size) {
+			return fmt.Errorf("storage: read %d of %d bytes", total, size)
 		}
 		if i == 0 && last {
 			h := http.Header{"x-ms-blob-type": {"BlockBlob"}, "x-ms-blob-content-type": {contentType}}
@@ -240,6 +248,23 @@ func (a *Azure) Put(ctx context.Context, key string, r io.Reader, _ int64, conte
 		return err
 	}
 	return resp.Body.Close()
+}
+
+// readBlock fills buf from r; last is true when r ended (io.EOF). Any other
+// error, io.ErrUnexpectedEOF of a cut-off body included, is returned: unlike
+// io.ReadFull it does not mistake a broken stream for its end.
+func readBlock(r io.Reader, buf []byte) (n int, last bool, err error) {
+	for n < len(buf) {
+		m, err := r.Read(buf[n:])
+		n += m
+		if errors.Is(err, io.EOF) {
+			return n, true, nil
+		}
+		if err != nil {
+			return n, false, err
+		}
+	}
+	return n, false, nil
 }
 
 // Remove implements Store.

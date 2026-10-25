@@ -69,6 +69,28 @@ func TestPushSend(t *testing.T) {
 	}
 }
 
+// Push endpoints come from browsers: the push client reaches neither plain
+// http nor internal networks, whatever the operator allows bots.
+func TestPushEgressIsStrict(t *testing.T) {
+	key, _ := ecdh.P256().GenerateKey(rand.Reader)
+	auth := make([]byte, 16)
+	_, _ = rand.Read(auth)
+	public, private, err := GenerateKeys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := &Push{Egress: PushEgress(), Subscriber: "mailto:admin@example.com", PublicKey: public, PrivateKey: private}
+	b64 := base64.RawURLEncoding.EncodeToString
+	for _, endpoint := range []string{"https://127.0.0.1/sub", "https://10.0.5.7/sub", "https://[64:ff9b::a00:1]/sub", "http://push.example.com/sub"} {
+		if err := p.Send(context.Background(), endpoint, b64(key.PublicKey().Bytes()), b64(auth), Payload{Title: "x"}); err == nil {
+			t.Errorf("%s reached", endpoint)
+		}
+	}
+	if _, err := PushEgress().CheckURL("http://push.example.com/sub"); err == nil {
+		t.Error("plain http allowed")
+	}
+}
+
 func TestTopic(t *testing.T) {
 	if got := topic("c-01a15e50-2335-7d7d-bbee-8e7809fd8ad2"); len(got) > 32 || strings.ContainsAny(got, "/ ") {
 		t.Errorf("topic = %q", got)

@@ -307,6 +307,14 @@ func (h *Handlers) ForwardMessage(w http.ResponseWriter, r *http.Request, channe
 	if h.timedOut(w, r, to.WorkspaceID, p.User) || !h.allowMessage(w, r, p.User) {
 		return
 	}
+	noGroups, ok := h.mentionRights(w, r, to, role, comment)
+	if !ok {
+		return
+	}
+	flags, ok := h.automod(w, r, to, role, comment)
+	if !ok {
+		return
+	}
 	name := from.Name
 	if isConversation(from) {
 		name = ""
@@ -318,8 +326,11 @@ func (h *Handlers) ForwardMessage(w http.ResponseWriter, r *http.Request, channe
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
-		out, err = postMessageTo(r.Context(), q, to, p.User, comment, "fwd-"+randomNonce(), []byte("[]"), replyTo{}, postExtras{forward: snap, presence: h.Presence})
-		return err
+		out, err = postMessageTo(r.Context(), q, to, p.User, comment, "fwd-"+randomNonce(), []byte("[]"), replyTo{}, postExtras{forward: snap, presence: h.Presence, noGroups: noGroups})
+		if err != nil {
+			return err
+		}
+		return flagMessage(r.Context(), q, to, out.Id, flags)
 	})
 	if err != nil {
 		h.unavailable(w, r, "forward message", err)

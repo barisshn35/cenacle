@@ -4,6 +4,7 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -11,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
@@ -62,6 +64,15 @@ func TestMLSDeliveryService(t *testing.T) {
 		t.Errorf("Mert's devices for Ayşe = %+v", theirs.Devices)
 	}
 
+	// Someone of another workspace does not see them.
+	other := s.user("sub-o", "Outsider")
+	if _, err := s.pool.Exec(context.Background(), "WITH c AS (DELETE FROM channel_members WHERE user_id = $1) DELETE FROM workspace_members WHERE user_id = $1", s.userID(other)); err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := problemCode(t, s, http.MethodGet, "/api/users/"+s.userID(mert)+"/e2e/devices", other, nil); status != http.StatusNotFound {
+		t.Errorf("an outsider lists Mert's devices = %d", status)
+	}
+
 	var vault channel
 	if res := s.call(http.MethodPost, "/api/channels", admin, map[string]any{"name": "Vault", "visibility": "private"}, &vault); res.StatusCode != http.StatusCreated {
 		t.Fatalf("create = %d", res.StatusCode)
@@ -90,6 +101,17 @@ func TestMLSDeliveryService(t *testing.T) {
 	}
 	if status, _ := problemCode(t, s, http.MethodPost, base, ayse, map[string]any{"device_id": a1.Id, "group_info": []byte("again")}); status != http.StatusConflict {
 		t.Errorf("enable twice = %d", status)
+	}
+	// Commands that carry text are refused before it goes anywhere.
+	if out, _ := s.run(ayse, vault.ID, "remind", "me in 1 hour the code is 1234"); !strings.Contains(out.Text, "encrypted") {
+		t.Errorf("/remind in an encrypted channel = %+v", out)
+	}
+	if n := s.count(`SELECT count(*) FROM scheduled_messages`); n != 0 {
+		t.Errorf("a reminder was kept: %d", n)
+	}
+	// Tabs would keep their text where the server reads it.
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/channels/"+vault.ID+"/tabs", ayse, map[string]any{"kind": "canvas", "title": "Plan"}); status != http.StatusBadRequest {
+		t.Errorf("tab in an encrypted channel = %d", status)
 	}
 
 	// Mert's devices join on their own (external commits), one epoch each.

@@ -176,6 +176,15 @@ func (h *Handlers) MarkRead(w http.ResponseWriter, r *http.Request, channelID op
 	var message pgtype.UUID
 	if in.MessageId != nil {
 		message = pgUUID(*in.MessageId)
+		// The read position is a message of this channel: a made-up one would
+		// stop the unread count and tell the others in a conversation too much.
+		if _, err := h.Queries.GetMessage(r.Context(), store.GetMessageParams{ID: message, ChannelID: c.ID}); isNoRows(err) {
+			badRequest(w, r, "The message is not in this channel.")
+			return
+		} else if err != nil {
+			h.unavailable(w, r, "get message", err)
+			return
+		}
 	} else {
 		id, err := h.Queries.NewestTimelineMessage(r.Context(), c.ID)
 		if isNoRows(err) {

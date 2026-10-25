@@ -47,3 +47,29 @@ func TestPeriodicJobsRunOnStart(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 }
+
+// A periodic job is not inserted again while one of its kind waits or runs:
+// a slow run is never joined by a second one doing the same work.
+func TestPeriodicJobsDoNotOverlap(t *testing.T) {
+	pool := testdb.Open(t)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	ctx := context.Background()
+	if err := jobs.Migrate(ctx, pool, log); err != nil {
+		t.Fatal(err)
+	}
+	client, err := jobs.NewClient(pool, jobs.Deps{Purger: &counter{}, Sessions: &counter{}, Log: log})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := client.Insert(ctx, jobs.PurgeMessagesArgs{}, jobs.PeriodicOpts())
+	if err != nil || first.UniqueSkippedAsDuplicate {
+		t.Fatalf("first insert: %+v %v", first, err)
+	}
+	second, err := client.Insert(ctx, jobs.PurgeMessagesArgs{}, jobs.PeriodicOpts())
+	if err != nil || !second.UniqueSkippedAsDuplicate {
+		t.Fatalf("second insert was not skipped: %+v %v", second, err)
+	}
+	if first.Job.MaxAttempts != 1 {
+		t.Errorf("max attempts = %d", first.Job.MaxAttempts)
+	}
+}

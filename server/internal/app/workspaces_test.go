@@ -280,3 +280,21 @@ func TestJoiningByInvitationDeliversItsChannels(t *testing.T) {
 		t.Fatalf("event = %s, want message.created", ev.Type)
 	}
 }
+
+func TestJoiningAWorkspaceKeepsOtherWorkspacesAsTheyAre(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-ayse", "Ayşe")
+	general := s.general(ayse)
+	// Ayşe left the default channel of her workspace.
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/leave", ayse, nil, nil); res.StatusCode >= 300 {
+		t.Skipf("general cannot be left here (%d)", res.StatusCode)
+	}
+	other := s.newWorkspace(admin, "Partners")
+	s.call(http.MethodPost, "/api/invites/"+s.invite(admin, other, map[string]any{})+"/accept", ayse, nil, nil)
+	for _, m := range s.members(admin, general) {
+		if m.User.ID == s.userID(ayse) {
+			t.Error("joining another workspace put Ayşe back in General")
+		}
+	}
+}

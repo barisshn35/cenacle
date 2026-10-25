@@ -63,6 +63,16 @@ func TestPermissionSchemes(t *testing.T) {
 	if _, res := s.send(admin, general, "@here toplantı", "perm-nonce-2"); res.StatusCode != http.StatusCreated {
 		t.Errorf("admin @here = %d", res.StatusCode)
 	}
+	// Nor by editing a message, or with a command.
+	plain, _ := s.send(ayse, general, "toplantı", "perm-nonce-3")
+	if status, code := problemCode(t, s, http.MethodPatch, "/api/channels/"+general+"/messages/"+plain.ID, ayse,
+		map[string]any{"body": "@here toplantı"}); status != http.StatusForbidden || code != "broadcast_not_allowed" {
+		t.Errorf("member edits in @here = %d %s", status, code)
+	}
+	if status, code := problemCode(t, s, http.MethodPost, "/api/channels/"+general+"/commands", ayse,
+		map[string]string{"command": "shrug", "text": "@here toplantı"}); status != http.StatusForbidden || code != "broadcast_not_allowed" {
+		t.Errorf("member /shrug @here = %d %s", status, code)
+	}
 
 	// Channel moderation: only managers post and react; replies stay open.
 	m, _ := s.send(admin, general, "duyuru", "perm-nonce-3")

@@ -344,3 +344,29 @@ func TestFilesVirusScan(t *testing.T) {
 		t.Errorf("sending a blocked file = %d %s", status, code)
 	}
 }
+
+// An upload form used again after the file was checked does not replace it.
+func TestFilesFormCannotReplaceACheckedFile(t *testing.T) {
+	s := newStack(t, newShared(t), options{files: true})
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	first := []byte("the checked text")
+	var u upload
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/files", ayse,
+		map[string]any{"name": "a.txt", "size": len(first), "content_type": "text/plain"}, &u); res.StatusCode != http.StatusCreated {
+		t.Fatalf("create upload = %d", res.StatusCode)
+	}
+	if status := postForm(t, u, first); status/100 != 2 {
+		t.Fatalf("upload = %d", status)
+	}
+	if res := s.call(http.MethodPost, "/api/files/"+u.File.ID+"/complete", ayse, nil, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("complete = %d", res.StatusCode)
+	}
+	postForm(t, u, []byte("an unchecked text")) // same size, same form
+	s.call(http.MethodPost, "/api/channels/"+general+"/messages", ayse,
+		map[string]any{"body": "see", "nonce": "form-again-1", "file_ids": []string{u.File.ID}}, nil)
+	status, _, body := s.get(ayse, "/api/files/"+u.File.ID+"/content")
+	if status != http.StatusOK || string(body) != string(first) {
+		t.Errorf("served %d %q, want the checked text", status, body)
+	}
+}

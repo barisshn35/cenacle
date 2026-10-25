@@ -80,6 +80,14 @@ func recipients(ctx context.Context, q store.Querier, ids []pgtype.UUID) (map[pg
 
 const pushCursor = "push"
 
+// sendTimeout bounds one push or one e-mail: a slow push service or relay
+// holds up only its own notification, not the whole run.
+const sendTimeout = 30 * time.Second
+
+// recordTimeout bounds noting what was sent; it runs even when the run's
+// context has just ended, so a sent notification is not sent again.
+const recordTimeout = 10 * time.Second
+
 // Sender delivers one web push notification (Push; a fake in tests).
 type Sender interface {
 	Send(ctx context.Context, endpoint, p256dh, auth string, payload Payload) error
@@ -153,9 +161,17 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// At most once: the cursor moves past a message before its pushes go out,
+	// so a run cut short (its timeout, a restart) or one running next to it
+	// never pushes a message twice; a push lost to a crash is the lesser harm
+	// (the message still waits, unread, in the app).
 	sent := 0
 	now := p.now()
+	var claimed pgtype.UUID
 	for _, r := range rows {
+		if err := ctx.Err(); err != nil {
+			return sent, err
+		}
 		who, ok := people[r.UserID]
 		if !ok || !who.prefs.Push || online[idString(r.UserID)] != "" {
 			continue
@@ -167,6 +183,15 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 		subs, err := q.ListPushSubscriptions(ctx, r.UserID)
 		if err != nil {
 			return sent, err
+		}
+		if len(subs) == 0 {
+			continue
+		}
+		if claimed != r.MessageID {
+			if err := q.SetNotifyCursor(ctx, store.SetNotifyCursorParams{Name: pushCursor, Cursor: r.MessageID}); err != nil {
+				return sent, err
+			}
+			claimed = r.MessageID
 		}
 		payload := Payload{
 			Title: notificationTitle(r.AuthorName, r.ChannelName, r.ChannelKind),
@@ -181,7 +206,9 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 			payload.Title, payload.Body = "Cenacle", newActivity
 		}
 		for _, s := range subs {
-			err := p.Push.Send(ctx, s.Endpoint, s.P256dh, s.Auth, payload)
+			sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
+			err := p.Push.Send(sendCtx, s.Endpoint, s.P256dh, s.Auth, payload)
+			cancel()
 			switch {
 			case errors.Is(err, ErrGone):
 				_ = q.RemovePushEndpoint(ctx, s.Endpoint)
@@ -253,6 +280,9 @@ func (e *Emailer) Run(ctx context.Context) (int, error) {
 	sent := 0
 	now := e.now()
 	for _, id := range ids {
+		if err := ctx.Err(); err != nil {
+			return sent, err // the rest on the next run
+		}
 		who := people[id]
 		if who.email == "" || online[idString(id)] != "" {
 			continue
@@ -292,13 +322,21 @@ func (e *Emailer) Run(ctx context.Context) (int, error) {
 		}
 		lastID := rows[len(rows)-1].MessageID
 		if len(lines) > 0 {
-			if err := e.SMTP.Send(ctx, Mail{To: who.email, Subject: emailSubject(len(lines)), Text: emailText(who.name, lines, e.PublicURL)}); err != nil {
+			sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
+			err := e.SMTP.Send(sendCtx, Mail{To: who.email, Subject: emailSubject(len(lines)), Text: emailText(who.name, lines, e.PublicURL)})
+			cancel()
+			if err != nil {
 				e.Log.WarnContext(ctx, "e-mail notification", "error", err)
 				continue // tried again on the next run
 			}
 			sent++
 		}
-		if err := q.SetEmailNotification(ctx, store.SetEmailNotificationParams{UserID: id, LastMessage: lastID}); err != nil {
+		// Noted right after each e-mail, also when the run's time is up:
+		// otherwise the next run would send it again.
+		recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), recordTimeout)
+		err = q.SetEmailNotification(recCtx, store.SetEmailNotificationParams{UserID: id, LastMessage: lastID})
+		cancel()
+		if err != nil {
 			return sent, err
 		}
 	}

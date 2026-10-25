@@ -125,12 +125,14 @@ ON CONFLICT DO NOTHING;
 
 -- name: JoinDefaultChannels :many
 -- JoinDefaultChannels makes a user a member of every default channel of the
--- workspaces they belong to and returns the channels they newly joined.
+-- workspaces they belong to (or of one of them) and returns the channels they
+-- newly joined. Archived channels and channels with access rules are left out.
 INSERT INTO channel_members (channel_id, user_id)
 SELECT c.id, @user_id
 FROM channels c
 JOIN workspace_members wm ON wm.workspace_id = c.workspace_id AND wm.user_id = @user_id AND wm.role <> 'guest'
-WHERE c.is_default
+WHERE c.is_default AND c.archived_at IS NULL AND c.access_rules = '[]'::jsonb
+  AND (sqlc.narg(workspace_id)::uuid IS NULL OR c.workspace_id = sqlc.narg(workspace_id)::uuid)
 ON CONFLICT DO NOTHING
 RETURNING channel_id;
 

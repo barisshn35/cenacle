@@ -144,10 +144,16 @@ UPDATE events SET canceled_at = now() WHERE id = @id AND canceled_at IS NULL;
 SELECT * FROM events WHERE id = @id;
 
 -- name: ListEvents :many
--- ListEvents returns a workspace's events that end after a moment, soonest first.
-SELECT * FROM events
-WHERE workspace_id = @workspace_id AND ends_at > @after AND canceled_at IS NULL
-ORDER BY starts_at, id
+-- ListEvents returns a workspace's events that end after a moment, soonest first:
+-- those of channels the user can see (guests: their own channels) or of none.
+SELECT * FROM events e
+WHERE e.workspace_id = @workspace_id AND e.ends_at > @after AND e.canceled_at IS NULL
+  AND (e.channel_id IS NULL
+    OR EXISTS (SELECT 1 FROM channel_members m WHERE m.channel_id = e.channel_id AND m.user_id = @user_id)
+    OR (NOT @guest::bool AND EXISTS (
+          SELECT 1 FROM channels c WHERE c.id = e.channel_id AND c.visibility = 'public'
+            AND c.kind IN ('standard', 'announcement', 'forum'))))
+ORDER BY e.starts_at, e.id
 LIMIT 100;
 
 -- name: ListEventRsvps :many

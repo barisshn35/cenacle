@@ -34,6 +34,11 @@ func (f *FileTextReader) Run(ctx context.Context) (int, error) {
 	}
 	done := 0
 	for _, file := range rows {
+		// Marked first: a file whose reading never finishes (the job's
+		// timeout, a crash) is not read again and again.
+		if err := f.Queries.SetFileText(ctx, store.SetFileTextParams{ID: file.ID, ContentState: "none"}); err != nil {
+			return done, err
+		}
 		text, state := f.read(ctx, file)
 		var content pgtype.Text
 		if state == "done" {

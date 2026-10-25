@@ -136,6 +136,16 @@ type Push struct {
 	PrivateKey string
 }
 
+// PushEgress is the client for push endpoints. Any browser names its
+// endpoint, so like link previews it has no allow list (the operator's
+// internal networks are for bots) and speaks https only.
+func PushEgress() *egress.Client {
+	return egress.New(egress.Policy{Timeout: pushTimeout, MaxResponse: 64 << 10})
+}
+
+// pushTimeout bounds one delivery to a push service.
+const pushTimeout = 10 * time.Second
+
 // Payload is what the service worker shows.
 type Payload struct {
 	Title     string `json:"title"`

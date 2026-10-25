@@ -13,6 +13,7 @@ import (
 
 type Querier interface {
 	// AcceptSharedChannel records the id the other side gave a channel we offered.
+	// A channel encrypted end to end since it was offered is not shared after all.
 	AcceptSharedChannel(ctx context.Context, arg AcceptSharedChannelParams) (SharedChannel, error)
 	AcceptTerms(ctx context.Context, arg AcceptTermsParams) error
 	AckMessage(ctx context.Context, arg AckMessageParams) (int64, error)
@@ -426,8 +427,9 @@ type Querier interface {
 	InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
 	JoinChannelViaGroup(ctx context.Context, arg JoinChannelViaGroupParams) (int64, error)
 	// JoinDefaultChannels makes a user a member of every default channel of the
-	// workspaces they belong to and returns the channels they newly joined.
-	JoinDefaultChannels(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
+	// workspaces they belong to (or of one of them) and returns the channels they
+	// newly joined. Archived channels and channels with access rules are left out.
+	JoinDefaultChannels(ctx context.Context, arg JoinDefaultChannelsParams) ([]pgtype.UUID, error)
 	// JoinDefaultWorkspace makes a user a member of the default workspace; it
 	// returns the workspace when the user was not a member yet.
 	JoinDefaultWorkspace(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
@@ -500,7 +502,8 @@ type Querier interface {
 	ListEnabledAutomodRules(ctx context.Context, workspaceID pgtype.UUID) ([]AutomodRule, error)
 	ListEventReminders(ctx context.Context, eventID pgtype.UUID) ([]ListEventRemindersRow, error)
 	ListEventRsvps(ctx context.Context, eventIds []pgtype.UUID) ([]ListEventRsvpsRow, error)
-	// ListEvents returns a workspace's events that end after a moment, soonest first.
+	// ListEvents returns a workspace's events that end after a moment, soonest first:
+	// those of channels the user can see (guests: their own channels) or of none.
 	ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error)
 	ListFederationConnections(ctx context.Context, workspaceID pgtype.UUID) ([]FederationConnection, error)
 	// ListFollowedThreads returns the threads a user follows in channels they
@@ -742,6 +745,7 @@ type Querier interface {
 	SearchCanvases(ctx context.Context, arg SearchCanvasesParams) ([]SearchCanvasesRow, error)
 	// SearchFiles finds files by name or by their text in the user's channels,
 	// newest first, with the matching words of the text.
+	// Files of a deleted message go with it (also while a legal hold keeps them).
 	SearchFiles(ctx context.Context, arg SearchFilesParams) ([]SearchFilesRow, error)
 	// SearchListItems finds rows of the lists of the user's channels.
 	SearchListItems(ctx context.Context, arg SearchListItemsParams) ([]SearchListItemsRow, error)

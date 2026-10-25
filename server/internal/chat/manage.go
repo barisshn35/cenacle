@@ -358,7 +358,7 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 		badRequest(w, r, problem)
 		return
 	}
-	c, _, m, ok := h.message(w, r, channelID, messageID, p.User)
+	c, role, m, ok := h.message(w, r, channelID, messageID, p.User)
 	if !ok {
 		return
 	}
@@ -383,6 +383,21 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 	case c.ArchivedAt.Valid:
 		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
 		return
+	}
+	// An edit is held to what sending is: no way around a timeout, the
+	// mention rules or AutoMod by sending something harmless first.
+	if h.timedOut(w, r, c.WorkspaceID, p.User) {
+		return
+	}
+	noGroups, ok := h.mentionRights(w, r, c, role, body)
+	if !ok {
+		return
+	}
+	var flags []string
+	if !c.Encrypted {
+		if flags, ok = h.automod(w, r, c, role, body); !ok {
+			return
+		}
 	}
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
@@ -414,7 +429,12 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 		if err := addBroadcastMentions(r.Context(), q, h.Presence, c, edited); err != nil {
 			return err
 		}
-		if err := addGroupMentions(r.Context(), q, c, edited); err != nil {
+		if !noGroups {
+			if err := addGroupMentions(r.Context(), q, c, edited); err != nil {
+				return err
+			}
+		}
+		if err := flagMessage(r.Context(), q, c, uuid(m.ID), flags); err != nil {
 			return err
 		}
 		msgs := []api.Message{messageAPI(edited, m.AuthorName, m.AuthorIsBot)}
@@ -528,6 +548,11 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 		forbidden(w, r, httpx.CodeForbidden, "Only the author or a channel manager can restore a message.")
 		return
 	}
+	// What a manager removed, only a manager brings back.
+	if m.DeletedBy.Valid && m.DeletedBy != m.AuthorID && !canManage(c, role) {
+		forbidden(w, r, httpx.CodeForbidden, "A channel manager removed this message.")
+		return
+	}
 	var out api.Message
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		restored, err := q.RestoreMessage(r.Context(), store.RestoreMessageParams{ID: m.ID, RestoreWindow: interval(RestoreWindow)})
@@ -539,7 +564,12 @@ func (h *Handlers) RestoreMessage(w http.ResponseWriter, r *http.Request, channe
 			return err
 		}
 		out = msgs[0]
-		if err := emit(r.Context(), q, events.MessageCreated, out); err != nil {
+		// Members get a burn-on-read message without its text, as when it was sent.
+		event := out
+		if event.Burn != nil {
+			hideBurn(&event)
+		}
+		if err := emit(r.Context(), q, events.MessageCreated, event); err != nil {
 			return err
 		}
 		if restored.RootID.Valid {

@@ -164,6 +164,9 @@ func (h *Handlers) cleanSteps(ctx context.Context, workspace pgtype.UUID, trigge
 				if err != nil || c.WorkspaceID != workspace || isConversation(c) {
 					return nil, "Step " + n + ": the channel is not a channel of this workspace."
 				}
+				if c.Encrypted {
+					return nil, "Step " + n + ": a workflow cannot write in an encrypted channel."
+				}
 				clean.ChannelId = s.ChannelId
 			} else if !hasChannel {
 				return nil, "Step " + n + ": choose the channel to post in."
@@ -876,10 +879,18 @@ loop:
 				status, problem = "failed", "The channel is gone or archived."
 				break loop
 			}
+			// Encrypted since the workflow was made: a bot cannot write in it.
+			if err == nil && c.Encrypted {
+				status, problem = "failed", "The channel is encrypted end to end."
+				break loop
+			}
 			if err != nil {
 				return run, err
 			}
-			if _, err := postWorkflowMessage(ctx, q, c, bot, vars.render(deref1(s.Text)), run, s, pgtype.UUID{}); err != nil {
+			if _, err := postWorkflowMessage(ctx, q, c, bot, vars.render(deref1(s.Text)), run, s, pgtype.UUID{}); errors.Is(err, errEncrypted) {
+				status, problem = "failed", "The conversation is encrypted end to end."
+				break loop
+			} else if err != nil {
 				return run, err
 			}
 		case api.WorkflowStepKindDm:
@@ -897,7 +908,10 @@ loop:
 			if err != nil {
 				return run, err
 			}
-			if _, err := postWorkflowMessage(ctx, q, dm, bot, vars.render(deref1(s.Text)), run, s, pgtype.UUID{}); err != nil {
+			if _, err := postWorkflowMessage(ctx, q, dm, bot, vars.render(deref1(s.Text)), run, s, pgtype.UUID{}); errors.Is(err, errEncrypted) {
+				status, problem = "failed", "The conversation is encrypted end to end."
+				break loop
+			} else if err != nil {
 				return run, err
 			}
 		case api.WorkflowStepKindForm, api.WorkflowStepKindApproval:
@@ -938,7 +952,10 @@ loop:
 				if err != nil {
 					return run, err
 				}
-				if _, err := postWorkflowMessage(ctx, q, dm, bot, "", run, s, task.ID); err != nil {
+				if _, err := postWorkflowMessage(ctx, q, dm, bot, "", run, s, task.ID); errors.Is(err, errEncrypted) {
+					status, problem = "failed", "The conversation is encrypted end to end."
+					break loop
+				} else if err != nil {
 					return run, err
 				}
 			}

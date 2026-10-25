@@ -53,7 +53,7 @@ SELECT * FROM thread_follows WHERE user_id = @user_id AND root_id = @root_id;
 -- ListFollowedThreads returns the threads a user follows in channels they
 -- belong to, the latest reply first, with unread replies and mentions.
 SELECT r.id, r.channel_id, r.author_id, r.body, r.nonce, r.created_at, r.edited_at, r.attachments,
-       r.pinned_at, r.pinned_by, r.title, r.tags, u.display_name AS author_name, u.is_bot AS author_is_bot,
+       r.pinned_at, r.pinned_by, r.title, r.tags, r.burn_seconds, u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id,
        last.id AS last_reply_id,
        (SELECT count(*) FROM (

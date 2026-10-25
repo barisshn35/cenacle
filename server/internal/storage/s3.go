@@ -111,6 +111,26 @@ func (s *S3) Put(ctx context.Context, key string, r io.Reader, size int64, conte
 	return err
 }
 
+// Promote moves an upload to its key: a copy on the server (in parts above
+// the 5 GiB a single copy takes; parts must be at least 5 MiB).
+func (s *S3) Promote(ctx context.Context, from, to string) error {
+	info, err := s.client.StatObject(ctx, s.bucket, from, minio.StatObjectOptions{})
+	if err != nil {
+		return notFound(err)
+	}
+	dst := minio.CopyDestOptions{Bucket: s.bucket, Object: to}
+	src := minio.CopySrcOptions{Bucket: s.bucket, Object: from, MatchETag: info.ETag}
+	if info.Size <= 5<<30 {
+		_, err = s.client.CopyObject(ctx, dst, src)
+	} else {
+		_, err = s.client.ComposeObject(ctx, dst, src)
+	}
+	if err != nil {
+		return notFound(err)
+	}
+	return s.client.RemoveObject(ctx, s.bucket, from, minio.RemoveObjectOptions{})
+}
+
 // Remove deletes an object; a missing one is not an error.
 func (s *S3) Remove(ctx context.Context, key string) error {
 	return s.client.RemoveObject(ctx, s.bucket, key, minio.RemoveObjectOptions{})

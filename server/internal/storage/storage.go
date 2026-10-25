@@ -48,6 +48,14 @@ type Upload struct {
 	Fields map[string]string `json:"fields"`
 }
 
+// Staged is a backend whose upload forms can be used again until they expire
+// (S3 POST policies). Uploads then land under a staging key, and Promote moves
+// one to its key once it arrived: a second upload with the same form cannot
+// replace a file after it was checked.
+type Staged interface {
+	Promote(ctx context.Context, from, to string) error
+}
+
 // Object is a stored object opened for reading; it can seek (ranges).
 type Object interface {
 	io.ReadSeekCloser

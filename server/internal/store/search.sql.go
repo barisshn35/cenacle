@@ -59,7 +59,7 @@ FROM canvases v
 JOIN channel_tabs t ON t.canvas_id = v.id
 JOIN channel_members cm ON cm.channel_id = v.channel_id AND cm.user_id = $1
 JOIN channels c ON c.id = v.channel_id
-WHERE cenacle_search_vector(v.body) @@ cenacle_search_query($2)
+WHERE cenacle_search_vector(v.body) @@ cenacle_search_query($2) AND NOT c.encrypted
   AND ($3::uuid IS NULL OR c.workspace_id = $3::uuid)
 ORDER BY v.updated_at DESC
 LIMIT 20
@@ -123,6 +123,7 @@ FROM files f
 JOIN channel_members cm ON cm.channel_id = f.channel_id AND cm.user_id = $2
 JOIN channels c ON c.id = f.channel_id
 JOIN users u ON u.id = f.uploader_id
+JOIN messages m ON m.id = f.message_id AND m.deleted_at IS NULL
 WHERE f.message_id IS NOT NULL AND f.status = 'ready'
   AND (cenacle_search_vector(f.name) @@ cenacle_search_query($1)
        OR (f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1)))
@@ -162,6 +163,7 @@ type SearchFilesRow struct {
 
 // SearchFiles finds files by name or by their text in the user's channels,
 // newest first, with the matching words of the text.
+// Files of a deleted message go with it (also while a legal hold keeps them).
 func (q *Queries) SearchFiles(ctx context.Context, arg SearchFilesParams) ([]SearchFilesRow, error) {
 	rows, err := q.db.Query(ctx, searchFiles,
 		arg.Query,
@@ -214,7 +216,7 @@ JOIN channel_tabs t ON t.list_id = i.list_id
 JOIN lists l ON l.id = i.list_id
 JOIN channel_members cm ON cm.channel_id = l.channel_id AND cm.user_id = $1
 JOIN channels c ON c.id = l.channel_id
-WHERE cenacle_search_vector(i.title || ' ' || i."values"::text) @@ cenacle_search_query($2)
+WHERE cenacle_search_vector(i.title || ' ' || i."values"::text) @@ cenacle_search_query($2) AND NOT c.encrypted
   AND ($3::uuid IS NULL OR c.workspace_id = $3::uuid)
 ORDER BY i.updated_at DESC
 LIMIT 20

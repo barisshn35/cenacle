@@ -82,12 +82,15 @@ CREATE TABLE e2e_escrow (
 -- Files of encrypted channels are encrypted in the browser: no previews.
 ALTER TABLE files ADD COLUMN encrypted boolean NOT NULL DEFAULT false;
 
+-- NOT VALID: the rule only allows more than before, so the rows there already
+-- keep to it; checking them all here would lock messages for the whole scan
+-- (00045 validates it without blocking writes).
 ALTER TABLE messages DROP CONSTRAINT messages_body_check;
 ALTER TABLE messages ADD CONSTRAINT messages_body_check
     CHECK ((char_length(body) <= 4000 OR (body LIKE 'e2e:v1:%' AND char_length(body) <= 12000)
             OR (body LIKE 'mls:v1:%' AND char_length(body) <= 32000))
            AND (body <> '' OR attachments <> '[]'::jsonb OR has_files OR sticker_id IS NOT NULL
-                OR task_id IS NOT NULL OR submission_id IS NOT NULL));
+                OR task_id IS NOT NULL OR submission_id IS NOT NULL)) NOT VALID;
 
 -- +goose Down
 DELETE FROM messages WHERE body LIKE 'mls:v1:%';
@@ -103,6 +106,9 @@ DROP TABLE e2e_recovery;
 DROP TABLE mls_members;
 DROP TABLE mls_commits;
 DROP TABLE mls_groups;
+-- The release before cannot open device-key channels (their messages are gone
+-- above): they stay, archived, rather than look like passphrase channels.
+UPDATE channels SET archived_at = coalesce(archived_at, now()) WHERE mls;
 ALTER TABLE channels DROP CONSTRAINT channels_mls_encrypted;
 ALTER TABLE channels DROP COLUMN mls;
 DROP TABLE e2e_devices;

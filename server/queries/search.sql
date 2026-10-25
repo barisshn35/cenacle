@@ -34,6 +34,8 @@ FROM files f
 JOIN channel_members cm ON cm.channel_id = f.channel_id AND cm.user_id = @user_id
 JOIN channels c ON c.id = f.channel_id
 JOIN users u ON u.id = f.uploader_id
+-- Files of a deleted message go with it (also while a legal hold keeps them).
+JOIN messages m ON m.id = f.message_id AND m.deleted_at IS NULL
 WHERE f.message_id IS NOT NULL AND f.status = 'ready'
   AND (cenacle_search_vector(f.name) @@ cenacle_search_query(@query)
        OR (f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query(@query)))
@@ -54,7 +56,7 @@ FROM canvases v
 JOIN channel_tabs t ON t.canvas_id = v.id
 JOIN channel_members cm ON cm.channel_id = v.channel_id AND cm.user_id = @user_id
 JOIN channels c ON c.id = v.channel_id
-WHERE cenacle_search_vector(v.body) @@ cenacle_search_query(@query)
+WHERE cenacle_search_vector(v.body) @@ cenacle_search_query(@query) AND NOT c.encrypted
   AND (sqlc.narg(workspace_id)::uuid IS NULL OR c.workspace_id = sqlc.narg(workspace_id)::uuid)
 ORDER BY v.updated_at DESC
 LIMIT 20;
@@ -68,7 +70,7 @@ JOIN channel_tabs t ON t.list_id = i.list_id
 JOIN lists l ON l.id = i.list_id
 JOIN channel_members cm ON cm.channel_id = l.channel_id AND cm.user_id = @user_id
 JOIN channels c ON c.id = l.channel_id
-WHERE cenacle_search_vector(i.title || ' ' || i."values"::text) @@ cenacle_search_query(@query)
+WHERE cenacle_search_vector(i.title || ' ' || i."values"::text) @@ cenacle_search_query(@query) AND NOT c.encrypted
   AND (sqlc.narg(workspace_id)::uuid IS NULL OR c.workspace_id = sqlc.narg(workspace_id)::uuid)
 ORDER BY i.updated_at DESC
 LIMIT 20;

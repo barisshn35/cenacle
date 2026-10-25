@@ -21,6 +21,16 @@ import (
 // maxEntry bounds one file of an export (a JSON document read whole).
 const maxEntry = 512 << 20
 
+// A .tar.gz is unpacked to disk: these bound what one export may write there
+// (a few kilobytes of gzip can stand for terabytes). 64 GiB and a million
+// entries are far above the exports of large workspaces (attachments
+// included) and well short of filling a server's disk unnoticed. Variables so
+// tests can lower them.
+var (
+	maxUnpacked int64 = 64 << 30
+	maxEntries        = 1_000_000
+)
+
 // Open makes an export readable as a file tree: a directory, a .zip or a
 // .tar.gz (unpacked into a temporary directory that close removes).
 func Open(name string) (fs.FS, func() error, error) {
@@ -70,6 +80,10 @@ func untar(name, dir string) error {
 		r = gz
 	}
 	tr := tar.NewReader(r)
+	var (
+		entries int
+		written int64
+	)
 	for {
 		h, err := tr.Next()
 		if errors.Is(err, io.EOF) {
@@ -77,6 +91,9 @@ func untar(name, dir string) error {
 		}
 		if err != nil {
 			return err
+		}
+		if entries++; entries > maxEntries {
+			return fmt.Errorf("%s: more than %d entries", name, maxEntries)
 		}
 		// Only plain files and directories, and never outside dir.
 		clean := path.Clean("/" + h.Name)[1:]
@@ -97,12 +114,17 @@ func untar(name, dir string) error {
 			if err != nil {
 				return err
 			}
-			_, err = io.Copy(out, io.LimitReader(tr, maxEntry))
+			// One byte past the total tells an export that is too large.
+			n, err := io.Copy(out, io.LimitReader(tr, min(maxEntry, maxUnpacked-written+1)))
+			written += n
 			if cerr := out.Close(); err == nil {
 				err = cerr
 			}
 			if err != nil {
 				return err
+			}
+			if written > maxUnpacked {
+				return fmt.Errorf("%s: unpacks to more than %d bytes", name, maxUnpacked)
 			}
 		}
 	}

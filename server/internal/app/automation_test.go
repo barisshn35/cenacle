@@ -386,3 +386,39 @@ func TestScheduledAndWebhookWorkflows(t *testing.T) {
 		t.Errorf("outgoing body = %s", received.body)
 	}
 }
+
+func TestWorkflowIntoAnEncryptedChannelFailsAlone(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	general := s.general(admin)
+	var secret channel
+	s.call(http.MethodPost, "/api/channels", admin, map[string]any{"name": "Secret"}, &secret)
+	steps := func(channelID string) map[string]any {
+		return map[string]any{
+			"name": "Note " + channelID, "trigger": map[string]any{"kind": "manual"},
+			"steps": []map[string]any{{"id": "tell", "kind": "message", "text": "noted in " + channelID, "channel_id": channelID}},
+		}
+	}
+	var into, other api.Workflow
+	s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/workflows", admin, steps(secret.ID), &into)
+	s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/workflows", admin, steps(general), &other)
+	// The channel is encrypted after the workflow was made.
+	if _, err := s.pool.Exec(context.Background(), "UPDATE channels SET encrypted = true, mls = true WHERE id = $1", secret.ID); err != nil {
+		t.Fatal(err)
+	}
+	s.call(http.MethodPost, "/api/workflows/"+into.Id.String()+"/runs", admin, map[string]any{"channel_id": general}, nil)
+	s.call(http.MethodPost, "/api/workflows/"+other.Id.String()+"/runs", admin, map[string]any{"channel_id": general}, nil)
+	s.runWorkflows()
+	if n := s.botMessages("noted in " + general); n != 1 {
+		t.Errorf("the other run did not go on: %d", n)
+	}
+	var runs struct{ Runs []api.WorkflowRun }
+	s.call(http.MethodGet, "/api/workflows/"+into.Id.String()+"/runs", admin, nil, &runs)
+	if len(runs.Runs) != 1 || runs.Runs[0].Status != api.WorkflowRunStatusFailed {
+		t.Errorf("runs = %+v", runs.Runs)
+	}
+	// New workflows cannot write there.
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/workspaces/"+s.defaultWS+"/workflows", admin, steps(secret.ID)); status != http.StatusBadRequest {
+		t.Errorf("new workflow into it = %d", status)
+	}
+}

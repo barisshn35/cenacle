@@ -281,6 +281,11 @@ func TestBurnOnRead(t *testing.T) {
 	if status, _ := problemCode(t, s, http.MethodPut, "/api/me/saved/"+m.Id.String(), mert, map[string]any{}); status != http.StatusForbidden {
 		t.Errorf("save = %d", status)
 	}
+	// No thread: it would show the text again in the threads list.
+	if status, _ := problemCode(t, s, http.MethodPost, path, mert,
+		map[string]any{"body": "ok", "nonce": "nonce-burn-2", "root_id": m.Id}); status != http.StatusBadRequest {
+		t.Errorf("reply = %d", status)
+	}
 	if page := s.search(mert, "q=code"); len(page.Results) != 0 {
 		t.Errorf("found by search: %+v", page.Results)
 	}

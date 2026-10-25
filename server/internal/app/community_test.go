@@ -282,6 +282,27 @@ func TestEventsWelcomeBannerTerms(t *testing.T) {
 		t.Errorf("canceled events listed: %d", len(events.Events))
 	}
 
+	// An event of a private channel is for its members only.
+	var board channel
+	s.call(http.MethodPost, "/api/channels", admin, map[string]any{"name": "Board", "visibility": "private"}, &board)
+	var secret api.Event
+	if res := s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/events", admin, map[string]any{
+		"title": "Layoffs", "starts_at": start, "ends_at": start.Add(time.Hour), "channel_id": board.ID,
+	}, &secret); res.StatusCode != http.StatusCreated {
+		t.Fatalf("private event = %d", res.StatusCode)
+	}
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/events", ayse, nil, &events)
+	if len(events.Events) != 0 {
+		t.Errorf("a private channel's event is listed to an outsider: %+v", events.Events)
+	}
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/events/"+secret.Id.String()+"/rsvp", ayse, map[string]any{"status": "going"}); status != http.StatusNotFound {
+		t.Errorf("outsider rsvp = %d", status)
+	}
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/events", admin, nil, &events)
+	if len(events.Events) != 1 {
+		t.Errorf("member's events = %d", len(events.Events))
+	}
+
 	// Welcome: suggested channels are joined when the welcome is closed.
 	var extra channel
 	s.call(http.MethodPost, "/api/channels", admin, map[string]any{"name": "Help"}, &extra)

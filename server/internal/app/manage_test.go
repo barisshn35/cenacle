@@ -65,12 +65,20 @@ func TestEditAndDeleteMessages(t *testing.T) {
 	if res := s.call(http.MethodDelete, base+m.ID, admin, nil, nil); res.StatusCode != http.StatusNoContent {
 		t.Errorf("administrator deleting = %d", res.StatusCode)
 	}
+	// The author cannot undo a moderator's removal; the moderator can.
+	if status, _ := problemCode(t, s, http.MethodPost, base+m.ID+"/restore", ayse, nil); status != http.StatusForbidden {
+		t.Errorf("author restoring a removal = %d", status)
+	}
+	if res := s.call(http.MethodPost, base+m.ID+"/restore", admin, nil, nil); res.StatusCode != http.StatusOK {
+		t.Errorf("administrator restoring = %d", res.StatusCode)
+	}
+	s.call(http.MethodDelete, base+m.ID, admin, nil, nil)
 
 	// After the restore window it is gone for good.
 	if _, err := s.pool.Exec(context.Background(), "UPDATE messages SET deleted_at = now() - interval '6 minutes'"); err != nil {
 		t.Fatal(err)
 	}
-	if status, _ := problemCode(t, s, http.MethodPost, base+m.ID+"/restore", ayse, nil); status != http.StatusNotFound {
+	if status, _ := problemCode(t, s, http.MethodPost, base+m.ID+"/restore", admin, nil); status != http.StatusNotFound {
 		t.Errorf("restore after the window = %d", status)
 	}
 	var left int

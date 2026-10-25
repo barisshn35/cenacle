@@ -394,11 +394,14 @@ func (h *Handlers) RemoveWorkspaceMember(w http.ResponseWriter, r *http.Request,
 		forbidden(w, r, CodeLastOwner, "A workspace keeps at least one owner.")
 		return
 	}
-	if _, err := h.Queries.LeaveWorkspaceChannels(ctx, store.LeaveWorkspaceChannelsParams{WorkspaceID: ws.ID, UserID: pgUUID(userID)}); err != nil {
-		h.unavailable(w, r, "leave workspace channels", err)
-		return
-	}
-	if _, err := h.Queries.RemoveWorkspaceMember(ctx, store.RemoveWorkspaceMemberParams{WorkspaceID: ws.ID, UserID: pgUUID(userID)}); err != nil {
+	// Both or neither: a member is never left in the workspace without its channels.
+	if err := h.inTx(ctx, func(q *store.Queries) error {
+		if _, err := q.LeaveWorkspaceChannels(ctx, store.LeaveWorkspaceChannelsParams{WorkspaceID: ws.ID, UserID: pgUUID(userID)}); err != nil {
+			return err
+		}
+		_, err := q.RemoveWorkspaceMember(ctx, store.RemoveWorkspaceMemberParams{WorkspaceID: ws.ID, UserID: pgUUID(userID)})
+		return err
+	}); err != nil {
 		h.unavailable(w, r, "remove workspace member", err)
 		return
 	}
@@ -602,7 +605,7 @@ func (h *Handlers) AcceptInvite(w http.ResponseWriter, r *http.Request, token st
 			h.unavailable(w, r, "join workspace", err)
 			return
 		}
-		joined, err := h.Queries.JoinDefaultChannels(ctx, p.User.ID)
+		joined, err := h.Queries.JoinDefaultChannels(ctx, store.JoinDefaultChannelsParams{UserID: p.User.ID, WorkspaceID: wsID})
 		if err != nil {
 			h.unavailable(w, r, "join default channels", err)
 			return

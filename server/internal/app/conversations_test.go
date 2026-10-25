@@ -143,6 +143,10 @@ func TestUnreadCounts(t *testing.T) {
 	if c := s.listed(mert, dm.ID); c.LastReadID != first {
 		t.Errorf("moved back to %s", c.LastReadID)
 	}
+	// Nor ahead to a message that is not there (it would hide everything after).
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/channels/"+dm.ID+"/read", mert, map[string]string{"message_id": "ffffffff-ffff-7fff-bfff-ffffffffffff"}); status != http.StatusBadRequest {
+		t.Errorf("made-up read position = %d", status)
+	}
 	if status, _ := problemCode(t, s, http.MethodPost, "/api/channels/"+dm.ID+"/read", s.user("sub-z", "Zeynep"), map[string]string{"message_id": last.ID}); status != http.StatusNotFound {
 		t.Errorf("outsider marking read = %d", status)
 	}

@@ -127,6 +127,11 @@ func (h *Handlers) CreateChannelTab(w http.ResponseWriter, r *http.Request, chan
 		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here add tabs.")
 		return
 	}
+	// Canvases, lists and links are kept as the server reads them.
+	if c.Encrypted {
+		refuseEncrypted(w, r)
+		return
+	}
 	var in api.TabInput
 	if !decode(w, r, &in) {
 		return

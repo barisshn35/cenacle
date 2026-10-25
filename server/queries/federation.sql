@@ -44,8 +44,10 @@ RETURNING *;
 
 -- name: AcceptSharedChannel :one
 -- AcceptSharedChannel records the id the other side gave a channel we offered.
+-- A channel encrypted end to end since it was offered is not shared after all.
 UPDATE shared_channels SET remote_channel_id = @remote_channel_id, status = 'active'
 WHERE channel_id = @channel_id AND connection_id = @connection_id
+  AND NOT EXISTS (SELECT 1 FROM channels c WHERE c.id = @channel_id AND c.encrypted)
 RETURNING *;
 
 -- name: CreateActiveSharedChannel :one

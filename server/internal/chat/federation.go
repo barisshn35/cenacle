@@ -765,6 +765,11 @@ func (h *Handlers) applyFederated(ctx context.Context, q *store.Queries, conn st
 	if err != nil {
 		return err
 	}
+	// An archived channel takes nothing more; an encrypted one cannot take
+	// text it could not read (dropped, so the rest of the batch goes through).
+	if c.ArchivedAt.Valid || c.Encrypted {
+		return nil
+	}
 	if !takes(conn, ev.Type) {
 		return nil // this server's policy for the connection leaves it out
 	}

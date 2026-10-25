@@ -214,10 +214,21 @@ func (h *Handlers) RevokeE2EDevice(w http.ResponseWriter, r *http.Request, devic
 
 // ListUserE2EDevices implements api.ServerInterface.
 func (h *Handlers) ListUserE2EDevices(w http.ResponseWriter, r *http.Request, userID openapi_types.UUID) {
-	if _, ok := auth.RequirePrincipal(w, r, h.Cookies); !ok {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
 		return
 	}
-	rows, err := h.Queries.ListUserDevicesFor(r.Context(), []pgtype.UUID{pgUUID(userID)})
+	// Only the devices of people one can see (as for profiles).
+	visible, err := h.Queries.VisibleProfileIDs(r.Context(), store.VisibleProfileIDsParams{Ids: []pgtype.UUID{pgUUID(userID)}, Viewer: p.User.ID})
+	if err != nil {
+		h.unavailable(w, r, "visible profiles", err)
+		return
+	}
+	if len(visible) == 0 {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such person."})
+		return
+	}
+	rows, err := h.Queries.ListUserDevicesFor(r.Context(), visible)
 	if err != nil {
 		h.unavailable(w, r, "list devices", err)
 		return
@@ -335,6 +346,11 @@ func (h *Handlers) EnableMLS(w http.ResponseWriter, r *http.Request, channelID o
 	}
 	if len(in.GroupInfo) == 0 {
 		badRequest(w, r, "The group's GroupInfo is missing.")
+		return
+	}
+	// A forum's posts have titles, which the server would read.
+	if c.Kind == KindForum {
+		badRequest(w, r, "A forum cannot be encrypted with device keys.")
 		return
 	}
 	if shares, err := h.Queries.ActiveSharesOfChannel(r.Context(), c.ID); err != nil {

@@ -399,7 +399,7 @@ func (q *Queries) ListActivity(ctx context.Context, arg ListActivityParams) ([]L
 
 const listFollowedThreads = `-- name: ListFollowedThreads :many
 SELECT r.id, r.channel_id, r.author_id, r.body, r.nonce, r.created_at, r.edited_at, r.attachments,
-       r.pinned_at, r.pinned_by, r.title, r.tags, u.display_name AS author_name, u.is_bot AS author_is_bot,
+       r.pinned_at, r.pinned_by, r.title, r.tags, r.burn_seconds, u.display_name AS author_name, u.is_bot AS author_is_bot,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id,
        last.id AS last_reply_id,
        (SELECT count(*) FROM (
@@ -448,6 +448,7 @@ type ListFollowedThreadsRow struct {
 	PinnedBy     pgtype.UUID        `json:"pinned_by"`
 	Title        pgtype.Text        `json:"title"`
 	Tags         []string           `json:"tags"`
+	BurnSeconds  pgtype.Int4        `json:"burn_seconds"`
 	AuthorName   string             `json:"author_name"`
 	AuthorIsBot  bool               `json:"author_is_bot"`
 	ChannelName  string             `json:"channel_name"`
@@ -487,6 +488,7 @@ func (q *Queries) ListFollowedThreads(ctx context.Context, arg ListFollowedThrea
 			&i.PinnedBy,
 			&i.Title,
 			&i.Tags,
+			&i.BurnSeconds,
 			&i.AuthorName,
 			&i.AuthorIsBot,
 			&i.ChannelName,
