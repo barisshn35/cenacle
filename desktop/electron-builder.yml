@@ -51,7 +51,36 @@ linux:
   desktop:
     entry:
       MimeType: x-scheme-handler/cenacle
+# Setting depends replaces electron-builder's list, so it is all here: what
+# Electron needs on a minimal system, notifications and the keyring. The
+# 64-bit time names come first, or apt may take an ALSA stand-in (Ubuntu 24.04).
 deb:
-  depends: [libnotify4, libsecret-1-0]
+  depends:
+    [
+      libgtk-3-0t64 | libgtk-3-0,
+      libnss3,
+      libxss1,
+      libxtst6,
+      libatspi2.0-0t64 | libatspi2.0-0,
+      libuuid1,
+      libgbm1,
+      libasound2t64 | libasound2,
+      xdg-utils,
+      libnotify4,
+      libsecret-1-0,
+    ]
 rpm:
-  depends: [libnotify, libsecret]
+  depends:
+    [
+      gtk3,
+      nss,
+      libXScrnSaver,
+      libXtst,
+      at-spi2-core,
+      libuuid,
+      mesa-libgbm,
+      alsa-lib,
+      xdg-utils,
+      libnotify,
+      libsecret,
+    ]

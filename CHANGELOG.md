@@ -33,6 +33,17 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 - The web journeys also run in Firefox and WebKit (`E2E_BROWSERS=all`).
 - [docs/qa/test-plan.md](docs/qa/test-plan.md): how a release candidate is tested.
 
+### Fixed
+
+- **Desktop app, Linux:** the deb and rpm packages named only two dependencies, which replaced
+  electron-builder's list, so on a minimal system (a fresh Ubuntu 24.04 or Debian 12 without a
+  desktop) the app did not start for want of NSS, GTK and ALSA. They now name everything
+  Electron needs; checked by installing on Ubuntu 24.04, Debian 12 and Fedora 42.
+- **Phones:** the author and time of a message were drawn over its words (the touch toolbar
+  opened a second grid column).
+- Selects show their focus ring in Safari too; the permission and federation checkboxes are
+  large enough to hit in Firefox.
+
 ### Changed
 
 - While the AI writes, its placeholder breathes in a warm glow (`WorkingBeam`, border-beam);
