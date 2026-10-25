@@ -89,6 +89,7 @@
     "workspaceNav": "Workspaces",
     "addWorkspace": "Add a workspace",
     "channelNav": "Channels",
+    "skipToMain": "Skip to the message box",
     "jumpTo": "Jump to…",
     "presence": {
       "online": "Online",
@@ -198,6 +199,7 @@
     "noChannelsHint": "Open a channel from the list, or browse the channels of this workspace.",
     "newMessages": "New messages",
     "mentionsYou": "Mentions you",
+    "announce": "New message from {{name}}: {{text}}",
     "typing": {
       "one": "{{name}} is typing…",
       "two": "{{first}} and {{second}} are typing…",

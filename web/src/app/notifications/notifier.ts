@@ -23,7 +23,7 @@ function viewedChannel(): string | undefined {
   return /^\/c\/([0-9a-f-]{36})/.exec(window.location.pathname)?.[1];
 }
 
-function excerpt(body: string, n = 140): string {
+export function excerpt(body: string, n = 140): string {
   // An encrypted message this page has not opened shows as a lock.
   const text = (plainOf(body) ?? '🔒')
     .replace(/<@[0-9a-f-]{36}>/g, '@…')

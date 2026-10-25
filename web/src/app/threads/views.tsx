@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { usePageTitle } from '../shell/use-page-title';
 import { AskPage } from '../ai/ai-ui';
 import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -100,8 +101,14 @@ function Shell({
   mobile: boolean;
   children: ReactNode;
 }) {
+  usePageTitle(title);
   return (
-    <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="view-title">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex h-full min-w-0 flex-col bg-background outline-none"
+      aria-labelledby="view-title"
+    >
       {mobile && (
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-2">
           <SidebarTrigger />

@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { toast } from 'sonner';
 import { useJump } from './jump';
+import { MessageAnnouncer } from './announce-messages';
 import { PinnedLine, RepliedToThread, ThreadSummaryButton } from '../threads/thread-summary';
 import { ReplyButton } from '../threads/reply-button';
 import { PollCard } from '../community/poll';
@@ -609,13 +610,15 @@ export function MessageList({ channel }: { channel: Channel }) {
   return (
     <div
       role="log"
+      aria-live="off"
       aria-label={t('chat.messagesIn', { channel: channelName })}
       className="min-h-0 flex-1"
     >
+      <MessageAnnouncer messages={messages} selfId={self} />
       <Virtuoso
         key={startAt?.seq ?? 0}
         ref={list}
-        className="h-full"
+        className="h-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         data={rows}
         firstItemIndex={firstItemIndex}
         initialTopMostItemIndex={

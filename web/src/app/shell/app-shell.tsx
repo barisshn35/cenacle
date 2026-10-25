@@ -56,10 +56,30 @@ export function AppShell() {
   return (
     <MessageEnvProvider>
       <SidebarProvider className="h-full min-h-0 overflow-hidden">
+        <SkipLink />
         {isMobile ? <MobileShell /> : <DesktopShell />}
         <OnboardingDialog />
       </SidebarProvider>
     </MessageEnvProvider>
+  );
+}
+
+/** The first stop of the keyboard: past the navigation to the message box (WCAG 2.4.1). */
+function SkipLink() {
+  const { t } = useTranslation();
+  return (
+    <a
+      href="#main-content"
+      className="fixed top-2 left-2 z-50 flex min-h-11 -translate-y-24 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground focus:translate-y-0"
+      onClick={(e) => {
+        e.preventDefault();
+        const main = document.getElementById('main-content');
+        const box = main?.querySelector<HTMLElement>('[role="textbox"], textarea');
+        (box ?? main)?.focus();
+      }}
+    >
+      {t('shell.skipToMain')}
+    </a>
   );
 }
 

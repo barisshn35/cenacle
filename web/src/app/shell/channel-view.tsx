@@ -29,6 +29,7 @@ import { UnlockPanel } from '../compliance/encrypted';
 import { useCanWrite } from '../compliance/e2e';
 import { useMLSChannel } from '../e2e/use-mls-channel';
 import { dateLocale } from '../../i18n/time-format';
+import { usePageTitle } from './use-page-title';
 
 /** Header buttons that open a panel: Brass while their panel is open. */
 const HEADER_TOGGLE =
@@ -46,6 +47,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const name = channel?.name ?? '';
   const channelsLoaded = useQuery(channelsQuery).isSuccess;
   const { workspace } = useActiveWorkspace();
+  usePageTitle(name, workspace?.name);
   usePermalink(channel ? id : undefined);
   const { tab: tabId } = useSearch({ strict: false }) as { tab?: string };
   const tabs = useQuery({ ...tabsQuery(id ?? ''), enabled: !!channel && !!tabId });
@@ -54,7 +56,12 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   useMLSChannel(channel);
 
   return (
-    <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="channel-title">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex h-full min-w-0 flex-col bg-background outline-none"
+      aria-labelledby="channel-title"
+    >
       {/* The 56px band shared by the rail, the sidebar head and the panels. */}
       <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 max-sm:px-2">
         {mobile && (

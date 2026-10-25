@@ -89,6 +89,7 @@
     "workspaceNav": "Çalışma alanları",
     "addWorkspace": "Çalışma alanı ekle",
     "channelNav": "Kanallar",
+    "skipToMain": "Mesaj kutusuna geç",
     "jumpTo": "Git…",
     "presence": {
       "online": "Çevrimiçi",
@@ -198,6 +199,7 @@
     "noChannelsHint": "Listeden bir kanal aç ya da bu çalışma alanının kanallarına göz at.",
     "newMessages": "Yeni mesajlar",
     "mentionsYou": "Senden bahsediyor",
+    "announce": "{{name}} yeni mesaj gönderdi: {{text}}",
     "typing": {
       "one": "{{name}} yazıyor…",
       "two": "{{first}} ve {{second}} yazıyor…",

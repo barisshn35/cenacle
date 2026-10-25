@@ -12,7 +12,9 @@ test('an empty channel follows the messages that keep arriving', async ({ page }
     await page.waitForTimeout(100);
   }
   // The newest stays in view: the list follows while the reader is at its end.
-  await expect(page.getByText('Arriving message 30')).toBeInViewport({ timeout: 15_000 });
+  await expect(page.getByTestId('message').getByText('Arriving message 30')).toBeInViewport({
+    timeout: 15_000,
+  });
 });
 
 test("an empty channel follows one's own messages sent elsewhere", async ({ page }) => {

@@ -132,7 +132,7 @@ test('two people chat live, also after a reconnect', async ({ browser }) => {
 
   await deniz.getByLabel('Message General').fill(`Merhaba Mert ${stamp}`);
   await deniz.getByLabel('Message General').press('Enter');
-  await expect(mert.getByText(`Merhaba Mert ${stamp}`)).toBeVisible();
+  await expect(mert.getByTestId('message').getByText(`Merhaba Mert ${stamp}`)).toBeVisible();
 
   // Mert loses the connection; a message sent meanwhile arrives after it is back.
   await mert.context().setOffline(true);
@@ -140,12 +140,12 @@ test('two people chat live, also after a reconnect', async ({ browser }) => {
   await deniz.getByLabel('Message General').fill(`Kaçırma bunu ${stamp}`);
   await deniz.getByLabel('Message General').press('Enter');
   await mert.context().setOffline(false);
-  await expect(mert.getByText(`Kaçırma bunu ${stamp}`)).toBeVisible();
-  await expect(mert.getByText(`Kaçırma bunu ${stamp}`)).toHaveCount(1);
+  await expect(mert.getByTestId('message').getByText(`Kaçırma bunu ${stamp}`)).toBeVisible();
+  await expect(mert.getByTestId('message').getByText(`Kaçırma bunu ${stamp}`)).toHaveCount(1);
 
   await mert.getByLabel('Message General').fill(`Selam Deniz ${stamp}`);
   await mert.getByLabel('Message General').press('Enter');
-  await expect(deniz.getByText(`Selam Deniz ${stamp}`)).toBeVisible();
+  await expect(deniz.getByTestId('message').getByText(`Selam Deniz ${stamp}`)).toBeVisible();
 });
 
 test('Central is for announcements; only the administrator creates channels', async ({
@@ -170,7 +170,7 @@ test('Central is for announcements; only the administrator creates channels', as
   await admin.getByRole('link', { name: 'Central' }).click();
   await admin.getByLabel('Message Central').fill(`Duyuru ${stamp}`);
   await admin.getByLabel('Message Central').press('Enter');
-  await expect(member.getByText(`Duyuru ${stamp}`)).toBeVisible();
+  await expect(member.getByTestId('message').getByText(`Duyuru ${stamp}`)).toBeVisible();
 
   // Only the administrator sees "Create a channel".
   await expect(member.getByRole('button', { name: 'Create a channel' })).toHaveCount(0);
@@ -186,7 +186,7 @@ test('Central is for announcements; only the administrator creates channels', as
   await expect(member.getByRole('heading', { level: 1 })).toHaveText(`Release ${stamp}`);
   await admin.getByLabel(`Message Release ${stamp}`).fill('sürüm çıktı');
   await admin.getByLabel(`Message Release ${stamp}`).press('Enter');
-  await expect(member.getByText('sürüm çıktı')).toBeVisible();
+  await expect(member.getByTestId('message').getByText('sürüm çıktı')).toBeVisible();
 });
 
 test('private channels: only their manager adds people', async ({ browser }) => {
@@ -226,7 +226,7 @@ test('private channels: only their manager adds people', async ({ browser }) => 
   await expect(add.getByText('Member', { exact: true })).toBeVisible();
 
   await member.getByRole('link', { name }).click();
-  await expect(member.getByText('yalnızca üyeler okur')).toBeVisible();
+  await expect(member.getByTestId('message').getByText('yalnızca üyeler okur')).toBeVisible();
   await expect(
     member.getByRole('complementary').getByRole('button', { name: 'Add people' }),
   ).toHaveCount(0);
@@ -247,7 +247,7 @@ test('edits and deletions reach others live; Undo restores', async ({ browser })
 
   await author.getByLabel('Message General').fill(`taslak ${stamp}`);
   await author.getByLabel('Message General').press('Enter');
-  await expect(reader.getByText(`taslak ${stamp}`)).toBeVisible();
+  await expect(reader.getByTestId('message').getByText(`taslak ${stamp}`)).toBeVisible();
 
   const mine = author.getByTestId('message').filter({ hasText: `taslak ${stamp}` });
   await mine.hover();
@@ -263,9 +263,9 @@ test('edits and deletions reach others live; Undo restores', async ({ browser })
   await edited.hover();
   await edited.getByRole('button', { name: 'Message actions' }).click();
   await author.getByRole('menuitem', { name: 'Delete' }).click();
-  await expect(reader.getByText(`son hali ${stamp}`)).toHaveCount(0);
+  await expect(reader.getByTestId('message').getByText(`son hali ${stamp}`)).toHaveCount(0);
   await author.getByRole('button', { name: 'Undo' }).click();
-  await expect(reader.getByText(`son hali ${stamp}`)).toBeVisible();
+  await expect(reader.getByTestId('message').getByText(`son hali ${stamp}`)).toBeVisible();
 });
 
 test('a workspace by invitation: create, invite, join, talk', async ({ browser }) => {
@@ -302,7 +302,7 @@ test('a workspace by invitation: create, invite, join, talk', async ({ browser }
   await expect(rail.getByRole('link', { name })).toHaveAttribute('aria-current', 'page');
   await member.getByLabel('Message General').fill('selam ekip');
   await member.getByLabel('Message General').press('Enter');
-  await expect(admin.getByText('selam ekip')).toBeVisible();
+  await expect(admin.getByTestId('message').getByText('selam ekip')).toBeVisible();
 });
 
 test('a direct conversation: unread count, typing and presence', async ({ browser }) => {
@@ -339,7 +339,7 @@ test('a direct conversation: unread count, typing and presence', async ({ browse
   const item = mertNav.getByRole('link', { name: /Deniz Kaya/ });
   await expect(item).toContainText('1 unread message');
   await item.click();
-  await expect(mert.getByText(`Özel mesaj ${stamp}`)).toBeVisible();
+  await expect(mert.getByTestId('message').getByText(`Özel mesaj ${stamp}`)).toBeVisible();
   await expect(item).not.toContainText('unread');
 
   // Typing reaches the other side.
