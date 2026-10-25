@@ -51,8 +51,11 @@ set `CENACLE_DESKTOP_MIN_VERSION` (for example `0.30.0`) on the server.
   and set the server with Group Policy or Intune. Organizations can sign the app with their
   own certificate. See [enterprise deployment](../desktop/enterprise-deployment.md).
 - **Linux:** install the deb or rpm with the package manager, or make the AppImage
-  executable and run it. Keeping the session needs a keyring (GNOME Keyring or KWallet);
-  without one people sign in at every start.
+  executable and run it (AppImages need FUSE 2: `libfuse2t64` on Ubuntu 24.04, `libfuse2`
+  on older Debian and Ubuntu, `fuse-libs` on Fedora). Keeping the session needs a keyring
+  (GNOME Keyring or KWallet); without one people sign in at every start. Organizations set
+  the server in `/etc/cenacle/desktop-policy.json`
+  ([enterprise deployment](../desktop/enterprise-deployment.md)).
 
 ## First start
 

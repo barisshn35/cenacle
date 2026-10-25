@@ -24,8 +24,7 @@ Cenacle 0.41.0, based on the VPAT® 2.5 Rev INT template (WCAG 2.2 and EN 301 54
   raised text spacing, reduced motion, forced colors, announcements of new messages.
 - **Not yet done:** a full session with screen readers (NVDA, JAWS, VoiceOver, Orca) by
   people who use them every day. Results that depend on what a screen reader says are
-  based on the accessibility tree the tests read. This is the main gap; it is planned
-  before 1.0.
+  based on the accessibility tree the tests read. This is the main gap.
 
 Terms: **Supports**, **Partially supports** (some parts do not meet the criterion),
 **Does not support**, **Not applicable**.
@@ -111,7 +110,7 @@ Terms: **Supports**, **Partially supports** (some parts do not meet the criterio
 
 ## Known limitations
 
-1. No screen-reader session yet (planned before 1.0).
+1. No session yet with people who use screen readers every day.
 2. Custom theme colors are not checked for contrast.
 3. Uploaded images have no description field.
 4. Voice messages and video clips have no transcript or captions.
