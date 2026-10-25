@@ -86,6 +86,8 @@ type Handlers struct {
 	WebApp *WebApp
 	// DesktopMinVersion is the oldest desktop app accepted ("" any).
 	DesktopMinVersion string
+	// PrivacyURL is the operator's privacy policy ("" none).
+	PrivacyURL string
 	Log               *slog.Logger
 }
 

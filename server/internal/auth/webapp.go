@@ -109,6 +109,9 @@ func (h *Handlers) GetMeta(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	meta := api.Meta{WebApp: on, DesktopMinVersion: h.DesktopMinVersion}
+	if h.PrivacyURL != "" {
+		meta.PrivacyUrl = &h.PrivacyURL
+	}
 	// The apps follow the notification policy in their own notifications.
 	if policy, err := h.Users.GetNotificationPolicy(r.Context()); err == nil {
 		contents := api.MetaPushContents(policy.PushContents)

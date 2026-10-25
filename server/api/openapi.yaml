@@ -8646,6 +8646,9 @@ components:
           type: string
           enum: [full, sender, none]
           description: What the apps' own notifications may show (the notification policy).
+        privacy_url:
+          type: string
+          description: The operator's privacy policy (CENACLE_PRIVACY_URL); absent when none.
     NotificationPolicy:
       type: object
       required: [push_contents, email_contents]

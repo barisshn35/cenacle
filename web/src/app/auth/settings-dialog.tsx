@@ -36,6 +36,7 @@ import { ApiError } from '@cenacle/core/api';
 import { useSession } from './session';
 import { desktop } from '../desktop/desktop';
 import { WebAppPanel } from './web-app-panel';
+import { metaQuery } from './web-app';
 import { SideNavDialog } from '../shell/side-nav-dialog';
 import { sideNavLink } from '../shell/board-styles';
 import { useShortcutsDialog } from '../shell/shortcuts-state';
@@ -143,6 +144,7 @@ export function SettingsDialog({
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const admin = session.permissions.create_workspaces;
+  const privacyUrl = useQuery(metaQuery).data?.privacy_url;
   const groups: { label?: string; tabs: Tab[] }[] = [
     {
       tabs: [
@@ -281,6 +283,18 @@ export function SettingsDialog({
                   <DownloadIcon aria-hidden strokeWidth={1.75} />
                   {t('settings.downloadData')}
                 </a>
+                {privacyUrl && (
+                  <a
+                    href={privacyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-target items-center gap-1.5 self-start text-sm underline underline-offset-2"
+                  >
+                    {t('settings.privacyPolicy')}
+                    <ExternalLinkIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
+                    <span className="sr-only">{t('settings.newTab')}</span>
+                  </a>
+                )}
               </section>
 
               {desktop && (

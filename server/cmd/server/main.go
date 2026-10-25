@@ -339,6 +339,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			AI:                cfg.AIURL != "",
 			WebApp:            &auth.WebApp{Store: queries, Forced: cfg.WebApp},
 			DesktopMinVersion: cfg.DesktopMinVersion,
+			PrivacyURL:        cfg.PrivacyURL,
 			Log:               log,
 		},
 		Chat: &chat.Handlers{

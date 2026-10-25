@@ -120,6 +120,7 @@ server's help:
 | `CENACLE_SESSION_MAX_AGE`      | `none`  | ... and after this long at the latest (`none`: no maximum).                                                |
 | `CENACLE_WEB_APP`              | unset   | `on` or `off` overrides the administrators' web app setting (recovery); unset leaves it to them.           |
 | `CENACLE_DESKTOP_MIN_VERSION`  | unset   | The oldest desktop app accepted (for example `0.30.0`); older apps ask to update first.                    |
+| `CENACLE_PRIVACY_URL`          | unset   | Your privacy policy for this server, linked from Settings → Account (see [privacy](../privacy.md)).        |
 | `CENACLE_LOG_LEVEL`            | `info`  | `debug`, `info`, `warn` or `error` (`IDP_LOG_LEVEL` for Cenacle ID).                                       |
 | `CENACLE_AI_URL`, `_MODEL`     | (none)  | Optional AI with a model you run; see the [AI guide](../operations/ai.md).                                 |
 | `IDP_LOGIN_RATE_LIMIT`         | `10`    | Sign-in attempts per address and minute; raise it when many people share one public address.               |

@@ -115,6 +115,8 @@ server:
   webApp: ''
   # The oldest desktop app accepted, e.g. 0.30.0; empty: any.
   desktopMinVersion: ''
+  # Your privacy policy for this server, linked from Settings in the apps.
+  privacyUrl: ''
   # The largest /tmp, where archive exports and imports are staged.
   tmpSize: 1Gi
   resources:

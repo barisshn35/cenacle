@@ -5974,6 +5974,8 @@ export interface components {
        * @enum {string}
        */
       push_contents?: 'full' | 'sender' | 'none';
+      /** @description The operator's privacy policy (CENACLE_PRIVACY_URL); absent when none. */
+      privacy_url?: string;
     };
     NotificationPolicy: {
       /**

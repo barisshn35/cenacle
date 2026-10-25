@@ -103,6 +103,8 @@ type Config struct {
 	WebApp *bool
 	// DesktopMinVersion is the oldest desktop app the server accepts ("" any).
 	DesktopMinVersion string
+	// PrivacyURL is the operator's privacy policy, linked from the apps; optional.
+	PrivacyURL string
 
 	// FilesBackend keeps files: "s3" (an S3-compatible object store), "azure"
 	// (Azure Blob Storage) or "dir" (a directory); "" turns files off.
@@ -224,6 +226,12 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.LinkPreviews = l.boolean("CENACLE_LINK_PREVIEWS", true)
 	cfg.WebApp = l.onOff("CENACLE_WEB_APP")
 	cfg.DesktopMinVersion = strings.TrimSpace(l.str("CENACLE_DESKTOP_MIN_VERSION", ""))
+	cfg.PrivacyURL = strings.TrimSpace(l.str("CENACLE_PRIVACY_URL", ""))
+	if cfg.PrivacyURL != "" {
+		if u, err := url.Parse(cfg.PrivacyURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			l.fail("CENACLE_PRIVACY_URL: an http(s) address")
+		}
+	}
 	if v := cfg.DesktopMinVersion; v != "" && !semver.MatchString(v) {
 		l.fail("CENACLE_DESKTOP_MIN_VERSION: must be a version such as 0.30.0, got %q", v)
 	}

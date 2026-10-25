@@ -3412,6 +3412,9 @@ type Meta struct {
 	// to update before signing in. CENACLE_DESKTOP_MIN_VERSION.
 	DesktopMinVersion string `json:"desktop_min_version"`
 
+	// PrivacyUrl The operator's privacy policy (CENACLE_PRIVACY_URL); absent when none.
+	PrivacyUrl *string `json:"privacy_url,omitempty"`
+
 	// PushContents What the apps' own notifications may show (the notification policy).
 	PushContents *MetaPushContents `json:"push_contents,omitempty"`
 
