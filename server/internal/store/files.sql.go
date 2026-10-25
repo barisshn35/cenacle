@@ -53,10 +53,10 @@ func (q *Queries) CountUnsentFiles(ctx context.Context, uploaderID pgtype.UUID) 
 }
 
 const createFile = `-- name: CreateFile :one
-INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, size, media_kind, duration_ms, waveform)
+INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, size, media_kind, duration_ms, waveform, encrypted)
 VALUES ($1, $2, $3, $4, $5, $6,
-        $7, $8, $9)
-RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state
+        $7, $8, $9, $10)
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted
 `
 
 type CreateFileParams struct {
@@ -69,6 +69,7 @@ type CreateFileParams struct {
 	MediaKind   pgtype.Text `json:"media_kind"`
 	DurationMs  pgtype.Int4 `json:"duration_ms"`
 	Waveform    []byte      `json:"waveform"`
+	Encrypted   bool        `json:"encrypted"`
 }
 
 func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (File, error) {
@@ -82,6 +83,7 @@ func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (File, e
 		arg.MediaKind,
 		arg.DurationMs,
 		arg.Waveform,
+		arg.Encrypted,
 	)
 	var i File
 	err := row.Scan(
@@ -104,6 +106,7 @@ func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (File, e
 		&i.Waveform,
 		&i.ContentText,
 		&i.ContentState,
+		&i.Encrypted,
 	)
 	return i, err
 }
@@ -119,7 +122,7 @@ func (q *Queries) DeleteFiles(ctx context.Context, ids []pgtype.UUID) error {
 
 const deleteUnattachedFile = `-- name: DeleteUnattachedFile :one
 DELETE FROM files WHERE id = $1 AND uploader_id = $2 AND message_id IS NULL
-RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted
 `
 
 type DeleteUnattachedFileParams struct {
@@ -150,6 +153,7 @@ func (q *Queries) DeleteUnattachedFile(ctx context.Context, arg DeleteUnattached
 		&i.Waveform,
 		&i.ContentText,
 		&i.ContentState,
+		&i.Encrypted,
 	)
 	return i, err
 }
@@ -158,7 +162,7 @@ const finishUpload = `-- name: FinishUpload :one
 UPDATE files SET status = $1, content_type = $2, width = $3,
     height = $4, has_thumbnail = $5
 WHERE id = $6 AND status = 'uploading'
-RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted
 `
 
 type FinishUploadParams struct {
@@ -201,12 +205,13 @@ func (q *Queries) FinishUpload(ctx context.Context, arg FinishUploadParams) (Fil
 		&i.Waveform,
 		&i.ContentText,
 		&i.ContentState,
+		&i.Encrypted,
 	)
 	return i, err
 }
 
 const getFile = `-- name: GetFile :one
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state FROM files WHERE id = $1
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files WHERE id = $1
 `
 
 func (q *Queries) GetFile(ctx context.Context, id pgtype.UUID) (File, error) {
@@ -232,12 +237,13 @@ func (q *Queries) GetFile(ctx context.Context, id pgtype.UUID) (File, error) {
 		&i.Waveform,
 		&i.ContentText,
 		&i.ContentState,
+		&i.Encrypted,
 	)
 	return i, err
 }
 
 const getFileForReader = `-- name: GetFileForReader :one
-SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, (m.deleted_at IS NOT NULL)::boolean AS message_deleted
+SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, f.encrypted, (m.deleted_at IS NOT NULL)::boolean AS message_deleted
 FROM files f LEFT JOIN messages m ON m.id = f.message_id
 WHERE f.id = $1
 `
@@ -262,6 +268,7 @@ type GetFileForReaderRow struct {
 	Waveform       []byte             `json:"waveform"`
 	ContentText    pgtype.Text        `json:"content_text"`
 	ContentState   string             `json:"content_state"`
+	Encrypted      bool               `json:"encrypted"`
 	MessageDeleted bool               `json:"message_deleted"`
 }
 
@@ -290,13 +297,14 @@ func (q *Queries) GetFileForReader(ctx context.Context, id pgtype.UUID) (GetFile
 		&i.Waveform,
 		&i.ContentText,
 		&i.ContentState,
+		&i.Encrypted,
 		&i.MessageDeleted,
 	)
 	return i, err
 }
 
 const listChannelFiles = `-- name: ListChannelFiles :many
-SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, u.display_name AS uploader_name
+SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, f.encrypted, u.display_name AS uploader_name
 FROM files f
 JOIN messages m ON m.id = f.message_id AND m.deleted_at IS NULL
 JOIN users u ON u.id = f.uploader_id
@@ -332,6 +340,7 @@ type ListChannelFilesRow struct {
 	Waveform     []byte             `json:"waveform"`
 	ContentText  pgtype.Text        `json:"content_text"`
 	ContentState string             `json:"content_state"`
+	Encrypted    bool               `json:"encrypted"`
 	UploaderName string             `json:"uploader_name"`
 }
 
@@ -366,6 +375,7 @@ func (q *Queries) ListChannelFiles(ctx context.Context, arg ListChannelFilesPara
 			&i.Waveform,
 			&i.ContentText,
 			&i.ContentState,
+			&i.Encrypted,
 			&i.UploaderName,
 		); err != nil {
 			return nil, err
@@ -379,7 +389,7 @@ func (q *Queries) ListChannelFiles(ctx context.Context, arg ListChannelFilesPara
 }
 
 const listMessageFiles = `-- name: ListMessageFiles :many
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state FROM files WHERE message_id = ANY($1::uuid[]) ORDER BY id
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files WHERE message_id = ANY($1::uuid[]) ORDER BY id
 `
 
 func (q *Queries) ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error) {
@@ -411,6 +421,7 @@ func (q *Queries) ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID
 			&i.Waveform,
 			&i.ContentText,
 			&i.ContentState,
+			&i.Encrypted,
 		); err != nil {
 			return nil, err
 		}
@@ -423,7 +434,7 @@ func (q *Queries) ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID
 }
 
 const listStaleFiles = `-- name: ListStaleFiles :many
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state FROM files
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files
 WHERE message_id IS NULL AND (attached_at IS NOT NULL OR created_at < now() - interval '1 day')
 ORDER BY created_at
 LIMIT $1
@@ -460,6 +471,7 @@ func (q *Queries) ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, e
 			&i.Waveform,
 			&i.ContentText,
 			&i.ContentState,
+			&i.Encrypted,
 		); err != nil {
 			return nil, err
 		}

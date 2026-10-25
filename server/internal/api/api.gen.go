@@ -2570,6 +2570,9 @@ type Channel struct {
 	// MentionCount Unread messages that mention the user, counted up to 100.
 	MentionCount int `json:"mention_count"`
 
+	// Mls Encrypted with device keys (MLS): bodies are "mls:v1:…" envelopes.
+	Mls *bool `json:"mls,omitempty"`
+
 	// Moderation Who may post, answer in threads, react and mention everyone in a channel.
 	Moderation *ChannelModeration `json:"moderation,omitempty"`
 	Name       string             `json:"name"`
@@ -2613,9 +2616,12 @@ type ChannelCompliance struct {
 
 // ChannelFile defines model for ChannelFile.
 type ChannelFile struct {
-	ContentType  string                `json:"content_type"`
-	CreatedAt    time.Time             `json:"created_at"`
-	DurationMs   *int                  `json:"duration_ms,omitempty"`
+	ContentType string    `json:"content_type"`
+	CreatedAt   time.Time `json:"created_at"`
+	DurationMs  *int      `json:"duration_ms,omitempty"`
+
+	// Encrypted Encrypted in the browser; the key is in the message.
+	Encrypted    *bool                 `json:"encrypted,omitempty"`
 	HasThumbnail bool                  `json:"has_thumbnail"`
 	Height       *int                  `json:"height"`
 	Id           openapi_types.UUID    `json:"id"`
@@ -2857,6 +2863,39 @@ type DialogElement struct {
 // DialogElementType defines model for DialogElement.Type.
 type DialogElementType string
 
+// E2EDevice defines model for E2EDevice.
+type E2EDevice struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// LastSeenAt Only for one's own devices.
+	LastSeenAt *time.Time `json:"last_seen_at,omitempty"`
+	Name       string     `json:"name"`
+
+	// RevokedAt Removed: its earlier messages still verify, it joins no group.
+	RevokedAt *time.Time `json:"revoked_at,omitempty"`
+
+	// SignatureKey The Ed25519 public key of the device's MLS credential.
+	SignatureKey []byte             `json:"signature_key"`
+	UserId       openapi_types.UUID `json:"user_id"`
+}
+
+// E2EEscrowKey defines model for E2EEscrowKey.
+type E2EEscrowKey struct {
+	KeyId     string `json:"key_id"`
+	PublicKey []byte `json:"public_key"`
+}
+
+// E2ERecovery defines model for E2ERecovery.
+type E2ERecovery struct {
+	EscrowKey *E2EEscrowKey `json:"escrow_key,omitempty"`
+
+	// Escrowed The recovery key is sealed for the current escrow key.
+	Escrowed *bool   `json:"escrowed,omitempty"`
+	Set      bool    `json:"set"`
+	Verifier *[]byte `json:"verifier,omitempty"`
+}
+
 // Event defines model for Event.
 type Event struct {
 	CanEdit     bool                `json:"can_edit"`
@@ -2926,8 +2965,11 @@ type FederationPolicyMode string
 
 // FileInfo defines model for FileInfo.
 type FileInfo struct {
-	ContentType  string             `json:"content_type"`
-	DurationMs   *int               `json:"duration_ms,omitempty"`
+	ContentType string `json:"content_type"`
+	DurationMs  *int   `json:"duration_ms,omitempty"`
+
+	// Encrypted Encrypted in the browser; the key is in the message.
+	Encrypted    *bool              `json:"encrypted,omitempty"`
 	HasThumbnail bool               `json:"has_thumbnail"`
 	Height       *int               `json:"height"`
 	Id           openapi_types.UUID `json:"id"`
@@ -3178,6 +3220,31 @@ type ListValues map[string]string
 type Logout struct {
 	// EndSessionUrl Sign-out page of Cenacle ID; empty if it is not known.
 	EndSessionUrl string `json:"end_session_url"`
+}
+
+// MLSCommit defines model for MLSCommit.
+type MLSCommit struct {
+	Data     []byte              `json:"data"`
+	DeviceId *openapi_types.UUID `json:"device_id,omitempty"`
+
+	// Epoch The epoch the commit leaves.
+	Epoch int64 `json:"epoch"`
+}
+
+// MLSGroup defines model for MLSGroup.
+type MLSGroup struct {
+	Epoch int64 `json:"epoch"`
+
+	// GroupInfo The GroupInfo of the current epoch (for joining).
+	GroupInfo []byte `json:"group_info"`
+	Members   []struct {
+		DeviceId    openapi_types.UUID `json:"device_id"`
+		JoinedEpoch int64              `json:"joined_epoch"`
+
+		// Stale Removed or no longer in the channel: the next commit removes it.
+		Stale  bool               `json:"stale"`
+		UserId openapi_types.UUID `json:"user_id"`
+	} `json:"members"`
 }
 
 // Member defines model for Member.
@@ -4257,6 +4324,12 @@ type AdminSetBotDisabledJSONBody struct {
 	Disabled bool `json:"disabled"`
 }
 
+// SetE2EEscrowKeyJSONBody defines parameters for SetE2EEscrowKey.
+type SetE2EEscrowKeyJSONBody struct {
+	KeyId     string `json:"key_id"`
+	PublicKey []byte `json:"public_key"`
+}
+
 // AdminListUsersParams defines parameters for AdminListUsers.
 type AdminListUsersParams struct {
 	Q         *string             `form:"q,omitempty" json:"q,omitempty"`
@@ -4420,6 +4493,37 @@ type RunCommandJSONBody struct {
 	Timezone *string `json:"timezone,omitempty"`
 }
 
+// EnableMLSJSONBody defines parameters for EnableMLS.
+type EnableMLSJSONBody struct {
+	DeviceId  openapi_types.UUID `json:"device_id"`
+	GroupInfo []byte             `json:"group_info"`
+}
+
+// ListE2EBackupsParams defines parameters for ListE2EBackups.
+type ListE2EBackupsParams struct {
+	After *openapi_types.UUID `form:"after,omitempty" json:"after,omitempty"`
+}
+
+// AddE2EBackupJSONBody defines parameters for AddE2EBackup.
+type AddE2EBackupJSONBody struct {
+	Data []byte `json:"data"`
+}
+
+// ListMLSCommitsParams defines parameters for ListMLSCommits.
+type ListMLSCommitsParams struct {
+	FromEpoch int64 `form:"from_epoch" json:"from_epoch"`
+}
+
+// SendMLSCommitJSONBody defines parameters for SendMLSCommit.
+type SendMLSCommitJSONBody struct {
+	Commit    []byte                `json:"commit"`
+	DeviceId  openapi_types.UUID    `json:"device_id"`
+	Epoch     int64                 `json:"epoch"`
+	GroupInfo []byte                `json:"group_info"`
+	Joined    *bool                 `json:"joined,omitempty"`
+	Removed   *[]openapi_types.UUID `json:"removed,omitempty"`
+}
+
 // ListChannelFilesParams defines parameters for ListChannelFiles.
 type ListChannelFilesParams struct {
 	Before *openapi_types.UUID `form:"before,omitempty" json:"before,omitempty"`
@@ -4429,6 +4533,9 @@ type ListChannelFilesParams struct {
 type CreateUploadJSONBody struct {
 	ContentType *string `json:"content_type,omitempty"`
 	DurationMs  *int    `json:"duration_ms,omitempty"`
+
+	// Encrypted Encrypted in the browser (required in MLS channels): kept as is, without previews.
+	Encrypted *bool `json:"encrypted,omitempty"`
 
 	// MediaKind Recorded in the app.
 	MediaKind *CreateUploadJSONBodyMediaKind `json:"media_kind,omitempty"`
@@ -4534,6 +4641,22 @@ type MarkUnreadJSONBody struct {
 // SubmitDialogJSONBody defines parameters for SubmitDialog.
 type SubmitDialogJSONBody struct {
 	Values map[string]string `json:"values"`
+}
+
+// RegisterE2EDeviceJSONBody defines parameters for RegisterE2EDevice.
+type RegisterE2EDeviceJSONBody struct {
+	// Name How the device is called, e.g. "Firefox on Linux".
+	Name string `json:"name"`
+
+	// SignatureKey The Ed25519 public key (32 bytes).
+	SignatureKey []byte `json:"signature_key"`
+}
+
+// SetE2ERecoveryJSONBody defines parameters for SetE2ERecovery.
+type SetE2ERecoveryJSONBody struct {
+	Escrow      *[]byte `json:"escrow,omitempty"`
+	EscrowKeyId *string `json:"escrow_key_id,omitempty"`
+	Verifier    []byte  `json:"verifier"`
 }
 
 // RsvpEventJSONBody defines parameters for RsvpEvent.
@@ -5034,6 +5157,9 @@ type SetAuditStreamJSONRequestBody = AuditStream
 // AdminSetBotDisabledJSONRequestBody defines body for AdminSetBotDisabled for application/json ContentType.
 type AdminSetBotDisabledJSONRequestBody AdminSetBotDisabledJSONBody
 
+// SetE2EEscrowKeyJSONRequestBody defines body for SetE2EEscrowKey for application/json ContentType.
+type SetE2EEscrowKeyJSONRequestBody SetE2EEscrowKeyJSONBody
+
 // SetFederationPolicyJSONRequestBody defines body for SetFederationPolicy for application/json ContentType.
 type SetFederationPolicyJSONRequestBody = FederationPolicy
 
@@ -5109,6 +5235,15 @@ type RunCommandJSONRequestBody RunCommandJSONBody
 // SetChannelComplianceJSONRequestBody defines body for SetChannelCompliance for application/json ContentType.
 type SetChannelComplianceJSONRequestBody = ChannelCompliance
 
+// EnableMLSJSONRequestBody defines body for EnableMLS for application/json ContentType.
+type EnableMLSJSONRequestBody EnableMLSJSONBody
+
+// AddE2EBackupJSONRequestBody defines body for AddE2EBackup for application/json ContentType.
+type AddE2EBackupJSONRequestBody AddE2EBackupJSONBody
+
+// SendMLSCommitJSONRequestBody defines body for SendMLSCommit for application/json ContentType.
+type SendMLSCommitJSONRequestBody SendMLSCommitJSONBody
+
 // CreateUploadJSONRequestBody defines body for CreateUpload for application/json ContentType.
 type CreateUploadJSONRequestBody CreateUploadJSONBody
 
@@ -5165,6 +5300,12 @@ type MarkUnreadJSONRequestBody MarkUnreadJSONBody
 
 // SubmitDialogJSONRequestBody defines body for SubmitDialog for application/json ContentType.
 type SubmitDialogJSONRequestBody SubmitDialogJSONBody
+
+// RegisterE2EDeviceJSONRequestBody defines body for RegisterE2EDevice for application/json ContentType.
+type RegisterE2EDeviceJSONRequestBody RegisterE2EDeviceJSONBody
+
+// SetE2ERecoveryJSONRequestBody defines body for SetE2ERecovery for application/json ContentType.
+type SetE2ERecoveryJSONRequestBody SetE2ERecoveryJSONBody
 
 // UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
 type UpdateEventJSONRequestBody = EventInput
@@ -5464,6 +5605,12 @@ type ServerInterface interface {
 	// AdminSetBotDisabled Turn a bot off or on (instance administrators)
 	// (PATCH /api/admin/bots/{bot_id})
 	AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID)
+	// DeleteE2EEscrowKey Stop requiring escrow (instance administrators)
+	// (DELETE /api/admin/e2e/escrow)
+	DeleteE2EEscrowKey(w http.ResponseWriter, r *http.Request)
+	// SetE2EEscrowKey Require recovery keys to be sealed for the organization's key (instance administrators)
+	// (PUT /api/admin/e2e/escrow)
+	SetE2EEscrowKey(w http.ResponseWriter, r *http.Request)
 	// GetFederationPolicy Which servers workspaces may connect to (instance administrators)
 	// (GET /api/admin/federation-policy)
 	GetFederationPolicy(w http.ResponseWriter, r *http.Request)
@@ -5644,6 +5791,24 @@ type ServerInterface interface {
 	// SetChannelCompliance A channel's retention, classification and access rules (workspace owners and admins)
 	// (PUT /api/channels/{channel_id}/compliance)
 	SetChannelCompliance(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// GetMLSGroup The channel's MLS group as the delivery service keeps it (members)
+	// (GET /api/channels/{channel_id}/e2e)
+	GetMLSGroup(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// EnableMLS Turn on end-to-end encryption with device keys (cannot be turned off)
+	// (POST /api/channels/{channel_id}/e2e)
+	EnableMLS(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListE2EBackups This person's history backups of the channel (sealed with their recovery key)
+	// (GET /api/channels/{channel_id}/e2e/backups)
+	ListE2EBackups(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListE2EBackupsParams)
+	// AddE2EBackup Keep texts this device read, sealed with the recovery key
+	// (POST /api/channels/{channel_id}/e2e/backups)
+	AddE2EBackup(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListMLSCommits The group's commits from an epoch on, in order (up to 100)
+	// (GET /api/channels/{channel_id}/e2e/commits)
+	ListMLSCommits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListMLSCommitsParams)
+	// SendMLSCommit Move the group to the next epoch
+	// (POST /api/channels/{channel_id}/e2e/commits)
+	SendMLSCommit(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// ListChannelFiles Files shared in a channel, newest first
 	// (GET /api/channels/{channel_id}/files)
 	ListChannelFiles(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListChannelFilesParams)
@@ -5797,6 +5962,24 @@ type ServerInterface interface {
 	// SubmitDialog Submit a dialog a bot opened
 	// (POST /api/dialogs/{dialog_id})
 	SubmitDialog(w http.ResponseWriter, r *http.Request, dialogId openapi_types.UUID)
+	// ListE2EDevices This person's devices that hold end-to-end encryption keys
+	// (GET /api/e2e/devices)
+	ListE2EDevices(w http.ResponseWriter, r *http.Request)
+	// RegisterE2EDevice Register this device's signing key for encrypted channels
+	// (POST /api/e2e/devices)
+	RegisterE2EDevice(w http.ResponseWriter, r *http.Request)
+	// RevokeE2EDevice Remove a device; the groups it is in remove it with their next change
+	// (DELETE /api/e2e/devices/{device_id})
+	RevokeE2EDevice(w http.ResponseWriter, r *http.Request, deviceId openapi_types.UUID)
+	// DeleteE2ERecovery Forget the recovery key and delete its backups
+	// (DELETE /api/e2e/recovery)
+	DeleteE2ERecovery(w http.ResponseWriter, r *http.Request)
+	// GetE2ERecovery Whether this person has a recovery key, and the organization's escrow key
+	// (GET /api/e2e/recovery)
+	GetE2ERecovery(w http.ResponseWriter, r *http.Request)
+	// SetE2ERecovery Set a new recovery key (earlier backups are deleted)
+	// (PUT /api/e2e/recovery)
+	SetE2ERecovery(w http.ResponseWriter, r *http.Request)
 	// DeleteCustomEmoji Remove a custom emoji (who added it, or a workspace admin)
 	// (DELETE /api/emoji/{emoji_id})
 	DeleteCustomEmoji(w http.ResponseWriter, r *http.Request, emojiId openapi_types.UUID)
@@ -6097,6 +6280,9 @@ type ServerInterface interface {
 	// SearchUsers Find members of a workspace by name or e-mail address
 	// (GET /api/users)
 	SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams)
+	// ListUserE2EDevices Someone's devices and their public keys (to verify them)
+	// (GET /api/users/{user_id}/e2e/devices)
+	ListUserE2EDevices(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID)
 	// TriggerWorkflowWebhook Start a webhook workflow
 	// (POST /api/workflow-hooks/{token})
 	TriggerWorkflowWebhook(w http.ResponseWriter, r *http.Request, token string)
@@ -6364,6 +6550,18 @@ func (_ Unimplemented) AdminListBots(w http.ResponseWriter, r *http.Request) {
 // AdminSetBotDisabled Turn a bot off or on (instance administrators)
 // (PATCH /api/admin/bots/{bot_id})
 func (_ Unimplemented) AdminSetBotDisabled(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteE2EEscrowKey Stop requiring escrow (instance administrators)
+// (DELETE /api/admin/e2e/escrow)
+func (_ Unimplemented) DeleteE2EEscrowKey(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetE2EEscrowKey Require recovery keys to be sealed for the organization's key (instance administrators)
+// (PUT /api/admin/e2e/escrow)
+func (_ Unimplemented) SetE2EEscrowKey(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6727,6 +6925,42 @@ func (_ Unimplemented) SetChannelCompliance(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetMLSGroup The channel's MLS group as the delivery service keeps it (members)
+// (GET /api/channels/{channel_id}/e2e)
+func (_ Unimplemented) GetMLSGroup(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// EnableMLS Turn on end-to-end encryption with device keys (cannot be turned off)
+// (POST /api/channels/{channel_id}/e2e)
+func (_ Unimplemented) EnableMLS(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListE2EBackups This person's history backups of the channel (sealed with their recovery key)
+// (GET /api/channels/{channel_id}/e2e/backups)
+func (_ Unimplemented) ListE2EBackups(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListE2EBackupsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddE2EBackup Keep texts this device read, sealed with the recovery key
+// (POST /api/channels/{channel_id}/e2e/backups)
+func (_ Unimplemented) AddE2EBackup(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMLSCommits The group's commits from an epoch on, in order (up to 100)
+// (GET /api/channels/{channel_id}/e2e/commits)
+func (_ Unimplemented) ListMLSCommits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListMLSCommitsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SendMLSCommit Move the group to the next epoch
+// (POST /api/channels/{channel_id}/e2e/commits)
+func (_ Unimplemented) SendMLSCommit(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListChannelFiles Files shared in a channel, newest first
 // (GET /api/channels/{channel_id}/files)
 func (_ Unimplemented) ListChannelFiles(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, params ListChannelFilesParams) {
@@ -7030,6 +7264,42 @@ func (_ Unimplemented) MarkUnread(w http.ResponseWriter, r *http.Request, channe
 // SubmitDialog Submit a dialog a bot opened
 // (POST /api/dialogs/{dialog_id})
 func (_ Unimplemented) SubmitDialog(w http.ResponseWriter, r *http.Request, dialogId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListE2EDevices This person's devices that hold end-to-end encryption keys
+// (GET /api/e2e/devices)
+func (_ Unimplemented) ListE2EDevices(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RegisterE2EDevice Register this device's signing key for encrypted channels
+// (POST /api/e2e/devices)
+func (_ Unimplemented) RegisterE2EDevice(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeE2EDevice Remove a device; the groups it is in remove it with their next change
+// (DELETE /api/e2e/devices/{device_id})
+func (_ Unimplemented) RevokeE2EDevice(w http.ResponseWriter, r *http.Request, deviceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteE2ERecovery Forget the recovery key and delete its backups
+// (DELETE /api/e2e/recovery)
+func (_ Unimplemented) DeleteE2ERecovery(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetE2ERecovery Whether this person has a recovery key, and the organization's escrow key
+// (GET /api/e2e/recovery)
+func (_ Unimplemented) GetE2ERecovery(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetE2ERecovery Set a new recovery key (earlier backups are deleted)
+// (PUT /api/e2e/recovery)
+func (_ Unimplemented) SetE2ERecovery(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7630,6 +7900,12 @@ func (_ Unimplemented) SetUITexts(w http.ResponseWriter, r *http.Request) {
 // SearchUsers Find members of a workspace by name or e-mail address
 // (GET /api/users)
 func (_ Unimplemented) SearchUsers(w http.ResponseWriter, r *http.Request, params SearchUsersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListUserE2EDevices Someone's devices and their public keys (to verify them)
+// (GET /api/users/{user_id}/e2e/devices)
+func (_ Unimplemented) ListUserE2EDevices(w http.ResponseWriter, r *http.Request, userId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8366,6 +8642,34 @@ func (siw *ServerInterfaceWrapper) AdminSetBotDisabled(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminSetBotDisabled(w, r, botId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteE2EEscrowKey operation middleware
+func (siw *ServerInterfaceWrapper) DeleteE2EEscrowKey(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteE2EEscrowKey(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetE2EEscrowKey operation middleware
+func (siw *ServerInterfaceWrapper) SetE2EEscrowKey(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetE2EEscrowKey(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9903,6 +10207,194 @@ func (siw *ServerInterfaceWrapper) SetChannelCompliance(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetChannelCompliance(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMLSGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetMLSGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMLSGroup(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EnableMLS operation middleware
+func (siw *ServerInterfaceWrapper) EnableMLS(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EnableMLS(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListE2EBackups operation middleware
+func (siw *ServerInterfaceWrapper) ListE2EBackups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListE2EBackupsParams
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", r.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListE2EBackups(w, r, channelId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddE2EBackup operation middleware
+func (siw *ServerInterfaceWrapper) AddE2EBackup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddE2EBackup(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMLSCommits operation middleware
+func (siw *ServerInterfaceWrapper) ListMLSCommits(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMLSCommitsParams
+
+	// ------------- Required query parameter "from_epoch" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "from_epoch", r.URL.Query(), &params.FromEpoch, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from_epoch"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from_epoch", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMLSCommits(w, r, channelId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SendMLSCommit operation middleware
+func (siw *ServerInterfaceWrapper) SendMLSCommit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SendMLSCommit(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11537,6 +12029,102 @@ func (siw *ServerInterfaceWrapper) SubmitDialog(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SubmitDialog(w, r, dialogId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListE2EDevices operation middleware
+func (siw *ServerInterfaceWrapper) ListE2EDevices(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListE2EDevices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RegisterE2EDevice operation middleware
+func (siw *ServerInterfaceWrapper) RegisterE2EDevice(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RegisterE2EDevice(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeE2EDevice operation middleware
+func (siw *ServerInterfaceWrapper) RevokeE2EDevice(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "device_id" -------------
+	var deviceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "device_id", chi.URLParam(r, "device_id"), &deviceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "device_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeE2EDevice(w, r, deviceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteE2ERecovery operation middleware
+func (siw *ServerInterfaceWrapper) DeleteE2ERecovery(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteE2ERecovery(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetE2ERecovery operation middleware
+func (siw *ServerInterfaceWrapper) GetE2ERecovery(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetE2ERecovery(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetE2ERecovery operation middleware
+func (siw *ServerInterfaceWrapper) SetE2ERecovery(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetE2ERecovery(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14163,6 +14751,32 @@ func (siw *ServerInterfaceWrapper) SearchUsers(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListUserE2EDevices operation middleware
+func (siw *ServerInterfaceWrapper) ListUserE2EDevices(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "user_id" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUserE2EDevices(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // TriggerWorkflowWebhook operation middleware
 func (siw *ServerInterfaceWrapper) TriggerWorkflowWebhook(w http.ResponseWriter, r *http.Request) {
 
@@ -16717,6 +17331,51 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/guest-links/{token}", wrapper.JoinGuestLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/e2e/devices", wrapper.ListE2EDevices)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/e2e/devices", wrapper.RegisterE2EDevice)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/e2e/devices/{device_id}", wrapper.RevokeE2EDevice)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/users/{user_id}/e2e/devices", wrapper.ListUserE2EDevices)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/e2e", wrapper.GetMLSGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/e2e", wrapper.EnableMLS)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/e2e/commits", wrapper.ListMLSCommits)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/e2e/commits", wrapper.SendMLSCommit)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channel_id}/e2e/backups", wrapper.ListE2EBackups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channel_id}/e2e/backups", wrapper.AddE2EBackup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/e2e/recovery", wrapper.DeleteE2ERecovery)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/e2e/recovery", wrapper.GetE2ERecovery)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/e2e/recovery", wrapper.SetE2ERecovery)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/admin/e2e/escrow", wrapper.DeleteE2EEscrowKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/e2e/escrow", wrapper.SetE2EEscrowKey)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/spillage", wrapper.ReportSpillage)

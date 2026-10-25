@@ -32,6 +32,7 @@ import (
 	"syscall"
 	"time"
 
+	guuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/jackc/pgx/v5/stdlib"
@@ -49,6 +50,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/clamav"
 	"github.com/barisshn35/cenacle/server/internal/config"
 	"github.com/barisshn35/cenacle/server/internal/db"
+	"github.com/barisshn35/cenacle/server/internal/e2e"
 	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/groups"
@@ -102,6 +104,9 @@ commands:
   export <file.zip> [workspace...]
                    export workspaces (default: all of them) to move them to
                    another Cenacle server
+  e2e-escrow <private-key.pem> <e-mail> [channel-id]
+                   open a person's encrypted history backups with the
+                   organization's escrow key (JSON lines on stdout; audited)
   healthcheck      probe /healthz of the local server
   version          print the build version`
 
@@ -124,7 +129,7 @@ func run(args []string) error {
 		// Distroless images have no curl; the binary probes itself.
 		// Only CENACLE_HTTP_ADDR is read, so a broken config cannot hide liveness.
 		return healthcheck(os.Getenv("CENACLE_HTTP_ADDR"))
-	case "serve", "migrate", "status", "support-bundle", "import", "export":
+	case "serve", "migrate", "status", "support-bundle", "import", "export", "e2e-escrow":
 	default:
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
 	}
@@ -151,6 +156,8 @@ func run(args []string) error {
 		return importExport(ctx, cfg, log, args[1:])
 	case "export":
 		return exportWorkspaces(ctx, cfg, log, args[1:])
+	case "e2e-escrow":
+		return openEscrow(ctx, cfg, log, args[1:])
 	}
 	return serve(ctx, cfg, log)
 }
@@ -590,6 +597,79 @@ func exportWorkspaces(ctx context.Context, cfg config.Config, log *slog.Logger, 
 		return err
 	}
 	log.Info("export finished", "file", args[0], "result", res.String())
+	return nil
+}
+
+// openEscrow prints a person's history backups opened with the escrow key.
+func openEscrow(ctx context.Context, cfg config.Config, log *slog.Logger, args []string) error {
+	if len(args) < 2 {
+		return errors.New(usage)
+	}
+	pemKey, err := os.ReadFile(args[0]) //nolint:gosec // the operator names the key file
+	if err != nil {
+		return err
+	}
+	priv, err := e2e.ParsePrivateKey(pemKey)
+	if err != nil {
+		return err
+	}
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DatabaseMaxConns)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	q := store.New(pool)
+	person, err := q.FindUserForEscrow(ctx, args[1])
+	if err != nil {
+		return fmt.Errorf("no person with the address %s", args[1])
+	}
+	rec, err := q.GetRecovery(ctx, person.ID)
+	if err != nil || len(rec.Escrow) == 0 {
+		return errors.New("this person has no recovery key sealed for the escrow key")
+	}
+	key, err := e2e.OpenEscrow(priv, rec.Escrow)
+	if err != nil {
+		return err
+	}
+	var channel pgtype.UUID
+	if len(args) > 2 {
+		if err := channel.Scan(args[2]); err != nil {
+			return fmt.Errorf("channel id: %w", err)
+		}
+	}
+	(&audit.Log{Queries: q, Logger: log}).Record(ctx, audit.Event{Action: audit.E2EEscrowOpened,
+		TargetType: "user", TargetID: guuid.UUID(person.ID.Bytes).String(),
+		Detail: map[string]any{"email": person.Email, "channel": args[2:], "key_id": rec.EscrowKeyID.String}})
+	rows, err := q.ListBackupsForEscrow(ctx, store.ListBackupsForEscrowParams{UserID: person.ID, ChannelID: channel})
+	if err != nil {
+		return err
+	}
+	out := json.NewEncoder(os.Stdout)
+	opened := 0
+	for _, b := range rows {
+		data, err := e2e.OpenBackup(key, b.Data)
+		if err != nil {
+			log.Warn("backup not opened", "backup", guuid.UUID(b.ID.Bytes).String(), "error", err)
+			continue
+		}
+		var backup struct {
+			Items []struct {
+				P json.RawMessage `json:"p"`
+			} `json:"items"`
+		}
+		if json.Unmarshal(data, &backup) != nil {
+			continue
+		}
+		for _, it := range backup.Items {
+			if err := out.Encode(map[string]any{
+				"channel_id": guuid.UUID(b.ChannelID.Bytes).String(), "backed_up_at": b.CreatedAt, "message": it.P,
+			}); err != nil {
+				return err
+			}
+			opened++
+		}
+	}
+	log.Info("escrow opened", "person", person.Email, "texts", opened)
 	return nil
 }
 

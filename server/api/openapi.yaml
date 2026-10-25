@@ -1694,6 +1694,315 @@ paths:
         '404': { $ref: '#/components/responses/Problem' }
         '410': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/Problem' }
+  /api/e2e/devices:
+    get:
+      tags: [chat]
+      operationId: listE2EDevices
+      summary: This person's devices that hold end-to-end encryption keys
+      responses:
+        '200':
+          description: Active devices, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices:
+                    type: array
+                    items: { $ref: '#/components/schemas/E2EDevice' }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: registerE2EDevice
+      summary: Register this device's signing key for encrypted channels
+      description: |
+        The private key stays on the device. Up to 20 active devices per person.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, signature_key]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80, description: 'How the device is called, e.g. "Firefox on Linux".' }
+                signature_key: { type: string, format: byte, description: The Ed25519 public key (32 bytes). }
+      responses:
+        '201':
+          description: The device.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/E2EDevice' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/e2e/devices/{device_id}:
+    parameters:
+      - { name: device_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: revokeE2EDevice
+      summary: Remove a device; the groups it is in remove it with their next change
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/users/{user_id}/e2e/devices:
+    parameters:
+      - { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listUserE2EDevices
+      summary: Someone's devices and their public keys (to verify them)
+      responses:
+        '200':
+          description: Devices, oldest first, removed ones with revoked_at.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices:
+                    type: array
+                    items: { $ref: '#/components/schemas/E2EDevice' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/e2e:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: getMLSGroup
+      summary: The channel's MLS group as the delivery service keeps it (members)
+      responses:
+        '200':
+          description: The group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MLSGroup' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: enableMLS
+      summary: Turn on end-to-end encryption with device keys (cannot be turned off)
+      description: |
+        The channel's managers (in conversations, any participant). The device that
+        turns it on made the group (epoch 0) and sends its GroupInfo; the others
+        join on their own with it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, group_info]
+              properties:
+                device_id: { type: string, format: uuid }
+                group_info: { type: string, format: byte, maxLength: 700000 }
+      responses:
+        '200':
+          description: The group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MLSGroup' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/e2e/commits:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listMLSCommits
+      summary: The group's commits from an epoch on, in order (up to 100)
+      parameters:
+        - { name: from_epoch, in: query, required: true, schema: { type: integer, format: int64, minimum: 0 } }
+      responses:
+        '200':
+          description: Commits.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [commits]
+                properties:
+                  commits:
+                    type: array
+                    items: { $ref: '#/components/schemas/MLSCommit' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: sendMLSCommit
+      summary: Move the group to the next epoch
+      description: |
+        Accepted only while the group is at `epoch`; otherwise 409 (another commit came
+        first: apply it and try again). `joined` is set for an external commit by which
+        `device_id` joins; `removed` lists the devices the commit removes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, epoch, commit, group_info]
+              properties:
+                device_id: { type: string, format: uuid }
+                epoch: { type: integer, format: int64, minimum: 0 }
+                commit: { type: string, format: byte, maxLength: 700000 }
+                group_info: { type: string, format: byte, maxLength: 700000 }
+                joined: { type: boolean, default: false }
+                removed:
+                  type: array
+                  maxItems: 1000
+                  items: { type: string, format: uuid }
+      responses:
+        '201':
+          description: The group at its new epoch.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MLSGroup' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/e2e/backups:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listE2EBackups
+      summary: This person's history backups of the channel (sealed with their recovery key)
+      parameters:
+        - { name: after, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Up to 50 backups, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [backups]
+                properties:
+                  backups:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, data]
+                      properties:
+                        id: { type: string, format: uuid }
+                        data: { type: string, format: byte }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: addE2EBackup
+      summary: Keep texts this device read, sealed with the recovery key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data: { type: string, format: byte, maxLength: 1400000 }
+      responses:
+        '204': { description: Kept. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+  /api/e2e/recovery:
+    get:
+      tags: [chat]
+      operationId: getE2ERecovery
+      summary: Whether this person has a recovery key, and the organization's escrow key
+      responses:
+        '200':
+          description: The recovery state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/E2ERecovery' }
+        '401': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [chat]
+      operationId: setE2ERecovery
+      summary: Set a new recovery key (earlier backups are deleted)
+      description: |
+        `verifier` is HMAC-SHA-256(recovery key, "cenacle-recovery-check"). With an
+        escrow key, `escrow` is the recovery key sealed for it and is required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verifier]
+              properties:
+                verifier: { type: string, format: byte }
+                escrow: { type: string, format: byte }
+                escrow_key_id: { type: string, maxLength: 64 }
+      responses:
+        '200':
+          description: The recovery state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/E2ERecovery' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [chat]
+      operationId: deleteE2ERecovery
+      summary: Forget the recovery key and delete its backups
+      responses:
+        '204': { description: Deleted. }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/admin/e2e/escrow:
+    put:
+      tags: [admin]
+      operationId: setE2EEscrowKey
+      summary: Require recovery keys to be sealed for the organization's key (instance administrators)
+      description: |
+        A P-256 public key (SPKI, DER). People set a new recovery key after it changes.
+        The private key stays offline; server e2e-escrow opens backups with it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key_id, public_key]
+              properties:
+                key_id: { type: string, minLength: 1, maxLength: 64 }
+                public_key: { type: string, format: byte, maxLength: 700 }
+      responses:
+        '200':
+          description: The escrow key.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/E2EEscrowKey' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [admin]
+      operationId: deleteE2EEscrowKey
+      summary: Stop requiring escrow (instance administrators)
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/channels/{channel_id}/messages/{message_id}/spillage:
     parameters:
       - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -4314,6 +4623,7 @@ paths:
                 size: { type: integer, format: int64, minimum: 1 }
                 content_type: { type: string, maxLength: 255 }
                 media_kind: { type: string, enum: [voice, clip], description: Recorded in the app. }
+                encrypted: { type: boolean, description: 'Encrypted in the browser (required in MLS channels): kept as is, without previews.' }
                 duration_ms: { type: integer, minimum: 0, maximum: 3600000 }
                 waveform:
                   type: array
@@ -7943,6 +8253,54 @@ components:
         decided_by: { type: string }
         decided_at: { type: string, format: date-time, nullable: true }
         note: { type: string }
+    E2EDevice:
+      type: object
+      required: [id, user_id, name, signature_key, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        name: { type: string }
+        signature_key: { type: string, format: byte, description: The Ed25519 public key of the device's MLS credential. }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time, description: Only for one's own devices. }
+        revoked_at: { type: string, format: date-time, nullable: true, description: 'Removed: its earlier messages still verify, it joins no group.' }
+    MLSGroup:
+      type: object
+      required: [epoch, group_info, members]
+      properties:
+        epoch: { type: integer, format: int64 }
+        group_info: { type: string, format: byte, description: The GroupInfo of the current epoch (for joining). }
+        members:
+          type: array
+          items:
+            type: object
+            required: [device_id, user_id, joined_epoch, stale]
+            properties:
+              device_id: { type: string, format: uuid }
+              user_id: { type: string, format: uuid }
+              joined_epoch: { type: integer, format: int64 }
+              stale: { type: boolean, description: 'Removed or no longer in the channel: the next commit removes it.' }
+    MLSCommit:
+      type: object
+      required: [epoch, data]
+      properties:
+        epoch: { type: integer, format: int64, description: The epoch the commit leaves. }
+        device_id: { type: string, format: uuid, nullable: true }
+        data: { type: string, format: byte }
+    E2ERecovery:
+      type: object
+      required: [set]
+      properties:
+        set: { type: boolean }
+        verifier: { type: string, format: byte }
+        escrow_key: { $ref: '#/components/schemas/E2EEscrowKey' }
+        escrowed: { type: boolean, description: The recovery key is sealed for the current escrow key. }
+    E2EEscrowKey:
+      type: object
+      required: [key_id, public_key]
+      properties:
+        key_id: { type: string }
+        public_key: { type: string, format: byte }
     GuestLink:
       type: object
       required: [id, name, created_at, expires_at, max_uses, uses, guests]
@@ -7997,6 +8355,7 @@ components:
         ]
       properties:
         encrypted: { type: boolean, description: End-to-end encrypted; bodies are envelopes only members can open. }
+        mls: { type: boolean, description: 'Encrypted with device keys (MLS): bodies are "mls:v1:…" envelopes.' }
         key_check: { type: string, description: 'Encrypted channels: lets members check their passphrase.' }
         classification_id: { type: string, format: uuid, nullable: true, description: The channel's own classification (null follows the workspace). }
         retention_days: { type: integer, nullable: true, description: The channel's own retention (null follows the workspace). }
@@ -8768,6 +9127,7 @@ components:
         width: { type: integer, nullable: true }
         height: { type: integer, nullable: true }
         has_thumbnail: { type: boolean }
+        encrypted: { type: boolean, description: Encrypted in the browser; the key is in the message. }
         media_kind: { type: string, enum: [voice, clip], nullable: true }
         duration_ms: { type: integer, nullable: true }
         waveform:

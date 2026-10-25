@@ -14,7 +14,7 @@ To report a vulnerability, see [SECURITY.md](../../SECURITY.md).
 | Uploaded files                      | Malware, scripts served from the app's origin                               | Optional ClamAV scan, size limits, files served with `Content-Disposition`, `nosniff` and a sandboxing CSP                                                                                                                                     |
 | The web app                         | Script injection                                                            | Markdown rendered without raw HTML and sanitized; strict CSP (`script-src 'self'`, no third-party origins); `frame-ancestors 'none'`                                                                                                           |
 | Integrations                        | Forged requests to bots, leaked tokens                                      | Requests to bots and other servers signed with HMAC-SHA256 and a timestamp; bot tokens, webhook addresses and invitation tokens stored hashed and shown once                                                                                   |
-| Encrypted channels                  | The server or its operators reading them                                    | Keys come from a passphrase members share outside Cenacle and stay on their devices; the server stores envelopes only (ADR 0028)                                                                                                               |
+| Encrypted channels                  | The server or its operators reading them                                    | Device keys (MLS, RFC 9420): every device has its own key, the server orders commits and stores envelopes it cannot read; devices are verified by fingerprint; channels from before 0.39 keep their shared passphrase (ADRs 0028, 0042)        |
 | Compliance data                     | Deletion of evidence, quiet exports                                         | Legal holds stop every kind of deletion; exports and holds are audited                                                                                                                                                                         |
 | The desktop app                     | Token theft by scripts, phishing for the password, code run through the app | Session token encrypted by the OS and added by the app, never given to a page; sign-in at Cenacle ID's page in an isolated window showing its address; sandboxed, context-isolated renderers; Electron fuses; no device permissions (ADR 0033) |
 | AI                                  | Conversations leaving the organization                                      | Off unless the operator runs a model and a workspace turns it on; only what the asker can read is sent (ADR 0029)                                                                                                                              |
@@ -55,6 +55,39 @@ Fuses of the packaged app: `RunAsNode`, `EnableNodeOptionsEnvironmentVariable`,
 `EnableNodeCliInspectArguments` and `GrantFileProtocolExtraPrivileges` off;
 `EnableEmbeddedAsarIntegrityValidation`, `OnlyLoadAppFromAsar` and
 `EnableCookieEncryption` on (checked with `npx @electron/fuses read`).
+
+## End-to-end encryption with device keys (0.39)
+
+A channel or conversation can be encrypted end to end (its managers, or anyone in a
+conversation, turn it on; it cannot be turned off). Then:
+
+- Every device that signs in creates its own signing key (Ed25519) and registers its
+  public key; the private key stays in the browser's or desktop app's storage. A device
+  removed in Settings → Account → Encryption keys leaves every encrypted channel with the
+  next change of each group.
+- Each channel has an MLS group (RFC 9420, cipher suite
+  `MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519`, the library ts-mls). Devices of members
+  join it on their own; devices of people who left and removed devices are removed by the
+  next member device that comes by. The server orders the group's changes (one per epoch)
+  and accepts messages only for the current epoch and the channel's own group.
+- Files are encrypted in the browser with a key of their own that travels in the message;
+  the server keeps them as "encrypted", without previews or virus scanning.
+- People verify each other's devices by comparing fingerprints (channel details); a
+  verified device shows a check mark on the device that verified it.
+- A new device cannot read messages from before it joined. People who make a **recovery
+  key** (Settings → Account) keep backups of what their devices read, sealed with it, and
+  bring them to a new device by typing the key. A lost recovery key cannot be recovered;
+  a new one deletes the old backups.
+- **Escrow (optional):** an instance administrator can require that recovery keys are also
+  sealed for an organization key (`PUT /api/admin/e2e/escrow` with a P-256 public key).
+  Members are told. The private key stays offline; `server e2e-escrow <key.pem> <e-mail>
+[channel]` opens that person's backups and is audited. Escrow reaches only what devices
+  backed up, never messages directly.
+
+What the server still knows: who is in which channel, which device sent changes, when
+messages were sent and how long they are. Bots, search, link previews, AutoMod, AI,
+scheduled messages and notifications with text do not work in encrypted channels.
+ts-mls has not had an independent security audit; it is part of the 0.42 security review.
 
 ## Verifying a release (0.31)
 

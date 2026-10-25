@@ -175,6 +175,6 @@ their files. People are found on the new server by their Cenacle ID account when
 servers use the same Cenacle ID, else by verified address, else they get an account to
 claim as above. A workspace whose name exists on the new server receives the channels;
 channels with the same name receive the messages (merging). Encrypted channels stay
-behind: their messages can only be read with the passphrase. Settings, bots, polls,
+behind: their messages can only be read on members' devices or with the passphrase. Settings, bots, polls,
 canvases, lists and workflows are not part of an export. Exports are readable by the same
 or a newer Cenacle.

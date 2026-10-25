@@ -465,7 +465,7 @@ func (h *Handlers) ScheduleMessage(w http.ResponseWriter, r *http.Request, chann
 		return
 	}
 	body, problem := strings.TrimSpace(in.Body), ""
-	if !strings.HasPrefix(body, "e2e:v1:") { // envelopes are checked with their channel
+	if !looksSealed(body) { // envelopes are checked with their channel
 		body, problem = validBody(in.Body)
 	}
 	now := time.Now()
@@ -488,7 +488,8 @@ func (h *Handlers) ScheduleMessage(w http.ResponseWriter, r *http.Request, chann
 		forbidden(w, r, CodeReadOnlyChannel, "You cannot send messages in this channel.")
 		return
 	}
-	if !encryptedBody(c, body) || body == "" {
+	if !encryptedBody(c, body) || body == "" || c.Mls {
+		// MLS envelopes are for the group's current epoch: not for later.
 		refuseEncrypted(w, r)
 		return
 	}

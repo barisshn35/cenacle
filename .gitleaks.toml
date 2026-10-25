@@ -27,3 +27,10 @@ regexTarget = "match"
 regexes = [
   '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''',
 ]
+
+[[allowlists]]
+description = "Test vector of the escrow format (a key made for the test only)"
+regexTarget = "match"
+regexes = [
+  '''25f93aaaba1ce1fc4a0577859c7916c997fbca9856b3aee62b1fa084abad2721''',
+]

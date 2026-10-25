@@ -17,6 +17,9 @@
   "dependencies": {
     "@cenacle/core": "workspace:*",
     "@cenacle/ui": "workspace:*",
+    "@noble/ciphers": "2.1.1",
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.0.1",
     "@shikijs/langs": "4.5.0",
     "@shikijs/themes": "4.5.0",
     "@tanstack/react-query": "5.104.5",
@@ -33,6 +36,7 @@
     "remark-gfm": "4.0.1",
     "shiki": "4.5.0",
     "sonner": "2.0.8",
+    "ts-mls": "1.6.4",
     "zustand": "5.0.16"
   },
   "devDependencies": {
@@ -44,6 +48,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "emojibase-data": "18.0.0",
+    "fake-indexeddb": "6.2.6",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vite": "8.3.5",

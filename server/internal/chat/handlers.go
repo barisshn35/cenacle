@@ -237,7 +237,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		}
 	}
 	body := strings.TrimSpace(in.Body)
-	if problem == "" && strings.HasPrefix(body, "e2e:v1:") {
+	if problem == "" && looksSealed(body) {
 		// An envelope: checked with its channel below.
 	} else if problem == "" && (body != "" || (len(attachments) == 0 && len(files) == 0 && in.StickerId == nil)) {
 		body, problem = validBody(in.Body)
@@ -262,8 +262,11 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		return
 	}
 
-	if !encryptedBody(c, body) || (c.Encrypted && (len(attachments) > 0 || len(files) > 0 || in.Poll != nil)) {
+	if !encryptedBody(c, body) || (c.Encrypted && (len(attachments) > 0 || (len(files) > 0 && !c.Mls) || in.Poll != nil)) {
 		refuseEncrypted(w, r)
+		return
+	}
+	if c.Mls && body != "" && !h.mlsEpochOK(w, r, c, body) {
 		return
 	}
 	if h.timedOut(w, r, c.WorkspaceID, p.User) || h.slowedDown(w, r, c, role, p.User) {
@@ -374,7 +377,7 @@ func (r replyTo) isReply() bool { return r.root.ID.Valid }
 // postMessageTo is postMessage, in a thread when reply has a root: the
 // author, the root's author and the people mentioned follow the thread.
 func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, reply replyTo, extra postExtras, files ...pgtype.UUID) (api.Message, error) {
-	if !encryptedBody(c, body) || (c.Encrypted && (len(files) > 0 || (len(rawAttachments) > 0 && string(rawAttachments) != "[]"))) {
+	if !encryptedBody(c, body) || (c.Encrypted && ((len(files) > 0 && !c.Mls) || (len(rawAttachments) > 0 && string(rawAttachments) != "[]"))) {
 		return api.Message{}, errEncrypted
 	}
 	msg, err := q.CreateMessage(ctx, store.CreateMessageParams{

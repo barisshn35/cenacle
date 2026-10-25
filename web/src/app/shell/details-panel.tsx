@@ -22,6 +22,7 @@ import {
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
 import { EncryptionInfo } from '../compliance/encrypted';
+import { EnableEncryption, MLSInfo } from '../e2e/ui';
 import { TitleBlock } from './title-block';
 
 export function DetailsPanel() {
@@ -52,7 +53,12 @@ export function DetailsPanel() {
           <TitleBlock channel={channel} />
         </div>
       )}
-      {channel?.encrypted && <EncryptionInfo channel={channel} />}
+      {channel?.mls ? (
+        <MLSInfo channel={channel} />
+      ) : (
+        channel?.encrypted && <EncryptionInfo channel={channel} />
+      )}
+      {channel && !channel.encrypted && <EnableEncryption channel={channel} />}
       {channel && <ChannelShares channel={channel} />}
       {channel && isConversation(channel) && (
         <div className="flex flex-col gap-3 p-4 text-sm">

@@ -120,6 +120,7 @@ type Channel struct {
 	Encrypted        bool               `json:"encrypted"`
 	KeyCheck         string             `json:"key_check"`
 	Moderation       []byte             `json:"moderation"`
+	Mls              bool               `json:"mls"`
 }
 
 type ChannelCategory struct {
@@ -222,6 +223,39 @@ type DirectorySyncState struct {
 	ID       bool               `json:"id"`
 	Cursor   string             `json:"cursor"`
 	SyncedAt pgtype.Timestamptz `json:"synced_at"`
+}
+
+type E2eBackup struct {
+	ID        pgtype.UUID `json:"id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	Data      []byte      `json:"data"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type E2eDevice struct {
+	ID           pgtype.UUID        `json:"id"`
+	UserID       pgtype.UUID        `json:"user_id"`
+	Name         string             `json:"name"`
+	SignatureKey []byte             `json:"signature_key"`
+	CreatedAt    time.Time          `json:"created_at"`
+	LastSeenAt   time.Time          `json:"last_seen_at"`
+	RevokedAt    pgtype.Timestamptz `json:"revoked_at"`
+}
+
+type E2eEscrow struct {
+	Singleton bool      `json:"singleton"`
+	KeyID     string    `json:"key_id"`
+	PublicKey []byte    `json:"public_key"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type E2eRecovery struct {
+	UserID      pgtype.UUID `json:"user_id"`
+	Verifier    []byte      `json:"verifier"`
+	Escrow      []byte      `json:"escrow"`
+	EscrowKeyID pgtype.Text `json:"escrow_key_id"`
+	CreatedAt   time.Time   `json:"created_at"`
 }
 
 type EmailNotification struct {
@@ -348,6 +382,7 @@ type File struct {
 	Waveform     []byte             `json:"waveform"`
 	ContentText  pgtype.Text        `json:"content_text"`
 	ContentState string             `json:"content_state"`
+	Encrypted    bool               `json:"encrypted"`
 }
 
 type Form struct {
@@ -577,6 +612,27 @@ type MessageReport struct {
 	ResolvedBy  pgtype.UUID        `json:"resolved_by"`
 	ResolvedAt  pgtype.Timestamptz `json:"resolved_at"`
 	CreatedAt   time.Time          `json:"created_at"`
+}
+
+type MlsCommit struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	Epoch     int64       `json:"epoch"`
+	DeviceID  pgtype.UUID `json:"device_id"`
+	Data      []byte      `json:"data"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type MlsGroup struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	Epoch     int64       `json:"epoch"`
+	GroupInfo []byte      `json:"group_info"`
+	UpdatedAt time.Time   `json:"updated_at"`
+}
+
+type MlsMember struct {
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	DeviceID    pgtype.UUID `json:"device_id"`
+	JoinedEpoch int64       `json:"joined_epoch"`
 }
 
 type NotificationPref struct {

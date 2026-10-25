@@ -42,7 +42,7 @@ func (q *Queries) MoveExportChannelMembers(ctx context.Context, channelID pgtype
 }
 
 const moveExportChannels = `-- name: MoveExportChannels :many
-SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation FROM channels WHERE workspace_id = $1 ORDER BY created_at, id
+SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation, mls FROM channels WHERE workspace_id = $1 ORDER BY created_at, id
 `
 
 // MoveExportChannels lists the channels and conversations of a workspace.
@@ -77,6 +77,7 @@ func (q *Queries) MoveExportChannels(ctx context.Context, workspaceID pgtype.UUI
 			&i.Encrypted,
 			&i.KeyCheck,
 			&i.Moderation,
+			&i.Mls,
 		); err != nil {
 			return nil, err
 		}
@@ -89,7 +90,7 @@ func (q *Queries) MoveExportChannels(ctx context.Context, workspaceID pgtype.UUI
 }
 
 const moveExportFiles = `-- name: MoveExportFiles :many
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state FROM files WHERE message_id = ANY($1::uuid[]) AND status = 'ready' ORDER BY id
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files WHERE message_id = ANY($1::uuid[]) AND status = 'ready' ORDER BY id
 `
 
 func (q *Queries) MoveExportFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error) {
@@ -121,6 +122,7 @@ func (q *Queries) MoveExportFiles(ctx context.Context, messageIds []pgtype.UUID)
 			&i.Waveform,
 			&i.ContentText,
 			&i.ContentState,
+			&i.Encrypted,
 		); err != nil {
 			return nil, err
 		}

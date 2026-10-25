@@ -123,6 +123,9 @@ func toAPI(c store.Channel, a access) api.Channel {
 	if c.Encrypted {
 		out.KeyCheck = &c.KeyCheck
 	}
+	if c.Mls {
+		out.Mls = ptr(true)
+	}
 	if c.ClassificationID.Valid {
 		id := uuid(c.ClassificationID)
 		out.ClassificationId = &id
@@ -466,6 +469,10 @@ func (h *Handlers) LeaveChannel(w http.ResponseWriter, r *http.Request, channelI
 func (h *Handlers) membersChanged(ctx context.Context, c store.Channel, user pgtype.UUID, typ string, ch api.Channel) {
 	h.publish(ctx, typ, ChannelEvent{Channel: ch, UserID: uuid(user).String()})
 	h.publish(ctx, events.ChannelMembersChanged, ChannelEvent{ChannelID: uuid(c.ID).String()})
+	if c.Mls && typ == events.ChannelLeft {
+		// The devices of someone who left are to be removed from the group.
+		h.publish(ctx, events.E2EChanged, ChannelEvent{ChannelID: uuid(c.ID).String()})
+	}
 }
 
 // UpdateChannel implements api.ServerInterface.

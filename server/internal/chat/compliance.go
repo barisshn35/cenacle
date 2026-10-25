@@ -56,10 +56,18 @@ var errEncrypted = errors.New("encrypted channel")
 // encryptedBody checks a body for a channel: encrypted channels take
 // envelopes only (or nothing, with a sticker); others never take envelopes.
 func encryptedBody(c store.Channel, body string) bool {
-	if c.Encrypted {
+	switch {
+	case c.Mls:
+		return body == "" || isMLSEnvelope(body)
+	case c.Encrypted:
 		return body == "" || isEnvelope(body)
 	}
-	return !strings.HasPrefix(body, "e2e:v1:")
+	return !looksSealed(body)
+}
+
+// looksSealed: a body that claims to be an envelope (checked with its channel).
+func looksSealed(body string) bool {
+	return strings.HasPrefix(body, "e2e:v1:") || strings.HasPrefix(body, "mls:v1:")
 }
 
 func refuseEncrypted(w http.ResponseWriter, r *http.Request) {

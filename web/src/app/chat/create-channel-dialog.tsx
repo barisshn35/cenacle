@@ -17,7 +17,8 @@ import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { useActiveWorkspace } from './active-workspace';
-import { newKeyCheck, useChannelKeys } from '../compliance/e2e';
+import { useSession } from '../auth/session';
+import { enable } from '../e2e/mls';
 import { createChannel, reloadChannels } from './data';
 
 /** Creating a channel (administrator only). */
@@ -43,21 +44,16 @@ export function CreateChannelDialog({
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [forum, setForum] = useState(false);
   const [encrypted, setEncrypted] = useState(false);
-  const [passphrase, setPassphrase] = useState('');
-  const [again, setAgain] = useState('');
-  const setKey = useChannelKeys((s) => s.set);
-  const mismatch = encrypted && again !== '' && passphrase !== again;
+  const selfId = useSession().user.id;
   const { id: workspaceId } = useActiveWorkspace();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const create = useMutation({
     mutationFn: async (input: Omit<Parameters<typeof createChannel>[0], 'key_check'>) => {
-      if (!input.encrypted) return createChannel(input);
-      // The key stays here; the server gets its salt and a check only.
-      const { key, check } = await newKeyCheck(passphrase);
-      const channel = await createChannel({ ...input, key_check: check });
-      setKey(channel.id, key);
+      const channel = await createChannel({ ...input, encrypted: false });
+      // Encryption with device keys: this device makes the channel's group.
+      if (input.encrypted) await enable(channel.id, selfId);
       return channel;
     },
     onSuccess: (channel) => {
@@ -69,8 +65,6 @@ export function CreateChannelDialog({
       setVisibility('public');
       setForum(false);
       setEncrypted(false);
-      setPassphrase('');
-      setAgain('');
       void navigate({ to: '/c/$channelId', params: { channelId: channel.id } });
     },
   });
@@ -81,7 +75,6 @@ export function CreateChannelDialog({
     e.preventDefault();
     if (name.trim() === '') return;
     if (!workspaceId) return;
-    if (encrypted && (passphrase.length < 12 || passphrase !== again)) return;
     create.mutate({
       workspace_id: workspaceId,
       name: name.trim(),
@@ -191,39 +184,6 @@ export function CreateChannelDialog({
               </p>
             </div>
           </div>
-          {encrypted && (
-            <div className="grid gap-3 rounded-lg border p-3">
-              <div className="grid gap-2">
-                <Label htmlFor={`${ids.secret}-pass`}>{t('e2e.passphrase')}</Label>
-                <Input
-                  id={`${ids.secret}-pass`}
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={12}
-                  required
-                  value={passphrase}
-                  aria-describedby={`${ids.secret}-pass-hint`}
-                  onChange={(e) => setPassphrase(e.target.value)}
-                />
-                <p id={`${ids.secret}-pass-hint`} className="text-xs text-muted-foreground">
-                  {t('e2e.passphraseHint')}
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor={`${ids.secret}-again`}>{t('e2e.again')}</Label>
-                <Input
-                  id={`${ids.secret}-again`}
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={again}
-                  aria-invalid={mismatch || undefined}
-                  onChange={(e) => setAgain(e.target.value)}
-                />
-                {mismatch && <InlineError title={t('e2e.mismatch')} politeness="status" />}
-              </div>
-            </div>
-          )}
           {create.isError && (
             <InlineError
               id={ids.error}
@@ -235,14 +195,7 @@ export function CreateChannelDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('glossary.cancel')}
             </Button>
-            <Button
-              type="submit"
-              disabled={
-                create.isPending ||
-                name.trim() === '' ||
-                (encrypted && (passphrase.length < 12 || passphrase !== again))
-              }
-            >
+            <Button type="submit" disabled={create.isPending || name.trim() === ''}>
               {t('channels.create')}
             </Button>
           </DialogFooter>

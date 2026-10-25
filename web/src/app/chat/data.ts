@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { sealFor } from '../compliance/e2e';
+import { isMLS, noteChannels, sendSealed } from '../e2e/channels';
 import {
   infiniteQueryOptions,
   queryOptions,
@@ -39,7 +40,10 @@ function displayName(c: Channel): Channel {
 export const channelsQuery = queryOptions({
   queryKey: ['channels'],
   queryFn: () =>
-    apiFetch<{ channels: Channel[] }>('/api/channels').then((r) => r.channels.map(displayName)),
+    apiFetch<{ channels: Channel[] }>('/api/channels').then((r) => {
+      noteChannels(r.channels);
+      return r.channels.map(displayName);
+    }),
   staleTime: 5 * 60_000,
 });
 
@@ -226,11 +230,13 @@ export const deleteCategory = (id: string) =>
 
 const messageUrl = (m: Pick<Message, 'id' | 'channel_id'>) =>
   `/api/channels/${m.channel_id}/messages/${m.id}`;
-export const editMessage = async (m: Message, body: string) =>
-  apiFetch<Message>(messageUrl(m), {
-    ...json({ body: await sealFor(m.channel_id, body) }),
-    method: 'PATCH',
-  });
+export const editMessage = async (m: Message, body: string) => {
+  const patch = (sealed: string) =>
+    apiFetch<Message>(messageUrl(m), { ...json({ body: sealed }), method: 'PATCH' });
+  return isMLS(m.channel_id)
+    ? sendSealed(m.channel_id, body, [], patch)
+    : patch(await sealFor(m.channel_id, body));
+};
 /** Puts an earlier version back, as it was kept (sealed in encrypted channels). */
 export const restoreVersion = (m: Message, body: string) =>
   apiFetch<Message>(messageUrl(m), { ...json({ body }), method: 'PATCH' });

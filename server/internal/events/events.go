@@ -66,6 +66,9 @@ const (
 	// ChannelUpdated and ChannelMembersChanged go to the channel's members.
 	ChannelUpdated        = "channel.updated"
 	ChannelMembersChanged = "channel.members_changed"
+	// E2EChanged: a channel's MLS group moved to a new epoch or has devices to
+	// remove; members' devices fetch its commits.
+	E2EChanged = "e2e.changed"
 	// UserUpdated (a profile or custom status changed) goes to the people of the
 	// user's workspaces and to the user.
 	UserUpdated = "user.updated"

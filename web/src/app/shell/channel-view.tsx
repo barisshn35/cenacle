@@ -27,6 +27,7 @@ import { ListView } from '../collab/list-view';
 import { GovernanceChip } from '../compliance/classification';
 import { UnlockPanel } from '../compliance/encrypted';
 import { useCanWrite } from '../compliance/e2e';
+import { useMLSChannel } from '../e2e/use-mls-channel';
 import { dateLocale } from '../../i18n/time-format';
 
 /** Header buttons that open a panel: Brass while their panel is open. */
@@ -50,6 +51,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const tabs = useQuery({ ...tabsQuery(id ?? ''), enabled: !!channel && !!tabId });
   const tab = tabId ? tabs.data?.find((x) => x.id === tabId) : undefined;
   const canWrite = useCanWrite(channel);
+  useMLSChannel(channel);
 
   return (
     <main className="flex h-full min-w-0 flex-col bg-background" aria-labelledby="channel-title">

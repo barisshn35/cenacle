@@ -34,6 +34,7 @@ type Querier interface {
 	// AddGroupMentions records a mention for each person of the mentioned groups
 	// (by handle, not archived) who is in the channel, but the author.
 	AddGroupMentions(ctx context.Context, arg AddGroupMentionsParams) error
+	AddMLSMember(ctx context.Context, arg AddMLSMemberParams) error
 	AddMember(ctx context.Context, arg AddMemberParams) (int64, error)
 	// AddMentionGroupMembers adds people of the group's workspace to it.
 	AddMentionGroupMembers(ctx context.Context, arg AddMentionGroupMembersParams) error
@@ -51,6 +52,9 @@ type Querier interface {
 	// with what the system console shows about them.
 	AdminListUsers(ctx context.Context, arg AdminListUsersParams) ([]AdminListUsersRow, error)
 	AdminListWorkspaces(ctx context.Context) ([]AdminListWorkspacesRow, error)
+	// AdvanceMLSGroup moves a group to the next epoch when it is still at the
+	// epoch the commit was made in (else another commit came first).
+	AdvanceMLSGroup(ctx context.Context, arg AdvanceMLSGroupParams) (int64, error)
 	ArchiveForm(ctx context.Context, id pgtype.UUID) error
 	// ArchiveMessages returns a page of a workspace's messages written in a
 	// period, oldest first, with what archive formats need.
@@ -72,6 +76,8 @@ type Querier interface {
 	// ChannelsFromGroups is the channels a person's groups give them, in the
 	// workspaces they are a member of.
 	ChannelsFromGroups(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
+	// ChannelsOfDevice lists the groups a device is in.
+	ChannelsOfDevice(ctx context.Context, deviceID pgtype.UUID) ([]pgtype.UUID, error)
 	// ClaimDueDeliveries takes due deliveries for one attempt; concurrent workers skip
 	// each other's rows. The attempt is counted up front so a crash does not retry forever.
 	ClaimDueDeliveries(ctx context.Context, rowLimit int32) ([]ClaimDueDeliveriesRow, error)
@@ -97,8 +103,12 @@ type Querier interface {
 	// ConversationReads returns how far the other members of a conversation who
 	// share read receipts have read.
 	ConversationReads(ctx context.Context, arg ConversationReadsParams) ([]ConversationReadsRow, error)
+	// End-to-end encryption with device keys (MLS): devices, groups, commits,
+	// recovery keys and history backups.
+	CountActiveDevices(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CountActiveRuns(ctx context.Context, playbookID pgtype.UUID) (int32, error)
 	CountAutomodRules(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
+	CountBackupBytes(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CountChannelFeeds(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountChannelTabs(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountCustomEmoji(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
@@ -138,6 +148,7 @@ type Querier interface {
 	// existing one with the same key (name).
 	CreateConversation(ctx context.Context, arg CreateConversationParams) (Channel, error)
 	CreateCustomEmoji(ctx context.Context, arg CreateCustomEmojiParams) (CustomEmoji, error)
+	CreateDevice(ctx context.Context, arg CreateDeviceParams) (E2eDevice, error)
 	CreateDialog(ctx context.Context, arg CreateDialogParams) (pgtype.UUID, error)
 	// ----------------------------------------------------------------- events ---
 	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
@@ -155,6 +166,7 @@ type Querier interface {
 	CreateLinkGuest(ctx context.Context, arg CreateLinkGuestParams) (User, error)
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
 	CreateListItem(ctx context.Context, arg CreateListItemParams) (ListItem, error)
+	CreateMLSGroup(ctx context.Context, arg CreateMLSGroupParams) error
 	CreateMentionGroup(ctx context.Context, arg CreateMentionGroupParams) (MentionGroup, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
@@ -191,6 +203,7 @@ type Querier interface {
 	DeleteChannelTab(ctx context.Context, id pgtype.UUID) error
 	DeleteCustomEmoji(ctx context.Context, id pgtype.UUID) error
 	DeleteDialog(ctx context.Context, id pgtype.UUID) error
+	DeleteEscrowKey(ctx context.Context) error
 	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
 	DeleteFederationConnection(ctx context.Context, id pgtype.UUID) error
 	DeleteFederationDeliveries(ctx context.Context, ids []pgtype.UUID) error
@@ -208,6 +221,8 @@ type Querier interface {
 	// that committed later must stay for the next round.
 	DeleteOutboxEvents(ctx context.Context, ids []int64) error
 	DeletePicture(ctx context.Context, id pgtype.UUID) error
+	// DeleteRecovery forgets the recovery key and the backups sealed with it.
+	DeleteRecovery(ctx context.Context, userID pgtype.UUID) error
 	DeleteRsvp(ctx context.Context, arg DeleteRsvpParams) error
 	DeleteSaved(ctx context.Context, arg DeleteSavedParams) (SavedMessage, error)
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
@@ -239,6 +254,9 @@ type Querier interface {
 	// EmailRecipients are people who want e-mail about what they missed and have
 	// a verified address.
 	EmailRecipients(ctx context.Context) ([]pgtype.UUID, error)
+	// EnableMLS turns on end-to-end encryption with device keys; it cannot be
+	// turned off.
+	EnableMLS(ctx context.Context, id pgtype.UUID) (int64, error)
 	EndCanvasTurn(ctx context.Context, arg EndCanvasTurnParams) (pgtype.UUID, error)
 	// EndLinkGuests deactivates the people of revoked and expired links.
 	EndLinkGuests(ctx context.Context) (int64, error)
@@ -266,6 +284,7 @@ type Querier interface {
 	// FindUserByEmail finds the account of an address (a person who signed in
 	// already wins over an earlier import).
 	FindUserByEmail(ctx context.Context, email string) (User, error)
+	FindUserForEscrow(ctx context.Context, email string) (FindUserForEscrowRow, error)
 	FindWorkspaceByName(ctx context.Context, name string) (Workspace, error)
 	FinishDelivery(ctx context.Context, arg FinishDeliveryParams) error
 	FinishRun(ctx context.Context, id pgtype.UUID) (PlaybookRun, error)
@@ -280,6 +299,7 @@ type Querier interface {
 	FollowThread(ctx context.Context, arg FollowThreadParams) error
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
 	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
+	GetActiveDevice(ctx context.Context, arg GetActiveDeviceParams) (E2eDevice, error)
 	// GetActiveSession returns the session of a token hash with its user, unless
 	// it passed its absolute expiry, was idle for longer than idle_timeout or is
 	// older than max_age (guests: their own limits; the session policy).
@@ -309,6 +329,7 @@ type Querier interface {
 	GetDirectoryPhoto(ctx context.Context, id pgtype.UUID) (GetDirectoryPhotoRow, error)
 	GetDirectorySyncState(ctx context.Context) (DirectorySyncState, error)
 	GetEmailNotification(ctx context.Context, userID pgtype.UUID) (GetEmailNotificationRow, error)
+	GetEscrowKey(ctx context.Context) (E2eEscrow, error)
 	GetEvent(ctx context.Context, id pgtype.UUID) (Event, error)
 	GetFederationConnection(ctx context.Context, id pgtype.UUID) (FederationConnection, error)
 	GetFederationInviteByHash(ctx context.Context, tokenHash []byte) (FederationInvite, error)
@@ -330,6 +351,7 @@ type Querier interface {
 	GetLinkPreview(ctx context.Context, url string) (LinkPreview, error)
 	GetList(ctx context.Context, id pgtype.UUID) (List, error)
 	GetListItem(ctx context.Context, id pgtype.UUID) (ListItem, error)
+	GetMLSGroup(ctx context.Context, channelID pgtype.UUID) (MlsGroup, error)
 	GetMemberAttributes(ctx context.Context, arg GetMemberAttributesParams) ([]byte, error)
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
@@ -349,6 +371,7 @@ type Querier interface {
 	// as none.
 	GetProfiles(ctx context.Context, ids []pgtype.UUID) ([]GetProfilesRow, error)
 	GetPushKeys(ctx context.Context) (GetPushKeysRow, error)
+	GetRecovery(ctx context.Context, userID pgtype.UUID) (E2eRecovery, error)
 	// GetRemoteAuthor returns the connection a user came over, if any.
 	GetRemoteAuthor(ctx context.Context, id pgtype.UUID) (string, error)
 	GetReport(ctx context.Context, id pgtype.UUID) (MessageReport, error)
@@ -389,6 +412,8 @@ type Querier interface {
 	ImportMessage(ctx context.Context, arg ImportMessageParams) (pgtype.UUID, error)
 	ImportReaction(ctx context.Context, arg ImportReactionParams) error
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
+	InsertBackup(ctx context.Context, arg InsertBackupParams) (pgtype.UUID, error)
+	InsertMLSCommit(ctx context.Context, arg InsertMLSCommitParams) error
 	// InsertOutboxEvent records an event and wakes the relay (notifications are
 	// delivered when the transaction commits).
 	InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventParams) error
@@ -427,6 +452,7 @@ type Querier interface {
 	LeaveWorkspacesViaGroup(ctx context.Context, arg LeaveWorkspacesViaGroupParams) ([]pgtype.UUID, error)
 	// ListAcks returns who acknowledged messages, in the order they did.
 	ListAcks(ctx context.Context, messageIds []pgtype.UUID) ([]ListAcksRow, error)
+	ListActiveDevices(ctx context.Context, userID pgtype.UUID) ([]E2eDevice, error)
 	// ListActivity returns what happened for a user in the last 30 days, newest
 	// first: mentions, replies in threads they follow and reactions to their
 	// messages, in channels they belong to.
@@ -440,6 +466,10 @@ type Querier interface {
 	ListAssignedItems(ctx context.Context, arg ListAssignedItemsParams) ([]ListAssignedItemsRow, error)
 	// ---------------------------------------------------------------- AutoMod ---
 	ListAutomodRules(ctx context.Context, workspaceID pgtype.UUID) ([]AutomodRule, error)
+	ListBackups(ctx context.Context, arg ListBackupsParams) ([]ListBackupsRow, error)
+	// ListBackupsForEscrow reads the backups of a person (all channels) for the
+	// escrow command.
+	ListBackupsForEscrow(ctx context.Context, arg ListBackupsForEscrowParams) ([]ListBackupsForEscrowRow, error)
 	ListBotCommands(ctx context.Context, botID pgtype.UUID) ([]SlashCommand, error)
 	ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotToken, error)
 	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
@@ -492,6 +522,10 @@ type Querier interface {
 	// ListLinkPreviews returns the previews to show on messages.
 	ListLinkPreviews(ctx context.Context, messageIds []pgtype.UUID) ([]ListLinkPreviewsRow, error)
 	ListListItems(ctx context.Context, listID pgtype.UUID) ([]ListItem, error)
+	ListMLSCommits(ctx context.Context, arg ListMLSCommitsParams) ([]MlsCommit, error)
+	// ListMLSMembers lists a group's devices; stale ones (revoked, or of people
+	// no longer in the channel) are to be removed by the next commit.
+	ListMLSMembers(ctx context.Context, channelID pgtype.UUID) ([]ListMLSMembersRow, error)
 	// ListManualWorkflows returns the workflows people can start in a channel.
 	ListManualWorkflows(ctx context.Context, arg ListManualWorkflowsParams) ([]Workflow, error)
 	ListMemberAttributes(ctx context.Context, workspaceID pgtype.UUID) ([]ListMemberAttributesRow, error)
@@ -563,6 +597,9 @@ type Querier interface {
 	// ListUnreadMessages returns, for each channel of a workspace with unread
 	// messages, its 20 latest unread messages of others.
 	ListUnreadMessages(ctx context.Context, arg ListUnreadMessagesParams) ([]ListUnreadMessagesRow, error)
+	// ListUserDevicesFor lists people's devices with their public keys, removed
+	// ones too (their earlier commits and messages are still checked with them).
+	ListUserDevicesFor(ctx context.Context, userIds []pgtype.UUID) ([]ListUserDevicesForRow, error)
 	ListUserFonts(ctx context.Context, userID pgtype.UUID) ([]ListUserFontsRow, error)
 	ListUserGroups(ctx context.Context, userID pgtype.UUID) ([]string, error)
 	// ListUserSessions returns a user's usable sessions, most recently used first.
@@ -665,6 +702,7 @@ type Querier interface {
 	// to someone (they get a new one).
 	ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error
 	RemoteMessageOf(ctx context.Context, arg RemoteMessageOfParams) (pgtype.UUID, error)
+	RemoveMLSMembers(ctx context.Context, arg RemoveMLSMembersParams) error
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
 	RemoveMentionGroupMember(ctx context.Context, arg RemoveMentionGroupMemberParams) (int64, error)
 	RemovePushEndpoint(ctx context.Context, endpoint string) error
@@ -689,6 +727,7 @@ type Querier interface {
 	// unless the directory makes them an administrator.
 	RevokeAdminUnlessEmail(ctx context.Context, email string) error
 	RevokeBotToken(ctx context.Context, arg RevokeBotTokenParams) (int64, error)
+	RevokeDevice(ctx context.Context, arg RevokeDeviceParams) (E2eDevice, error)
 	// RevokeEmailAdminsExcept takes the administrator flag from everyone who held
 	// it only by the configured address, but one person (the address moved).
 	RevokeEmailAdminsExcept(ctx context.Context, id pgtype.UUID) error
@@ -750,6 +789,7 @@ type Querier interface {
 	// SetDirectoryProfile keeps a chosen @username for people without a directory one.
 	SetDirectoryProfile(ctx context.Context, arg SetDirectoryProfileParams) error
 	SetEmailNotification(ctx context.Context, arg SetEmailNotificationParams) error
+	SetEscrowKey(ctx context.Context, arg SetEscrowKeyParams) (E2eEscrow, error)
 	SetFederationConnectionPolicy(ctx context.Context, arg SetFederationConnectionPolicyParams) (FederationConnection, error)
 	SetFederationConnectionStatus(ctx context.Context, arg SetFederationConnectionStatusParams) (FederationConnection, error)
 	SetFederationError(ctx context.Context, arg SetFederationErrorParams) error
@@ -770,6 +810,7 @@ type Querier interface {
 	SetNotifyCursor(ctx context.Context, arg SetNotifyCursorParams) error
 	SetOnboarded(ctx context.Context, arg SetOnboardedParams) (int64, error)
 	SetPinned(ctx context.Context, arg SetPinnedParams) (Message, error)
+	SetRecovery(ctx context.Context, arg SetRecoveryParams) (E2eRecovery, error)
 	SetRsvp(ctx context.Context, arg SetRsvpParams) error
 	SetRunChecklists(ctx context.Context, arg SetRunChecklistsParams) (PlaybookRun, error)
 	SetSavedReminder(ctx context.Context, arg SetSavedReminderParams) error
@@ -804,6 +845,7 @@ type Querier interface {
 	// repliers (newest first).
 	ThreadSummaries(ctx context.Context, rootIds []pgtype.UUID) ([]ThreadSummariesRow, error)
 	TouchBotToken(ctx context.Context, id pgtype.UUID) error
+	TouchDevice(ctx context.Context, id pgtype.UUID) error
 	TouchFederationConnection(ctx context.Context, id pgtype.UUID) error
 	// TouchSession records use of a session at most once per minute, which keeps
 	// writes low while the idle timeout stays accurate to the minute.

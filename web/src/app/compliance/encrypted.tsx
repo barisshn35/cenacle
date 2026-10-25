@@ -10,9 +10,16 @@ import { Label } from '@cenacle/ui/components/label';
 import { MessageBody } from '../chat/markdown/message-body';
 import type { Channel, Message } from '../chat/data';
 import { decrypt, isEnvelope, unlock, useChannelKeys } from './e2e';
+import { isMLSEnvelope } from '../e2e/mls';
+import { MLSContent } from '../e2e/ui';
 
 /** A message body, opened with the channel's key when it is an envelope. */
 export function Body({ message, selfId }: { message: Message; selfId: string }) {
+  if (isMLSEnvelope(message.body)) return <MLSContent message={message} selfId={selfId} />;
+  return <PassphraseBody message={message} selfId={selfId} />;
+}
+
+function PassphraseBody({ message, selfId }: { message: Message; selfId: string }) {
   const { t } = useTranslation();
   const key = useChannelKeys((s) => s.keys[message.channel_id]);
   const envelope = isEnvelope(message.body);

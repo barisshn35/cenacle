@@ -417,7 +417,7 @@ func (q *Queries) ListMemberAttributes(ctx context.Context, workspaceID pgtype.U
 }
 
 const listRuledChannelsOfMember = `-- name: ListRuledChannelsOfMember :many
-SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, c.moderation FROM channels c JOIN channel_members cm ON cm.channel_id = c.id AND cm.user_id = $1
+SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory, c.created_by, c.visibility, c.archived_at, c.category_id, c.workspace_id, c.group_managed, c.forum_tags, c.slow_mode_seconds, c.retention_days, c.classification_id, c.access_rules, c.encrypted, c.key_check, c.moderation, c.mls FROM channels c JOIN channel_members cm ON cm.channel_id = c.id AND cm.user_id = $1
 WHERE c.workspace_id = $2 AND c.access_rules <> '[]'::jsonb
 `
 
@@ -458,6 +458,7 @@ func (q *Queries) ListRuledChannelsOfMember(ctx context.Context, arg ListRuledCh
 			&i.Encrypted,
 			&i.KeyCheck,
 			&i.Moderation,
+			&i.Mls,
 		); err != nil {
 			return nil, err
 		}
@@ -588,7 +589,7 @@ const setChannelCompliance = `-- name: SetChannelCompliance :one
 UPDATE channels SET retention_days = $1, classification_id = $2,
     access_rules = $3
 WHERE id = $4
-RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation
+RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation, mls
 `
 
 type SetChannelComplianceParams struct {
@@ -628,6 +629,7 @@ func (q *Queries) SetChannelCompliance(ctx context.Context, arg SetChannelCompli
 		&i.Encrypted,
 		&i.KeyCheck,
 		&i.Moderation,
+		&i.Mls,
 	)
 	return i, err
 }

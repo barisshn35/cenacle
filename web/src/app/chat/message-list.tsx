@@ -258,7 +258,7 @@ export function MessageRow({
               {m.poll && <PollCard message={m} channel={channel} />}
               <EditedLabel message={m} channel={channel} />
               <Attachments items={m.attachments} selfId={self} message={m} />
-              <MessageFiles files={m.files} />
+              {!channel.mls && <MessageFiles files={m.files} />}
               <LinkPreviewCard message={m} />
               <AckBar message={m} channel={channel} />
               <ReactionBar message={m} canReact={channel.can_react !== false} />

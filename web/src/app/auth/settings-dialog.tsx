@@ -47,6 +47,7 @@ import {
   type DeviceSession,
 } from './devices';
 import { dateLocale } from '../../i18n/time-format';
+import { EncryptionSettings } from '../e2e/ui';
 
 function useWhen() {
   const { i18n } = useTranslation();
@@ -323,6 +324,8 @@ export function SettingsDialog({
                   {t('settings.endAll')}
                 </Button>
               </section>
+
+              <EncryptionSettings />
             </div>
           )}
         </SideNavDialog>

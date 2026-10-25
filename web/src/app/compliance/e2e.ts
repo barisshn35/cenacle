@@ -7,6 +7,7 @@
  * "e2e:v1:<iv>:<ciphertext>" (AES-256-GCM, base64).
  */
 import { create } from 'zustand';
+import { isMLSEnvelope, openedPayload } from '../e2e/mls';
 
 const PREFIX = 'e2e:v1:';
 const CHECK = 'cenacle-key-check';
@@ -82,7 +83,11 @@ export async function decrypt(key: CryptoKey, envelope: string): Promise<string 
 
 /** A body as far as this page could open it (envelopes it could not: null). */
 export const plainOf = (body: string): string | null =>
-  isEnvelope(body) ? (plain.get(body) ?? null) : body;
+  isEnvelope(body)
+    ? (plain.get(body) ?? null)
+    : isMLSEnvelope(body)
+      ? (openedPayload(body)?.t ?? null)
+      : body;
 
 /** A new channel's salt and key check ("s:<salt>:" and a known text sealed with the key). */
 export async function newKeyCheck(passphrase: string): Promise<{ key: CryptoKey; check: string }> {
@@ -174,7 +179,9 @@ export async function sealFor(channelId: string, body: string): Promise<string> 
 }
 
 /** Whether the person can write in a channel here: encrypted ones need their key. */
-export function useCanWrite(channel: { id: string; encrypted?: boolean } | undefined) {
+export function useCanWrite(
+  channel: { id: string; encrypted?: boolean; mls?: boolean } | undefined,
+) {
   const key = useChannelKeys((s) => (channel ? s.keys[channel.id] : undefined));
-  return !channel?.encrypted || !!key;
+  return !channel?.encrypted || !!channel.mls || !!key;
 }

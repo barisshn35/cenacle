@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { infiniteQueryOptions } from '@tanstack/react-query';
 import { ApiError, apiFetch, NETWORK_ERROR, type components } from '@cenacle/core/api';
+import { isMLS } from '../e2e/channels';
+import { encryptFile, fileKeys } from '../e2e/files';
 
 export type FileInfo = components['schemas']['FileInfo'];
 export type ChannelFile = components['schemas']['ChannelFile'];
@@ -56,22 +58,29 @@ export async function uploadFile(
   signal: AbortSignal,
   onCreated?: (id: string) => void,
 ): Promise<FileInfo> {
+  // Channels encrypted with device keys get the file encrypted here.
+  const sealed = isMLS(channelId) ? await encryptFile(file) : null;
+  const bytes = sealed?.blob ?? file;
   const start = await apiFetch<UploadStart>(`/api/channels/${channelId}/files`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: file.name,
-      size: file.size,
-      content_type: file.type || 'application/octet-stream',
-      ...recordings.get(file),
-    }),
+    body: JSON.stringify(
+      sealed
+        ? { name: 'encrypted', size: bytes.size, encrypted: true }
+        : {
+            name: file.name,
+            size: file.size,
+            content_type: file.type || 'application/octet-stream',
+            ...recordings.get(file),
+          },
+    ),
     signal,
   });
   onCreated?.(start.file.id);
   await new Promise<void>((resolve, reject) => {
     const form = new FormData();
     for (const [k, v] of Object.entries(start.upload.fields)) form.append(k, v);
-    form.append('file', file);
+    form.append('file', bytes);
     const xhr = new XMLHttpRequest();
     xhr.open('POST', start.upload.url);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
@@ -99,7 +108,22 @@ export async function uploadFile(
     signal.addEventListener('abort', () => xhr.abort(), { once: true });
     xhr.send(form);
   });
-  return apiFetch<FileInfo>(`/api/files/${start.file.id}/complete`, { method: 'POST', signal });
+  const done = await apiFetch<FileInfo>(`/api/files/${start.file.id}/complete`, {
+    method: 'POST',
+    signal,
+  });
+  if (!sealed) return done;
+  const type = file.type || 'application/octet-stream';
+  fileKeys.set(done.id, {
+    id: done.id,
+    k: sealed.k,
+    iv: sealed.iv,
+    name: file.name,
+    type,
+    size: file.size,
+  });
+  // The composer shows the file as it is, not as the server keeps it.
+  return { ...done, name: file.name, content_type: type, size: file.size };
 }
 
 export const deleteUpload = (id: string) =>

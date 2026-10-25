@@ -15,6 +15,7 @@ import { SystemConsoleHost } from '../admin/system-console';
 import { useAppShortcuts } from '../shell/shortcuts-state';
 import { useQuickSwitcherShortcut } from './quick-switcher-state';
 import { useLive } from './presence-state';
+import { onGroupEvent, startE2E } from '../e2e/channels';
 import {
   addMessage,
   applyAck,
@@ -65,6 +66,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     navigateRef.current = navigate;
   }, [navigate]);
+
+  useEffect(() => startE2E(selfId), [selfId]);
 
   useEffect(() => {
     const live = useLive.getState();
@@ -188,6 +191,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           void queryClient.invalidateQueries({ queryKey: ['workspace-members', workspace_id] });
         } else if (ev.type.startsWith('workspace.')) {
           void reloadWorkspaces(queryClient);
+        } else if (ev.type === 'e2e.changed') {
+          onGroupEvent((ev.data as { channel_id: string }).channel_id);
         } else if (ev.type === 'channel.members_changed') {
           const { channel_id } = ev.data as { channel_id: string };
           void queryClient.invalidateQueries({ queryKey: ['members', channel_id] });

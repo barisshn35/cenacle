@@ -28,8 +28,10 @@ federated servers and the web push key (losing it means devices subscribe again)
 ID's database holds directory and identity-provider credentials, encrypted with
 `idp_key_encryption_key`.
 
-Not on the server, so not in any backup: the keys of encrypted channels. They come from a
-passphrase members share outside Cenacle; a lost passphrase cannot be recovered. AI keeps
+Not on the server, so not in any backup: the keys of encrypted channels. Channels encrypted
+with device keys keep them on each device; people's history backups are on the server but
+sealed with their recovery key (and the escrow key, when the organization requires it). A
+passphrase of an older encrypted channel cannot be recovered. AI keeps
 only its settings and a log without content in the chat database.
 
 Keep secrets and database backups **together and encrypted**. Token signing keys are stored

@@ -65,6 +65,22 @@ func FuzzEnvelopes(f *testing.F) {
 	})
 }
 
+// FuzzMLSHeader: any envelope reads safely; a header read is inside it.
+func FuzzMLSHeader(f *testing.F) {
+	f.Add("mls:v1:AAEAAiRhYmNkZWZnaC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODlhYmMAAAAAAAAAA6urq6s=")
+	f.Add("mls:v1:AAEAAv8=")
+	f.Add("mls:v1:AAEAAoA=")
+	f.Fuzz(func(t *testing.T, body string) {
+		group, _, ok := mlsHeader(body)
+		if ok && len(group) > len(body) {
+			t.Fatalf("group of %d bytes from %q", len(group), body)
+		}
+		if strings.HasPrefix(body, "mls:v1:") && encryptedBody(storeChannel(false), body) {
+			t.Fatalf("plain channel took %q", body)
+		}
+	})
+}
+
 // FuzzFirstLink: a link found is an http(s) address.
 func FuzzFirstLink(f *testing.F) {
 	f.Add("see https://example.org/a?b=c and http://x")

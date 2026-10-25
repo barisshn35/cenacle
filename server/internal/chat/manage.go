@@ -351,7 +351,7 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 		return
 	}
 	body, problem := strings.TrimSpace(in.Body), ""
-	if !strings.HasPrefix(body, "e2e:v1:") {
+	if !looksSealed(body) {
 		body, problem = validBody(in.Body)
 	}
 	if problem != "" {
@@ -364,6 +364,9 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 	}
 	if !encryptedBody(c, body) || body == "" {
 		refuseEncrypted(w, r)
+		return
+	}
+	if c.Mls && !h.mlsEpochOK(w, r, c, body) {
 		return
 	}
 	switch {

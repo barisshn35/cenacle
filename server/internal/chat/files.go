@@ -76,6 +76,9 @@ func thumbKey(id pgtype.UUID) string { return "thumbs/" + uuid(id).String() }
 func fileAPI(f store.File) api.FileInfo {
 	out := api.FileInfo{Id: uuid(f.ID), Name: f.Name, ContentType: f.ContentType, Size: f.Size,
 		HasThumbnail: f.HasThumbnail}
+	if f.Encrypted {
+		out.Encrypted = ptr(true)
+	}
 	if f.Width.Valid {
 		w, h := int(f.Width.Int32), int(f.Height.Int32)
 		out.Width, out.Height = &w, &h
@@ -186,6 +189,7 @@ func (h *Handlers) CreateUpload(w http.ResponseWriter, r *http.Request, channelI
 		MediaKind   *string `json:"media_kind"`
 		DurationMs  *int    `json:"duration_ms"`
 		Waveform    []int   `json:"waveform"`
+		Encrypted   bool    `json:"encrypted"`
 	}
 	if !decode(w, r, &in) {
 		return
@@ -220,6 +224,19 @@ func (h *Handlers) CreateUpload(w http.ResponseWriter, r *http.Request, channelI
 		forbidden(w, r, CodeReadOnlyChannel, "You cannot send messages in this channel.")
 		return
 	}
+	switch {
+	case c.Encrypted && !c.Mls, c.Mls && !in.Encrypted:
+		// Passphrase channels take no files; MLS channels take files encrypted in the browser.
+		refuseEncrypted(w, r)
+		return
+	case !c.Mls && in.Encrypted:
+		badRequest(w, r, "Only files of channels encrypted with device keys are encrypted.")
+		return
+	case in.Encrypted:
+		// The name and type travel inside the encrypted message.
+		name, contentType = "encrypted", "application/octet-stream"
+		media = store.CreateFileParams{}
+	}
 	if !h.allowMessage(w, r, p.User) {
 		return
 	}
@@ -236,7 +253,7 @@ func (h *Handlers) CreateUpload(w http.ResponseWriter, r *http.Request, channelI
 	f, err := h.Queries.CreateFile(r.Context(), store.CreateFileParams{
 		WorkspaceID: c.WorkspaceID, ChannelID: c.ID, UploaderID: p.User.ID, Name: name,
 		ContentType: contentType, Size: in.Size,
-		MediaKind: media.MediaKind, DurationMs: media.DurationMs, Waveform: media.Waveform,
+		MediaKind: media.MediaKind, DurationMs: media.DurationMs, Waveform: media.Waveform, Encrypted: in.Encrypted,
 	})
 	if err != nil {
 		h.unavailable(w, r, "create file", err)
@@ -349,6 +366,9 @@ func (fs *Files) Ingest(ctx context.Context, q *store.Queries, f store.File, r i
 // check scans an uploaded file, recognizes images and makes their preview.
 func (fs *Files) check(ctx context.Context, f store.File) (store.FinishUploadParams, error) {
 	out := store.FinishUploadParams{ID: f.ID, Status: "ready", ContentType: f.ContentType}
+	if f.Encrypted {
+		return out, nil // ciphertext: nothing to scan, recognize or preview
+	}
 	if fs.Scanner != nil {
 		obj, err := fs.Store.Open(ctx, fileKey(f.ID))
 		if err != nil {

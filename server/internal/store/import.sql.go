@@ -279,7 +279,7 @@ func (q *Queries) GetInstanceAdmin(ctx context.Context) (User, error) {
 const importFile = `-- name: ImportFile :one
 INSERT INTO files (workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $5)
-RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted
 `
 
 type ImportFileParams struct {
@@ -327,6 +327,7 @@ func (q *Queries) ImportFile(ctx context.Context, arg ImportFileParams) (File, e
 		&i.Waveform,
 		&i.ContentText,
 		&i.ContentState,
+		&i.Encrypted,
 	)
 	return i, err
 }

@@ -440,6 +440,8 @@ export interface MockApi {
   statuses: string[];
   /** Requests to end sessions: an id, or "all"/"others". */
   ended: string[];
+  /** The channels as the fake server keeps them (tests may change them). */
+  channels?: MockChannel[];
   /** Profiles by id as the fake server keeps them (tests may change them). */
   profiles: Record<string, MockProfile>;
   /** Closes the WebSocket from the server side. */
@@ -828,6 +830,7 @@ export async function mockApi(
     RANDOM,
     ...(opts.channels ?? []),
   ].map((c) => ({ ...c, can_manage: admin && c.kind !== 'direct' && c.kind !== 'group' }));
+  api.channels = all;
   // channel id -> member ids (manager first)
   const members = new Map<string, { id: string; role: 'member' | 'manager' }[]>(
     all.map((c) => [c.id, [{ id: PEOPLE[0]!.id, role: 'member' }]]),

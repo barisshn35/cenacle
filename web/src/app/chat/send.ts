@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { ApiError, apiFetch } from '@cenacle/core/api';
 import { sealFor } from '../compliance/e2e';
+import { isMLS, sendSealed } from '../e2e/channels';
 import { addMessage, type Message } from './data';
 import { newNonce, usePending, type PendingMessage } from './pending';
 import { threadKey, useUnreadHold } from './unread-hold';
@@ -33,22 +34,27 @@ export function useSendMessage() {
       const { update, remove } = usePending.getState();
       update(p.nonce, { status: 'sending', retryAfter: undefined, reason: undefined });
       try {
-        const message = await apiFetch<Message>(`/api/channels/${p.channelId}/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            // Encrypted channels get the body sealed with their key.
-            body: await sealFor(p.channelId, p.body),
-            nonce: p.nonce,
-            ...(p.files?.length ? { file_ids: p.files.map((f) => f.id) } : {}),
-            ...(p.rootId ? { root_id: p.rootId, also_in_channel: !!p.alsoInChannel } : {}),
-            ...(p.sticker ? { sticker_id: p.sticker.id } : {}),
-            ...(p.burnSeconds ? { burn_seconds: p.burnSeconds } : {}),
-            ...(p.priority?.level ? { priority: p.priority.level } : {}),
-            ...(p.priority?.requestAck ? { request_ack: true } : {}),
-            ...(p.priority?.persistent ? { persistent: true } : {}),
-          }),
-        });
+        const post = (body: string) =>
+          apiFetch<Message>(`/api/channels/${p.channelId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              body,
+              nonce: p.nonce,
+              ...(p.files?.length ? { file_ids: p.files.map((f) => f.id) } : {}),
+              ...(p.rootId ? { root_id: p.rootId, also_in_channel: !!p.alsoInChannel } : {}),
+              ...(p.sticker ? { sticker_id: p.sticker.id } : {}),
+              ...(p.burnSeconds ? { burn_seconds: p.burnSeconds } : {}),
+              ...(p.priority?.level ? { priority: p.priority.level } : {}),
+              ...(p.priority?.requestAck ? { request_ack: true } : {}),
+              ...(p.priority?.persistent ? { persistent: true } : {}),
+            }),
+          });
+        // Encrypted channels get the body sealed: with device keys (MLS) or the
+        // channel's passphrase key.
+        const message = isMLS(p.channelId)
+          ? await sendSealed(p.channelId, p.body, p.files?.map((f) => f.id) ?? [], post)
+          : await post(await sealFor(p.channelId, p.body));
         addMessage(queryClient, message);
         // Sending reads what was marked unread there (as on the server).
         useUnreadHold.getState().release(message.channel_id);

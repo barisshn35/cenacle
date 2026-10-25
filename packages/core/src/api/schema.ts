@@ -1056,6 +1056,180 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/e2e/devices': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** This person's devices that hold end-to-end encryption keys */
+    get: operations['listE2EDevices'];
+    put?: never;
+    /**
+     * Register this device's signing key for encrypted channels
+     * @description The private key stays on the device. Up to 20 active devices per person.
+     */
+    post: operations['registerE2EDevice'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/e2e/devices/{device_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a device; the groups it is in remove it with their next change */
+    delete: operations['revokeE2EDevice'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/users/{user_id}/e2e/devices': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    /** Someone's devices and their public keys (to verify them) */
+    get: operations['listUserE2EDevices'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/e2e': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** The channel's MLS group as the delivery service keeps it (members) */
+    get: operations['getMLSGroup'];
+    put?: never;
+    /**
+     * Turn on end-to-end encryption with device keys (cannot be turned off)
+     * @description The channel's managers (in conversations, any participant). The device that
+     *     turns it on made the group (epoch 0) and sends its GroupInfo; the others
+     *     join on their own with it.
+     */
+    post: operations['enableMLS'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/e2e/commits': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** The group's commits from an epoch on, in order (up to 100) */
+    get: operations['listMLSCommits'];
+    put?: never;
+    /**
+     * Move the group to the next epoch
+     * @description Accepted only while the group is at `epoch`; otherwise 409 (another commit came
+     *     first: apply it and try again). `joined` is set for an external commit by which
+     *     `device_id` joins; `removed` lists the devices the commit removes.
+     */
+    post: operations['sendMLSCommit'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channel_id}/e2e/backups': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    /** This person's history backups of the channel (sealed with their recovery key) */
+    get: operations['listE2EBackups'];
+    put?: never;
+    /** Keep texts this device read, sealed with the recovery key */
+    post: operations['addE2EBackup'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/e2e/recovery': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Whether this person has a recovery key, and the organization's escrow key */
+    get: operations['getE2ERecovery'];
+    /**
+     * Set a new recovery key (earlier backups are deleted)
+     * @description `verifier` is HMAC-SHA-256(recovery key, "cenacle-recovery-check"). With an
+     *     escrow key, `escrow` is the recovery key sealed for it and is required.
+     */
+    put: operations['setE2ERecovery'];
+    post?: never;
+    /** Forget the recovery key and delete its backups */
+    delete: operations['deleteE2ERecovery'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/e2e/escrow': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Require recovery keys to be sealed for the organization's key (instance administrators)
+     * @description A P-256 public key (SPKI, DER). People set a new recovery key after it changes.
+     *     The private key stays offline; server e2e-escrow opens backups with it.
+     */
+    put: operations['setE2EEscrowKey'];
+    post?: never;
+    /** Stop requiring escrow (instance administrators) */
+    delete: operations['deleteE2EEscrowKey'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/messages/{message_id}/spillage': {
     parameters: {
       query?: never;
@@ -5448,6 +5622,73 @@ export interface components {
       decided_at?: string | null;
       note?: string;
     };
+    E2EDevice: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      user_id: string;
+      name: string;
+      /**
+       * Format: byte
+       * @description The Ed25519 public key of the device's MLS credential.
+       */
+      signature_key: string;
+      /** Format: date-time */
+      created_at: string;
+      /**
+       * Format: date-time
+       * @description Only for one's own devices.
+       */
+      last_seen_at?: string;
+      /**
+       * Format: date-time
+       * @description Removed: its earlier messages still verify, it joins no group.
+       */
+      revoked_at?: string | null;
+    };
+    MLSGroup: {
+      /** Format: int64 */
+      epoch: number;
+      /**
+       * Format: byte
+       * @description The GroupInfo of the current epoch (for joining).
+       */
+      group_info: string;
+      members: {
+        /** Format: uuid */
+        device_id: string;
+        /** Format: uuid */
+        user_id: string;
+        /** Format: int64 */
+        joined_epoch: number;
+        /** @description Removed or no longer in the channel: the next commit removes it. */
+        stale: boolean;
+      }[];
+    };
+    MLSCommit: {
+      /**
+       * Format: int64
+       * @description The epoch the commit leaves.
+       */
+      epoch: number;
+      /** Format: uuid */
+      device_id?: string | null;
+      /** Format: byte */
+      data: string;
+    };
+    E2ERecovery: {
+      set: boolean;
+      /** Format: byte */
+      verifier?: string;
+      escrow_key?: components['schemas']['E2EEscrowKey'];
+      /** @description The recovery key is sealed for the current escrow key. */
+      escrowed?: boolean;
+    };
+    E2EEscrowKey: {
+      key_id: string;
+      /** Format: byte */
+      public_key: string;
+    };
     GuestLink: {
       /** Format: uuid */
       id: string;
@@ -5480,6 +5721,8 @@ export interface components {
     Channel: {
       /** @description End-to-end encrypted; bodies are envelopes only members can open. */
       encrypted?: boolean;
+      /** @description Encrypted with device keys (MLS): bodies are "mls:v1:…" envelopes. */
+      mls?: boolean;
       /** @description Encrypted channels: lets members check their passphrase. */
       key_check?: string;
       /**
@@ -6158,6 +6401,8 @@ export interface components {
       width: number | null;
       height: number | null;
       has_thumbnail: boolean;
+      /** @description Encrypted in the browser; the key is in the message. */
+      encrypted?: boolean;
       /** @enum {string|null} */
       media_kind?: 'voice' | 'clip' | null;
       duration_ms?: number | null;
@@ -8268,6 +8513,434 @@ export interface operations {
       404: components['responses']['Problem'];
       410: components['responses']['Problem'];
       429: components['responses']['Problem'];
+    };
+  };
+  listE2EDevices: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Active devices, oldest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            devices: components['schemas']['E2EDevice'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  registerE2EDevice: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @description How the device is called, e.g. "Firefox on Linux". */
+          name: string;
+          /**
+           * Format: byte
+           * @description The Ed25519 public key (32 bytes).
+           */
+          signature_key: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The device. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['E2EDevice'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  revokeE2EDevice: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        device_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listUserE2EDevices: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Devices, oldest first, removed ones with revoked_at. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            devices: components['schemas']['E2EDevice'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  getMLSGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The group. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MLSGroup'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  enableMLS: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          device_id: string;
+          /** Format: byte */
+          group_info: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The group. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MLSGroup'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  listMLSCommits: {
+    parameters: {
+      query: {
+        from_epoch: number;
+      };
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Commits. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            commits: components['schemas']['MLSCommit'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  sendMLSCommit: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          device_id: string;
+          /** Format: int64 */
+          epoch: number;
+          /** Format: byte */
+          commit: string;
+          /** Format: byte */
+          group_info: string;
+          /** @default false */
+          joined?: boolean;
+          removed?: string[];
+        };
+      };
+    };
+    responses: {
+      /** @description The group at its new epoch. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MLSGroup'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  listE2EBackups: {
+    parameters: {
+      query?: {
+        after?: string;
+      };
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Up to 50 backups, oldest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            backups: {
+              /** Format: uuid */
+              id: string;
+              /** Format: byte */
+              data: string;
+            }[];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  addE2EBackup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: byte */
+          data: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Kept. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+    };
+  };
+  getE2ERecovery: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The recovery state. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['E2ERecovery'];
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setE2ERecovery: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: byte */
+          verifier: string;
+          /** Format: byte */
+          escrow?: string;
+          escrow_key_id?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The recovery state. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['E2ERecovery'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  deleteE2ERecovery: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setE2EEscrowKey: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          key_id: string;
+          /** Format: byte */
+          public_key: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The escrow key. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['E2EEscrowKey'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  deleteE2EEscrowKey: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
     };
   };
   reportSpillage: {
@@ -11158,6 +11831,8 @@ export interface operations {
            * @enum {string}
            */
           media_kind?: 'voice' | 'clip';
+          /** @description Encrypted in the browser (required in MLS channels): kept as is, without previews. */
+          encrypted?: boolean;
           duration_ms?: number;
           waveform?: number[];
         };
