@@ -8,6 +8,30 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-10-25
+
+Performance with years of data and over long runs: tests with two million messages and
+a twenty-minute soak, and the fixes they called for (docs/operations/performance.md).
+
+### Changed
+
+- **Channel list:** the unread and mention counts read only what came after the last
+  read message. With 2,000,000 messages in 200 channels it opens in 27 ms instead of
+  6 seconds (median); mentions now carry their channel (migration 00046).
+- **Activity:** only the last 30 days are read (136 → 58 ms with the same data).
+- The server turns off PostgreSQL's JIT compilation for its connections: it cost more
+  than it saved on the short queries the server runs (`jit=on` in the URL keeps it).
+
+### Added
+
+- `TestScale` (large data: channel list, unreads, activity, threads, history near and
+  far, search) and `TestSoak` (a long steady run that fails when memory, goroutines or
+  database connections keep growing), build tag `load`.
+- The load test analyzes its tables before reading back, as autovacuum does on a
+  server, so that its numbers no longer depend on when PostgreSQL first did.
+- `@cenacle/ui` gets `border-beam` (MIT) and the Morphin component registry, for the
+  interface work of 1.0; nothing uses them yet.
+
 ## [0.42.0] - 2026-10-25
 
 Security tests before the release candidate: the review and the guide for a manual
@@ -1204,7 +1228,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.42.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.43.0...HEAD
+[0.43.0]: https://github.com/barisshn35/cenacle/compare/v0.42.0...v0.43.0
 [0.42.0]: https://github.com/barisshn35/cenacle/compare/v0.41.0...v0.42.0
 [0.41.0]: https://github.com/barisshn35/cenacle/compare/v0.40.0...v0.41.0
 [0.40.0]: https://github.com/barisshn35/cenacle/compare/v0.39.0...v0.40.0

@@ -48,6 +48,14 @@ included, was there.
 
 ## Version notes
 
+### 0.43.0
+
+- Migration: chat 00046 adds the channel to each mention and an index on it. It rewrites
+  the mentions table once (one row per mention; a few seconds for millions) and blocks
+  writing mentions meanwhile. Rolling back drops the column and the index.
+- The server's database connections turn off PostgreSQL's JIT compilation (`jit=off`).
+  Add `jit=on` to `CENACLE_DATABASE_URL` to keep it.
+
 ### 0.42.0
 
 - No migration, nothing to do.
