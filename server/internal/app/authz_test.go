@@ -4,6 +4,7 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -160,5 +161,33 @@ func TestOutsidersReachNothing(t *testing.T) {
 	}
 	for _, c := range crashes {
 		t.Errorf("server error (insider): %s", c)
+	}
+
+	// A guest of the workspace sees only the channels they were added to:
+	// a public channel they are not in is as closed to them as a private one.
+	guest := s.user("sub-guest", "Guest")
+	gtoken := s.invite(admin, ws, map[string]any{})
+	if res := s.call(http.MethodPost, "/api/invites/"+gtoken+"/accept", guest, nil, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("guest joins = %d", res.StatusCode)
+	}
+	if _, err := s.pool.Exec(context.Background(),
+		"UPDATE workspace_members SET role = 'guest' WHERE workspace_id = $1 AND user_id = $2", ws, s.userID(guest)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.pool.Exec(context.Background(), "DELETE FROM channel_members WHERE user_id = $1", s.userID(guest)); err != nil {
+		t.Fatal(err)
+	}
+	lobbyMsg, _ := s.send(admin, public, "lobby talk", "authz-nonce-2")
+	values["channel_id"], values["message_id"], values["root_id"] = public, lobbyMsg.ID, lobbyMsg.ID
+	byChannel := regexp.MustCompile(`\{(channel_id|message_id|root_id)\}`)
+	n, leaks, crashes = probe(guest, byChannel.MatchString)
+	if n < 30 {
+		t.Fatalf("only %d channel operations checked (guest)", n)
+	}
+	for _, l := range leaks {
+		t.Errorf("guest outside the channel succeeded: %s", l)
+	}
+	for _, c := range crashes {
+		t.Errorf("server error (guest): %s", c)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -368,5 +369,30 @@ func TestFilesFormCannotReplaceACheckedFile(t *testing.T) {
 	status, _, body := s.get(ayse, "/api/files/"+u.File.ID+"/content")
 	if status != http.StatusOK || string(body) != string(first) {
 		t.Errorf("served %d %q, want the checked text", status, body)
+	}
+}
+
+// Files that a browser would run as a page (HTML, SVG) are only ever
+// downloaded, with headers that keep them from acting as the app.
+func TestFilesThatCouldRunAreDownloaded(t *testing.T) {
+	s := newStack(t, newShared(t), options{files: true})
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	for i, f := range []struct{ name, ctype, data string }{
+		{"page.html", "text/html", "<script>alert(1)</script>"},
+		{"image.svg", "image/svg+xml", `<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>`},
+		{"script.js", "text/javascript", "alert(1)"},
+	} {
+		up := s.uploadFile(ayse, general, f.name, f.ctype, []byte(f.data))
+		s.call(http.MethodPost, "/api/channels/"+general+"/messages", ayse,
+			map[string]any{"body": "see", "nonce": fmt.Sprintf("run-%d", i), "file_ids": []string{up.ID}}, nil)
+		status, hdr, _ := s.get(ayse, "/api/files/"+up.ID+"/content")
+		if status != http.StatusOK || hdr.Get("Content-Type") != "application/octet-stream" ||
+			!strings.HasPrefix(hdr.Get("Content-Disposition"), "attachment") ||
+			hdr.Get("X-Content-Type-Options") != "nosniff" ||
+			!strings.Contains(hdr.Get("Content-Security-Policy"), "sandbox") {
+			t.Errorf("%s served as %d %q %q nosniff=%q csp=%q", f.name, status, hdr.Get("Content-Type"),
+				hdr.Get("Content-Disposition"), hdr.Get("X-Content-Type-Options"), hdr.Get("Content-Security-Policy"))
+		}
 	}
 }

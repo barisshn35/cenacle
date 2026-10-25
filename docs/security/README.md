@@ -95,7 +95,8 @@ commands that carry text, tabs and forums are not available in these channels.
 What the server still knows: who is in which channel, which device sent changes, when
 messages were sent and how long they are. Bots, search, link previews, AutoMod, AI,
 scheduled messages and notifications with text do not work in encrypted channels.
-ts-mls has not had an independent security audit; it is part of the 0.42 security review.
+ts-mls has not had an independent security audit; how Cenacle uses it was reviewed for 0.42
+([review](review-0.42.md)).
 
 ## Verifying a release (0.31)
 
@@ -138,6 +139,13 @@ so verifying needs only the public key and the registry — also without Interne
 The key is set up once per GitLab project with `ci/setup-signing.sh` (it keeps the private
 key only in protected CI/CD variables and protects `v*` tags); a release without it is
 published unsigned and its pipeline says so.
+
+## Security reviews
+
+- [Review 0.42](review-0.42.md): what the project tested before the release candidate
+  (dependencies, scans, the authorization matrix, the OAuth profile, files, fuzzing).
+- [Pentest guide](pentest-guide.md): scope, a test installation and a checklist for a
+  manual penetration test by people outside the project.
 
 ## Scanning a running installation
 

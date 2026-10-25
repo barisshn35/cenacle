@@ -100,6 +100,24 @@ test('an authorization code works only once', async ({ page }) => {
   await expect(client.authorizationCodeGrant(auth.config, current, checks)).rejects.toThrow();
 });
 
+test('a code is exchanged only with the verifier of its challenge (PKCE)', async ({ page }) => {
+  const auth = await startAuthorization(page);
+  await submitLogin(page, EMAIL, PASSWORD);
+  await page.waitForURL((u) => u.href.startsWith(h.callbackUrl));
+  const current = new URL(page.url());
+  await expect(
+    client.authorizationCodeGrant(auth.config, current, {
+      pkceCodeVerifier: client.randomPKCECodeVerifier(),
+      expectedState: auth.state,
+    }),
+  ).rejects.toThrow();
+  // With its own verifier the code still works (the client that started it).
+  await client.authorizationCodeGrant(auth.config, current, {
+    pkceCodeVerifier: auth.verifier,
+    expectedState: auth.state,
+  });
+});
+
 test('wrong credentials get one message for unknown and known accounts', async ({ page }) => {
   await startAuthorization(page);
   await submitLogin(page, EMAIL, 'a wrong but long passphrase');
@@ -205,4 +223,53 @@ test('rotated keys keep earlier tokens verifiable', async ({ page }) => {
   const after = await signIn(page);
   expect(decodeProtectedHeader(after.tokens.id_token!).kid).toBe(newKid);
   expect(newKid).not.toBe(oldKid);
+});
+
+// RFC 9700 profile: only the authorization code flow with PKCE (S256), to
+// registered redirect addresses only. Each request below must be refused:
+// no code is issued, and nothing is sent to an address that is not registered.
+test('authorization requests outside the profile are refused', async () => {
+  const meta = (await rp()).serverMetadata();
+  const good = {
+    client_id: CLIENT_ID,
+    redirect_uri: h.callbackUrl,
+    response_type: 'code',
+    scope: 'openid',
+    state: 'state-1',
+    code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+    code_challenge_method: 'S256',
+  };
+  const variants: Record<string, Record<string, string | undefined>> = {
+    'another redirect address': { redirect_uri: 'https://elsewhere.example/callback' },
+    'a redirect address with an extra path': { redirect_uri: `${h.callbackUrl}/more` },
+    'no PKCE': { code_challenge: undefined, code_challenge_method: undefined },
+    'PKCE plain': { code_challenge_method: 'plain' },
+    'the implicit flow': { response_type: 'token' },
+    'a hybrid flow': { response_type: 'code id_token' },
+    'an unknown client': { client_id: 'nobody' },
+  };
+  for (const [name, change] of Object.entries(variants)) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries({ ...good, ...change }))
+      if (v !== undefined) params.set(k, v);
+    const res = await fetch(`${meta.authorization_endpoint}?${params}`, { redirect: 'manual' });
+    const location = res.headers.get('location') ?? '';
+    const where = location ? new URL(location, h.issuer) : null;
+    // Either an error page here, or an error sent to the registered address.
+    const toRegistered = where?.href.startsWith(h.callbackUrl) ?? false;
+    const toIssuer = where?.origin === new URL(h.issuer).origin;
+    expect(where === null || toRegistered || toIssuer, `${name}: sent to ${location}`).toBe(true);
+    if (toRegistered) {
+      // Flows that answer in the fragment get their error there.
+      const answer = new URLSearchParams(where!.search || where!.hash.slice(1));
+      const fragment = new URLSearchParams(where!.hash.slice(1));
+      expect(answer.get('code') ?? fragment.get('code'), `${name}: a code`).toBeNull();
+      expect(answer.get('error') ?? fragment.get('error'), `${name}: no error`).not.toBeNull();
+    }
+    if (toIssuer) {
+      // An interaction would mean the request was accepted.
+      expect(where!.pathname.startsWith('/interaction/'), `${name}: accepted`).toBe(false);
+    }
+    if (!where) expect(res.status, name).toBeGreaterThanOrEqual(400);
+  }
 });
