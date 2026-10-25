@@ -4,6 +4,7 @@ import {
   burnPasswordCheck,
   checkPasswordPolicy,
   hashPassword,
+  needsRehash,
   verifyPassword,
 } from './passwords.ts';
 
@@ -141,6 +142,13 @@ export class UserStore {
     }
     const ok = await verifyPassword(row.password_hash, password);
     if (!ok || row.disabled_at !== null) return null;
+    if (needsRehash(row.password_hash)) {
+      // Switching to or from FIPS mode: the password moves to this mode's hash.
+      await this.pool.query(
+        `UPDATE users SET password_hash = $2 WHERE id = $1 AND password_hash = $3`,
+        [row.id, await hashPassword(password), row.password_hash],
+      );
+    }
     return toUser(row);
   }
 

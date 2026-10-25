@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { registerSigninNotice } from './ui/notice.ts';
 import { randomBytes } from 'node:crypto';
 import Fastify, {
   LogController,
@@ -58,6 +59,8 @@ export interface OidcOptions {
   issuer: string;
   formActionOrigins: string[];
   loginRateLimit?: number;
+  /** A notice people accept before signing in (none: no notice). */
+  signinNotice?: string;
   /** Two-step verification and audit log; with cookieKeys they enable /account. */
   mfa?: MfaStore;
   audit?: AuditLog;
@@ -214,6 +217,13 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
     configurePages({ issuer: opts.oidc.issuer });
     await app.register(formbody, { bodyLimit: 16 * 1024 });
     await app.register(rateLimit, { global: false });
+    if (opts.oidc.signinNotice) {
+      registerSigninNotice(app, {
+        text: opts.oidc.signinNotice,
+        issuer: opts.oidc.issuer,
+        formActionOrigins: opts.oidc.formActionOrigins,
+      });
+    }
     await registerInteractions(app, opts.oidc);
     const { mfa, audit, cookieKeys } = opts.oidc;
     if (mfa && audit && cookieKeys) {

@@ -9,9 +9,11 @@ WORKDIR /src
 COPY deploy/caddy/go.mod deploy/caddy/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY deploy/caddy/main.go ./
-ARG TARGETOS TARGETARCH
+# FIPS=true: TLS with the Go Cryptographic Module in FIPS 140-3 mode.
+ARG TARGETOS TARGETARCH FIPS=false
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    GOFIPS140="$([ "$FIPS" = true ] && echo v1.0.0 || echo off)" \
     go build -trimpath -ldflags "-s -w" -o /out/caddy .
 
 FROM alpine:3.24.2

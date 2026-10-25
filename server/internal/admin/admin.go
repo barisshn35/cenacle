@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/fips140"
 	"encoding/json"
 	"io"
 	"net/url"
@@ -24,7 +25,10 @@ import (
 
 // Report describes an installation at one moment.
 type Report struct {
-	Version    string                   `json:"version"`
+	Version string `json:"version"`
+	// FIPS140 is set when the server runs in FIPS 140-3 mode (the Go
+	// Cryptographic Module: a FIPS build, or GODEBUG=fips140=on).
+	FIPS140    bool                     `json:"fips140"`
 	Time       time.Time                `json:"time"`
 	Checks     map[string]string        `json:"checks"`
 	Migration  int64                    `json:"migration"`
@@ -34,7 +38,7 @@ type Report struct {
 
 // Status checks the dependencies and counts what the installation holds.
 func Status(ctx context.Context, version string, q store.Querier, migration func(context.Context) (int64, error), checks []health.Checker) Report {
-	r := Report{Version: version, Time: time.Now().UTC(), Checks: map[string]string{}}
+	r := Report{Version: version, FIPS140: fips140.Enabled(), Time: time.Now().UTC(), Checks: map[string]string{}}
 	for _, c := range checks {
 		cctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		if err := c.Check(cctx); err != nil {

@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# STIG profile (docs/security/stig.md): limits and logging on top of prod.yml,
+# which already runs every service without capabilities, without privilege
+# escalation and, where possible, with a read-only root file system.
+#   docker compose -f prod.yml -f stig.yml --env-file .env.prod up -d
+# With FIPS images, set CENACLE_IMAGE_VARIANT=-fips in .env.prod.
+
+x-limits: &limits
+  pids_limit: 512
+  ulimits:
+    nofile: { soft: 65536, hard: 65536 }
+    core: 0
+
+services:
+  proxy:
+    <<: *limits
+    mem_limit: 512m
+  web:
+    <<: *limits
+    mem_limit: 256m
+  server:
+    <<: *limits
+    mem_limit: 2g
+  idp:
+    <<: *limits
+    mem_limit: 1g
+  postgres:
+    <<: *limits
+    mem_limit: 4g
+    # Connections, disconnections and slow statements in the log; SCRAM only.
+    command:
+      - postgres
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+      - -c
+      - log_min_duration_statement=5000
+      - -c
+      - password_encryption=scram-sha-256
+  valkey:
+    <<: *limits
+    mem_limit: 1g
+  garage:
+    <<: *limits
+    mem_limit: 1g

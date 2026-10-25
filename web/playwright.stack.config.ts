@@ -60,6 +60,19 @@ export const idpEnv = {
   IDP_LOGIN_RATE_LIMIT: '1000',
 };
 
+/**
+ * STACK_FIPS_IDP_IMAGE=<image> runs Cenacle ID from a FIPS image (and the chat
+ * server in FIPS 140-3 mode): the same tests, with validated cryptography.
+ */
+const fipsImage = process.env.STACK_FIPS_IDP_IMAGE;
+const idpCommand = fipsImage
+  ? `docker run --rm --name cenacle-stack-idp --network host -v ${dir}:${dir}:ro ${Object.keys(
+      idpEnv,
+    )
+      .map((k) => `-e ${k}`)
+      .join(' ')} ${fipsImage}`
+  : 'pnpm exec tsx src/server.ts';
+
 const serverBin = join(dir, 'cenacle-server');
 const serverEnv = {
   CENACLE_ENV: 'development',
@@ -78,6 +91,7 @@ const serverEnv = {
   CENACLE_S3_ENDPOINT: process.env.CENACLE_S3_ENDPOINT ?? 'http://127.0.0.1:13900',
   CENACLE_S3_ACCESS_KEY: required('CENACLE_S3_ACCESS_KEY'),
   CENACLE_S3_SECRET_KEY: required('CENACLE_S3_SECRET_KEY'),
+  ...(fipsImage ? { GODEBUG: 'fips140=on' } : {}),
 };
 
 export default defineConfig({
@@ -94,7 +108,8 @@ export default defineConfig({
     {
       name: 'cenacle-id',
       command:
-        'node scripts/build-assets.mjs && pnpm exec tsx src/cli.ts migrate up && node ../web/e2e-stack/reset-idp-db.mjs && pnpm exec tsx src/server.ts',
+        'node scripts/build-assets.mjs && pnpm exec tsx src/cli.ts migrate up && node ../web/e2e-stack/reset-idp-db.mjs && ' +
+        idpCommand,
       cwd: '../idp',
       env: idpEnv,
       url: `${IDP_URL}/healthz`,

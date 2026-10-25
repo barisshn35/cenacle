@@ -8,6 +8,7 @@ const en = {
   productName: 'Cenacle ID',
   skipToContent: 'Skip to content',
   language: 'Language',
+  notice: { title: 'Before you sign in', accept: 'I understand and agree' },
   footer: {
     product: "Cenacle ID, the sign-in of your organization's Cenacle",
     help: 'Trouble signing in? Contact your IT department.',
@@ -190,6 +191,7 @@ const tr: Messages = {
   productName: 'Cenacle ID',
   skipToContent: 'İçeriğe geç',
   language: 'Dil',
+  notice: { title: 'Oturum açmadan önce', accept: 'Okudum, kabul ediyorum' },
   footer: {
     product: "Cenacle ID, kuruluşunun Cenacle'ı için giriş",
     help: 'Giriş yapamıyor musun? BT ekibine başvur.',

@@ -18,7 +18,8 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
 {{- define "cenacle.image" -}}
-{{ printf "%s/%s%s:%s" .root.Values.image.registry .root.Values.image.prefix .component (.root.Values.image.tag | default .root.Chart.AppVersion) }}
+{{- $fips := and .root.Values.image.fips (has .component (list "server" "idp")) -}}
+{{ printf "%s/%s%s%s:%s" .root.Values.image.registry .root.Values.image.prefix .component (ternary "-fips" "" $fips) (.root.Values.image.tag | default .root.Chart.AppVersion) }}
 {{- end -}}
 
 {{- define "cenacle.podSecurity" -}}

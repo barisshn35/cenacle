@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Cenacle ID (identity server). Build from the repository root:
 #   docker build -f idp/Dockerfile -t cenacle-idp .
+# FIPS 140-3 (node with OpenSSL's validated FIPS provider 3.1.2, CMVP #4985):
+#   docker build -f idp/Dockerfile --target fips -t cenacle-idp-fips .
 
 # Dependencies are pure JavaScript, so the build runs on the native build
 # platform (no emulation for arm64); only the node binary is target-specific.
@@ -25,9 +27,21 @@ RUN pnpm --filter @cenacle/idp build \
 # The node binary for the target platform.
 FROM node:24.22.1-alpine3.24 AS node
 
+# OpenSSL's FIPS provider, built from the validated 3.1.2 sources (only the
+# provider is used; node keeps its own OpenSSL library).
+FROM alpine:3.24.2 AS fips-provider
+RUN apk add --no-cache build-base perl linux-headers
+WORKDIR /build
+ADD --checksum=sha256:a0ce69b8b97ea6a35b96875235aa453b966ba3cba8af2de23657d8b6767d6539 \
+    https://github.com/openssl/openssl/releases/download/openssl-3.1.2/openssl-3.1.2.tar.gz /build/
+RUN tar xzf openssl-3.1.2.tar.gz && cd openssl-3.1.2 \
+ && ./Configure enable-fips --prefix=/usr/local --libdir=lib --openssldir=/usr/local/ssl >/dev/null \
+ && make -j"$(nproc)" >/dev/null \
+ && make install_fips DESTDIR=/out >/dev/null
+
 # Runtime: plain Alpine plus the node binary only (no npm/corepack/yarn):
 # smaller image and smaller attack surface.
-FROM alpine:3.24.2
+FROM alpine:3.24.2 AS runtime
 RUN apk add --no-cache libstdc++ libgcc \
  && addgroup -g 1000 node && adduser -u 1000 -G node -s /sbin/nologin -D node
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
@@ -44,3 +58,18 @@ HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.IDP_PORT||8190)+'/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
 # Maintenance commands: docker compose run --rm idp node dist/cli.js <migrate|keys|users> ...
 CMD ["node", "--enable-source-maps", "dist/server.js"]
+
+# The FIPS variant: node loads the FIPS provider and allows FIPS-approved
+# algorithms only (default property fips=yes); passwords use PBKDF2.
+FROM runtime AS fips
+COPY --from=fips-provider /out/usr/local/lib/ossl-modules/fips.so /usr/local/lib/ossl-modules/fips.so
+COPY --from=fips-provider /out/usr/local/ssl/fipsmodule.cnf /etc/ssl/fipsmodule.cnf
+COPY idp/fips/openssl.cnf /etc/ssl/cenacle-fips.cnf
+ENV OPENSSL_CONF=/etc/ssl/cenacle-fips.cnf \
+    OPENSSL_MODULES=/usr/local/lib/ossl-modules
+USER node
+CMD ["node", "--enable-fips", "--enable-source-maps", "dist/server.js"]
+
+# The default image (the last stage).
+FROM runtime
+USER node

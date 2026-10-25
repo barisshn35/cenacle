@@ -143,6 +143,9 @@ is not set, as nothing cross-origin is loaded and it would only restrict later e
 
 ## Hardening checklist for operators
 
+For FIPS 140-3 images see [fips.md](fips.md); for a deployment in line with DISA STIGs
+(notice and consent banner, limits, the requirement areas) see [stig.md](stig.md).
+
 - Keep `CENACLE_TLS_MODE` on a real certificate; the proxy sends `Strict-Transport-Security`.
 - Leave `CENACLE_EGRESS_ALLOW` empty unless bots or federated servers live on your network,
   and then list only their networks.

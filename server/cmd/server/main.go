@@ -16,6 +16,7 @@ import (
 	"archive/zip"
 	"cmp"
 	"context"
+	"crypto/fips140"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -123,7 +124,11 @@ func run(args []string) error {
 	}
 	switch args[0] {
 	case "version":
-		fmt.Println(version)
+		if fips140.Enabled() {
+			fmt.Println(version, "(FIPS 140-3 mode)")
+		} else {
+			fmt.Println(version)
+		}
 		return nil
 	case "healthcheck":
 		// Distroless images have no curl; the binary probes itself.

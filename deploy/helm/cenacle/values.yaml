@@ -8,6 +8,8 @@ image:
   prefix: cenacle-
   # Defaults to the chart's appVersion.
   tag: ''
+  # FIPS 140-3 images of the server and Cenacle ID (<component>-fips; docs/security/fips.md).
+  fips: false
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 
@@ -105,6 +107,8 @@ server:
 idp:
   replicas: 1
   loginRateLimit: 10
+  # A notice people accept before signing in (STIG notice and consent banner).
+  signinNotice: ''
   # Share Cenacle ID cookies across subdomains, e.g. example.com.
   cookieDomain: ''
   resources:

@@ -21,6 +21,8 @@ spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}
       {{- end }}
+      # No Kubernetes API access: no service account token in the pod.
+      automountServiceAccountToken: false
       securityContext:
         {{- include "cenacle.podSecurity" . | nindent 8 }}
       containers:

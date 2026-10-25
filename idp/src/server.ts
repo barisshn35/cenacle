@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { fipsMode } from './accounts/passwords.ts';
 import { fileURLToPath } from 'node:url';
 import { AuditLog } from './accounts/audit.ts';
 import { MfaStore } from './accounts/mfa.ts';
@@ -73,6 +74,7 @@ async function main(): Promise<void> {
       issuer: config.issuer,
       formActionOrigins,
       loginRateLimit: config.loginRateLimit,
+      signinNotice: config.signinNotice,
       mfa: new MfaStore(pool, config.keyEncryptionKey),
       audit: new AuditLog(pool, (err) => console.error('audit log write failed', err)),
       cookieKeys: config.cookieKeys,
@@ -131,7 +133,12 @@ async function main(): Promise<void> {
 
   await app.listen({ host: config.host, port: config.port });
   app.log.info(
-    { issuer: config.issuer, env: config.env, clients: clients.map((c) => c.client_id) },
+    {
+      issuer: config.issuer,
+      env: config.env,
+      clients: clients.map((c) => c.client_id),
+      fips140: fipsMode(),
+    },
     'identity server ready',
   );
 }

@@ -225,6 +225,16 @@ images:
         DOCKERFILE: web/Dockerfile
       - IMAGE: proxy
         DOCKERFILE: deploy/compose/caddy/Dockerfile
+      # FIPS 140-3 variants (docs/security/fips.md).
+      - IMAGE: server-fips
+        DOCKERFILE: server/Dockerfile
+        BUILD_ARGS: --build-arg FIPS=true
+      - IMAGE: idp-fips
+        DOCKERFILE: idp/Dockerfile
+        BUILD_ARGS: --target fips
+      - IMAGE: proxy-fips
+        DOCKERFILE: deploy/compose/caddy/Dockerfile
+        BUILD_ARGS: --build-arg FIPS=true
   variables:
     BUILDX_CACHE: /cache/buildx/$IMAGE
   before_script:
@@ -232,13 +242,15 @@ images:
       docker buildx create --name cenacle --driver docker-container --driver-opt network=host
     - export VERSION="${CI_COMMIT_TAG:-$CI_COMMIT_SHA}"
   script:
-    - docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$VERSION"
+    - docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$VERSION" ${BUILD_ARGS:-}
       --platform linux/amd64 --load -t "cenacle-$IMAGE:ci"
       --cache-from "type=local,src=$BUILDX_CACHE" --cache-to "type=local,dest=$BUILDX_CACHE.new,mode=max" .
     - rm -rf "$BUILDX_CACHE" && mv "$BUILDX_CACHE.new" "$BUILDX_CACHE"
     # The image runs as non-root.
     - user="$(docker inspect -f '{{.Config.User}}' "cenacle-$IMAGE:ci")" && echo "user=$user"
     - case "$user" in ''|root|0|0:*) echo "image must not run as root"; exit 1;; esac
+    # Hardening (docs/security/stig.md): no setuid or setgid files.
+    - ci/check-image.sh "cenacle-$IMAGE:ci" "$IMAGE"
     - >
       docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /cache/trivy:/root/.cache/trivy
       "$TRIVY_IMAGE" image --quiet --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "cenacle-$IMAGE:ci"
@@ -250,7 +262,7 @@ images:
         # Built once into an OCI archive, then published (and signed) by
         # ci/publish-image.sh.
         archive="$CI_PROJECT_DIR/.image-$IMAGE.tar"
-        docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" \
+        docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" ${BUILD_ARGS:-} \
           --platform linux/amd64,linux/arm64 \
           --label org.opencontainers.image.title="cenacle-$IMAGE" \
           --label org.opencontainers.image.licenses=AGPL-3.0-only \

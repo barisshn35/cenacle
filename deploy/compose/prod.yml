@@ -22,7 +22,7 @@ x-hardening: &hardening
     options: { max-size: 20m, max-file: '5' }
 
 x-images:
-  server: &server-image ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}server:${CENACLE_VERSION:?set CENACLE_VERSION}
+  server: &server-image ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}server${CENACLE_IMAGE_VARIANT:-}:${CENACLE_VERSION:?set CENACLE_VERSION}
 
 services:
   proxy:
@@ -30,7 +30,7 @@ services:
     build:
       context: ../..
       dockerfile: deploy/compose/caddy/Dockerfile
-    image: ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}proxy:${CENACLE_VERSION}
+    image: ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}proxy${CENACLE_IMAGE_VARIANT:-}:${CENACLE_VERSION}
     read_only: true
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 80
@@ -161,7 +161,7 @@ services:
   idp-migrate:
     <<: *hardening
     restart: 'no'
-    image: &idp-image ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}idp:${CENACLE_VERSION}
+    image: &idp-image ${CENACLE_IMAGE_PREFIX:-git.calaixo.com:5050/calaxio/cenacle/cenacle-}idp${CENACLE_IMAGE_VARIANT:-}:${CENACLE_VERSION}
     command: [node, dist/cli.js, migrate, up]
     read_only: true
     environment:
@@ -186,6 +186,8 @@ services:
       IDP_COOKIE_KEYS_FILE: /run/secrets/idp_cookie_keys
       IDP_CLIENTS_FILE: /etc/cenacle/clients.json
       IDP_LOGIN_RATE_LIMIT: ${IDP_LOGIN_RATE_LIMIT:-10}
+      # A notice people accept before signing in (STIG notice and consent banner).
+      IDP_SIGNIN_NOTICE: ${IDP_SIGNIN_NOTICE:-}
       IDP_LOG_LEVEL: ${IDP_LOG_LEVEL:-info}
       # Used inside clients.json (${CENACLE_DOMAIN}).
       CENACLE_DOMAIN: ${CENACLE_DOMAIN}
