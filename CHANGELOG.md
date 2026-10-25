@@ -8,6 +8,30 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-10-25
+
+Security tests before the release candidate: the review and the guide for a manual
+penetration test are in docs/security.
+
+### Security
+
+- `fast-uri` (used by Cenacle ID through Fastify) is updated for its advisories.
+
+### Added
+
+- **Security review 0.42** (docs/security/review-0.42.md): dependencies, scans of the
+  running stack and of the images, the end-to-end encryption's trust in the server's
+  device list, and what is left to testers outside the project.
+- **Pentest guide** (docs/security/pentest-guide.md): scope, a test installation on its
+  own Docker network and a checklist.
+- Tests: the authorization matrix also as a guest of the workspace; Cenacle ID refuses
+  authorization requests outside the OAuth profile (other redirect addresses, no or
+  `plain` PKCE, implicit and hybrid flows, unknown clients) and binds codes to their
+  PKCE verifier; HTML, SVG and scripts are only downloaded.
+- Fuzz targets for the readers of imported files (Rocket.Chat, Zulip, Discord, Teams,
+  Cenacle) in `make fuzz`.
+- `ci/zap.sh` scans from a Docker network with `ZAP_NETWORK`.
+
 ## [0.41.0] - 2026-10-25
 
 A full review of the code, deployment and documentation, with every finding closed, and
@@ -1180,7 +1204,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.41.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.42.0...HEAD
+[0.42.0]: https://github.com/barisshn35/cenacle/compare/v0.41.0...v0.42.0
 [0.41.0]: https://github.com/barisshn35/cenacle/compare/v0.40.0...v0.41.0
 [0.40.0]: https://github.com/barisshn35/cenacle/compare/v0.39.0...v0.40.0
 [0.39.0]: https://github.com/barisshn35/cenacle/compare/v0.38.0...v0.39.0

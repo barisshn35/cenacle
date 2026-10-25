@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.41, a full review and an accessibility conformance report.** Sign in with Cenacle ID (passwords with
+> **Status: v0.42, security tests before the release candidate.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep

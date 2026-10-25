@@ -48,6 +48,10 @@ included, was there.
 
 ## Version notes
 
+### 0.42.0
+
+- No migration, nothing to do.
+
 ### 0.41.0
 
 - Migrations: chat 00045 (validates a rule on messages without blocking writes; quick
