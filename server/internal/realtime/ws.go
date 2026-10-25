@@ -335,6 +335,11 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
+			// Browsers do not see WebSocket pings: this frame lets the client
+			// notice a connection that went away without closing.
+			if err := send(frame{Op: "ping"}); err != nil {
+				return
+			}
 		case <-check.C:
 			active, err := h.Sessions.SessionActive(ctx, t.SessionID)
 			if err == nil && !active {

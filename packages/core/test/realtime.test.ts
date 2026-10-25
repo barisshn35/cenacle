@@ -158,6 +158,42 @@ describe('RealtimeClient', () => {
     client.stop();
   });
 
+  it('keeps its resume position until the events or the resync after hello arrive', async () => {
+    const { client } = setup(vi.fn().mockResolvedValue('t'));
+    client.start();
+    await vi.runAllTimersAsync();
+    last().receive({ op: 'hello', last_event_id: '5-0', heartbeat_ms: 25000 });
+    last().drop();
+    await vi.advanceTimersByTimeAsync(100);
+    // The server's log has moved on to 9-0; the connection drops before its resync.
+    last().receive({ op: 'hello', last_event_id: '9-0', heartbeat_ms: 25000 });
+    last().drop();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(last().url).toBe('ws://test/ws?ticket=t&last_event_id=5-0');
+    last().receive({ op: 'hello', last_event_id: '9-0', heartbeat_ms: 25000 });
+    last().receive({ op: 'resync' });
+    last().drop();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(last().url).toBe('ws://test/ws?ticket=t&last_event_id=9-0');
+    client.stop();
+  });
+
+  it('reconnects when the server falls silent for two heartbeats', async () => {
+    const { client } = setup(vi.fn().mockResolvedValue('t'));
+    client.start();
+    await vi.runAllTimersAsync();
+    last().receive({ op: 'hello', last_event_id: '1-0', heartbeat_ms: 25000 });
+    await vi.advanceTimersByTimeAsync(50_000);
+    last().receive({ op: 'ping' }); // still there
+    await vi.advanceTimersByTimeAsync(54_000);
+    expect(FakeSocket.all).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(FakeSocket.all[0]!.closed).toBe(true);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(FakeSocket.all).toHaveLength(2);
+    client.stop();
+  });
+
   it('stops when the session has ended', async () => {
     const { client, onUnauthenticated } = setup();
     client.start();

@@ -13,7 +13,7 @@
 import * as mls from 'ts-mls';
 import { defaultClientConfig } from 'ts-mls/clientConfig.js';
 import { ApiError, apiFetch, type components } from '@cenacle/core/api';
-import { b64, del, exclusive, get, put, sha256, unb64 } from './db';
+import { b64, del, exclusive, get, put, sha256, unb64, wipe } from './db';
 
 export type E2EDevice = components['schemas']['E2EDevice'];
 export type MLSGroup = components['schemas']['MLSGroup'];
@@ -94,6 +94,21 @@ export function ensureDevice(userId: string): Promise<Device> {
     await put('device', userId, device);
     return device;
   });
+}
+
+/**
+ * Signing out: the server forgets this device and this browser forgets its
+ * keys, group states and what it decrypted (a shared computer keeps nothing).
+ * Backups sealed with the recovery key bring the history to the next device.
+ */
+export async function forgetThisDevice(userId: string): Promise<void> {
+  const known = await get<Device>('device', userId).catch(() => undefined);
+  if (known) {
+    await apiFetch<void>(`/api/e2e/devices/${known.id}`, { method: 'DELETE' }).catch(
+      () => undefined,
+    );
+  }
+  await wipe();
 }
 
 /** The device the server no longer knows (removed elsewhere): start over. */
@@ -431,6 +446,9 @@ export interface Payload {
   t: string;
   /** Files encrypted in the browser (their keys). */
   f?: FileKey[];
+  /** The sender's user id: inside the encryption, so the server cannot
+   * show one person's message as another's. */
+  a?: string;
 }
 
 export interface FileKey {
@@ -469,7 +487,8 @@ export async function restore(channelId: string, items: { h: string; p: Payload 
 }
 
 /** Seals a payload for a channel's group. */
-export async function seal(channelId: string, userId: string, payload: Payload): Promise<string> {
+export async function seal(channelId: string, userId: string, plain: Payload): Promise<string> {
+  const payload: Payload = { ...plain, a: userId };
   const envelope = await exclusive(channelId, async () => {
     let state = fresh.has(channelId) ? (await load(channelId))?.state : undefined;
     state ??= await syncLocked(channelId, userId);
@@ -522,15 +541,40 @@ export async function send<T>(
 
 export type Opened = { payload: Payload } | { unavailable: 'before' | 'broken' };
 
+/** The message an envelope came in, as the server says. */
+export interface Claimed {
+  id: string;
+  author: string;
+}
+
+/**
+ * What the server says about a message must match what is inside: its author
+ * the sender's, and the envelope not one already seen in another message (a
+ * replay). Messages from before 0.41 carry no author.
+ */
+async function vouch(key: string, payload: Payload, claimed?: Claimed): Promise<Opened> {
+  if (!claimed) return { payload };
+  if (payload.a && payload.a !== claimed.author) return { unavailable: 'broken' };
+  const rec = await get<{ channelId: string; payload: Payload; m?: string }>('plain', key);
+  if (rec?.m && rec.m !== claimed.id) return { unavailable: 'broken' };
+  if (rec && !rec.m) await put('plain', key, { ...rec, m: claimed.id });
+  return { payload };
+}
+
 /** Opens an envelope of a channel: from this device's texts, or by decrypting it once. */
-export async function open(channelId: string, userId: string, envelope: string): Promise<Opened> {
-  const known = opened.get(envelope);
-  if (known) return { payload: known };
+export async function open(
+  channelId: string,
+  userId: string,
+  envelope: string,
+  claimed?: Claimed,
+): Promise<Opened> {
   const key = b64(await sha256(envelope));
+  const known = opened.get(envelope);
+  if (known) return vouch(key, known, claimed);
   const stored = await get<{ payload: Payload }>('plain', key);
   if (stored) {
     opened.set(envelope, stored.payload);
-    return { payload: stored.payload };
+    return vouch(key, stored.payload, claimed);
   }
   let msg: mls.MLSMessage;
   try {
@@ -543,7 +587,7 @@ export async function open(channelId: string, userId: string, envelope: string):
   return exclusive(channelId, async () => {
     // Another tab may have opened it meanwhile.
     const again = await get<{ payload: Payload }>('plain', key);
-    if (again) return { payload: again.payload };
+    if (again) return vouch(key, again.payload, claimed);
     let local = await load(channelId);
     if (!local || pm.epoch > local.state.groupContext.epoch) {
       await syncLocked(channelId, userId);
@@ -558,7 +602,7 @@ export async function open(channelId: string, userId: string, envelope: string):
       if (payload?.v !== 1 || typeof payload.t !== 'string')
         return { unavailable: 'broken' as const };
       await remember(channelId, envelope, payload);
-      return { payload };
+      return await vouch(key, payload, claimed);
     } catch {
       return { unavailable: 'broken' as const };
     }

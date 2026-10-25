@@ -126,6 +126,20 @@ async function persist(channelId: string, key: CryptoKey | null) {
   }
 }
 
+/** Signing out: this device forgets the channel keys it was given. */
+export async function forgetKeys(): Promise<void> {
+  try {
+    const d = await db();
+    const tx = d.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).clear();
+    await new Promise<void>((resolve) => {
+      tx.oncomplete = tx.onerror = () => resolve();
+    });
+  } catch {
+    // Nothing kept (private windows).
+  }
+}
+
 async function loadAll(): Promise<Record<string, CryptoKey>> {
   try {
     const d = await db();

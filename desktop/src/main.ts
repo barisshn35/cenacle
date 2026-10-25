@@ -223,6 +223,13 @@ function guardNavigation(contents: WebContents, server: string) {
     event.preventDefault();
     openLink(url);
   });
+  // A page of the server that redirects elsewhere is not shown in this window
+  // either (it has no address bar).
+  contents.on('will-redirect', (event) => {
+    if (!event.isMainFrame || originOf(event.url) === server) return;
+    event.preventDefault();
+    openLink(event.url);
+  });
   contents.setWindowOpenHandler(({ url }) => {
     if (originOf(url) === server) {
       const path = new URL(url).pathname;
@@ -412,8 +419,10 @@ function openDeepLink(link: string) {
     return;
   }
   if (url.protocol !== 'cenacle:' || url.host !== 'open' || !config?.server) return;
-  const path = url.pathname.startsWith('/') ? url.pathname : '/';
-  if (main) void main.loadURL(new URL(path + url.search, config.server).toString());
+  // Only a path of the paired server: "//host" or "/\\host" would name another site.
+  const target = new URL(url.pathname.replace(/^[/\\]+/, '/') + url.search, config.server);
+  if (target.origin !== config.server) return;
+  if (main) void main.loadURL(target.toString());
   showMain();
 }
 

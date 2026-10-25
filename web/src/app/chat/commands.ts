@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { sealFor } from '../compliance/e2e';
+import { isMLS } from '../e2e/channels';
 import { queryOptions } from '@tanstack/react-query';
 import { apiFetch, type components } from '@cenacle/core/api';
 
@@ -44,10 +45,13 @@ export const scheduledQuery = queryOptions({
   queryFn: () =>
     apiFetch<{ scheduled: ScheduledMessage[] }>('/api/scheduled').then((r) => r.scheduled),
 });
-export const scheduleMessage = async (channelId: string, body: string, sendAt: Date) =>
-  apiFetch<ScheduledMessage>(
+export const scheduleMessage = async (channelId: string, body: string, sendAt: Date) => {
+  // The server would hold the text until it is sent: not for device-key channels.
+  if (isMLS(channelId)) throw new Error('scheduled messages are not for encrypted channels');
+  return apiFetch<ScheduledMessage>(
     `/api/channels/${channelId}/scheduled`,
     json({ body: await sealFor(channelId, body), send_at: sendAt.toISOString() }),
   );
+};
 export const cancelScheduled = (id: string) =>
   apiFetch<void>(`/api/scheduled/${id}`, { method: 'DELETE' });

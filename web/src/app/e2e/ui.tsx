@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BadgeCheckIcon,
@@ -39,8 +39,9 @@ import { createRecovery, localKey, recoveryQuery, takeRecoveryCode } from './rec
 export function MLSContent({ message, selfId }: { message: Message; selfId: string }) {
   const { t } = useTranslation();
   const opened = useQuery({
-    queryKey: ['mls-open', message.channel_id, message.body, selfId],
-    queryFn: () => open(message.channel_id, selfId, message.body),
+    queryKey: ['mls-open', message.channel_id, message.id, message.author.id, message.body, selfId],
+    queryFn: () =>
+      open(message.channel_id, selfId, message.body, { id: message.id, author: message.author.id }),
     staleTime: Infinity,
     retry: 1,
   });
@@ -85,31 +86,48 @@ function EncryptedFiles({ files }: { files: FileKey[] }) {
   );
 }
 
+/**
+ * The decrypted file as an object URL while the component shows it: the
+ * plaintext (cached a while for scrolling back) is released when it goes.
+ */
 function useObjectURL(file: FileKey, enabled: boolean) {
   const q = useQuery({
     queryKey: ['mls-file', file],
-    queryFn: async () => URL.createObjectURL(await decryptFile(file)),
+    queryFn: () => decryptFile(file),
     enabled,
     staleTime: Infinity,
-    gcTime: 10 * 60_000,
+    gcTime: 2 * 60_000,
   });
-  return q;
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    if (!q.data) return;
+    const made = URL.createObjectURL(q.data);
+    // The URL is a resource of the browser: made and released with the effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUrl(made);
+    return () => {
+      URL.revokeObjectURL(made);
+      setUrl(undefined);
+    };
+  }, [q.data]);
+  return { url, isError: q.isError };
 }
 
 function EncryptedImage({ file }: { file: FileKey }) {
   const { t } = useTranslation();
-  const url = useObjectURL(file, true);
-  if (!url.data) {
-    return url.isError ? (
+  const { url, isError } = useObjectURL(file, true);
+  if (!url) {
+    return isError ? (
       <EncryptedFileCard file={file} />
     ) : (
       <div className="h-40 w-56 animate-pulse rounded-lg bg-muted" aria-label={t('e2e.opening')} />
     );
   }
+  // Saved rather than opened: a blob: page has no place in the desktop app.
   return (
-    <a href={url.data} target="_blank" rel="noopener noreferrer" className="self-start">
+    <a href={url} download={file.name} className="self-start">
       <img
-        src={url.data}
+        src={url}
         alt={file.name}
         className="max-h-60 max-w-80 rounded-lg border object-contain"
       />

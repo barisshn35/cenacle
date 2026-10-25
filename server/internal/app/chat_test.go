@@ -220,7 +220,7 @@ func (s *stack) userWithEmail(subject, name, email string) string {
 	if _, err := q.JoinDefaultWorkspace(ctx, u.ID); err != nil {
 		s.t.Fatal(err)
 	}
-	if _, err := q.JoinDefaultChannels(ctx, u.ID); err != nil {
+	if _, err := q.JoinDefaultChannels(ctx, store.JoinDefaultChannelsParams{UserID: u.ID}); err != nil {
 		s.t.Fatal(err)
 	}
 	if email == adminEmail {
@@ -471,7 +471,8 @@ func (s *stack) connect(token, lastEventID string) *websocket.Conn {
 // frames are skipped.
 func read(t *testing.T, c *websocket.Conn) frame {
 	t.Helper()
-	return readFrame(t, c, func(f frame) bool { return f.Op != "ephemeral" })
+	// Beats (op "ping") only tell the client the connection is alive.
+	return readFrame(t, c, func(f frame) bool { return f.Op != "ephemeral" && f.Op != "ping" })
 }
 
 // readEphemeral returns the next short-lived frame of a type.
@@ -653,6 +654,8 @@ func TestConnectionOutlivesHTTPTimeouts(t *testing.T) {
 	conn := s.connect(token, "")
 	read(t, conn)
 	time.Sleep(1200 * time.Millisecond) // several heartbeats and timeouts
+	// The beats are frames the browser sees, not only WebSocket pings.
+	readFrame(t, conn, func(f frame) bool { return f.Op == "ping" })
 	sent, _ := s.send(token, general, "still here", "timeout-nonce-1")
 	var got message
 	_ = json.Unmarshal(read(t, conn).Data, &got)

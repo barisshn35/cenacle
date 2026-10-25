@@ -19,6 +19,7 @@ export interface EphemeralEvent {
 
 type Frame =
   | { op: 'hello'; last_event_id: string; heartbeat_ms: number }
+  | { op: 'ping' }
   | { op: 'event'; id: string; type: string; data: unknown }
   | { op: 'ephemeral'; type: string; data: unknown }
   | { op: 'resync' };
@@ -219,7 +220,26 @@ export class RealtimeClient {
     const socket = new this.opts.WebSocketImpl(this.opts.url(ticket, this.lastEventId));
     this.socket = socket;
     const resuming = this.lastEventId !== undefined;
+    // Where the server's log was when it said hello: the position after a resync.
+    let head: string | undefined;
+    // The server sends something every heartbeat; silence for two means the
+    // connection is gone without having closed (a dropped network, a sleeping
+    // laptop): reconnect.
+    let silence: ReturnType<typeof setTimeout> | undefined;
+    const watch = (heartbeat: number) => {
+      clearTimeout(silence);
+      silence = setTimeout(
+        () => {
+          if (this.socket !== socket) return;
+          this.closeSocket();
+          this.schedule();
+        },
+        heartbeat * 2 + 5_000,
+      );
+    };
+    let heartbeat = 0;
     socket.onmessage = (msg) => {
+      if (heartbeat) watch(heartbeat);
       let frame: Frame;
       try {
         frame = JSON.parse(String(msg.data)) as Frame;
@@ -228,9 +248,17 @@ export class RealtimeClient {
       }
       switch (frame.op) {
         case 'hello':
-          this.lastEventId = frame.last_event_id;
+          head = frame.last_event_id;
+          // Resuming, the position moves with the events that follow (or with
+          // the resync): if the connection drops before either, the next one
+          // resumes from where this one started.
+          if (!resuming) this.lastEventId = head;
           this.attempt = 0;
           this.setStatus('open');
+          if (frame.heartbeat_ms > 0) {
+            heartbeat = frame.heartbeat_ms;
+            watch(heartbeat);
+          }
           // Without a position to resume from, anything since the app loaded
           // its data may be missing.
           if (!resuming) this.handlers.onResync();
@@ -243,11 +271,13 @@ export class RealtimeClient {
           this.handlers.onEphemeral?.({ type: frame.type, data: frame.data });
           break;
         case 'resync':
+          if (head !== undefined) this.lastEventId = head;
           this.handlers.onResync();
           break;
       }
     };
     socket.onclose = (ev) => {
+      clearTimeout(silence);
       if (this.socket !== socket) return;
       this.socket = undefined;
       if (ev.code === CLOSE_SESSION_ENDED) {

@@ -175,22 +175,38 @@ describe('MLS client', () => {
     const e1 = await mertDesk.seal(CH, MERT, { v: 1, t: 'Merhaba Ayşe' });
     expect(e1.startsWith('mls:v1:')).toBe(true);
     expect(ds.groups.get(CH)!.epoch).toBe(1);
-    expect(await ayse.open(CH, AYSE, e1)).toEqual({ payload: { v: 1, t: 'Merhaba Ayşe' } });
+    expect(await ayse.open(CH, AYSE, e1)).toEqual({
+      payload: { v: 1, t: 'Merhaba Ayşe', a: MERT },
+    });
     // Opened once, kept: the second time comes from this device.
-    expect(await ayse.open(CH, AYSE, e1)).toEqual({ payload: { v: 1, t: 'Merhaba Ayşe' } });
+    expect(await ayse.open(CH, AYSE, e1)).toEqual({
+      payload: { v: 1, t: 'Merhaba Ayşe', a: MERT },
+    });
+    // The server cannot show it as someone else's, nor again as another message.
+    expect(await ayse.open(CH, AYSE, e1, { id: 'm1', author: MERT })).toEqual({
+      payload: { v: 1, t: 'Merhaba Ayşe', a: MERT },
+    });
+    expect(await ayse.open(CH, AYSE, e1, { id: 'm1', author: AYSE })).toEqual({
+      unavailable: 'broken',
+    });
+    expect(await ayse.open(CH, AYSE, e1, { id: 'm9', author: MERT })).toEqual({
+      unavailable: 'broken',
+    });
 
     // Ayşe answers; the laptop joins later and cannot read what came before.
     const e2 = await ayse.seal(CH, AYSE, { v: 1, t: 'Selam Mert' });
-    expect(await mertDesk.open(CH, MERT, e2)).toEqual({ payload: { v: 1, t: 'Selam Mert' } });
+    expect(await mertDesk.open(CH, MERT, e2)).toEqual({
+      payload: { v: 1, t: 'Selam Mert', a: AYSE },
+    });
     expect(await mertLaptop.open(CH, MERT, e2)).toEqual({ unavailable: 'before' });
     // Ayşe's group is a step behind: the server refuses her envelope and she
     // seals it again for the epoch the laptop is in.
     const e3 = await ayse.send(CH, AYSE, { v: 1, t: 'Yeni cihaz da görsün' }, post);
     expect(await mertLaptop.open(CH, MERT, e3)).toEqual({
-      payload: { v: 1, t: 'Yeni cihaz da görsün' },
+      payload: { v: 1, t: 'Yeni cihaz da görsün', a: AYSE },
     });
     expect(await mertDesk.open(CH, MERT, e3)).toEqual({
-      payload: { v: 1, t: 'Yeni cihaz da görsün' },
+      payload: { v: 1, t: 'Yeni cihaz da görsün', a: AYSE },
     });
 
     // Mert removes his desktop: the next commit takes it out of the group.
@@ -199,7 +215,9 @@ describe('MLS client', () => {
     await ayse.sync(CH, AYSE);
     expect([...ds.groups.get(CH)!.members.keys()]).not.toContain(desk.id);
     const e4 = await ayse.seal(CH, AYSE, { v: 1, t: 'Sadece dizüstü' });
-    expect(await mertLaptop.open(CH, MERT, e4)).toEqual({ payload: { v: 1, t: 'Sadece dizüstü' } });
+    expect(await mertLaptop.open(CH, MERT, e4)).toEqual({
+      payload: { v: 1, t: 'Sadece dizüstü', a: AYSE },
+    });
 
     // Mert leaves the channel: his laptop goes too; he cannot read new messages.
     ds.channelMembers.get(CH)!.delete(MERT);
@@ -224,8 +242,8 @@ describe('MLS client', () => {
         ayse2.seal(CH, AYSE, { v: 1, t: 'iki' }),
       ]);
       expect(ds.groups.get(CH)!.members.size).toBe(3);
-      expect(await ayse.open(CH, AYSE, a)).toEqual({ payload: { v: 1, t: 'bir' } });
-      expect(await ayse.open(CH, AYSE, b)).toEqual({ payload: { v: 1, t: 'iki' } });
+      expect(await ayse.open(CH, AYSE, a)).toEqual({ payload: { v: 1, t: 'bir', a: MERT } });
+      expect(await ayse.open(CH, AYSE, b)).toEqual({ payload: { v: 1, t: 'iki', a: AYSE } });
     },
   );
 

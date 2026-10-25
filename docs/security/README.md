@@ -82,7 +82,15 @@ conversation, turn it on; it cannot be turned off). Then:
   sealed for an organization key (`PUT /api/admin/e2e/escrow` with a P-256 public key).
   Members are told. The private key stays offline; `server e2e-escrow <key.pem> <e-mail>
 [channel]` opens that person's backups and is audited. Escrow reaches only what devices
-  backed up, never messages directly.
+  backed up, never messages directly. The escrow key comes from the server: the app
+  says so before a recovery key is made, but a server that is not trusted could add one
+  for recovery keys made later.
+
+Since 0.41 every message carries its sender inside the encryption, and an envelope
+opened for one message is not accepted again as another: the server cannot show one
+person's message as someone else's or repeat an old one. Signing out removes the
+device and everything it kept (keys, decrypted messages, drafts); scheduled messages,
+commands that carry text, tabs and forums are not available in these channels.
 
 What the server still knows: who is in which channel, which device sent changes, when
 messages were sent and how long they are. Bots, search, link previews, AutoMod, AI,

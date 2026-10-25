@@ -69,6 +69,8 @@ const BROADCAST = /(^|[^\w@])@(channel|everyone|here)\b/i;
 /** Where the composer remembers whether its formatting bar is shown. */
 const FORMATTING_KEY = 'cenacle.formatting';
 const CONFIRM_ABOVE = 5;
+/** Commands that work in encrypted channels: they carry no message text. */
+const CHANNEL_COMMANDS = new Set(['join', 'leave', 'topic']);
 
 function ConnectionNotice() {
   const { t } = useTranslation();
@@ -135,6 +137,12 @@ export function Composer({
   };
   const [confirmMany, setConfirmMany] = useState<number | null>(null);
   const channel = useQuery(channelsQuery).data?.find((c) => c.id === channelId);
+  // Drafts are kept on disk as typed: not those of encrypted channels.
+  const unsaved = useRef(false);
+  const encrypted = !!channel?.encrypted;
+  useEffect(() => {
+    unsaved.current = encrypted;
+  }, [encrypted]);
   const conversation = !!channel && isConversation(channel);
   const [body, setBody] = useState('');
   // The draft has been read; until then typing must not be overwritten by it,
@@ -188,18 +196,19 @@ export function Composer({
           setBody(d.body);
         } else if (latest.current !== '') {
           // Typed before the draft arrived: what was typed wins.
-          void drafts.save(k, latest.current).catch(() => undefined);
+          if (!unsaved.current) void drafts.save(k, latest.current).catch(() => undefined);
         }
       });
     return () => {
       cancelled = true;
-      if (loaded.current) void drafts.save(k, latest.current).catch(() => undefined);
+      if (loaded.current && !unsaved.current)
+        void drafts.save(k, latest.current).catch(() => undefined);
     };
   }, [draftId]);
 
   // Save drafts shortly after typing stops.
   useEffect(() => {
-    if (!loaded.current) return;
+    if (!loaded.current || unsaved.current) return;
     const timer = setTimeout(() => {
       void drafts.save({ workspaceId: WORKSPACE, channelId: draftId }, body).catch(() => undefined);
     }, 300);
@@ -274,7 +283,11 @@ export function Composer({
       return;
     }
     // "//text" sends "/text" as a message; commands run in the channel, not in threads.
-    const command = trimmed.startsWith('//') || thread ? null : parseCommand(trimmed);
+    const parsed = trimmed.startsWith('//') || thread ? null : parseCommand(trimmed);
+    // In an encrypted channel the server gets no command text: only those about
+    // the channel itself run; anything else is sent (encrypted) as written.
+    const command =
+      parsed && channel?.encrypted && !CHANNEL_COMMANDS.has(parsed.command) ? null : parsed;
     if (command && uploads.items.length === 0) {
       run(command.command, mentions.resolve(command.text).text);
       return;
@@ -520,7 +533,7 @@ export function Composer({
                 <TypeIcon strokeWidth={1.75} />
               </Button>
               {!thread && <PriorityMenu value={priority} onChange={setPriority} />}
-              {!thread && (
+              {!thread && !channel?.encrypted && (
                 <Button
                   type="button"
                   size="icon"
