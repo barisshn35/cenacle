@@ -161,8 +161,10 @@ describe.skipIf(!hasTestDatabase || !LDAP_URL)('directory (LDAP)', () => {
       'design',
       'staff',
     ]);
-    expect(await checkPassword(users, directory, 'carol', 'wrong')).toEqual({ error: 'invalid' });
-    expect(await checkPassword(users, directory, 'carol', '')).toEqual({ error: 'invalid' });
+    expect(await checkPassword(users, directory, 'carol', 'wrong')).toMatchObject({
+      error: 'invalid',
+    });
+    expect(await checkPassword(users, directory, 'carol', '')).toMatchObject({ error: 'invalid' });
     // Disabled in the directory (outside the user filter): no sign-in.
     expect(await checkPassword(users, directory, 'dave', 'dave-dev-password')).toEqual({
       error: 'invalid',
@@ -195,7 +197,7 @@ describe.skipIf(!hasTestDatabase || !LDAP_URL)('directory (LDAP)', () => {
     });
   });
 
-  it('links an existing local account with the same address', async () => {
+  it('leaves a local account with the same address alone unless asked to link', async () => {
     const local = await users.create({
       email: 'bob@cenacle.test',
       displayName: 'Bob',
@@ -204,6 +206,48 @@ describe.skipIf(!hasTestDatabase || !LDAP_URL)('directory (LDAP)', () => {
     const s = await sources.create({
       name: 'Test',
       config: config(),
+      secret: LDAP_PASSWORD,
+      syncIntervalMinutes: 60,
+    });
+    await syncSource(pool, sources, s, 'manual');
+    expect(await users.findById(local.id)).toMatchObject({
+      displayName: 'Bob',
+      fromDirectory: false,
+    });
+    expect(
+      await users.authenticate('bob@cenacle.test', 'a long local password here'),
+    ).not.toBeNull();
+    // The directory's Bob exists, without the address.
+    const { rows } = await pool.query(`SELECT email FROM users WHERE username = 'bob'`);
+    expect(rows).toEqual([{ email: null }]);
+  });
+
+  it('never links (and so revives) a disabled local account', async () => {
+    const local = await users.create({
+      email: 'bob@cenacle.test',
+      displayName: 'Bob',
+      password: 'a long local password here',
+    });
+    await pool.query('UPDATE users SET disabled_at = now() WHERE id = $1', [local.id]);
+    const s = await sources.create({
+      name: 'Test',
+      config: config({ linkByEmail: true }),
+      secret: LDAP_PASSWORD,
+      syncIntervalMinutes: 60,
+    });
+    await syncSource(pool, sources, s, 'manual');
+    expect(await users.findById(local.id)).toMatchObject({ disabled: true, fromDirectory: false });
+  });
+
+  it('links an existing local account with the same address when asked to', async () => {
+    const local = await users.create({
+      email: 'bob@cenacle.test',
+      displayName: 'Bob',
+      password: 'a long local password here',
+    });
+    const s = await sources.create({
+      name: 'Test',
+      config: config({ linkByEmail: true }),
       secret: LDAP_PASSWORD,
       syncIntervalMinutes: 60,
     });

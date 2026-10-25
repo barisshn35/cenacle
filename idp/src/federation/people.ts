@@ -113,6 +113,7 @@ export async function signInFederated(
       },
       role,
       groupIds,
+      provider.config.linkByEmail,
     );
     await client.query('COMMIT');
     return { userId: id };

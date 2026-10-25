@@ -16,8 +16,15 @@ function authorized(header: string | undefined, clients: ClientMetadata[]): bool
   const sep = decoded.indexOf(':');
   if (sep < 0) return false;
   // RFC 6749 2.3.1: id and secret are form-encoded in Basic credentials.
-  const id = decodeURIComponent(decoded.slice(0, sep).replace(/\+/g, ' '));
-  const secret = Buffer.from(decodeURIComponent(decoded.slice(sep + 1).replace(/\+/g, ' ')));
+  // Malformed encoding (a lone %) is a wrong credential, not a server error.
+  let id: string;
+  let secret: Buffer;
+  try {
+    id = decodeURIComponent(decoded.slice(0, sep).replace(/\+/g, ' '));
+    secret = Buffer.from(decodeURIComponent(decoded.slice(sep + 1).replace(/\+/g, ' ')));
+  } catch {
+    return false;
+  }
   const client = clients.find((c) => c.client_id === id && c.cenacle_directory);
   if (!client) return false;
   const want = Buffer.from(client.client_secret);

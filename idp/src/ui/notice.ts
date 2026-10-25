@@ -13,9 +13,28 @@ import { layout } from './pages.ts';
 
 export const NOTICE_COOKIE = 'cenacle_notice';
 
-/** Paths that lead to signing in. */
-const GATED =
-  /^\/(interaction\/[^/]+|account|account\/signin|account\/passkey(\/.*)?|federation\/[^/]+\/start)$/;
+/**
+ * Routes that lead to signing in, matched on the route pattern Fastify chose
+ * (not the raw URL, so `/account/%73ignin` cannot slip past): every step of
+ * an app's sign-in and every way to sign in to the account pages.
+ */
+const GATED_ROUTES = new Set([
+  '/account',
+  '/account/signin',
+  '/account/second-step',
+  '/account/passkey/options',
+  '/account/passkey',
+  '/federation/:id/start',
+]);
+
+function gated(route: string | undefined): boolean {
+  if (!route) return false;
+  return (
+    GATED_ROUTES.has(route) ||
+    route === '/interaction/:uid' ||
+    route.startsWith('/interaction/:uid/')
+  );
+}
 /** Where accepting may go back to (a page, not an action). */
 const RETURN = /^\/(interaction\/[A-Za-z0-9_-]+|account)$/;
 
@@ -60,10 +79,18 @@ export function registerSigninNotice(
       .send(body);
 
   app.addHook('preHandler', async (request, reply) => {
-    const path = request.url.split('?')[0]!;
-    if (!GATED.test(path) || request.cookieValue(NOTICE_COOKIE) === 'accepted') return;
-    if (request.method === 'GET' && RETURN.test(path)) {
-      return page(reply, 200, noticePage(locale(request), opts.text, path));
+    if (!gated(request.routeOptions.url) || request.cookieValue(NOTICE_COOKIE) === 'accepted') {
+      return;
+    }
+    if (request.method === 'GET') {
+      // Back to the page this sign-in started from once the notice is accepted.
+      const uid = (request.params as { uid?: string } | undefined)?.uid;
+      const next = uid === undefined ? '/account' : `/interaction/${uid}`;
+      return page(
+        reply,
+        200,
+        noticePage(locale(request), opts.text, RETURN.test(next) ? next : '/account'),
+      );
     }
     // An action that skipped the notice (a passkey, a form posted directly).
     return page(reply, 403, noticePage(locale(request), opts.text, '/account'));

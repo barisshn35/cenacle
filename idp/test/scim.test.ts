@@ -197,6 +197,46 @@ describe.skipIf(!hasTestDatabase)('SCIM provisioning (database)', () => {
     ).toEqual({ error: 'disabled' });
   });
 
+  it('links local accounts by address only when asked to, never disabled ones', async () => {
+    const linking = await providers.create({
+      kind: 'oidc',
+      name: 'Okta',
+      enabled: true,
+      secret: 'client-secret',
+      config: oidcConfigSchema.parse({
+        issuer: 'https://okta.example.com',
+        clientId: 'cenacle',
+        linkByEmail: true,
+      }),
+    });
+    token = await providers.newScimToken(linking.id);
+    const local = async (email: string, disabled: boolean) => {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO users (email, display_name, password_hash, disabled_at)
+         VALUES ($1, 'Local', 'x', CASE WHEN $2 THEN now() END) RETURNING id`,
+        [email, disabled],
+      );
+      return rows[0]!.id;
+    };
+    const off = await local('ada@example.com', true);
+    expect((await call('POST', '/Users', ada)).statusCode).toBe(409);
+    const { rows } = await pool.query(
+      'SELECT source_id, disabled_at IS NOT NULL AS disabled, password_hash FROM users WHERE id = $1',
+      [off],
+    );
+    expect(rows[0]).toEqual({ source_id: null, disabled: true, password_hash: 'x' });
+
+    const on = await local('grace@example.com', false);
+    const linked = await call('POST', '/Users', {
+      ...ada,
+      userName: 'grace@example.com',
+      externalId: 'okta-grace',
+      emails: [{ value: 'grace@example.com', primary: true }],
+    });
+    expect(linked.statusCode).toBe(201);
+    expect(linked.json().id).toBe(on);
+  });
+
   it('takes over people who signed in before provisioning', async () => {
     const before = await signInFederated(pool, provider, {
       externalId: 'entra-ada',

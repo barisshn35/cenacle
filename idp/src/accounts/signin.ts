@@ -3,6 +3,7 @@ import type { AuthenticationResponseJSON } from '@simplewebauthn/server';
 import type pg from 'pg';
 import type { SourceStore } from '../directory/store.ts';
 import { signInWithDirectory } from '../directory/sync.ts';
+import { burnPasswordCheck } from './passwords.ts';
 import type { PasskeyStore, SignInPurpose } from './passkeys.ts';
 import type { User, UserStore } from './users.ts';
 
@@ -12,12 +13,24 @@ export interface DirectoryAccess {
   sources: SourceStore;
 }
 
-export type SignInResult = { user: User } | { error: 'invalid' | 'unavailable' };
+/**
+ * `userId` is the account a failed password was for, when one is known: the
+ * caller records the failure with it (signin.failed), which is what the
+ * per-account limit counts.
+ */
+export type SignInResult =
+  { user: User } | { error: 'invalid'; userId?: string } | { error: 'unavailable' };
+
+/** An account allows this many failed passwords per window (on top of the per-IP limit). */
+export const PASSWORD_FAILURES = 10;
+export const PASSWORD_FAILURE_WINDOW_SECONDS = 15 * 60;
 
 /**
  * Checks a password: a local account by e-mail address first, then the
  * connected directories by their login attribute (a directory password is
- * checked by binding as the person; it is never stored).
+ * checked by binding as the person; it is never stored). An account with too
+ * many recent failures is not checked at all and answers like a wrong
+ * password, so it reads the same as an unknown account.
  */
 export async function checkPassword(
   users: UserStore,
@@ -26,13 +39,20 @@ export async function checkPassword(
   password: string,
   onError?: (err: unknown) => void,
 ): Promise<SignInResult> {
+  const known = await users.passwordFailures(identifier, PASSWORD_FAILURE_WINDOW_SECONDS);
+  if (known && known.failures >= PASSWORD_FAILURES) {
+    // Spend the time a check takes, so a locked account is not told apart.
+    await burnPasswordCheck(password);
+    return { error: 'invalid', userId: known.id };
+  }
+  const invalid = { error: 'invalid' as const, ...(known ? { userId: known.id } : {}) };
   const local = await users.authenticate(identifier, password);
   if (local) return { user: local };
-  if (!directory) return { error: 'invalid' };
+  if (!directory) return invalid;
   try {
     const id = await signInWithDirectory(directory.pool, directory.sources, identifier, password);
     const user = id ? await users.findById(id) : null;
-    return user && !user.disabled ? { user } : { error: 'invalid' };
+    return user && !user.disabled ? { user } : invalid;
   } catch (err) {
     onError?.(err);
     return { error: 'unavailable' };

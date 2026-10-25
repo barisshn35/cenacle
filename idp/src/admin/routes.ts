@@ -83,6 +83,7 @@ function formOf(body: Body, hasSecret: boolean): DirectoryForm {
       .map((u) => u.trim())
       .filter(Boolean),
     startTls: body.startTls === '1',
+    linkByEmail: body.linkByEmail === '1',
     groupMembership: body.groupMembership === 'memberUid' ? 'memberUid' : 'member',
   };
   for (const f of TEXT_FIELDS) (config as Record<string, unknown>)[f] = (body[f] ?? '').trim();
@@ -161,6 +162,17 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
       await reply.code(403).type('text/plain').send('Administrators only.');
       return null;
     }
+    // Required by the policy and not set up yet: like /account, setting it up
+    // comes first (the account cookie is issued before the setup).
+    if (
+      opts.policy &&
+      !user.fromProvider &&
+      (await opts.policy.get()).requireTwoStep &&
+      !(await mfa.enabled(user.id))
+    ) {
+      await reply.redirect('/account/two-step/setup', 303);
+      return null;
+    }
     return user;
   }
 
@@ -214,7 +226,10 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
           await users.setDisabledById(id, false);
           break;
         case 'reset-two-step':
+          // Sessions that passed the old second step end with it (a stolen
+          // device or secret is the usual reason for a reset).
           await mfa.disable(id);
+          await endSessions(opts.pool, [id]);
           break;
         case 'make-admin':
         case 'remove-admin':
@@ -259,7 +274,21 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
       requireTwoStep: request.body?.require_two_step === 'on',
       passkeys: request.body?.passkeys === 'on',
     };
+    const before = await opts.policy.get();
     await opts.policy.set(policy);
+    if (policy.requireTwoStep && !before.requireTwoStep) {
+      // Sessions signed in without a second step end once it is required, so
+      // the next sign-in sets it up (accounts of identity providers are exempt).
+      const { rows } = await opts.pool.query<{ id: string }>(
+        `SELECT u.id FROM users u LEFT JOIN identity_sources s ON s.id = u.source_id
+         WHERE u.totp_enabled_at IS NULL AND (s.kind IS NULL OR s.kind = 'ldap')`,
+      );
+      if (rows.length > 0)
+        await endSessions(
+          opts.pool,
+          rows.map((r) => r.id),
+        );
+    }
     await audit.record('admin.sign_in_policy.changed', user.id, request.ip, {
       require_two_step: policy.requireTwoStep,
       passkeys: policy.passkeys,

@@ -36,7 +36,14 @@ describe.skipIf(!hasTestDatabase)('directory feed (database)', () => {
   });
 
   it('answers only clients registered for it', async () => {
-    for (const auth of [undefined, basic('other', chat.client_secret), basic('chat', 'wrong')]) {
+    for (const auth of [
+      undefined,
+      basic('other', chat.client_secret),
+      basic('chat', 'wrong'),
+      // Malformed form-encoding answers 401, not 500.
+      basic('chat', '%E0%A4%A'),
+      basic('%', chat.client_secret),
+    ]) {
       const res = await app.inject({
         url: '/directory/v1/changes',
         headers: auth ? { authorization: auth } : {},

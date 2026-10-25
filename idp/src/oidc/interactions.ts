@@ -203,7 +203,8 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
       else if (!user && !error) error = 'invalid';
       if (error || !user) {
         request.log.info({ uid: d.uid }, 'sign-in failed');
-        await opts.audit?.record('signin.failed', null, request.ip, {
+        const failedFor = result && 'userId' in result ? (result.userId ?? null) : null;
+        await opts.audit?.record('signin.failed', failedFor, request.ip, {
           email,
           client: d.params.client_id,
         });
@@ -323,6 +324,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
         });
       }
       await opts.audit?.record('two_step.enabled', user.id, request.ip);
+      await mfa.confirmSetupChallenge(d.uid, user.id);
       return page(
         reply,
         200,
@@ -343,12 +345,12 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
     if (!mfa || !d || d.uid !== request.params.uid || d.prompt.name !== 'login') {
       return expired(request, reply);
     }
-    // The setup was confirmed with a code in this sign-in (the challenge binds both).
-    const challenge = await mfa.challenge(d.uid, 'login');
-    if (!challenge || !(await mfa.enabled(challenge.userId))) return expired(request, reply);
-    await mfa.finishChallenge(d.uid);
-    request.log.info({ uid: d.uid, sub: challenge.userId }, 'sign-in succeeded');
-    await opts.audit?.record('signin.succeeded', challenge.userId, request.ip, {
+    // Only a setup confirmed with a code in this sign-in finishes it, once: the
+    // password's own challenge is not enough.
+    const userId = await mfa.takeConfirmedSetup(d.uid);
+    if (!userId || !(await mfa.enabled(userId))) return expired(request, reply);
+    request.log.info({ uid: d.uid, sub: userId }, 'sign-in succeeded');
+    await opts.audit?.record('signin.succeeded', userId, request.ip, {
       client: d.params.client_id,
       second_step: 'totp',
     });
@@ -356,7 +358,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
     await provider.interactionFinished(
       request.raw,
       reply.raw,
-      { login: { accountId: challenge.userId, amr: ['pwd', 'otp', 'mfa'] } },
+      { login: { accountId: userId, amr: ['pwd', 'otp', 'mfa'] } },
       { mergeWithLastSubmission: false },
     );
   });

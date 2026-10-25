@@ -108,6 +108,10 @@ const en = {
     guestFilter: 'Guests (filter, optional)',
     rolesHint:
       'Checked at every sign-in and synchronization; a role ends when the filter no longer matches.',
+    linkByEmail:
+      'An existing local account with the same e-mail address becomes the directory’s account',
+    linkByEmailHint:
+      'Only for directories whose addresses you trust: whoever controls an address in the directory takes over the account.',
     sync: 'Synchronization',
     syncInterval: 'Every (minutes)',
     enabled: 'Connected (people can sign in and it synchronizes)',
@@ -313,6 +317,9 @@ const tr: AdminMessages = {
     adminFilter: 'Yöneticiler (filtre, isteğe bağlı)',
     guestFilter: 'Misafirler (filtre, isteğe bağlı)',
     rolesHint: 'Her girişte ve eşitlemede denetlenir; filtre artık eşleşmezse rol biter.',
+    linkByEmail: 'Aynı e-posta adresine sahip mevcut yerel hesap dizinin hesabı olur',
+    linkByEmailHint:
+      'Yalnızca adreslerine güvendiğiniz dizinler için: dizinde bir adresi kim yönetiyorsa hesabı o devralır.',
     sync: 'Eşitleme',
     syncInterval: 'Sıklık (dakika)',
     enabled: 'Bağlı (kişiler giriş yapabilir ve eşitlenir)',

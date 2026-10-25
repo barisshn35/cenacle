@@ -226,6 +226,29 @@ export class MfaStore {
     return rows[0]!.n;
   }
 
+  /**
+   * Marks the sign-in's challenge as passed by a confirmed setup (a code was
+   * entered). Only such a challenge lets the sign-in finish after a setup.
+   */
+  async confirmSetupChallenge(id: string, userId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE mfa_challenges SET purpose = 'setup_confirmed', attempts = 0
+       WHERE id = $1 AND user_id = $2 AND purpose = 'login' AND expires_at > now()`,
+      [id, userId],
+    );
+  }
+
+  /** Spends a confirmed setup's challenge once; returns its user, or null. */
+  async takeConfirmedSetup(id: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `DELETE FROM mfa_challenges
+       WHERE id = $1 AND purpose = 'setup_confirmed' AND expires_at > now()
+       RETURNING user_id`,
+      [id],
+    );
+    return rows[0]?.user_id ?? null;
+  }
+
   async finishChallenge(id: string): Promise<void> {
     await this.pool.query('DELETE FROM mfa_challenges WHERE id = $1', [id]);
   }

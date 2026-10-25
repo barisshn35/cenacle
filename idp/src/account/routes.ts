@@ -205,7 +205,8 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           : null;
       const user = result && 'user' in result ? result.user : null;
       if (!user) {
-        await audit.record('signin.failed', null, request.ip, { email, where: 'account' });
+        const failedFor = result && 'userId' in result ? (result.userId ?? null) : null;
+        await audit.record('signin.failed', failedFor, request.ip, { email, where: 'account' });
         return page(
           reply,
           401,

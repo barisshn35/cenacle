@@ -57,7 +57,14 @@ export async function syncSource(
       const ids = [...(member.get(p.externalId) ?? [])]
         .map((g) => groupIds.get(g)!)
         .filter(Boolean);
-      const r = await upsertPerson(pool, source.id, p, roleOf(p.dn, admins, guests), ids);
+      const r = await upsertPerson(
+        pool,
+        source.id,
+        p,
+        roleOf(p.dn, admins, guests),
+        ids,
+        source.config.linkByEmail,
+      );
       if (r.created) counts.usersCreated++;
       else if (r.changed) counts.usersUpdated++;
     }
@@ -142,6 +149,7 @@ export async function signInWithDirectory(
         person,
         isAdmin ? 'admin' : isGuest ? 'guest' : null,
         groupIds,
+        source.config.linkByEmail,
       );
       return r.id;
     } finally {

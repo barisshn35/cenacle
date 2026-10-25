@@ -21,6 +21,14 @@ async function app() {
   a.get('/account', async () => 'account');
   a.get('/interaction/:uid', async () => 'sign-in form');
   a.post('/account/signin', async () => 'signed in');
+  a.post('/account/second-step', async () => 'second step');
+  a.post('/account/passkey/options', async () => 'options');
+  a.get('/federation/:id/start', async () => 'away');
+  for (const step of ['login', 'second-step', 'two-step-setup', 'two-step-done', 'passkey']) {
+    a.post(`/interaction/:uid/${step}`, async () => step);
+  }
+  a.get('/interaction/:uid/federated', async () => 'federated');
+  a.get('/account/admin', async () => 'admin');
   a.get('/healthz', async () => 'ok');
   return a;
 }
@@ -37,6 +45,36 @@ describe('sign-in notice', () => {
     expect(page.body).toContain('value="/interaction/abc_123"');
     expect((await a.inject({ method: 'POST', url: '/account/signin' })).statusCode).toBe(403);
     expect((await a.inject({ url: '/healthz' })).body).toBe('ok');
+  });
+
+  it('gates every step by route, whatever the URL spelling', async () => {
+    const a = await app();
+    for (const url of [
+      '/interaction/abc/login',
+      '/interaction/abc/second-step',
+      '/interaction/abc/two-step-setup',
+      '/interaction/abc/two-step-done',
+      '/interaction/abc/passkey',
+      '/account/second-step',
+      '/account/passkey/options',
+      '/account/%73ignin',
+      '/account/signin?x=1',
+    ]) {
+      const res = await a.inject({ method: 'POST', url });
+      expect(res.statusCode, url).toBe(403);
+      expect(res.body, url).toContain('data-testid="signin-notice"');
+      const ok = await a.inject({ method: 'POST', url, headers: accepted });
+      expect(ok.statusCode, url).toBe(200);
+    }
+    // Pages show the notice and lead back to where the sign-in started.
+    const federated = await a.inject({ url: '/interaction/abc/federated' });
+    expect(federated.statusCode).toBe(200);
+    expect(federated.body).toContain('value="/interaction/abc"');
+    const start = await a.inject({ url: '/federation/p1/start' });
+    expect(start.statusCode).toBe(200);
+    expect(start.body).toContain('value="/account"');
+    // Signed-in pages and the rest are left alone.
+    expect((await a.inject({ url: '/account/admin' })).body).toBe('admin');
   });
 
   it('is accepted once per browser session, same-origin only', async () => {

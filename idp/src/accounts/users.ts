@@ -126,6 +126,26 @@ export class UserStore {
   }
 
   /**
+   * The account an identifier (an e-mail address or a directory sign-in name)
+   * names, with its failed password sign-ins in the last `windowSeconds`
+   * (signin.failed events recorded with the account).
+   */
+  async passwordFailures(
+    identifier: string,
+    windowSeconds: number,
+  ): Promise<{ id: string; failures: number } | null> {
+    const { rows } = await this.pool.query<{ id: string; failures: number }>(
+      `SELECT u.id, (SELECT count(*)::int FROM audit_events a
+                     WHERE a.user_id = u.id AND a.action = 'signin.failed'
+                       AND a.at > now() - make_interval(secs => $2)) AS failures
+       FROM users u WHERE u.email = $1 OR u.username = $1
+       ORDER BY (u.email = $1) DESC NULLS LAST LIMIT 1`,
+      [identifier.trim(), windowSeconds],
+    );
+    return rows[0] ?? null;
+  }
+
+  /**
    * Checks e-mail and password. Returns null for unknown accounts, wrong
    * passwords, disabled accounts and accounts without a password alike, and
    * spends the same time on each, so callers cannot tell which one it was.

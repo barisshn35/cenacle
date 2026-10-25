@@ -41,6 +41,12 @@ export const ldapConfigSchema = z.object({
   /** People matching it are administrators (or guests) in Cenacle. */
   adminFilter: z.string().max(2000).default(''),
   guestFilter: z.string().max(2000).default(''),
+  /**
+   * An existing local account with the same e-mail address becomes the
+   * directory's account. Off by default: whoever controls an address in the
+   * directory would take over the account.
+   */
+  linkByEmail: z.boolean().default(false),
   timeoutMs: z.number().int().min(1000).max(60_000).default(10_000),
 });
 export type LdapConfig = z.infer<typeof ldapConfigSchema>;

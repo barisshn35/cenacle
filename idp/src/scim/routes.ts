@@ -367,11 +367,14 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
           if (id === null) {
             // Someone who signed in before provisioning started (or, with
             // linkByEmail, a local account with the address) becomes managed.
+            // A disabled local account is not revived by linking it: its
+            // address makes the new account a conflict (409) instead.
             const { rows: existing } = await pool.query<{ id: string }>(
               `SELECT id FROM users
                WHERE NOT scim_managed AND (
                  (source_id = $1 AND (external_id = $2 OR ($3::citext IS NOT NULL AND email = $3::citext)))
-                 OR ($4 AND source_id IS NULL AND $3::citext IS NOT NULL AND email = $3::citext))
+                 OR ($4 AND source_id IS NULL AND disabled_at IS NULL
+                     AND $3::citext IS NOT NULL AND email = $3::citext))
                ORDER BY source_id NULLS LAST LIMIT 1`,
               [provider.id, f.externalId ?? f.userName, f.email, provider.config.linkByEmail],
             );

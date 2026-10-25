@@ -226,9 +226,10 @@ export type Role = 'admin' | 'guest' | null;
 /**
  * Writes a person from a directory: created at first sight, refreshed (name,
  * address, title, role, photo, groups) every time; reactivated if they come
- * back. An existing local account with the same address becomes the directory
- * account (the directory is authoritative for its people). Returns the user id
- * and whether the account was created or changed.
+ * back. With linkByEmail (the source's opt-in), an existing local account with
+ * the same address becomes the directory account; a disabled one is never
+ * linked (and so never revived). Returns the user id and whether the account
+ * was created or changed.
  */
 export async function upsertPerson(
   db: pg.Pool | pg.PoolClient,
@@ -237,11 +238,12 @@ export async function upsertPerson(
   person: Omit<DirectoryPerson, 'username'> & { username: string | null },
   role: Role,
   groupIds: string[] | null,
+  linkByEmail: boolean,
 ): Promise<{ id: string; created: boolean; changed: boolean }> {
-  if (person.email) {
+  if (person.email && linkByEmail) {
     await db.query(
       `UPDATE users SET source_id = $1, external_id = $2, password_hash = NULL, updated_at = now()
-       WHERE source_id IS NULL AND email = $3::citext
+       WHERE source_id IS NULL AND email = $3::citext AND disabled_at IS NULL
          AND NOT EXISTS (SELECT 1 FROM users WHERE source_id = $1 AND external_id = $2)`,
       [sourceId, person.externalId, person.email],
     );

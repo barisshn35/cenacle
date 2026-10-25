@@ -145,6 +145,19 @@ test('signing in to an app then needs the second step', async ({ page }) => {
   expect(logout.events).toEqual({ 'http://schemas.openid.net/event/backchannel-logout': {} });
 });
 
+test('the password alone cannot finish a sign-in that needs the second step', async ({ page }) => {
+  await startAuthorization(page);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Two-step verification');
+  // Skipping the code form and posting the end of a setup instead must not sign in.
+  const outcome = await page.evaluate(async () => {
+    const action = document.querySelector('form')!.getAttribute('action')!;
+    const done = action.replace(/second-step$/, 'two-step-done');
+    const r = await fetch(done, { method: 'POST', redirect: 'manual' });
+    return r.type === 'opaqueredirect' ? 'redirected' : r.status;
+  });
+  expect(outcome).not.toBe('redirected');
+});
+
 test('a recovery code works once; an app code works too', async ({ page }) => {
   await startAuthorization(page);
   await page.getByLabel('Verification code').fill(recovery[0]!);

@@ -521,6 +521,20 @@ ${value}</textarea>
             </div>
             <div class="sm:col-span-2">
               ${area('guestFilter', m.guestFilter, c.guestFilter ?? '')}
+            </div>
+            <div class="flex flex-col gap-1 sm:col-span-2">
+              <label class="flex min-h-target items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="linkByEmail"
+                  value="1"
+                  aria-describedby="linkByEmail-hint"
+                  ${c.linkByEmail ? html`checked` : null}
+                  class="size-4"
+                />
+                ${m.linkByEmail}
+              </label>
+              <p id="linkByEmail-hint" class="${hint}">${m.linkByEmailHint}</p>
             </div>`,
         )}
         <div><button type="submit" class="${primary}">${m.save}</button></div>
