@@ -8,6 +8,105 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-10-25
+
+A full review of the code, deployment and documentation, with every finding closed, and
+an accessibility conformance report (ADR 0044).
+
+### Security
+
+- **Cenacle ID: the second step could be skipped.** After the right password, a request
+  to the end of a two-step setup finished the sign-in without a code. Finishing now needs
+  a setup confirmed with a code in that sign-in, once (migration 0008).
+- Cenacle ID: the sign-in notice covers every step of a sign-in (passwords, codes,
+  passkeys, other identity providers), also for percent-encoded paths.
+- Cenacle ID: linking by e-mail address (SCIM, directories) never takes over a disabled
+  account; directories link only when their new setting "link by e-mail" is on.
+- Cenacle ID: an account accepts at most 10 wrong passwords in 15 minutes; administrator
+  pages need two-step verification when the policy requires it; resetting someone's
+  two-step verification or starting to require it ends their sessions.
+- Guests and people who fail a channel's access rules could join it with `/join`.
+- Burn-on-read messages could be read through the threads list and by restoring them;
+  they cannot have replies any more.
+- An author could undo a moderator's removal of their message.
+- Mentioning everyone, group mentions, timeouts and AutoMod are enforced when editing,
+  forwarding and with `/shrug`, not only when sending.
+- Events of private channels were listed to the whole workspace.
+- File search found files of deleted messages; canvases and lists of encrypted channels
+  were searchable; encrypted channels could get canvases, lists and forum titles the
+  server reads.
+- Anyone signed in could list anyone's encryption devices.
+- Commands that carry text (reminders, bots) and scheduled messages are refused in
+  encrypted channels, also by the server; the app sends such text encrypted, as a
+  message.
+- End-to-end encryption: the sender is inside the encryption and an envelope is accepted
+  for one message only, so a server cannot show someone's message as another person's or
+  repeat it.
+- Signing out removes this device's encryption keys, decrypted messages, channel keys,
+  drafts and push subscription; drafts of encrypted channels are not stored.
+- A browser upload to S3 could be replaced, with the same form, after it was checked;
+  uploads now land under a key of their own and move to the file once complete.
+- Web push used the egress allow-list meant for bots (requests into those networks).
+- The desktop app could be made to show another website in its main window through a
+  `cenacle://` link or a redirect.
+- PDFs that expand to huge text could exhaust the server's memory; extraction is bounded
+  and a file is not read again after a crash.
+- The egress filter also blocks NAT64 (local use), 6to4 and other IPv6 ranges that embed
+  IPv4 addresses.
+
+### Added
+
+- **Accessibility conformance report** (WCAG 2.2 AA and EN 301 549) and an accessibility
+  statement: docs/accessibility.
+- A skip link to the message box; new messages from others are announced to screen
+  readers (the message list no longer reads out older messages loaded while scrolling);
+  page titles name the channel or view.
+- Tests of keyboard use, focus, reflow, text spacing, reduced motion and forced colors.
+
+### Fixed
+
+- Federated messages to archived or encrypted channels held up the other server's
+  deliveries; a workflow writing into a channel encrypted since it was made stopped all
+  other workflow runs.
+- Push and e-mail notifications could be sent twice or again and again; periodic jobs no
+  longer overlap, and long jobs (archive exports, file text, directory sync, audit
+  stream) have time limits that fit them.
+- The app notices a connection that dropped without closing (the server sends a beat it
+  can see) and does not lose a resync when the connection drops right after connecting.
+- Read positions must be messages of the channel; accepting an invitation no longer puts
+  people back into default channels they left in other workspaces; removing someone from
+  a workspace is one transaction.
+- Decrypted images are released from memory when they leave the screen and are saved,
+  rather than opened, when clicked (which did nothing in the desktop app).
+- The resize handles' focus ring and the message list's focus are visible.
+- Migration 00044 no longer locks the messages table for a full scan (00045 validates the
+  rule without blocking); rolling it back archives device-key channels.
+- Azure uploads cut off midway are not stored; imports stop at 64 GiB or a million files.
+
+- Compose: files were off on installs without `CENACLE_FILES_BACKEND` since 0.38; an empty
+  value now means unset, so an S3 endpoint turns S3 on again.
+- `CENACLE_SMTP_PASSWORD` and `CENACLE_AI_API_KEY` work next to the empty secret files
+  `prod.yml` always mounts (an empty `*_FILE` no longer counts as set).
+- Helm: pods set numeric `runAsUser`, `runAsGroup` and `fsGroup`, and the images use
+  numeric users, so `runAsNonRoot` pods start.
+- The chat server and its migrations have a writable `/tmp` (archive exports and
+  imports) on Compose (`CENACLE_TMP_SIZE`, default 1g) and Helm (`server.tmpSize`).
+- The web app's content security policy allows an external upload origin
+  (`CENACLE_UPLOAD_ORIGIN`; Helm derives it from `s3.uploadURL`).
+- `prod.yml` and the chart pass `CENACLE_DESKTOP_MIN_VERSION`, `IDP_DATABASE_POOL_MAX` and
+  `IDP_KEY_RETIRED_GRACE_SECONDS`; the chart has values for session limits, the web app
+  switch and log levels; docs/install/kubernetes.md explains `extraEnv`.
+- The directory files backend: Compose keeps files on a `files-data` volume; Helm sets
+  `CENACLE_FILES_DIR` and mounts `files.dir.existingClaim` instead of rendering S3
+  settings. The backup guide covers Azure and directory stores.
+- `stig-backup.yml` combines the STIG profile with WAL-G archiving (each file set
+  PostgreSQL's command, so the last one won).
+- Helm: the server reads its secrets as files (`*_FILE`), like Cenacle ID.
+- Compose: `walg-backup` has log limits like the other services.
+- The Python SDK's version follows the release; the release checklist lists it.
+- Publishing images never overwrites an existing version tag with another image, and a
+  failure on one registry no longer skips signing on the others.
+
 ## [0.40.0] - 2026-10-25
 
 FIPS 140-3 images and a STIG profile (ADR 0043).
@@ -1081,7 +1180,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.40.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.41.0...HEAD
+[0.41.0]: https://github.com/barisshn35/cenacle/compare/v0.40.0...v0.41.0
 [0.40.0]: https://github.com/barisshn35/cenacle/compare/v0.39.0...v0.40.0
 [0.39.0]: https://github.com/barisshn35/cenacle/compare/v0.38.0...v0.39.0
 [0.38.0]: https://github.com/barisshn35/cenacle/compare/v0.37.2...v0.38.0

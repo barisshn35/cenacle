@@ -12,7 +12,7 @@ Mattermost) with its own identity server, **Cenacle ID**. It is built to run on 
 infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
 air-gapped networks.
 
-> **Status: v0.40, FIPS 140-3 images and a STIG profile.** Sign in with Cenacle ID (passwords with
+> **Status: v0.41, a full review and an accessibility conformance report.** Sign in with Cenacle ID (passwords with
 > two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
 > provider); chat in channels, forums, threads and direct conversations; search, notify,
 > pin and save; share files; automate with bots, workflows, forms and approvals; keep
@@ -235,6 +235,8 @@ docs/            ADRs, upgrade and backup guides, UX glossary
 - **Operations:** several instances, observability (OpenTelemetry, Prometheus, Loki, Tempo,
   Grafana), [backups with WAL-G](docs/backup/README.md), [upgrades](docs/upgrade/README.md),
   [security](docs/security/README.md) and [performance](docs/operations/performance.md).
+- **Accessibility:** the [conformance report](docs/accessibility/conformance-report.md)
+  (WCAG 2.2 AA, EN 301 549) and the [statement](docs/accessibility/statement.md).
 
 ## Contributing and security
 

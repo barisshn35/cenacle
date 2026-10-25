@@ -48,6 +48,36 @@ included, was there.
 
 ## Version notes
 
+### 0.41.0
+
+- Migrations: chat 00045 (validates a rule on messages without blocking writes; quick
+  on installations that ran 00044 with 0.39 or 0.40), Cenacle ID 0008. Rolling back
+  00044 archives channels encrypted with device keys.
+- Signing out now removes the device's encryption keys: people who want their encrypted
+  history on their next device make a recovery key first (Settings → Account).
+- Directories no longer take over local Cenacle ID accounts with the same e-mail address
+  unless their new setting "link by e-mail" is on; turn it on where that was relied on.
+- Uploads to S3 land under `uploads/` and are copied to `files/` when complete: the
+  object store's user needs to copy objects (any S3 service allows it to the bucket's
+  owner).
+- Compose: files were off since 0.38 unless `CENACLE_FILES_BACKEND` was set (`prod.yml`
+  passed it empty). With an S3 endpoint they are on again; nothing to do.
+- Compose: `CENACLE_SMTP_PASSWORD` and `CENACLE_AI_API_KEY` in `.env.prod` work again
+  next to the empty `secrets/smtp_password` and `secrets/ai_api_key`.
+- Compose: the chat server's `/tmp` is a memory file system of `CENACLE_TMP_SIZE`
+  (default `1g`); raise it for large archive exports and imports.
+- STIG profile together with `backup.yml`: add `stig-backup.yml` last (both files set
+  PostgreSQL's command; until now only the last one applied).
+- The images name their users by number (server 65532, Cenacle ID 1000, web and proxy
+  10001; the ids are unchanged).
+- Helm: pods set `runAsUser`, `runAsGroup` and `fsGroup`, which the kubelet needs to
+  start them with `runAsNonRoot`. The server reads its required secrets as files; the
+  Secret keeps the same keys. `files.backend: dir` now needs `files.dir.existingClaim`
+  (it rendered S3 settings before). New values: `server.logLevel`,
+  `server.sessionIdleTimeout`, `server.sessionMaxAge`, `server.webApp`,
+  `server.desktopMinVersion`, `server.tmpSize`, `idp.logLevel`, `idp.databasePoolMax`,
+  `idp.keyRetiredGraceSeconds`.
+
 ### 0.40.0
 
 - No migration. To move to FIPS images, set `CENACLE_IMAGE_VARIANT=-fips` (Compose) or
