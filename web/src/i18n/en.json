@@ -103,7 +103,6 @@
     "about": "About",
     "channelStart": "This is the start of {{channel}}.",
     "composerPlaceholder": "Message {{channel}}",
-    "notAvailable": "Not available yet",
     "settings": "Settings",
     "channels": "Channels",
     "noTopic": "No topic yet.",
