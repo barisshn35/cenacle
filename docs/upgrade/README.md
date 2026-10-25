@@ -46,7 +46,24 @@ five times and started on 0.20.0 again, restored from `pg_dump` backups, and upg
 the 0.28 `prod.yml`. Every time, sessions stayed signed in and all data, the file
 included, was there.
 
+Before 0.99.0 the same was done from 0.43.0: installed from this documentation, filled,
+upgraded to 0.99.0 (migration 00047), rolled back, restored from dumps and upgraded again
+([QA report](../qa/report-0.99.md)).
+
 ## Version notes
+
+### 0.99.0
+
+- Migration: chat 00047 adds `ai_consents` (people's answers to the AI notice) and updates
+  the function that erases a person. Quick; rolling back drops the table.
+- With AI configured, people now accept a notice before their first AI request; until they
+  do, the AI features ask first. Optional: `CENACLE_AI_POLICY_URL` (your page about the model
+  server) and `CENACLE_PRIVACY_URL` (your privacy policy), in `.env.prod` or Helm
+  `ai.policyUrl` and `server.privacyUrl`.
+- Desktop app: the MSI and Microsoft Store installs do not update themselves; keep offering
+  the setup and the update files for the others as before. Organizations can set the server
+  by policy ([enterprise deployment](../desktop/enterprise-deployment.md)).
+- Tested path: 0.43.0 → 0.99.0 with data, rolled back and restored ([QA report](../qa/report-0.99.md)).
 
 ### 0.43.0
 

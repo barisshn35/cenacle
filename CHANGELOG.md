@@ -8,6 +8,12 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.99.0] - 2026-10-25
+
+The release candidate of 1.0: what 1.0 needs besides fixes (the AI notice, privacy, Windows
+packages for the Microsoft Store and for organizations, the support policy), then a full QA
+pass ([report](docs/qa/report-0.99.md)). Nothing is added after this; 1.0 brings only fixes.
+
 ### Added
 
 - **AI notice:** before a person's first AI request Cenacle shows what is sent, to which
@@ -1269,7 +1275,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.43.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.0...HEAD
+[0.99.0]: https://github.com/barisshn35/cenacle/compare/v0.43.0...v0.99.0
 [0.43.0]: https://github.com/barisshn35/cenacle/compare/v0.42.0...v0.43.0
 [0.42.0]: https://github.com/barisshn35/cenacle/compare/v0.41.0...v0.42.0
 [0.41.0]: https://github.com/barisshn35/cenacle/compare/v0.40.0...v0.41.0
