@@ -88,7 +88,7 @@ type Handlers struct {
 	DesktopMinVersion string
 	// PrivacyURL is the operator's privacy policy ("" none).
 	PrivacyURL string
-	Log               *slog.Logger
+	Log        *slog.Logger
 }
 
 func randomString() string {
