@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Cenacle</displayName>
+  <description>Cenacle masaüstü uygulamasının ayarları.</description>
+  <resources>
+    <stringTable>
+      <string id="Cenacle">Cenacle</string>
+      <string id="SUPPORTED_Cenacle_099">Cenacle masaüstü uygulaması 0.99 veya sonrası</string>
+      <string id="Server">Sunucu</string>
+      <string id="Server_Help">Cenacle sunucunuzun adresi, örneğin chat.example.com. Uygulama ilk açılışta sormadan bu sunucuyla eşleşir. &quot;Sunucunun değiştirilmesine izin verme&quot; ile birlikte, daha önce eşleşilmiş başka bir sunucunun da yerini alır.</string>
+      <string id="LockServer">Sunucunun değiştirilmesine izin verme</string>
+      <string id="LockServer_Help">Uygulama yalnızca &quot;Sunucu&quot; ayarındaki sunucuyu kullanır: Sunucuyu değiştir düğmesi gizlenir ve başka bir sunucuyla eşleşme reddedilir. &quot;Sunucu&quot; ayarı olmadan etkisi yoktur.</string>
+      <string id="DisableUpdates">Uygulamanın güncellemelerini kapat</string>
+      <string id="DisableUpdates_Help">Uygulama güncelleme aramaz ve kurmaz; yeni sürümleri kurumunuz dağıtır (MSI bu ayardan bağımsız olarak kendini hiçbir zaman güncellemez).</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="Server">
+        <textBox refId="Server">
+          <label>Sunucu adresi:</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

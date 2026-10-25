@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Windows builds signed with an organization's own certificate (CSC_LINK,
+# CSC_KEY_PASSWORD): the program and its libraries, which application control
+# (AppLocker, WDAC) checks (docs/desktop/enterprise-deployment.md).
+extends: ./electron-builder.yml
+win:
+  signExts: ['.dll']

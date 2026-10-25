@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Cenacle</displayName>
+  <description>Settings of the Cenacle desktop app.</description>
+  <resources>
+    <stringTable>
+      <string id="Cenacle">Cenacle</string>
+      <string id="SUPPORTED_Cenacle_099">Cenacle desktop app 0.99 or later</string>
+      <string id="Server">Server</string>
+      <string id="Server_Help">The address of your Cenacle server, for example chat.example.com. The app pairs with it on its first start, without asking. Together with &quot;Do not let people change the server&quot;, it also replaces a server someone paired with before.</string>
+      <string id="LockServer">Do not let people change the server</string>
+      <string id="LockServer_Help">The app uses only the server set in &quot;Server&quot;: the Change server button is hidden and pairing with another server is refused. Has no effect without &quot;Server&quot;.</string>
+      <string id="DisableUpdates">Turn off the app's updates</string>
+      <string id="DisableUpdates_Help">The app does not look for or install updates; your organization deploys new versions (the MSI never updates itself, whatever this setting says).</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="Server">
+        <textBox refId="Server">
+          <label>Server address:</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

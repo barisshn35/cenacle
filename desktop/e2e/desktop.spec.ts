@@ -6,7 +6,7 @@ import {
   type ElectronApplication,
   type Page,
 } from '@playwright/test';
-import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startFake, TOKEN, type Fake } from './fake-server';
@@ -19,11 +19,16 @@ test.afterAll(async () => {
   await fake.close();
 });
 
-async function launch(data: string): Promise<ElectronApplication> {
+async function launch(data: string, policy?: object): Promise<ElectronApplication> {
+  const env: Record<string, string> = { CENACLE_DESKTOP_DATA: data, LANG: 'en_US.UTF-8' };
+  if (policy) {
+    env.CENACLE_DESKTOP_POLICY = join(data, 'policy.json');
+    writeFileSync(env.CENACLE_DESKTOP_POLICY, JSON.stringify(policy));
+  }
   return electron.launch({
     // As root (CI containers) Chromium needs --no-sandbox; the pages still run sandboxed renderers.
     args: [join(__dirname, '..'), ...(process.getuid?.() === 0 ? ['--no-sandbox'] : [])],
-    env: { ...process.env, CENACLE_DESKTOP_DATA: data, LANG: 'en_US.UTF-8' },
+    env: { ...process.env, ...env },
   });
 }
 
@@ -160,5 +165,29 @@ test('starts quickly and stays within its memory budget', async () => {
   // under 800 MB (about 580 MB at 0.30 under Xvfb, where drawing is in software).
   expect(startup).toBeLessThan(8_000);
   expect(memory / 1024).toBeLessThan(800);
+  await app.close();
+});
+
+test("an organization's policy pairs the app with its server and locks it", async () => {
+  const data = mkdtempSync(join(tmpdir(), 'cenacle-desktop-'));
+  const app = await launch(data, { server: fake.chat, lockServer: true, disableUpdates: true });
+  // No pairing page: straight to signing in at the organization's server.
+  await signIn(app);
+  const main = await windowAt(app, fake.chat);
+  await expect(main.locator('#who')).toHaveText('Signed in as Ayşe Yılmaz');
+  const prefs = (await main.evaluate(() =>
+    (
+      globalThis as unknown as { cenacleDesktop: { prefs: () => Promise<unknown> } }
+    ).cenacleDesktop.prefs(),
+  )) as { serverLocked: boolean; updates: boolean };
+  expect(prefs).toMatchObject({ serverLocked: true, updates: false });
+  // Changing the server is refused.
+  await main.evaluate(() =>
+    (
+      globalThis as unknown as { cenacleDesktop: { changeServer: () => Promise<void> } }
+    ).cenacleDesktop.changeServer(),
+  );
+  await expect(main.locator('#who')).toHaveText('Signed in as Ayşe Yılmaz');
+  expect(JSON.parse(readFileSync(join(data, 'config.json'), 'utf8')).server).toBe(fake.chat);
   await app.close();
 });

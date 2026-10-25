@@ -520,7 +520,8 @@
     "yourData": "Verileriniz",
     "yourDataHint": "Cenacle'ın sizinle ilgili tuttuğu her şeyi indirin: profiliniz, mesajlarınız, tepkileriniz, dosyalarınız, cihazlarınız ve yaptıklarınız (her satıra bir öğe, NDJSON).",
     "downloadData": "Verilerinizi indirin",
-    "privacyPolicy": "Bu sunucunun gizlilik politikası"
+    "privacyPolicy": "Bu sunucunun gizlilik politikası",
+    "serverLocked": "Bu sunucuyu kurumunuz belirledi; buradan değiştirilemez."
   },
   "reactions": {
     "label": "Tepkiler",
@@ -2074,7 +2075,8 @@
       "installer": "kurulum",
       "appimage": "AppImage",
       "deb": ".deb",
-      "rpm": ".rpm"
+      "rpm": ".rpm",
+      "msi": "kurumlar için MSI"
     },
     "version": "Cenacle {{version}}. Uygulamada sunucu adresi olarak {{address}} gir."
   },

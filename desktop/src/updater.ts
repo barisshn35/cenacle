@@ -1,20 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { app, dialog, type BrowserWindow } from 'electron';
+import { dialog, type BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { fill, t } from './i18n.js';
 
 let serverOf: () => string | null = () => null;
 let windowOf: () => BrowserWindow | null = () => null;
 let asked = false;
+let enabled = false;
 
 /**
  * Updates come from the paired server only: its administrators put the
  * installers and the update files (latest.yml, latest-linux.yml) under
  * /downloads/desktop/. Nothing else is asked, and nothing is sent.
  */
-export function setupUpdates(server: () => string | null, win: () => BrowserWindow | null): void {
+export function setupUpdates(
+  server: () => string | null,
+  win: () => BrowserWindow | null,
+  on: boolean,
+): void {
   serverOf = server;
   windowOf = win;
+  enabled = on;
+  if (!on) return;
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
@@ -28,7 +35,7 @@ export function setupUpdates(server: () => string | null, win: () => BrowserWind
 
 export async function checkForUpdates(manual: boolean): Promise<void> {
   const server = serverOf();
-  if (!server || !app.isPackaged) return;
+  if (!server || !enabled) return;
   autoUpdater.setFeedURL({ provider: 'generic', url: `${server}/downloads/desktop` });
   asked = manual;
   try {

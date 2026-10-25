@@ -9,15 +9,18 @@ off. macOS follows later. Design: [ADR 0033](../adr/0033-desktop-app.md).
 Every release (`v*` tag) builds the app in CI and publishes it to the project's package
 registry as `cenacle-desktop/<version>/`:
 
-| File                                            | For                                                          |
-| ----------------------------------------------- | ------------------------------------------------------------ |
-| `Cenacle-<version>-setup.exe`                   | Windows, x64 and arm64 (installs for the current user)       |
-| `Cenacle-<version>-x86_64.AppImage`, `-arm64`   | Linux, runs anywhere; updates itself                         |
-| `Cenacle-<version>-amd64.deb`, `-arm64.deb`     | Debian, Ubuntu                                               |
-| `Cenacle-<version>-x86_64.rpm`, `-aarch64.rpm`  | Fedora, RHEL, SUSE                                           |
-| `latest.yml`, `latest-linux*.yml`, `*.blockmap` | the app's updates (checksums, sizes)                         |
-| `SHA256SUMS`, `SHA256SUMS.sigstore.json`        | checksums of the files above, and their signature            |
-| `index.json`                                    | the list the web app shows on its "Use the Cenacle app" page |
+| File                                            | For                                                                           |
+| ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| `Cenacle-<version>-setup.exe`                   | Windows, x64 and arm64 (installs for the current user)                        |
+| `Cenacle-<version>-x64.msi`                     | Windows x64 for organizations: all users, silent, no updates                  |
+| `Cenacle-<version>-x64.msix`, `-arm64.msix`     | the Microsoft Store ([how they are published](../desktop/microsoft-store.md)) |
+| `Cenacle-<version>-policy-templates.zip`        | Group Policy templates (ADMX, English and Turkish)                            |
+| `Cenacle-<version>-x86_64.AppImage`, `-arm64`   | Linux, runs anywhere; updates itself                                          |
+| `Cenacle-<version>-amd64.deb`, `-arm64.deb`     | Debian, Ubuntu                                                                |
+| `Cenacle-<version>-x86_64.rpm`, `-aarch64.rpm`  | Fedora, RHEL, SUSE                                                            |
+| `latest.yml`, `latest-linux*.yml`, `*.blockmap` | the app's updates (checksums, sizes)                                          |
+| `SHA256SUMS`, `SHA256SUMS.sigstore.json`        | checksums of the files above, and their signature                             |
+| `index.json`                                    | the list the web app shows on its "Use the Cenacle app" page                  |
 
 The signature shows the files come from the project's release
 (`docs/security/README.md`, Verifying a release).
@@ -29,7 +32,8 @@ Copy all files of a release into `deploy/compose/downloads/desktop/` (or the fol
 are then served at `https://<chat-domain>/downloads/desktop/`:
 
 - the app checks there for updates (a minute after start, then every six hours) and asks
-  people before downloading and before restarting; nothing else is contacted;
+  people before downloading and before restarting; nothing else is contacted. Apps from the
+  Microsoft Store and from the MSI do not: the Store or the organization updates them;
 - the web app's "Use the Cenacle app" page (shown when the web app is turned off) lists the
   installers.
 
@@ -39,9 +43,12 @@ set `CENACLE_DESKTOP_MIN_VERSION` (for example `0.30.0`) on the server.
 
 ## Installing
 
-- **Windows:** run the setup. The packages are not signed yet, so Windows SmartScreen
-  shows "Windows protected your PC": choose **More info**, then **Run anyway**. Managed
-  computers can install it silently: `Cenacle-<version>-setup.exe /S`.
+- **Windows:** run the setup. The setup and the MSI are not signed, so Windows SmartScreen
+  shows "Windows protected your PC": choose **More info**, then **Run anyway**. The app
+  from the Microsoft Store is signed by Microsoft and shows no such warning.
+- **Managed computers:** deploy the MSI silently (`msiexec /i Cenacle-<version>-x64.msi /qn`)
+  and set the server with Group Policy or Intune. Organizations can sign the app with their
+  own certificate. See [enterprise deployment](../desktop/enterprise-deployment.md).
 - **Linux:** install the deb or rpm with the package manager, or make the AppImage
   executable and run it. Keeping the session needs a keyring (GNOME Keyring or KWallet);
   without one people sign in at every start.

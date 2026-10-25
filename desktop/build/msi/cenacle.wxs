@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<!--
+  The MSI for organizations (Windows x64), built by scripts/msi.mjs with wixl
+  (msitools): installed for all users in Program Files, silently with
+  msiexec /qn, and replaced by newer versions (the UpgradeCode never changes).
+  The app's files are listed in files.wxs (wixl-heat).
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="Cenacle" Language="1033" Version="$(var.Version)"
+    Manufacturer="Cenacle contributors" UpgradeCode="3daa4ce0-8b5f-4299-8d80-d8bda0662c07">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine"
+      Description="Cenacle" Comments="Team chat on your own server" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Cenacle is already installed." />
+    <Media Id="1" Cabinet="cenacle.cab" EmbedCab="yes" />
+    <Icon Id="cenacle.ico" SourceFile="$(var.Icon)" />
+    <Property Id="ARPPRODUCTICON" Value="cenacle.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://git.calaixo.com/calaxio/cenacle" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLDIR" Name="Cenacle" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder" />
+      <Directory Id="DesktopFolder" />
+    </Directory>
+
+    <DirectoryRef Id="TARGETDIR">
+      <Component Id="Shortcuts" Guid="bd78c698-9152-46e4-8b32-1a35a6ed53fc" Win64="yes">
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Cenacle"
+          Target="[INSTALLDIR]Cenacle.exe" WorkingDirectory="INSTALLDIR" />
+        <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="Cenacle"
+          Target="[INSTALLDIR]Cenacle.exe" WorkingDirectory="INSTALLDIR" />
+        <!-- cenacle:// links open the app. -->
+        <RegistryValue Root="HKLM" Key="Software\Classes\cenacle" Value="URL:Cenacle" Type="string" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\cenacle" Name="URL Protocol" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\cenacle\shell\open\command"
+          Value="&quot;[INSTALLDIR]Cenacle.exe&quot; &quot;%1&quot;" Type="string" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="Complete" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="Shortcuts" />
+    </Feature>
+  </Product>
+</Wix>

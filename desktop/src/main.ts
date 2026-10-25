@@ -16,6 +16,7 @@ import {
   type Session,
   type WebContents,
 } from 'electron';
+import { existsSync } from 'node:fs';
 import { join, normalize as normalizePath, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -40,6 +41,7 @@ import {
   saveToken,
   type Config,
 } from './store.js';
+import { NO_POLICY, readPolicy, type Policy } from './policy.js';
 import { checkForUpdates, setupUpdates } from './updater.js';
 
 /** The persistent session of the server's pages: its storage, drafts and cache. */
@@ -62,6 +64,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let config: Config;
+let policy: Policy = NO_POLICY;
 let main: BrowserWindow | null = null;
 let local: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -76,7 +79,9 @@ if (process.env.CENACLE_DESKTOP_DATA) app.setPath('userData', process.env.CENACL
 
 // The server sees which app it talks to (the devices list names it).
 app.userAgentFallback = `${app.userAgentFallback} CenacleDesktop/${app.getVersion()}`;
-app.setAppUserModelId('org.cenacle.desktop');
+// An MSIX package (Microsoft Store) has its identity, links and notifications
+// from its manifest; setting them here would break its notifications.
+if (!process.windowsStore) app.setAppUserModelId('org.cenacle.desktop');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -89,7 +94,7 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(start);
 }
 
-app.setAsDefaultProtocolClient('cenacle');
+if (!process.windowsStore) app.setAsDefaultProtocolClient('cenacle');
 
 // Nothing runs in this app that the app did not load itself.
 app.on('web-contents-created', (_e, contents) => {
@@ -119,6 +124,7 @@ async function start() {
   setupLanguage();
   serveLocalPages();
   config = loadConfig();
+  applyPolicy();
   createTray();
   // No menu bar: its actions live in the app (Settings, This app) and the tray.
   Menu.setApplicationMenu(null);
@@ -132,10 +138,42 @@ async function start() {
   setupUpdates(
     () => config.server,
     () => main ?? local,
+    updatesOn(),
   );
   const link = process.argv.find((a) => a.startsWith('cenacle://'));
   if (link) openDeepLink(link);
 }
+
+/**
+ * The organization's server (enterprise deployment): it pairs the app on the
+ * first start, and when locked replaces any other server.
+ */
+function applyPolicy() {
+  policy = readPolicy();
+  if (!policy.server) return;
+  const n = normalize(policy.server);
+  if ('error' in n) {
+    policy = { ...policy, server: '' };
+    return;
+  }
+  if (config.server === n.origin || (config.server && !policy.lockServer)) return;
+  if (config.server) clearToken(); // a session of the other server
+  config = { ...config, server: n.origin, idp: null };
+  saveConfig(config);
+}
+
+const serverLocked = () => !!policy.server && policy.lockServer;
+
+/**
+ * The app updates itself unless the Microsoft Store does (MSIX), the
+ * organization deploys updates (policy), or it was installed from the MSI,
+ * which organizations deploy and update themselves.
+ */
+const updatesOn = () =>
+  app.isPackaged &&
+  !process.windowsStore &&
+  !policy.disableUpdates &&
+  !existsSync(join(process.resourcesPath, 'managed-install'));
 
 // --- the server's window ------------------------------------------------------
 
@@ -393,6 +431,7 @@ async function signOut() {
 }
 
 async function changeServer() {
+  if (serverLocked()) return;
   await signOut();
   await session.fromPartition(APP_PARTITION).clearStorageData();
   config = { ...config, server: null, idp: null };
@@ -539,7 +578,13 @@ function registerIpc() {
   });
   ipcMain.handle('desktop:prefs', (e) =>
     fromServer(e)
-      ? { closeToTray: config.closeToTray, sessionKept: canKeepSession(), tray: !!tray }
+      ? {
+          closeToTray: config.closeToTray,
+          sessionKept: canKeepSession(),
+          tray: !!tray,
+          updates: updatesOn(),
+          serverLocked: serverLocked(),
+        }
       : null,
   );
   ipcMain.handle('desktop:set-close-to-tray', (e, on: unknown) => {
@@ -573,7 +618,8 @@ function registerIpc() {
   ipcMain.handle(
     'pair:connect',
     async (e, address: unknown): Promise<{ ok: true } | { error: PairError; version?: string }> => {
-      if (!fromLocal(e) || typeof address !== 'string') return { error: 'invalid' };
+      if (!fromLocal(e) || typeof address !== 'string' || serverLocked())
+        return { error: 'invalid' };
       const n = normalize(address);
       if ('error' in n) return n;
       const r = await check(n.origin);

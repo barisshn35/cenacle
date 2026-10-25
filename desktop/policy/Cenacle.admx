@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<!-- Group Policy settings of the Cenacle desktop app (docs/desktop/enterprise-deployment.md).
+     Copy this file to PolicyDefinitions and the .adml files to its language folders. -->
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="cenacle" namespace="Cenacle.Policies.Desktop" />
+    <using prefix="windows" namespace="Microsoft.Policies.Windows" />
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0" />
+  <supportedOn>
+    <definitions>
+      <definition name="SUPPORTED_Cenacle_099" displayName="$(string.SUPPORTED_Cenacle_099)" />
+    </definitions>
+  </supportedOn>
+  <categories>
+    <category name="Cenacle" displayName="$(string.Cenacle)" />
+  </categories>
+  <policies>
+    <policy name="Server" class="Both" displayName="$(string.Server)" explainText="$(string.Server_Help)"
+      presentation="$(presentation.Server)" key="Software\Policies\Cenacle\Desktop">
+      <parentCategory ref="Cenacle" />
+      <supportedOn ref="SUPPORTED_Cenacle_099" />
+      <elements>
+        <text id="Server" valueName="Server" required="true" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="LockServer" class="Both" displayName="$(string.LockServer)" explainText="$(string.LockServer_Help)"
+      key="Software\Policies\Cenacle\Desktop" valueName="LockServer">
+      <parentCategory ref="Cenacle" />
+      <supportedOn ref="SUPPORTED_Cenacle_099" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="DisableUpdates" class="Both" displayName="$(string.DisableUpdates)" explainText="$(string.DisableUpdates_Help)"
+      key="Software\Policies\Cenacle\Desktop" valueName="DisableUpdates">
+      <parentCategory ref="Cenacle" />
+      <supportedOn ref="SUPPORTED_Cenacle_099" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+  </policies>
+</policyDefinitions>

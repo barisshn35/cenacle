@@ -34,7 +34,7 @@ import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ApiError } from '@cenacle/core/api';
 import { useSession } from './session';
-import { desktop } from '../desktop/desktop';
+import { desktop, type DesktopPrefs } from '../desktop/desktop';
 import { WebAppPanel } from './web-app-panel';
 import { metaQuery } from './web-app';
 import { SideNavDialog } from '../shell/side-nav-dialog';
@@ -311,15 +311,7 @@ export function SettingsDialog({
                     <dd className="font-mono text-sm">{desktop.version}</dd>
                   </dl>
                   <p className="text-sm text-muted-foreground">{t('settings.pairedHint')}</p>
-                  <DesktopPrefs />
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" onClick={() => void desktop?.checkUpdates()}>
-                      {t('settings.checkUpdates')}
-                    </Button>
-                    <Button variant="outline" onClick={() => void desktop?.changeServer()}>
-                      {t('settings.changeServer')}
-                    </Button>
-                  </div>
+                  <DesktopPrefsPanel />
                 </section>
               )}
 
@@ -407,13 +399,9 @@ export function SettingsDialog({
 }
 
 /** The desktop app's own choices: keep running in the tray when closed. */
-function DesktopPrefs() {
+function DesktopPrefsPanel() {
   const { t } = useTranslation();
-  const [prefs, setPrefs] = useState<{
-    closeToTray: boolean;
-    sessionKept: boolean;
-    tray: boolean;
-  } | null>(null);
+  const [prefs, setPrefs] = useState<DesktopPrefs | null>(null);
   useEffect(() => {
     void desktop?.prefs().then(setPrefs);
   }, []);
@@ -437,6 +425,23 @@ function DesktopPrefs() {
       )}
       {!prefs.sessionKept && (
         <p className="text-sm text-muted-foreground">{t('settings.sessionNotKept')}</p>
+      )}
+      {prefs.serverLocked && (
+        <p className="text-sm text-muted-foreground">{t('settings.serverLocked')}</p>
+      )}
+      {(prefs.updates !== false || !prefs.serverLocked) && (
+        <div className="flex flex-wrap gap-2">
+          {prefs.updates !== false && (
+            <Button variant="outline" onClick={() => void desktop?.checkUpdates()}>
+              {t('settings.checkUpdates')}
+            </Button>
+          )}
+          {!prefs.serverLocked && (
+            <Button variant="outline" onClick={() => void desktop?.changeServer()}>
+              {t('settings.changeServer')}
+            </Button>
+          )}
+        </div>
       )}
     </>
   );

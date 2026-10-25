@@ -13,6 +13,7 @@ const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
 const kinds = [
   [/\.exe$/, 'windows', 'installer'],
+  [/\.msi$/, 'windows', 'msi'],
   [/\.AppImage$/, 'linux', 'appimage'],
   [/\.deb$/, 'linux', 'deb'],
   [/\.rpm$/, 'linux', 'rpm'],

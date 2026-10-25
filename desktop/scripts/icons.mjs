@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: AGPL-3.0-only
 // Renders the app icons from the logo (run when the logo changes; the PNGs
-// are committed): the window and installer icons, the tray icon and the dot
-// that marks unread messages on the Windows taskbar.
+// are committed): the window and installer icons, the tray icon, the dot
+// that marks unread messages on the Windows taskbar and the tiles of the
+// MSIX package (build/appx, scripts/msix.mjs).
 import { Resvg } from '@resvg/resvg-js';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -30,3 +31,40 @@ for (const size of [16, 32, 48, 64, 128, 256, 512])
   render(icon, size, join(root, 'build', 'icons', `${size}x${size}.png`));
 render(tray, 32, join(root, 'assets', 'tray.png'));
 render(badge, 16, join(root, 'assets', 'badge.png'));
+
+// The MSIX package's logos: the icon on a transparent square, and centred on
+// the wide tile.
+const inner = icon.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+const viewBox = /viewBox="([^"]+)"/.exec(icon)[1];
+const [, , vw, vh] = viewBox.split(/\s+/).map(Number);
+const wide = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw * (310 / 150)} ${vh}"><svg x="${(vw * (310 / 150) - vw) / 2}" width="${vw}" height="${vh}" viewBox="${viewBox}">${inner}</svg></svg>`;
+for (const [name, size] of [
+  ['StoreLogo', 50],
+  ['Square44x44Logo', 44],
+  ['Square71x71Logo', 71],
+  ['Square150x150Logo', 150],
+  ['Square310x310Logo', 310],
+])
+  render(icon, size, join(root, 'build', 'appx', `${name}.png`));
+render(wide, 310, join(root, 'build', 'appx', 'Wide310x150Logo.png'));
+
+// The MSI's icon (Programs and Features): an .ico of PNG images.
+const sizes = [16, 32, 48, 256];
+const pngs = sizes.map((size) =>
+  new Resvg(icon, { fitTo: { mode: 'width', value: size } }).render().asPng(),
+);
+const header = Buffer.alloc(6 + 16 * sizes.length);
+header.writeUInt16LE(1, 2);
+header.writeUInt16LE(sizes.length, 4);
+let offset = header.length;
+sizes.forEach((size, i) => {
+  const at = 6 + 16 * i;
+  header.writeUInt8(size === 256 ? 0 : size, at);
+  header.writeUInt8(size === 256 ? 0 : size, at + 1);
+  header.writeUInt16LE(1, at + 4);
+  header.writeUInt16LE(32, at + 6);
+  header.writeUInt32LE(pngs[i].length, at + 8);
+  header.writeUInt32LE(offset, at + 12);
+  offset += pngs[i].length;
+});
+writeFileSync(join(root, 'build', 'msi', 'cenacle.ico'), Buffer.concat([header, ...pngs]));

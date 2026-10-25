@@ -10,11 +10,21 @@ export interface DesktopBridge {
   changeServer: () => Promise<void>;
   setBadge: (count: number) => Promise<void>;
   setTitleBar: (colors: { color: string; symbolColor: string }) => Promise<void>;
-  prefs: () => Promise<{ closeToTray: boolean; sessionKept: boolean; tray: boolean } | null>;
+  prefs: () => Promise<DesktopPrefs | null>;
   setCloseToTray: (on: boolean) => Promise<void>;
   checkUpdates: () => Promise<void>;
   /** The height of the window's bar in pixels. */
   titleBarHeight: number;
+}
+
+export interface DesktopPrefs {
+  closeToTray: boolean;
+  sessionKept: boolean;
+  tray: boolean;
+  /** The app updates itself (not from the Microsoft Store, not turned off by policy). */
+  updates?: boolean;
+  /** The organization set the server and people cannot change it. */
+  serverLocked?: boolean;
 }
 
 /** The desktop app around this page, or undefined in a browser. */
@@ -27,7 +37,7 @@ export interface DesktopDownload {
   platform: 'windows' | 'linux';
   /** 'x64', 'arm64', or both for the Windows installer. */
   arch: string;
-  kind: 'installer' | 'appimage' | 'deb' | 'rpm';
+  kind: 'installer' | 'msi' | 'appimage' | 'deb' | 'rpm';
   size: number;
 }
 
