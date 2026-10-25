@@ -1,7 +1,8 @@
 # Operating Cenacle
 
 Day-two tasks for a running installation: scaling, upgrades without downtime,
-monitoring, support bundles, offline installs and moving from another chat.
+monitoring, support bundles, offline installs and moving from another chat. Which versions
+receive fixes and for how long: [releases and support](support-policy.md).
 
 ## Several instances of the chat server
 

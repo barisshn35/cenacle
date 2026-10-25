@@ -2,12 +2,10 @@
 
 ## Supported versions
 
-Cenacle is pre-1.0. Only the latest released minor version receives security fixes.
-
-| Version      | Supported |
-| ------------ | --------- |
-| 0.x (latest) | ✅        |
-| older        | ❌        |
+Security fixes go to every supported version: the latest feature release and the extended
+support releases (ESR) within their 12 months. Which versions those are, and for how long, is in
+the [support policy](docs/operations/support-policy.md). Before 1.0.0 only the latest 0.x
+release is supported.
 
 ## Reporting a vulnerability
 
