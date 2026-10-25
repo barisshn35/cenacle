@@ -20,6 +20,7 @@ registry as `cenacle-desktop/<version>/`:
 | `Cenacle-<version>-x86_64.rpm`, `-aarch64.rpm`  | Fedora, RHEL, SUSE                                                            |
 | `latest.yml`, `latest-linux*.yml`, `*.blockmap` | the app's updates (checksums, sizes)                                          |
 | `SHA256SUMS`, `SHA256SUMS.sigstore.json`        | checksums of the files above, and their signature                             |
+| `SHA256SUMS.asc`, `cenacle-linux.asc`           | the checksums signed with GPG, and the key (also of the rpms)                 |
 | `index.json`                                    | the list the web app shows on its "Use the Cenacle app" page                  |
 
 The signature shows the files come from the project's release

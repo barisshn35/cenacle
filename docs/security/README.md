@@ -136,9 +136,19 @@ so verifying needs only the public key and the registry — also without Interne
   sha256sum --check --ignore-missing SHA256SUMS
   ```
 
+- **Linux packages (0.99):** the rpm packages are signed with the project's GPG key, and
+  `SHA256SUMS.asc` signs the checksums for tools that know GPG rather than cosign. The
+  public key is `cenacle-linux.asc` in each release:
+
+  ```sh
+  sudo rpm --import cenacle-linux.asc && rpm -K Cenacle-0.99.0-x86_64.rpm
+  gpg --import cenacle-linux.asc && gpg --verify SHA256SUMS.asc SHA256SUMS
+  ```
+
 The key is set up once per GitLab project with `ci/setup-signing.sh` (it keeps the private
 key only in protected CI/CD variables and protects `v*` tags); a release without it is
-published unsigned and its pipeline says so.
+published unsigned and its pipeline says so. The GPG key of the Linux packages is set up the
+same way with `ci/setup-linux-signing.sh`.
 
 ## Security reviews
 
