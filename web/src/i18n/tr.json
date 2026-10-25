@@ -485,7 +485,8 @@
       "notifications": "Bildirimler",
       "announcements": "Duyurular",
       "language": "Dil ve bölge",
-      "signIn": "Giriş"
+      "signIn": "Giriş",
+      "ai": "Yapay zekâ"
     },
     "adminGroup": "Çalışma alanı · yönetici",
     "cenacleId": "Cenacle ID hesabı",
@@ -496,7 +497,8 @@
       "language": "Cenacle'ın dili, saatlerin yazılışı ve saat dilimin.",
       "texts": "Yöneticilerin herkes için değiştirdiği arayüz metinleri.",
       "announcements": "Herkesin gördüğü bir duyuru şeridi ve kabul ettiği koşullar.",
-      "signIn": "Cenacle'ın nerede kullanılabileceği."
+      "signIn": "Cenacle'ın nerede kullanılabileceği.",
+      "ai": "İsteklerinizin bu sunucunun çalıştırdığı yapay zekâ modeline gidip gidemeyeceği ve bunun anlamı."
     },
     "timeFormat": {
       "title": "Saat",
@@ -1915,7 +1917,32 @@
     "noSources": "Bu soruyla eşleşen, okuyabildiğiniz bir mesaj yok.",
     "settingsTitle": "Yapay zekâ",
     "turnOn": "Bu çalışma alanında yapay zekâyı aç",
-    "settingsHint": "Özetler, yeniden yazma ve sorular; bu sunucunun yöneticisinin çalıştırdığı modelle. Mesajlar yalnızca ona gönderilir."
+    "settingsHint": "Özetler, yeniden yazma ve sorular; bu sunucunun yöneticisinin çalıştırdığı modelle. Mesajlar yalnızca ona gönderilir.",
+    "notice": {
+      "title": "Yapay zekâyı kullanmadan önce",
+      "description": "Buradaki yapay zekâ, metni bir dil modeline göndererek çalışır. Bunun ne demek olduğunu okuyun, sonra seçin.",
+      "intro": "Özetlemek, yeniden yazmak ya da yanıtlamak için Cenacle metni bir dil modeline gönderir ve modelin yazdığını size gösterir.",
+      "sentTitle": "Ne gönderilir",
+      "sent": "İsteğiniz ve yapay zekânın yanıt için okuduğu mesajlar: yalnızca sizin okuyabildiğiniz mesajlar; şifreli, silinmiş ya da okununca yok olan mesajlar asla. Bahsetmeler “@birisi” ile değiştirilir.",
+      "whereTitle": "Nereye gider",
+      "where": "Bu sunucunun yöneticisinin seçtiği ve çalıştırdığı {{host}} üzerindeki {{model}} modeline. Bu sunucunun kurumunuzun dışında olup olmadığını yöneticinize sorabilirsiniz.",
+      "keptTitle": "Ne saklanır",
+      "kept": "Cenacle bir istek yaptığınızı, isteğin türünü ve boyutunu kaydeder; metnini kaydetmez. Model sunucusunun ne sakladığı, yöneticinin onu nasıl kurduğuna bağlıdır.",
+      "answersTitle": "Yanıtlar",
+      "answers": "Yalnızca siz görürsünüz ve “Yapay zekâ yazdı” işaretiyle gösterilir. Siz kullanmayı seçmedikçe hiçbir şey gönderilmez ya da değişmez.",
+      "policy": "Yöneticinin model sunucusu istekleri nasıl saklıyor",
+      "accept": "Kabul et ve devam et",
+      "decline": "Reddet",
+      "declined": "Yapay zekâ sizin için kapalı. Ayarlar → Yapay zekâ bölümünden açabilirsiniz.",
+      "failed": "Yanıtınız kaydedilemedi.",
+      "turnOn": "Yapay zekâyı benim için aç",
+      "turnOff": "Yapay zekâyı benim için kapat",
+      "state": {
+        "accepted": "{{when}} tarihinde kabul ettiniz. Yapay zekâ özellikleri sizin için açık.",
+        "declined": "{{when}} tarihinde reddettiniz. Yapay zekâ özellikleri sizden gizlendi.",
+        "undecided": "Henüz yanıt vermediniz. İlk yapay zekâ isteğinizden önce size sorulacak."
+      }
+    }
   },
   "federation": {
     "loadFailed": "Bağlantılar yüklenemedi.",

@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -35,6 +36,15 @@ func New(url, model, apiKey string, timeout time.Duration) *Client {
 		HTTP: &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		}}}
+}
+
+// Host is the model server's host and port, as people are told where their
+// requests go.
+func (c *Client) Host() string {
+	if u, err := url.Parse(c.URL); err == nil {
+		return u.Host
+	}
+	return ""
 }
 
 // ErrModel is a failure of the model's server.

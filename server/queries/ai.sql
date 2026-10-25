@@ -36,3 +36,11 @@ WHERE c.workspace_id = @workspace_id AND NOT c.encrypted
   AND cenacle_search_vector(m.body) @@ to_tsquery('simple'::regconfig, @tsquery::text)
 ORDER BY ts_rank(cenacle_search_vector(m.body), to_tsquery('simple'::regconfig, @tsquery::text)) DESC, m.id DESC
 LIMIT @row_limit;
+
+-- name: GetAIConsent :one
+SELECT * FROM ai_consents WHERE user_id = @user_id;
+
+-- name: SetAIConsent :one
+INSERT INTO ai_consents (user_id, accepted, model) VALUES (@user_id, @accepted, @model)
+ON CONFLICT (user_id) DO UPDATE SET accepted = excluded.accepted, model = excluded.model, decided_at = now()
+RETURNING *;

@@ -14,6 +14,7 @@ import {
   MegaphoneIcon,
   PaletteIcon,
   ShieldCheckIcon,
+  SparklesIcon,
   TypeIcon,
   UserIcon,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { LANGUAGE_NAMES, LANGUAGES, setLanguage, type Language } from '../../i18n';
 import { getTimeFormat, setTimeFormat, type TimeFormat } from '../../i18n/time-format';
 import { AppearancePanel } from '../appearance/appearance-panel';
+import { AISettingsPanel } from '../ai/ai-ui';
 import { UITextsPanel } from '../appearance/ui-texts-panel';
 import { NotificationsPanel } from '../notifications/notifications-panel';
 import { toast } from 'sonner';
@@ -116,7 +118,14 @@ function DeviceRow({ device }: { device: DeviceSession }) {
  * everywhere" (S3) and the way to two-step verification in Cenacle ID.
  */
 type Tab =
-  'account' | 'appearance' | 'notifications' | 'texts' | 'announcements' | 'language' | 'signIn';
+  | 'account'
+  | 'appearance'
+  | 'notifications'
+  | 'language'
+  | 'ai'
+  | 'texts'
+  | 'announcements'
+  | 'signIn';
 
 export function SettingsDialog({
   open,
@@ -135,7 +144,15 @@ export function SettingsDialog({
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const admin = session.permissions.create_workspaces;
   const groups: { label?: string; tabs: Tab[] }[] = [
-    { tabs: ['account', 'appearance', 'notifications', 'language'] },
+    {
+      tabs: [
+        'account',
+        'appearance',
+        'notifications',
+        'language',
+        ...(session.permissions.ai ? (['ai'] as Tab[]) : []),
+      ],
+    },
     ...(admin
       ? [{ label: t('settings.adminGroup'), tabs: ['texts', 'announcements', 'signIn'] as Tab[] }]
       : []),
@@ -146,6 +163,7 @@ export function SettingsDialog({
     appearance: PaletteIcon,
     notifications: BellIcon,
     language: LanguagesIcon,
+    ai: SparklesIcon,
     texts: TypeIcon,
     announcements: MegaphoneIcon,
     signIn: ShieldCheckIcon,
@@ -225,6 +243,7 @@ export function SettingsDialog({
         >
           {tab === 'appearance' && <AppearancePanel />}
           {tab === 'language' && <LanguagePanel />}
+          {tab === 'ai' && <AISettingsPanel />}
           {tab === 'notifications' && <NotificationsPanel />}
           {tab === 'announcements' && <AnnouncementsPanel />}
           {tab === 'signIn' && <WebAppPanel />}

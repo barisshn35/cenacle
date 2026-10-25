@@ -81,6 +81,8 @@ ai:
   model: ''
   # Longest wait for an answer.
   timeout: 2m
+  # Your page on how the model server keeps requests, linked from the AI notice.
+  policyUrl: ''
 
 # E-mail about missed mentions and direct messages; empty host: no e-mail.
 # The password is the "smtp-password" key of existingSecret (optional).

@@ -6779,6 +6779,45 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/me/ai:
+    get:
+      tags: [ai]
+      operationId: getMyAIConsent
+      summary: The AI notice and your answer to it
+      description: |
+        Where the operator configured a model (the session's permissions.ai). Before
+        a person's first AI request they are told what goes to the model and answer;
+        no request is sent without "accepted" for the current model.
+      responses:
+        '200':
+          description: The notice and the answer.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AIConsent' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [ai]
+      operationId: setMyAIConsent
+      summary: Accept or decline the AI notice (recorded in the audit log)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accepted]
+              properties:
+                accepted: { type: boolean }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AIConsent' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/workspaces/{workspace_id}/ai:
     parameters:
       - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -7222,6 +7261,18 @@ components:
         connection_id: { type: string, format: uuid }
         connection_name: { type: string }
         status: { type: string, enum: [offered, active] }
+    AIConsent:
+      type: object
+      required: [model, host, decision]
+      properties:
+        model: { type: string, description: The model the operator configured. }
+        host: { type: string, description: The server the model runs on (host and port). }
+        policy_url: { type: string, description: The operator's page on how the model's server keeps requests; absent when none. }
+        decision:
+          type: string
+          enum: [accepted, declined, undecided]
+          description: The person's answer for this model; undecided when they were not asked yet or the model changed.
+        decided_at: { type: string, format: date-time }
     AIAnswer:
       type: object
       required: [text, sources]

@@ -120,6 +120,7 @@ services:
       CENACLE_AI_API_KEY: ${CENACLE_AI_API_KEY:-}
       CENACLE_AI_API_KEY_FILE: /run/secrets/ai_api_key
       CENACLE_AI_TIMEOUT: ${CENACLE_AI_TIMEOUT:-2m}
+      CENACLE_AI_POLICY_URL: ${CENACLE_AI_POLICY_URL:-}
       # Files: the bundled Garage (or set an S3 service of your own), Azure Blob
       # Storage (CENACLE_FILES_BACKEND=azure) or a directory (dir).
       CENACLE_FILES_BACKEND: ${CENACLE_FILES_BACKEND:-}

@@ -494,6 +494,8 @@ export async function mockApi(
     stickers?: typeof STICKERS;
     /** The operator configured a model and the workspace turned AI on. */
     ai?: boolean;
+    /** The person's answer to the AI notice (default: not asked yet). */
+    aiConsent?: 'accepted' | 'declined' | 'undecided';
     /** The workspace turned read receipts on; how far others read. */
     reads?: { user_id: string; last_read_id: string | null }[];
     /** The permissions of the user's role (the scheme's defaults otherwise). */
@@ -537,6 +539,27 @@ export async function mockApi(
     ws.permissions = { ...SCHEME, ...permissions };
     return route.fulfill({ json: ws });
   });
+  // The AI notice (v0.99): the person's answer, kept across requests.
+  if (opts.ai) {
+    let decision = opts.aiConsent ?? 'undecided';
+    let decidedAt: string | undefined =
+      decision === 'undecided' ? undefined : '2026-10-25T09:00:00Z';
+    await page.route('**/api/me/ai', (route) => {
+      if (route.request().method() === 'PUT') {
+        const { accepted } = route.request().postDataJSON() as { accepted: boolean };
+        decision = accepted ? 'accepted' : 'declined';
+        decidedAt = '2026-10-25T10:00:00Z';
+      }
+      return route.fulfill({
+        json: {
+          model: 'qwen2.5:7b-instruct',
+          host: 'ollama:11434',
+          decision,
+          ...(decidedAt ? { decided_at: decidedAt } : {}),
+        },
+      });
+    });
+  }
   // Workflows and forms (v0.21): none unless a test adds them.
   await page.route(/\/api\/channels\/[0-9a-f-]{36}\/shortcuts$/, (route) =>
     route.fulfill({ json: { workflows: [], forms: [] } }),

@@ -10,6 +10,7 @@ import { useConnection } from './connection';
 import { reloadWorkspaces } from './workspaces';
 import { QuickSwitcher } from './quick-switcher';
 import { ShortcutsDialog } from '../shell/shortcuts';
+import { AINoticeDialog } from '../ai/ai-ui';
 import { BotDialogHost } from './interactions';
 import { SystemConsoleHost } from '../admin/system-console';
 import { useAppShortcuts } from '../shell/shortcuts-state';
@@ -238,6 +239,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       {children}
       <QuickSwitcher />
       <ShortcutsDialog />
+      <AINoticeDialog />
       <BotDialogHost />
       <SystemConsoleHost />
     </>

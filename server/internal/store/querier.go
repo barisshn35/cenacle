@@ -298,6 +298,7 @@ type Querier interface {
 	FollowImportedThreads(ctx context.Context, channelID pgtype.UUID) error
 	// FollowThread makes people follow a thread unless they chose otherwise before.
 	FollowThread(ctx context.Context, arg FollowThreadParams) error
+	GetAIConsent(ctx context.Context, userID pgtype.UUID) (AiConsent, error)
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
 	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
 	GetActiveDevice(ctx context.Context, arg GetActiveDeviceParams) (E2eDevice, error)
@@ -767,6 +768,7 @@ type Querier interface {
 	// SessionIsActive checks a session without recording use (long-lived
 	// WebSocket connections re-check their session with it).
 	SessionIsActive(ctx context.Context, arg SessionIsActiveParams) (bool, error)
+	SetAIConsent(ctx context.Context, arg SetAIConsentParams) (AiConsent, error)
 	SetAdmin(ctx context.Context, arg SetAdminParams) error
 	SetAdminByDirectory(ctx context.Context, arg SetAdminByDirectoryParams) error
 	SetAppearance(ctx context.Context, arg SetAppearanceParams) error

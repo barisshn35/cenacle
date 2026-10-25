@@ -343,6 +343,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 		},
 		Chat: &chat.Handlers{
 			AI:                ai.New(cfg.AIURL, cfg.AIModel, cfg.AIAPIKey, cfg.AITimeout),
+			AIPolicyURL:       cfg.AIPolicyURL,
 			Queries:           queries,
 			DB:                pool,
 			Egress:            egressClient,

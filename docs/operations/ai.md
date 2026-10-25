@@ -22,9 +22,25 @@ CENACLE_AI_MODEL=qwen2.5:7b-instruct
 # API key only if your server asks for one: in secrets/ai_api_key
 # or here (CENACLE_AI_API_KEY=…), not in both
 # CENACLE_AI_TIMEOUT=2m
+# Optional: your page on how the model server keeps requests
+# CENACLE_AI_POLICY_URL=https://intranet.example.com/ai
 ```
 
 and `docker compose -f prod.yml --env-file .env.prod up -d server`.
+
+## The notice people accept
+
+Before a person's first AI request, Cenacle shows them what will happen: their request and
+the messages the AI reads (only ones they can read) go to the model you configured, named
+with the server it runs on, and Cenacle keeps only the kind and size of each request. They
+accept or decline. Nothing is sent until they accept; declining hides AI for them, and they
+can change their answer in Settings → AI at any time. Each answer is kept with its time and
+the model it was given for (`ai_consents`) and recorded in the audit log
+(`ai.consent_changed`). When you change `CENACLE_AI_MODEL`, everyone is asked again.
+
+What your model server does with requests is up to its configuration (Ollama and vLLM keep
+nothing by default). Say so on a page of your own and set `CENACLE_AI_POLICY_URL` to link it
+from the notice.
 
 ## What is sent
 

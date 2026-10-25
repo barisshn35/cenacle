@@ -71,6 +71,29 @@ func TestAIOffByDefault(t *testing.T) {
 	if status, code := problemCode(t, s, http.MethodPost, "/api/channels/"+general+"/ai/summary", admin, map[string]any{}); status != http.StatusNotFound || code != chat.CodeAIOff {
 		t.Errorf("summary without a model = %d %s", status, code)
 	}
+	if status, code := problemCode(t, s, http.MethodPut, "/api/me/ai", admin, map[string]any{"accepted": true}); status != http.StatusNotFound || code != chat.CodeAIOff {
+		t.Errorf("consent without a model = %d %s", status, code)
+	}
+}
+
+func TestAIConsentFollowsTheModel(t *testing.T) {
+	model := &fakeModel{}
+	client := model.serve(t)
+	sh := newShared(t)
+	s := newStack(t, sh, options{ai: client})
+	ayse := s.user("sub-ayse", "Ayşe")
+	var notice api.AIConsent
+	s.call(http.MethodPut, "/api/me/ai", ayse, map[string]any{"accepted": true}, &notice)
+	if notice.Decision != api.AIConsentDecisionAccepted {
+		t.Fatalf("accepted = %+v", notice)
+	}
+	// The operator moves to another model: the answer no longer applies.
+	moved := newStack(t, sh, options{ai: ai.New(client.URL, "bigger", "", 5*time.Second)})
+	notice = api.AIConsent{}
+	moved.call(http.MethodGet, "/api/me/ai", ayse, nil, &notice)
+	if notice.Model != "bigger" || notice.Decision != api.AIConsentDecisionUndecided || notice.DecidedAt != nil {
+		t.Errorf("after a model change = %+v", notice)
+	}
 }
 
 func TestAISummaryComposeAndAsk(t *testing.T) {
@@ -97,6 +120,33 @@ func TestAISummaryComposeAndAsk(t *testing.T) {
 	var ws api.Workspace
 	if res := s.call(http.MethodPut, aiPath, admin, map[string]any{"enabled": true}, &ws); res.StatusCode != http.StatusOK || ws.AiEnabled == nil || !*ws.AiEnabled {
 		t.Fatalf("turn on = %d %+v", res.StatusCode, ws.AiEnabled)
+	}
+
+	// Nobody's messages go to the model before they accept the notice.
+	if status, code := problemCode(t, s, http.MethodPost, summary, ayse, map[string]any{}); status != http.StatusForbidden || code != chat.CodeAIConsent {
+		t.Fatalf("summary before consent = %d %s", status, code)
+	}
+	var notice api.AIConsent
+	s.call(http.MethodGet, "/api/me/ai", ayse, nil, &notice)
+	if notice.Model != "tiny" || notice.Host == "" || notice.Decision != api.AIConsentDecisionUndecided || notice.PolicyUrl != nil {
+		t.Errorf("notice = %+v", notice)
+	}
+	s.call(http.MethodPut, "/api/me/ai", ayse, map[string]any{"accepted": false}, &notice)
+	if notice.Decision != api.AIConsentDecisionDeclined || notice.DecidedAt == nil {
+		t.Errorf("declined = %+v", notice)
+	}
+	if status, code := problemCode(t, s, http.MethodPost, summary, ayse, map[string]any{}); status != http.StatusForbidden || code != chat.CodeAIConsent {
+		t.Errorf("summary after declining = %d %s", status, code)
+	}
+	s.call(http.MethodPut, "/api/me/ai", ayse, map[string]any{"accepted": true}, &notice)
+	if notice.Decision != api.AIConsentDecisionAccepted {
+		t.Errorf("accepted = %+v", notice)
+	}
+	if n := s.count(`SELECT count(*) FROM audit_events WHERE action = 'ai.consent_changed'`); n != 2 {
+		t.Errorf("consent audit records = %d, want 2", n)
+	}
+	if asked := model.last(); asked != "" {
+		t.Errorf("the model was asked before consent: %q", asked)
 	}
 
 	var answer api.AIAnswer

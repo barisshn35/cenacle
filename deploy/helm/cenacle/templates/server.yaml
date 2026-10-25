@@ -64,6 +64,7 @@ spec:
             - { name: CENACLE_AI_URL, value: {{ .Values.ai.url | quote }} }
             - { name: CENACLE_AI_MODEL, value: {{ .Values.ai.model | quote }} }
             - { name: CENACLE_AI_TIMEOUT, value: {{ .Values.ai.timeout | quote }} }
+            - { name: CENACLE_AI_POLICY_URL, value: {{ .Values.ai.policyUrl | quote }} }
             {{- if .Values.ai.url }}
             - name: CENACLE_AI_API_KEY
               valueFrom:

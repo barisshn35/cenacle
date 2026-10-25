@@ -54,6 +54,13 @@ func (h *Handlers) writeUserData(ctx context.Context, w http.ResponseWriter, u s
 	}); err != nil {
 		return err
 	}
+	if c, err := h.Queries.GetAIConsent(ctx, u.ID); err == nil {
+		if err := put("ai_consent", map[string]any{"accepted": c.Accepted, "model": c.Model, "decided_at": c.DecidedAt}); err != nil {
+			return err
+		}
+	} else if !isNoRows(err) {
+		return err
+	}
 	workspaces, err := h.Queries.UserWorkspaces(ctx, u.ID)
 	if err != nil {
 		return err

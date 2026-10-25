@@ -35,6 +35,15 @@ many organizations must not do with a third party, and some do not want at all.
    are marked "Written by AI". Requests are recorded (kind, sizes; no content) and limited
    to 30 per person every 10 minutes.
 
+5. **Each person agrees first (v0.99).** Before a person's first AI request a notice says
+   what is sent (their request and the messages read for it), where (the configured model
+   and its host), what Cenacle keeps (kind and size, no text) and, if the operator set
+   `CENACLE_AI_POLICY_URL`, links what the model server keeps. They accept or decline; the
+   server refuses AI requests (`ai_consent`) until they accept. Declining hides AI for that
+   person. The answer is stored per person for one model, so a new model asks again; it is
+   audited (`ai.consent_changed`), part of their data export and removed when they are
+   erased. Settings → AI shows it and changes it.
+
 ## Consequences
 
 - Quality depends on the model the operator runs; small local models summarize well,

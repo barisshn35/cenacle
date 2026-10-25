@@ -28,6 +28,7 @@ const (
 	CodeAIOff        = "ai_off"
 	CodeAIBusy       = "ai_limit"
 	CodeAIFailed     = "ai_failed"
+	CodeAIConsent    = "ai_consent"
 	aiPerTenMinutes  = 30
 	aiMaxInput       = 24000 // characters of conversation sent to the model
 	aiSummaryHistory = 300
@@ -54,6 +55,13 @@ func (h *Handlers) aiFor(w http.ResponseWriter, r *http.Request, workspace pgtyp
 	}
 	if !on {
 		forbidden(w, r, CodeAIOff, "The workspace has not turned on AI.")
+		return false
+	}
+	if c, err := h.Queries.GetAIConsent(r.Context(), user.ID); err != nil && !isNoRows(err) {
+		h.unavailable(w, r, "get ai consent", err)
+		return false
+	} else if err != nil || !c.Accepted || c.Model != h.AI.Model {
+		forbidden(w, r, CodeAIConsent, "Accept the AI notice before using AI.")
 		return false
 	}
 	n, err := h.Queries.CountRecentAIRequests(r.Context(), user.ID)
@@ -116,14 +124,70 @@ func transcript(rows []store.ListMessagesForAIRow) string {
 	return strings.Join(lines, "\n")
 }
 
+// aiConsent is the notice and a person's answer for the configured model.
+func (h *Handlers) aiConsent(c store.AiConsent, found bool) api.AIConsent {
+	out := api.AIConsent{Model: h.AI.Model, Host: h.AI.Host(), Decision: api.AIConsentDecisionUndecided}
+	if h.AIPolicyURL != "" {
+		out.PolicyUrl = &h.AIPolicyURL
+	}
+	if found && c.Model == h.AI.Model {
+		out.Decision = api.AIConsentDecisionDeclined
+		if c.Accepted {
+			out.Decision = api.AIConsentDecisionAccepted
+		}
+		out.DecidedAt = &c.DecidedAt
+	}
+	return out
+}
+
+func (h *Handlers) aiConfigured(w http.ResponseWriter, r *http.Request) bool {
+	if h.AI == nil {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: CodeAIOff, Detail: "AI is not set up on this server."})
+		return false
+	}
+	return true
+}
+
+// GetMyAIConsent implements api.ServerInterface.
+func (h *Handlers) GetMyAIConsent(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok || !h.aiConfigured(w, r) {
+		return
+	}
+	c, err := h.Queries.GetAIConsent(r.Context(), p.User.ID)
+	if err != nil && !isNoRows(err) {
+		h.unavailable(w, r, "get ai consent", err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, h.aiConsent(c, err == nil))
+}
+
+// SetMyAIConsent implements api.ServerInterface.
+func (h *Handlers) SetMyAIConsent(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok || !h.aiConfigured(w, r) {
+		return
+	}
+	var in api.SetMyAIConsentJSONBody
+	if !decode(w, r, &in) {
+		return
+	}
+	c, err := h.Queries.SetAIConsent(r.Context(), store.SetAIConsentParams{UserID: p.User.ID, Accepted: in.Accepted, Model: h.AI.Model})
+	if err != nil {
+		h.unavailable(w, r, "set ai consent", err)
+		return
+	}
+	h.record(r, pgtype.UUID{}, audit.AIConsentChanged, "user", uuid(p.User.ID).String(), map[string]any{"accepted": in.Accepted, "model": h.AI.Model})
+	httpx.WriteJSON(w, http.StatusOK, h.aiConsent(c, true))
+}
+
 // SetWorkspaceAI implements api.ServerInterface.
 func (h *Handlers) SetWorkspaceAI(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
 	if !ok || !h.requireWorkspaceAdmin(w, r, workspaceID, p.User, "Only the workspace's owners and admins turn AI on or off.") {
 		return
 	}
-	if h.AI == nil {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: CodeAIOff, Detail: "AI is not set up on this server."})
+	if !h.aiConfigured(w, r) {
 		return
 	}
 	var in struct {

@@ -485,7 +485,8 @@
       "notifications": "Notifications",
       "announcements": "Announcements",
       "language": "Language and region",
-      "signIn": "Sign-in"
+      "signIn": "Sign-in",
+      "ai": "AI"
     },
     "adminGroup": "Workspace · admin",
     "cenacleId": "Cenacle ID account",
@@ -496,7 +497,8 @@
       "language": "The language of Cenacle, how times are written and your time zone.",
       "texts": "Texts of the interface the administrators change for everyone.",
       "announcements": "A banner and terms everyone sees and accepts.",
-      "signIn": "Where people may use Cenacle."
+      "signIn": "Where people may use Cenacle.",
+      "ai": "Whether your requests may go to the AI model this server runs, and what that means."
     },
     "timeFormat": {
       "title": "Clock",
@@ -1915,7 +1917,32 @@
     "noSources": "No messages you can read match this question.",
     "settingsTitle": "AI",
     "turnOn": "Turn on AI for this workspace",
-    "settingsHint": "Summaries, rewriting and questions, with the model this server's operator runs. Messages are sent only to it."
+    "settingsHint": "Summaries, rewriting and questions, with the model this server's operator runs. Messages are sent only to it.",
+    "notice": {
+      "title": "Before you use AI",
+      "description": "AI here works by sending text to a language model. Read what that means, then choose.",
+      "intro": "To summarize, rewrite or answer, Cenacle sends text to a language model and shows you what it writes back.",
+      "sentTitle": "What is sent",
+      "sent": "Your request and the messages the AI reads to answer it: only messages you can read, never encrypted, deleted or burn-on-read ones. Mentions are replaced by “@someone”.",
+      "whereTitle": "Where it goes",
+      "where": "To the model {{model}} on {{host}}, which this server's operator runs and chose. Ask them if that server is outside your organization.",
+      "keptTitle": "What is kept",
+      "kept": "Cenacle records that you made a request, its kind and its size, not its text. What the model's server keeps depends on how the operator set it up.",
+      "answersTitle": "The answers",
+      "answers": "Only you see them, marked “Written by AI”. Nothing is posted or changed unless you choose to use it.",
+      "policy": "How the operator's model server keeps requests",
+      "accept": "Accept and continue",
+      "decline": "Decline",
+      "declined": "AI is off for you. You can turn it on in Settings → AI.",
+      "failed": "Your answer was not saved.",
+      "turnOn": "Turn on AI for me",
+      "turnOff": "Turn off AI for me",
+      "state": {
+        "accepted": "You accepted on {{when}}. AI features are on for you.",
+        "declined": "You declined on {{when}}. AI features are hidden for you.",
+        "undecided": "You have not answered yet. You will be asked before your first AI request."
+      }
+    }
   },
   "federation": {
     "loadFailed": "Couldn't load the connections.",

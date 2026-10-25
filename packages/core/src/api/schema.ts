@@ -4374,6 +4374,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/me/ai': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The AI notice and your answer to it
+     * @description Where the operator configured a model (the session's permissions.ai). Before
+     *     a person's first AI request they are told what goes to the model and answer;
+     *     no request is sent without "accepted" for the current model.
+     */
+    get: operations['getMyAIConsent'];
+    /** Accept or decline the AI notice (recorded in the audit log) */
+    put: operations['setMyAIConsent'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspace_id}/ai': {
     parameters: {
       query?: never;
@@ -4700,6 +4723,21 @@ export interface components {
       connection_name: string;
       /** @enum {string} */
       status: 'offered' | 'active';
+    };
+    AIConsent: {
+      /** @description The model the operator configured. */
+      model: string;
+      /** @description The server the model runs on (host and port). */
+      host: string;
+      /** @description The operator's page on how the model's server keeps requests; absent when none. */
+      policy_url?: string;
+      /**
+       * @description The person's answer for this model; undecided when they were not asked yet or the model changed.
+       * @enum {string}
+       */
+      decision: 'accepted' | 'declined' | 'undecided';
+      /** Format: date-time */
+      decided_at?: string;
     };
     AIAnswer: {
       /** @description Markdown written by the model. */
@@ -14785,6 +14823,57 @@ export interface operations {
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getMyAIConsent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The notice and the answer. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIConsent'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setMyAIConsent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          accepted: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Saved. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIConsent'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };

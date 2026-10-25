@@ -23,6 +23,22 @@ func (q *Queries) CountRecentAIRequests(ctx context.Context, userID pgtype.UUID)
 	return column_1, err
 }
 
+const getAIConsent = `-- name: GetAIConsent :one
+SELECT user_id, accepted, model, decided_at FROM ai_consents WHERE user_id = $1
+`
+
+func (q *Queries) GetAIConsent(ctx context.Context, userID pgtype.UUID) (AiConsent, error) {
+	row := q.db.QueryRow(ctx, getAIConsent, userID)
+	var i AiConsent
+	err := row.Scan(
+		&i.UserID,
+		&i.Accepted,
+		&i.Model,
+		&i.DecidedAt,
+	)
+	return i, err
+}
+
 const getWorkspaceAI = `-- name: GetWorkspaceAI :one
 SELECT ai_enabled FROM workspaces WHERE id = $1
 `
@@ -172,6 +188,30 @@ func (q *Queries) SearchMessagesForAI(ctx context.Context, arg SearchMessagesFor
 		return nil, err
 	}
 	return items, nil
+}
+
+const setAIConsent = `-- name: SetAIConsent :one
+INSERT INTO ai_consents (user_id, accepted, model) VALUES ($1, $2, $3)
+ON CONFLICT (user_id) DO UPDATE SET accepted = excluded.accepted, model = excluded.model, decided_at = now()
+RETURNING user_id, accepted, model, decided_at
+`
+
+type SetAIConsentParams struct {
+	UserID   pgtype.UUID `json:"user_id"`
+	Accepted bool        `json:"accepted"`
+	Model    string      `json:"model"`
+}
+
+func (q *Queries) SetAIConsent(ctx context.Context, arg SetAIConsentParams) (AiConsent, error) {
+	row := q.db.QueryRow(ctx, setAIConsent, arg.UserID, arg.Accepted, arg.Model)
+	var i AiConsent
+	err := row.Scan(
+		&i.UserID,
+		&i.Accepted,
+		&i.Model,
+		&i.DecidedAt,
+	)
+	return i, err
 }
 
 const setWorkspaceAI = `-- name: SetWorkspaceAI :one

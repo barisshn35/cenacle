@@ -71,6 +71,7 @@ const (
 	LegalHoldChanged               = "legal_hold.changed"
 	MessagesExported               = "messages.exported"
 	AIChanged                      = "ai.changed"
+	AIConsentChanged               = "ai.consent_changed"
 	FederationChanged              = "federation.changed"
 	WebAppChanged                  = "instance.web_app_changed"
 	MentionGroupChanged            = "mention_group.changed"

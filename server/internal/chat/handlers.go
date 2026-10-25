@@ -44,6 +44,8 @@ type RateLimiter interface {
 type Handlers struct {
 	// AI is the model the operator configured; nil: no AI features.
 	AI *ai.Client
+	// AIPolicyURL is linked from the AI notice; optional.
+	AIPolicyURL string
 	// Presence tells who is online (for @here); optional.
 	Presence PresenceReader
 	// LinkPreviews: the server fetches previews of links in messages.

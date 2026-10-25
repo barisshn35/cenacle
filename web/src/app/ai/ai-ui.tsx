@@ -2,7 +2,8 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { SparklesIcon, WandSparklesIcon } from 'lucide-react';
+import { ExternalLinkIcon, SparklesIcon, WandSparklesIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '@cenacle/core/api';
 import { Button } from '@cenacle/ui/components/button';
@@ -30,13 +31,20 @@ import { useActiveWorkspace } from '../chat/active-workspace';
 import { MessageBody } from '../chat/markdown/message-body';
 import { reloadWorkspaces, type Workspace } from '../chat/workspaces';
 import {
+  aiConsentQuery,
   ask,
   compose,
+  consentLost,
+  setAIConsent,
   setWorkspaceAI,
   summarize,
   useAI,
   useAIAvailable,
+  useAIConsent,
+  useAIGate,
+  useAINotice,
   type AIAnswer,
+  type AIConsent,
   type ComposeAction,
 } from './ai';
 
@@ -85,16 +93,24 @@ function failure(err: unknown) {
 export function SummarizeButton({ channelId, rootId }: { channelId: string; rootId?: string }) {
   const { t, i18n } = useTranslation();
   const on = useAI();
+  const gate = useAIGate();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [answer, setAnswer] = useState<AIAnswer | null>(null);
   const [error, setError] = useState<unknown>(null);
   if (!on) return null;
-  const run = () => {
-    setOpen(true);
-    setAnswer(null);
-    setError(null);
-    summarize(channelId, i18n.language, rootId).then(setAnswer).catch(setError);
-  };
+  const run = () =>
+    gate(() => {
+      setOpen(true);
+      setAnswer(null);
+      setError(null);
+      summarize(channelId, i18n.language, rootId)
+        .then(setAnswer)
+        .catch((err: unknown) => {
+          if (consentLost(err, queryClient)) setOpen(false);
+          else setError(err);
+        });
+    });
   const label = rootId ? t('ai.summarizeThread') : t('ai.summarize');
   return (
     <>
@@ -130,17 +146,25 @@ const ACTIONS: ComposeAction[] = ['improve', 'shorter', 'formal', 'friendly'];
 export function RewriteMenu({ text, onUse }: { text: string; onUse: (text: string) => void }) {
   const { t, i18n } = useTranslation();
   const on = useAI();
+  const gate = useAIGate();
+  const queryClient = useQueryClient();
   const ws = useActiveWorkspace().id;
   const [result, setResult] = useState<AIAnswer | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [open, setOpen] = useState(false);
   if (!on || !ws) return null;
-  const run = (action: ComposeAction, language?: string) => {
-    setOpen(true);
-    setResult(null);
-    setError(null);
-    compose(ws, text, action, language).then(setResult).catch(setError);
-  };
+  const run = (action: ComposeAction, language?: string) =>
+    gate(() => {
+      setOpen(true);
+      setResult(null);
+      setError(null);
+      compose(ws, text, action, language)
+        .then(setResult)
+        .catch((err: unknown) => {
+          if (consentLost(err, queryClient)) setOpen(false);
+          else setError(err);
+        });
+    });
   const other = i18n.language.startsWith('tr') ? 'en' : 'tr';
   return (
     <>
@@ -212,6 +236,8 @@ export function AskPage() {
   const { t, i18n } = useTranslation();
   const id = useId();
   const ws = useActiveWorkspace().id;
+  const gate = useAIGate();
+  const queryClient = useQueryClient();
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<AIAnswer | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -219,13 +245,17 @@ export function AskPage() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!ws || question.trim().length < 3) return;
-    setBusy(true);
-    setError(null);
-    setAnswer(null);
-    ask(ws, question.trim(), i18n.language)
-      .then(setAnswer)
-      .catch(setError)
-      .finally(() => setBusy(false));
+    gate(() => {
+      setBusy(true);
+      setError(null);
+      setAnswer(null);
+      ask(ws, question.trim(), i18n.language)
+        .then(setAnswer)
+        .catch((err: unknown) => {
+          if (!consentLost(err, queryClient)) setError(err);
+        })
+        .finally(() => setBusy(false));
+    });
   };
   return (
     <div className="flex flex-col gap-4" data-testid="ask">
@@ -301,5 +331,138 @@ export function WorkspaceAIForm({ workspace }: { workspace: Workspace }) {
         {t('ai.settingsHint')}
       </p>
     </section>
+  );
+}
+
+/** What the AI notice tells: what goes to the model, where, and what is kept. */
+function NoticeText({ consent }: { consent: AIConsent }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-3 text-sm">
+      <p>{t('ai.notice.intro')}</p>
+      <dl className="flex flex-col gap-3">
+        {(['sent', 'where', 'kept', 'answers'] as const).map((k) => (
+          <div key={k} className="flex flex-col gap-0.5">
+            <dt className="font-medium">{t(`ai.notice.${k}Title`)}</dt>
+            <dd className="text-muted-foreground">
+              {t(`ai.notice.${k}`, { model: consent.model, host: consent.host })}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {consent.policy_url && (
+        <a
+          href={consent.policy_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-target items-center gap-1.5 self-start underline underline-offset-2"
+        >
+          {t('ai.notice.policy')}
+          <ExternalLinkIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
+          <span className="sr-only">{t('settings.newTab')}</span>
+        </a>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The notice before a person's first AI request: Accept runs the request,
+ * Decline hides AI for them (Settings → AI changes it).
+ */
+export function AINoticeDialog() {
+  const { t } = useTranslation();
+  const pending = useAINotice((s) => s.pending);
+  const close = useAINotice((s) => s.close);
+  const consent = useAIConsent();
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const answer = (accepted: boolean) => {
+    const then = pending;
+    setBusy(true);
+    setError(null);
+    setAIConsent(accepted)
+      .then((c) => {
+        queryClient.setQueryData(aiConsentQuery.queryKey, c);
+        close();
+        if (accepted) then?.();
+        else toast(t('ai.notice.declined'));
+      })
+      .catch(setError)
+      .finally(() => setBusy(false));
+  };
+  return (
+    <Dialog open={!!pending && !!consent} onOpenChange={(o) => !o && close()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg" data-testid="ai-notice">
+        <DialogHeader>
+          <DialogTitle>{t('ai.notice.title')}</DialogTitle>
+          <DialogDescription>{t('ai.notice.description')}</DialogDescription>
+        </DialogHeader>
+        {consent && <NoticeText consent={consent} />}
+        {error !== null && <InlineError title={t('ai.notice.failed')} problem={failure(error)} />}
+        <DialogFooter>
+          <Button type="button" variant="outline" disabled={busy} onClick={() => answer(false)}>
+            {t('ai.notice.decline')}
+          </Button>
+          <Button type="button" disabled={busy} aria-busy={busy} onClick={() => answer(true)}>
+            {t('ai.notice.accept')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Settings → AI: the notice and the person's answer, which they can change. */
+export function AISettingsPanel() {
+  const { t, i18n } = useTranslation();
+  const consent = useAIConsent();
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  if (!consent) {
+    return (
+      <div role="status" aria-label={t('ai.working')} className="flex flex-col gap-2 pt-4">
+        <Skeleton className="h-4" />
+        <Skeleton className="h-4 w-4/5" />
+      </div>
+    );
+  }
+  const change = (accepted: boolean) => {
+    setBusy(true);
+    setError(null);
+    setAIConsent(accepted)
+      .then((c) => queryClient.setQueryData(aiConsentQuery.queryKey, c))
+      .catch(setError)
+      .finally(() => setBusy(false));
+  };
+  const when = consent.decided_at
+    ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(
+        new Date(consent.decided_at),
+      )
+    : '';
+  return (
+    <div className="flex flex-col gap-6 pt-4" data-testid="ai-settings">
+      <NoticeText consent={consent} />
+      <div className="flex flex-col gap-2 border-t pt-4">
+        <p role="status" className="text-sm font-medium">
+          {t(`ai.notice.state.${consent.decision}`, { when })}
+        </p>
+        {error !== null && <InlineError title={t('ai.notice.failed')} problem={failure(error)} />}
+        <div className="flex flex-wrap gap-2">
+          {consent.decision !== 'accepted' && (
+            <Button type="button" disabled={busy} onClick={() => change(true)}>
+              {t('ai.notice.turnOn')}
+            </Button>
+          )}
+          {consent.decision !== 'declined' && (
+            <Button type="button" variant="outline" disabled={busy} onClick={() => change(false)}>
+              {t('ai.notice.turnOff')}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

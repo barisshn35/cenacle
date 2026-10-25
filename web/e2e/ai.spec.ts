@@ -42,6 +42,13 @@ test('with AI on: a summary only for me, a rewrite I choose to use, and answers 
   );
   await page.goto(`/c/${GENERAL.id}`);
   await page.getByRole('button', { name: 'Summarize the channel' }).click();
+  // The first request waits for the notice: what is sent, where, what is kept.
+  const notice = page.getByRole('dialog', { name: 'Before you use AI' });
+  await expect(notice).toContainText('qwen2.5:7b-instruct on ollama:11434');
+  await expect(notice).toContainText('only messages you can read');
+  await expectNoAxeViolations(page, '[role="dialog"]');
+  await notice.getByRole('button', { name: 'Accept and continue' }).click();
+  await expect(notice).toHaveCount(0);
   const summary = page.getByRole('dialog', { name: 'Summarize the channel' });
   await expect(summary.getByTestId('ai-answer')).toContainText('Shipping on Friday');
   await expect(summary).toContainText('Written by AI');
@@ -73,4 +80,37 @@ test('with AI on: a summary only for me, a rewrite I choose to use, and answers 
   await answer.getByText('Made from 1 message').click();
   await expect(answer.getByRole('link', { name: /Ayşe Yılmaz/ })).toBeVisible();
   await expectNoAxeViolations(page, '[data-testid="ask"]');
+});
+
+test('declining the AI notice sends nothing and hides AI; Settings → AI turns it back on', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'settings open from the sidebar footer on desktop');
+  await mockApi(page, { messages: [mockMessage(1, 'We ship on Friday')], ai: true });
+  let asked = 0;
+  await page.route(`**/api/channels/${GENERAL.id}/ai/summary`, (route) => {
+    asked++;
+    return route.fulfill({ json: { text: '- Friday', sources: [] } });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  await page.getByRole('button', { name: 'Summarize the channel' }).click();
+  const notice = page.getByRole('dialog', { name: 'Before you use AI' });
+  await notice.getByRole('button', { name: 'Decline' }).click();
+  await expect(notice).toHaveCount(0);
+  await expect(page.getByText('AI is off for you.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Summarize the channel' })).toHaveCount(0);
+  expect(asked).toBe(0);
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await settings.getByRole('tab', { name: 'AI', exact: true }).click();
+  await expect(settings.getByTestId('ai-settings')).toContainText('You declined on');
+  await expectNoAxeViolations(page, '[role="dialog"]');
+  await settings.getByRole('button', { name: 'Turn on AI for me' }).click();
+  await expect(settings.getByTestId('ai-settings')).toContainText('You accepted on');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Summarize the channel' }).click();
+  await expect(page.getByTestId('ai-answer')).toContainText('Friday');
+  expect(asked).toBe(1);
 });

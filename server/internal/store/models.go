@@ -10,6 +10,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AiConsent struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	Accepted  bool        `json:"accepted"`
+	Model     string      `json:"model"`
+	DecidedAt time.Time   `json:"decided_at"`
+}
+
 type AiRequest struct {
 	ID          pgtype.UUID `json:"id"`
 	WorkspaceID pgtype.UUID `json:"workspace_id"`

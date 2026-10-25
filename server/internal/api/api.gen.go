@@ -15,6 +15,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AIConsentDecision.
+const (
+	AIConsentDecisionAccepted  AIConsentDecision = "accepted"
+	AIConsentDecisionDeclined  AIConsentDecision = "declined"
+	AIConsentDecisionUndecided AIConsentDecision = "undecided"
+)
+
+// Valid indicates whether the value is a known member of the AIConsentDecision enum.
+func (e AIConsentDecision) Valid() bool {
+	switch e {
+	case AIConsentDecisionAccepted:
+		return true
+	case AIConsentDecisionDeclined:
+		return true
+	case AIConsentDecisionUndecided:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ActivityItemKind.
 const (
 	ActivityItemKindMention  ActivityItemKind = "mention"
@@ -2078,6 +2099,26 @@ type AIAnswer struct {
 	// Text Markdown written by the model.
 	Text string `json:"text"`
 }
+
+// AIConsent defines model for AIConsent.
+type AIConsent struct {
+	DecidedAt *time.Time `json:"decided_at,omitempty"`
+
+	// Decision The person's answer for this model; undecided when they were not asked yet or the model changed.
+	Decision AIConsentDecision `json:"decision"`
+
+	// Host The server the model runs on (host and port).
+	Host string `json:"host"`
+
+	// Model The model the operator configured.
+	Model string `json:"model"`
+
+	// PolicyUrl The operator's page on how the model's server keeps requests; absent when none.
+	PolicyUrl *string `json:"policy_url,omitempty"`
+}
+
+// AIConsentDecision The person's answer for this model; undecided when they were not asked yet or the model changed.
+type AIConsentDecision string
 
 // AISource defines model for AISource.
 type AISource struct {
@@ -4731,6 +4772,11 @@ type ListActivityParams struct {
 	Limit  *int       `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// SetMyAIConsentJSONBody defines parameters for SetMyAIConsent.
+type SetMyAIConsentJSONBody struct {
+	Accepted bool `json:"accepted"`
+}
+
 // UploadFontParams defines parameters for UploadFont.
 type UploadFontParams struct {
 	Name string `form:"name" json:"name"`
@@ -5345,6 +5391,9 @@ type UpdateListJSONRequestBody = ListInput
 
 // CreateListItemJSONRequestBody defines body for CreateListItem for application/json ContentType.
 type CreateListItemJSONRequestBody = ListItemInput
+
+// SetMyAIConsentJSONRequestBody defines body for SetMyAIConsent for application/json ContentType.
+type SetMyAIConsentJSONRequestBody SetMyAIConsentJSONBody
 
 // SetMyAppearanceJSONRequestBody defines body for SetMyAppearance for application/json ContentType.
 type SetMyAppearanceJSONRequestBody = Appearance
@@ -6076,6 +6125,12 @@ type ServerInterface interface {
 	// ListActivity Mentions, replies in your threads and reactions to your messages (30 days)
 	// (GET /api/me/activity)
 	ListActivity(w http.ResponseWriter, r *http.Request, params ListActivityParams)
+	// GetMyAIConsent The AI notice and your answer to it
+	// (GET /api/me/ai)
+	GetMyAIConsent(w http.ResponseWriter, r *http.Request)
+	// SetMyAIConsent Accept or decline the AI notice (recorded in the audit log)
+	// (PUT /api/me/ai)
+	SetMyAIConsent(w http.ResponseWriter, r *http.Request)
 	// GetMyAppearance Your appearance settings
 	// (GET /api/me/appearance)
 	GetMyAppearance(w http.ResponseWriter, r *http.Request)
@@ -7492,6 +7547,18 @@ func (_ Unimplemented) CreateListItem(w http.ResponseWriter, r *http.Request, li
 // ListActivity Mentions, replies in your threads and reactions to your messages (30 days)
 // (GET /api/me/activity)
 func (_ Unimplemented) ListActivity(w http.ResponseWriter, r *http.Request, params ListActivityParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetMyAIConsent The AI notice and your answer to it
+// (GET /api/me/ai)
+func (_ Unimplemented) GetMyAIConsent(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetMyAIConsent Accept or decline the AI notice (recorded in the audit log)
+// (PUT /api/me/ai)
+func (_ Unimplemented) SetMyAIConsent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -13007,6 +13074,34 @@ func (siw *ServerInterfaceWrapper) ListActivity(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// GetMyAIConsent operation middleware
+func (siw *ServerInterfaceWrapper) GetMyAIConsent(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMyAIConsent(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetMyAIConsent operation middleware
+func (siw *ServerInterfaceWrapper) SetMyAIConsent(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMyAIConsent(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMyAppearance operation middleware
 func (siw *ServerInterfaceWrapper) GetMyAppearance(w http.ResponseWriter, r *http.Request) {
 
@@ -17991,6 +18086,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/export", wrapper.ExportMessages)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/ai", wrapper.GetMyAIConsent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/ai", wrapper.SetMyAIConsent)
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/workspaces/{workspace_id}/ai", wrapper.SetWorkspaceAI)

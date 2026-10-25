@@ -145,6 +145,9 @@ type Config struct {
 	AIModel   string
 	AIAPIKey  string
 	AITimeout time.Duration
+	// AIPolicyURL is the operator's page on how the model's server keeps
+	// requests, linked from the AI notice people accept; optional.
+	AIPolicyURL string
 	// WebPush turns on web push (through the browsers' push services).
 	WebPush bool
 	// WebPushSubject is the contact the push services see (mailto: or https:).
@@ -282,6 +285,12 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 		}
 		if cfg.AIModel == "" {
 			l.fail("CENACLE_AI_MODEL: the model to use is needed with CENACLE_AI_URL")
+		}
+	}
+	cfg.AIPolicyURL = strings.TrimSpace(l.str("CENACLE_AI_POLICY_URL", ""))
+	if cfg.AIPolicyURL != "" {
+		if u, err := url.Parse(cfg.AIPolicyURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			l.fail("CENACLE_AI_POLICY_URL: an http(s) address")
 		}
 	}
 	cfg.WebPush = l.boolean("CENACLE_WEB_PUSH", false)
