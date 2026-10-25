@@ -33,6 +33,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 - The web journeys also run in Firefox and WebKit (`E2E_BROWSERS=all`).
 - [docs/qa/test-plan.md](docs/qa/test-plan.md): how a release candidate is tested.
 
+### Changed
+
+- While the AI writes, its placeholder breathes in a warm glow (`WorkingBeam`, border-beam);
+  still when people prefer reduced motion.
+
 ## [0.43.0] - 2026-10-25
 
 Performance with years of data and over long runs: tests with two million messages and

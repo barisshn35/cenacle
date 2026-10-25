@@ -26,6 +26,7 @@ import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
+import { WorkingBeam } from '@cenacle/ui/components/working-beam';
 import { useSession } from '../auth/session';
 import { useActiveWorkspace } from '../chat/active-workspace';
 import { MessageBody } from '../chat/markdown/message-body';
@@ -85,6 +86,24 @@ function Answer({ answer }: { answer: AIAnswer }) {
   );
 }
 
+/** While the model writes: placeholder lines with a warm beam under them. */
+function Writing({ lines }: { lines: 2 | 3 }) {
+  const { t } = useTranslation();
+  return (
+    <WorkingBeam className="rounded-[10px]">
+      <div
+        role="status"
+        aria-label={t('ai.working')}
+        className="flex flex-col gap-2 rounded-[10px] border border-border bg-background p-3"
+      >
+        <Skeleton className="h-4" />
+        {lines === 3 && <Skeleton className="h-4 w-4/5" />}
+        <Skeleton className="h-4 w-3/5" />
+      </div>
+    </WorkingBeam>
+  );
+}
+
 function failure(err: unknown) {
   return err instanceof ApiError ? err.problem : { status: 500 };
 }
@@ -128,11 +147,7 @@ export function SummarizeButton({ channelId, rootId }: { channelId: string; root
           ) : error ? (
             <InlineError title={t('ai.failed')} problem={failure(error)} />
           ) : (
-            <div role="status" aria-label={t('ai.working')} className="flex flex-col gap-2">
-              <Skeleton className="h-4" />
-              <Skeleton className="h-4 w-4/5" />
-              <Skeleton className="h-4 w-3/5" />
-            </div>
+            <Writing lines={3} />
           )}
         </DialogContent>
       </Dialog>
@@ -205,10 +220,7 @@ export function RewriteMenu({ text, onUse }: { text: string; onUse: (text: strin
           ) : error ? (
             <InlineError title={t('ai.failed')} problem={failure(error)} />
           ) : (
-            <div role="status" aria-label={t('ai.working')} className="flex flex-col gap-2">
-              <Skeleton className="h-4" />
-              <Skeleton className="h-4 w-3/5" />
-            </div>
+            <Writing lines={2} />
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -279,12 +291,7 @@ export function AskPage() {
           {t('ai.askHint')}
         </p>
       </form>
-      {busy && (
-        <div role="status" aria-label={t('ai.working')} className="flex flex-col gap-2">
-          <Skeleton className="h-4" />
-          <Skeleton className="h-4 w-4/5" />
-        </div>
-      )}
+      {busy && <Writing lines={2} />}
       {error !== null && <InlineError title={t('ai.failed')} problem={failure(error)} />}
       {answer &&
         (answer.sources.length === 0 ? (
