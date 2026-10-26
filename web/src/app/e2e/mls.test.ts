@@ -247,6 +247,56 @@ describe('MLS client', () => {
     },
   );
 
+  it(
+    'a person who left and came back rejoins with the same device',
+    { timeout: 20_000 },
+    async () => {
+      const ayse = await browser(AYSE);
+      const mert = await browser(MERT);
+      await ayse.enable(CH, AYSE);
+      await mert.send(CH, MERT, { v: 1, t: 'buradayım' }, post);
+      expect(ds.groups.get(CH)!.members.size).toBe(2);
+
+      // Mert leaves: Ayşe's next commit removes his device from the group.
+      ds.channelMembers.get(CH)!.delete(MERT);
+      await ayse.sync(CH, AYSE);
+      expect(ds.groups.get(CH)!.members.size).toBe(1);
+
+      // He comes back with the same device and its old group: it joins again.
+      ds.channelMembers.get(CH)!.add(MERT);
+      const back = await mert.send(CH, MERT, { v: 1, t: 'geri döndüm' }, post);
+      expect(ds.groups.get(CH)!.members.size).toBe(2);
+      expect(await ayse.open(CH, AYSE, back)).toEqual({
+        payload: { v: 1, t: 'geri döndüm', a: MERT },
+      });
+    },
+  );
+
+  it(
+    'a device the server still lists but the group removed joins again',
+    { timeout: 20_000 },
+    async () => {
+      const ayse = await browser(AYSE);
+      const mert = await browser(MERT);
+      await ayse.enable(CH, AYSE);
+      await mert.send(CH, MERT, { v: 1, t: 'buradayım' }, post);
+      const mertDevice = ds.devices.find((d) => d.user_id === MERT)!.id;
+
+      // A commit removes Mert's device from the group, but the server goes on
+      // listing it (a faulty or hostile member could do this). Replacing a leaf
+      // that is gone made ts-mls 1.x loop forever: the device joins as new.
+      ds.channelMembers.get(CH)!.delete(MERT);
+      await ayse.sync(CH, AYSE);
+      ds.channelMembers.get(CH)!.add(MERT);
+      ds.groups.get(CH)!.members.set(mertDevice, ds.groups.get(CH)!.epoch);
+
+      const back = await mert.send(CH, MERT, { v: 1, t: 'yine buradayım' }, post);
+      expect(await ayse.open(CH, AYSE, back)).toEqual({
+        payload: { v: 1, t: 'yine buradayım', a: MERT },
+      });
+    },
+  );
+
   it('a forged credential does not verify', async () => {
     const ayse = await browser(AYSE);
     await ayse.ensureDevice(AYSE);

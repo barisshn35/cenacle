@@ -12,6 +12,7 @@
  */
 import * as mls from 'ts-mls';
 import { defaultClientConfig } from 'ts-mls/clientConfig.js';
+import { ratchetTreeFromExtension } from 'ts-mls/groupInfo.js';
 import { ApiError, apiFetch, type components } from '@cenacle/core/api';
 import { b64, del, exclusive, get, put, sha256, unb64, wipe } from './db';
 
@@ -288,6 +289,18 @@ async function postCommit(
   }
 }
 
+/**
+ * Whether the group still has a leaf of this device (its signature key). Only
+ * then may a join replace it: ts-mls 1.x loops forever when asked to replace a
+ * leaf that is gone, which happens when the server still lists a device a
+ * commit removed.
+ */
+function hasLeaf(groupInfo: mls.GroupInfo, publicKey: Uint8Array): boolean {
+  return (ratchetTreeFromExtension(groupInfo) ?? []).some(
+    (n) => n?.nodeType === 'leaf' && sameBytes(n.leaf.signaturePublicKey, publicKey),
+  );
+}
+
 /** Joins with an external commit; resync replaces this device's old leaf. */
 async function join(channelId: string, device: Device, resync: boolean) {
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -299,7 +312,7 @@ async function join(channelId: string, device: Device, resync: boolean) {
       gi.groupInfo,
       kp.publicPackage,
       kp.privatePackage,
-      resync,
+      resync && hasLeaf(gi.groupInfo, device.publicKey),
       await impl(),
       undefined,
       config,
