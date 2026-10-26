@@ -17,12 +17,17 @@ import (
 )
 
 // age moves a message back in time.
-func (s *stack) age(messageID string, days int) {
+// age makes a message days old, as one written then would be: its UUIDv7 id
+// carries its time too. It returns the new id.
+func (s *stack) age(messageID string, days int) string {
 	s.t.Helper()
-	if _, err := s.pool.Exec(context.Background(),
-		`UPDATE messages SET created_at = now() - make_interval(days => $2) WHERE id = $1`, messageID, days); err != nil {
+	var id string
+	if err := s.pool.QueryRow(context.Background(),
+		`UPDATE messages SET id = uuidv7(-make_interval(days => $2)), created_at = now() - make_interval(days => $2)
+		 WHERE id = $1 RETURNING id::text`, messageID, days).Scan(&id); err != nil {
 		s.t.Fatal(err)
 	}
+	return id
 }
 
 func (s *stack) purgeExpired() int {
@@ -42,8 +47,8 @@ func TestRetentionAndLegalHolds(t *testing.T) {
 	old, _ := s.send(ayse, general, "old news", "ret-nonce-1")
 	mine, _ := s.send(admin, general, "my old note", "ret-nonce-2")
 	fresh, _ := s.send(ayse, general, "fresh", "ret-nonce-3")
-	s.age(old.ID, 40)
-	s.age(mine.ID, 40)
+	old.ID = s.age(old.ID, 40)
+	mine.ID = s.age(mine.ID, 40)
 
 	// No retention: nothing goes.
 	if n := s.purgeExpired(); n != 0 {

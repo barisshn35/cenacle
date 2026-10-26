@@ -14,14 +14,29 @@ RETURNING *;
 -- name: PurgeExpiredMessages :execrows
 -- PurgeExpiredMessages deletes up to row_limit messages older than their
 -- channel's (or workspace's) retention, except those a legal hold keeps.
-DELETE FROM messages WHERE id IN (
-    SELECT m.id FROM messages m
-    JOIN channels c ON c.id = m.channel_id
+-- Only channels with a retention are read, each through its (channel_id, id)
+-- index: message ids are UUIDv7 made from the message's time (imported ones
+-- too), so the oldest id of the cut-off's millisecond bounds the range. The
+-- ids are collected first, so the delete finds them by primary key.
+WITH due AS (
+    SELECT c.id AS channel_id, t.before,
+           (lpad(to_hex(floor(extract(epoch FROM t.before) * 1000)::bigint), 12, '0')
+               || '70008000000000000000')::uuid AS before_id
+    FROM channels c
     JOIN workspaces w ON w.id = c.workspace_id
+    CROSS JOIN LATERAL (
+        SELECT now() - make_interval(days => coalesce(c.retention_days, w.retention_days)) AS before
+    ) t
     WHERE coalesce(c.retention_days, w.retention_days) IS NOT NULL
-      AND m.created_at < now() - make_interval(days => coalesce(c.retention_days, w.retention_days))
-      AND NOT message_held(m.channel_id, m.author_id, m.created_at)
-    LIMIT @row_limit);
+)
+DELETE FROM messages WHERE id = ANY (ARRAY(
+    SELECT m.id FROM due
+    CROSS JOIN LATERAL (
+        SELECT id, author_id, created_at FROM messages
+        WHERE channel_id = due.channel_id AND id < due.before_id AND created_at < due.before
+    ) m
+    WHERE NOT message_held(due.channel_id, m.author_id, m.created_at)
+    LIMIT @row_limit));
 
 -- name: ListLegalHolds :many
 SELECT * FROM legal_holds WHERE workspace_id = @workspace_id ORDER BY released_at NULLS FIRST, id DESC;

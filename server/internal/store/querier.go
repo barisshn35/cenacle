@@ -687,6 +687,10 @@ type Querier interface {
 	PurgeDialogs(ctx context.Context) (int64, error)
 	// PurgeExpiredMessages deletes up to row_limit messages older than their
 	// channel's (or workspace's) retention, except those a legal hold keeps.
+	// Only channels with a retention are read, each through its (channel_id, id)
+	// index: message ids are UUIDv7 made from the message's time (imported ones
+	// too), so the oldest id of the cut-off's millisecond bounds the range. The
+	// ids are collected first, so the delete finds them by primary key.
 	PurgeExpiredMessages(ctx context.Context, rowLimit int32) (int64, error)
 	PutSidebarLayout(ctx context.Context, arg PutSidebarLayoutParams) error
 	// QueueDeliveries records an event for every enabled subscription of a bot that is a
