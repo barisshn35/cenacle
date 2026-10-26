@@ -137,16 +137,18 @@ server's memory). For exports or imports larger than that, raise it, or mount a 
 
 ### First account and Cenacle ID operations
 
-Cenacle ID has no self-registration yet. Create accounts with its CLI (the password is
-read from stdin, never from the command line); create the administrator's account with the
-address in `CENACLE_ADMIN_EMAIL` and `--verified`:
+Cenacle ID has no self-registration yet. Create accounts with its CLI; create the
+administrator's account with the address in `CENACLE_ADMIN_EMAIL` and `--verified`. It asks
+for the password twice, without showing it (a password never goes on the command line):
 
 ```sh
-docker compose -f prod.yml --env-file .env.prod run --rm -T idp \
+docker compose -f prod.yml --env-file .env.prod run --rm idp \
   node dist/cli.js users create --email you@example.com --name "Your Name" --verified
-docker compose -f prod.yml --env-file .env.prod run --rm -T idp \
-  node dist/cli.js users set-password --email you@example.com
 ```
+
+To set a new password later, run `users set-password --email you@example.com` the same way.
+In a script, add `-T` after `run` and give the password on stdin, for example from a file
+(`< password-file`); it is then read once.
 
 Token signing keys are created on first start. Rotate them periodically; the previous key
 stays published for the grace period (`IDP_KEY_RETIRED_GRACE_SECONDS`, default 7 days) so
