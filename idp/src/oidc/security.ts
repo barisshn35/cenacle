@@ -28,6 +28,8 @@ export function pageSecurityHeaders(formActionOrigins: string[]): Record<string,
     // same-origin (not no-referrer): browsers then send our Origin with form posts.
     'referrer-policy': 'same-origin',
     'cross-origin-opener-policy': 'same-origin',
+    // Other sites cannot load the pages as a resource either.
+    'cross-origin-resource-policy': 'same-origin',
     'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()',
     'cache-control': 'no-store',
   };
