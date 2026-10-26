@@ -10,6 +10,9 @@ This guide covers a single-host installation with Docker Compose
 - Two DNS names pointing to the host, for example `chat.example.com` (Cenacle) and
   `id.example.com` (Cenacle ID)
 - Ports 80 and 443 free on the host (no other web server bound to them)
+- The host's clock kept right (NTP, for example systemd-timesyncd or chrony): two-step
+  codes are accepted within 30 seconds of the right time, and sign-in tokens carry their
+  times too
 
 ## Steps
 
