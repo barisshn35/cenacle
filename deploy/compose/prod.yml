@@ -218,7 +218,7 @@ services:
 
   postgres:
     <<: *hardening
-    image: postgres:18.6-alpine3.24
+    image: postgres:18.6-alpine3.24@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
     # The entrypoint drops to the postgres user; it needs these capabilities to do so.
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
     shm_size: 256m
@@ -244,7 +244,7 @@ services:
 
   valkey:
     <<: *hardening
-    image: valkey/valkey:9.0.6-alpine
+    image: valkey/valkey:9.0.6-alpine@sha256:187679e3bd4036959631e3f03983ab2ba503ab21e6fd0454d508e909db2ee989
     user: '999:1000'
     read_only: true
     command:
@@ -267,7 +267,7 @@ services:
 
   # Files. The data volume is given to Garage's non-root user first.
   garage-volume:
-    image: valkey/valkey:9.0.6-alpine
+    image: valkey/valkey:9.0.6-alpine@sha256:187679e3bd4036959631e3f03983ab2ba503ab21e6fd0454d508e909db2ee989
     restart: 'no'
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
@@ -280,7 +280,7 @@ services:
 
   garage:
     <<: *hardening
-    image: dxflrs/garage:v2.4.1
+    image: dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020
     user: '10003:10003'
     read_only: true
     command: [/garage, server, --single-node, --default-bucket]
@@ -308,7 +308,7 @@ services:
   clamav:
     <<: *hardening
     profiles: [clamav]
-    image: clamav/clamav:1.5.4
+    image: clamav/clamav:1.5.4@sha256:bda39705e291105049c3936e2803ac90b955172af8030f94f05dce1252df6c6d
     # The entrypoint prepares its directories and drops to the clamav user.
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
     volumes:

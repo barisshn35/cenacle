@@ -6,9 +6,9 @@
 # desktop app's tests (Electron under a virtual display). The browser itself
 # is downloaded into the CI cache by the jobs. Bump CI_IMAGE in .gitlab-ci.yml
 # when this file changes.
-FROM docker:29.9.2-cli AS docker
+FROM docker:29.9.2-cli@sha256:5e6baf67325a79f64ed3bed6863954d5e05d0f3d4e57cbdb14809346814bbfdb AS docker
 
-FROM golang:1.26.10-trixie
+FROM golang:1.26.10-trixie@sha256:909771fef53e3dcb0950255f0c9a8b4728c3b841e61509c7b29b098de7ee02d4
 
 ARG NODE24=24.22.1
 ARG NODE24_SHA256=6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6

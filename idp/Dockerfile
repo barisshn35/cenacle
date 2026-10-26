@@ -6,7 +6,7 @@
 
 # Dependencies are pure JavaScript, so the build runs on the native build
 # platform (no emulation for arm64); only the node binary is target-specific.
-FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24 AS build
+FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS build
 RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
@@ -31,11 +31,11 @@ RUN pnpm --filter @cenacle/idp build \
  && rm -rf /out/src /out/test /out/tsconfig*.json /out/vitest.config.ts /out/Dockerfile
 
 # The node binary for the target platform.
-FROM node:24.22.1-alpine3.24 AS node
+FROM node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS node
 
 # OpenSSL's FIPS provider, built from the validated 3.1.2 sources (only the
 # provider is used; node keeps its own OpenSSL library).
-FROM alpine:3.24.2 AS fips-provider
+FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS fips-provider
 RUN apk add --no-cache build-base perl linux-headers
 WORKDIR /build
 ADD --checksum=sha256:a0ce69b8b97ea6a35b96875235aa453b966ba3cba8af2de23657d8b6767d6539 \
@@ -47,7 +47,7 @@ RUN tar xzf openssl-3.1.2.tar.gz && cd openssl-3.1.2 \
 
 # Runtime: plain Alpine plus the node binary only (no npm/corepack/yarn):
 # smaller image and smaller attack surface.
-FROM alpine:3.24.2 AS runtime
+FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
 RUN apk add --no-cache libstdc++ libgcc \
  && addgroup -g 1000 node && adduser -u 1000 -G node -s /sbin/nologin -D node
 COPY --from=node /usr/local/bin/node /usr/local/bin/node

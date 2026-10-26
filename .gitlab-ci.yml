@@ -21,10 +21,10 @@ stages: [prepare, lint, test, licenses, build]
 variables:
   # Bump when ci/image/Dockerfile changes; the prepare stage builds it once.
   CI_IMAGE: cenacle-ci:2
-  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
-  TRIVY_IMAGE: aquasec/trivy:0.76.0
-  BINFMT_IMAGE: tonistiigi/binfmt:qemu-v10.0.4
-  SKOPEO_IMAGE: quay.io/skopeo/stable:v1.22.2
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+  TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+  BINFMT_IMAGE: tonistiigi/binfmt:qemu-v10.0.4@sha256:8f58e6214f4cc9dc83ce8f5acad1ece508eb6b20e696a8c1e9f274481982c541
+  SKOPEO_IMAGE: quay.io/skopeo/stable:v1.22.2@sha256:2b7d76dde38c5924e1945348840c58786fc192201f2fd545832e58b53d26f7b8
   # Signing releases (with the project's key, CI/CD variables COSIGN_KEY and
   # COSIGN_PASSWORD) and their SBOMs; docs/security/README.md says how to verify.
   COSIGN_IMAGE: ghcr.io/sigstore/cosign/cosign:v3.1.4@sha256:0f06154836d2de34f887a5c273506d52ca43edaa1d9e53e6510fa78a48f69c2d
@@ -61,7 +61,7 @@ default:
 # ------------------------------------------------------------- prepare ---
 ci-image:
   stage: prepare
-  image: docker:29.9.2-cli
+  image: docker:29.9.2-cli@sha256:5e6baf67325a79f64ed3bed6863954d5e05d0f3d4e57cbdb14809346814bbfdb
   script:
     - docker image inspect "$CI_IMAGE" >/dev/null 2>&1 || docker build -t "$CI_IMAGE" ci/image
 

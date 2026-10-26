@@ -28,3 +28,8 @@ updates:
         update-types: [version-update:semver-major, version-update:semver-minor]
       - dependency-name: node
         update-types: [version-update:semver-major, version-update:semver-minor]
+  # The images of the Compose files (pinned by digest, like the Dockerfiles').
+  - package-ecosystem: docker-compose
+    directory: /deploy/compose
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }

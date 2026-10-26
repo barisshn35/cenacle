@@ -3,7 +3,7 @@
 #   docker build -f web/Dockerfile -t cenacle-web .
 
 # Caddy built from source with our patched Go toolchain (see deploy/caddy).
-FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS caddy
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24@sha256:27f2d3b83cfc5803c8078f8e730af0f7c431bf067afaec8f60a36fb763187cba AS caddy
 WORKDIR /src
 COPY deploy/caddy/go.mod deploy/caddy/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     go build -trimpath -ldflags "-s -w" -o /out/caddy . \
  && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go-notices . "Caddy, the web server of the Cenacle web image" > /out/THIRD_PARTY_NOTICES-caddy.txt
 
-FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24 AS build
+FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS build
 RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
@@ -32,7 +32,7 @@ COPY scripts/third-party-notices.* scripts/
 COPY web/ web/
 RUN pnpm --filter @cenacle/web exec vite build
 
-FROM alpine:3.24.2
+FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 RUN apk add --no-cache ca-certificates mailcap \
  && addgroup -g 10001 cenacle && adduser -D -H -u 10001 -G cenacle cenacle \
  && mkdir -p /data /config /etc/caddy \

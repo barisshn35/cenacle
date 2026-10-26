@@ -5,7 +5,7 @@
 #   docker build -f server/Dockerfile --build-arg FIPS=true -t cenacle-server-fips .
 
 # Cross-compile on the build host's native platform (fast multi-arch builds).
-FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24@sha256:27f2d3b83cfc5803c8078f8e730af0f7c431bf067afaec8f60a36fb763187cba AS build
 WORKDIR /src
 COPY server/go.mod server/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
  && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go-notices ./cmd/server "the Cenacle server" > /out/THIRD_PARTY_NOTICES.txt
 
 # Static binary on distroless: no shell, no package manager, non-root (65532).
-FROM gcr.io/distroless/static-debian13:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99
 COPY --from=build /out/cenacle-server /usr/local/bin/cenacle-server
 # Cenacle's license and those of the code built into the server.
 COPY LICENSE /licenses/LICENSE
