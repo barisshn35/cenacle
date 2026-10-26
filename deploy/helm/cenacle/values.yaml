@@ -128,7 +128,14 @@ server:
   extraEnv: []
   nodeSelector: {}
   tolerations: []
+  # Empty: replicas prefer different nodes.
   affinity: {}
+
+# The migration jobs that run before installs and upgrades.
+migrations:
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 512Mi }
 
 idp:
   replicas: 1
@@ -149,6 +156,7 @@ idp:
   extraEnv: []
   nodeSelector: {}
   tolerations: []
+  # Empty: replicas prefer different nodes.
   affinity: {}
 
 web:
@@ -162,6 +170,7 @@ web:
     limits: { memory: 128Mi }
   nodeSelector: {}
   tolerations: []
+  # Empty: replicas prefer different nodes.
   affinity: {}
 
 ingress:

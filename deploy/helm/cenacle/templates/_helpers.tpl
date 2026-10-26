@@ -32,6 +32,9 @@ runAsGroup: {{ . }}
 fsGroup: {{ . }}
 seccompProfile:
   type: RuntimeDefault
+# Kubernetes 1.30+; nodes without AppArmor ignore it.
+appArmorProfile:
+  type: RuntimeDefault
 {{- end -}}
 
 {{- define "cenacle.containerSecurity" -}}
@@ -79,4 +82,21 @@ capabilities:
       - { key: azure-key, path: azure-key }
       {{- end }}
       {{- end }}
+{{- end -}}
+
+{{/* The values' affinity, or by default: replicas on different nodes when there are nodes to spare. */}}
+{{- define "cenacle.affinity" -}}
+{{- $own := index .root.Values .component "affinity" -}}
+{{- if $own -}}
+{{ toYaml $own }}
+{{- else -}}
+podAntiAffinity:
+  preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        topologyKey: kubernetes.io/hostname
+        labelSelector:
+          matchLabels:
+            {{- include "cenacle.selector" (dict "root" .root "component" .component) | nindent 12 }}
+{{- end -}}
 {{- end -}}

@@ -16,6 +16,7 @@ GO_LICENSES_VERSION   := v2.0.1
 GOVULNCHECK_VERSION   := v1.9.0
 OAPI_CODEGEN_VERSION  := v2.8.0
 HELM_VERSION          := 4.3.1
+KUBE_LINTER_VERSION   := v0.8.3
 
 # License policy for Go modules (see docs/adr/0001-monorepo-and-tooling.md).
 GO_ALLOWED_LICENSES := MIT,ISC,BSD-2-Clause,BSD-3-Clause,Apache-2.0,MPL-2.0,0BSD,Unlicense
@@ -40,6 +41,7 @@ GO_LICENSES   := $(BIN_DIR)/go-licenses
 GOVULNCHECK   := $(BIN_DIR)/govulncheck
 OAPI_CODEGEN  := $(BIN_DIR)/oapi-codegen
 HELM          := $(BIN_DIR)/helm
+KUBE_LINTER   := $(BIN_DIR)/kube-linter
 
 .DEFAULT_GOAL := help
 
@@ -50,7 +52,7 @@ help: ## Show available targets
 # --- Tooling -----------------------------------------------------------------
 
 .PHONY: tools
-tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) $(OAPI_CODEGEN) $(HELM) ## Install pinned dev tools into ./.bin
+tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) $(OAPI_CODEGEN) $(HELM) $(KUBE_LINTER) ## Install pinned dev tools into ./.bin
 
 $(SQLC):
 	@mkdir -p $(BIN_DIR)
@@ -66,6 +68,9 @@ $(GO_LICENSES):
 
 $(GOVULNCHECK):
 	GOBIN=$(BIN_DIR) go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
+
+$(KUBE_LINTER):
+	GOBIN=$(BIN_DIR) go install golang.stackrox.io/kube-linter/cmd/kube-linter@$(KUBE_LINTER_VERSION)
 
 $(HELM):
 	@mkdir -p $(BIN_DIR)
@@ -139,9 +144,9 @@ lint-go: $(GOLANGCI_LINT)
 	cd sdk/go && $(GOLANGCI_LINT) run ./...
 
 .PHONY: lint-helm
-lint-helm: $(HELM) ## Lint the Helm chart and render it with test values
+lint-helm: $(HELM) $(KUBE_LINTER) ## Lint the Helm chart, render it with test values and check what it renders
 	$(HELM) lint deploy/helm/cenacle --strict
-	$(HELM) template test deploy/helm/cenacle -f deploy/helm/ci-values.yaml > /dev/null
+	$(HELM) template test deploy/helm/cenacle -f deploy/helm/ci-values.yaml | $(KUBE_LINTER) lint -
 
 .PHONY: lint-js
 lint-js: node_modules

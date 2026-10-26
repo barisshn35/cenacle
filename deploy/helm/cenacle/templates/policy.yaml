@@ -10,6 +10,8 @@ metadata:
     {{- include "cenacle.labels" $ | nindent 4 }}
 spec:
   maxUnavailable: 1
+  # A pod that is not ready may always be evicted: it cannot block draining a node.
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       {{- include "cenacle.selector" (dict "root" $ "component" $component) | nindent 6 }}
