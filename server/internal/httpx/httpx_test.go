@@ -83,3 +83,18 @@ func TestRecovererWritesProblem(t *testing.T) {
 		t.Error("panic not logged")
 	}
 }
+
+func TestSecurityHeaders(t *testing.T) {
+	rec := httptest.NewRecorder()
+	SecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {})).
+		ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/me", nil))
+	for name, want := range map[string]string{
+		"X-Content-Type-Options":       "nosniff",
+		"Referrer-Policy":              "no-referrer",
+		"Cross-Origin-Resource-Policy": "same-origin",
+	} {
+		if got := rec.Header().Get(name); got != want {
+			t.Errorf("%s = %q, want %q", name, got, want)
+		}
+	}
+}

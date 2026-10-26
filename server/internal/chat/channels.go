@@ -789,6 +789,11 @@ func decodeLimit(w http.ResponseWriter, r *http.Request, v any, limit int64) boo
 			Detail: "The body is not valid JSON for this operation."})
 		return false
 	}
+	if httpx.HasNUL(v) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: httpx.CodeBadRequest,
+			Detail: "Text may not contain the NUL character."})
+		return false
+	}
 	return true
 }
 

@@ -329,6 +329,10 @@ func TestEventsWelcomeBannerTerms(t *testing.T) {
 	if status, _ := problemCode(t, s, http.MethodPut, "/api/banner", ayse, map[string]any{"text": "x", "level": "info"}); status != http.StatusForbidden {
 		t.Errorf("member banner = %d", status)
 	}
+	// Text with the NUL character (which PostgreSQL cannot store) is refused, not a server error.
+	if status, code := problemCode(t, s, http.MethodPut, "/api/banner", admin, map[string]any{"text": "a\x00b", "level": "info"}); status != http.StatusBadRequest {
+		t.Errorf("NUL banner = %d %s", status, code)
+	}
 	s.call(http.MethodPut, "/api/banner", admin, map[string]any{"text": "Bakım 22:00", "level": "warning"}, nil)
 	var banner struct{ Banner *api.Banner }
 	s.call(http.MethodGet, "/api/banner", ayse, nil, &banner)
