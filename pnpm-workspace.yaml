@@ -33,3 +33,5 @@ supportedArchitectures:
 overrides:
   fast-uri@>=3.0.0 <3.1.9: 3.1.9
   fast-uri@>=4.0.0 <4.2.3: 4.2.3
+  # The mobile tooling (Capacitor CLI → xcode); 11 keeps the require('uuid') API.
+  uuid@<11.1.1: 11.1.1
