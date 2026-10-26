@@ -16,6 +16,7 @@ import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { toast } from 'sonner';
 import { useJump } from './jump';
 import { MessageAnnouncer } from './announce-messages';
+import { useKeepFocusIn } from './keep-focus';
 import { PinnedLine, RepliedToThread, ThreadSummaryButton } from '../threads/thread-summary';
 import { ReplyButton } from '../threads/reply-button';
 import { PollCard } from '../community/poll';
@@ -505,6 +506,8 @@ export function MessageList({ channel }: { channel: Channel }) {
   const { t } = useTranslation();
   const fmt = useFormatters();
   const query = useInfiniteQuery(messagesQuery(channelId));
+  const [logEl, setLogEl] = useState<HTMLDivElement | null>(null);
+  useKeepFocusIn(logEl);
   const allPending = usePending((s) => s.items);
   const pending = useMemo(
     () => allPending.filter((p) => p.channelId === channelId && (!p.rootId || p.alsoInChannel)),
@@ -609,10 +612,12 @@ export function MessageList({ channel }: { channel: Channel }) {
 
   return (
     <div
+      ref={setLogEl}
       role="log"
       aria-live="off"
       aria-label={t('chat.messagesIn', { channel: channelName })}
-      className="min-h-0 flex-1"
+      tabIndex={-1}
+      className="min-h-0 flex-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
     >
       <MessageAnnouncer messages={messages} selfId={self} />
       <Virtuoso

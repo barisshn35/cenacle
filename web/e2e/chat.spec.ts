@@ -275,3 +275,21 @@ test('on a phone the author and time stand above the words, never over them', as
   const words = await message.getByText('Good morning').boundingBox();
   expect(who!.y + who!.height).toBeLessThanOrEqual(words!.y + 1);
 });
+
+test('focus stays in the list when the focused message scrolls out of it', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'keyboard focus');
+  const messages = Array.from({ length: 120 }, (_, i) => mockMessage(i + 1, `Message ${i + 1}`));
+  await mockApi(page, { messages });
+  await page.goto(`/c/${GENERAL.id}`);
+  const log = page.getByRole('log', { name: /Messages in/ });
+  await expect(log.getByText('Message 120')).toBeVisible({ timeout: 15_000 });
+  await log.getByRole('button', { name: 'Add reaction' }).last().focus();
+  // To the top: the virtual list drops the focused message.
+  await log.locator('[data-virtuoso-scroller]').evaluate((el) => el.scrollTo({ top: 0 }));
+  await expect(log.getByText('Message 120')).toHaveCount(0);
+  // Not the page (where the next Tab would start over): the list, by name.
+  await expect(log).toBeFocused();
+});
