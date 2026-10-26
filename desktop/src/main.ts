@@ -28,7 +28,7 @@ import {
   type BarColors,
 } from './chrome.js';
 import { fill, language, setupLanguage, t } from './i18n.js';
-import { hardenSession, originOf } from './security.js';
+import { deepLinkTarget, hardenSession, originOf, returnPath } from './security.js';
 import { check, normalize, type PairError } from './server.js';
 import { signIn } from './signin.js';
 import {
@@ -451,17 +451,9 @@ function showMain() {
 
 function openDeepLink(link: string) {
   // cenacle://open/c/<channel> opens that place of the paired server.
-  let url: URL;
-  try {
-    url = new URL(link);
-  } catch {
-    return;
-  }
-  if (url.protocol !== 'cenacle:' || url.host !== 'open' || !config?.server) return;
-  // Only a path of the paired server: "//host" or "/\\host" would name another site.
-  const target = new URL(url.pathname.replace(/^[/\\]+/, '/') + url.search, config.server);
-  if (target.origin !== config.server) return;
-  if (main) void main.loadURL(target.toString());
+  const target = config?.server ? deepLinkTarget(link, config.server) : null;
+  if (!target) return;
+  if (main) void main.loadURL(target);
   showMain();
 }
 
@@ -545,10 +537,7 @@ function fromLocal(e: IpcMainInvokeEvent): boolean {
 function registerIpc() {
   ipcMain.handle('desktop:sign-in', (e, returnTo: unknown) => {
     if (!fromServer(e)) return;
-    const path =
-      typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')
-        ? returnTo
-        : '/';
+    const path = returnPath(returnTo, config.server ?? '');
     // A page that loaded before the sign-in finished still asks: it only
     // needs to load again with the session the app now has.
     if (loadToken() && config.server) {
