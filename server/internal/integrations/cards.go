@@ -5,6 +5,7 @@ package integrations
 
 import (
 	"net/url"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
@@ -19,6 +20,19 @@ type Field = struct {
 
 // Ptr returns a pointer to a string.
 func Ptr(s string) *string { return &s }
+
+// Text makes what another service sent storable and displayable: invalid
+// UTF-8 becomes U+FFFD, and control characters other than line breaks and
+// tabs (NUL among them, which PostgreSQL does not store) are dropped.
+func Text(s string) string {
+	s = strings.ToValidUTF8(s, "\uFFFD")
+	return strings.Map(func(r rune) rune {
+		if r < 0x20 && r != '\n' && r != '\t' || r == 0x7f {
+			return -1
+		}
+		return r
+	}, s)
+}
 
 // Truncate shortens text to n characters with an ellipsis.
 func Truncate(s string, n int) string {
@@ -41,6 +55,7 @@ func Link(u string) string {
 // Card builds an attachment.
 func Card(title, link, text string, color api.AttachmentColor, footer string, fields []Field) api.Attachment {
 	a := api.Attachment{Color: &color}
+	title, text, footer = Text(title), Text(text), Text(footer)
 	if title != "" {
 		a.Title = Ptr(Truncate(title, 200))
 	}
@@ -58,10 +73,26 @@ func Card(title, link, text string, color api.AttachmentColor, footer string, fi
 			fields = fields[:10]
 		}
 		for i := range fields {
-			fields[i].Title = Truncate(fields[i].Title, 100)
-			fields[i].Value = Truncate(fields[i].Value, 500)
+			fields[i].Title = Truncate(Text(fields[i].Title), 100)
+			fields[i].Value = Truncate(Text(fields[i].Value), 500)
 		}
 		a.Fields = &fields
+	}
+	return a
+}
+
+// CleanCard applies Text to every text of a card built by hand.
+func CleanCard(a api.Attachment) api.Attachment {
+	for _, p := range []*string{a.Title, a.Text, a.Footer, a.TitleLink} {
+		if p != nil {
+			*p = Text(*p)
+		}
+	}
+	if a.Fields != nil {
+		for i := range *a.Fields {
+			(*a.Fields)[i].Title = Text((*a.Fields)[i].Title)
+			(*a.Fields)[i].Value = Text((*a.Fields)[i].Value)
+		}
 	}
 	return a
 }

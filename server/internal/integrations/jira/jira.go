@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/integrations"
 )
 
 type person struct {
@@ -87,6 +88,7 @@ func nameOf(p *person) string {
 // Card describes an event as a message card; ok is false for events that are
 // not posted (unknown kinds, updates without a watched change).
 func Card(payload []byte) (card api.Attachment, ok bool, err error) {
+	defer func() { card = integrations.CleanCard(card) }()
 	var ev Event
 	if err := json.Unmarshal(payload, &ev); err != nil {
 		return card, false, fmt.Errorf("not a Jira event: %w", err)

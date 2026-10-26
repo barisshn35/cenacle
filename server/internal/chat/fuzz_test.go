@@ -112,3 +112,31 @@ func FuzzReminder(f *testing.F) {
 }
 
 func storeChannel(encrypted bool) store.Channel { return store.Channel{Encrypted: encrypted} }
+
+// FuzzPageMeta: fetched pages are untrusted HTML. The preview's texts stay
+// storable and its image is an http(s) address, whatever the page holds.
+func FuzzPageMeta(f *testing.F) {
+	for _, s := range []string{
+		`<html><head><title>Plain</title><meta property="og:title" content="OG\x00 title"><meta property="og:image" content="javascript:alert(1)"></head><body>x</body></html>`,
+		`<meta name="description" content="` + strings.Repeat("long ", 2000) + `"><meta property="og:image" content="/img.png">`,
+		`<head><meta property="og:image" content="//evil.example/x.png"><title>a</title><title>b</title>`,
+		"\xff\xfe<title>\xc3\x28</title>", "",
+	} {
+		f.Add([]byte(s))
+	}
+	base, _ := url.Parse("https://news.example.com/a/b")
+	f.Fuzz(func(t *testing.T, page []byte) {
+		m := pageMeta(page, base)
+		for _, s := range []string{m.title, m.description, m.site} {
+			if !utf8.ValidString(s) || strings.IndexByte(s, 0) >= 0 {
+				t.Fatalf("not storable: %q", s)
+			}
+		}
+		if m.image != "" {
+			u, err := url.Parse(m.image)
+			if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+				t.Fatalf("image %q", m.image)
+			}
+		}
+	})
+}
