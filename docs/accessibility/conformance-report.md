@@ -22,6 +22,11 @@ Cenacle 0.41.0, based on the VPAT® 2.5 Rev INT template (WCAG 2.2 and EN 301 54
   navigation (skip link), keyboard-only sending, focus shown and not covered at every Tab
   stop and no keyboard trap, focus moved into dialogs and returned, reflow at 320 CSS px,
   raised text spacing, reduced motion, forced colors, announcements of new messages.
+- **Keyboard pass (0.99.1):** every focus stop of a channel, Settings and the quick
+  switcher, in English and Turkish, read from the browser's accessibility tree, and new
+  messages from others checked in the announcements. It found focus falling to the page when
+  the message list dropped the focused message (fixed and tested in 0.99.1). An attempt to
+  drive Orca itself on a virtual display did not get keyboard events through to it.
 - **Not yet done:** a full session with screen readers (NVDA, JAWS, VoiceOver, Orca) by
   people who use them every day. Results that depend on what a screen reader says are
   based on the accessibility tree the tests read. This is the main gap.
@@ -48,7 +53,7 @@ Terms: **Supports**, **Partially supports** (some parts do not meet the criterio
 | 2.3.1 Three flashes or below                  | Supports           | Nothing flashes.                                                                                                                                                                                         |
 | 2.4.1 Bypass blocks                           | Supports           | A skip link is the first Tab stop ("Skip to the message box"); landmarks.                                                                                                                                |
 | 2.4.2 Page titled                             | Supports           | The tab's title names the channel or view and the workspace.                                                                                                                                             |
-| 2.4.3 Focus order                             | Supports           | Tested: focus moves into a dialog and back to the control that opened it.                                                                                                                                |
+| 2.4.3 Focus order                             | Supports           | Tested: focus moves into a dialog and back to the control that opened it, and stays in the message list when the list drops the focused message (0.99.1).                                                |
 | 2.4.4 Link purpose (in context)               | Supports           | Links have their text or a name; message links show their address.                                                                                                                                       |
 | 2.5.1 Pointer gestures                        | Supports           | No path-based or multipoint gestures are needed.                                                                                                                                                         |
 | 2.5.2 Pointer cancellation                    | Supports           | Actions happen on release (native click).                                                                                                                                                                |

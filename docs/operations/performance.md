@@ -59,6 +59,13 @@ With 2,000,000 messages (milliseconds, median / 95th percentile):
 Unread messages return 20 messages for each of the 200 channels at once: most of their
 time is that payload.
 
+Background jobs on a large database (0.99.1, three million messages): the retention job
+read every message, checking legal holds on each, before looking at retention, and ran into
+its 60-second limit every two minutes, also where no retention was set. It now reads only
+channels with a retention, through their index: 0.5 ms without one, 0.6 s for each thousand
+messages it deletes with one. Every other job finished within 2 seconds. Upgrading that
+database from 0.30 took 34 seconds of migrations ([upgrade](../upgrade/README.md)).
+
 ## Soak
 
 `TestSoak` runs the server at an ordinary pace for a long time (`LOAD_SECONDS`, default
