@@ -126,6 +126,15 @@ test('people download their data and administrators erase a person', async ({ pa
     'href',
     '/api/me/export',
   );
+  // Where the server's source code and the licenses of what it ships are (AGPL-3.0 section 13).
+  await expect(settings.getByRole('link', { name: /^Source code/ })).toHaveAttribute(
+    'href',
+    'https://github.com/barisshn35/cenacle',
+  );
+  await expect(settings.getByRole('link', { name: /^Open-source licenses/ })).toHaveAttribute(
+    'href',
+    '/third-party-notices.txt',
+  );
 
   await page.getByRole('button', { name: 'System console' }).click();
   const console = page.getByRole('dialog', { name: 'System console' });

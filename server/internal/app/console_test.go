@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/config"
 )
 
 func TestSystemConsole(t *testing.T) {
@@ -102,5 +103,9 @@ func TestSystemConsole(t *testing.T) {
 	s.call(http.MethodGet, "/api/meta", "", nil, &meta)
 	if meta.PushContents == nil || *meta.PushContents != api.MetaPushContentsNone {
 		t.Errorf("meta = %+v", meta)
+	}
+	// Everyone can find the source code of the server they use (AGPL-3.0 section 13).
+	if meta.SourceUrl == nil || *meta.SourceUrl != config.DefaultSourceURL {
+		t.Errorf("source_url = %v", meta.SourceUrl)
 	}
 }

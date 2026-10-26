@@ -8,6 +8,7 @@ export interface Meta {
   push_contents?: 'full' | 'sender' | 'none';
   /** The operator's privacy policy, when they set one. */
   privacy_url?: string;
+  source_url?: string;
 }
 
 export interface WebAppSetting {

@@ -28,6 +28,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/cache"
 	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/clamav"
+	"github.com/barisshn35/cenacle/server/internal/config"
 	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/realtime"
@@ -156,6 +157,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			IdP:      &auth.IdentityProvider{Issuer: "http://127.0.0.1:1", HTTPClient: http.DefaultClient},
 			Sessions: sessions, Users: queries, Flows: sh.valkey, Cookies: cookies, PublicURL: public,
 			Audit: auditLog, Ephemeral: ephemeral, Log: log, MaxFileSize: maxFileSize, AI: o.ai != nil,
+			SourceURL: config.DefaultSourceURL,
 		},
 		Chat: &chat.Handlers{
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,

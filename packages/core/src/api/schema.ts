@@ -5976,6 +5976,11 @@ export interface components {
       push_contents?: 'full' | 'sender' | 'none';
       /** @description The operator's privacy policy (CENACLE_PRIVACY_URL); absent when none. */
       privacy_url?: string;
+      /**
+       * @description The source code of this server (CENACLE_SOURCE_URL, AGPL-3.0 section 13); Cenacle's
+       *     own repository unless the operator changed it.
+       */
+      source_url?: string;
     };
     NotificationPolicy: {
       /**

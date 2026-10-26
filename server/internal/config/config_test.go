@@ -317,3 +317,19 @@ func TestLoadFilesBackend(t *testing.T) {
 		})
 	}
 }
+
+func TestSourceURL(t *testing.T) {
+	base := map[string]string{"CENACLE_DATABASE_URL": "postgres://u:p@localhost/chat"}
+	cfg, err := Load(env(base), files(nil))
+	if err != nil || cfg.SourceURL != DefaultSourceURL {
+		t.Fatalf("default = %q, %v", cfg.SourceURL, err)
+	}
+	base["CENACLE_SOURCE_URL"] = "https://git.example.com/our/cenacle"
+	if cfg, err := Load(env(base), files(nil)); err != nil || cfg.SourceURL != base["CENACLE_SOURCE_URL"] {
+		t.Errorf("changed = %q, %v", cfg.SourceURL, err)
+	}
+	base["CENACLE_SOURCE_URL"] = "ftp://example.com/src"
+	if _, err := Load(env(base), files(nil)); err == nil || !strings.Contains(err.Error(), "CENACLE_SOURCE_URL") {
+		t.Errorf("ftp address accepted: %v", err)
+	}
+}

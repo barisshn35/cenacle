@@ -143,7 +143,8 @@ export function SettingsDialog({
   const keepId = useId();
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const admin = session.permissions.create_workspaces;
-  const privacyUrl = useQuery(metaQuery).data?.privacy_url;
+  const meta = useQuery(metaQuery).data;
+  const privacyUrl = meta?.privacy_url;
   const groups: { label?: string; tabs: Tab[] }[] = [
     {
       tabs: [
@@ -294,6 +295,35 @@ export function SettingsDialog({
                     <span className="sr-only">{t('settings.newTab')}</span>
                   </a>
                 )}
+              </section>
+
+              <section aria-labelledby="settings-about" className="flex flex-col gap-2">
+                <h3 id="settings-about" className="text-sm font-semibold">
+                  {t('settings.about')}
+                </h3>
+                <p className="text-sm text-muted-foreground">{t('settings.aboutHint')}</p>
+                {meta?.source_url && (
+                  <a
+                    href={meta.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-target items-center gap-1.5 self-start text-sm underline underline-offset-2"
+                  >
+                    {t('settings.sourceCode')}
+                    <ExternalLinkIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
+                    <span className="sr-only">{t('settings.newTab')}</span>
+                  </a>
+                )}
+                <a
+                  href={'/third-party-notices.txt'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-target items-center gap-1.5 self-start text-sm underline underline-offset-2"
+                >
+                  {t('settings.licenses')}
+                  <ExternalLinkIcon aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  <span className="sr-only">{t('settings.newTab')}</span>
+                </a>
               </section>
 
               {desktop && (

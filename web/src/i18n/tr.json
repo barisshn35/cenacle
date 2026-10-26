@@ -520,6 +520,10 @@
     "yourDataHint": "Cenacle'ın sizinle ilgili tuttuğu her şeyi indirin: profiliniz, mesajlarınız, tepkileriniz, dosyalarınız, cihazlarınız ve yaptıklarınız (her satıra bir öğe, NDJSON).",
     "downloadData": "Verilerinizi indirin",
     "privacyPolicy": "Bu sunucunun gizlilik politikası",
+    "about": "Cenacle hakkında",
+    "aboutHint": "Cenacle, GNU Affero Genel Kamu Lisansı 3.0 ile dağıtılan özgür bir yazılımdır: kullanabilir, inceleyebilir, değiştirebilir ve paylaşabilirsiniz.",
+    "sourceCode": "Kaynak kodu",
+    "licenses": "Açık kaynak lisansları",
     "serverLocked": "Bu sunucuyu kurumunuz belirledi; buradan değiştirilemez."
   },
   "reactions": {

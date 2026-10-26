@@ -122,6 +122,7 @@ services:
       CENACLE_AI_TIMEOUT: ${CENACLE_AI_TIMEOUT:-2m}
       CENACLE_AI_POLICY_URL: ${CENACLE_AI_POLICY_URL:-}
       CENACLE_PRIVACY_URL: ${CENACLE_PRIVACY_URL:-}
+      CENACLE_SOURCE_URL: ${CENACLE_SOURCE_URL:-https://github.com/barisshn35/cenacle}
       # Files: the bundled Garage (or set an S3 service of your own), Azure Blob
       # Storage (CENACLE_FILES_BACKEND=azure) or a directory (dir).
       CENACLE_FILES_BACKEND: ${CENACLE_FILES_BACKEND:-}

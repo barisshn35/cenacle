@@ -117,6 +117,9 @@ server:
   desktopMinVersion: ''
   # Your privacy policy for this server, linked from Settings in the apps.
   privacyUrl: ''
+  # The source code of this server, linked from Settings (AGPL-3.0 section 13); change
+  # it only if you run a changed Cenacle.
+  sourceUrl: https://github.com/barisshn35/cenacle
   # The largest /tmp, where archive exports and imports are staged.
   tmpSize: 1Gi
   resources:

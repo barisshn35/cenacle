@@ -340,6 +340,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			WebApp:            &auth.WebApp{Store: queries, Forced: cfg.WebApp},
 			DesktopMinVersion: cfg.DesktopMinVersion,
 			PrivacyURL:        cfg.PrivacyURL,
+			SourceURL:         cfg.SourceURL,
 			Log:               log,
 		},
 		Chat: &chat.Handlers{

@@ -3418,6 +3418,10 @@ type Meta struct {
 	// PushContents What the apps' own notifications may show (the notification policy).
 	PushContents *MetaPushContents `json:"push_contents,omitempty"`
 
+	// SourceUrl The source code of this server (CENACLE_SOURCE_URL, AGPL-3.0 section 13); Cenacle's
+	// own repository unless the operator changed it.
+	SourceUrl *string `json:"source_url,omitempty"`
+
 	// WebApp People may use Cenacle in web browsers.
 	WebApp bool `json:"web_app"`
 }

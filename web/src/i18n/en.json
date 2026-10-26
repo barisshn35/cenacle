@@ -520,6 +520,10 @@
     "yourDataHint": "Download everything Cenacle keeps about you: your profile, messages, reactions, files, devices and what you did (one item per line, NDJSON).",
     "downloadData": "Download your data",
     "privacyPolicy": "Privacy policy of this server",
+    "about": "About Cenacle",
+    "aboutHint": "Cenacle is free software under the GNU Affero General Public License 3.0: you may use, study, change and share it.",
+    "sourceCode": "Source code",
+    "licenses": "Open-source licenses",
     "serverLocked": "Your organization set this server; it cannot be changed here."
   },
   "reactions": {

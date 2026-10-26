@@ -225,7 +225,11 @@ export async function mockSession(page: Page, session: typeof SESSION | null = S
     instance.accepted = true;
     return route.fulfill({ status: 204 });
   });
-  await page.route('**/api/meta', (route) => route.fulfill({ json: { web_app: true } }));
+  await page.route('**/api/meta', (route) =>
+    route.fulfill({
+      json: { web_app: true, source_url: 'https://github.com/barisshn35/cenacle' },
+    }),
+  );
   await page.unroute('**/api/session');
   await page.route('**/api/session', (route) =>
     session

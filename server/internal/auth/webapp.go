@@ -112,6 +112,9 @@ func (h *Handlers) GetMeta(w http.ResponseWriter, r *http.Request) {
 	if h.PrivacyURL != "" {
 		meta.PrivacyUrl = &h.PrivacyURL
 	}
+	if h.SourceURL != "" {
+		meta.SourceUrl = &h.SourceURL
+	}
 	// The apps follow the notification policy in their own notifications.
 	if policy, err := h.Users.GetNotificationPolicy(r.Context()); err == nil {
 		contents := api.MetaPushContents(policy.PushContents)

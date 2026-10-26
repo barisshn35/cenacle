@@ -27,6 +27,9 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/egress"
 )
 
+// DefaultSourceURL is the source code of Cenacle as released.
+const DefaultSourceURL = "https://github.com/barisshn35/cenacle"
+
 // Config is the validated server configuration.
 type Config struct {
 	// Env is the deployment environment: "development" or "production".
@@ -105,6 +108,10 @@ type Config struct {
 	DesktopMinVersion string
 	// PrivacyURL is the operator's privacy policy, linked from the apps; optional.
 	PrivacyURL string
+	// SourceURL is where people get the source code of the server they use
+	// (AGPL-3.0 section 13): an installation that changes Cenacle points it
+	// at its own changed source.
+	SourceURL string
 
 	// FilesBackend keeps files: "s3" (an S3-compatible object store), "azure"
 	// (Azure Blob Storage) or "dir" (a directory); "" turns files off.
@@ -231,6 +238,10 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 		if u, err := url.Parse(cfg.PrivacyURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			l.fail("CENACLE_PRIVACY_URL: an http(s) address")
 		}
+	}
+	cfg.SourceURL = strings.TrimSpace(l.str("CENACLE_SOURCE_URL", DefaultSourceURL))
+	if u, err := url.Parse(cfg.SourceURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		l.fail("CENACLE_SOURCE_URL: an http(s) address")
 	}
 	if v := cfg.DesktopMinVersion; v != "" && !semver.MatchString(v) {
 		l.fail("CENACLE_DESKTOP_MIN_VERSION: must be a version such as 0.30.0, got %q", v)
