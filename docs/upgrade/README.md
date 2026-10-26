@@ -16,12 +16,19 @@ contain breaking changes; they are always listed under "Upgrade notes".
 
 ## Standard upgrade (compose)
 
-1. Read the release notes for the target version.
+1. Read the release notes for the target version (every version between yours and it).
 2. **Back up** the databases and secrets ([backup guide](../backup/README.md)).
-3. Set `CENACLE_VERSION` in `.env.prod` to the new version.
-4. `docker compose -f prod.yml --env-file .env.prod pull`
-5. `docker compose -f prod.yml --env-file .env.prod up -d`
-6. Check `docker compose ps` (all healthy) and `https://<chat-domain>/readyz` from the host.
+3. Take the new release's `deploy/compose/` files (for example `git fetch --tags && git
+checkout v<version>` in your clone). Keep your own `.env.prod`, `secrets/` and `certs/`:
+   they are not in the repository.
+4. Compare `.env.prod` with the new `.env.prod.example` and add the settings that are new
+   (their defaults are fine unless the release notes say otherwise), then run
+   `./gen-secrets.sh`: it creates secrets a release added and keeps the ones you have.
+5. Set `CENACLE_VERSION` in `.env.prod` to the new version.
+6. `docker compose -f prod.yml --env-file .env.prod pull`
+7. `docker compose -f prod.yml --env-file .env.prod up -d --remove-orphans` (migrations run
+   first; see the release notes for long ones)
+8. Check `docker compose ps` (all healthy) and `https://<chat-domain>/readyz` from the host.
 
 Air-gapped hosts: `docker save` the images on a connected machine, copy them over and
 `docker load` before step 5.
@@ -50,6 +57,12 @@ Before 0.99.0 the same was done from 0.43.0: installed from this documentation, 
 upgraded to 0.99.0 (migration 00047), rolled back, restored from dumps and upgraded again
 ([QA report](../qa/report-0.99.md)).
 
+Before 0.99.1, installations of 0.30.0, 0.35.0 and 0.40.0, each installed with its own
+release's files and filled, were upgraded directly to 0.99.1 with the steps above: the
+sessions stayed signed in and history, thread, pin, reaction and file were all there. A 0.30
+database with three million messages and a million mentions upgraded in 67 seconds, 34 of
+them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
+
 ## Version notes
 
 ### 0.99.0
@@ -68,8 +81,9 @@ upgraded to 0.99.0 (migration 00047), rolled back, restored from dumps and upgra
 ### 0.43.0
 
 - Migration: chat 00046 adds the channel to each mention and an index on it. It rewrites
-  the mentions table once (one row per mention; a few seconds for millions) and blocks
-  writing mentions meanwhile. Rolling back drops the column and the index.
+  the mentions table once (about 30 seconds per million mentions, measured in the 0.99.1
+  upgrade tests) and blocks writing mentions meanwhile: plan the upgrade outside working
+  hours on large installations. Rolling back drops the column and the index.
 - The server's database connections turn off PostgreSQL's JIT compilation (`jit=off`).
   Add `jit=on` to `CENACLE_DATABASE_URL` to keep it.
 
