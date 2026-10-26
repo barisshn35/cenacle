@@ -32,9 +32,9 @@ runAsGroup: {{ . }}
 fsGroup: {{ . }}
 seccompProfile:
   type: RuntimeDefault
-# Kubernetes 1.30+; nodes without AppArmor ignore it.
-appArmorProfile:
-  type: RuntimeDefault
+{{- /* No appArmorProfile: on nodes with AppArmor the runtime applies its default
+       profile anyway, and nodes without it (SELinux distributions, some local
+       clusters) refuse pods that name one. */}}
 {{- end -}}
 
 {{- define "cenacle.containerSecurity" -}}
