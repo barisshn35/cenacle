@@ -98,6 +98,18 @@ scheduled messages and notifications with text do not work in encrypted channels
 ts-mls has not had an independent security audit; how Cenacle uses it was reviewed for 0.42
 ([review](review-0.42.md)).
 
+**Standards checks (0.99.1).** The ts-mls version Cenacle ships (1.6.4, built from its
+tagged source byte for byte) passes all 785 test vectors of the MLS working group
+(mls-implementations, the 16 sets from tree math to passive clients). Against OpenMLS 0.9.1,
+an independent implementation, application messages, commits and the exporter secret
+agree in both directions, with one exception: ts-mls 1.x writes the `external_pub`
+extension of a GroupInfo as the bare key, where RFC 9420 (§12.4.3.2) puts a length before
+it, so neither side can join the other's group with an external commit (ts-mls issues
+#449, fixed for 2.0, and #831). Between Cenacle's own devices this changes nothing, as
+they all use the same library. Moving to a ts-mls with the fix needs a planned step: the
+GroupInfo the server keeps for each encrypted channel was written the old way, so the new
+version must still read it until every group has made a commit with the new one.
+
 ## Verifying a release (0.31)
 
 Releases are signed with the project's key (cosign; the public key is
