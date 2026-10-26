@@ -13,6 +13,13 @@ files:
   - assets/**
   - package.json
 asar: true
+# Cenacle's license and those of the packages inside the app, next to Electron's
+# own (LICENSE.electron.txt, LICENSES.chromium.html).
+extraResources:
+  - from: ../LICENSE
+    to: LICENSE.txt
+  - from: dist/THIRD_PARTY_NOTICES.txt
+    to: THIRD_PARTY_NOTICES.txt
 afterPack: scripts/fuses.mjs
 protocols:
   - name: Cenacle

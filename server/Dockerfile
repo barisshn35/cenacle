@@ -10,16 +10,21 @@ WORKDIR /src
 COPY server/go.mod server/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY server/ ./
+COPY scripts/go-notices.sh /usr/local/bin/go-notices
 ARG TARGETOS TARGETARCH VERSION=dev FIPS=false
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     GOFIPS140="$([ "$FIPS" = true ] && echo v1.0.0 || echo off)" \
     go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/cenacle-server ./cmd/server \
- && mkdir -p /out/files
+ && mkdir -p /out/files \
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go-notices ./cmd/server "the Cenacle server" > /out/THIRD_PARTY_NOTICES.txt
 
 # Static binary on distroless: no shell, no package manager, non-root (65532).
 FROM gcr.io/distroless/static-debian13:nonroot
 COPY --from=build /out/cenacle-server /usr/local/bin/cenacle-server
+# Cenacle's license and those of the code built into the server.
+COPY LICENSE /licenses/LICENSE
+COPY --from=build /out/THIRD_PARTY_NOTICES.txt /licenses/THIRD_PARTY_NOTICES.txt
 # The directory of the "dir" files backend: a new volume mounted here starts
 # out owned by the server's user.
 COPY --from=build --chown=65532:65532 /out/files /data/files

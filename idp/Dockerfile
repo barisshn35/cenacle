@@ -20,7 +20,13 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 # Design tokens for the sign-in pages come from @cenacle/ui.
 COPY packages/ui/src/styles/ packages/ui/src/styles/
 COPY idp/ idp/
+COPY scripts/third-party-notices.* scripts/
+COPY LICENSE /out-licenses/LICENSE
+# The notices: the production dependencies, and what the sign-in pages serve
+# from development dependencies (fonts, the browser half of SimpleWebAuthn).
 RUN pnpm --filter @cenacle/idp build \
+ && node scripts/third-party-notices.mjs pnpm @cenacle/idp @fontsource-variable/geist \
+      @fontsource-variable/geist-mono @simplewebauthn/browser > /out-licenses/THIRD_PARTY_NOTICES.txt \
  && pnpm --filter @cenacle/idp deploy --prod /out \
  && rm -rf /out/src /out/test /out/tsconfig*.json /out/vitest.config.ts /out/Dockerfile
 
@@ -51,6 +57,7 @@ ENV NODE_ENV=production \
     IDP_PORT=8190
 WORKDIR /app
 COPY --from=build --chown=root:root /out ./
+COPY --from=build /out-licenses /licenses
 EXPOSE 8190
 # Unprivileged "node" user (uid 1000); application files stay read-only for it.
 # Numeric, so Kubernetes can check runAsNonRoot.

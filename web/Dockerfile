@@ -8,10 +8,12 @@ WORKDIR /src
 COPY deploy/caddy/go.mod deploy/caddy/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY deploy/caddy/main.go ./
+COPY scripts/go-notices.sh /usr/local/bin/go-notices
 ARG TARGETOS TARGETARCH
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags "-s -w" -o /out/caddy .
+    go build -trimpath -ldflags "-s -w" -o /out/caddy . \
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go-notices . "Caddy, the web server of the Cenacle web image" > /out/THIRD_PARTY_NOTICES-caddy.txt
 
 FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24 AS build
 RUN corepack enable
@@ -26,6 +28,7 @@ COPY packages/core/package.json packages/core/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter @cenacle/web...
 COPY packages/ packages/
+COPY scripts/third-party-notices.* scripts/
 COPY web/ web/
 RUN pnpm --filter @cenacle/web exec vite build
 
@@ -35,6 +38,9 @@ RUN apk add --no-cache ca-certificates mailcap \
  && mkdir -p /data /config /etc/caddy \
  && chown cenacle:cenacle /data /config
 COPY --from=caddy /out/caddy /usr/bin/caddy
+# Cenacle's license and those of Caddy; the web app's are in /srv/third-party-notices.txt.
+COPY LICENSE /licenses/LICENSE
+COPY --from=caddy /out/THIRD_PARTY_NOTICES-caddy.txt /licenses/THIRD_PARTY_NOTICES-caddy.txt
 ENV XDG_DATA_HOME=/data \
     XDG_CONFIG_HOME=/config
 COPY web/deploy/Caddyfile /etc/caddy/Caddyfile

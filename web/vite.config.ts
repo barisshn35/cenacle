@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { noticesFor, packageDirOf } from '../scripts/third-party-notices.mjs';
 
 const port = Number(process.env.WEB_PORT ?? 15173);
 // The chat server, reached through this dev server so the app, its API and
@@ -43,8 +44,39 @@ function emojiData(): Plugin {
   };
 }
 
+/**
+ * Writes /third-party-notices.txt in the build: the licenses of every package
+ * the bundle contains (code, styles, fonts and the emoji data).
+ */
+function thirdPartyNotices(): Plugin {
+  const require = createRequire(import.meta.url);
+  return {
+    name: 'cenacle-third-party-notices',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const files = [...this.getModuleIds()];
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type === 'asset') files.push(...chunk.originalFileNames);
+      }
+      files.push(require.resolve('emojibase-data/en/data.json'));
+      const dirs = new Set(
+        files
+          .map((f) => f.replace(/^\0/, '').split('?')[0]!)
+          .filter((f) => f.includes('node_modules'))
+          .map((f) => packageDirOf(f))
+          .filter((d): d is string => d !== null),
+      );
+      this.emitFile({
+        type: 'asset',
+        fileName: 'third-party-notices.txt',
+        source: noticesFor(dirs, 'Third-party notices of the Cenacle web app'),
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), emojiData()],
+  plugins: [react(), tailwindcss(), emojiData(), thirdPartyNotices()],
   server: {
     host: '127.0.0.1',
     port,
