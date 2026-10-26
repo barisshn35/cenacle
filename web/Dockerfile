@@ -36,7 +36,8 @@ FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4c
 RUN apk add --no-cache ca-certificates mailcap \
  && addgroup -g 10001 cenacle && adduser -D -H -u 10001 -G cenacle cenacle \
  && mkdir -p /data /config /etc/caddy \
- && chown cenacle:cenacle /data /config
+ && chown cenacle:cenacle /data /config \
+ && rm -f /var/log/apk.log
 COPY --from=caddy /out/caddy /usr/bin/caddy
 # Cenacle's license and those of Caddy; the web app's are in /srv/third-party-notices.txt.
 COPY LICENSE /licenses/LICENSE

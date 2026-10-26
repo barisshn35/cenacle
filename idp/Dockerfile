@@ -28,7 +28,8 @@ RUN pnpm --filter @cenacle/idp build \
  && node scripts/third-party-notices.mjs pnpm @cenacle/idp @fontsource-variable/geist \
       @fontsource-variable/geist-mono @simplewebauthn/browser > /out-licenses/THIRD_PARTY_NOTICES.txt \
  && pnpm --filter @cenacle/idp deploy --prod /out \
- && rm -rf /out/src /out/test /out/tsconfig*.json /out/vitest.config.ts /out/Dockerfile
+ && rm -rf /out/src /out/test /out/tsconfig*.json /out/vitest.config.ts /out/Dockerfile \
+      /out/node_modules/.modules.yaml /out/node_modules/.pnpm-workspace-state-v1.json
 
 # The node binary for the target platform.
 FROM node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS node
@@ -49,7 +50,8 @@ RUN tar xzf openssl-3.1.2.tar.gz && cd openssl-3.1.2 \
 # smaller image and smaller attack surface.
 FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
 RUN apk add --no-cache libstdc++ libgcc \
- && addgroup -g 1000 node && adduser -u 1000 -G node -s /sbin/nologin -D node
+ && addgroup -g 1000 node && adduser -u 1000 -G node -s /sbin/nologin -D node \
+ && rm -f /var/log/apk.log
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 ENV NODE_ENV=production \
     IDP_ENV=production \

@@ -288,14 +288,17 @@ images:
         # Built once into an OCI archive, then published (and signed) by
         # ci/publish-image.sh.
         archive="$CI_PROJECT_DIR/.image-$IMAGE.tar"
+        # Reproducible: file times are the commit's (docs/security/README.md).
+        epoch="$(git log -1 --format=%ct)"
         docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" ${BUILD_ARGS:-} \
+          --build-arg SOURCE_DATE_EPOCH="$epoch" \
           --platform linux/amd64,linux/arm64 \
           --label org.opencontainers.image.title="cenacle-$IMAGE" \
           --label org.opencontainers.image.licenses=AGPL-3.0-only \
           --label org.opencontainers.image.version="$version" \
           --provenance mode=max --sbom true \
           --cache-from "type=local,src=$BUILDX_CACHE" \
-          --output "type=oci,dest=$archive" .
+          --output "type=oci,dest=$archive,rewrite-timestamp=true" .
         auth="$CI_PROJECT_DIR/.registry-auth"
         mkdir -p "$auth" && chmod 700 "$auth"
         b64() { printf '%s:%s' "$1" "$2" | base64 | tr -d '\n'; }

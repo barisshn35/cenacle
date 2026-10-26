@@ -7,7 +7,8 @@ FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4c
 
 RUN apk add --no-cache openldap openldap-back-mdb openldap-clients \
  && mkdir -p /var/lib/openldap/data /run/openldap \
- && chown -R ldap:ldap /var/lib/openldap /run/openldap
+ && chown -R ldap:ldap /var/lib/openldap /run/openldap \
+ && rm -f /var/log/apk.log
 
 COPY slapd.conf /etc/openldap/slapd.conf
 COPY seed.ldif /seed/seed.ldif

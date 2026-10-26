@@ -145,6 +145,24 @@ so verifying needs only the public key and the registry — also without Interne
   gpg --import cenacle-linux.asc && gpg --verify SHA256SUMS.asc SHA256SUMS
   ```
 
+- **Rebuilding an image yourself (0.99.1):** the images are reproducible: built from the
+  release's tag, with the commit's time as every file's time, they come out bit for bit the
+  same, so anyone can check that a published image holds exactly the released source:
+
+  ```sh
+  git checkout v0.99.1
+  docker buildx build -f server/Dockerfile --build-arg VERSION=0.99.1 \
+    --build-arg SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" --platform linux/amd64 \
+    --label org.opencontainers.image.title=cenacle-server \
+    --label org.opencontainers.image.licenses=AGPL-3.0-only \
+    --label org.opencontainers.image.version=0.99.1 \
+    --provenance=false --output type=oci,dest=server.tar,rewrite-timestamp=true .
+  ```
+
+  The digest of the linux/amd64 image in `server.tar` (its `index.json`) matches the one the
+  published index names for linux/amd64 (`docker buildx imagetools inspect <image>`). The
+  same holds for `idp/Dockerfile` and `web/Dockerfile` (with their own title label).
+
 The key is set up once per GitLab project with `ci/setup-signing.sh` (it keeps the private
 key only in protected CI/CD variables and protects `v*` tags); a release without it is
 published unsigned and its pipeline says so. The GPG key of the Linux packages is set up the
