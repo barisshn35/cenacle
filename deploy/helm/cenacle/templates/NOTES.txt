@@ -4,7 +4,7 @@ Cenacle {{ .Chart.AppVersion }} is installed.
   Cenacle ID:  https://{{ .Values.idDomain }}
 
 Create the first account with the IdP CLI, e.g.:
-  kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "cenacle.fullname" . }}-idp -- node dist/cli.js users create --email you@example.com --name "Your Name" --verified
+  kubectl exec -it -n {{ .Release.Namespace }} deploy/{{ include "cenacle.fullname" . }}-idp -- node dist/cli.js users create --email you@example.com --name "Your Name" --verified
 
 Status of the installation:
   kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "cenacle.fullname" . }}-server -- /usr/local/bin/cenacle-server status

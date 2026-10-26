@@ -36,6 +36,18 @@ store come from your platform (operators, managed services or Garage).
      --set s3.ingressBackend.service=garage --set ingress.className=nginx
    ```
 
+4. Create the administrator's account in Cenacle ID, with the address you gave as
+   `admin.email` (it asks for the password twice, without showing it):
+
+   ```sh
+   kubectl exec -it deploy/cenacle-idp -- \
+     node dist/cli.js users create --email you@example.com --name "Your Name" --verified
+   ```
+
+   Then sign in at `https://chat.example.com`; the first sign-in sets up two-step
+   verification. More accounts and Cenacle ID operations: see
+   [First account and Cenacle ID operations](README.md#first-account-and-cenacle-id-operations).
+
 Images come from `git.calaixo.com:5050/calaxio/cenacle` (`image.registry`); when that
 registry asks for credentials, add a pull secret to `imagePullSecrets`. For air-gapped
 clusters, copy the images into your own registry and point `image.registry` to it.
