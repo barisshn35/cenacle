@@ -69,6 +69,22 @@ with `extra_hosts`.
 
 4. `docker compose up -d`.
 
+### Who may run jobs
+
+The CI engine runs privileged, so whoever can run a job on this runner can reach the host.
+Keep it to this project's maintainers:
+
+- **Sign-up off** on the GitLab instance (Admin → Settings → General → Sign-up
+  restrictions), or register the runner as a **project** runner of this project only: an
+  instance runner serves every project on the instance.
+- The runner takes only jobs tagged `cenacle` (`run_untagged = false`; every job here has
+  the tag through `default:`).
+- Pipelines of merge requests from forks run in the fork, never in this project (Settings →
+  CI/CD → "Run pipelines in the parent project" off), and a merge request merges only after
+  its pipeline passed.
+- `main`, `release-*` (the supported versions) and `v*` tags are protected: only maintainers
+  push them, never by force, and only their pipelines see the signing keys.
+
 ## Housekeeping
 
 Run daily on the CI host (it cleans the CI engine only, never the host's Docker):
