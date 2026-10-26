@@ -6,6 +6,8 @@ package db
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
 
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,6 +19,10 @@ import (
 // default of pgx, one per CPU, at least 4). Connections are established
 // lazily, so the server can start (and report "not ready") while the database
 // is down.
+// DeadPeerTimeout is how long sent data may stay unacknowledged before a
+// database connection counts as dead (Linux).
+const DeadPeerTimeout = 15 * time.Second
+
 func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
@@ -34,6 +40,17 @@ func Open(ctx context.Context, url string, maxConns int32) (*pgxpool.Pool, error
 	if telemetry.TracingEnabled() {
 		cfg.ConnConfig.Tracer = otelpgx.NewTracer()
 	}
+	// When the database stops answering without closing the connection (a
+	// network partition), a query would wait for the system's TCP retransmission
+	// timeout, minutes long, holding its pool connection. Keepalives and an
+	// unacknowledged-data limit end such a connection within seconds instead:
+	// the request fails (503) and the pool opens a new connection.
+	dialer := &net.Dialer{
+		Timeout:         5 * time.Second,
+		KeepAliveConfig: net.KeepAliveConfig{Enable: true, Idle: 10 * time.Second, Interval: 5 * time.Second, Count: 3},
+		Control:         userTimeout(DeadPeerTimeout),
+	}
+	cfg.ConnConfig.DialFunc = dialer.DialContext
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("create pool: %w", err)
