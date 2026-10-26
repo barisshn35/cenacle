@@ -4,11 +4,12 @@ updates:
   - package-ecosystem: gomod
     directories: [/server, /deploy/caddy]
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly }
-    # Matches pnpm's minimum release age policy: no brand-new releases.
-    cooldown: { default-days: 3 }
+    # Matches pnpm's minimum release age (pnpm-workspace.yaml): no brand-new releases.
+    cooldown: { default-days: 7 }
     ignore:
       # Types follow the Node runtime (.nvmrc, Node 24 LTS); upgrade together on purpose.
       - dependency-name: '@types/node'
@@ -19,6 +20,7 @@ updates:
   - package-ecosystem: docker
     directories: [/server, /idp, /web, /deploy/compose/caddy, /deploy/compose/ldap, /ci/image]
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
     ignore:
       # Go and Node lines are pinned with go.mod (toolchain) and .nvmrc and upgraded
       # deliberately; base images only take patch updates automatically.

@@ -5,6 +5,18 @@ packages:
   - mobile
   - packages/*
 saveExact: true
+# Supply chain: a version must be a day old before it is installed (most
+# malicious releases are taken down within hours; Dependabot waits a week for
+# routine updates), a package may not lose the trust evidence (provenance,
+# trusted publishing) its earlier versions had, and dependencies of
+# dependencies come from the registry only (no git or tarball addresses).
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+# Old majors published by the same maintainers before npm had provenance.
+trustPolicyExclude:
+  - semver@5.7.2
+  - semver@6.3.1
+blockExoticSubdeps: true
 allowBuilds:
   electron: true
   '@electron/fuses': false
