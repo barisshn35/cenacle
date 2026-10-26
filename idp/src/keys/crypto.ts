@@ -24,7 +24,8 @@ export function openPrivateKey(kek: Buffer, kid: string, sealed: Buffer): string
   if (sealed.length <= IV_BYTES + TAG_BYTES) throw new Error('sealed key is too short');
   const iv = sealed.subarray(0, IV_BYTES);
   const tag = sealed.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
-  const decipher = createDecipheriv(ALGORITHM, kek, iv);
+  // The full 16-byte tag only: a shorter one would weaken the integrity check.
+  const decipher = createDecipheriv(ALGORITHM, kek, iv, { authTagLength: TAG_BYTES });
   decipher.setAAD(Buffer.from(kid, 'utf8'));
   decipher.setAuthTag(tag);
   return Buffer.concat([
