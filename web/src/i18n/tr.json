@@ -803,7 +803,7 @@
     "statusChange": "Özel durumu değiştir",
     "statusSet": "Özel durum belirle",
     "statusOf": "Durum: {{status}}",
-    "pictureInvalid": "PNG, JPEG, GIF ya da WebP görsel kullan (hareketli GIF en çok 2 MB).",
+    "pictureInvalid": "En çok 5 MB ve olağan boyutta bir PNG, JPEG, GIF ya da WebP görsel kullan (hareketli GIF en çok 2 MB).",
     "saveFailed": "Profilin kaydedilemedi.",
     "usernameTaken": "Bu kullanıcı adı başkasına ait.",
     "invalid": "Kullanıcı adını ve saat dilimini kontrol et.",

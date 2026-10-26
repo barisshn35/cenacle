@@ -433,7 +433,7 @@ func (fs *Files) check(ctx context.Context, f store.File) (store.FinishUploadPar
 	if err != nil {
 		return out, err
 	}
-	res, err := preview.Make(data, out.ContentType)
+	res, err := preview.Make(ctx, data, out.ContentType)
 	if err != nil {
 		return out, nil // a broken or huge image is kept, without a preview
 	}

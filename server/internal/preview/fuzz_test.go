@@ -46,7 +46,7 @@ func FuzzMake(f *testing.F) {
 		}
 	}
 	f.Fuzz(func(t *testing.T, data []byte, contentType string) {
-		res, err := Make(data, contentType)
+		res, err := Make(t.Context(), data, contentType)
 		if err != nil {
 			return
 		}
@@ -71,7 +71,7 @@ func FuzzMakePicture(f *testing.F) {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
-		p, err := MakePicture(data)
+		p, err := MakePicture(t.Context(), data)
 		if err != nil {
 			return
 		}

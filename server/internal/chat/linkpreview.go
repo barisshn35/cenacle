@@ -160,7 +160,7 @@ func (f *LinkFetcher) image(ctx context.Context, link string) pgtype.UUID {
 	if !preview.Images[ct] {
 		return pgtype.UUID{}
 	}
-	res, err := preview.Make(data, ct)
+	res, err := preview.Make(ctx, data, ct)
 	if err != nil {
 		return pgtype.UUID{}
 	}

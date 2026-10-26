@@ -4,6 +4,7 @@ package preview
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"image"
 	"image/png"
@@ -37,7 +38,7 @@ type Picture struct {
 // MakePicture turns an uploaded image into a picture: a square PNG of
 // PictureSide (cut from the middle; JPEG orientation applied), or an animated
 // GIF kept as it is (with a still first frame), so it keeps moving.
-func MakePicture(data []byte) (Picture, error) {
+func MakePicture(ctx context.Context, data []byte) (Picture, error) {
 	ct := Sniff(data)
 	if !Images[ct] || len(data) > MaxUpload {
 		return Picture{}, ErrNotPicture
@@ -46,6 +47,14 @@ func MakePicture(data []byte) (Picture, error) {
 	if err != nil || cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > MaxPixels {
 		return Picture{}, ErrNotPicture
 	}
+	side := min(cfg.Width, cfg.Height)
+	release, err := reserve(ctx, decodeCost(cfg, data, ct)+scaleCost(min(side, PictureSide), side, side))
+	if errors.Is(err, ErrTooLarge) {
+		return Picture{}, ErrNotPicture
+	} else if err != nil {
+		return Picture{}, err
+	}
+	defer release()
 	img, err := decode(data, ct) // a GIF's first frame
 	if err != nil {
 		return Picture{}, ErrNotPicture

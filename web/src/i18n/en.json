@@ -803,7 +803,7 @@
     "statusChange": "Change custom status",
     "statusSet": "Set a custom status",
     "statusOf": "Status: {{status}}",
-    "pictureInvalid": "Use a PNG, JPEG, GIF or WebP image (an animated GIF of at most 2 MB).",
+    "pictureInvalid": "Use a PNG, JPEG, GIF or WebP image of at most 5 MB and a usual size (an animated GIF of at most 2 MB).",
     "saveFailed": "Your profile could not be saved.",
     "usernameTaken": "Someone else has this username.",
     "invalid": "Check the username and the time zone.",

@@ -313,10 +313,10 @@ func readPicture(w http.ResponseWriter, r *http.Request) (preview.Picture, bool)
 			Detail: "Pictures may be up to 5 MB."})
 		return preview.Picture{}, false
 	}
-	pic, err := preview.MakePicture(data)
+	pic, err := preview.MakePicture(r.Context(), data)
 	if err != nil {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusUnprocessableEntity, Code: CodeNotPicture,
-			Detail: "Use a PNG, JPEG, GIF or WebP image (an animated GIF of at most 2 MB and 1024 pixels)."})
+			Detail: "Use a PNG, JPEG, GIF or WebP image of at most 5 MB and a usual size (an animated GIF of at most 2 MB and 1024 pixels)."})
 		return preview.Picture{}, false
 	}
 	return pic, true

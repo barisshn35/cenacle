@@ -4,6 +4,7 @@ package preview
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"hash/crc32"
@@ -13,6 +14,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"testing"
+	"time"
 )
 
 func encode(t *testing.T, img image.Image, kind string) []byte {
@@ -46,7 +48,7 @@ func TestMake(t *testing.T) {
 	if Sniff(big) != "image/jpeg" {
 		t.Fatalf("sniff = %s", Sniff(big))
 	}
-	res, err := Make(big, "image/jpeg")
+	res, err := Make(t.Context(), big, "image/jpeg")
 	if err != nil || res.Width != 1600 || res.Height != 900 || res.ThumbType != "image/jpeg" {
 		t.Fatalf("jpeg = %+v %v", res, err)
 	}
@@ -57,26 +59,27 @@ func TestMake(t *testing.T) {
 
 	// Transparency keeps PNG; small images keep their size.
 	clear := encode(t, solid(100, 50, color.NRGBA{0, 0, 0, 0}), "png")
-	res, err = Make(clear, "image/png")
+	res, err = Make(t.Context(), clear, "image/png")
 	if err != nil || res.ThumbType != "image/png" || res.Width != 100 {
 		t.Errorf("png = %+v %v", res, err)
 	}
-	if res, err = Make(encode(t, solid(30, 600, color.NRGBA{1, 2, 3, 255}), "gif"), "image/gif"); err != nil || res.Height != 600 {
+	if res, err = Make(t.Context(), encode(t, solid(30, 600, color.NRGBA{1, 2, 3, 255}), "gif"), "image/gif"); err != nil || res.Height != 600 {
 		t.Errorf("gif = %+v %v", res, err)
 	}
-	if _, err := Make([]byte("not an image"), "image/png"); err == nil {
+	if _, err := Make(t.Context(), []byte("not an image"), "image/png"); err == nil {
 		t.Error("garbage decoded")
 	}
 }
 
-func TestDecompressionBomb(t *testing.T) {
-	// A PNG header that claims 100000×100000 pixels.
+// pngHeader is the start of a PNG that claims w×h pixels of the given bit
+// depth and color type; enough for its size to be read, not to be decoded.
+func pngHeader(w, h uint32, depth, colorType byte) []byte {
 	var buf bytes.Buffer
 	buf.Write([]byte("\x89PNG\r\n\x1a\n"))
 	ihdr := make([]byte, 13)
-	binary.BigEndian.PutUint32(ihdr[0:], 100000)
-	binary.BigEndian.PutUint32(ihdr[4:], 100000)
-	ihdr[8], ihdr[9] = 8, 6
+	binary.BigEndian.PutUint32(ihdr[0:], w)
+	binary.BigEndian.PutUint32(ihdr[4:], h)
+	ihdr[8], ihdr[9] = depth, colorType
 	binary.Write(&buf, binary.BigEndian, uint32(13)) //nolint:errcheck
 	buf.WriteString("IHDR")
 	buf.Write(ihdr)
@@ -84,8 +87,64 @@ func TestDecompressionBomb(t *testing.T) {
 	crc.Write([]byte("IHDR"))
 	crc.Write(ihdr)
 	binary.Write(&buf, binary.BigEndian, crc.Sum32()) //nolint:errcheck
-	if _, err := Make(buf.Bytes(), "image/png"); !errors.Is(err, ErrTooLarge) {
+	return buf.Bytes()
+}
+
+func TestDecompressionBomb(t *testing.T) {
+	if _, err := Make(t.Context(), pngHeader(100000, 100000, 8, 6), "image/png"); !errors.Is(err, ErrTooLarge) {
 		t.Errorf("bomb = %v", err)
+	}
+}
+
+// Images within MaxPixels can still take more memory than a server has: they
+// are refused before they are decoded.
+func TestMemoryBombs(t *testing.T) {
+	for name, data := range map[string][]byte{
+		"49 megapixels of 16-bit color": pngHeader(7000, 7000, 16, 6),
+		"a strip of 1×10 000 000":       pngHeader(1, 10_000_000, 8, 0),
+	} {
+		if _, err := Make(t.Context(), data, "image/png"); !errors.Is(err, ErrTooLarge) {
+			t.Errorf("%s: preview = %v", name, err)
+		}
+	}
+	if _, err := MakePicture(t.Context(), pngHeader(7000, 7000, 16, 6)); !errors.Is(err, ErrNotPicture) {
+		t.Errorf("picture = %v", err)
+	}
+	// A photo is not one: it gets as far as decoding (and this one has no data).
+	if _, err := Make(t.Context(), pngHeader(6000, 4000, 8, 6), "image/png"); err == nil || errors.Is(err, ErrTooLarge) {
+		t.Errorf("photo = %v", err)
+	}
+}
+
+func TestDecodeBudgetWaits(t *testing.T) {
+	release, err := reserve(t.Context(), DecodeBudget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	small := encode(t, solid(40, 30, color.NRGBA{1, 2, 3, 255}), "png")
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := Make(ctx, small, "image/png"); !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("while the budget is taken: %v", err)
+	}
+	release()
+	if _, err := Make(t.Context(), small, "image/png"); err != nil {
+		t.Errorf("after: %v", err)
+	}
+}
+
+func TestProgressive(t *testing.T) {
+	baseline := encode(t, solid(8, 8, color.NRGBA{1, 2, 3, 255}), "jpeg")
+	if progressive(baseline) {
+		t.Error("baseline read as progressive")
+	}
+	// SOI, an APP0 segment, then SOF2.
+	prog := []byte{0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0, 0xff, 0xc2, 0, 11, 8, 0, 8, 0, 8, 1, 1, 0x11, 0}
+	if !progressive(prog) {
+		t.Error("progressive not seen")
+	}
+	if progressive([]byte{0xff, 0xd8, 0xff}) {
+		t.Error("truncated read as progressive")
 	}
 }
 
@@ -107,7 +166,7 @@ func TestOrientation(t *testing.T) {
 	if o := exifOrientation(photo); o != 6 {
 		t.Fatalf("orientation = %d", o)
 	}
-	res, err := Make(photo, "image/jpeg")
+	res, err := Make(t.Context(), photo, "image/jpeg")
 	if err != nil || res.Width != 400 || res.Height != 800 {
 		t.Fatalf("rotated = %+v %v", res, err)
 	}

@@ -204,7 +204,7 @@ func (f *Feed) photo(ctx context.Context, user pgtype.UUID, u feedUser) error {
 			if err != nil {
 				return err
 			}
-			if p, err := preview.MakePicture(data); err == nil {
+			if p, err := preview.MakePicture(ctx, data); err == nil {
 				pic = &p
 			}
 		}

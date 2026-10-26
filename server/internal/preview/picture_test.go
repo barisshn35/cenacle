@@ -44,7 +44,7 @@ func gifOf(t *testing.T, frames, side int) []byte {
 
 func TestMakePicture(t *testing.T) {
 	// A wide image becomes a square of the picture side.
-	p, err := MakePicture(pngOf(t, 900, 300))
+	p, err := MakePicture(t.Context(), pngOf(t, 900, 300))
 	if err != nil || p.ContentType != "image/png" || p.Still != nil {
 		t.Fatalf("png: %+v %v", p.ContentType, err)
 	}
@@ -53,7 +53,7 @@ func TestMakePicture(t *testing.T) {
 		t.Errorf("png size = %dx%d %v", cfg.Width, cfg.Height, err)
 	}
 	// Small images keep their size.
-	small, _ := MakePicture(pngOf(t, 40, 60))
+	small, _ := MakePicture(t.Context(), pngOf(t, 40, 60))
 	if cfg, _ := png.DecodeConfig(bytes.NewReader(small.Data)); cfg.Width != 40 || cfg.Height != 40 {
 		t.Errorf("small = %dx%d", cfg.Width, cfg.Height)
 	}
@@ -63,20 +63,20 @@ func TestMakePicture(t *testing.T) {
 	if n := gifFrames(anim); n != 5 {
 		t.Errorf("frames = %d", n)
 	}
-	p, err = MakePicture(anim)
+	p, err = MakePicture(t.Context(), anim)
 	if err != nil || p.ContentType != "image/gif" || !bytes.Equal(p.Data, anim) || p.Still == nil {
 		t.Fatalf("gif: %s %v", p.ContentType, err)
 	}
 	// One frame: an ordinary picture.
-	if p, _ := MakePicture(gifOf(t, 1, 64)); p.ContentType != "image/png" {
+	if p, _ := MakePicture(t.Context(), gifOf(t, 1, 64)); p.ContentType != "image/png" {
 		t.Errorf("single-frame gif = %s", p.ContentType)
 	}
 	// Too large to keep moving.
-	if _, err := MakePicture(gifOf(t, 2, MaxAnimatedSide+8)); !errors.Is(err, ErrNotPicture) {
+	if _, err := MakePicture(t.Context(), gifOf(t, 2, MaxAnimatedSide+8)); !errors.Is(err, ErrNotPicture) {
 		t.Errorf("large gif = %v", err)
 	}
 	// Not an image.
-	if _, err := MakePicture([]byte("<svg xmlns='http://www.w3.org/2000/svg'/>")); !errors.Is(err, ErrNotPicture) {
+	if _, err := MakePicture(t.Context(), []byte("<svg xmlns='http://www.w3.org/2000/svg'/>")); !errors.Is(err, ErrNotPicture) {
 		t.Errorf("svg = %v", err)
 	}
 	// Truncated GIF: frames seen so far.

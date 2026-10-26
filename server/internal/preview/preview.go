@@ -5,9 +5,11 @@ package preview
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"image"
+	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -16,6 +18,7 @@ import (
 
 	"golang.org/x/image/draw"
 	"golang.org/x/image/webp"
+	"golang.org/x/sync/semaphore"
 )
 
 // MaxPixels bounds the images that are decoded (a "decompression bomb" of a
@@ -39,23 +42,88 @@ type Result struct {
 	ThumbType string
 }
 
-// ErrTooLarge: the image has more pixels than MaxPixels.
+// ErrTooLarge: the image has more pixels than MaxPixels, or would take more
+// memory than DecodeBudget.
 var ErrTooLarge = errors.New("preview: image too large")
+
+// DecodeBudget bounds the memory that decoding and scaling images takes at
+// once, across the server. Pixels alone do not bound it: a 500 kB PNG of
+// 50 megapixels in 16-bit color decodes to 400 MB, and scaling a strip of
+// 1×10 000 000 pixels takes 900 MB. An image that would need more than the
+// budget gets no preview; others wait until it has room.
+const DecodeBudget = 256 << 20
+
+var decoding = semaphore.NewWeighted(DecodeBudget)
+
+// reserve takes n bytes of the budget; release returns them.
+func reserve(ctx context.Context, n int64) (release func(), err error) {
+	if n > DecodeBudget {
+		return nil, ErrTooLarge
+	}
+	if err := decoding.Acquire(ctx, n); err != nil {
+		return nil, err
+	}
+	return func() { decoding.Release(n) }, nil
+}
+
+// decodeCost estimates the bytes the decoded image takes.
+func decodeCost(cfg image.Config, data []byte, contentType string) int64 {
+	var bpp int64 = 8 // 16-bit color, and what is not known
+	if _, ok := cfg.ColorModel.(color.Palette); ok {
+		bpp = 2 // a GIF's frames are decoded one after another
+	} else {
+		switch cfg.ColorModel {
+		case color.GrayModel, color.AlphaModel:
+			bpp = 1
+		case color.Gray16Model, color.Alpha16Model:
+			bpp = 2
+		case color.YCbCrModel:
+			bpp = 3
+		case color.RGBAModel, color.NRGBAModel, color.NYCbCrAModel:
+			bpp = 4
+		case color.CMYKModel:
+			bpp = 5
+		}
+	}
+	if contentType == "image/jpeg" && progressive(data) {
+		bpp += 12 // the coefficients of every block are kept until the end
+	}
+	return int64(cfg.Width) * int64(cfg.Height) * bpp
+}
+
+// scaleCost estimates the bytes x/image/draw's kernel scalers take to scale
+// sw×sh pixels to dw wide: weights for every source column and row, and a
+// buffer of the destination's width by the source's height.
+func scaleCost(dw, sw, sh int) int64 {
+	return 64*int64(sw+sh) + 32*int64(dw)*int64(sh)
+}
+
+// progressive reports whether a JPEG's frame is progressive.
+func progressive(data []byte) bool {
+	for p := 2; p < len(data); {
+		seg := data[p:]
+		if len(seg) < 4 || seg[0] != 0xff {
+			return false
+		}
+		m := seg[1]
+		if m >= 0xc0 && m <= 0xcf && m != 0xc4 && m != 0xc8 && m != 0xcc {
+			return m == 0xc2 || m == 0xc6 || m == 0xca || m == 0xce
+		}
+		p += 2 + int(binary.BigEndian.Uint16(seg[2:4]))
+	}
+	return false
+}
 
 // Make reads an image of a type in Images and makes its preview. Images that
 // already fit get a preview too (it is small and re-encoded, so it carries no
-// metadata).
-func Make(data []byte, contentType string) (Result, error) {
+// metadata). It waits while other images take the DecodeBudget.
+func Make(ctx context.Context, data []byte, contentType string) (Result, error) {
 	cfg, _, err := decodeConfig(data, contentType)
 	if err != nil {
 		return Result{}, err
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > MaxPixels {
 		return Result{}, ErrTooLarge
-	}
-	img, err := decode(data, contentType)
-	if err != nil {
-		return Result{}, err
 	}
 	orientation := 1
 	if contentType == "image/jpeg" {
@@ -70,6 +138,15 @@ func Make(data []byte, contentType string) (Result, error) {
 	sw, sh := tw, th
 	if orientation >= 5 {
 		sw, sh = th, tw
+	}
+	release, err := reserve(ctx, decodeCost(cfg, data, contentType)+scaleCost(sw, cfg.Width, cfg.Height))
+	if err != nil {
+		return Result{}, err
+	}
+	defer release()
+	img, err := decode(data, contentType)
+	if err != nil {
+		return Result{}, err
 	}
 	scaled := image.NewNRGBA(image.Rect(0, 0, sw, sh))
 	draw.CatmullRom.Scale(scaled, scaled.Bounds(), img, img.Bounds(), draw.Src, nil)
