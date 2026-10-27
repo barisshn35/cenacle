@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -26,13 +27,14 @@ import (
 // the server's memory, goroutines and database connections are sampled. After
 // warming up nothing may keep growing. Settings: LOAD_SECONDS (default 600),
 // SOAK_RATE (messages per second, 20), LOAD_SOCKETS (200), SOAK_CHURN (share
-// of connections replaced per minute, in percent, 20), LOAD_REPORT.
+// of connections replaced per minute, in percent, 20), LOAD_REPORT and
+// SOAK_HEAP_PROFILE (a heap profile at the end).
 func TestSoak(t *testing.T) {
 	seconds := envInt("LOAD_SECONDS", 600)
 	rate := envInt("SOAK_RATE", 20)
 	sockets := envInt("LOAD_SOCKETS", 200)
 	churn := envInt("SOAK_CHURN", 20)
-	s := newStack(t, newShared(t), options{perWindow: 1 << 30,
+	s := newStack(t, newShared(t), options{perWindow: 1 << 30, sessionMaxAge: time.Duration(seconds+3600) * time.Second,
 		settings: realtime.Settings{Heartbeat: 25 * time.Second, SessionCheck: time.Minute, QueueSize: 256, MaxBacklog: 500}})
 	admin := s.admin()
 	general := s.general(admin)
@@ -47,7 +49,12 @@ func TestSoak(t *testing.T) {
 	// A connection that reads until it is told to go.
 	open := func(i int) context.CancelFunc {
 		cctx, stop := context.WithCancel(ctx)
-		c := s.connect(tokens[i%len(tokens)], "")
+		// Not s.connect: its cleanup would keep every closed connection
+		// until the end of the test (2 kB each, 57 000 in a day).
+		c, _, err := s.dial(s.ticket(tokens[i%len(tokens)]), "")
+		if err != nil {
+			t.Fatal(err)
+		}
 		go func() {
 			defer func() { _ = c.CloseNow() }()
 			for {
@@ -146,6 +153,17 @@ func TestSoak(t *testing.T) {
 		if err := os.WriteFile(f, raw, 0o600); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if f := os.Getenv("SOAK_HEAP_PROFILE"); f != "" {
+		out, err := os.Create(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(out); err != nil {
+			t.Fatal(err)
+		}
+		_ = out.Close()
 	}
 	if errs.Load() > 0 {
 		t.Errorf("%d requests failed", errs.Load())

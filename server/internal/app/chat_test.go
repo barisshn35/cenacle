@@ -94,6 +94,8 @@ type options struct {
 	pushKey string
 	// ai turns on the AI features with this model.
 	ai *ai.Client
+	// sessionMaxAge replaces the sessions' 24 hours (runs longer than a day).
+	sessionMaxAge time.Duration
 }
 
 func newStack(t *testing.T, sh shared, o options) *stack {
@@ -110,6 +112,9 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	queries := store.New(sh.pool)
 	sessions := &auth.Sessions{Queries: queries, IdleTimeout: time.Hour, MaxAge: 24 * time.Hour}
+	if o.sessionMaxAge > 0 {
+		sessions.MaxAge = o.sessionMaxAge
+	}
 	eventLog := &events.Log{Valkey: sh.valkey, Key: sh.stream, MaxLen: o.maxLen}
 	ephemeral := &events.Ephemeral{Valkey: sh.valkey, Channel: sh.stream + ":ephemeral"}
 	hub := &realtime.Hub{Log: eventLog, Ephemeral: ephemeral, Logger: log}
