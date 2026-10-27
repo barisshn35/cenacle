@@ -1,6 +1,6 @@
 {
   "name": "@cenacle/web",
-  "version": "0.99.0",
+  "version": "0.99.1",
   "private": true,
   "description": "Cenacle web app (React SPA).",
   "license": "AGPL-3.0-only",

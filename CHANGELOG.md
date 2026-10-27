@@ -8,6 +8,65 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.99.1] - 2026-10-27
+
+A hardening round on the release candidate before 1.0: the repository, its supply chain and
+licenses, attacks on a running installation, failures of its parts, restores and upgrades,
+Kubernetes, the encryption library against the MLS standard, keyboard use, fuzzing and a
+day-long run ([report](docs/qa/report-0.99.1.md)).
+
+### Added
+
+- **Licenses and source:** every image and the desktop app carry the licenses and notices of
+  what they contain (`/licenses` in the images, `/third-party-notices.txt` in the web app);
+  Settings → Account gains "About Cenacle" with the source code (`CENACLE_SOURCE_URL`,
+  Cenacle's repository unless a changed Cenacle points it at its changes, as AGPL-3.0
+  section 13 asks) and the open-source licenses.
+- **Reproducible images:** built from a release's tag, the server, Cenacle ID and web images
+  come out bit for bit the same; the [security guide](docs/security/README.md) shows how to
+  check a published image.
+- Fuzzing covers images, the link preview's HTML, feeds, webhook signatures and the cards of
+  Jira, GitLab, GitHub, Alertmanager and e-mail (`make fuzz`).
+
+### Fixed
+
+- **Images:** a small file could claim a large image (a 500 kB PNG decoded to 480 MB, a 19 kB
+  strip took 920 MB to scale) and stop the server through a profile picture, an attachment or
+  a linked page's image. Images are now decoded within one memory budget of 256 MB across the
+  server: one that would need more gets no preview (a picture is refused), others wait their
+  turn.
+- **Network partitions:** the server's and Cenacle ID's database connections waited for the
+  system's TCP timeout (minutes) when the database stopped answering; requests now fail within
+  15 s (server) or 30 s (Cenacle ID) and both recover by themselves.
+- **Retention:** on large databases the retention job read every message every two minutes
+  and ran into its time limit, also without a retention; it now reads only channels with one.
+- **Encryption:** a device the server still listed after a commit removed it could freeze its
+  tab while rejoining (a loop in ts-mls 1.x); it now joins as a new member.
+- **Interface:** Appearance names its two theme settings apart ("Light or dark" and "Theme");
+  counts in side menus and boards follow the language (1,240 / 1.240); the people on a
+  thread's summary show their whole initials.
+- **Keyboard:** focus no longer falls to the page when the message list drops the focused
+  message; it stays in the list.
+- **Desktop app:** the return after signing in and `cenacle://` links can only lead to pages
+  of the paired server (not another site, its API or its WebSocket).
+- Text with the NUL character is refused with 400 instead of failing with 503; cards from
+  other services drop characters that cannot be stored instead of being refused.
+- API responses and Cenacle ID's pages send `Cross-Origin-Resource-Policy: same-origin`;
+  Cenacle ID accepts only full-length GCM tags when opening signing keys.
+- Helm: AppArmor is no longer named (pods were refused on nodes without it).
+- Dependencies: chi 5.5.0 in the Caddy build, uuid 11.1.1 in the mobile tooling.
+- Documentation: the full standard upgrade (new deploy files, settings, `gen-secrets.sh`) and
+  measured migration times; the first account with a hidden password prompt on Compose and
+  Kubernetes; the host's clock (NTP) as a requirement.
+
+### Changed
+
+- Helm: replicas prefer different nodes, disruption budgets let unready pods be evicted,
+  migration jobs have resource limits, and `make lint-helm` runs kube-linter.
+- Container images are named by digest as well as tag; Dependabot keeps them current and
+  waits a week before proposing updates; pnpm installs no version younger than a day and
+  refuses packages that lost their trust evidence.
+
 ## [0.99.0] - 2026-10-25
 
 The release candidate of 1.0: what 1.0 needs besides fixes (the AI notice, privacy, Windows
@@ -1275,7 +1334,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.0...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.1...HEAD
+[0.99.1]: https://github.com/barisshn35/cenacle/compare/v0.99.0...v0.99.1
 [0.99.0]: https://github.com/barisshn35/cenacle/compare/v0.43.0...v0.99.0
 [0.43.0]: https://github.com/barisshn35/cenacle/compare/v0.42.0...v0.43.0
 [0.42.0]: https://github.com/barisshn35/cenacle/compare/v0.41.0...v0.42.0

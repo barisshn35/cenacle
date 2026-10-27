@@ -65,6 +65,19 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ## Version notes
 
+### 0.99.1
+
+- No migrations; rolling back to 0.99.0 is changing the version.
+- Settings → Account links the source code (AGPL-3.0 section 13). It is Cenacle's repository;
+  if you run a changed Cenacle, point `CENACLE_SOURCE_URL` (Helm `server.sourceUrl`) at your
+  changes.
+- Images whose decoding would need more than the server's image memory (256 MB) get no
+  preview, and are refused as profile pictures; they upload and download as before.
+- Helm: replicas prefer different nodes, disruption budgets let unready pods be evicted, the
+  migration jobs have resource limits, and pods no longer name an AppArmor profile. Review
+  your values if you set `affinity` or the budgets yourself.
+- Tested path: 0.30.0, 0.35.0 and 0.40.0 → 0.99.1 with data (see above).
+
 ### 0.99.0
 
 - Migration: chat 00047 adds `ai_consents` (people's answers to the AI notice) and updates
