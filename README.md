@@ -1,118 +1,222 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="web/public/brand/cenacle-lockup-dark.svg" />
-    <img src="web/public/brand/cenacle-lockup-light.svg" alt="Cenacle" width="320" />
+    <img src="web/public/brand/cenacle-lockup-light.svg" alt="Cenacle" width="300" />
   </picture>
 </p>
 
-# Cenacle
+<h3 align="center">The upper room for your organization's conversations.</h3>
 
-Cenacle is an open-source, fully self-hosted team chat (in the spirit of Discord and
-Mattermost) with its own identity server, **Cenacle ID**. It is built to run on your own
-infrastructure, without telemetry, CDNs or mandatory third-party services, and to work in
-air-gapped networks.
+<p align="center">
+  Team chat and its own identity server, open source from end to end,<br />
+  running on your servers and nowhere else.
+</p>
 
-> **Status: v0.99, the release candidate of 1.0.** Sign in with Cenacle ID (passwords with
-> two-step verification, passkeys, Active Directory/LDAP or your OpenID Connect or SAML
-> provider); chat in channels, forums, threads and direct conversations; search, notify,
-> pin and save; share files; automate with bots, workflows, forms and approvals; keep
-> canvases, lists and boards next to channels; meet compliance needs (retention, legal
-> holds, eDiscovery, access rules, end-to-end encryption with device keys); use optional AI with a model you
-> run; share channels with other Cenacle servers; move in from Mattermost, Slack, Rocket.Chat,
-> Zulip, Discord or Teams, and move workspaces between servers. Runs on one host or Kubernetes, also
-> offline. Desktop app for Windows and Linux; signed releases with SBOMs. Next: new features toward 1.0 (see the [roadmap](#roadmap)).
+<p align="center">
+  <a href="docs/install/README.md"><b>Install</b></a> &nbsp;·&nbsp;
+  <a href="#everything-is-included">Features</a> &nbsp;·&nbsp;
+  <a href="docs/security/README.md">Security</a> &nbsp;·&nbsp;
+  <a href="docs/operations/performance.md">Performance</a> &nbsp;·&nbsp;
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-## Highlights
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/channel-dark.png" />
+    <img src="docs/screenshots/channel-light.png" alt="A Cenacle channel with a conversation, a thread and the channel details" width="100%" />
+  </picture>
+</p>
 
-- **Self-hosted by design:** one `docker compose` stack, automatic TLS (Caddy), file-based
-  secrets, non-root containers, multi-arch images (amd64, arm64), `/healthz` and `/readyz`.
-- **Separate identity server:** the chat backend is an OIDC client of Cenacle ID
-  (Authorization Code + PKCE, RFC 9700) and issues its own opaque sessions.
-- **Calm, predictable UI:** WCAG 2.2 target sizes (24/28/44 px) enforced in CI, safe
-  patterns for destructive actions, undo instead of surprise, clear errors with request IDs,
-  in English and Turkish.
-- **Permissive dependencies only:** a license policy for every dependency, enforced in CI.
+---
 
-## Quick start (development)
+A cenacle is the upper room where a small group gathers to talk behind a closed door.
+Cenacle is that room for your teams: channels, threads and direct conversations, files,
+bots and workflows, with a sign-in that belongs to you as well. It installs with one
+command, works in networks that never see the internet, and sends nothing home. There is
+no telemetry, no CDN, no license key and no edition with the good parts removed.
 
-Requirements: Go 1.26, Node.js 24 (`.nvmrc`), pnpm via Corepack, Docker with Compose v2.
+## Why Cenacle
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>Yours, completely</h4>
+      Every byte stays on your hardware: messages, files, search, even the optional AI,
+      which talks only to the model you point it at. One <code>docker compose</code> stack or a Helm
+      chart, multi-arch images, non-root containers, air-gapped installs from pre-pulled
+      images.
+    </td>
+    <td width="50%" valign="top">
+      <h4>Identity built in</h4>
+      <b>Cenacle ID</b> ships alongside the chat: passwords with two-step verification,
+      passkeys, Active Directory and LDAP with group mapping, or your own OpenID Connect and
+      SAML providers. The chat signs in through it with OAuth 2.0 best current practice
+      (RFC 9700) and keeps its own sessions, which people see and end per device.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>Everything is included</h4>
+      Compliance exports, legal holds, SCIM provisioning, end-to-end encryption, clustering,
+      permission schemes: the features other chat platforms keep for enterprise plans are
+      part of the one open-source release. Nothing is locked, metered or phoned home.
+    </td>
+    <td width="50%" valign="top">
+      <h4>Calm by design</h4>
+      Red only when something needs you. Nothing moves or disappears unexpectedly, every
+      destructive action can be undone or asks first, and drafts are never lost. Keyboard
+      first, WCAG 2.2 AA, dark and light, compact and comfortable, English and Turkish.
+    </td>
+  </tr>
+</table>
+
+## A tour
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/thread.png" alt="A thread open beside its channel" /><br />
+      <b>Conversations that stay readable.</b> Threads beside the channel, an inbox for
+      what needs you, saved items, pins, reminders and scheduled messages.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/switcher.png" alt="The quick switcher" /><br />
+      <b>Everywhere in two keystrokes.</b> <kbd>Ctrl</kbd> <kbd>K</kbd> jumps to any channel;
+      search finds messages, files and the text inside canvases.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/console.png" alt="The system console" /><br />
+      <b>Administration in the same app.</b> A system console for people, workspaces, bots,
+      background jobs, security and the audit log.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/appearance.png" alt="Appearance settings with theme presets" /><br />
+      <b>Made to fit.</b> Theme presets for the workspace and for each person, fonts
+      (bring your own), text size, density and code block styles.
+    </td>
+  </tr>
+</table>
+
+## Everything is included
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h4>Talk</h4>
+      Public, private and announcement channels in categories · direct and group
+      conversations · threads · Markdown with code highlighting · mentions, reactions,
+      custom emoji · voice messages · polls · forums · events · message priority and
+      acknowledgements · read receipts (off unless enabled) · link previews · forwarding
+    </td>
+    <td width="33%" valign="top">
+      <h4>Work</h4>
+      Files with previews and virus scanning · canvases, lists, boards and tasks as channel
+      tabs · workflows, forms and approvals · playbooks · scheduled messages and reminders ·
+      search across messages, files and canvases · notifications with sounds, muting and
+      quiet hours · web push and e-mail
+    </td>
+    <td width="33%" valign="top">
+      <h4>Connect</h4>
+      Bots with scoped tokens · incoming webhooks · slash commands · signed event
+      subscriptions · interactive messages and dialogs · bot SDKs · Jira, GitLab, GitHub and
+      Alertmanager built in · federation between Cenacle servers · optional AI with a model
+      you host
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h4>Protect</h4>
+      End-to-end encryption with device keys (MLS, RFC 9420) · FIPS 140-3 builds ·
+      STIG-hardened images · signed releases with signed SBOMs · reproducible images ·
+      session and network policies · notification content policy · SSRF-guarded egress
+    </td>
+    <td width="33%" valign="top">
+      <h4>Comply</h4>
+      Retention · legal holds · eDiscovery · compliance and archive export · audit log with
+      SIEM export · data subject requests · spillage handling · classification of channels ·
+      access rules · guest accounts and guest links
+    </td>
+    <td width="33%" valign="top">
+      <h4>Run</h4>
+      Several instances behind one address · OpenTelemetry, Prometheus, Loki, Tempo and
+      Grafana · WAL-G backups · locked, documented migrations · SCIM provisioning ·
+      permission schemes · importers for Mattermost, Slack, Rocket.Chat, Zulip, Discord and
+      Teams exports · workspace moves between servers
+    </td>
+  </tr>
+</table>
+
+**Desktop:** a native app for Windows (packaged for the Microsoft Store too) and Linux that
+signs in inside its own window, keeps its session in the system keychain and updates from
+your server ([guide](docs/install/desktop.md)). Voice and video and the mobile apps follow
+1.0.
+
+## Measured, not promised
+
+Numbers from the project's own tests on one 12-core machine with PostgreSQL, Valkey and the
+test on the same host ([details](docs/operations/performance.md)):
+
+| With 2,000,000 messages in 200 channels | Median | 95th percentile |
+| --------------------------------------- | -----: | --------------: |
+| Open the channel list with counts       |  27 ms |           41 ms |
+| Load the newest page of a channel       |   6 ms |           10 ms |
+| Page far back into history              |   6 ms |           10 ms |
+| Search for a common word                |   7 ms |           11 ms |
+
+- **346 messages per second** from 100 people sending without pause, each delivered live to
+  200 connections, with no failed request.
+- **About 400 million fuzzed inputs** across 22 parsers (images, link previews, feeds,
+  webhook signatures, cards from other services) before 1.0.
+- **WCAG 2.2 AA and EN 301 549**, with a published
+  [conformance report](docs/accessibility/conformance-report.md); target sizes and axe
+  checks run on every change.
+- **Every release** is signed with cosign, carries signed SPDX SBOMs and can be rebuilt bit
+  for bit from its tag ([how to verify](docs/security/README.md)).
+
+## Install
+
+You need a Linux host (amd64 or arm64) with Docker Compose, and two DNS names, one for
+the chat and one for Cenacle ID.
 
 ```sh
-corepack enable
-pnpm install
-make tools                  # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck, helm
-cp .env.example .env
-make up                     # postgres, valkey, openldap, mailpit (healthy)
-make migrate-up             # chat database migrations
-make dev-server             # chat backend   -> http://localhost:8180/readyz
-make dev-idp                # Cenacle ID     -> http://localhost:8190/healthz
-make dev-web                # web app        -> http://localhost:15173
-make dev-user EMAIL=you@example.com NAME="Your Name"   # asks for a password (15+ characters)
+git clone https://github.com/barisshn35/cenacle.git && cd cenacle/deploy/compose
+./gen-secrets.sh                                   # random secrets into ./secrets
+cp .env.prod.example .env.prod                     # your domains, e-mail and administrator
+docker compose -f prod.yml --env-file .env.prod up -d
 ```
 
-Open the app at <http://localhost:15173> and sign in with that account; the first sign-in
-sets up two-step verification with an authenticator app (required by default). Use `localhost`, not
-`127.0.0.1`: the sign-in cookies are bound to the host name. Component gallery
-(development only): <http://localhost:15173/dev/gallery>.
+Caddy fetches the TLS certificates and the databases migrate themselves. The
+installation guide continues with the first account and the firewall: [installation guide](docs/install/README.md) ·
+[Kubernetes](docs/install/kubernetes.md) · [desktop app](docs/install/desktop.md) ·
+[backups](docs/backup/README.md) · [upgrades](docs/upgrade/README.md) ·
+[security](docs/security/README.md).
 
-| Service         | Default port (localhost only) | Notes                                                                      |
-| --------------- | ----------------------------- | -------------------------------------------------------------------------- |
-| PostgreSQL 18   | 15432                         | databases `cenacle_chat` and `cenacle_idp` with separate owners            |
-| Valkey 9        | 16379                         | cache, pub/sub, presence                                                   |
-| OpenLDAP (test) | 13389                         | `dc=cenacle,dc=test`; users `alice`, `bob`, `carol` / `<uid>-dev-password` |
-| Mailpit         | 11025 (SMTP), 18025 (UI)      | catches all outgoing mail                                                  |
-| Chat server     | 8180                          | `make dev-server`                                                          |
-| Cenacle ID      | 8190                          | `make dev-idp`                                                             |
-| Web app         | 15173                         | `make dev-web`                                                             |
-
-Ports are deliberately non-standard so Cenacle can run next to other stacks; change them
-in `.env`. To run the application containers too:
-`docker compose -p cenacle -f deploy/compose/dev.yml --env-file .env --profile apps up -d --build`.
-
-### Make targets
-
-| Target                               | Purpose                                         |
-| ------------------------------------ | ----------------------------------------------- |
-| `up` / `down` / `ps`                 | Start, stop and inspect the dev infrastructure  |
-| `dev-server` / `dev-idp` / `dev-web` | Run a component locally                         |
-| `migrate-up` / `migrate-down`        | Apply / roll back chat database migrations      |
-| `gen`                                | Generate code (sqlc, OpenAPI server and client) |
-| `dev-user`                           | Create a Cenacle ID account for development     |
-| `lint` / `test` / `test-e2e`         | Linters + type checks / unit tests / Playwright |
-| `test-e2e-stack`                     | Sign in end to end with all components running  |
-| `licenses` / `vuln`                  | License policy check / Go vulnerability scan    |
-| `fuzz` / `load`                      | Fuzz the input parsers / load test the server   |
-| `lint-helm`                          | Lint and render the Helm chart                  |
-| `build` / `images` / `brand`         | Build components / container images / icons     |
-| `tools` / `help`                     | Install pinned tools / list every target        |
-
-## Architecture
+## How it is built
 
 ```mermaid
 flowchart LR
   subgraph Clients
-    W[Web app<br/>React SPA]
-    D[Desktop<br/>Electron, v0.30]
+    W[Web app<br/>React]
+    D[Desktop<br/>Windows, Linux]
   end
-  subgraph Edge
-    P[Caddy<br/>automatic TLS]
-  end
+  P[Caddy<br/>automatic TLS]
   subgraph Services
     S[Chat server<br/>Go]
     I[Cenacle ID<br/>Node.js, OIDC]
   end
   subgraph Data
-    PGC[(PostgreSQL<br/>chat DB)]
-    PGI[(PostgreSQL<br/>IdP DB)]
+    PGC[(PostgreSQL<br/>chat)]
+    PGI[(PostgreSQL<br/>identity)]
     V[(Valkey)]
     O[(S3 object store)]
-    L[(LDAP / AD<br/>optional)]
+    L[(AD / LDAP<br/>optional)]
   end
 
   W -- HTTPS --> P
   D -- HTTPS --> P
   P -- "/api, /ws" --> S
-  P -- static --> WS[Web static files]
   P -- "ID host" --> I
   S -- "OIDC code + PKCE" --> I
   S --> PGC
@@ -122,132 +226,91 @@ flowchart LR
   I -.-> L
 ```
 
-- **Chat server (`/server`):** Go, chi, pgx + sqlc, goose migrations embedded in the binary,
-  spec-first API ([`server/api/openapi.yaml`](server/api/openapi.yaml), oapi-codegen), RFC
-  9457 problem details for every error. Signs users in with Cenacle ID and keeps its own
-  sessions ([ADR 0004](docs/adr/0004-chat-sign-in-and-sessions.md)). Live events go over
-  WebSocket from a Valkey stream shared by all instances
-  ([ADR 0005](docs/adr/0005-live-chat.md)). Channels everyone belongs to are set at
-  installation ([ADR 0006](docs/adr/0006-channel-membership.md)). Messages can be edited and deleted
-  with undo; channels are renamed, archived and grouped in categories
-  ([ADR 0007](docs/adr/0007-channel-and-message-management.md)). Workspaces have owners,
-  admins and members, and people join with invitation links
-  ([ADR 0008](docs/adr/0008-workspaces-and-roles.md)). Direct and group conversations,
-  unread counts, presence and typing notices complete the live chat
-  ([ADR 0009](docs/adr/0009-direct-messages-unread-presence.md)). Users see and end their
-  signed-in devices, Cenacle ID's sign-outs reach the chat server, and an audit log records
-  security-relevant actions
-  ([ADR 0010](docs/adr/0010-two-step-verification-sessions-audit.md)). Messages carry
-  Markdown, mentions, reactions and cards; events go through a transactional outbox and
-  background work runs on River
-  ([ADR 0011](docs/adr/0011-rich-messages-and-outbox.md)). Bots post through scoped tokens
-  and incoming webhooks, Jira included
-  ([ADR 0012](docs/adr/0012-bots-and-incoming-webhooks.md),
-  [integrations guide](docs/integrations/README.md)).
-  Later releases are described in ADRs 0013–0030: files, scaling, profiles, appearance,
-  search and notifications, threads, community, automation, collaboration, compliance, AI
-  and federation.
-- **Cenacle ID (`/idp`):** Node.js + TypeScript (Fastify), `node-oidc-provider`, Argon2id
-  passwords, two-step verification, passkeys, Active Directory/LDAP, OpenID Connect and
-  SAML providers, directory groups and an admin console
-  ([ADR 0017](docs/adr/0017-identity-directories-and-federation.md)).
-- **Web (`/web`) and design system (`/packages/ui`):** React 19, Vite, TanStack Router and
-  Query, Tailwind CSS v4, shadcn/ui on Base UI. **`/packages/core`:** API client, shared
-  types, local storage (drafts in IndexedDB).
-- **Desktop (`/desktop`):** Electron for Windows and Linux; signs in inside the app and
-  updates from your server ([ADR 0033](docs/adr/0033-desktop-app.md),
-  [guide](docs/install/desktop.md)).
-- Decisions are recorded in [`docs/adr`](docs/adr).
+- **Chat server** (`server/`): Go, PostgreSQL 18, Valkey 9, a spec-first
+  [OpenAPI](server/api/openapi.yaml) API with problem details for every error, live events
+  over WebSocket, a transactional outbox and background jobs on River.
+- **Cenacle ID** (`idp/`): Node.js and TypeScript on `node-oidc-provider`, Argon2id
+  passwords, WebAuthn passkeys, directories and federation, an admin console.
+- **Web and design system** (`web/`, `packages/ui`): React 19, TanStack, Tailwind CSS v4
+  and shadcn/ui on Base UI, fonts bundled with the app.
+- **Desktop** (`desktop/`): Electron with context isolation, sandboxing and a strict
+  content security policy.
+- Every significant decision is written down in [`docs/adr`](docs/adr).
 
-## Repository layout
+<details>
+<summary><b>Develop Cenacle</b></summary>
 
-```text
-server/          Go chat backend
-idp/             Cenacle ID (identity server)
-web/             React SPA
-desktop/         desktop app (Electron, Windows and Linux)
-packages/core/   API/WS client, shared types, local storage (TS)
-packages/ui/     design system: tokens, theme, primitives, UX components
-deploy/          compose stacks (dev, prod, backup, observability), Caddy build, Helm chart
-docs/            ADRs, upgrade and backup guides, UX glossary
+<br />
+
+Requirements: Go 1.26, Node.js 24 (`.nvmrc`), pnpm via Corepack, Docker with Compose v2.
+
+```sh
+corepack enable
+pnpm install
+make tools                  # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck, helm
+cp .env.example .env
+make up                     # postgres, valkey, openldap, mailpit
+make migrate-up             # chat database migrations
+make dev-server             # chat server  -> http://localhost:8180/readyz
+make dev-idp                # Cenacle ID   -> http://localhost:8190/healthz
+make dev-web                # web app      -> http://localhost:15173
+make dev-user EMAIL=you@example.com NAME="Your Name"   # asks for a password (15+ characters)
 ```
 
-## Roadmap
+Open <http://localhost:15173> (use `localhost`, not `127.0.0.1`: the sign-in cookies are
+bound to the host name). The first sign-in sets up two-step verification. The component
+gallery is at <http://localhost:15173/dev/gallery> in development.
 
-| Version | Scope                                                                                 |
-| ------- | ------------------------------------------------------------------------------------- |
-| v0.1    | Skeleton: services, design system foundations, infrastructure, CI                     |
-| v0.2    | Cenacle ID core (OIDC provider)                                                       |
-| v0.3    | OIDC sign-in in chat, sessions                                                        |
-| v0.4    | Live chat, WebSocket tickets, channel membership, public and private channels         |
-| v0.5    | Editing and deleting messages, channel settings, categories, quick switcher           |
-| v0.6    | Workspaces, roles, invitations                                                        |
-| v0.7    | Direct messages, unread, presence, typing                                             |
-| v0.8    | TOTP MFA, session management, back-channel logout, audit log                          |
-| v0.9    | Markdown, reactions, mentions, attachments, transactional outbox                      |
-| v0.10   | Bot foundation, Jira to chat                                                          |
-| v0.11   | Slash commands, event subscriptions, scheduled messages and reminders, GitLab, alerts |
-| v0.12   | Files (S3-compatible object store), previews, viewer, virus scanning                  |
-| v0.13   | Scaling and operations (multiple instances, OpenTelemetry, backups, Helm, air-gapped) |
-| v0.14   | Identity federation (LDAP/AD, SAML and OIDC, WebAuthn), admin console, guests         |
-| v0.15   | Profiles, profile cards, custom status, channel and workspace settings                |
-| v0.16   | Appearance: theme presets, typography, fonts, code blocks                             |
-| v0.17   | Search and notifications (sounds, muting, web push, e-mail)                           |
-| v0.18   | Threads, pins, saved items, activity                                                  |
-| v0.19   | Community and moderation: forums, polls, events, AutoMod, playbooks                   |
-| v0.20   | Link previews, voice messages, forwarding, custom emoji                               |
-| v0.21   | Automation: workflows, approvals, forms                                               |
-| v0.22   | Collaboration: canvases, lists, boards, tasks                                         |
-| v0.23   | Compliance: retention, legal hold, eDiscovery, export, access control                 |
-| v0.24   | Optional, self-hosted AI (off by default)                                             |
-| v0.25   | Federation between servers                                                            |
-| v0.26   | Security testing and hardening                                                        |
-| v0.27   | Optimization and load tests                                                           |
-| v0.28   | Release candidate preparation                                                         |
-| v0.29   | Interface rewrite, sign-in pairing by server address, optional web app                |
-| v0.30   | Desktop app (Electron) for Windows and Linux                                          |
-| v0.31   | Mark unread, personal sidebar sections, user groups, edit history, signed images      |
-| v0.32   | Message priority and acknowledgement, read receipts (off by default), image galleries |
-| v0.33   | App platform: interactive messages and dialogs, bot SDKs, more integrations           |
-| v0.34   | System console, permission schemes, notification content policy                       |
-| v0.35   | SCIM provisioning, session and network policy, federation controls, guest links       |
-| v0.36   | Compliance: data subject requests, audit export and SIEM, archive export, spillage    |
-| v0.37   | Search inside files and canvases, right-to-left ready layout                          |
-| v0.38   | Importers (Rocket.Chat, Zulip, Discord, Teams), workspace moves, Azure and disk files |
-| v0.39   | End-to-end encryption with device keys (MLS)                                          |
-| v0.40   | FIPS 140-3 builds and STIG-hardened images                                            |
-| v0.41   | Full review and gap closing, accessibility conformance report                         |
-| v0.42   | Deep security testing and a penetration test                                          |
-| v0.43   | Performance and soak tests                                                            |
-| v0.99   | Release candidate: feature freeze, full QA pass, extended support policy              |
-| v1.0    | Stable: web and desktop                                                               |
-| v1.1    | Voice and video                                                                       |
-| v1.2    | Mobile apps                                                                           |
+| Service         | Port (localhost only)    | Notes                                                                      |
+| --------------- | ------------------------ | -------------------------------------------------------------------------- |
+| PostgreSQL 18   | 15432                    | databases `cenacle_chat` and `cenacle_idp` with separate owners            |
+| Valkey 9        | 16379                    | cache, pub/sub, presence                                                   |
+| OpenLDAP (test) | 13389                    | `dc=cenacle,dc=test`; users `alice`, `bob`, `carol` / `<uid>-dev-password` |
+| Mailpit         | 11025 (SMTP), 18025 (UI) | catches all outgoing mail                                                  |
+| Chat server     | 8180                     | `make dev-server`                                                          |
+| Cenacle ID      | 8190                     | `make dev-idp`                                                             |
+| Web app         | 15173                    | `make dev-web`                                                             |
 
-### Installation
+Ports are deliberately non-standard so Cenacle runs next to other stacks; change them in
+`.env`.
 
-- **One host:** [`deploy/compose/prod.yml`](deploy/compose/prod.yml) with Caddy, the chat
-  server, Cenacle ID, the web app, PostgreSQL, Valkey and Garage; secrets from
-  `deploy/compose/gen-secrets.sh`, settings in `.env.prod`
-  ([installation and firewall guide](docs/install/README.md)).
-- **Kubernetes:** the Helm chart in [`deploy/helm/cenacle`](deploy/helm/cenacle)
-  ([guide](docs/install/kubernetes.md)).
-- **Operations:** several instances, observability (OpenTelemetry, Prometheus, Loki, Tempo,
-  Grafana), [backups with WAL-G](docs/backup/README.md), [upgrades](docs/upgrade/README.md),
-  [security](docs/security/README.md) and [performance](docs/operations/performance.md).
-- **Accessibility:** the [conformance report](docs/accessibility/conformance-report.md)
-  (WCAG 2.2 AA, EN 301 549) and the [statement](docs/accessibility/statement.md).
+| Target                               | Purpose                                         |
+| ------------------------------------ | ----------------------------------------------- |
+| `up` / `down` / `ps`                 | Start, stop and inspect the dev infrastructure  |
+| `dev-server` / `dev-idp` / `dev-web` | Run a component locally                         |
+| `migrate-up` / `migrate-down`        | Apply / roll back chat database migrations      |
+| `gen`                                | Generate code (sqlc, OpenAPI server and client) |
+| `lint` / `test` / `test-e2e`         | Linters and type checks / unit tests / browser  |
+| `test-e2e-stack`                     | Sign in end to end with all components running  |
+| `licenses` / `vuln`                  | License policy / Go vulnerability scan          |
+| `fuzz` / `load`                      | Fuzz the input parsers / load test the server   |
+| `build` / `images`                   | Build components / container images             |
+| `help`                               | List every target                               |
+
+```text
+server/          Go chat server
+idp/             Cenacle ID (identity server)
+web/             React web app
+desktop/         desktop app (Electron, Windows and Linux)
+packages/core/   API and WebSocket client, shared types, local storage
+packages/ui/     design system: tokens, theme, primitives
+sdk/             bot SDKs
+deploy/          Compose stacks, Caddy build, Helm chart
+docs/            installation, operations, security, decisions (ADRs)
+```
+
+</details>
 
 ## Contributing and security
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) (DCO sign-off required) and
-[SECURITY.md](SECURITY.md) for private vulnerability reports.
+Contributions are welcome: read [CONTRIBUTING.md](CONTRIBUTING.md) (every commit is signed
+off under the DCO) and the [Contributor License Agreement](CLA.md). Report vulnerabilities
+privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
 Cenacle is free software under the [GNU Affero General Public License v3.0](LICENSE)
-(`AGPL-3.0-only`): use, change and share it; if you offer a modified version to users over
-a network, offer them its source too. The client library `packages/core` is under the
+(`AGPL-3.0-only`): use it, change it and share it; if you offer a changed version to people
+over a network, offer them its source too. The client library `packages/core` is under the
 [Apache License 2.0](packages/core/LICENSE), so apps and bots can embed it under any
-license. Contributions are accepted under the [Contributor License Agreement](CLA.md);
-the name and logo follow the [trademark policy](TRADEMARKS.md).
+license. The name and logo follow the [trademark policy](TRADEMARKS.md).
