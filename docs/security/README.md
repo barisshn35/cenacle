@@ -163,7 +163,7 @@ so verifying needs only the public key and the registry — also without Interne
 
   ```sh
   git checkout v0.99.1
-  docker buildx build -f server/Dockerfile --build-arg VERSION=0.99.1 \
+  docker buildx build --no-cache -f server/Dockerfile --build-arg VERSION=0.99.1 \
     --build-arg SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" --platform linux/amd64 \
     --label org.opencontainers.image.title=cenacle-server \
     --label org.opencontainers.image.licenses=AGPL-3.0-only \
@@ -173,7 +173,14 @@ so verifying needs only the public key and the registry — also without Interne
 
   The digest of the linux/amd64 image in `server.tar` (its `index.json`) matches the one the
   published index names for linux/amd64 (`docker buildx imagetools inspect <image>`). The
-  same holds for `idp/Dockerfile` and `web/Dockerfile` (with their own title label).
+  same holds for `idp/Dockerfile` and `web/Dockerfile` (with their own title label). Build
+  from a fresh clone made with the usual `umask 022`, and without the cache: layers cached by
+  other builds keep their own times.
+
+  The 0.99.1 images themselves differ from such a build in file modes only: CI checked the
+  source out with write access for everyone (`0666` instead of `0644` on the license, the
+  web app's files, Cenacle ID's migrations and pages). Releases after 0.99.1 set the modes
+  and times of a fresh clone before building.
 
 The key is set up once per GitLab project with `ci/setup-signing.sh` (it keeps the private
 key only in protected CI/CD variables and protects `v*` tags); a release without it is

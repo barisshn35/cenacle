@@ -267,6 +267,11 @@ images:
     - docker buildx inspect cenacle >/dev/null 2>&1 ||
       docker buildx create --name cenacle --driver docker-container --driver-opt network=host
     - export VERSION="${CI_COMMIT_TAG:-$CI_COMMIT_SHA}"
+    # Reproducible: the runner checks out with umask 0000 and keeps the times
+    # of earlier checkouts; files get the modes and times of a fresh clone
+    # (umask 022, the commit's time as the build clamps it).
+    - find . -path ./.git -prune -o ! -type l -exec chmod go-w {} +
+    - git ls-files -z | xargs -0 touch -h -d "@$(git log -1 --format=%ct)"
   script:
     - docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$VERSION" ${BUILD_ARGS:-}
       --platform linux/amd64 --load -t "cenacle-$IMAGE:ci"

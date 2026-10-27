@@ -8,6 +8,12 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Reproducible images:** CI built the 0.99.1 images from a checkout that gave everyone
+  write access to its files, so they differ from a rebuild in file modes (`0666` instead of
+  `0644`); the images now get the modes and times of a fresh clone.
+
 ## [0.99.1] - 2026-10-27
 
 A hardening round on the release candidate before 1.0: the repository, its supply chain and
