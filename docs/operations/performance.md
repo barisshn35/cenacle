@@ -78,6 +78,13 @@ them keeps growing.
 goroutines 824 from the first minute to the last, database connections 7, heap from
 17.0 to 19.8 MB (the server's caches filling with the new messages).
 
+0.99.1 for 24 hours: 1.7 million messages, 346 million events delivered, 57,600
+connections replaced; goroutines 824 to 825 and database connections 6 to 9 throughout.
+The test itself held on to closed connections and outlived its sessions; with that fixed,
+an hour of 1,000 connections replaced every minute kept the heap between 43.7 and 46.1 MB
+([QA report](../qa/report-0.99.1.md)). `SOAK_HEAP_PROFILE` writes a heap profile at the
+end of a run.
+
 ## What changed in 0.43.0
 
 - **Channel list:** the unread and mention counts read from the last read message on

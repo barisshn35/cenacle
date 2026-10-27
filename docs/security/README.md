@@ -184,6 +184,10 @@ same way with `ci/setup-linux-signing.sh`.
 
 - [Review 0.42](review-0.42.md): what the project tested before the release candidate
   (dependencies, scans, the authorization matrix, the OAuth profile, files, fuzzing).
+- [QA report 0.99.1](../qa/report-0.99.1.md): the hardening round before 1.0 (the
+  repository's history, supply chain and licenses, OWASP ZAP and nuclei against a running
+  installation, brute force, failures and network partitions, restores, Kubernetes, MLS test
+  vectors and OpenMLS, fuzzing, a day-long run).
 - [Pentest guide](pentest-guide.md): scope, a test installation and a checklist for a
   manual penetration test by people outside the project.
 
