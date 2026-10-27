@@ -2,6 +2,7 @@
 import type { ComponentType, ReactNode } from 'react';
 import { DialogContent, DialogDescription, DialogTitle } from '@cenacle/ui/components/dialog';
 import { cn } from '@cenacle/ui/lib/utils';
+import { useCountFormat } from './count-format';
 
 export interface SideNavItem<K extends string> {
   key: K;
@@ -51,6 +52,7 @@ export function SideNavDialog<K extends string>({
 }) {
   const items = groups.flatMap((g) => g.items);
   const current = items.find((i) => i.key === value);
+  const format = useCountFormat();
   return (
     <DialogContent className="grid h-[min(90svh,52rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-5xl md:grid-cols-[236px_minmax(0,1fr)] md:grid-rows-1">
       <nav
@@ -107,7 +109,7 @@ export function SideNavDialog<K extends string>({
                   {label}
                   {count !== undefined && (
                     <span className="ms-auto ps-2 font-mono text-xs font-normal text-muted-foreground">
-                      {count}
+                      {format(count)}
                     </span>
                   )}
                 </button>

@@ -17,7 +17,7 @@
     "undo": "Undo"
   },
   "appearance": {
-    "theme": "Theme",
+    "theme": "Light or dark",
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",

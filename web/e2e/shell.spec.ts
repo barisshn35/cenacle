@@ -45,7 +45,7 @@ test.describe('appearance', () => {
     await page.goto('/');
     const html = page.locator('html');
     await openSettings(page, 'Appearance');
-    await page.getByRole('combobox', { name: 'Theme' }).selectOption('dark');
+    await page.getByRole('combobox', { name: 'Light or dark' }).selectOption('dark');
     await expect(html).toHaveAttribute('data-theme', 'dark');
     await page.getByRole('combobox', { name: 'Density' }).selectOption('comfortable');
     await expect(html).toHaveAttribute('data-density', 'comfortable');
@@ -54,7 +54,7 @@ test.describe('appearance', () => {
     await expect(html).toHaveAttribute('data-density', 'comfortable');
 
     await openSettings(page, 'Appearance');
-    await page.getByRole('combobox', { name: 'Theme' }).selectOption('system');
+    await page.getByRole('combobox', { name: 'Light or dark' }).selectOption('system');
     await page.emulateMedia({ colorScheme: 'light' });
     await expect(html).toHaveAttribute('data-theme', 'light');
     await page.emulateMedia({ colorScheme: 'dark' });

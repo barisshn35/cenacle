@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { ReactNode } from 'react';
 import { cn } from '@cenacle/ui/lib/utils';
+import { useCountFormat } from './count-format';
 
 export interface BoardColumn {
   label: ReactNode;
@@ -67,6 +68,7 @@ export function BoardGroup({
   span: number;
   children: ReactNode;
 }) {
+  const format = useCountFormat();
   return (
     <tbody>
       {label !== undefined && (
@@ -78,7 +80,9 @@ export function BoardGroup({
           >
             {label}
             {count !== undefined && (
-              <span className="ms-2 font-mono font-normal text-muted-foreground">{count}</span>
+              <span className="ms-2 font-mono font-normal text-muted-foreground">
+                {format(count)}
+              </span>
             )}
           </th>
         </tr>
@@ -102,6 +106,7 @@ export function BoardTabs<K extends string>({
   onChange: (key: K) => void;
   note?: ReactNode;
 }) {
+  const format = useCountFormat();
   return (
     <div className="flex items-end gap-1 border-b">
       <div role="tablist" aria-label={label} className="flex gap-1">
@@ -132,7 +137,7 @@ export function BoardTabs<K extends string>({
             {tab.label}
             {tab.count !== undefined && (
               <span className="font-mono text-[13px] font-normal text-muted-foreground">
-                {tab.count}
+                {format(tab.count)}
               </span>
             )}
           </button>
