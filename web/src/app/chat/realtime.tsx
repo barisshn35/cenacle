@@ -166,7 +166,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (ev.type === 'poll.updated') {
           applyPoll(
             queryClient,
-            ev.data as { channel_id: string; message_id: string; user_id: string; poll: Poll },
+            ev.data as { channel_id: string; message_id: string; user_id?: string; poll: Poll },
             selfId,
           );
         } else if (ev.type === 'run.updated') {

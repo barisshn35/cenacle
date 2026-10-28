@@ -19,7 +19,9 @@ them openly, without a paid tier.
 2. **Polls belong to a message** (its text is the question): 2–10 options, single or
    multiple choice, optionally anonymous (voters hidden from everyone, counts shown) and
    closing at a time or by its author or a channel manager. `poll.updated` carries the
-   poll as the voter sees it; clients keep their own choices.
+   poll as any member sees it (no one's own choices, and no voter id for anonymous
+   polls); the voter's own view is only in the HTTP answer, and clients keep their own
+   choices.
 3. **Events** belong to a workspace and optionally a channel, where they are announced.
    "Going" schedules a reminder 15 minutes before (a system-bot message, as `/remind`);
    moving or canceling an event moves or cancels the reminders.

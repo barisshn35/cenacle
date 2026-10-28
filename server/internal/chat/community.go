@@ -206,11 +206,12 @@ func pollsFor(ctx context.Context, q store.Querier, reader pgtype.UUID, ids []pg
 	return out, nil
 }
 
-// PollEvent is the data of poll.updated; `poll` is as the voter (user_id) sees it.
+// PollEvent is the data of poll.updated. The poll is the same for every
+// reader: no `me` choices, and no user_id (who changed it) for anonymous polls.
 type PollEvent struct {
 	ChannelID string   `json:"channel_id"`
 	MessageID string   `json:"message_id"`
-	UserID    string   `json:"user_id"`
+	UserID    string   `json:"user_id,omitempty"`
 	Poll      api.Poll `json:"poll"`
 }
 
@@ -232,18 +233,25 @@ func (h *Handlers) pollMessage(w http.ResponseWriter, r *http.Request, channelID
 	return c, role, m, poll, true
 }
 
-// pollChanged answers with the poll as the user sees it and tells the channel.
+// pollChanged answers with the poll as the user sees it and tells the channel
+// the poll as anyone sees it.
 func (h *Handlers) pollChanged(w http.ResponseWriter, r *http.Request, c store.Channel, m store.GetMessageRow, user store.User) {
-	polls, err := pollsFor(r.Context(), h.Queries, user.ID, []pgtype.UUID{m.ID})
-	if err != nil || polls[m.ID] == nil {
+	mine, err := pollsFor(r.Context(), h.Queries, user.ID, []pgtype.UUID{m.ID})
+	if err != nil || mine[m.ID] == nil {
 		h.unavailable(w, r, "load poll", err)
 		return
 	}
-	poll := *polls[m.ID]
-	h.publish(r.Context(), events.PollUpdated, PollEvent{
-		ChannelID: uuid(c.ID).String(), MessageID: uuid(m.ID).String(), UserID: uuid(user.ID).String(), Poll: poll,
-	})
-	httpx.WriteJSON(w, http.StatusOK, poll)
+	shared, err := pollsFor(r.Context(), h.Queries, pgtype.UUID{}, []pgtype.UUID{m.ID})
+	if err != nil || shared[m.ID] == nil {
+		h.unavailable(w, r, "load poll", err)
+		return
+	}
+	ev := PollEvent{ChannelID: uuid(c.ID).String(), MessageID: uuid(m.ID).String(), Poll: *shared[m.ID]}
+	if !ev.Poll.Anonymous {
+		ev.UserID = uuid(user.ID).String()
+	}
+	h.publish(r.Context(), events.PollUpdated, ev)
+	httpx.WriteJSON(w, http.StatusOK, *mine[m.ID])
 }
 
 // VotePoll implements api.ServerInterface.

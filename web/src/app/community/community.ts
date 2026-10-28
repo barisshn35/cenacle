@@ -36,20 +36,26 @@ export const closePoll = (channelId: string, messageId: string) =>
   apiFetch<Poll>(`${pollUrl(channelId, messageId)}/close`, { method: 'POST' });
 
 /**
- * A poll changed. The poll comes as its voter sees it: others keep their own
- * choices (`me`).
+ * A poll changed. The event's poll is the same for every reader (no `me`):
+ * each device keeps its own choices, or reads them from the voter lists of a
+ * poll that is not anonymous.
  */
 export function applyPoll(
   queryClient: QueryClient,
-  ev: { channel_id: string; message_id: string; user_id: string; poll: Poll },
+  ev: { channel_id: string; message_id: string; user_id?: string; poll: Poll },
   selfId: string,
 ): void {
   patchMessage(queryClient, ev.channel_id, ev.message_id, (m) => {
-    if (ev.user_id === selfId || !m.poll) return { ...m, poll: ev.poll };
-    const mine = new Set(m.poll.options.filter((o) => o.me).map((o) => o.id));
+    const mine = new Set(m.poll?.options.filter((o) => o.me).map((o) => o.id));
     return {
       ...m,
-      poll: { ...ev.poll, options: ev.poll.options.map((o) => ({ ...o, me: mine.has(o.id) })) },
+      poll: {
+        ...ev.poll,
+        options: ev.poll.options.map((o) => ({
+          ...o,
+          me: o.voters ? o.voters.some((v) => v.id === selfId) : mine.has(o.id),
+        })),
+      },
     };
   });
 }

@@ -3,6 +3,7 @@
 package app_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -303,6 +304,45 @@ func TestPollsAndForums(t *testing.T) {
 	}
 	if status, _ := problemCode(t, s, http.MethodPost, path, ayse, map[string]any{"body": "x", "nonce": "nonce-forum-5", "title": "No"}); status != http.StatusBadRequest {
 		t.Errorf("title outside a forum = %d", status)
+	}
+}
+
+// poll.updated is the same for every member: no one's own choices, and no
+// voter id for an anonymous poll.
+func TestPollEventIsReaderNeutral(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-ayse", "Ayşe")
+	mert := s.user("sub-mert", "Mert")
+	general := s.general(ayse)
+	s.general(mert)
+	path := "/api/channels/" + general + "/messages"
+	var m api.Message
+	if res := s.call(http.MethodPost, path, ayse, map[string]any{"body": "Secret ballot", "nonce": "nonce-anon-1",
+		"poll": map[string]any{"options": []string{"Yes", "No"}, "anonymous": true}}, &m); res.StatusCode != http.StatusCreated || m.Poll == nil {
+		t.Fatalf("poll = %d", res.StatusCode)
+	}
+	conn := s.connect(ayse, "")
+	read(t, conn) // hello
+	var p api.Poll
+	s.call(http.MethodPut, path+"/"+m.Id.String()+"/poll/votes", mert, map[string]any{"option_ids": []string{m.Poll.Options[1].Id.String()}}, &p)
+	if !p.Options[1].Me || p.Options[1].Votes != 1 {
+		t.Errorf("voter's answer = %+v", p.Options)
+	}
+	ev := readFrame(t, conn, func(f frame) bool { return f.Type == "poll.updated" })
+	var data struct {
+		UserID *string `json:"user_id"`
+		Poll   api.Poll
+	}
+	if err := json.Unmarshal(ev.Data, &data); err != nil {
+		t.Fatal(err)
+	}
+	if data.UserID != nil || data.Poll.Options[1].Votes != 1 {
+		t.Errorf("event = %s", ev.Data)
+	}
+	for _, o := range data.Poll.Options {
+		if o.Me || o.Voters != nil {
+			t.Errorf("event tells who voted: %s", ev.Data)
+		}
 	}
 }
 
