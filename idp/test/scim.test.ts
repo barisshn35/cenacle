@@ -237,6 +237,58 @@ describe.skipIf(!hasTestDatabase)('SCIM provisioning (database)', () => {
     expect(linked.json().id).toBe(on);
   });
 
+  it('writes only the attributes it keeps, never an object prototype', async () => {
+    const user = (await call('POST', '/Users', ada)).json();
+    const group = (
+      await call('POST', '/Groups', {
+        schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+        displayName: 'Engineers',
+      })
+    ).json();
+    const patch = (url: string, op: object) =>
+      call('PATCH', url, {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+        Operations: [op],
+      });
+    const polluted = () => (({}) as Record<string, unknown>).scimPolluted;
+    try {
+      for (const [url, op] of [
+        [`/Users/${user.id}`, { op: 'add', path: '__proto__.scimPolluted', value: 'yes' }],
+        [`/Users/${user.id}`, { op: 'add', path: 'name.__proto__', value: { scimPolluted: 1 } }],
+        [`/Users/${user.id}`, { op: 'replace', path: 'constructor.prototype', value: 1 }],
+        [`/Groups/${group.id}`, { op: 'replace', value: { '__proto__.scimPolluted': 'yes' } }],
+        [
+          `/Groups/${group.id}`,
+          { op: 'replace', value: JSON.parse('{"__proto__":{"scimPolluted":1}}') },
+        ],
+      ] as const) {
+        const res = await patch(url, op);
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toMatchObject({ scimType: 'invalidPath' });
+        expect(polluted()).toBeUndefined();
+      }
+      // Filters name only their own columns.
+      expect(
+        (await call('GET', `/Users?filter=${encodeURIComponent('constructor eq "x"')}`)).statusCode,
+      ).toBe(400);
+    } finally {
+      delete (Object.prototype as Record<string, unknown>).scimPolluted;
+    }
+
+    // Attribute names are case-insensitive; those Cenacle does not keep are left out.
+    const res = await patch(`/Users/${user.id}`, {
+      op: 'replace',
+      value: {
+        'NAME.familyName': 'King',
+        DisplayName: 'Ada King',
+        'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department': 'R&D',
+        'addresses[type eq "work"].locality': 'London',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ displayName: 'Ada King' });
+  });
+
   it('takes over people who signed in before provisioning', async () => {
     const before = await signInFederated(pool, provider, {
       externalId: 'entra-ada',

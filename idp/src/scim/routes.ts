@@ -118,8 +118,48 @@ function userFields(body: Record<string, unknown>): UserFields {
   };
 }
 
+/**
+ * The attributes a PATCH may write, by their case-insensitive name: what
+ * userFields and saveGroup read, with the sub-attributes of complex ones (null:
+ * a simple attribute). Other attributes providers send (addresses, phone numbers,
+ * extensions) are not kept and are left out.
+ */
+type Attributes = ReadonlyMap<string, { name: string; subs: ReadonlyMap<string, string> | null }>;
+
+function attributes(spec: Record<string, string[] | null>): Attributes {
+  return new Map(
+    Object.entries(spec).map(([name, subs]) => [
+      name.toLowerCase(),
+      { name, subs: subs ? new Map(subs.map((s) => [s.toLowerCase(), s])) : null },
+    ]),
+  );
+}
+
+const USER_ATTRIBUTES = attributes({
+  userName: null,
+  externalId: null,
+  displayName: null,
+  title: null,
+  active: null,
+  emails: null,
+  name: ['givenName', 'familyName', 'formatted'],
+});
+const GROUP_ATTRIBUTES = attributes({ displayName: null, externalId: null, members: null });
+
+/** Names that reach the object model, never resource attributes. */
+const RESERVED = new Set(['__proto__', 'constructor', 'prototype']);
+
+function checkName(name: string) {
+  if (RESERVED.has(name.toLowerCase()))
+    throw new ScimError(400, 'Unsupported path.', 'invalidPath');
+}
+
 /** Applies PatchOp operations to a resource held as a plain object. */
-function applyPatch(resource: Record<string, unknown>, body: Record<string, unknown>) {
+function applyPatch(
+  resource: Record<string, unknown>,
+  body: Record<string, unknown>,
+  attrs: Attributes,
+) {
   const schemas = body.schemas;
   if (!Array.isArray(schemas) || !schemas.includes(PATCH))
     throw new ScimError(400, 'Not a PatchOp.', 'invalidSyntax');
@@ -134,10 +174,8 @@ function applyPatch(resource: Record<string, unknown>, body: Record<string, unkn
     if (!path) {
       if (op === 'remove' || typeof raw.value !== 'object' || raw.value === null)
         throw new ScimError(400, 'A path or an object value is required.', 'noTarget');
-      for (const [k, v] of Object.entries(raw.value as Record<string, unknown>)) {
-        if (k.includes('.')) setPath(resource, k, v);
-        else resource[k] = v;
-      }
+      for (const [k, v] of Object.entries(raw.value as Record<string, unknown>))
+        setPath(resource, attrs, k, v);
       continue;
     }
     if (path === 'members' || path.startsWith('members[')) {
@@ -155,21 +193,41 @@ function applyPatch(resource: Record<string, unknown>, body: Record<string, unkn
       resource.emails = value ? [{ value, primary: true }] : [];
       continue;
     }
-    setPath(resource, path, op === 'remove' ? undefined : raw.value);
+    setPath(resource, attrs, path, op === 'remove' ? undefined : raw.value);
   }
 }
 
-function setPath(resource: Record<string, unknown>, path: string, value: unknown) {
-  const [head, tail] = path.replace(/^urn:[^:]+(:[^:]+)*:/i, '').split('.', 2) as [string, string?];
-  if (!tail) {
-    resource[head] = value;
+/**
+ * Writes the attribute (or sub-attribute) a path names. Only the attributes in
+ * attrs are written, as own properties of fresh objects: a path never reaches
+ * an object's prototype.
+ */
+function setPath(
+  resource: Record<string, unknown>,
+  attrs: Attributes,
+  path: string,
+  value: unknown,
+) {
+  const [rawHead, rawTail] = path.replace(/^urn:[^:]+(:[^:]+)*:/i, '').split('.', 2) as [
+    string,
+    string?,
+  ];
+  checkName(rawHead);
+  if (rawTail !== undefined) checkName(rawTail);
+  const attr = attrs.get(rawHead.toLowerCase());
+  if (!attr) return;
+  if (rawTail === undefined) {
+    resource[attr.name] = value;
     return;
   }
-  const inner = (
-    typeof resource[head] === 'object' && resource[head] !== null ? resource[head] : {}
-  ) as Record<string, unknown>;
-  inner[tail] = value;
-  resource[head] = inner;
+  const sub = attr.subs?.get(rawTail.toLowerCase());
+  if (!sub) return;
+  const current = Object.hasOwn(resource, attr.name) ? resource[attr.name] : undefined;
+  const inner: Record<string, unknown> = {
+    ...(typeof current === 'object' && current !== null && !Array.isArray(current) ? current : {}),
+  };
+  inner[sub] = value;
+  resource[attr.name] = inner;
 }
 
 function patchMembers(resource: Record<string, unknown>, op: string, path: string, value: unknown) {
@@ -199,7 +257,8 @@ function patchMembers(resource: Record<string, unknown>, op: string, path: strin
 function parseFilter(filter: string | undefined, allowed: Record<string, string>) {
   if (!filter) return null;
   const m = /^\s*([A-Za-z.]+)\s+eq\s+"((?:[^"\\]|\\.)*)"\s*$/i.exec(filter);
-  const column = m ? allowed[m[1]!.toLowerCase()] : undefined;
+  const key = m?.[1]!.toLowerCase();
+  const column = key && Object.hasOwn(allowed, key) ? allowed[key] : undefined;
   if (!m || !column) throw new ScimError(400, 'Unsupported filter.', 'invalidFilter');
   return { column, value: m[2]!.replace(/\\(.)/g, '$1') };
 }
@@ -484,7 +543,7 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
           const provider = providerOf(request);
           const current = await getUser(provider, request.params.id);
           const resource: Record<string, unknown> = userResource(current);
-          applyPatch(resource, request.body ?? {});
+          applyPatch(resource, request.body ?? {}, USER_ATTRIBUTES);
           await saveUser(request, provider, current.id, userFields(resource));
           return send(reply, 200, userResource(await getUser(provider, current.id)));
         },
@@ -681,7 +740,7 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
           const provider = providerOf(request);
           const current = await getGroup(provider, request.params.id);
           const resource: Record<string, unknown> = groupResource(current);
-          applyPatch(resource, request.body ?? {});
+          applyPatch(resource, request.body ?? {}, GROUP_ATTRIBUTES);
           await saveGroup(request, provider, current.id, resource);
           // Providers often ask for no body back; the group is small enough to send.
           return send(reply, 200, groupResource(await getGroup(provider, current.id)));
