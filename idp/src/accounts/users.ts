@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type pg from 'pg';
+import { APP_GROUPS_SQL } from '../directory/store.ts';
 import {
   burnPasswordCheck,
   checkPasswordPolicy,
@@ -239,14 +240,10 @@ export class UserStore {
     if (rowCount === 0) throw new UserError('not_found');
   }
 
-  /** The groups an account is in (directory groups), by name. */
+  /** The groups an account is in, as apps see them (APP_GROUPS_SQL). */
   async groups(id: string): Promise<string[]> {
-    const { rows } = await this.pool.query<{ name: string }>(
-      `SELECT g.name FROM user_groups ug JOIN directory_groups g ON g.id = ug.group_id
-       WHERE ug.user_id = $1 ORDER BY g.name`,
-      [id],
-    );
-    return rows.map((r) => r.name);
+    const { rows } = await this.pool.query<{ n: string }>(`${APP_GROUPS_SQL} ORDER BY n`, [id]);
+    return rows.map((r) => r.n);
   }
 
   async setDisabled(email: string, disabled: boolean): Promise<void> {

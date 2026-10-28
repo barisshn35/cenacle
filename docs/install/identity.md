@@ -124,6 +124,10 @@ existing passkeys stop working.
 - **Guests** (the guest filter or guest groups) see only the channels they are in and the
   people in them. They are never added to default channels.
 
+Directory (LDAP) groups are named as in the directory; an identity provider's groups as
+`<provider>/<group>` (for example `Entra ID/Engineering`), so a provider can never name a
+group like the directory's or another provider's. Map those with the prefix.
+
 The chat reads groups through the `groups` scope and the directory feed; its client in
 `deploy/compose/idp/clients.json` must have `"scope": "openid email profile groups"` and
 `"directory_feed": true` (as shipped).

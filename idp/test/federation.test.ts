@@ -61,7 +61,7 @@ describe.skipIf(!hasTestDatabase)('signing in at identity providers (database)',
       fromProvider: true,
       fromDirectory: false,
     });
-    expect(await users.groups(id)).toEqual(['admins', 'engineering']);
+    expect(await users.groups(id)).toEqual(['Entra ID/admins', 'Entra ID/engineering']);
 
     const again = await signInFederated(pool, p, {
       ...ada,
@@ -71,7 +71,7 @@ describe.skipIf(!hasTestDatabase)('signing in at identity providers (database)',
     expect(again).toEqual({ userId: id });
     user = (await users.findById(id))!;
     expect(user).toMatchObject({ displayName: 'Ada L.', directoryRole: 'guest' });
-    expect(await users.groups(id)).toEqual(['partners']);
+    expect(await users.groups(id)).toEqual(['Entra ID/partners']);
   });
 
   it('takes over a local account by verified address only when asked to', async () => {

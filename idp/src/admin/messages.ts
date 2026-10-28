@@ -168,6 +168,8 @@ const en = {
     metadata: 'Service provider metadata',
     registerAfterSave: 'The addresses to register appear after saving.',
     name: 'Name on the sign-in button',
+    nameHint:
+      'Unique. Apps see this provider’s groups as “name/group”: renaming it renames them, so group mappings in the chat must follow.',
     connection: 'Connection',
     issuer: 'Issuer URL',
     issuerHint: 'Its discovery document is read from /.well-known/openid-configuration.',
@@ -376,6 +378,8 @@ const tr: AdminMessages = {
     metadata: 'Hizmet sağlayıcı meta verisi',
     registerAfterSave: 'Kaydedilecek adresler kaydettikten sonra görünür.',
     name: 'Giriş düğmesindeki ad',
+    nameHint:
+      'Benzersiz. Uygulamalar bu sağlayıcının gruplarını “ad/grup” olarak görür: adı değiştirmek grupların adını da değiştirir, sohbetteki grup eşlemeleri de buna uymalıdır.',
     connection: 'Bağlantı',
     issuer: 'Yayımcı URL’si',
     issuerHint: 'Keşif belgesi /.well-known/openid-configuration adresinden okunur.',

@@ -224,6 +224,19 @@ export class SourceStore {
 export type Role = 'admin' | 'guest' | null;
 
 /**
+ * The groups of user $1 as apps see them (the groups claim, the directory
+ * feed): a directory's by name, an identity provider's as "<provider>/<name>"
+ * ("/" in the provider's name becomes "-"), so a provider can never name a
+ * group like a directory's or another provider's (ADR 0045). Longer than 200
+ * characters, the most an app keeps: left out.
+ */
+export const APP_GROUPS_SQL = `SELECT n FROM (
+    SELECT CASE WHEN s.kind = 'ldap' THEN g.name ELSE replace(s.name, '/', '-') || '/' || g.name END AS n
+    FROM user_groups ug JOIN directory_groups g ON g.id = ug.group_id
+    JOIN identity_sources s ON s.id = g.source_id WHERE ug.user_id = $1) app_groups
+  WHERE char_length(n) <= 200`;
+
+/**
  * Writes a person from a directory: created at first sight, refreshed (name,
  * address, title, role, photo, groups) every time; reactivated if they come
  * back. With linkByEmail (the source's opt-in), an existing local account with

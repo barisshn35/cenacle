@@ -67,6 +67,20 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ### 0.99.2
 
+- Cenacle ID migrations `0009` and `0010` (small; rolling back runs their Down).
+- **Groups of identity providers (OIDC, SAML, SCIM) reach the chat as
+  `<provider>/<group>`** ([ADR 0045](../adr/0045-group-names-by-source.md)); directory
+  (LDAP) groups keep their names. Before upgrading, note the workspace and channel group
+  mappings that name a provider's groups; afterwards map them again with the prefix (the
+  groups list in the settings shows the new names once people have signed in or the feed
+  has run). Until then the memberships those mappings gave are taken back. Two providers
+  may no longer have the same name: rename one before saving its settings.
+- SCIM: pushed e-mail addresses are unverified unless the provider vouches for them (SAML
+  "vouches for the e-mail addresses it sends", new OIDC setting "vouches for the e-mail
+  addresses it provisions over SCIM"); turn that on for providers such as Entra ID or Okta
+  whose addresses you trust. Addresses already stored keep their state until they change.
+  Only vouched addresses link local accounts, and administrators and accounts with
+  two-step verification are never linked by address (SCIM or sign-in).
 - Cenacle ID: `IDP_TRUST_PROXY` is the number of proxies in front of it (or their addresses
   and CIDR ranges), no longer "trust every hop". `true` now means one proxy, what Compose
   (Caddy) and Helm (the ingress controller) have; Compose and Helm set `1`. With a load

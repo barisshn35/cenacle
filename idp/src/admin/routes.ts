@@ -535,11 +535,15 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
   const providers = opts.providers;
   if (!providers) return;
 
-  function validateProvider(form: ProviderForm) {
+  async function validateProvider(form: ProviderForm, id?: string) {
     const schema = form.kind === 'oidc' ? oidcConfigSchema : samlConfigSchema;
     const parsed = schema.safeParse(form.config);
     const fields = new Set<string>();
     if (!form.name || form.name.length > 100) fields.add('name');
+    // Apps see a provider's groups by its name: two providers never share one.
+    const name = form.name.toLowerCase();
+    if ((await providers!.list()).some((p) => p.id !== id && p.name.toLowerCase() === name))
+      fields.add('name');
     if (!parsed.success) for (const issue of parsed.error.issues) fields.add(String(issue.path[0]));
     return parsed.success && fields.size === 0 ? { config: parsed.data } : { fields: [...fields] };
   }
@@ -588,7 +592,7 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
       const me = await guardPost(request, reply);
       if (!me) return;
       const form = providerFormOf(kindOf(request.query.kind), request.body ?? {}, false);
-      const v = validateProvider(form);
+      const v = await validateProvider(form);
       if ('fields' in v) {
         return page(
           reply,
@@ -691,7 +695,7 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
       const p = await providers.get(request.params.id);
       if (!p) return reply.code(404).send();
       const form = providerFormOf(p.kind, request.body ?? {}, p.hasSecret);
-      const v = validateProvider(form);
+      const v = await validateProvider(form, p.id);
       if ('fields' in v) {
         return page(
           reply,

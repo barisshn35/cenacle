@@ -6,6 +6,7 @@ import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { ClientMetadata } from '../oidc/clients.ts';
+import { APP_GROUPS_SQL } from './store.ts';
 
 const PAGE = 500;
 
@@ -67,8 +68,7 @@ export function registerDirectoryFeed(
               u.directory_role, u.disabled_at IS NOT NULL AS disabled,
               coalesce((SELECT encode(sha256(p.data), 'hex') FROM user_photos p
                         WHERE p.user_id = u.id AND p.origin = 'directory'), '') AS picture,
-              coalesce((SELECT array_agg(g.name ORDER BY g.name) FROM user_groups ug
-                        JOIN directory_groups g ON g.id = ug.group_id WHERE ug.user_id = u.id), '{}') AS groups
+              coalesce((SELECT array_agg(n ORDER BY n) FROM (${APP_GROUPS_SQL.replace('$1', 'u.id')}) ag), '{}') AS groups
        FROM users u
        WHERE u.updated_at < now() - interval '2 seconds'
          AND ($1::timestamptz IS NULL OR (u.updated_at, u.id) > ($1::timestamptz, $2::uuid))

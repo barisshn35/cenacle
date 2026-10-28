@@ -263,3 +263,35 @@ func TestDirectoryFeed(t *testing.T) {
 		t.Errorf("second sync = %d, %v", n, err)
 	}
 }
+
+// Cenacle ID names an identity provider's groups "<provider>/<name>" (ADR
+// 0045): a provider's group never meets a mapping of a directory group.
+func TestGroupsOfProvidersStayApart(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	eng := s.newWorkspace(admin, "Engineering")
+	for group, role := range map[string]string{"Engineering Leads": "admin", "Partner/Engineering Leads": "member"} {
+		if res := s.call(http.MethodPut, "/api/workspaces/"+eng+"/groups", admin, map[string]string{"group": group, "role": role}, nil); res.StatusCode != http.StatusOK {
+			t.Fatalf("map %q = %d", group, res.StatusCode)
+		}
+	}
+	role := func(token string) string {
+		for _, w := range s.workspaces(token) {
+			if w.ID == eng {
+				return w.Role
+			}
+		}
+		return ""
+	}
+	partner := s.signInWith("sub-partner", "Eve", groups.Profile{Groups: []string{"Partner/Engineering Leads"}})
+	if r := role(partner); r != "member" {
+		t.Errorf("the provider's group gave %q, want member", r)
+	}
+	if status, _ := problemCode(t, s, http.MethodGet, "/api/workspaces/"+eng+"/groups", partner, nil); status != http.StatusForbidden {
+		t.Errorf("provider member reads the workspace's groups: %d", status)
+	}
+	lead := s.signInWith("sub-lead", "Ada", groups.Profile{Groups: []string{"engineering leads"}})
+	if r := role(lead); r != "admin" {
+		t.Errorf("the directory's group gave %q, want admin", r)
+	}
+}

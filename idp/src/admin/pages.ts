@@ -747,7 +747,7 @@ ${value}</textarea>
       >
         ${section(
           m.connection,
-          html`${field('name', m.name, f.name)}
+          html`${field('name', m.name, f.name, { hint: m.nameHint })}
           ${
             f.kind === 'oidc'
               ? html`${field('issuer', m.issuer, c.issuer, { hint: m.issuerHint, type: 'url' })}

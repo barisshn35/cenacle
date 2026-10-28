@@ -132,11 +132,22 @@ export class ProviderStore {
     id: string,
     input: { name: string; config: OidcConfig | SamlConfig; enabled: boolean; secret?: string },
   ): Promise<void> {
-    await this.pool.query(
-      `UPDATE identity_sources SET name = $2, config = $3, enabled = $4, updated_at = now()
-       WHERE id = $1 AND kind IN ('oidc', 'saml')`,
+    const { rows } = await this.pool.query<{ renamed: boolean }>(
+      `UPDATE identity_sources s SET name = $2, config = $3, enabled = $4, updated_at = now()
+       FROM (SELECT name FROM identity_sources WHERE id = $1) old
+       WHERE s.id = $1 AND s.kind IN ('oidc', 'saml')
+       RETURNING old.name IS DISTINCT FROM $2 AS renamed`,
       [id, input.name, JSON.stringify(input.config), input.enabled],
     );
+    if (rows[0]?.renamed) {
+      // Its groups are named after it (APP_GROUPS_SQL): apps follow the change.
+      await this.pool.query(
+        `UPDATE users SET updated_at = now() WHERE id IN (
+           SELECT ug.user_id FROM user_groups ug JOIN directory_groups g ON g.id = ug.group_id
+           WHERE g.source_id = $1)`,
+        [id],
+      );
+    }
     if (input.secret !== undefined) await this.setSecret(id, input.secret);
   }
 

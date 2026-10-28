@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The directory feed apps read changed accounts from.
+import { randomBytes } from 'node:crypto';
 import Fastify from 'fastify';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { UserStore } from '../src/accounts/users.ts';
 import { registerDirectoryFeed } from '../src/directory/feed.ts';
+import type { OidcConfig } from '../src/federation/config.ts';
+import { ProviderStore } from '../src/federation/store.ts';
 import type { ClientMetadata } from '../src/oidc/clients.ts';
 import { hasTestDatabase, openTestDatabase, resetTestDatabase } from './helpers/db.ts';
 
@@ -88,5 +91,67 @@ describe.skipIf(!hasTestDatabase)('directory feed (database)', () => {
     expect(img.headers['content-type']).toBe('image/png');
     expect(img.rawPayload.equals(photo)).toBe(true);
     expect((await app.inject({ url: `/directory/v1/photos/${u.id}` })).statusCode).toBe(401);
+  });
+
+  it('names an identity provider’s groups after it, never like a directory’s', async () => {
+    const source = async (kind: string, name: string) =>
+      (
+        await pool.query<{ id: string }>(
+          `INSERT INTO identity_sources (kind, name, config) VALUES ($1, $2, '{}') RETURNING id`,
+          [kind, name],
+        )
+      ).rows[0]!.id;
+    const member = async (sourceId: string, externalId: string, group: string) => {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO users (source_id, external_id, display_name) VALUES ($1, $2, $2) RETURNING id`,
+        [sourceId, externalId],
+      );
+      await pool.query(
+        `WITH g AS (INSERT INTO directory_groups (source_id, external_id, name) VALUES ($1, $2, $2)
+                    ON CONFLICT (source_id, external_id) DO UPDATE SET name = EXCLUDED.name RETURNING id)
+         INSERT INTO user_groups (user_id, group_id) SELECT $3, id FROM g`,
+        [sourceId, group, rows[0]!.id],
+      );
+      return rows[0]!.id;
+    };
+    const corp = await member(await source('ldap', 'Corp'), 'ada', 'Engineering Leads');
+    const partner = await member(await source('oidc', 'Part/ner'), 'eve', 'Engineering Leads');
+    const long = await member(await source('saml', 'Long'), 'bob', 'x'.repeat(200));
+    const users = new UserStore(pool);
+    expect(await users.groups(corp)).toEqual(['Engineering Leads']);
+    expect(await users.groups(partner)).toEqual(['Part-ner/Engineering Leads']);
+    // More than an app keeps: left out rather than cut to a name it could share.
+    expect(await users.groups(long)).toEqual([]);
+
+    await pool.query(`UPDATE users SET updated_at = now() - interval '1 minute'`);
+    const res = await app.inject({
+      url: '/directory/v1/changes',
+      headers: { authorization: basic('chat', chat.client_secret) },
+    });
+    const groups = Object.fromEntries(
+      res.json().users.map((u: { sub: string; groups: string[] }) => [u.sub, u.groups]),
+    );
+    expect(groups).toEqual({
+      [corp]: ['Engineering Leads'],
+      [partner]: ['Part-ner/Engineering Leads'],
+      [long]: [],
+    });
+
+    // Renaming the provider renames its groups; the feed reports its people again.
+    const partnerSource = (
+      await pool.query<{ source_id: string }>('SELECT source_id FROM users WHERE id = $1', [
+        partner,
+      ])
+    ).rows[0]!.source_id;
+    await new ProviderStore(pool, randomBytes(32)).update(partnerSource, {
+      name: 'Partner',
+      config: {} as OidcConfig,
+      enabled: true,
+    });
+    expect(await users.groups(partner)).toEqual(['Partner/Engineering Leads']);
+    const { rows } = await pool.query(
+      `SELECT id FROM users WHERE updated_at > now() - interval '10 seconds'`,
+    );
+    expect(rows).toEqual([{ id: partner }]);
   });
 });
