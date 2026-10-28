@@ -96,6 +96,12 @@ func (h *Handlers) guestLinkChannel(w http.ResponseWriter, r *http.Request, chan
 	case c.Encrypted || c.ArchivedAt.Valid:
 		forbidden(w, r, httpx.CodeForbidden, "Encrypted and archived channels have no guest links.")
 		return c, false
+	case len(accessRules(c)) > 0: // link guests have no attributes
+		forbidden(w, r, CodeAccessRules, "Channels with access rules have no guest links.")
+		return c, false
+	case c.GroupManaged: // nor directory groups
+		forbidden(w, r, CodeGroupManaged, "Channels managed by groups have no guest links.")
+		return c, false
 	}
 	scheme, ok := h.schemeOf(w, r, c)
 	if !ok {
@@ -297,6 +303,15 @@ func (h *Handlers) JoinGuestLink(w http.ResponseWriter, r *http.Request, token s
 	c, err := h.Queries.GetChannel(r.Context(), l.ChannelID)
 	if err != nil {
 		h.unavailable(w, r, "get channel", err)
+		return
+	}
+	// Rules or groups may have come after the link.
+	if len(accessRules(c)) > 0 {
+		forbidden(w, r, CodeAccessRules, "This channel is for members with certain attributes (e.g. department).")
+		return
+	}
+	if c.GroupManaged {
+		forbidden(w, r, CodeGroupManaged, "Membership of this channel follows directory groups.")
 		return
 	}
 	var guest store.User

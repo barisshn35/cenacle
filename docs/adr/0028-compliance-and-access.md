@@ -28,9 +28,12 @@ them open source.
    channels, and a channel's own. The banner shows the name as text, never color alone.
 5. **Attribute-based access**: a workspace defines member attributes (up to 20, e.g.
    department); owners and admins set members' values. A channel's access rules require
-   one of the listed values of every rule (case-insensitive). Rules are checked when people
-   join or are added; when rules or a member's values change, members who no longer meet
-   them leave the channel at once (audited). Channels for everyone take no rules.
+   one of the listed values of every rule (case-insensitive). Rules are checked on every way
+   in (`policy.Qualifies`): joining, being added, `/join`, directory groups, the welcome's
+   suggested channels (which take no ruled channels) and a webhook's bot; channels with
+   rules have no guest links, since link guests have no attributes. When rules or a member's
+   values change, members who no longer meet them leave the channel at once (audited).
+   Channels for everyone take no rules.
 6. **End-to-end encrypted channels** (optional, chosen at creation): members share a
    passphrase outside Cenacle. The browser derives an AES-256-GCM key with PBKDF2-SHA-256
    (600,000 rounds, a random salt) and keeps it on the device as a non-extractable
@@ -46,5 +49,5 @@ them open source.
 - A forgotten passphrase cannot be recovered; changing it needs a new channel.
   Per-device keys with key exchange (MLS) can replace the shared passphrase later without
   changing the envelope format's version prefix rules.
-- Directory-group sync adds members without checking access rules; use one or the other
-  for a channel.
+- Directory groups give a ruled channel only to the people who meet its rules; the others
+  join once their values change and they sign in again (or the groups are saved again).

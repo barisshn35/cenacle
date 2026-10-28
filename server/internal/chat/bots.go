@@ -411,6 +411,10 @@ func (h *Handlers) CreateWebhook(w http.ResponseWriter, r *http.Request, botID o
 		badRequest(w, r, "The channel must be an open channel of the bot's workspace.")
 		return
 	}
+	// The bot joins the channel: it must meet the channel's access rules.
+	if !h.mayJoin(w, r, c, b.Bot.UserID) {
+		return
+	}
 	secret := hookSecret()
 	var out api.Webhook
 	err := h.inTx(r.Context(), func(q *store.Queries) error {

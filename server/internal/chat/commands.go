@@ -22,6 +22,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
 	"github.com/barisshn35/cenacle/server/internal/integrations/signing"
+	"github.com/barisshn35/cenacle/server/internal/policy"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -214,16 +215,12 @@ func (h *Handlers) commandJoin(w http.ResponseWriter, r *http.Request, user stor
 		ephemeral(w, "Membership of this channel follows directory groups.")
 		return
 	}
-	if rules := accessRules(c); len(rules) > 0 {
-		raw, err := h.Queries.GetMemberAttributes(r.Context(), store.GetMemberAttributesParams{WorkspaceID: c.WorkspaceID, UserID: user.ID})
-		if err != nil && !isNoRows(err) {
-			h.unavailable(w, r, "get attributes", err)
-			return
-		}
-		if !meetsRules(rules, attributesOf(raw)) {
-			ephemeral(w, "This channel is for members with certain attributes (e.g. department).")
-			return
-		}
+	if ok, err := policy.Qualifies(r.Context(), h.Queries, c, user.ID); err != nil {
+		h.unavailable(w, r, "get attributes", err)
+		return
+	} else if !ok {
+		ephemeral(w, "This channel is for members with certain attributes (e.g. department).")
+		return
 	}
 	n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: user.ID, Role: RoleMember})
 	if err != nil {

@@ -829,8 +829,9 @@ func (h *Handlers) SetWelcome(w http.ResponseWriter, r *http.Request, workspaceI
 	}
 	for _, id := range in.ChannelIds {
 		c, err := h.Queries.GetChannel(r.Context(), pgUUID(id))
-		if isNoRows(err) || (err == nil && (uuid(c.WorkspaceID) != workspaceID || c.Visibility != Public || isConversation(c) || c.ArchivedAt.Valid)) {
-			badRequest(w, r, "Suggested channels are public channels of this workspace.")
+		if isNoRows(err) || (err == nil && (uuid(c.WorkspaceID) != workspaceID || c.Visibility != Public || isConversation(c) || c.ArchivedAt.Valid ||
+			c.GroupManaged || len(accessRules(c)) > 0)) {
+			badRequest(w, r, "Suggested channels are public channels of this workspace that anyone may join.")
 			return
 		}
 		if err != nil {
@@ -876,6 +877,13 @@ func (h *Handlers) FinishOnboarding(w http.ResponseWriter, r *http.Request, work
 		}
 		c, err := h.Queries.GetChannel(r.Context(), pgUUID(id))
 		if err != nil || c.Visibility != Public || c.ArchivedAt.Valid || c.GroupManaged {
+			continue
+		}
+		// Rules may have come after the suggestion.
+		if qualifies, err := policy.Qualifies(r.Context(), h.Queries, c, p.User.ID); err != nil {
+			h.unavailable(w, r, "get attributes", err)
+			return
+		} else if !qualifies {
 			continue
 		}
 		n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: p.User.ID, Role: RoleMember})

@@ -24,6 +24,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/policy"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -87,41 +88,23 @@ func refuseEncrypted(w http.ResponseWriter, r *http.Request) {
 		Detail: "This channel is encrypted end to end: only its members' apps write in it."})
 }
 
-func accessRules(c store.Channel) []api.AccessRule {
-	out := []api.AccessRule{}
-	_ = json.Unmarshal(c.AccessRules, &out)
-	return out
-}
-
-// meetsRules: a member needs one of the values of every rule (case does not matter).
-func meetsRules(rules []api.AccessRule, attrs map[string]string) bool {
-	for _, rule := range rules {
-		v := strings.ToLower(strings.TrimSpace(attrs[rule.Key]))
-		if v == "" || !slices.ContainsFunc(rule.Values, func(x string) bool { return strings.ToLower(x) == v }) {
-			return false
-		}
-	}
-	return true
-}
-
-func attributesOf(raw []byte) map[string]string {
-	out := map[string]string{}
-	_ = json.Unmarshal(raw, &out)
-	return out
-}
+// The access-rule checks are policy's, shared with the directory.
+var (
+	accessRules  = policy.Rules
+	meetsRules   = policy.Meets
+	attributesOf = policy.Attributes
+)
 
 // mayJoin answers 403 when a user does not meet a channel's access rules.
+// Every path that makes someone a member of an existing channel asks it (or
+// policy.Qualifies where there is no request to answer).
 func (h *Handlers) mayJoin(w http.ResponseWriter, r *http.Request, c store.Channel, user pgtype.UUID) bool {
-	rules := accessRules(c)
-	if len(rules) == 0 {
-		return true
-	}
-	raw, err := h.Queries.GetMemberAttributes(r.Context(), store.GetMemberAttributesParams{WorkspaceID: c.WorkspaceID, UserID: user})
-	if err != nil && !isNoRows(err) {
+	ok, err := policy.Qualifies(r.Context(), h.Queries, c, user)
+	if err != nil {
 		h.unavailable(w, r, "get attributes", err)
 		return false
 	}
-	if !meetsRules(rules, attributesOf(raw)) {
+	if !ok {
 		forbidden(w, r, CodeAccessRules, "This channel is for members with certain attributes (e.g. department).")
 		return false
 	}

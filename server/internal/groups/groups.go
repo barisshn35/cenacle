@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/barisshn35/cenacle/server/internal/policy"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -153,9 +154,23 @@ func Apply(ctx context.Context, q Querier, user store.User, p Profile, adminEmai
 	}
 
 	// Channels from groups (in the workspaces the person is in now).
-	channels, err := q.ChannelsFromGroups(ctx, user.ID)
+	fromGroups, err := q.ChannelsFromGroups(ctx, user.ID)
 	if err != nil {
 		return err
+	}
+	// A group does not lift a channel's access rules: who does not meet them
+	// is neither added nor kept.
+	channels := make([]pgtype.UUID, 0, len(fromGroups))
+	for _, id := range fromGroups {
+		c, err := q.GetChannel(ctx, id)
+		if err != nil {
+			return err
+		}
+		if ok, err := policy.Qualifies(ctx, q, c, user.ID); err != nil {
+			return err
+		} else if ok {
+			channels = append(channels, id)
+		}
 	}
 	for _, c := range channels {
 		n, err := q.JoinChannelViaGroup(ctx, store.JoinChannelViaGroupParams{ChannelID: c, UserID: user.ID})
