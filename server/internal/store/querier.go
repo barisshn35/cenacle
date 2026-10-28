@@ -75,6 +75,8 @@ type Querier interface {
 	CancelEvent(ctx context.Context, id pgtype.UUID) (int64, error)
 	CancelScheduled(ctx context.Context, id pgtype.UUID) error
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
+	// CancelScheduledOf stops what a deactivated person still has queued.
+	CancelScheduledOf(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CancelWorkflowRunTasks(ctx context.Context, runID pgtype.UUID) error
 	// ChannelsFromGroups is the channels a person's groups give them, in the
 	// workspaces they are a member of.

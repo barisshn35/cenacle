@@ -58,7 +58,8 @@ several instances (ADR 0016).
    sign-in, and between sign-ins through a directory feed (`/directory/v1/changes`, Basic
    auth, only for clients registered with `directory_feed`) that the chat server polls
    every minute: changed people, their groups and whether they are disabled. A disabled
-   person is deactivated in the chat and every session ends.
+   person is deactivated in the chat, every session ends and their pending scheduled
+   messages are canceled (a deactivated author is also refused when one comes due).
 9. **Mappings in the chat.** Workspace owners and admins map directory groups to the
    workspace with a role (admin, member, guest); managers of private channels give them
    groups, optionally _managed_: then the members are exactly the people of the groups and

@@ -30,6 +30,20 @@ func (q *Queries) CancelScheduledMessage(ctx context.Context, arg CancelSchedule
 	return result.RowsAffected(), nil
 }
 
+const cancelScheduledOf = `-- name: CancelScheduledOf :execrows
+UPDATE scheduled_messages SET status = 'canceled'
+WHERE (owner_id = $1 OR author_id = $1) AND status = 'pending'
+`
+
+// CancelScheduledOf stops what a deactivated person still has queued.
+func (q *Queries) CancelScheduledOf(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, cancelScheduledOf, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const claimDueDeliveries = `-- name: ClaimDueDeliveries :many
 UPDATE event_deliveries d SET attempts = d.attempts + 1,
        next_attempt_at = now() + interval '10 minutes'

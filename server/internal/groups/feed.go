@@ -150,6 +150,9 @@ func (f *Feed) apply(ctx context.Context, u feedUser) (bool, error) {
 				}); err != nil {
 					return err
 				}
+				if _, err := q.CancelScheduledOf(ctx, user.ID); err != nil {
+					return err
+				}
 				ended = true
 			}
 			return nil

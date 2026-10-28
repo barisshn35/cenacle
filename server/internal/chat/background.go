@@ -207,6 +207,16 @@ func sendScheduled(ctx context.Context, q *store.Queries, s store.ScheduledMessa
 	if err != nil {
 		return pgtype.UUID{}, "", err
 	}
+	// A deactivated person posts nothing more, nor do reminders sent for them.
+	owner := author
+	if s.OwnerID != s.AuthorID {
+		if owner, err = q.GetUser(ctx, s.OwnerID); err != nil {
+			return pgtype.UUID{}, "", err
+		}
+	}
+	if author.DeactivatedAt.Valid || owner.DeactivatedAt.Valid {
+		return pgtype.UUID{}, "The account is deactivated.", nil
+	}
 	ws, err := q.GetWorkspaceRole(ctx, store.GetWorkspaceRoleParams{WorkspaceID: c.WorkspaceID, UserID: author.ID})
 	if err != nil {
 		return pgtype.UUID{}, "", err

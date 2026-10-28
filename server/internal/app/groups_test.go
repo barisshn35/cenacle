@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/barisshn35/cenacle/server/internal/groups"
 	"github.com/barisshn35/cenacle/server/internal/store"
@@ -293,5 +294,53 @@ func TestGroupsOfProvidersStayApart(t *testing.T) {
 	lead := s.signInWith("sub-lead", "Ada", groups.Profile{Groups: []string{"engineering leads"}})
 	if r := role(lead); r != "admin" {
 		t.Errorf("the directory's group gave %q, want admin", r)
+	}
+}
+
+// A deactivated person's scheduled messages are not sent.
+func TestScheduledAfterDeactivation(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ctx := context.Background()
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	general := s.general(admin)
+	s.general(mert)
+	schedule := func(token, body string) {
+		t.Helper()
+		if res := s.call(http.MethodPost, "/api/channels/"+general+"/scheduled", token,
+			map[string]any{"body": body, "send_at": time.Now().Add(time.Hour)}, nil); res.StatusCode != http.StatusCreated {
+			t.Fatalf("schedule = %d", res.StatusCode)
+		}
+	}
+	schedule(ayse, "after-the-directory")
+	schedule(mert, "after-deactivation")
+
+	// The directory deactivates Ayşe: her queue is canceled.
+	srv, _ := fakeFeed(t, []map[string]any{{"sub": "sub-a", "name": "Ayşe", "disabled": true}})
+	feed := &groups.Feed{HTTP: srv.Client(), Issuer: srv.URL, ClientID: "cenacle-chat", ClientSecret: "feed-secret",
+		DB: s.pool, Queries: store.New(s.pool), AdminEmail: adminEmail, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	if _, err := feed.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// Mert is deactivated another way: the send refuses.
+	if _, err := s.pool.Exec(ctx, "UPDATE users SET deactivated_at = now() WHERE auth_data = 'sub-m'"); err != nil {
+		t.Fatal(err)
+	}
+	s.due()
+	if _, err := s.bg.SendDueScheduled(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for body, want := range map[string]string{"after-the-directory": "canceled", "after-deactivation": "failed"} {
+		var status string
+		_ = s.pool.QueryRow(ctx, "SELECT status FROM scheduled_messages WHERE body = $1", body).Scan(&status)
+		if status != want {
+			t.Errorf("%s: status %q, want %q", body, status, want)
+		}
+	}
+	for _, m := range s.page(admin, general) {
+		if strings.HasPrefix(m.Body, "after-") {
+			t.Errorf("sent: %q", m.Body)
+		}
 	}
 }

@@ -99,6 +99,11 @@ SELECT count(*) FROM scheduled_messages WHERE owner_id = @owner_id AND status = 
 UPDATE scheduled_messages SET status = 'canceled'
 WHERE id = @id AND owner_id = @owner_id AND status = 'pending';
 
+-- name: CancelScheduledOf :execrows
+-- CancelScheduledOf stops what a deactivated person still has queued.
+UPDATE scheduled_messages SET status = 'canceled'
+WHERE (owner_id = @user_id OR author_id = @user_id) AND status = 'pending';
+
 -- name: ClaimDueScheduled :many
 UPDATE scheduled_messages sm SET status = 'sent'
 FROM (
