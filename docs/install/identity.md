@@ -92,8 +92,8 @@ before they sign in; deactivating someone there ends their sessions within a min
    `displayName` and `members`. `externalId` is optional.
 
 - People are matched at their first sign-in by their verified e-mail address and are then
-  bound to the provider's id; someone who signed in before provisioning started is taken
-  over when the provider pushes them.
+  bound to the provider's id, once (a bound account never moves to another id); someone who
+  signed in before provisioning started is taken over when the provider pushes them.
 - SCIM carries no verified flag: pushed addresses are kept **unverified** unless the provider
   vouches for them (SAML: "vouches for the e-mail addresses it sends"; OIDC: "vouches for
   the e-mail addresses it provisions over SCIM"). Only a vouched address links a local

@@ -33,12 +33,21 @@ export async function signInFederated(
     [provider.id, externalId],
   );
   if (existing[0]?.disabled) return { error: 'disabled' };
+  if (existing[0] && provider.scimSince) {
+    // Signed in under the id SCIM gave it: the account is bound now.
+    await pool.query(
+      `UPDATE users SET scim_pending_bind = false
+       WHERE source_id = $1 AND external_id = $2 AND scim_pending_bind`,
+      [provider.id, externalId],
+    );
+  }
   if (!existing[0] && provider.scimSince && person.email && person.emailVerified) {
     // Provisioned over SCIM under another id (its userName or own id): the
     // first sign-in binds the account to the provider's id of the person.
+    // Only once: an account bound to someone is never handed to another id.
     const { rows: provisioned } = await pool.query<{ disabled: boolean }>(
-      `UPDATE users SET external_id = $2
-       WHERE id = (SELECT id FROM users WHERE source_id = $1 AND scim_managed
+      `UPDATE users SET external_id = $2, scim_pending_bind = false
+       WHERE id = (SELECT id FROM users WHERE source_id = $1 AND scim_managed AND scim_pending_bind
                      AND (email = $3::citext OR lower(scim_user_name) = lower($3)) LIMIT 1)
          AND NOT EXISTS (SELECT 1 FROM users WHERE source_id = $1 AND external_id = $2)
        RETURNING disabled_at IS NOT NULL AS disabled`,

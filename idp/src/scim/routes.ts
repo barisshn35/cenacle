@@ -455,17 +455,20 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
               ],
             );
             if (existing[0]) {
+              // A local account has no provider id yet: its first sign-in binds it.
               await pool.query(
                 `UPDATE users SET source_id = $2, external_id = coalesce(external_id, $3),
-                   password_hash = NULL, scim_managed = true WHERE id = $1`,
+                   password_hash = NULL, scim_managed = true, scim_pending_bind = source_id IS NULL
+                 WHERE id = $1`,
                 [existing[0].id, provider.id, f.externalId ?? f.userName],
               );
               return saveUser(request, provider, existing[0].id, f);
             }
             const { rows } = await pool.query<{ id: string }>(
               `INSERT INTO users (source_id, external_id, scim_external_id, scim_user_name, scim_managed,
-                                  display_name, email, email_verified, title, synced_at, disabled_at)
-               VALUES ($1, $2, $3, $4, true, $5, $6::citext, $6::citext IS NOT NULL AND $9, $7, now(),
+                                  scim_pending_bind, display_name, email, email_verified, title,
+                                  synced_at, disabled_at)
+               VALUES ($1, $2, $3, $4, true, true, $5, $6::citext, $6::citext IS NOT NULL AND $9, $7, now(),
                        CASE WHEN $8 THEN NULL ELSE now() END)
                RETURNING id`,
               [

@@ -197,6 +197,44 @@ describe.skipIf(!hasTestDatabase)('SCIM provisioning (database)', () => {
     ).toEqual({ error: 'disabled' });
   });
 
+  it('binds a provisioned account once, never to a second id', async () => {
+    provider = (await providers.get(provider.id))!;
+    const signIn = (externalId: string) =>
+      signInFederated(pool, provider, {
+        externalId,
+        displayName: 'Ada',
+        email: 'ada@example.com',
+        emailVerified: true,
+        groups: [],
+      });
+    const count = async () =>
+      (await pool.query('SELECT count(*)::int AS n FROM users')).rows[0].n as number;
+
+    // Bound at the first sign-in under another id.
+    const user = (await call('POST', '/Users', ada)).json();
+    expect(await signIn('sub-a')).toEqual({ userId: user.id });
+    const other = await signIn('sub-b');
+    expect(other).not.toEqual({ userId: user.id });
+    expect(await signIn('sub-a')).toEqual({ userId: user.id });
+    expect(await count()).toBe(2);
+
+    // Signed in under the id SCIM gave it (externalId is the sign-in id).
+    await resetTestDatabase(pool);
+    provider = await providers.create({
+      kind: 'oidc',
+      name: 'Okta',
+      enabled: true,
+      secret: 'client-secret',
+      config: oidcConfigSchema.parse({ issuer: 'https://okta.example.com', clientId: 'c' }),
+    });
+    token = await providers.newScimToken(provider.id);
+    provider = (await providers.get(provider.id))!;
+    const okta = (await call('POST', '/Users', { ...ada, externalId: 'okta-ada' })).json();
+    expect(await signIn('okta-ada')).toEqual({ userId: okta.id });
+    expect(await signIn('sub-b')).not.toEqual({ userId: okta.id });
+    expect(await signIn('okta-ada')).toEqual({ userId: okta.id });
+  });
+
   it('links local accounts by address only when asked to, never disabled ones', async () => {
     const linking = await providers.create({
       kind: 'oidc',
