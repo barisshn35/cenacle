@@ -318,6 +318,10 @@ type commandResponse struct {
 }
 
 func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user store.User, c store.Channel, role access, trigger, text string) {
+	// The bot acts on the caller's behalf: a timed-out member cannot use it.
+	if h.timedOut(w, r, c.WorkspaceID, user) {
+		return
+	}
 	row, err := h.Queries.GetWorkspaceCommand(r.Context(), store.GetWorkspaceCommandParams{WorkspaceID: c.WorkspaceID, Trigger: trigger})
 	if isNoRows(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: CodeUnknownCommand,
@@ -405,6 +409,9 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 	}
 	if c.Encrypted {
 		ephemeral(w, "This channel is encrypted end to end: bots cannot write in it.")
+		return
+	}
+	if h.slowedDown(w, r, c, role, user) {
 		return
 	}
 	var posted api.Message

@@ -374,6 +374,10 @@ func (h *Handlers) RunMessageAction(w http.ResponseWriter, r *http.Request, chan
 		notFound()
 		return
 	}
+	// The bot acts on the caller's behalf: a timed-out member cannot use it.
+	if h.timedOut(w, r, c.WorkspaceID, p.User) {
+		return
+	}
 	var cards []api.Attachment
 	_ = json.Unmarshal(m.Attachments, &cards)
 	if in.Attachment < 0 || in.Attachment >= len(cards) || cards[in.Attachment].Actions == nil {
@@ -533,7 +537,7 @@ func (h *Handlers) SubmitDialog(w http.ResponseWriter, r *http.Request, dialogID
 		return
 	}
 	c, _, ok := h.memberChannel(w, r, uuid(d.ChannelID), p.User)
-	if !ok {
+	if !ok || h.timedOut(w, r, c.WorkspaceID, p.User) {
 		return
 	}
 	var spec dialogSpec

@@ -154,3 +154,64 @@ func TestInteractiveMessages(t *testing.T) {
 		t.Errorf("not an option = %+v", answer)
 	}
 }
+
+// A timed-out member cannot have a bot act for them: commands, buttons and
+// dialogs are refused before the bot is called; slow mode holds a command's
+// answer like a message.
+func TestTimedOutMemberCannotUseBots(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	s.general(admin)
+	b := s.newBot(admin, "Relay")
+	s.call(http.MethodPost, "/api/channels/"+general+"/members", admin, map[string]string{"user_id": b.UserID}, nil)
+	var token struct{ Secret string }
+	s.call(http.MethodPost, "/api/bots/"+b.ID+"/tokens", admin, map[string]any{"name": "app", "scopes": []string{"messages:write"}}, &token)
+	rv := newReceiver(t)
+	s.call(http.MethodPut, "/api/bots/"+b.ID+"/interactions", admin, map[string]string{"url": rv.URL}, nil)
+	if res := s.call(http.MethodPost, "/api/bots/"+b.ID+"/commands", admin, map[string]string{"trigger": "relay", "url": rv.URL}, nil); res.StatusCode != http.StatusCreated {
+		t.Fatalf("create command = %d", res.StatusCode)
+	}
+	var card api.Message
+	s.call(http.MethodPost, "/api/channels/"+general+"/messages", token.Secret, map[string]any{
+		"body": "", "nonce": "card-nonce-t",
+		"attachments": []map[string]any{{"title": "x", "actions": []map[string]any{{"id": "go", "type": "button", "text": "Go"}}}},
+	}, &card)
+	rv.set(http.StatusOK, `{"dialog": {"title": "Relay", "elements": [{"name": "what", "label": "What", "type": "text"}]}}`)
+	var cmd struct{ Dialog *api.Dialog }
+	s.call(http.MethodPost, "/api/channels/"+general+"/commands", ayse, map[string]string{"command": "relay", "text": ""}, &cmd)
+	if cmd.Dialog == nil {
+		t.Fatal("no dialog")
+	}
+
+	// Slow mode: a member who just wrote waits before a command posts for them.
+	s.call(http.MethodPatch, "/api/channels/"+general, admin, map[string]any{"slow_mode_seconds": 60}, nil)
+	s.send(ayse, general, "first", "nonce-slow-t")
+	rv.set(http.StatusOK, `{"response_type":"in_channel","text":"relayed"}`)
+	if status, code := problemCode(t, s, http.MethodPost, "/api/channels/"+general+"/commands", ayse, map[string]string{"command": "relay", "text": "x"}); status != http.StatusTooManyRequests || code != "slow_mode" {
+		t.Errorf("command in slow mode = %d %s", status, code)
+	}
+	s.call(http.MethodPatch, "/api/channels/"+general, admin, map[string]any{"slow_mode_seconds": 0}, nil)
+
+	timeout := "/api/workspaces/" + s.defaultWS + "/members/" + s.userID(ayse) + "/timeout"
+	if res := s.call(http.MethodPut, timeout, admin, map[string]any{"until": time.Now().Add(time.Hour)}, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("timeout = %d", res.StatusCode)
+	}
+	calls := len(rv.received())
+	for name, req := range map[string]struct {
+		path string
+		body any
+	}{
+		"command": {"/api/channels/" + general + "/commands", map[string]string{"command": "relay", "text": "x"}},
+		"action":  {"/api/channels/" + general + "/messages/" + card.Id.String() + "/actions", map[string]any{"attachment": 0, "action_id": "go"}},
+		"dialog":  {"/api/dialogs/" + cmd.Dialog.Id.String(), map[string]any{"values": map[string]string{"what": "x"}}},
+	} {
+		if status, code := problemCode(t, s, http.MethodPost, req.path, ayse, req.body); status != http.StatusForbidden || code != "timed_out" {
+			t.Errorf("%s while timed out = %d %s", name, status, code)
+		}
+	}
+	if n := len(rv.received()); n != calls {
+		t.Errorf("the bot was called %d times while timed out", n-calls)
+	}
+}

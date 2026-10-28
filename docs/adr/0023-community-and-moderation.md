@@ -25,7 +25,8 @@ them openly, without a paid tier.
    moving or canceling an event moves or cancels the reminders.
 4. **Moderation tools**:
    - Slow mode per channel (managers and workspace admins exempt).
-   - Timeouts per workspace member (no messages, reactions or votes; owners and admins
+   - Timeouts per workspace member (no messages, reactions or votes, and no bot commands,
+     message buttons or dialogs, which bots answer on the member's behalf; owners and admins
      cannot be timed out; up to 28 days).
    - AutoMod rules per workspace, checked before a message is stored: keywords (accent-
      and case-insensitive, `*` for prefixes), too many mentions, links to domains outside
