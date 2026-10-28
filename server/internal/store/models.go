@@ -347,6 +347,7 @@ type FederationConnection struct {
 	ReceiveReactions  bool               `json:"receive_reactions"`
 	ReceiveEdits      bool               `json:"receive_edits"`
 	RequestsPerMinute int32              `json:"requests_per_minute"`
+	SignatureVersion  int16              `json:"signature_version"`
 }
 
 type FederationDelivery struct {

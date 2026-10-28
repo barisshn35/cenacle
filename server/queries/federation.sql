@@ -34,6 +34,11 @@ DELETE FROM federation_connections WHERE id = @id;
 -- name: TouchFederationConnection :exec
 UPDATE federation_connections SET last_seen_at = now() WHERE id = @id;
 
+-- name: RequireFederationV2 :exec
+-- RequireFederationV2 records that the connection's server signs with v2, so
+-- requests without it are refused from now on.
+UPDATE federation_connections SET signature_version = 2 WHERE id = @id AND signature_version < 2;
+
 -- name: SetFederationError :exec
 UPDATE federation_connections SET last_error = @last_error WHERE id = @id;
 

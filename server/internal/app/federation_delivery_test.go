@@ -5,8 +5,12 @@ package app_test
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -140,7 +144,12 @@ func TestFederationOneSenderPerConnection(t *testing.T) {
 // postSigned sends a signed request to b's events endpoint as a would.
 func (p fedPair) postSigned(t *testing.T, header string, body []byte) int {
 	t.Helper()
-	req, _ := http.NewRequest(http.MethodPost, p.b.srv.URL+"/api/federation/v1/events", bytes.NewReader(body))
+	return postEvents(t, p.b, header, body)
+}
+
+func postEvents(t *testing.T, to *stack, header string, body []byte) int {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodPost, to.srv.URL+"/api/federation/v1/events", bytes.NewReader(body))
 	req.Header.Set(chat.FederationHeader, header)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -160,7 +169,7 @@ func TestFederationRefusesReplays(t *testing.T) {
 	}
 	body := []byte(`{"events":[]}`)
 	now := time.Now()
-	header := "c=" + p.bConn + "," + signing.Sign(secret, now, body)
+	header := signV2(secret, p.bConn, "events", now, body)
 	if status := p.postSigned(t, header, body); status != http.StatusNoContent {
 		t.Fatalf("first = %d", status)
 	}
@@ -172,8 +181,62 @@ func TestFederationRefusesReplays(t *testing.T) {
 		t.Fatalf("replay with an extra field = %d", status)
 	}
 	// Signed anew, the same body goes through.
-	if status := p.postSigned(t, "c="+p.bConn+","+signing.Sign(secret, now.Add(-time.Second), body), body); status != http.StatusNoContent {
+	if status := p.postSigned(t, signV2(secret, p.bConn, "events", now.Add(-time.Second), body), body); status != http.StatusNoContent {
 		t.Fatalf("signed anew = %d", status)
+	}
+}
+
+// signV2 signs a request the way servers since 0.99.2 do.
+func signV2(secret, connection, endpoint string, at time.Time, body []byte) string {
+	m := hmac.New(sha256.New, []byte(secret))
+	m.Write([]byte("v2." + strconv.FormatInt(at.Unix(), 10) + "." + connection + "." + endpoint + "."))
+	m.Write(body)
+	return "c=" + connection + "," + signing.Sign(secret, at, body) + ",v2=" + hex.EncodeToString(m.Sum(nil))
+}
+
+// v2 signatures bind a request to its connection: one signed for b's side of
+// the connection cannot be turned back to a (the two sides share the secret).
+// Once a server signs with v2, requests without it are refused; servers that
+// never did (before 0.99.2) still get through with v1.
+func TestFederationSignatureV2(t *testing.T) {
+	p := newFedPair(t)
+	ctx := context.Background()
+	version := func(conn string) int {
+		return p.a.count(`SELECT signature_version FROM federation_connections WHERE id = $1`, conn)
+	}
+	if va, vb := version(p.aConn), version(p.bConn); va != 2 || vb != 2 {
+		t.Fatalf("signature versions = %d %d", va, vb)
+	}
+	var secret string
+	if err := p.a.pool.QueryRow(ctx, `SELECT secret FROM federation_connections WHERE id = $1`, p.bConn).Scan(&secret); err != nil {
+		t.Fatal(err)
+	}
+	body := []byte(`{"events":[]}`)
+	now := time.Now()
+
+	// Signed for b, sent to a under a's connection id.
+	header := signV2(secret, p.bConn, "events", now, body)
+	turned := "c=" + p.aConn + header[strings.Index(header, ","):]
+	if status := postEvents(t, p.a, turned, body); status != http.StatusUnauthorized {
+		t.Errorf("turned back = %d", status)
+	}
+	// v2 stripped off.
+	if status := postEvents(t, p.b, header[:strings.Index(header, ",v2=")], body); status != http.StatusUnauthorized {
+		t.Errorf("without v2 = %d", status)
+	}
+	if status := postEvents(t, p.b, header, body); status != http.StatusNoContent {
+		t.Errorf("signed = %d", status)
+	}
+
+	// A server before v2: v1 only, still taken (and not pinned).
+	if _, err := p.a.pool.Exec(ctx, `UPDATE federation_connections SET signature_version = 1 WHERE id = $1`, p.bConn); err != nil {
+		t.Fatal(err)
+	}
+	if status := postEvents(t, p.b, "c="+p.bConn+","+signing.Sign(secret, now.Add(-time.Second), body), body); status != http.StatusNoContent {
+		t.Errorf("v1 of an old server = %d", status)
+	}
+	if v := version(p.bConn); v != 1 {
+		t.Errorf("signature version after v1 = %d", v)
 	}
 }
 

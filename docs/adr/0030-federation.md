@@ -20,7 +20,14 @@ Cenacle servers.
    paused or removed on either side.
 2. **Signed requests.** Every server-to-server request carries
    `X-Cenacle-Federation: c=<receiver's connection id>,t=<time>,v1=<HMAC-SHA256>` (the same
-   scheme as bot requests, five minutes of tolerance). The receiver takes each signed request
+   scheme as bot requests, five minutes of tolerance). Since 0.99.2 the header also carries
+   `v2=<HMAC-SHA256 of "v2.<t>.<connection id>.<endpoint>.<body>">`, which binds the request
+   to the connection and to `connect` or `events` (the two sides of a connection share the
+   secret, so v1 alone would let a request be turned back to its sender). Older servers
+   check v1 and ignore v2; a newer server checks v2 when it is there and, once a
+   connection's server has signed with v2, refuses requests of that connection without it.
+   A server downgraded below 0.99.2 behind such a connection has to be connected anew.
+   The receiver takes each signed request
    once: it remembers the time and body of every events request per connection in Valkey for
    twice the tolerance and answers a repeat with `409` (0.99.2; senders sign every attempt
    anew, so honest retries are never repeats). Outgoing requests follow the egress

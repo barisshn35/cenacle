@@ -732,6 +732,9 @@ type Querier interface {
 	ReplaceClassification(ctx context.Context, arg ReplaceClassificationParams) (Classification, error)
 	// ReplaceUserGroups sets the directory groups of a person.
 	ReplaceUserGroups(ctx context.Context, arg ReplaceUserGroupsParams) error
+	// RequireFederationV2 records that the connection's server signs with v2, so
+	// requests without it are refused from now on.
+	RequireFederationV2(ctx context.Context, id pgtype.UUID) error
 	ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (EventDelivery, error)
 	// ResolveReports closes every open report of a message.
 	ResolveReports(ctx context.Context, arg ResolveReportsParams) ([]MessageReport, error)

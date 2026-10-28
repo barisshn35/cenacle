@@ -5,6 +5,7 @@ package chat
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -40,7 +41,13 @@ import (
 // Federation: requests between servers are signed with the connection's
 // secret and name the receiver's connection id:
 //
-//	X-Cenacle-Federation: c=<connection id>,t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<body>">
+//	X-Cenacle-Federation: c=<connection id>,t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<body>">,
+//	    v2=<hex HMAC-SHA256 of "v2.<t>.<connection id>.<endpoint>.<body>">
+//
+// v2 (since 0.99.2) also binds the request to the connection and the endpoint
+// ("connect" or "events"). Servers before it check v1 and ignore v2; a server
+// checks v2 when it is there, and once a connection has signed with v2 it
+// takes no request without it (so v2 cannot be stripped off).
 const (
 	FederationHeader   = "X-Cenacle-Federation"
 	federationSkew     = 5 * time.Minute
@@ -86,8 +93,38 @@ type inviteCode struct {
 	Secret string `json:"s"`
 }
 
-func federationSign(connection, secret string, body []byte) string {
-	return "c=" + connection + "," + signing.Sign(secret, time.Now(), body)
+// federationMAC is the v2 signature of a request.
+func federationMAC(secret string, ts int64, connection, endpoint string, body []byte) string {
+	m := hmac.New(sha256.New, []byte(secret))
+	m.Write([]byte("v2." + strconv.FormatInt(ts, 10) + "." + connection + "." + endpoint + "."))
+	m.Write(body)
+	return hex.EncodeToString(m.Sum(nil))
+}
+
+func federationSign(connection, endpoint, secret string, body []byte) string {
+	now := time.Now()
+	return "c=" + connection + "," + signing.Sign(secret, now, body) +
+		",v2=" + federationMAC(secret, now.Unix(), connection, endpoint, body)
+}
+
+// federationVerify checks the signature of a request (the header after the
+// connection) for a connection and endpoint: v2 when the request has one,
+// else v1 unless v2 is required. It reports whether v2 was checked.
+func federationVerify(secret, rest, connection, endpoint string, body []byte, requireV2 bool) (ok, v2 bool) {
+	ts, _ := signing.Parse(rest)
+	sig := ""
+	for _, part := range strings.Split(rest, ",") {
+		if v, found := strings.CutPrefix(part, "v2="); found {
+			sig = v
+		}
+	}
+	if sig == "" {
+		return !requireV2 && signing.Verify(secret, rest, body, time.Now(), federationSkew), false
+	}
+	if d := time.Since(time.Unix(ts, 0)); ts == 0 || d > federationSkew || d < -federationSkew {
+		return false, true
+	}
+	return hmac.Equal([]byte(sig), []byte(federationMAC(secret, ts, connection, endpoint, body))), true
 }
 
 // federationSigned splits a header into the connection it names and the rest.
@@ -291,7 +328,8 @@ func federationPost(ctx context.Context, client *egress.Client, target, connecti
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "Cenacle")
-	req.Header.Set(FederationHeader, federationSign(connection, secret, body))
+	endpoint := target[strings.LastIndex(target, "/")+1:] // "connect" or "events"
+	req.Header.Set(FederationHeader, federationSign(connection, endpoint, secret, body))
 	res, err := client.Do(req)
 	switch {
 	case errors.Is(err, egress.ErrForbiddenAddress):
@@ -618,7 +656,11 @@ func (h *Handlers) FederationConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	id, rest, signed := federationSigned(r.Header.Get(FederationHeader))
 	inv, err := h.Queries.GetFederationInviteByHash(r.Context(), hashToken(in.Token))
-	if isNoRows(err) || !signed || id != "invite" || (err == nil && !signing.Verify(inv.Secret, rest, body, time.Now(), federationSkew)) {
+	var verified, v2 bool
+	if err == nil {
+		verified, v2 = federationVerify(inv.Secret, rest, "invite", "connect", body, false)
+	}
+	if isNoRows(err) || !signed || id != "invite" || (err == nil && !verified) {
 		federationRefused(w, r)
 		return
 	}
@@ -651,7 +693,10 @@ func (h *Handlers) FederationConnect(w http.ResponseWriter, r *http.Request) {
 			WorkspaceID: inv.WorkspaceID, Name: inv.Name, Url: strings.TrimRight(in.URL, "/"), Secret: inv.Secret,
 			RemoteID: pgUUID(remote), Status: "active", CreatedBy: inv.CreatedBy,
 		})
-		return err
+		if err != nil || !v2 {
+			return err
+		}
+		return q.RequireFederationV2(r.Context(), conn.ID) // that server signs with v2
 	})
 	if isNoRows(err) { // used or expired in between
 		federationRefused(w, r)
@@ -677,7 +722,11 @@ func (h *Handlers) FederationEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	conn, err := h.Queries.GetFederationConnection(r.Context(), pgUUID(connID))
-	if isNoRows(err) || (err == nil && !signing.Verify(conn.Secret, rest, body, time.Now(), federationSkew)) {
+	var verified, v2 bool
+	if err == nil {
+		verified, v2 = federationVerify(conn.Secret, rest, id, "events", body, conn.SignatureVersion >= 2)
+	}
+	if isNoRows(err) || (err == nil && !verified) {
 		federationRefused(w, r)
 		return
 	}
@@ -732,6 +781,11 @@ func (h *Handlers) FederationEvents(w http.ResponseWriter, r *http.Request) {
 		for _, ev := range in.Events {
 			if err := h.applyFederated(r.Context(), q, conn, ev); err != nil {
 				return fmt.Errorf("%s: %w", ev.Type, err)
+			}
+		}
+		if v2 && conn.SignatureVersion < 2 { // from now on, only with v2
+			if err := q.RequireFederationV2(r.Context(), conn.ID); err != nil {
+				return err
 			}
 		}
 		return q.TouchFederationConnection(r.Context(), conn.ID)
