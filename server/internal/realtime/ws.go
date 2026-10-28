@@ -21,6 +21,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/policy"
 	"github.com/barisshn35/cenacle/server/internal/store"
 	"github.com/barisshn35/cenacle/server/internal/telemetry"
 )
@@ -66,6 +67,7 @@ type MembershipSource interface {
 	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]store.ListUserWorkspacesRow, error)
 	GetWorkspaceRole(ctx context.Context, arg store.GetWorkspaceRoleParams) (string, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]store.ListWorkspaceMembersRow, error)
+	PeopleSharingChannels(ctx context.Context, arg store.PeopleSharingChannelsParams) ([]pgtype.UUID, error)
 }
 
 // Handler serves the ticket endpoint and the WebSocket.
@@ -271,9 +273,12 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		if !p.valid || !aud.allowsData(ev.Type, &p.data) {
 			return nil
 		}
-		if ev.Type == events.WorkspaceJoined {
-			// Joining a workspace joins its channels for everyone too: take the
-			// memberships from the database rather than guessing them.
+		if ev.Type == events.WorkspaceJoined || ev.Type == events.ChannelCreated ||
+			(aud.guest() && (ev.Type == events.ChannelJoined || ev.Type == events.ChannelLeft || ev.Type == events.ChannelMembersChanged)) {
+			// Joining a workspace joins its channels for everyone too, and a new
+			// channel for everyone has every member but guests and bots: take the
+			// memberships from the database rather than guessing them. Whom a
+			// guest sees follows their channels' members.
 			fresh, err := h.audience(ctx, t.UserID)
 			if err != nil {
 				return err
@@ -365,12 +370,26 @@ func (h *Handler) audience(ctx context.Context, userID pgtype.UUID) (*audience, 
 		user:       uuidString(userID),
 		channels:   make(map[string]string, len(chs)),
 		workspaces: make(map[string]bool, len(wss)),
+		guestIn:    map[string]bool{},
+		visible:    map[string]bool{},
 	}
 	for _, c := range chs {
 		a.channels[uuidString(c.ChannelID)] = uuidString(c.WorkspaceID)
 	}
 	for _, w := range wss {
-		a.workspaces[uuidString(w.Workspace.ID)] = true
+		ws := uuidString(w.Workspace.ID)
+		a.workspaces[ws] = true
+		if w.Role != policy.Guest {
+			continue
+		}
+		a.guestIn[ws] = true
+		people, err := policy.VisiblePeople(ctx, h.Members, w.Workspace.ID, userID, w.Role)
+		if err != nil {
+			return nil, err
+		}
+		for id := range people {
+			a.visible[uuidString(id)] = true
+		}
 	}
 	return a, nil
 }
@@ -430,9 +449,17 @@ func (h *Handler) ListPresence(w http.ResponseWriter, r *http.Request, workspace
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable})
 		return
 	}
-	ids := make([]string, len(members))
-	for i, m := range members {
-		ids[i] = uuidString(m.ID)
+	// A guest hears only of the people they may see.
+	visible, err := policy.VisiblePeople(r.Context(), h.Members, ws, p.User.ID, role)
+	if err != nil {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable})
+		return
+	}
+	ids := make([]string, 0, len(members))
+	for _, m := range members {
+		if visible == nil || visible[m.ID] {
+			ids = append(ids, uuidString(m.ID))
+		}
 	}
 	type entry struct {
 		UserID string `json:"user_id"`

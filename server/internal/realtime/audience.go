@@ -15,7 +15,14 @@ type audience struct {
 	// channel id -> workspace id
 	channels   map[string]string
 	workspaces map[string]bool
+	// guestIn: workspaces where the user is a guest; there they hear only of
+	// the people in visible (policy.VisiblePeople).
+	guestIn map[string]bool
+	visible map[string]bool
 }
+
+// guest reports whether the user is a guest in some workspace.
+func (a *audience) guest() bool { return len(a.guestIn) > 0 }
 
 type eventData struct {
 	Channel struct {
@@ -44,12 +51,10 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 		events.TabsChanged, events.CanvasUpdated, events.ListChanged, events.MessageAck, events.ConversationRead,
 		events.E2EChanged:
 		return a.inChannel(d.ChannelID)
-	case events.ChannelCreated: // a channel for everyone in its workspace
-		if !a.workspaces[d.Channel.WorkspaceID] {
-			return false
-		}
-		a.channels[d.Channel.ID] = d.Channel.WorkspaceID
-		return true
+	case events.ChannelCreated:
+		// A channel for everyone in its workspace, but not every member is in it
+		// (guests and bots are not): the caller reloads the memberships.
+		return a.workspaces[d.Channel.WorkspaceID]
 	case events.ChannelJoined:
 		if d.UserID != a.user {
 			return false
@@ -72,7 +77,7 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 			return true
 		}
 		for _, ws := range d.WorkspaceIDs {
-			if a.workspaces[ws] {
+			if a.workspaces[ws] && (!a.guestIn[ws] || a.visible[d.UserID]) {
 				return true
 			}
 		}

@@ -42,9 +42,12 @@ pictures may come from the company directory (ADR 0017).
    server embeds the time zone database (distroless images have none).
 8. **Who sees a profile**: oneself, bots, people of a shared workspace (guests: only people
    of a shared channel) and people of a shared channel or conversation. `GET /api/profiles`
-   takes up to 100 ids; the web app gathers the reads of a moment into one request.
+   takes up to 100 ids; the web app gathers the reads of a moment into one request. The
+   same guest rule (`policy.VisiblePeople`) filters every read that names people: member
+   lists, search, presence, event creators and attendees, and mention-group members.
 9. **`user.updated`** (durable) goes to the people of the user's workspaces and the user's
-   own devices; clients read the profile again.
+   own devices; clients read the profile again. In a workspace where the receiver is a
+   guest, it and `presence.changed` reach them only for people they may see.
 
 ## Consequences
 

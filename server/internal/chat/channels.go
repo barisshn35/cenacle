@@ -24,6 +24,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/policy"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -752,17 +753,10 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 // visiblePeople is who a guest may see in a workspace (people sharing a
 // channel with them); nil for everyone else (no limit).
 func (h *Handlers) visiblePeople(w http.ResponseWriter, r *http.Request, ws openapi_types.UUID, user store.User, wsRole string) (map[pgtype.UUID]bool, bool) {
-	if wsRole != WorkspaceGuest {
-		return nil, true
-	}
-	ids, err := h.Queries.PeopleSharingChannels(r.Context(), store.PeopleSharingChannelsParams{WorkspaceID: pgUUID(ws), UserID: user.ID})
+	out, err := policy.VisiblePeople(r.Context(), h.Queries, pgUUID(ws), user.ID, wsRole)
 	if err != nil {
 		h.unavailable(w, r, "people sharing channels", err)
 		return nil, false
-	}
-	out := map[pgtype.UUID]bool{user.ID: true}
-	for _, id := range ids {
-		out[id] = true
 	}
 	return out, true
 }

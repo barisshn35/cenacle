@@ -21,6 +21,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/policy"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -357,6 +358,19 @@ func (h *Handlers) eventsAPI(ctx context.Context, list []store.Event, user store
 	for _, u := range people {
 		names[u.ID] = u.DisplayName
 	}
+	// A guest sees only the creators and attendees they may see.
+	visible := map[pgtype.UUID]map[pgtype.UUID]bool{}
+	for _, e := range list {
+		if _, done := visible[e.WorkspaceID]; done {
+			continue
+		}
+		v, err := policy.VisiblePeople(ctx, h.Queries, e.WorkspaceID, user.ID, role)
+		if err != nil {
+			return nil, err
+		}
+		visible[e.WorkspaceID] = v
+	}
+	sees := func(ws, person pgtype.UUID) bool { return visible[ws] == nil || visible[ws][person] }
 	out := make([]api.Event, len(list))
 	for i, e := range list {
 		ev := api.Event{
@@ -367,7 +381,7 @@ func (h *Handlers) eventsAPI(ctx context.Context, list []store.Event, user store
 		if e.ChannelID.Valid {
 			ev.ChannelId = ptr(uuid(e.ChannelID))
 		}
-		if e.CreatedBy.Valid {
+		if e.CreatedBy.Valid && sees(e.WorkspaceID, e.CreatedBy) {
 			ev.CreatedBy = &api.Author{Id: uuid(e.CreatedBy), DisplayName: names[e.CreatedBy]}
 		}
 		for _, r := range rsvps {
@@ -376,7 +390,9 @@ func (h *Handlers) eventsAPI(ctx context.Context, list []store.Event, user store
 			}
 			switch r.Status {
 			case "going":
-				ev.Going = append(ev.Going, api.Author{Id: uuid(r.UserID), DisplayName: r.DisplayName})
+				if sees(e.WorkspaceID, r.UserID) {
+					ev.Going = append(ev.Going, api.Author{Id: uuid(r.UserID), DisplayName: r.DisplayName})
+				}
 			case "maybe":
 				ev.Maybe++
 			}

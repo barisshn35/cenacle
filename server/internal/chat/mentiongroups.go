@@ -323,17 +323,25 @@ func (h *Handlers) GetGroup(w http.ResponseWriter, r *http.Request, groupID open
 		h.unavailable(w, r, "list group", err)
 		return
 	}
+	// Guests see the people of the groups they are in only, and of those only
+	// the people they may see.
+	visible, ok := h.visiblePeople(w, r, uuid(g.WorkspaceID), p.User, role)
+	if !ok {
+		return
+	}
 	member := false
 	members := make([]api.MentionGroupMember, 0, len(people))
 	for _, person := range people {
 		if person.ID == p.User.ID {
 			member = true
 		}
+		if visible != nil && !visible[person.ID] {
+			continue
+		}
 		members = append(members, api.MentionGroupMember{
 			Person: personAPI(person.ID, person.DisplayName, person.Email, person.IsBot), Manager: person.Manager,
 		})
 	}
-	// Guests see the people of the groups they are in only.
 	if role == "guest" && !member {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such group."})
 		return
