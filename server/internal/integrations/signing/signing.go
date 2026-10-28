@@ -42,8 +42,9 @@ func Sign(secret string, at time.Time, body []byte) string {
 	return "t=" + strconv.FormatInt(ts, 10) + ",v1=" + mac(secret, ts, body)
 }
 
-// Verify checks a header value (for bots written in Go and for tests).
-func Verify(secret, header string, body []byte, now time.Time, tolerance time.Duration) bool {
+// Parse returns a header value's time (unix seconds) and v1 signature; 0 and
+// "" when missing.
+func Parse(header string) (int64, string) {
 	var ts int64
 	var sig string
 	for _, part := range strings.Split(header, ",") {
@@ -55,6 +56,12 @@ func Verify(secret, header string, body []byte, now time.Time, tolerance time.Du
 			sig = v
 		}
 	}
+	return ts, sig
+}
+
+// Verify checks a header value (for bots written in Go and for tests).
+func Verify(secret, header string, body []byte, now time.Time, tolerance time.Duration) bool {
+	ts, sig := Parse(header)
 	if ts == 0 || sig == "" {
 		return false
 	}

@@ -3,13 +3,17 @@
 package app_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/chat"
+	"github.com/barisshn35/cenacle/server/internal/integrations/signing"
 )
 
 // fedPair is a channel of one server shared with (and accepted on) another.
@@ -130,6 +134,46 @@ func TestFederationOneSenderPerConnection(t *testing.T) {
 	_ = tx.Rollback(ctx)
 	if n, err := p.a.federation.Run(ctx); err != nil || n != 1 {
 		t.Fatalf("sent = %d %v", n, err)
+	}
+}
+
+// postSigned sends a signed request to b's events endpoint as a would.
+func (p fedPair) postSigned(t *testing.T, header string, body []byte) int {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodPost, p.b.srv.URL+"/api/federation/v1/events", bytes.NewReader(body))
+	req.Header.Set(chat.FederationHeader, header)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = res.Body.Close()
+	return res.StatusCode
+}
+
+// A signed request is taken once; the same request again (captured and
+// replayed while its time is valid) is refused.
+func TestFederationRefusesReplays(t *testing.T) {
+	p := newFedPair(t)
+	var secret string
+	if err := p.a.pool.QueryRow(context.Background(), `SELECT secret FROM federation_connections WHERE id = $1`, p.bConn).Scan(&secret); err != nil {
+		t.Fatal(err)
+	}
+	body := []byte(`{"events":[]}`)
+	now := time.Now()
+	header := "c=" + p.bConn + "," + signing.Sign(secret, now, body)
+	if status := p.postSigned(t, header, body); status != http.StatusNoContent {
+		t.Fatalf("first = %d", status)
+	}
+	if status := p.postSigned(t, header, body); status != http.StatusConflict {
+		t.Fatalf("replay = %d", status)
+	}
+	// Extra fields do not make it another request.
+	if status := p.postSigned(t, header+",x=1", body); status != http.StatusConflict {
+		t.Fatalf("replay with an extra field = %d", status)
+	}
+	// Signed anew, the same body goes through.
+	if status := p.postSigned(t, "c="+p.bConn+","+signing.Sign(secret, now.Add(-time.Second), body), body); status != http.StatusNoContent {
+		t.Fatalf("signed anew = %d", status)
 	}
 }
 

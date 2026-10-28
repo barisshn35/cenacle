@@ -88,6 +88,29 @@ func (c *Client) PutNew(ctx context.Context, key string, value []byte, ttl time.
 	return nil
 }
 
+// Once marks key for ttl and reports whether it was new (false: it was
+// marked already), to let something happen once only.
+func (c *Client) Once(ctx context.Context, key string, ttl time.Duration) (bool, error) {
+	vc, err := c.Get()
+	if err != nil {
+		return false, err
+	}
+	err = vc.Do(ctx, vc.B().Set().Key(key).Value("1").Nx().Px(ttl).Build()).Error()
+	if valkey.IsValkeyNil(err) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// Forget removes key (a mark of Once that should not count after all).
+func (c *Client) Forget(ctx context.Context, key string) error {
+	vc, err := c.Get()
+	if err != nil {
+		return err
+	}
+	return vc.Do(ctx, vc.B().Del().Key(key).Build()).Error()
+}
+
 // Take returns and deletes the value under key (GETDEL), so a value can be
 // used once only.
 func (c *Client) Take(ctx context.Context, key string) ([]byte, error) {

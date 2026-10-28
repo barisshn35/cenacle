@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -711,6 +712,22 @@ func (h *Handlers) FederationEvents(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, r, "Not a batch of events.")
 		return
 	}
+	// A signed request is taken once: within the time it is valid, the same
+	// time and body again is a replay (an honest server signs each attempt
+	// anew).
+	replay := ""
+	if h.Replays != nil {
+		ts, _ := signing.Parse(rest)
+		replay = federationReplayKey(conn.ID, ts, body)
+		if fresh, err := h.Replays.Once(r.Context(), replay, 2*federationSkew); err != nil {
+			h.unavailable(w, r, "federation replay", err)
+			return
+		} else if !fresh {
+			httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeFederation,
+				Detail: "This request was received before."})
+			return
+		}
+	}
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
 		for _, ev := range in.Events {
 			if err := h.applyFederated(r.Context(), q, conn, ev); err != nil {
@@ -721,10 +738,19 @@ func (h *Handlers) FederationEvents(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.Log.WarnContext(r.Context(), "federation events", "connection", conn.Name, "error", err)
+		if replay != "" { // nothing was applied: the sender may repeat it
+			_ = h.Replays.Forget(context.WithoutCancel(r.Context()), replay)
+		}
 		h.unavailable(w, r, "apply federated events", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// federationReplayKey names a signed request of a connection: its time and body.
+func federationReplayKey(conn pgtype.UUID, ts int64, body []byte) string {
+	sum := sha256.Sum256(append([]byte(strconv.FormatInt(ts, 10)+"."), body...))
+	return "cenacle:federation:replay:" + uuid(conn).String() + ":" + hex.EncodeToString(sum[:])
 }
 
 var errFederated = errors.New("federated event refers to nothing here")

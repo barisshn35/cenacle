@@ -40,6 +40,12 @@ type RateLimiter interface {
 	Hit(ctx context.Context, key string, window time.Duration) (int64, time.Duration, error)
 }
 
+// Marks let something happen once only for a while (cache.Client.Once).
+type Marks interface {
+	Once(ctx context.Context, key string, ttl time.Duration) (bool, error)
+	Forget(ctx context.Context, key string) error
+}
+
 // Handlers implements the chat operations of the API.
 type Handlers struct {
 	// AI is the model the operator configured; nil: no AI features.
@@ -80,6 +86,9 @@ type Handlers struct {
 	// PushPublicKey gives the web push (VAPID) public key; nil: web push is off.
 	PushPublicKey func(ctx context.Context) (string, error)
 	Limiter       RateLimiter
+	// Replays remembers the signed requests of other servers, so each one is
+	// taken once; nil: not checked.
+	Replays Marks
 	// Sessions start the sessions of guest links; TrustProxy reads their
 	// client address behind the reverse proxy.
 	Sessions   *auth.Sessions

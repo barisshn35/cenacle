@@ -362,6 +362,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Ephemeral:         ephemeral,
 			Audit:             auditLog,
 			Limiter:           valkey,
+			Replays:           valkey,
 			Cookies:           cookies,
 			Log:               log,
 			Configured:        append([]string{cfg.AnnouncementChannel}, cfg.DefaultChannels...),

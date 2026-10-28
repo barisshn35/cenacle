@@ -20,7 +20,10 @@ Cenacle servers.
    paused or removed on either side.
 2. **Signed requests.** Every server-to-server request carries
    `X-Cenacle-Federation: c=<receiver's connection id>,t=<time>,v1=<HMAC-SHA256>` (the same
-   scheme as bot requests, five minutes of tolerance). Outgoing requests follow the egress
+   scheme as bot requests, five minutes of tolerance). The receiver takes each signed request
+   once: it remembers the time and body of every events request per connection in Valkey for
+   twice the tolerance and answers a repeat with `409` (0.99.2; senders sign every attempt
+   anew, so honest retries are never repeats). Outgoing requests follow the egress
    rules (public `https`, or networks in `CENACLE_EGRESS_ALLOW`).
 3. **Sharing** a channel offers it to a connection; the other side's admins accept it as a
    new private channel (named after the server when the name is taken) or decline. Only

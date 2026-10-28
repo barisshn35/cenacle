@@ -165,7 +165,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			SourceURL: config.DefaultSourceURL,
 		},
 		Chat: &chat.Handlers{
-			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Cookies: cookies, Log: log,
+			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Replays: sh.valkey, Cookies: cookies, Log: log,
 			Audit: auditLog, PublicURL: public.String(), Egress: egressClient, Files: files,
 			AccountURL:        "http://id.test/account",
 			PushPublicKey:     pushKeyFunc(o.pushKey),
