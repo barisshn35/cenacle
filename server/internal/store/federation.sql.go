@@ -108,11 +108,13 @@ func (q *Queries) ActiveSharesOfChannel(ctx context.Context, channelID pgtype.UU
 }
 
 const claimFederationDeliveries = `-- name: ClaimFederationDeliveries :many
-SELECT id, connection_id, event, attempts, next_attempt_at, created_at FROM federation_deliveries
-WHERE connection_id = $1 AND next_attempt_at <= now()
-ORDER BY id
+SELECT d.id, d.connection_id, d.event, d.attempts, d.next_attempt_at, d.created_at FROM federation_deliveries d
+WHERE d.connection_id = $1
+  AND (SELECT o.next_attempt_at FROM federation_deliveries o
+       WHERE o.connection_id = $1 ORDER BY o.id LIMIT 1) <= now()
+ORDER BY d.id
 LIMIT $2
-FOR UPDATE SKIP LOCKED
+FOR UPDATE
 `
 
 type ClaimFederationDeliveriesParams struct {
@@ -120,8 +122,9 @@ type ClaimFederationDeliveriesParams struct {
 	RowLimit     int32       `json:"row_limit"`
 }
 
-// ClaimFederationDeliveries takes the oldest due events of a connection, in
-// order, for the caller's transaction.
+// ClaimFederationDeliveries takes the oldest events of a connection, in order,
+// for the caller's transaction; nothing while the oldest one is not due. The
+// caller holds LockFederationSending.
 func (q *Queries) ClaimFederationDeliveries(ctx context.Context, arg ClaimFederationDeliveriesParams) ([]FederationDelivery, error) {
 	rows, err := q.db.Query(ctx, claimFederationDeliveries, arg.ConnectionID, arg.RowLimit)
 	if err != nil {
@@ -287,12 +290,16 @@ func (q *Queries) DeleteFederationDeliveries(ctx context.Context, ids []pgtype.U
 }
 
 const dueFederationConnections = `-- name: DueFederationConnections :many
-SELECT DISTINCT d.connection_id FROM federation_deliveries d
-JOIN federation_connections f ON f.id = d.connection_id AND f.status = 'active'
-WHERE d.next_attempt_at <= now()
+SELECT f.id FROM federation_connections f
+WHERE f.status = 'active'
+  AND (SELECT d.next_attempt_at FROM federation_deliveries d
+       WHERE d.connection_id = f.id ORDER BY d.id LIMIT 1) <= now()
 LIMIT 50
 `
 
+// DueFederationConnections returns the active connections whose oldest queued
+// event is due. A connection's events go in the order they were queued, so an
+// event waiting for its retry holds back the ones queued after it.
 func (q *Queries) DueFederationConnections(ctx context.Context) ([]pgtype.UUID, error) {
 	rows, err := q.db.Query(ctx, dueFederationConnections)
 	if err != nil {
@@ -301,11 +308,11 @@ func (q *Queries) DueFederationConnections(ctx context.Context) ([]pgtype.UUID, 
 	defer rows.Close()
 	var items []pgtype.UUID
 	for rows.Next() {
-		var connection_id pgtype.UUID
-		if err := rows.Scan(&connection_id); err != nil {
+		var id pgtype.UUID
+		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
-		items = append(items, connection_id)
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -597,6 +604,21 @@ func (q *Queries) LocalMessageOf(ctx context.Context, arg LocalMessageOfParams) 
 	var message_id pgtype.UUID
 	err := row.Scan(&message_id)
 	return message_id, err
+}
+
+const lockFederationSending = `-- name: LockFederationSending :one
+SELECT pg_try_advisory_xact_lock(
+    hashtextextended(current_schema() || '.federation-send:' || $1::uuid::text, 0))::boolean AS locked
+`
+
+// LockFederationSending makes the caller's transaction the only sender of a
+// connection (false: another one is sending). The schema is part of the key,
+// so installations sharing a database do not wait for each other.
+func (q *Queries) LockFederationSending(ctx context.Context, connectionID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, lockFederationSending, connectionID)
+	var locked bool
+	err := row.Scan(&locked)
+	return locked, err
 }
 
 const queueFederationDelivery = `-- name: QueueFederationDelivery :exec

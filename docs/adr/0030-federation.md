@@ -36,9 +36,14 @@ Cenacle servers.
    from can edit or delete it.
 6. **Delivery** is a transactional outbox: events are queued in the transaction of the
    change, and a periodic job sends each connection's events in order, in batches of 100,
-   retrying with backoff up to an hour apart. An event never returns to the server it came
-   from, so two servers do not echo; a channel shared with several servers relays between
-   them.
+   retrying with backoff up to an hour apart. The order holds across retries and replicas:
+   one sender works on a connection at a time (a PostgreSQL advisory lock per connection),
+   and while a connection's oldest event waits for its retry, the events queued after it
+   wait too (so a deletion or edit never overtakes its message, 0.99.2). The flip side: an
+   event the other server keeps refusing holds up the connection, which shows the error on
+   both sides until it is fixed or the connection is removed. An event never returns to the
+   server it came from, so two servers do not echo; a channel shared with several servers
+   relays between them.
 
 ## Consequences
 

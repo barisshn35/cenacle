@@ -87,8 +87,9 @@ type Querier interface {
 	// transaction (several servers never start the same one twice).
 	ClaimDueSchedules(ctx context.Context, rowLimit int32) ([]Workflow, error)
 	ClaimDueWorkflowRuns(ctx context.Context, rowLimit int32) ([]WorkflowRun, error)
-	// ClaimFederationDeliveries takes the oldest due events of a connection, in
-	// order, for the caller's transaction.
+	// ClaimFederationDeliveries takes the oldest events of a connection, in order,
+	// for the caller's transaction; nothing while the oldest one is not due. The
+	// caller holds LockFederationSending.
 	ClaimFederationDeliveries(ctx context.Context, arg ClaimFederationDeliveriesParams) ([]FederationDelivery, error)
 	// ClaimImportedUser gives an imported person's account to the identity that
 	// signs in with their verified address for the first time.
@@ -243,6 +244,9 @@ type Querier interface {
 	DeleteWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) error
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
 	DetachMessageFiles(ctx context.Context, messageID pgtype.UUID) ([]DetachMessageFilesRow, error)
+	// DueFederationConnections returns the active connections whose oldest queued
+	// event is due. A connection's events go in the order they were queued, so an
+	// event waiting for its retry holds back the ones queued after it.
 	DueFederationConnections(ctx context.Context) ([]pgtype.UUID, error)
 	// DueFeeds lists feeds to read again: every 15 minutes, less often after
 	// failures (up to every 8 hours), in channels that are not archived.
@@ -631,6 +635,10 @@ type Querier interface {
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
 	ListWorkspaceNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]ListWorkspaceNotificationPrefsRow, error)
 	LocalMessageOf(ctx context.Context, arg LocalMessageOfParams) (pgtype.UUID, error)
+	// LockFederationSending makes the caller's transaction the only sender of a
+	// connection (false: another one is sending). The schema is part of the key,
+	// so installations sharing a database do not wait for each other.
+	LockFederationSending(ctx context.Context, connectionID pgtype.UUID) (bool, error)
 	// MarkChannelReadForAll makes the history of an imported channel read.
 	MarkChannelReadForAll(ctx context.Context, channelID pgtype.UUID) error
 	// MarkRead moves a member's read position forward (never back).

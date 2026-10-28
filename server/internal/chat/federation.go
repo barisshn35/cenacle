@@ -1084,6 +1084,11 @@ func (f *FederationSender) send(ctx context.Context, id pgtype.UUID) (int, error
 	}
 	n := 0
 	err = inTx(ctx, f.DB, func(q *store.Queries) error {
+		// One sender per connection, so its events reach the other server in
+		// the order they were queued (a deletion never before its message).
+		if locked, err := q.LockFederationSending(ctx, id); err != nil || !locked {
+			return err
+		}
 		rows, err := q.ClaimFederationDeliveries(ctx, store.ClaimFederationDeliveriesParams{ConnectionID: id, RowLimit: federationBatch})
 		if err != nil || len(rows) == 0 {
 			return err
@@ -1099,6 +1104,8 @@ func (f *FederationSender) send(ctx context.Context, id pgtype.UUID) (int, error
 			if err := q.SetFederationError(ctx, store.SetFederationErrorParams{ID: id, LastError: truncate(problem, 500)}); err != nil {
 				return err
 			}
+			// The batch waits for its retry, and the connection's later
+			// events wait behind it (ClaimFederationDeliveries).
 			return q.RetryFederationDeliveries(ctx, ids)
 		}
 		n = len(rows)

@@ -93,19 +93,33 @@ DELETE FROM channel_offers WHERE id = @id;
 INSERT INTO federation_deliveries (connection_id, event) VALUES (@connection_id, @event);
 
 -- name: DueFederationConnections :many
-SELECT DISTINCT d.connection_id FROM federation_deliveries d
-JOIN federation_connections f ON f.id = d.connection_id AND f.status = 'active'
-WHERE d.next_attempt_at <= now()
+-- DueFederationConnections returns the active connections whose oldest queued
+-- event is due. A connection's events go in the order they were queued, so an
+-- event waiting for its retry holds back the ones queued after it.
+SELECT f.id FROM federation_connections f
+WHERE f.status = 'active'
+  AND (SELECT d.next_attempt_at FROM federation_deliveries d
+       WHERE d.connection_id = f.id ORDER BY d.id LIMIT 1) <= now()
 LIMIT 50;
 
+-- name: LockFederationSending :one
+-- LockFederationSending makes the caller's transaction the only sender of a
+-- connection (false: another one is sending). The schema is part of the key,
+-- so installations sharing a database do not wait for each other.
+SELECT pg_try_advisory_xact_lock(
+    hashtextextended(current_schema() || '.federation-send:' || sqlc.arg(connection_id)::uuid::text, 0))::boolean AS locked;
+
 -- name: ClaimFederationDeliveries :many
--- ClaimFederationDeliveries takes the oldest due events of a connection, in
--- order, for the caller's transaction.
-SELECT * FROM federation_deliveries
-WHERE connection_id = @connection_id AND next_attempt_at <= now()
-ORDER BY id
+-- ClaimFederationDeliveries takes the oldest events of a connection, in order,
+-- for the caller's transaction; nothing while the oldest one is not due. The
+-- caller holds LockFederationSending.
+SELECT d.* FROM federation_deliveries d
+WHERE d.connection_id = @connection_id
+  AND (SELECT o.next_attempt_at FROM federation_deliveries o
+       WHERE o.connection_id = @connection_id ORDER BY o.id LIMIT 1) <= now()
+ORDER BY d.id
 LIMIT @row_limit
-FOR UPDATE SKIP LOCKED;
+FOR UPDATE;
 
 -- name: DeleteFederationDeliveries :exec
 DELETE FROM federation_deliveries WHERE id = ANY (@ids::uuid[]);
