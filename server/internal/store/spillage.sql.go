@@ -237,6 +237,62 @@ func (q *Queries) ListSpillageReports(ctx context.Context, arg ListSpillageRepor
 	return items, nil
 }
 
+const redactForwardCopies = `-- name: RedactForwardCopies :many
+UPDATE messages f SET forward = jsonb_set(f.forward, '{body}', to_jsonb('[removed: spillage]'::text))
+WHERE f.forward IS NOT NULL AND f.forward ->> 'message_id' = ($1::uuid)::text
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
+`
+
+// RedactForwardCopies empties the snapshot of a spilled message in the
+// messages that forwarded it.
+func (q *Queries) RedactForwardCopies(ctx context.Context, id pgtype.UUID) ([]Message, error) {
+	rows, err := q.db.Query(ctx, redactForwardCopies, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Message
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.ChannelID,
+			&i.AuthorID,
+			&i.Body,
+			&i.Nonce,
+			&i.CreatedAt,
+			&i.EditedAt,
+			&i.DeletedAt,
+			&i.DeletedBy,
+			&i.Attachments,
+			&i.HasFiles,
+			&i.RootID,
+			&i.AlsoInChannel,
+			&i.PinnedAt,
+			&i.PinnedBy,
+			&i.Title,
+			&i.Tags,
+			&i.LinkUrl,
+			&i.LinkState,
+			&i.Forward,
+			&i.StickerID,
+			&i.BurnSeconds,
+			&i.TaskID,
+			&i.SubmissionID,
+			&i.Priority,
+			&i.AckRequested,
+			&i.Persistent,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const redactMessage = `-- name: RedactMessage :one
 WITH m AS (
     UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
@@ -247,10 +303,14 @@ WITH m AS (
 ), edits AS (DELETE FROM message_edits e WHERE e.message_id = $2 RETURNING 1),
    reactions AS (DELETE FROM message_reactions r WHERE r.message_id = $2 RETURNING 1),
    mentions AS (DELETE FROM message_mentions n WHERE n.message_id = $2 RETURNING 1),
-   saved AS (DELETE FROM saved_messages s WHERE s.message_id = $2 RETURNING 1)
+   saved AS (DELETE FROM saved_messages s WHERE s.message_id = $2 RETURNING s.reminder_id),
+   -- A reminder of a saved copy carries an excerpt of the text.
+   reminders AS (UPDATE scheduled_messages sm SET status = 'canceled'
+                 WHERE sm.id IN (SELECT reminder_id FROM saved WHERE reminder_id IS NOT NULL) AND sm.status = 'pending'
+                 RETURNING 1)
 SELECT (SELECT count(*) FROM m)::int AS redacted, (SELECT count(*) FROM edits)::int AS edits,
        (SELECT count(*) FROM reactions)::int AS reactions, (SELECT count(*) FROM mentions)::int AS mentions,
-       (SELECT count(*) FROM saved)::int AS saved
+       (SELECT count(*) FROM saved)::int AS saved, (SELECT count(*) FROM reminders)::int AS reminders
 `
 
 type RedactMessageParams struct {
@@ -264,6 +324,7 @@ type RedactMessageRow struct {
 	Reactions int32 `json:"reactions"`
 	Mentions  int32 `json:"mentions"`
 	Saved     int32 `json:"saved"`
+	Reminders int32 `json:"reminders"`
 }
 
 // RedactMessage empties a spilled message and its traces; legal holds do not
@@ -277,6 +338,7 @@ func (q *Queries) RedactMessage(ctx context.Context, arg RedactMessageParams) (R
 		&i.Reactions,
 		&i.Mentions,
 		&i.Saved,
+		&i.Reminders,
 	)
 	return i, err
 }

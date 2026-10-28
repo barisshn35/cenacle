@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 )
@@ -94,5 +95,72 @@ func TestSpillage(t *testing.T) {
 	}
 	if status, _ := problemCode(t, s, http.MethodPost, decide, mert, map[string]string{"decision": "dismiss"}); status != http.StatusConflict {
 		t.Errorf("decide twice = %d", status)
+	}
+}
+
+// Removal also reaches the copies: forwarded snapshots and saved-message reminders.
+func TestSpillageRemovesCopies(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	owner := s.admin()
+	a := s.user("sub-a", "Ayşe")
+	b := s.user("sub-b", "Barış")
+	general := s.general(a)
+	s.general(b)
+	m, _ := s.send(a, general, "token SPILL-MARKER", "spill-nonce-2")
+	dm, _ := s.open(b, s.defaultWS, s.userID(a))
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/messages/"+m.ID+"/forward", b,
+		map[string]any{"channel_id": dm.ID, "comment": "fyi"}, nil); res.StatusCode != http.StatusCreated {
+		t.Fatalf("forward = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodPut, "/api/me/saved/"+m.ID, b,
+		map[string]any{"remind_at": time.Now().Add(2 * time.Hour).Truncate(time.Second)}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("save = %d", res.StatusCode)
+	}
+	var rep api.SpillageReport
+	s.call(http.MethodPost, "/api/channels/"+general+"/messages/"+m.ID+"/spillage", b, map[string]string{"reason": "secret"}, &rep)
+	conn := s.connect(a, "")
+	read(t, conn) // hello
+	if res := s.call(http.MethodPost, "/api/spillage/"+rep.Id.String()+"/decision", owner, map[string]string{"decision": "remove"}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("decide = %d", res.StatusCode)
+	}
+	// The devices showing the forwarded copy get it redacted.
+	updated := false
+	for range 3 {
+		if ev := read(t, conn); ev.Type == "message.updated" {
+			updated = !strings.Contains(string(ev.Data), "SPILL-MARKER")
+			break
+		}
+	}
+	if !updated {
+		t.Error("no redacted message.updated for the forwarded copy")
+	}
+	for _, sc := range s.scheduled(b) {
+		if strings.Contains(sc.Body, "SPILL-MARKER") {
+			t.Errorf("reminder left: %+v", sc)
+		}
+	}
+	var page api.MessagePage
+	s.call(http.MethodGet, "/api/channels/"+dm.ID+"/messages", a, nil, &page)
+	for _, x := range page.Messages {
+		if x.Forward != nil && strings.Contains(x.Forward.Body, "SPILL-MARKER") {
+			t.Errorf("forwarded copy left: %q", x.Forward.Body)
+		}
+	}
+	ctx := context.Background()
+	_, _ = s.pool.Exec(ctx, `UPDATE scheduled_messages SET send_at = now() - interval '1 minute' WHERE status = 'pending'`)
+	if _, err := s.bg.SendDueScheduled(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var live int
+	_ = s.pool.QueryRow(ctx, `SELECT count(*) FROM messages WHERE body LIKE '%SPILL-MARKER%' AND deleted_at IS NULL`).Scan(&live)
+	if live != 0 {
+		t.Errorf("%d live messages quote the spill", live)
+	}
+	var incident struct {
+		Removed struct{ Reminders, Forwards int }
+	}
+	_ = s.pool.QueryRow(ctx, `SELECT report FROM spillage_reports WHERE id = $1`, rep.Id.String()).Scan(&incident)
+	if incident.Removed.Reminders != 1 || incident.Removed.Forwards != 1 {
+		t.Errorf("incident counts = %+v", incident.Removed)
 	}
 }

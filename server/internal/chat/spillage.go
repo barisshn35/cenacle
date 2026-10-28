@@ -282,8 +282,26 @@ func (h *Handlers) DecideSpillage(w http.ResponseWriter, r *http.Request, report
 			for _, f := range files {
 				list = append(list, map[string]any{"id": uuid(f.ID).String(), "name": f.Name, "size": f.Size, "content_type": f.ContentType})
 			}
+			// Copies elsewhere go too: forwarded snapshots (shown again to their readers).
+			copies, err := q.RedactForwardCopies(r.Context(), msg.ID)
+			if err != nil {
+				return err
+			}
+			for _, f := range copies {
+				author, err := q.GetUser(r.Context(), f.AuthorID)
+				if err != nil {
+					return err
+				}
+				out := []api.Message{messageAPI(f, author.DisplayName, author.IsBot)}
+				if err := decorate(r.Context(), q, f.AuthorID, out); err != nil {
+					return err
+				}
+				if err := emit(r.Context(), q, events.MessageUpdated, out[0]); err != nil {
+					return err
+				}
+			}
 			incident["removed"] = map[string]any{"edits": counts.Edits, "reactions": counts.Reactions, "mentions": counts.Mentions,
-				"saved": counts.Saved, "files": list}
+				"saved": counts.Saved, "reminders": counts.Reminders, "forwards": len(copies), "files": list}
 			ref := MessageRef{ID: uuid(msg.ID).String(), ChannelID: uuid(c.ID).String()}
 			if msg.RootID.Valid {
 				ref.RootID = uuid(msg.RootID).String()

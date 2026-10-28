@@ -63,7 +63,8 @@ reviewers (chosen by the owners in the Spillage reports dialog; the owners when 
 chosen) see the message and decide:
 
 - **Remove everywhere:** the text, edit history, files (their bytes too), reactions,
-  mentions, saved copies and pin go, **also where a legal hold would keep them**; devices
+  mentions, saved copies with their pending reminders, the copy shown in forwarded
+  messages and the pin go, **also where a legal hold would keep them**; devices
   drop it at once and shared servers are told to delete it. Notifications already shown on
   devices and copies outside Cenacle (e-mails, exports already taken) cannot be taken back.
 - **Dismiss:** the message stays.

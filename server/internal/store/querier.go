@@ -725,6 +725,9 @@ type Querier interface {
 	RecordAIRequest(ctx context.Context, arg RecordAIRequestParams) error
 	RecordFederatedMessage(ctx context.Context, arg RecordFederatedMessageParams) error
 	RecordReminder(ctx context.Context, arg RecordReminderParams) error
+	// RedactForwardCopies empties the snapshot of a spilled message in the
+	// messages that forwarded it.
+	RedactForwardCopies(ctx context.Context, id pgtype.UUID) ([]Message, error)
 	// RedactMessage empties a spilled message and its traces; legal holds do not
 	// keep spillage.
 	RedactMessage(ctx context.Context, arg RedactMessageParams) (RedactMessageRow, error)
