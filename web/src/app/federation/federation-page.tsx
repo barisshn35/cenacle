@@ -16,6 +16,7 @@ import { useActiveWorkspace } from '../chat/active-workspace';
 import { reloadChannels } from '../chat/data';
 import {
   acceptOffer,
+  acceptOlderSignatures,
   connect,
   createInvite,
   declineOffer,
@@ -145,6 +146,7 @@ function Connections({ ws, connections }: { ws: string; connections: FederationC
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<FederationConnection | null>(null);
+  const [allowing, setAllowing] = useState<FederationConnection | null>(null);
   const reload = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: federationQuery(ws).queryKey }),
@@ -210,6 +212,20 @@ function Connections({ ws, connections }: { ws: string; connections: FederationC
                   politeness="status"
                 />
               )}
+              {c.requires_v2 && c.v1_refused_at && (
+                <div className="flex flex-col items-start gap-2" data-testid="older-signatures">
+                  <InlineError
+                    title={t('federation.connections.olderTitle')}
+                    reason={t('federation.connections.olderHint', {
+                      time: time.format(new Date(c.v1_refused_at)),
+                    })}
+                    politeness="status"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => setAllowing(c)}>
+                    {t('federation.connections.olderAllow')}
+                  </Button>
+                </div>
+              )}
               {c.status !== 'pending' && (
                 <ConnectionPolicyForm connection={c} onSaved={() => void reload()} />
               )}
@@ -229,6 +245,22 @@ function Connections({ ws, connections }: { ws: string; connections: FederationC
           ))}
         </ul>
       )}
+      <ConfirmDialog
+        open={allowing !== null}
+        onOpenChange={(o) => !o && setAllowing(null)}
+        severity="s3"
+        title={t('federation.connections.olderAllowTitle', { name: allowing?.name ?? '' })}
+        description={t('federation.connections.olderAllowHint')}
+        confirmLabel={t('federation.connections.olderAllow')}
+        confirmationText={allowing?.name}
+        onConfirm={async () => {
+          if (!allowing) return;
+          await acceptOlderSignatures(allowing.id);
+          await reload();
+          setAllowing(null);
+          toast.success(t('federation.connections.olderAllowed'));
+        }}
+      />
       <ConfirmDialog
         open={removing !== null}
         onOpenChange={(o) => !o && setRemoving(null)}

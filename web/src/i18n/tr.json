@@ -1980,7 +1980,13 @@
       "removeHint": "Paylaşılan kanallar mesaj alışverişini durdurur; buradaki mesajlar kalır.",
       "seen": "Son haber: {{time}}",
       "error": "Son gönderim başarısız:",
-      "shared": "Paylaşılanlar: {{channels}}"
+      "shared": "Paylaşılanlar: {{channels}}",
+      "olderTitle": "Bu sunucunun istekleri reddediliyor",
+      "olderHint": "Diğer sunucu daha eski bir sürümle (0.99.2'den önceki) imzalıyor, bu yüzden istekleri reddediliyor (son olarak {{time}}). Bilerek eski sürüme döndürüldüyse eski imzalarına yeniden izin verin; aksi hâlde reddetmeye devam edin.",
+      "olderAllow": "Eski imzalara izin ver",
+      "olderAllowTitle": "{{name}} için eski imzalara izin verilsin mi?",
+      "olderAllowHint": "İstekleri o zaman bu bağlantıya bağlı olmaz ve kötüye kullanılmaları kolaylaşır. Bunu yalnızca yöneticileri sunucuyu bilerek 0.99.2'den önceki bir sürüme döndürdüklerini doğrularsa yapın. Sunucu yeniden yeni sürümle imzaladığı anda eski imzalar yine reddedilir.",
+      "olderAllowed": "Sunucu yeniden yeni sürümle imzalayana kadar eski imzalara izin veriliyor."
     },
     "invite": {
       "title": "Başka bir sunucuyu davet et",

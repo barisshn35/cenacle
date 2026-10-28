@@ -4555,6 +4555,28 @@ export interface paths {
     patch: operations['updateFederationConnection'];
     trace?: never;
   };
+  '/api/federation/connections/{connection_id}/accept-v1': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        connection_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Take requests signed only with v1 from the other server again, until it next signs with v2 (owners and admins)
+     * @description For a server moved back below 0.99.2 on purpose. Its requests are then no longer bound to the connection and the endpoint; the connection requires v2 again as soon as the server signs with it.
+     */
+    post: operations['acceptFederationV1'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/federation/offers/{offer_id}/accept': {
     parameters: {
       query?: never;
@@ -4681,6 +4703,13 @@ export interface components {
       last_error: string;
       /** Format: date-time */
       last_seen_at?: string | null;
+      /** @description The other server signs with v2 (0.99.2 and later), so requests signed only with v1 are refused. */
+      requires_v2: boolean;
+      /**
+       * Format: date-time
+       * @description When a valid request signed only with v1 was last refused: the other server looks moved back below 0.99.2 (see acceptFederationV1).
+       */
+      v1_refused_at?: string | null;
       policy?: components['schemas']['ConnectionPolicy'];
       shared: {
         /** Format: uuid */
@@ -15182,6 +15211,32 @@ export interface operations {
         };
       };
     };
+    responses: {
+      /** @description The connection. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FederationConnection'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  acceptFederationV1: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        connection_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description The connection. */
       200: {

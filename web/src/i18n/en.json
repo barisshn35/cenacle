@@ -1980,7 +1980,13 @@
       "removeHint": "Shared channels stop exchanging messages; messages already here stay.",
       "seen": "Last heard from {{time}}",
       "error": "Last delivery failed:",
-      "shared": "Shared: {{channels}}"
+      "shared": "Shared: {{channels}}",
+      "olderTitle": "Requests from this server are refused",
+      "olderHint": "The other server signs with an older version (below 0.99.2), so its requests are refused (last at {{time}}). If it was moved back on purpose, allow its older signatures again; otherwise keep refusing them.",
+      "olderAllow": "Allow older signatures",
+      "olderAllowTitle": "Allow older signatures from {{name}}?",
+      "olderAllowHint": "Its requests are then no longer bound to this connection, which makes them easier to misuse. Do this only if its admins confirm they moved it back below 0.99.2. As soon as it signs with the newer version again, older signatures are refused again.",
+      "olderAllowed": "Older signatures are allowed until the server signs with the newer version again."
     },
     "invite": {
       "title": "Invite another server",

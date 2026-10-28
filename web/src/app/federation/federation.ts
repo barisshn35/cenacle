@@ -38,6 +38,8 @@ export const setConnectionPolicy = (
   id: string,
   policy: components['schemas']['ConnectionPolicy'],
 ) => apiFetch<FederationConnection>(`/api/federation/connections/${id}`, json({ policy }, 'PATCH'));
+export const acceptOlderSignatures = (id: string) =>
+  apiFetch<FederationConnection>(`/api/federation/connections/${id}/accept-v1`, { method: 'POST' });
 export const removeConnection = (id: string) =>
   apiFetch<void>(`/api/federation/connections/${id}`, { method: 'DELETE' });
 export const acceptOffer = (id: string) =>
