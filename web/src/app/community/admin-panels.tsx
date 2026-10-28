@@ -60,8 +60,15 @@ export function WelcomeForm({ workspace }: { workspace: Workspace }) {
     onError: (err) =>
       toast.error((err instanceof ApiError && err.problem.detail) || t('community.welcome.failed')),
   });
+  // Suggested channels are ones anyone may join: no access rules, no groups.
   const publicChannels = (directory.data ?? []).filter(
-    (c) => c.visibility === 'public' && c.kind !== 'direct' && c.kind !== 'group' && !c.archived,
+    (c) =>
+      c.visibility === 'public' &&
+      c.kind !== 'direct' &&
+      c.kind !== 'group' &&
+      !c.archived &&
+      !c.group_managed &&
+      !c.access_rules?.length,
   );
   if (!welcome.data) return null;
   return (
