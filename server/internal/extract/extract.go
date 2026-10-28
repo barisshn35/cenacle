@@ -9,6 +9,7 @@ package extract
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/xml"
 	"errors"
 	"io"
@@ -55,7 +56,8 @@ func kind(contentType, name string) string {
 }
 
 // Text returns the readable text of a file (at most MaxText characters).
-func Text(r io.ReaderAt, size int64, contentType, name string) (string, error) {
+// Reading stops early (with what was read) when ctx ends.
+func Text(ctx context.Context, r io.ReaderAt, size int64, contentType, name string) (string, error) {
 	if size > MaxSize {
 		return "", ErrUnsupported
 	}
@@ -74,17 +76,17 @@ func Text(r io.ReaderAt, size int64, contentType, name string) (string, error) {
 		}
 		out = string(b)
 	case "pdf":
-		out, err = pdfText(r, size)
+		out, err = pdfText(ctx, r, size)
 	case "docx":
-		out, err = zipText(r, size, func(n string) bool {
+		out, err = zipText(ctx, r, size, func(n string) bool {
 			return n == "word/document.xml" || strings.HasPrefix(n, "word/header") || strings.HasPrefix(n, "word/footer")
 		}, "p")
 	case "pptx":
-		out, err = zipText(r, size, func(n string) bool { return strings.HasPrefix(n, "ppt/slides/slide") && strings.HasSuffix(n, ".xml") }, "p")
+		out, err = zipText(ctx, r, size, func(n string) bool { return strings.HasPrefix(n, "ppt/slides/slide") && strings.HasSuffix(n, ".xml") }, "p")
 	case "xlsx":
-		out, err = zipText(r, size, func(n string) bool { return n == "xl/sharedStrings.xml" || strings.HasPrefix(n, "xl/worksheets/sheet") }, "si")
+		out, err = zipText(ctx, r, size, func(n string) bool { return n == "xl/sharedStrings.xml" || strings.HasPrefix(n, "xl/worksheets/sheet") }, "si")
 	case "odf":
-		out, err = zipText(r, size, func(n string) bool { return n == "content.xml" }, "p")
+		out, err = zipText(ctx, r, size, func(n string) bool { return n == "content.xml" }, "p")
 	default:
 		return "", ErrUnsupported
 	}
@@ -114,8 +116,14 @@ const (
 // errStop ends the interpretation of a page (enough text, or out of time).
 var errStop = errors.New("extract: stop")
 
+// timeUp tells when reading a file must stop: its time budget is spent or
+// the caller gave up.
+func timeUp(ctx context.Context, deadline time.Time) bool {
+	return ctx.Err() != nil || time.Now().After(deadline)
+}
+
 // pdfText reads the text of every page; a broken PDF is an error, not a panic.
-func pdfText(r io.ReaderAt, size int64) (out string, err error) {
+func pdfText(ctx context.Context, r io.ReaderAt, size int64) (out string, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			out, err = "", errors.New("extract: unreadable PDF")
@@ -128,7 +136,7 @@ func pdfText(r io.ReaderAt, size int64) (out string, err error) {
 	deadline := time.Now().Add(pdfTime)
 	budget := int64(maxPDFContent)
 	var b strings.Builder
-	for i := 1; i <= doc.NumPage() && b.Len() < MaxText*4 && time.Now().Before(deadline); i++ {
+	for i := 1; i <= doc.NumPage() && b.Len() < MaxText*4 && !timeUp(ctx, deadline); i++ {
 		page := doc.Page(i)
 		if page.V.IsNull() {
 			continue
@@ -141,7 +149,7 @@ func pdfText(r io.ReaderAt, size int64) (out string, err error) {
 		if budget -= n; budget < 0 {
 			break
 		}
-		pageText(&b, page, content, deadline)
+		pageText(ctx, &b, page, content, deadline)
 		b.WriteString("\n")
 	}
 	return b.String(), nil
@@ -171,7 +179,7 @@ func (rawEncoding) Decode(raw string) string { return raw }
 
 // pageText appends a page's text to b (as Page.GetPlainText does, but within
 // the bounds): a broken page adds what was read before it broke.
-func pageText(b *strings.Builder, page pdf.Page, content pdf.Value, deadline time.Time) {
+func pageText(ctx context.Context, b *strings.Builder, page pdf.Page, content pdf.Value, deadline time.Time) {
 	defer func() { _ = recover() }() // errStop or a malformed page
 	fonts := page.Resources().Key("Font")
 	encoders := map[string]pdf.TextEncoding{}
@@ -181,7 +189,7 @@ func pageText(b *strings.Builder, page pdf.Page, content pdf.Value, deadline tim
 			k := min(len(s), decodeChunk)
 			b.WriteString(enc.Decode(s[:k]))
 			s = s[k:]
-			if b.Len() >= MaxText*4 || time.Now().After(deadline) {
+			if b.Len() >= MaxText*4 || timeUp(ctx, deadline) {
 				panic(errStop)
 			}
 		}
@@ -192,7 +200,7 @@ func pageText(b *strings.Builder, page pdf.Page, content pdf.Value, deadline tim
 		for i := n - 1; i >= 0; i-- {
 			args[i] = stk.Pop()
 		}
-		if time.Now().After(deadline) {
+		if timeUp(ctx, deadline) {
 			panic(errStop)
 		}
 		switch op {
@@ -235,28 +243,56 @@ func pageText(b *strings.Builder, page pdf.Page, content pdf.Value, deadline tim
 	})
 }
 
+// Bounds of reading an Office or OpenDocument file. Its parts are deflated
+// XML, and markup without text inflates about a thousandfold and is never
+// cut short by the text bound: the parts read, their inflated bytes together
+// and the time are bounded per file. A long book is a few MiB of XML, and a
+// presentation a few hundred slides. Variables so tests can lower them.
+var (
+	maxZipPart    int64 = 50 << 20 // inflated bytes of one part
+	maxZipContent int64 = 64 << 20 // all parts together
+	maxZipParts         = 1000
+	zipTime             = 30 * time.Second
+)
+
+// zipCheckEvery is how many XML tokens are read between looks at the clock.
+const zipCheckEvery = 1024
+
 // zipText collects the character data of the XML parts a name filter picks,
 // in name order, with a line break after each paragraph element.
-func zipText(r io.ReaderAt, size int64, want func(string) bool, paragraph string) (string, error) {
+func zipText(ctx context.Context, r io.ReaderAt, size int64, want func(string) bool, paragraph string) (string, error) {
 	zr, err := zip.NewReader(r, size)
 	if err != nil {
 		return "", err
 	}
 	files := make([]*zip.File, 0, 8)
 	for _, f := range zr.File {
-		if want(f.Name) && f.UncompressedSize64 < 50<<20 {
+		if want(f.Name) && f.UncompressedSize64 < uint64(maxZipPart) { //nolint:gosec // a positive bound
 			files = append(files, f)
 		}
 	}
 	sort.Slice(files, func(i, j int) bool { return naturalLess(files[i].Name, files[j].Name) })
+	if len(files) > maxZipParts {
+		files = files[:maxZipParts]
+	}
+	deadline := time.Now().Add(zipTime)
+	budget := maxZipContent
 	var b strings.Builder
 	for _, f := range files {
+		if budget <= 0 || b.Len() >= MaxText*4 || timeUp(ctx, deadline) {
+			break
+		}
 		rc, err := f.Open()
 		if err != nil {
 			continue
 		}
-		dec := xml.NewDecoder(io.LimitReader(rc, 50<<20))
-		for b.Len() < MaxText*4 {
+		// The declared sizes are the archive's word: count what inflates.
+		part := &countingReader{r: io.LimitReader(rc, min(maxZipPart, budget))}
+		dec := xml.NewDecoder(part)
+		for tokens := 1; b.Len() < MaxText*4; tokens++ {
+			if tokens%zipCheckEvery == 0 && timeUp(ctx, deadline) {
+				break
+			}
 			tok, err := dec.Token()
 			if err != nil {
 				break
@@ -276,8 +312,21 @@ func zipText(r io.ReaderAt, size int64, want func(string) bool, paragraph string
 			}
 		}
 		_ = rc.Close()
+		budget -= part.n
 	}
 	return b.String(), nil
+}
+
+// countingReader counts the bytes read through it.
+type countingReader struct {
+	r io.Reader
+	n int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.n += int64(n)
+	return n, err
 }
 
 // naturalLess orders slide2 before slide10.

@@ -15,9 +15,11 @@ with physical left/right styling throughout.
    plain text, PDF (`github.com/ledongthuc/pdf`, BSD-3-Clause, a commit older than two
    weeks), Office Open XML and OpenDocument read as ZIP + XML with the standard library. No
    external tool (no Tika, no LibreOffice), so air-gapped installs need nothing more. Files
-   are bounded (25 MB read, 200 000 characters kept), parsing errors are contained (a PDF
-   that panics gives no text), and a file that has no readable text is marked so and not
-   tried again. Text lives in the file row; deleting or redacting the file deletes it.
+   are bounded (25 MB read, 200 000 characters kept; a PDF inflates at most 32 MiB of page
+   content in 30 seconds, an Office or OpenDocument file at most 1000 XML parts and 64 MiB
+   of inflated XML in 30 seconds; reading stops when the job's time runs out), parsing
+   errors are contained (a PDF that panics gives no text), and a file that has no readable
+   text is marked so and not tried again. Text lives in the file row; deleting or redacting the file deletes it.
 2. **The same search expression everywhere** (`cenacle_search_vector`: lower case, Turkish i
    folded, accents removed) indexes file text, canvases and list rows with expression GIN
    indexes, so they behave like message search. Excerpts are cut in Go from the original

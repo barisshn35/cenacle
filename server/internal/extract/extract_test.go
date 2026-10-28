@@ -5,10 +5,12 @@ package extract
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 func zipOf(t *testing.T, parts map[string]string) []byte {
@@ -79,7 +81,7 @@ func TestText(t *testing.T) {
 		}), []string{"Sayın yetkili"}},
 	}
 	for _, c := range cases {
-		got, err := Text(bytes.NewReader(c.data), int64(len(c.data)), c.contentType, c.name)
+		got, err := Text(context.Background(), bytes.NewReader(c.data), int64(len(c.data)), c.contentType, c.name)
 		if err != nil {
 			t.Errorf("%s: %v", c.name, err)
 			continue
@@ -93,10 +95,78 @@ func TestText(t *testing.T) {
 			t.Errorf("%s: read a part it should not: %q", c.name, got)
 		}
 	}
-	if _, err := Text(bytes.NewReader([]byte("x")), 1, "image/png", "a.png"); !errors.Is(err, ErrUnsupported) {
+	if _, err := Text(context.Background(), bytes.NewReader([]byte("x")), 1, "image/png", "a.png"); !errors.Is(err, ErrUnsupported) {
 		t.Errorf("png = %v", err)
 	}
-	if _, err := Text(bytes.NewReader([]byte("%PDF-1.4 broken")), 15, "application/pdf", "b.pdf"); err == nil {
+	if _, err := Text(context.Background(), bytes.NewReader([]byte("%PDF-1.4 broken")), 15, "application/pdf", "b.pdf"); err == nil {
 		t.Error("a broken PDF gave no error")
+	}
+}
+
+// emptyMarkup is n bytes of elements without text: it deflates about a
+// thousandfold and never reaches the text bound.
+func emptyMarkup(n int) string {
+	return "<w:hdr>" + strings.Repeat("<a/>", n/4) + "</w:hdr>"
+}
+
+// The parts of one file share a budget of inflated bytes: many small,
+// highly compressed parts of empty markup are not read to the end.
+func TestZipPartsShareABudget(t *testing.T) {
+	old := maxZipContent
+	t.Cleanup(func() { maxZipContent = old })
+	maxZipContent = 2 << 20
+
+	parts := map[string]string{"word/header1.xml": "<w:p>EARLY</w:p>"}
+	for i := 2; i <= 20; i++ {
+		parts[fmt.Sprintf("word/header%d.xml", i)] = emptyMarkup(1 << 20)
+	}
+	parts["word/header21.xml"] = "<w:p>LATE</w:p>"
+	data := zipOf(t, parts)
+	got, err := Text(context.Background(), bytes.NewReader(data), int64(len(data)), "", "a.docx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "EARLY") || strings.Contains(got, "LATE") {
+		t.Errorf("text = %q, want the first part only", got)
+	}
+}
+
+func TestZipPartsAreCounted(t *testing.T) {
+	old := maxZipParts
+	t.Cleanup(func() { maxZipParts = old })
+	maxZipParts = 2
+
+	data := zipOf(t, map[string]string{
+		"ppt/slides/slide1.xml": "<p>one</p>", "ppt/slides/slide2.xml": "<p>two</p>", "ppt/slides/slide3.xml": "<p>three</p>",
+	})
+	got, err := Text(context.Background(), bytes.NewReader(data), int64(len(data)), "", "a.pptx")
+	if err != nil || got != "one\ntwo" {
+		t.Errorf("text = %q, %v", got, err)
+	}
+}
+
+// Reading stops when the job gives up, and when the file's time is spent.
+func TestZipTextStops(t *testing.T) {
+	data := zipOf(t, map[string]string{"word/document.xml": "<w:p>words</w:p>"})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if got, err := Text(ctx, bytes.NewReader(data), int64(len(data)), "", "a.docx"); err != nil || got != "" {
+		t.Errorf("cancelled: %q, %v", got, err)
+	}
+
+	old := zipTime
+	t.Cleanup(func() { zipTime = old })
+	zipTime = 50 * time.Millisecond
+	parts := map[string]string{}
+	for i := 1; i <= 40; i++ {
+		parts[fmt.Sprintf("word/header%d.xml", i)] = emptyMarkup(1 << 20)
+	}
+	data = zipOf(t, parts)
+	start := time.Now()
+	if _, err := Text(context.Background(), bytes.NewReader(data), int64(len(data)), "", "b.docx"); err != nil {
+		t.Fatal(err)
+	}
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Errorf("reading took %v past its time", elapsed)
 	}
 }

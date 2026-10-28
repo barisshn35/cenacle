@@ -61,7 +61,7 @@ func (f *FileTextReader) read(ctx context.Context, file store.PendingFileTextsRo
 		return "", "none"
 	}
 	defer func() { _ = obj.Close() }()
-	text, err := extract.Text(obj, file.Size, file.ContentType, file.Name)
+	text, err := extract.Text(ctx, obj, file.Size, file.ContentType, file.Name)
 	if err != nil || text == "" {
 		if err != nil && !errors.Is(err, extract.ErrUnsupported) && f.Log != nil {
 			f.Log.InfoContext(ctx, "file text not read", "file", uuid(file.ID).String(), "error", err)

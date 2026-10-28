@@ -5,6 +5,7 @@ package extract
 import (
 	"bytes"
 	"compress/zlib"
+	"context"
 	"fmt"
 	"runtime"
 	"strings"
@@ -72,7 +73,7 @@ func TestPDFBombIsBounded(t *testing.T) {
 	runtime.GC()
 	runtime.ReadMemStats(&before)
 	start := time.Now()
-	text, err := Text(bytes.NewReader(data), int64(len(data)), "application/pdf", "bomb.pdf")
+	text, err := Text(context.Background(), bytes.NewReader(data), int64(len(data)), "application/pdf", "bomb.pdf")
 	runtime.ReadMemStats(&after)
 	if err != nil {
 		t.Fatal(err)
@@ -94,7 +95,7 @@ func TestPDFToUnicode(t *testing.T) {
 		"1 begincodespacerange <00> <FF> endcodespacerange " +
 		"1 beginbfchar <41> <005A> endbfchar endcmap CMapName currentdict /CMap defineresource pop end end"
 	data := pdfOf(cmap, "BT /F1 12 Tf (AAA) Tj /F1 10 Tf [(A) -20 (A)] TJ ET")
-	text, err := Text(bytes.NewReader(data), int64(len(data)), "application/pdf", "c.pdf")
+	text, err := Text(context.Background(), bytes.NewReader(data), int64(len(data)), "application/pdf", "c.pdf")
 	if err != nil || text != "ZZZZZ" {
 		t.Errorf("text = %q, %v", text, err)
 	}
