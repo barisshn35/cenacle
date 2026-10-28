@@ -57,22 +57,26 @@ export async function signInFederated(
   }
 
   let email = person.email && person.emailVerified ? person.email.slice(0, 320) : null;
-  if (email && !provider.config.linkByEmail) {
-    // The address belongs to another account: this one goes without it.
-    const { rowCount } = await pool.query(
-      `SELECT 1 FROM users WHERE email = $1::citext
-         AND (source_id IS DISTINCT FROM $2 OR external_id IS DISTINCT FROM $3)`,
-      [email, provider.id, externalId],
-    );
-    if (rowCount) email = null;
-  }
-  if (email) {
+  const link = provider.config.linkByEmail;
+  if (email && link) {
     // A disabled local account is not revived by linking it.
     const { rowCount } = await pool.query(
       `SELECT 1 FROM users WHERE email = $1::citext AND source_id IS NULL AND disabled_at IS NOT NULL`,
       [email],
     );
     if (rowCount) return { error: 'disabled' };
+  }
+  if (email) {
+    // The address belongs to another account (one not linked by it, see
+    // upsertPerson): this one goes without it.
+    const { rowCount } = await pool.query(
+      `SELECT 1 FROM users WHERE email = $1::citext
+         AND (source_id IS DISTINCT FROM $2 OR external_id IS DISTINCT FROM $3)
+         AND NOT ($4 AND source_id IS NULL AND NOT is_admin AND totp_enabled_at IS NULL)`,
+      // Only a person without an account here yet links one.
+      [email, provider.id, externalId, link && !existing[0]],
+    );
+    if (rowCount) email = null;
   }
 
   const groups = [...new Set(person.groups.map((g) => g.slice(0, 200)).filter(Boolean))].slice(
@@ -123,6 +127,9 @@ export async function signInFederated(
       role,
       groupIds,
       provider.config.linkByEmail,
+      // Its sign-ins skip the second step: an administrator or an account with
+      // one is never taken over by an address alone.
+      false,
     );
     await client.query('COMMIT');
     return { userId: id };

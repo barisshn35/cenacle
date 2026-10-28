@@ -228,8 +228,10 @@ export type Role = 'admin' | 'guest' | null;
  * address, title, role, photo, groups) every time; reactivated if they come
  * back. With linkByEmail (the source's opt-in), an existing local account with
  * the same address becomes the directory account; a disabled one is never
- * linked (and so never revived). Returns the user id and whether the account
- * was created or changed.
+ * linked (and so never revived). Without linkPrivileged, administrators of
+ * Cenacle ID and accounts with a second step are not linked either (identity
+ * providers' accounts sign in there, without the second step). Returns the
+ * user id and whether the account was created or changed.
  */
 export async function upsertPerson(
   db: pg.Pool | pg.PoolClient,
@@ -239,13 +241,15 @@ export async function upsertPerson(
   role: Role,
   groupIds: string[] | null,
   linkByEmail: boolean,
+  linkPrivileged = true,
 ): Promise<{ id: string; created: boolean; changed: boolean }> {
   if (person.email && linkByEmail) {
     await db.query(
       `UPDATE users SET source_id = $1, external_id = $2, password_hash = NULL, updated_at = now()
        WHERE source_id IS NULL AND email = $3::citext AND disabled_at IS NULL
+         AND ($4 OR (NOT is_admin AND totp_enabled_at IS NULL))
          AND NOT EXISTS (SELECT 1 FROM users WHERE source_id = $1 AND external_id = $2)`,
-      [sourceId, person.externalId, person.email],
+      [sourceId, person.externalId, person.email, linkPrivileged],
     );
   }
   const upsert = (email: string | null) =>

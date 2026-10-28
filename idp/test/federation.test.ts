@@ -103,6 +103,23 @@ describe.skipIf(!hasTestDatabase)('signing in at identity providers (database)',
     expect((await users.findById(local2.id))!.fromProvider).toBe(true);
   });
 
+  it('never takes over an administrator or an account with a second step', async () => {
+    for (const column of ['is_admin = true', 'totp_enabled_at = now()']) {
+      await resetTestDatabase(pool);
+      const p = await provider({ linkByEmail: true });
+      const local = await users.create({
+        email: 'ada@example.com',
+        displayName: 'Ada (local)',
+        password: 'correct horse battery staple',
+      });
+      await pool.query(`UPDATE users SET ${column} WHERE id = $1`, [local.id]);
+      const signedIn = (await signInFederated(pool, p, ada)) as { userId: string };
+      expect(signedIn.userId).not.toBe(local.id);
+      const kept = (await users.findById(local.id))!;
+      expect(kept).toMatchObject({ fromProvider: false, email: 'ada@example.com' });
+    }
+  });
+
   it('does not revive accounts an administrator disabled', async () => {
     const p: Provider = await provider();
     const { userId } = (await signInFederated(pool, p, ada)) as { userId: string };

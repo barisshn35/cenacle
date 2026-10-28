@@ -74,6 +74,8 @@ container.
 - **Link by e-mail** makes an existing account with the same address the provider's — only
   when the provider vouches for the address (OIDC `email_verified`; for SAML, the "vouches
   for the e-mail addresses" setting). Turn it on only for providers that verify addresses.
+  Administrators of Cenacle ID and accounts with a two-step code are never linked: provider
+  sign-ins skip the second step, so such a person gets a separate provider account.
 - Without provisioning, providers do not tell Cenacle ID when someone leaves: block them at
   the provider (they can no longer sign in) and disable their account in **Accounts** to end
   their sessions. With SCIM (below) the provider does this itself.
