@@ -36,8 +36,22 @@ UPDATE federation_connections SET last_seen_at = now() WHERE id = @id;
 
 -- name: RequireFederationV2 :exec
 -- RequireFederationV2 records that the connection's server signs with v2, so
--- requests without it are refused from now on.
-UPDATE federation_connections SET signature_version = 2 WHERE id = @id AND signature_version < 2;
+-- requests without it are refused from now on (and that it no longer looks
+-- moved back).
+UPDATE federation_connections SET signature_version = 2, v1_refused_at = NULL
+WHERE id = @id AND (signature_version < 2 OR v1_refused_at IS NOT NULL);
+
+-- name: NoteFederationV1Refused :exec
+-- NoteFederationV1Refused records that a valid request signed only with v1
+-- was refused on a connection that requires v2 (at most once a minute).
+UPDATE federation_connections SET v1_refused_at = now()
+WHERE id = @id AND signature_version >= 2
+  AND (v1_refused_at IS NULL OR v1_refused_at < now() - interval '1 minute');
+
+-- name: AcceptFederationV1 :one
+-- AcceptFederationV1 takes requests signed only with v1 from the connection's
+-- server again, until it next signs with v2.
+UPDATE federation_connections SET signature_version = 1, v1_refused_at = NULL WHERE id = @id RETURNING *;
 
 -- name: SetFederationError :exec
 UPDATE federation_connections SET last_error = @last_error WHERE id = @id;

@@ -281,3 +281,92 @@ func TestFederationRepeatOfDeletedMessage(t *testing.T) {
 		t.Fatalf("mirror = %+v", got)
 	}
 }
+
+// A server moved back below 0.99.2 signs with v1 only: a connection that
+// requires v2 refuses it and notes it (only for a valid v1 signature), and the
+// workspace's admins may take v1 again, until the server next signs with v2.
+func TestFederationMovedBack(t *testing.T) {
+	p := newFedPair(t)
+	ctx := context.Background()
+	var secret, bws string
+	if err := p.a.pool.QueryRow(ctx, `SELECT secret, workspace_id::text FROM federation_connections WHERE id = $1`, p.bConn).Scan(&secret, &bws); err != nil {
+		t.Fatal(err)
+	}
+	connection := func() api.FederationConnection {
+		t.Helper()
+		var f federation
+		p.b.call(http.MethodGet, "/api/workspaces/"+bws+"/federation", p.admin, nil, &f)
+		for _, c := range f.Connections {
+			if c.Id.String() == p.bConn {
+				return c
+			}
+		}
+		t.Fatal("no connection")
+		return api.FederationConnection{}
+	}
+	if c := connection(); !c.RequiresV2 || c.V1RefusedAt != nil {
+		t.Fatalf("before = %+v", c)
+	}
+	created, _ := json.Marshal(map[string]any{"type": "message.created", "channel_id": p.mirror, "body": "sent by an older server",
+		"message": map[string]string{"ours": "0199b0a0-0000-7000-8000-000000000001"},
+		"author":  map[string]string{"id": "0199b0a0-0000-7000-8000-0000000000a1", "name": "Author"}})
+	body := []byte(`{"events":[` + string(created) + `]}`)
+	v1 := func(secret string, at time.Time, body []byte) string {
+		return "c=" + p.bConn + "," + signing.Sign(secret, at, body)
+	}
+	now := time.Now()
+
+	// Not signed with the connection's secret: refused, and nothing noted.
+	if status := p.postSigned(t, v1("forged", now, body), body); status != http.StatusUnauthorized {
+		t.Fatalf("forged = %d", status)
+	}
+	if c := connection(); c.V1RefusedAt != nil {
+		t.Fatalf("a forged request marked the server moved back: %+v", c)
+	}
+	// Signed with v1 only: refused, and noted.
+	if status := p.postSigned(t, v1(secret, now, body), body); status != http.StatusUnauthorized {
+		t.Fatalf("v1 while v2 is required = %d", status)
+	}
+	if c := connection(); !c.RequiresV2 || c.V1RefusedAt == nil {
+		t.Fatalf("after v1 = %+v", c)
+	}
+
+	// Only the workspace's owners and admins take v1 again.
+	accept := "/api/federation/connections/" + p.bConn + "/accept-v1"
+	member := p.b.user("sub-fed-member", "Member")
+	if _, err := p.b.pool.Exec(ctx, `INSERT INTO workspace_members (workspace_id, user_id)
+		SELECT $1, id FROM users WHERE auth_data = 'sub-fed-member'`, bws); err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := problemCode(t, p.b, http.MethodPost, accept, member, nil); status != http.StatusForbidden {
+		t.Errorf("member accepts v1 = %d", status)
+	}
+	var c api.FederationConnection
+	if res := p.b.call(http.MethodPost, accept, p.admin, nil, &c); res.StatusCode != http.StatusOK || c.RequiresV2 || c.V1RefusedAt != nil {
+		t.Fatalf("accept v1 = %d %+v", res.StatusCode, c)
+	}
+	if n := p.b.count(`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action = 'federation.changed' AND detail->>'change' = 'v1_accepted'`, bws); n != 1 {
+		t.Errorf("audit entries = %d", n)
+	}
+	// The held-up event, signed anew, now goes through.
+	if status := p.postSigned(t, v1(secret, now.Add(-time.Second), body), body); status != http.StatusNoContent {
+		t.Fatalf("v1 after accepting it = %d", status)
+	}
+	if got := p.b.timeline(p.admin, p.mirror); len(got) != 1 || got[0].Body != "sent by an older server" {
+		t.Fatalf("mirror = %+v", got)
+	}
+	if c := connection(); c.RequiresV2 || c.V1RefusedAt != nil {
+		t.Fatalf("after taking v1 = %+v", c)
+	}
+	// Moved forward again: the first v2 request requires v2 once more.
+	empty := []byte(`{"events":[]}`)
+	if status := p.postSigned(t, signV2(secret, p.bConn, "events", now, empty), empty); status != http.StatusNoContent {
+		t.Fatalf("v2 = %d", status)
+	}
+	if c := connection(); !c.RequiresV2 || c.V1RefusedAt != nil {
+		t.Fatalf("after v2 = %+v", c)
+	}
+	if status := p.postSigned(t, v1(secret, now.Add(-2*time.Second), empty), empty); status != http.StatusUnauthorized {
+		t.Fatalf("v1 after v2 again = %d", status)
+	}
+}

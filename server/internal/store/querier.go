@@ -12,6 +12,9 @@ import (
 )
 
 type Querier interface {
+	// AcceptFederationV1 takes requests signed only with v1 from the connection's
+	// server again, until it next signs with v2.
+	AcceptFederationV1(ctx context.Context, id pgtype.UUID) (FederationConnection, error)
 	// AcceptSharedChannel records the id the other side gave a channel we offered.
 	// A channel encrypted end to end since it was offered is not shared after all.
 	AcceptSharedChannel(ctx context.Context, arg AcceptSharedChannelParams) (SharedChannel, error)
@@ -711,6 +714,9 @@ type Querier interface {
 	NewestMessageID(ctx context.Context) (pgtype.UUID, error)
 	// NewestTimelineMessage returns the newest message shown in a channel's timeline.
 	NewestTimelineMessage(ctx context.Context, channelID pgtype.UUID) (pgtype.UUID, error)
+	// NoteFederationV1Refused records that a valid request signed only with v1
+	// was refused on a connection that requires v2 (at most once a minute).
+	NoteFederationV1Refused(ctx context.Context, id pgtype.UUID) error
 	// NotifyCandidates lists, for messages after a cursor, the people who may be
 	// told about them: the members of the message's channel other than its author,
 	// what the message is to them (a mention, a conversation, any message) and
@@ -785,7 +791,8 @@ type Querier interface {
 	// ReplaceUserGroups sets the directory groups of a person.
 	ReplaceUserGroups(ctx context.Context, arg ReplaceUserGroupsParams) error
 	// RequireFederationV2 records that the connection's server signs with v2, so
-	// requests without it are refused from now on.
+	// requests without it are refused from now on (and that it no longer looks
+	// moved back).
 	RequireFederationV2(ctx context.Context, id pgtype.UUID) error
 	ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (EventDelivery, error)
 	// ResolveReports closes every open report of a message.

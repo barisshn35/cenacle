@@ -47,7 +47,10 @@ import (
 // v2 (since 0.99.2) also binds the request to the connection and the endpoint
 // ("connect" or "events"). Servers before it check v1 and ignore v2; a server
 // checks v2 when it is there, and once a connection has signed with v2 it
-// takes no request without it (so v2 cannot be stripped off).
+// takes no request without it (so v2 cannot be stripped off). A valid request
+// with v1 only is then noted (v1_refused_at): the other server looks moved back
+// below 0.99.2, and the workspace's admins may take v1 again (AcceptFederationV1)
+// until it next signs with v2. Outgoing requests carry v1 and v2 always.
 const (
 	FederationHeader   = "X-Cenacle-Federation"
 	federationSkew     = 5 * time.Minute
@@ -148,6 +151,7 @@ func hashToken(t string) []byte {
 func connectionAPI(c store.FederationConnection, shared []store.ListSharedChannelsRow) api.FederationConnection {
 	out := api.FederationConnection{Id: uuid(c.ID), Name: c.Name, Url: c.Url,
 		Status: api.FederationConnectionStatus(c.Status), LastError: c.LastError, LastSeenAt: timeOf(c.LastSeenAt),
+		RequiresV2: c.SignatureVersion >= 2, V1RefusedAt: timeOf(c.V1RefusedAt),
 		Policy: ptr(connectionPolicyAPI(c)),
 		Shared: []struct {
 			ChannelId   openapi_types.UUID                   `json:"channel_id"`
@@ -400,6 +404,32 @@ func (h *Handlers) UpdateFederationConnection(w http.ResponseWriter, r *http.Req
 		h.record(r, c.WorkspaceID, audit.FederationChanged, "workspace", uuid(c.WorkspaceID).String(),
 			map[string]any{"change": "policy", "name": c.Name, "policy": pol})
 	}
+	shared, _ := h.Queries.ListSharedChannels(r.Context(), c.ID)
+	httpx.WriteJSON(w, http.StatusOK, connectionAPI(c, shared))
+}
+
+// AcceptFederationV1 implements api.ServerInterface: the other server was
+// moved back below 0.99.2, so its requests are taken with v1 again until it
+// next signs with v2.
+func (h *Handlers) AcceptFederationV1(w http.ResponseWriter, r *http.Request, connectionID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	c, ok := h.adminConnection(w, r, connectionID, p.User)
+	if !ok {
+		return
+	}
+	if c.Status == "pending" {
+		badRequest(w, r, "The connection is not set up yet.")
+		return
+	}
+	c, err := h.Queries.AcceptFederationV1(r.Context(), c.ID)
+	if err != nil {
+		h.unavailable(w, r, "update connection", err)
+		return
+	}
+	h.record(r, c.WorkspaceID, audit.FederationChanged, "workspace", uuid(c.WorkspaceID).String(), map[string]any{"change": "v1_accepted", "name": c.Name})
 	shared, _ := h.Queries.ListSharedChannels(r.Context(), c.ID)
 	httpx.WriteJSON(w, http.StatusOK, connectionAPI(c, shared))
 }
@@ -726,6 +756,15 @@ func (h *Handlers) FederationEvents(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		verified, v2 = federationVerify(conn.Secret, rest, id, "events", body, conn.SignatureVersion >= 2)
 	}
+	if err == nil && !verified && !v2 && conn.SignatureVersion >= 2 &&
+		(!conn.V1RefusedAt.Valid || time.Since(conn.V1RefusedAt.Time) > time.Minute) &&
+		signing.Verify(conn.Secret, rest, body, time.Now(), federationSkew) {
+		// Signed by the connection's secret, but only with v1: the other
+		// server looks moved back. Refused all the same; its admins decide.
+		if err := h.Queries.NoteFederationV1Refused(r.Context(), conn.ID); err != nil {
+			h.Log.WarnContext(r.Context(), "federation v1 refused", "connection", conn.Name, "error", err)
+		}
+	}
 	if isNoRows(err) || (err == nil && !verified) {
 		federationRefused(w, r)
 		return
@@ -783,7 +822,7 @@ func (h *Handlers) FederationEvents(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("%s: %w", ev.Type, err)
 			}
 		}
-		if v2 && conn.SignatureVersion < 2 { // from now on, only with v2
+		if v2 && (conn.SignatureVersion < 2 || conn.V1RefusedAt.Valid) { // from now on, only with v2
 			if err := q.RequireFederationV2(r.Context(), conn.ID); err != nil {
 				return err
 			}

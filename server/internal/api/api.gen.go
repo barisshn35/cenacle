@@ -2983,13 +2983,19 @@ type FederationConnection struct {
 
 	// Policy What this server takes in from the other one, and how often it may send.
 	Policy *ConnectionPolicy `json:"policy,omitempty"`
-	Shared []struct {
+
+	// RequiresV2 The other server signs with v2 (0.99.2 and later), so requests signed only with v1 are refused.
+	RequiresV2 bool `json:"requires_v2"`
+	Shared     []struct {
 		ChannelId   openapi_types.UUID               `json:"channel_id"`
 		ChannelName string                           `json:"channel_name"`
 		Status      FederationConnectionSharedStatus `json:"status"`
 	} `json:"shared"`
 	Status FederationConnectionStatus `json:"status"`
 	Url    string                     `json:"url"`
+
+	// V1RefusedAt When a valid request signed only with v1 was last refused: the other server looks moved back below 0.99.2 (see acceptFederationV1).
+	V1RefusedAt *time.Time `json:"v1_refused_at,omitempty"`
 }
 
 // FederationConnectionSharedStatus defines model for FederationConnection.Shared.Status.
@@ -6068,6 +6074,9 @@ type ServerInterface interface {
 	// UpdateFederationConnection Pause or resume a connection, or change what it takes in (owners and admins)
 	// (PATCH /api/federation/connections/{connection_id})
 	UpdateFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID)
+	// AcceptFederationV1 Take requests signed only with v1 from the other server again, until it next signs with v2 (owners and admins)
+	// (POST /api/federation/connections/{connection_id}/accept-v1)
+	AcceptFederationV1(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID)
 	// DeclineChannelOffer Decline a shared channel (owners and admins)
 	// (DELETE /api/federation/offers/{offer_id})
 	DeclineChannelOffer(w http.ResponseWriter, r *http.Request, offerId openapi_types.UUID)
@@ -7412,6 +7421,12 @@ func (_ Unimplemented) DeleteFederationConnection(w http.ResponseWriter, r *http
 // UpdateFederationConnection Pause or resume a connection, or change what it takes in (owners and admins)
 // (PATCH /api/federation/connections/{connection_id})
 func (_ Unimplemented) UpdateFederationConnection(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AcceptFederationV1 Take requests signed only with v1 from the other server again, until it next signs with v2 (owners and admins)
+// (POST /api/federation/connections/{connection_id}/accept-v1)
+func (_ Unimplemented) AcceptFederationV1(w http.ResponseWriter, r *http.Request, connectionId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -12369,6 +12384,32 @@ func (siw *ServerInterfaceWrapper) UpdateFederationConnection(w http.ResponseWri
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateFederationConnection(w, r, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcceptFederationV1 operation middleware
+func (siw *ServerInterfaceWrapper) AcceptFederationV1(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcceptFederationV1(w, r, connectionId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18140,6 +18181,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/federation/connections/{connection_id}", wrapper.UpdateFederationConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/federation/connections/{connection_id}/accept-v1", wrapper.AcceptFederationV1)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/federation/offers/{offer_id}/accept", wrapper.AcceptChannelOffer)

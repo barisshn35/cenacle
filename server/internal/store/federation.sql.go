@@ -12,6 +12,37 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const acceptFederationV1 = `-- name: AcceptFederationV1 :one
+UPDATE federation_connections SET signature_version = 1, v1_refused_at = NULL WHERE id = $1 RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version, v1_refused_at
+`
+
+// AcceptFederationV1 takes requests signed only with v1 from the connection's
+// server again, until it next signs with v2.
+func (q *Queries) AcceptFederationV1(ctx context.Context, id pgtype.UUID) (FederationConnection, error) {
+	row := q.db.QueryRow(ctx, acceptFederationV1, id)
+	var i FederationConnection
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Url,
+		&i.Secret,
+		&i.RemoteID,
+		&i.Status,
+		&i.LastError,
+		&i.LastSeenAt,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.ReceiveMessages,
+		&i.ReceiveReactions,
+		&i.ReceiveEdits,
+		&i.RequestsPerMinute,
+		&i.SignatureVersion,
+		&i.V1RefusedAt,
+	)
+	return i, err
+}
+
 const acceptSharedChannel = `-- name: AcceptSharedChannel :one
 UPDATE shared_channels SET remote_channel_id = $1, status = 'active'
 WHERE channel_id = $2 AND connection_id = $3
@@ -43,7 +74,7 @@ func (q *Queries) AcceptSharedChannel(ctx context.Context, arg AcceptSharedChann
 const activateFederationConnection = `-- name: ActivateFederationConnection :one
 UPDATE federation_connections SET remote_id = $1, status = 'active', last_error = ''
 WHERE id = $2
-RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version
+RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version, v1_refused_at
 `
 
 type ActivateFederationConnectionParams struct {
@@ -71,6 +102,7 @@ func (q *Queries) ActivateFederationConnection(ctx context.Context, arg Activate
 		&i.ReceiveEdits,
 		&i.RequestsPerMinute,
 		&i.SignatureVersion,
+		&i.V1RefusedAt,
 	)
 	return i, err
 }
@@ -181,7 +213,7 @@ func (q *Queries) CreateActiveSharedChannel(ctx context.Context, arg CreateActiv
 const createFederationConnection = `-- name: CreateFederationConnection :one
 INSERT INTO federation_connections (workspace_id, name, url, secret, remote_id, status, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version
+RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version, v1_refused_at
 `
 
 type CreateFederationConnectionParams struct {
@@ -222,6 +254,7 @@ func (q *Queries) CreateFederationConnection(ctx context.Context, arg CreateFede
 		&i.ReceiveEdits,
 		&i.RequestsPerMinute,
 		&i.SignatureVersion,
+		&i.V1RefusedAt,
 	)
 	return i, err
 }
@@ -341,7 +374,7 @@ func (q *Queries) GetChannelOffer(ctx context.Context, id pgtype.UUID) (ChannelO
 }
 
 const getFederationConnection = `-- name: GetFederationConnection :one
-SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version FROM federation_connections WHERE id = $1
+SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version, v1_refused_at FROM federation_connections WHERE id = $1
 `
 
 func (q *Queries) GetFederationConnection(ctx context.Context, id pgtype.UUID) (FederationConnection, error) {
@@ -364,6 +397,7 @@ func (q *Queries) GetFederationConnection(ctx context.Context, id pgtype.UUID) (
 		&i.ReceiveEdits,
 		&i.RequestsPerMinute,
 		&i.SignatureVersion,
+		&i.V1RefusedAt,
 	)
 	return i, err
 }
@@ -512,7 +546,7 @@ func (q *Queries) ListChannelShares(ctx context.Context, channelID pgtype.UUID) 
 }
 
 const listFederationConnections = `-- name: ListFederationConnections :many
-SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version FROM federation_connections WHERE workspace_id = $1 ORDER BY lower(name)
+SELECT id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version, v1_refused_at FROM federation_connections WHERE workspace_id = $1 ORDER BY lower(name)
 `
 
 func (q *Queries) ListFederationConnections(ctx context.Context, workspaceID pgtype.UUID) ([]FederationConnection, error) {
@@ -541,6 +575,7 @@ func (q *Queries) ListFederationConnections(ctx context.Context, workspaceID pgt
 			&i.ReceiveEdits,
 			&i.RequestsPerMinute,
 			&i.SignatureVersion,
+			&i.V1RefusedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -625,6 +660,19 @@ func (q *Queries) LockFederationSending(ctx context.Context, connectionID pgtype
 	return locked, err
 }
 
+const noteFederationV1Refused = `-- name: NoteFederationV1Refused :exec
+UPDATE federation_connections SET v1_refused_at = now()
+WHERE id = $1 AND signature_version >= 2
+  AND (v1_refused_at IS NULL OR v1_refused_at < now() - interval '1 minute')
+`
+
+// NoteFederationV1Refused records that a valid request signed only with v1
+// was refused on a connection that requires v2 (at most once a minute).
+func (q *Queries) NoteFederationV1Refused(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, noteFederationV1Refused, id)
+	return err
+}
+
 const queueFederationDelivery = `-- name: QueueFederationDelivery :exec
 INSERT INTO federation_deliveries (connection_id, event) VALUES ($1, $2)
 `
@@ -673,11 +721,13 @@ func (q *Queries) RemoteMessageOf(ctx context.Context, arg RemoteMessageOfParams
 }
 
 const requireFederationV2 = `-- name: RequireFederationV2 :exec
-UPDATE federation_connections SET signature_version = 2 WHERE id = $1 AND signature_version < 2
+UPDATE federation_connections SET signature_version = 2, v1_refused_at = NULL
+WHERE id = $1 AND (signature_version < 2 OR v1_refused_at IS NOT NULL)
 `
 
 // RequireFederationV2 records that the connection's server signs with v2, so
-// requests without it are refused from now on.
+// requests without it are refused from now on (and that it no longer looks
+// moved back).
 func (q *Queries) RequireFederationV2(ctx context.Context, id pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, requireFederationV2, id)
 	return err
@@ -698,7 +748,7 @@ const setFederationConnectionPolicy = `-- name: SetFederationConnectionPolicy :o
 UPDATE federation_connections SET receive_messages = $1, receive_reactions = $2,
     receive_edits = $3, requests_per_minute = $4
 WHERE id = $5
-RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version
+RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version, v1_refused_at
 `
 
 type SetFederationConnectionPolicyParams struct {
@@ -735,12 +785,13 @@ func (q *Queries) SetFederationConnectionPolicy(ctx context.Context, arg SetFede
 		&i.ReceiveEdits,
 		&i.RequestsPerMinute,
 		&i.SignatureVersion,
+		&i.V1RefusedAt,
 	)
 	return i, err
 }
 
 const setFederationConnectionStatus = `-- name: SetFederationConnectionStatus :one
-UPDATE federation_connections SET status = $1 WHERE id = $2 RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version
+UPDATE federation_connections SET status = $1 WHERE id = $2 RETURNING id, workspace_id, name, url, secret, remote_id, status, last_error, last_seen_at, created_by, created_at, receive_messages, receive_reactions, receive_edits, requests_per_minute, signature_version, v1_refused_at
 `
 
 type SetFederationConnectionStatusParams struct {
@@ -768,6 +819,7 @@ func (q *Queries) SetFederationConnectionStatus(ctx context.Context, arg SetFede
 		&i.ReceiveEdits,
 		&i.RequestsPerMinute,
 		&i.SignatureVersion,
+		&i.V1RefusedAt,
 	)
 	return i, err
 }

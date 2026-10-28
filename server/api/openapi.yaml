@@ -7057,6 +7057,27 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/federation/connections/{connection_id}/accept-v1:
+    parameters:
+      - { name: connection_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [federation]
+      operationId: acceptFederationV1
+      summary: Take requests signed only with v1 from the other server again, until it next signs with v2 (owners and admins)
+      description: >-
+        For a server moved back below 0.99.2 on purpose. Its requests are then
+        no longer bound to the connection and the endpoint; the connection
+        requires v2 again as soon as the server signs with it.
+      responses:
+        '200':
+          description: The connection.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FederationConnection' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/federation/offers/{offer_id}/accept:
     parameters:
       - { name: offer_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -7209,7 +7230,7 @@ components:
   schemas:
     FederationConnection:
       type: object
-      required: [id, name, url, status, last_error, shared]
+      required: [id, name, url, status, last_error, requires_v2, shared]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -7217,6 +7238,16 @@ components:
         status: { type: string, enum: [pending, active, disabled] }
         last_error: { type: string }
         last_seen_at: { type: string, format: date-time, nullable: true }
+        requires_v2:
+          type: boolean
+          description: The other server signs with v2 (0.99.2 and later), so requests signed only with v1 are refused.
+        v1_refused_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: >-
+            When a valid request signed only with v1 was last refused: the other
+            server looks moved back below 0.99.2 (see acceptFederationV1).
         policy: { $ref: '#/components/schemas/ConnectionPolicy' }
         shared:
           type: array
