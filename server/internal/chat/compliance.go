@@ -70,6 +70,18 @@ func looksSealed(body string) bool {
 	return strings.HasPrefix(body, "e2e:v1:") || strings.HasPrefix(body, "mls:v1:")
 }
 
+// serverReadable lets a write of text the server keeps readable (tabs,
+// canvases, lists, form answers, run names) go on, unless the channel is
+// encrypted end to end: its members expect the server to read nothing there.
+// Every loader of such writes calls it.
+func serverReadable(w http.ResponseWriter, r *http.Request, c store.Channel) bool {
+	if c.Encrypted {
+		refuseEncrypted(w, r)
+		return false
+	}
+	return true
+}
+
 func refuseEncrypted(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: CodeEncrypted,
 		Detail: "This channel is encrypted end to end: only its members' apps write in it."})

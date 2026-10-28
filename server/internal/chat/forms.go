@@ -402,6 +402,9 @@ func (h *Handlers) SubmitForm(w http.ResponseWriter, r *http.Request, formID ope
 		forbidden(w, r, httpx.CodeForbidden, "Fill in forms in channels of their workspace you can post in.")
 		return
 	}
+	if !serverReadable(w, r, c) { // the answers are kept as the server reads them
+		return
+	}
 	if h.timedOut(w, r, c.WorkspaceID, p.User) || !h.allowMessage(w, r, p.User) {
 		return
 	}

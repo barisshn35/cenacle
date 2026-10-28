@@ -127,9 +127,7 @@ func (h *Handlers) CreateChannelTab(w http.ResponseWriter, r *http.Request, chan
 		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here add tabs.")
 		return
 	}
-	// Canvases, lists and links are kept as the server reads them.
-	if c.Encrypted {
-		refuseEncrypted(w, r)
+	if !serverReadable(w, r, c) {
 		return
 	}
 	var in api.TabInput
@@ -238,6 +236,9 @@ func (h *Handlers) UpdateChannelTab(w http.ResponseWriter, r *http.Request, tabI
 	}
 	if !canPost(c, role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here change tabs.")
+		return
+	}
+	if !serverReadable(w, r, c) {
 		return
 	}
 	var in api.UpdateChannelTabJSONBody
@@ -362,6 +363,19 @@ func (h *Handlers) canvas(w http.ResponseWriter, r *http.Request, id openapi_typ
 	return cv, t, c, role, ok
 }
 
+// editableCanvas loads a canvas the user may write in.
+func (h *Handlers) editableCanvas(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.GetCanvasRow, store.ChannelTab, bool) {
+	cv, t, c, role, ok := h.canvas(w, r, id, user)
+	if !ok {
+		return cv, t, false
+	}
+	if !canPost(c, role) {
+		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here edit canvases.")
+		return cv, t, false
+	}
+	return cv, t, serverReadable(w, r, c)
+}
+
 // canvasChanged answers with the canvas as it is now and tells the channel.
 func (h *Handlers) canvasChanged(w http.ResponseWriter, r *http.Request, status int, t store.ChannelTab, canEdit bool) {
 	cv, err := h.Queries.GetCanvas(r.Context(), t.CanvasID)
@@ -402,12 +416,8 @@ func (h *Handlers) StartEditingCanvas(w http.ResponseWriter, r *http.Request, ca
 	if !ok {
 		return
 	}
-	cv, t, c, role, ok := h.canvas(w, r, canvasID, p.User)
+	cv, t, ok := h.editableCanvas(w, r, canvasID, p.User)
 	if !ok {
-		return
-	}
-	if !canPost(c, role) {
-		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here edit canvases.")
 		return
 	}
 	_, err := h.Queries.TakeCanvasTurn(r.Context(), store.TakeCanvasTurnParams{
@@ -457,12 +467,8 @@ func (h *Handlers) SaveCanvas(w http.ResponseWriter, r *http.Request, canvasID o
 	if !ok {
 		return
 	}
-	cv, t, c, role, ok := h.canvas(w, r, canvasID, p.User)
+	cv, t, ok := h.editableCanvas(w, r, canvasID, p.User)
 	if !ok {
-		return
-	}
-	if !canPost(c, role) {
-		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here edit canvases.")
 		return
 	}
 	var in api.SaveCanvasJSONBody
@@ -689,13 +695,20 @@ func (h *Handlers) writeList(w http.ResponseWriter, r *http.Request, l listRef) 
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
-func (h *Handlers) editableList(w http.ResponseWriter, r *http.Request, id pgtype.UUID, user store.User) (listRef, bool) {
+// changeableList loads a list the user may change (removing rows included).
+func (h *Handlers) changeableList(w http.ResponseWriter, r *http.Request, id pgtype.UUID, user store.User) (listRef, bool) {
 	l, ok := h.listFor(w, r, id, user)
 	if ok && !canPost(l.channel, l.role) {
 		forbidden(w, r, httpx.CodeForbidden, "Only people who can post here change lists.")
 		return l, false
 	}
 	return l, ok
+}
+
+// editableList loads a list the user may write in.
+func (h *Handlers) editableList(w http.ResponseWriter, r *http.Request, id pgtype.UUID, user store.User) (listRef, bool) {
+	l, ok := h.changeableList(w, r, id, user)
+	return l, ok && serverReadable(w, r, l.channel)
 }
 
 // UpdateList implements api.ServerInterface.
@@ -851,8 +864,9 @@ func (h *Handlers) CreateListItem(w http.ResponseWriter, r *http.Request, listID
 	httpx.WriteJSON(w, http.StatusCreated, listItemAPI(item))
 }
 
-// item loads a row of a list the user may change.
-func (h *Handlers) item(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User) (store.ListItem, listRef, bool) {
+// item loads a row of a list the user may change; writing text into it
+// (not removing it) also needs a channel the server may read.
+func (h *Handlers) item(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, user store.User, writes bool) (store.ListItem, listRef, bool) {
 	it, err := h.Queries.GetListItem(r.Context(), pgUUID(id))
 	if isNoRows(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such row."})
@@ -861,6 +875,10 @@ func (h *Handlers) item(w http.ResponseWriter, r *http.Request, id openapi_types
 	if err != nil {
 		h.unavailable(w, r, "get item", err)
 		return it, listRef{}, false
+	}
+	if !writes {
+		l, ok := h.changeableList(w, r, it.ListID, user)
+		return it, l, ok
 	}
 	l, ok := h.editableList(w, r, it.ListID, user)
 	return it, l, ok
@@ -872,7 +890,7 @@ func (h *Handlers) UpdateListItem(w http.ResponseWriter, r *http.Request, itemID
 	if !ok {
 		return
 	}
-	it, l, ok := h.item(w, r, itemID, p.User)
+	it, l, ok := h.item(w, r, itemID, p.User, true)
 	if !ok {
 		return
 	}
@@ -975,7 +993,7 @@ func (h *Handlers) DeleteListItem(w http.ResponseWriter, r *http.Request, itemID
 	if !ok {
 		return
 	}
-	it, l, ok := h.item(w, r, itemID, p.User)
+	it, l, ok := h.item(w, r, itemID, p.User, false)
 	if !ok {
 		return
 	}

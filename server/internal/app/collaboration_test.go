@@ -3,6 +3,7 @@
 package app_test
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -221,5 +222,67 @@ func TestListsAndAssignedItems(t *testing.T) {
 	}
 	if res := s.call(http.MethodDelete, "/api/list-items/"+c.Id.String(), ayse, nil, nil); res.StatusCode != http.StatusNoContent {
 		t.Errorf("delete row = %d", res.StatusCode)
+	}
+}
+
+// Once a channel is encrypted end to end, nothing the server reads is written
+// into it: not its existing tabs, canvases and lists, form answers or run names.
+func TestNoReadableWritesInEncryptedChannels(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-ayse", "Ayşe")
+	general := s.general(ayse)
+	s.general(admin)
+	var canvas, list api.Tab
+	s.call(http.MethodPost, "/api/channels/"+general+"/tabs", ayse, map[string]any{"kind": "canvas", "title": "Plan"}, &canvas)
+	s.call(http.MethodPost, "/api/channels/"+general+"/tabs", ayse, map[string]any{"kind": "list", "title": "Tasks"}, &list)
+	var item api.ListItem
+	s.call(http.MethodPost, "/api/lists/"+list.ListId.String()+"/items", ayse, map[string]any{"title": "Before"}, &item)
+	var form api.Form
+	s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/forms", admin, map[string]any{"name": "F",
+		"fields": []map[string]any{{"id": "q", "label": "Q", "kind": "text", "required": true}}}, &form)
+	var pb api.Playbook
+	s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/playbooks", admin, map[string]any{"name": "Incident",
+		"checklists": []map[string]any{{"title": "Triage", "items": []map[string]any{{"title": "Page on-call"}}}}}, &pb)
+
+	// As turning on end-to-end encryption leaves the channel.
+	if _, err := s.pool.Exec(context.Background(), "UPDATE channels SET encrypted = true, mls = true WHERE id = $1", general); err != nil {
+		t.Fatal(err)
+	}
+	cv := "/api/canvases/" + canvas.CanvasId.String()
+	for _, w := range []struct {
+		name, method, path string
+		body               any
+	}{
+		{"new tab", http.MethodPost, "/api/channels/" + general + "/tabs", map[string]any{"kind": "canvas", "title": "X"}},
+		{"rename tab", http.MethodPatch, "/api/tabs/" + canvas.Id.String(), map[string]any{"title": "PLAINTEXT"}},
+		{"edit canvas", http.MethodPost, cv + "/editing", nil},
+		{"save canvas", http.MethodPut, cv, map[string]any{"body": "PLAINTEXT", "version": 1}},
+		{"list columns", http.MethodPut, "/api/lists/" + list.ListId.String(), map[string]any{"columns": []any{}}},
+		{"new row", http.MethodPost, "/api/lists/" + list.ListId.String() + "/items", map[string]any{"title": "PLAINTEXT"}},
+		{"edit row", http.MethodPatch, "/api/list-items/" + item.Id.String(), map[string]any{"title": "PLAINTEXT"}},
+		{"form answers", http.MethodPost, "/api/forms/" + form.Id.String() + "/submissions", map[string]any{"channel_id": general, "values": map[string]any{"q": "PLAINTEXT"}}},
+		{"run name", http.MethodPost, "/api/playbooks/" + pb.Id.String() + "/runs", map[string]any{"channel_id": general, "name": "PLAINTEXT"}},
+	} {
+		if status, code := problemCode(t, s, w.method, w.path, ayse, w.body); status != http.StatusBadRequest || code != "encrypted_channel" {
+			t.Errorf("%s = %d %s", w.name, status, code)
+		}
+	}
+	if n := s.count(`SELECT (SELECT count(*) FROM canvases WHERE body LIKE '%PLAINTEXT%') + (SELECT count(*) FROM list_items WHERE title LIKE '%PLAINTEXT%') +
+		(SELECT count(*) FROM form_submissions WHERE answers::text LIKE '%PLAINTEXT%') + (SELECT count(*) FROM playbook_runs WHERE name LIKE '%PLAINTEXT%') +
+		(SELECT count(*) FROM channel_tabs WHERE title LIKE '%PLAINTEXT%')`); n != 0 {
+		t.Errorf("%d plaintext rows written", n)
+	}
+	var shortcuts struct{ Forms []api.Form }
+	s.call(http.MethodGet, "/api/channels/"+general+"/shortcuts", ayse, nil, &shortcuts)
+	if len(shortcuts.Forms) != 0 {
+		t.Errorf("forms offered in an encrypted channel: %d", len(shortcuts.Forms))
+	}
+	// What was written before can still be removed.
+	if res := s.call(http.MethodDelete, "/api/list-items/"+item.Id.String(), ayse, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Errorf("delete row = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodDelete, "/api/tabs/"+canvas.Id.String(), ayse, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Errorf("delete tab = %d", res.StatusCode)
 	}
 }

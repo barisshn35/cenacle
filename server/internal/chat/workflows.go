@@ -558,6 +558,8 @@ func (h *Handlers) ListShortcuts(w http.ResponseWriter, r *http.Request, channel
 		for _, wf := range wfs {
 			shortcuts = append(shortcuts, api.WorkflowShortcut{Id: uuid(wf.ID), Name: wf.Name, Description: wf.Description})
 		}
+	}
+	if canPost(c, role) && !c.Encrypted { // answers cannot go to encrypted channels
 		fs, err := h.Queries.ListForms(r.Context(), c.WorkspaceID)
 		if err != nil {
 			h.unavailable(w, r, "list forms", err)

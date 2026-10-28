@@ -269,6 +269,9 @@ func (h *Handlers) StartRun(w http.ResponseWriter, r *http.Request, playbookID o
 		forbidden(w, r, httpx.CodeForbidden, "Start runs in channels of the playbook's workspace you can post in.")
 		return
 	}
+	if !serverReadable(w, r, c) { // the run's name is kept as the server reads it
+		return
+	}
 	var lists []api.PlaybookChecklist
 	_ = json.Unmarshal(pb.Checklists, &lists)
 	runLists := make([]runChecklist, len(lists))

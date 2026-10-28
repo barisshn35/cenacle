@@ -20,8 +20,11 @@ asks for (European Accessibility Act, EN 301 549).
    editing, forwarding and running commands; channel joins by command follow the rules
    of joining. New ways of writing must call them too.
 3. **Encrypted channels get no text the server reads**, whatever the feature: commands
-   that carry text, scheduled messages, tabs and forum titles are refused there by the
-   server, and the app sends such text as an encrypted message. The sender's user id
+   that carry text, scheduled messages, tabs (also writing in the canvases and lists of
+   tabs made before the channel was encrypted), form answers, playbook run names and forum
+   titles are refused there by the server (one check, `serverReadable`, in the loaders of
+   these writes), and the app sends such text as an encrypted message. Removing what was
+   written before stays possible. The sender's user id
    travels inside the encryption (ts-mls does not tell the receiver which member sent a
    message), and an envelope is accepted for one message id only.
 4. **Signing out forgets the device.** Encryption keys, group states, decrypted messages,
