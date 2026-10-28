@@ -69,4 +69,8 @@ func TestSessionPolicy(t *testing.T) {
 	if res := s.call(http.MethodGet, "/api/channels", admin, nil, nil); res.StatusCode != http.StatusOK {
 		t.Errorf("chat from another network = %d", res.StatusCode)
 	}
+	// Creating a workspace is administration too.
+	if status, code := problemCode(t, s, http.MethodPost, "/api/workspaces", admin, map[string]string{"name": "Elsewhere"}); status != http.StatusForbidden || code != "admin_network" {
+		t.Errorf("create a workspace from another network = %d %s", status, code)
+	}
 }

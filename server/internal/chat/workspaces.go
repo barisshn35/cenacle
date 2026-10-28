@@ -82,8 +82,7 @@ func (h *Handlers) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !p.User.IsAdmin {
-		forbidden(w, r, httpx.CodeForbidden, "Only the instance administrator can create workspaces.")
+	if !requireInstanceAdmin(w, r, p) {
 		return
 	}
 	var in struct {
