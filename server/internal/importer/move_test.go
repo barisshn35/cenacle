@@ -6,6 +6,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"strings"
@@ -220,5 +221,47 @@ func TestReadCenacleRefusesNewerFormats(t *testing.T) {
 	zr, _ := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	if _, err := importer.ReadCenacle(zr); err == nil || !strings.Contains(err.Error(), "newer") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+// A reply names a root in another channel: it does not join that thread. A
+// file larger than the server allows is left out.
+func TestImportKeepsThreadsAndFilesInBounds(t *testing.T) {
+	pool := testdb.Open(t)
+	ctx := context.Background()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	files := dirFiles(t)
+	files.MaxSize = 8
+	at := time.Unix(1600000000, 0)
+	fileKey := guuid.NewString()
+	d := importer.Data{
+		Source: "cenacle",
+		Users: []importer.User{
+			{Key: "a", Email: "a@example.com", DisplayName: "A"}, {Key: "b", Email: "b@example.com", DisplayName: "B"},
+		},
+		Channels: []importer.Channel{
+			{Key: "secret", Workspace: "W", Name: "secret", Private: true, Members: []string{"a"}},
+			{Key: "open", Workspace: "W", Name: "open", Members: []string{"a", "b"}},
+		},
+		Messages: []importer.Message{
+			{Key: "root", Channel: "secret", Author: "a", Body: "private thread", At: at},
+			{Key: "reply", Channel: "open", Author: "b", Body: "reply", Root: "root", At: at.Add(time.Second),
+				Files: []importer.File{{Key: fileKey, Name: "big.txt", ContentType: "text/plain", Size: 9}}},
+		},
+		OpenFile: func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("123456789")), nil },
+	}
+	if _, err := importer.Import(ctx, pool, d, log, files, importer.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	var root pgtype.UUID
+	if err := pool.QueryRow(ctx, "SELECT root_id FROM messages WHERE body = 'reply'").Scan(&root); err != nil || root.Valid {
+		t.Errorf("the reply joined a thread of another channel: %v %v", root, err)
+	}
+	var n int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM files").Scan(&n); err != nil || n != 0 {
+		t.Errorf("files = %d, %v", n, err)
+	}
+	if err := files.Ingest(ctx, store.New(pool), store.File{Size: 9}, strings.NewReader("123456789")); !errors.Is(err, chat.ErrIngestTooLarge) {
+		t.Errorf("ingest a large file = %v", err)
 	}
 }

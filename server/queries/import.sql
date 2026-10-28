@@ -39,8 +39,9 @@ ON CONFLICT ON CONSTRAINT messages_author_nonce_key DO NOTHING
 RETURNING id;
 
 -- name: FindImportedMessage :one
--- FindImportedMessage finds a message imported before (for its replies).
-SELECT id FROM messages WHERE author_id = @author_id AND nonce = @nonce;
+-- FindImportedMessage finds a message imported before into a channel (for
+-- its replies).
+SELECT id FROM messages WHERE author_id = @author_id AND nonce = @nonce AND channel_id = @channel_id;
 
 -- name: ImportReaction :exec
 INSERT INTO message_reactions (message_id, emoji, user_id, created_at)

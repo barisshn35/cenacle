@@ -288,7 +288,8 @@ type Querier interface {
 	ExportMessages(ctx context.Context, arg ExportMessagesParams) ([]ExportMessagesRow, error)
 	FeedChecked(ctx context.Context, arg FeedCheckedParams) error
 	FeedFailed(ctx context.Context, arg FeedFailedParams) error
-	// FindImportedMessage finds a message imported before (for its replies).
+	// FindImportedMessage finds a message imported before into a channel (for
+	// its replies).
 	FindImportedMessage(ctx context.Context, arg FindImportedMessageParams) (pgtype.UUID, error)
 	// FindUserByEmail finds the account of an address (a person who signed in
 	// already wins over an earlier import). A signed-in account counts only with

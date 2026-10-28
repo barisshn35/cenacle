@@ -122,17 +122,19 @@ func (q *Queries) CreateImportedUser(ctx context.Context, arg CreateImportedUser
 }
 
 const findImportedMessage = `-- name: FindImportedMessage :one
-SELECT id FROM messages WHERE author_id = $1 AND nonce = $2
+SELECT id FROM messages WHERE author_id = $1 AND nonce = $2 AND channel_id = $3
 `
 
 type FindImportedMessageParams struct {
-	AuthorID pgtype.UUID `json:"author_id"`
-	Nonce    string      `json:"nonce"`
+	AuthorID  pgtype.UUID `json:"author_id"`
+	Nonce     string      `json:"nonce"`
+	ChannelID pgtype.UUID `json:"channel_id"`
 }
 
-// FindImportedMessage finds a message imported before (for its replies).
+// FindImportedMessage finds a message imported before into a channel (for
+// its replies).
 func (q *Queries) FindImportedMessage(ctx context.Context, arg FindImportedMessageParams) (pgtype.UUID, error) {
-	row := q.db.QueryRow(ctx, findImportedMessage, arg.AuthorID, arg.Nonce)
+	row := q.db.QueryRow(ctx, findImportedMessage, arg.AuthorID, arg.Nonce, arg.ChannelID)
 	var id pgtype.UUID
 	err := row.Scan(&id)
 	return id, err

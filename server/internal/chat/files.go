@@ -56,6 +56,9 @@ const (
 // unsent uploads into the channel.
 var errFilesUnavailable = errors.New("files unavailable")
 
+// ErrIngestTooLarge: a file to ingest is larger than uploads may be.
+var ErrIngestTooLarge = errors.New("file larger than this server allows")
+
 // Files are the object store and the checks of uploads.
 type Files struct {
 	Store   storage.Store
@@ -410,13 +413,17 @@ func (fs *Files) Open(ctx context.Context, f store.File) (storage.Object, error)
 
 // Ingest stores the bytes of a file recorded by the server itself (an
 // import) and checks them as an upload: scanned, images recognized, previews
-// made.
+// made. A file larger than uploads may be is refused (ErrIngestTooLarge).
 func (fs *Files) Ingest(ctx context.Context, q *store.Queries, f store.File, r io.Reader) error {
+	if f.Size < 0 || (fs.MaxSize > 0 && f.Size > fs.MaxSize) {
+		return ErrIngestTooLarge
+	}
 	f, err := q.ClaimUpload(ctx, store.ClaimUploadParams{ID: f.ID, UploaderID: f.UploaderID})
 	if err != nil {
 		return err
 	}
-	if err := fs.Store.Put(ctx, fileKey(f.ID), r, f.Size, f.ContentType); err != nil {
+	// Never more than the recorded size, whatever the reader holds.
+	if err := fs.Store.Put(ctx, fileKey(f.ID), io.LimitReader(r, f.Size), f.Size, f.ContentType); err != nil {
 		return err
 	}
 	done, err := fs.check(ctx, f)

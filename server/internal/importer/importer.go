@@ -315,12 +315,12 @@ func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Fi
 	msgs := append([]Message(nil), d.Messages...)
 	sort.SliceStable(msgs, func(i, j int) bool { return msgs[i].At.Before(msgs[j].At) })
 	touched := map[string]bool{}
-	ids := map[string]pgtype.UUID{} // message key → id, for replies
+	ids := map[messageRef]pgtype.UUID{} // channel and message key → id, for replies
 	for start := 0; start < len(msgs); start += batch {
 		part := msgs[start:min(start+batch, len(msgs))]
 		err := inTx(ctx, db, func(q *store.Queries) error {
 			for _, m := range part {
-				n, err := importMessage(ctx, q, d, m, channels, users, ids, files, workspaces)
+				n, err := importMessage(ctx, q, d, m, channels, users, ids, files, workspaces, log)
 				if err != nil {
 					return err
 				}
@@ -356,7 +356,8 @@ func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Fi
 // importMessage stores one message with its reactions and files; it returns
 // 0 when the message was skipped or is there already.
 func importMessage(ctx context.Context, q *store.Queries, d Data, m Message, channels map[string]store.Channel,
-	users map[string]store.User, ids map[string]pgtype.UUID, files *chat.Files, workspaces map[string]store.Workspace,
+	users map[string]store.User, ids map[messageRef]pgtype.UUID, files *chat.Files, workspaces map[string]store.Workspace,
+	log *slog.Logger,
 ) (int, error) {
 	ch, okc := channels[m.Channel]
 	author, oka := users[m.Author]
@@ -368,9 +369,11 @@ func importMessage(ctx context.Context, q *store.Queries, d Data, m Message, cha
 	if r := []rune(body); len(r) > chat.MaxBodyLength {
 		body = string(r[:chat.MaxBodyLength-1]) + "…"
 	}
+	// A reply's thread starts in its own channel (an export naming a root
+	// elsewhere gets a message of its own).
 	var root pgtype.UUID
 	if m.Root != "" {
-		root = ids[m.Root]
+		root = ids[messageRef{ch.ID, m.Root}]
 	}
 	pinned := pgtype.Timestamptz{Time: m.PinnedAt, Valid: !m.PinnedAt.IsZero()}
 	var pinnedBy pgtype.UUID
@@ -391,15 +394,17 @@ func importMessage(ctx context.Context, q *store.Queries, d Data, m Message, cha
 	})
 	if isNoRows(err) {
 		// Imported before: remember it for its replies.
-		if id, err = q.FindImportedMessage(ctx, store.FindImportedMessageParams{AuthorID: author.ID, Nonce: key}); err == nil {
-			ids[m.Key] = id
+		if id, err = q.FindImportedMessage(ctx, store.FindImportedMessageParams{
+			AuthorID: author.ID, Nonce: key, ChannelID: ch.ID,
+		}); err == nil {
+			ids[messageRef{ch.ID, m.Key}] = id
 		}
 		return 0, nil
 	}
 	if err != nil {
 		return 0, err
 	}
-	ids[m.Key] = id
+	ids[messageRef{ch.ID, m.Key}] = id
 	for _, r := range m.Reactions {
 		for _, k := range r.Users {
 			u, ok := users[k]
@@ -415,6 +420,10 @@ func importMessage(ctx context.Context, q *store.Queries, d Data, m Message, cha
 	}
 	if withFiles {
 		for _, f := range m.Files {
+			if f.Size < 0 || (files.MaxSize > 0 && f.Size > files.MaxSize) {
+				log.Warn("file left out (larger than this server allows)", "message", m.Key, "file", f.Key, "size", f.Size)
+				continue
+			}
 			if err := importFile(ctx, q, d, f, ch, author, id, m.At, files); err != nil {
 				return 0, fmt.Errorf("file %s: %w", f.Key, err)
 			}
@@ -444,6 +453,12 @@ func importFile(ctx context.Context, q *store.Queries, d Data, f File, ch store.
 		return err
 	}
 	return files.Ingest(ctx, q, row, r)
+}
+
+// messageRef names a message of the export in the channel it went to.
+type messageRef struct {
+	channel pgtype.UUID
+	key     string
 }
 
 // cleanFileName keeps file names Cenacle accepts (1–255 characters).
