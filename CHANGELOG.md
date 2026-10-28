@@ -8,6 +8,15 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- **Federation:** a server moved back below 0.99.2 no longer has to be connected again. Its
+  connection shows that its requests are refused because it signs with an older version
+  (noted only for validly signed requests), and owners and admins may allow its older
+  signatures again (audited, confirmed with the connection's name) until it next signs with
+  the newer version; shared channels stay linked and held-up deliveries go through
+  ([ADR 0047](docs/adr/0047-federation-older-signatures.md)).
+
 ### Changed
 
 - **Group mappings follow renamed groups**: Cenacle ID records when the name apps see for a

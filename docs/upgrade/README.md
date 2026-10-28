@@ -98,6 +98,17 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   provider renames, the chat following them); the new migrations rolled back and applied
   again.
 
+- Chat migration `00055` (quick) records when a federated server's request signed only
+  with `v1` was refused.
+- Federation: a peer moved back below 0.99.2 after it signed with `v2` no longer has to be
+  connected again. Its connection on the **Federation** page says that its
+  requests are refused because it signs with an older version; once its admins confirm
+  they moved it back on purpose, choose **Allow older signatures** (owners and admins,
+  audited). Its held-up deliveries then go through as they are retried, and the connection
+  requires `v2` again as soon as the peer signs with it after its next upgrade
+  ([ADR 0047](../adr/0047-federation-older-signatures.md)). Our server's own requests
+  always carry `v1` as well, so the downgraded peer keeps receiving them.
+
 ### 0.99.2
 
 - Chat migrations `00048`–`00053` (all quick):
@@ -125,7 +136,8 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 - Federation: events of a connection reach the peer in order, a peer refusing one event
   holds up the rest of that connection (both sides show the error), and requests are signed
   for their connection and endpoint (`v2`) with replays refused. A peer moved back below
-  0.99.2 after it signed with `v2` must be connected again.
+  0.99.2 after it signed with `v2` must be connected again (from 0.99.3, its admins can
+  allow its older signatures instead; see 0.99.3).
 - AutoMod's flag rules leave direct and group conversations alone, and reports of
   conversation messages reach only moderators taking part in them.
 - CI (own runner): caches now live under `/cache/protected-true` and `/cache/protected-false`
