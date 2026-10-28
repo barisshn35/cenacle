@@ -760,7 +760,11 @@
     "channelHint": "Bu gruplardaki çalışma alanı kişileri kanala katılır.",
     "managed": "Üyeler tam olarak bu grupların kişileridir",
     "saveChannel": "Grupları kaydet",
-    "saved": "Dizin grupları kaydedildi."
+    "saved": "Dizin grupları kaydedildi.",
+    "review": "İnceleme gerekiyor",
+    "reviewHint": "Cenacle ID bu grubun adını değiştirdi, ancak bu adı birden çok grup taşıyordu. Siz seçene kadar kimseye erişim vermez.",
+    "useCandidate": "{{group}} kullan",
+    "keep": "Olduğu gibi bırak"
   },
   "profile": {
     "until": "{{time}} saatine kadar",

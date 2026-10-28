@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useId, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { XIcon } from 'lucide-react';
+import { AlertCircleIcon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@cenacle/ui/components/button';
@@ -23,6 +23,55 @@ const selectClass =
   'min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60';
 
 const ROLES: GroupMapping['role'][] = ['admin', 'member', 'guest'];
+
+/**
+ * A mapping whose group Cenacle ID renamed when several groups had its name
+ * (ADR 0046): it matches none of them until an administrator picks one of
+ * the new names or keeps it as it is (or removes it).
+ */
+function GroupReviewNotice({
+  group,
+  candidates,
+  disabled,
+  onPick,
+  onKeep,
+}: {
+  group: string;
+  candidates: string[];
+  disabled: boolean;
+  onPick: (candidate: string) => void;
+  onKeep: () => void;
+}) {
+  const { t } = useTranslation();
+  const id = useId();
+  return (
+    <div
+      role="group"
+      aria-labelledby={`${id}-title`}
+      aria-describedby={`${id}-hint`}
+      className="grid gap-2 rounded-lg border border-warning/40 bg-warning/5 p-2 text-sm"
+      data-testid="group-review"
+    >
+      <p id={`${id}-title`} className="flex items-center gap-1.5 font-medium">
+        <AlertCircleIcon aria-hidden className="size-3.5 text-warning" strokeWidth={1.75} />
+        {t('groups.review')}: <span className="font-mono">{group}</span>
+      </p>
+      <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+        {t('groups.reviewHint')}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {candidates.map((c) => (
+          <Button key={c} size="sm" variant="outline" disabled={disabled} onClick={() => onPick(c)}>
+            {t('groups.useCandidate', { group: c })}
+          </Button>
+        ))}
+        <Button size="sm" variant="ghost" disabled={disabled} onClick={onKeep}>
+          {t('groups.keep')}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Directory groups of Cenacle ID that give membership of a workspace: their
@@ -51,6 +100,16 @@ export function WorkspaceGroupsSection({ workspace }: { workspace: Workspace }) 
     onSuccess: changed,
     onError: failed,
   });
+  // Under review: the chosen new name takes the mapping's place.
+  const pick = useMutation({
+    mutationFn: async ({ from, to }: { from: GroupMapping; to: string }) => {
+      await setWorkspaceGroup(workspace.id, { group: to, role: from.role });
+      await deleteWorkspaceGroup(workspace.id, from.group);
+    },
+    onSuccess: changed,
+    onError: failed,
+  });
+  const busy = save.isPending || remove.isPending || pick.isPending;
 
   const add = (e: FormEvent) => {
     e.preventDefault();
@@ -68,35 +127,47 @@ export function WorkspaceGroupsSection({ workspace }: { workspace: Workspace }) 
       {groups.data && groups.data.mappings.length > 0 && (
         <ul className="grid gap-1">
           {groups.data.mappings.map((m) => (
-            <li key={m.group} className="flex items-center gap-2">
-              <span className="min-w-0 flex-1 truncate font-mono text-sm">{m.group}</span>
-              <label htmlFor={`${id}-${m.group}`} className="sr-only">
-                {t('groups.roleOf', { group: m.group })}
-              </label>
-              <select
-                id={`${id}-${m.group}`}
-                className={selectClass}
-                value={m.role}
-                disabled={save.isPending}
-                onChange={(e) =>
-                  save.mutate({ group: m.group, role: e.target.value as GroupMapping['role'] })
-                }
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {t(`workspaces.roles.${r}`)}
-                  </option>
-                ))}
-              </select>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={t('groups.remove', { group: m.group })}
-                disabled={remove.isPending}
-                onClick={() => remove.mutate(m.group)}
-              >
-                <XIcon strokeWidth={1.75} />
-              </Button>
+            <li key={m.group} className="grid gap-1">
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate font-mono text-sm">{m.group}</span>
+                <label htmlFor={`${id}-${m.group}`} className="sr-only">
+                  {t('groups.roleOf', { group: m.group })}
+                </label>
+                <select
+                  id={`${id}-${m.group}`}
+                  className={selectClass}
+                  value={m.role}
+                  disabled={save.isPending}
+                  onChange={(e) =>
+                    save.mutate({ group: m.group, role: e.target.value as GroupMapping['role'] })
+                  }
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {t(`workspaces.roles.${r}`)}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={t('groups.remove', { group: m.group })}
+                  disabled={remove.isPending}
+                  onClick={() => remove.mutate(m.group)}
+                >
+                  <XIcon strokeWidth={1.75} />
+                </Button>
+              </div>
+              {m.candidates && m.candidates.length > 0 && (
+                <GroupReviewNotice
+                  group={m.group}
+                  candidates={m.candidates}
+                  disabled={busy}
+                  onPick={(to) => pick.mutate({ from: m, to })}
+                  // Saved by hand, a mapping is reviewed.
+                  onKeep={() => save.mutate({ group: m.group, role: m.role })}
+                />
+              )}
             </li>
           ))}
         </ul>
@@ -151,6 +222,14 @@ export function ChannelGroupsSection({ channel }: { channel: Channel }) {
   const [managed, setManaged] = useState<boolean | null>(null);
   const shownText = text ?? current.data?.groups.join(', ') ?? '';
   const shownManaged = managed ?? current.data?.managed ?? false;
+  const saved = async () => {
+    setText(null);
+    setManaged(null);
+    await queryClient.invalidateQueries({ queryKey: ['channel-groups', channel.id] });
+    await queryClient.invalidateQueries({ queryKey: ['members', channel.id] });
+    await reloadChannels(queryClient);
+    toast.success(t('groups.saved'));
+  };
   const save = useMutation({
     mutationFn: () =>
       setChannelGroups(channel.id, {
@@ -160,14 +239,21 @@ export function ChannelGroupsSection({ channel }: { channel: Channel }) {
           .filter(Boolean),
         managed: shownManaged,
       }),
-    onSuccess: async () => {
-      setText(null);
-      setManaged(null);
-      await queryClient.invalidateQueries({ queryKey: ['channel-groups', channel.id] });
-      await queryClient.invalidateQueries({ queryKey: ['members', channel.id] });
-      await reloadChannels(queryClient);
-      toast.success(t('groups.saved'));
+    onSuccess: saved,
+    onError: () => toast.error(t('channels.changeFailed')),
+  });
+  // A group under review (from the saved groups, not the field being edited):
+  // a new name takes its place, or it stays as it is.
+  const review = useMutation({
+    mutationFn: ({ group, to }: { group: string; to?: string }) => {
+      const groups = current.data?.groups ?? [];
+      return setChannelGroups(channel.id, {
+        groups: to ? groups.map((g) => (g === group ? to : g)) : groups,
+        managed: current.data?.managed ?? false,
+        reviewed: to ? [] : [group],
+      });
     },
+    onSuccess: saved,
     onError: () => toast.error(t('channels.changeFailed')),
   });
 
@@ -184,6 +270,16 @@ export function ChannelGroupsSection({ channel }: { channel: Channel }) {
       <h3 id={`${id}-title`} className="text-sm font-semibold">
         {t('groups.title')}
       </h3>
+      {current.data?.reviews?.map((r) => (
+        <GroupReviewNotice
+          key={r.group}
+          group={r.group}
+          candidates={r.candidates}
+          disabled={review.isPending || save.isPending}
+          onPick={(to) => review.mutate({ group: r.group, to })}
+          onKeep={() => review.mutate({ group: r.group })}
+        />
+      ))}
       <Label htmlFor={`${id}-groups`}>{t('groups.channelGroups')}</Label>
       <Input
         id={`${id}-groups`}

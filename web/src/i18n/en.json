@@ -760,7 +760,11 @@
     "channelHint": "People of these groups in the workspace join the channel.",
     "managed": "Members are exactly the people of these groups",
     "saveChannel": "Save groups",
-    "saved": "Directory groups saved."
+    "saved": "Directory groups saved.",
+    "review": "Needs review",
+    "reviewHint": "Cenacle ID renamed this group, but several groups had its name. Until you choose, it gives no one access.",
+    "useCandidate": "Use {{group}}",
+    "keep": "Keep as it is"
   },
   "profile": {
     "until": "until {{time}}",
