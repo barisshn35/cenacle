@@ -58,6 +58,20 @@ func TestBlocksSpecialUseAddresses(t *testing.T) {
 			t.Errorf("%s allowed", ip)
 		}
 	}
+	// A zone on an IPv6 literal must not hide it from the blocklist.
+	for _, ip := range []string{"::1%x", "fe80::1%x", "fd00::1%x", "2606:2800:220:1:248:1893:25c8:1946%eth0"} {
+		if strict.policy.allowed(netip.MustParseAddr(ip)) {
+			t.Errorf("zoned %s allowed", ip)
+		}
+	}
+	zoned := "http://[::1%251]" + srv.URL[strings.LastIndex(srv.URL, ":"):]
+	if _, err := strict.Dial(context.Background(), "tcp", "[::1%1]"+port); !errors.Is(err, ErrForbiddenAddress) {
+		t.Errorf("zoned loopback dialled: %v", err)
+	}
+	req, _ = http.NewRequest(http.MethodGet, zoned, nil)
+	if _, err := strict.Do(req); err == nil {
+		t.Errorf("zoned loopback URL reached")
+	}
 	for _, ip := range []string{"93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"} {
 		if !strict.policy.allowed(netip.MustParseAddr(ip)) {
 			t.Errorf("public address %s blocked", ip)
@@ -67,7 +81,8 @@ func TestBlocksSpecialUseAddresses(t *testing.T) {
 
 func TestURLChecks(t *testing.T) {
 	c := New(Policy{})
-	for _, bad := range []string{"http://example.com", "ftp://example.com", "https://user:pw@example.com", "/relative", "https://"} {
+	for _, bad := range []string{"http://example.com", "ftp://example.com", "https://user:pw@example.com", "/relative", "https://",
+		"https://[::1%25x]/", "https://[fe80::1%25x]/", "https://[fd00::1%25x]/"} {
 		if _, err := c.CheckURL(bad); err == nil {
 			t.Errorf("%q accepted", bad)
 		}

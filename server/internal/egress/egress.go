@@ -59,6 +59,11 @@ type Policy struct {
 }
 
 func (p Policy) allowed(ip netip.Addr) bool {
+	if ip.Zone() != "" {
+		// Prefix.Contains never matches a zoned address, so a scoped
+		// address (::1%x, fe80::1%x) would slip past every check below.
+		return false
+	}
 	ip = ip.Unmap()
 	for _, a := range p.Allow {
 		if a.Contains(ip) {
@@ -171,6 +176,9 @@ func (c *Client) CheckURL(raw string) (*url.URL, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" || u.User != nil {
 		return nil, errors.New("the address must be an absolute http(s) URL without credentials")
+	}
+	if strings.Contains(u.Hostname(), "%") {
+		return nil, errors.New("the address must not name a scoped (zoned) IPv6 address")
 	}
 	switch u.Scheme {
 	case "https":
