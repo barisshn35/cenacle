@@ -16,9 +16,13 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/barisshn35/cenacle/server/internal/clamav"
+	"github.com/barisshn35/cenacle/server/internal/storage"
 )
 
 type fileInfo struct {
@@ -394,5 +398,132 @@ func TestFilesThatCouldRunAreDownloaded(t *testing.T) {
 			t.Errorf("%s served as %d %q %q nosniff=%q csp=%q", f.name, status, hdr.Get("Content-Type"),
 				hdr.Get("Content-Disposition"), hdr.Get("X-Content-Type-Options"), hdr.Get("Content-Security-Policy"))
 		}
+	}
+}
+
+// pausedStage is a staged store (uploads land under uploads/, completing
+// moves them to files/, like S3) whose writer stages bytes directly, as a
+// reusable S3 form allows. The first completion pauses after it recognized
+// the file (at its thumbnail); a second one pauses when it opens files/.
+type pausedStage struct {
+	*storage.Dir
+	opens            atomic.Int32
+	firstAtThumb     chan struct{}
+	releaseFirst     chan struct{}
+	secondInCheck    chan struct{}
+	releaseSecond    chan struct{}
+	thumbOnce, check sync.Once
+}
+
+func (s *pausedStage) Promote(ctx context.Context, from, to string) error {
+	obj, err := s.Dir.Open(ctx, from)
+	if err != nil {
+		return err
+	}
+	data, err := io.ReadAll(obj)
+	_ = obj.Close()
+	if err != nil {
+		return err
+	}
+	if err := s.Dir.Put(ctx, to, bytes.NewReader(data), int64(len(data)), ""); err != nil {
+		return err
+	}
+	return s.Remove(ctx, from)
+}
+
+func (s *pausedStage) UploadForm(context.Context, string, int64, time.Duration) (storage.Upload, error) {
+	return storage.Upload{URL: "http://127.0.0.1:1/staged", Fields: map[string]string{}}, nil
+}
+
+func (s *pausedStage) Open(ctx context.Context, key string) (storage.Object, error) {
+	if strings.HasPrefix(key, "files/") && s.opens.Add(1) == 2 {
+		s.check.Do(func() { close(s.secondInCheck); <-s.releaseSecond })
+	}
+	return s.Dir.Open(ctx, key)
+}
+
+func (s *pausedStage) Put(ctx context.Context, key string, r io.Reader, size int64, ct string) error {
+	if strings.HasPrefix(key, "thumbs/") {
+		s.thumbOnce.Do(func() { close(s.firstAtThumb); <-s.releaseFirst })
+	}
+	return s.Dir.Put(ctx, key, r, size, ct)
+}
+
+// Two completions of one upload, with other bytes staged in between, must
+// not pair the first one's verdict (an image, with a preview) with the
+// second one's bytes: one completion at a time checks a file.
+func TestCompletingAnUploadTwiceAtOnce(t *testing.T) {
+	d, err := storage.NewDir(t.TempDir(), "http://127.0.0.1:1/unused", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := &pausedStage{Dir: d, firstAtThumb: make(chan struct{}), releaseFirst: make(chan struct{}),
+		secondInCheck: make(chan struct{}), releaseSecond: make(chan struct{})}
+	s := newStack(t, newShared(t), options{store: st})
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	ctx := context.Background()
+	img := pngImage(t, 4, 4)
+	text := bytes.Repeat([]byte("T"), len(img))
+
+	var u upload
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/files", ayse,
+		map[string]any{"name": "a.png", "size": len(img), "content_type": "image/png"}, &u); res.StatusCode != http.StatusCreated {
+		t.Fatalf("create = %d", res.StatusCode)
+	}
+	// Completing before the bytes arrived gives the upload back at once.
+	if status, code := problemCode(t, s, http.MethodPost, "/api/files/"+u.File.ID+"/complete", ayse, nil); status != http.StatusConflict || code != "upload_incomplete" {
+		t.Fatalf("complete before upload = %d %s", status, code)
+	}
+	if err := st.Dir.Put(ctx, "uploads/"+u.File.ID, bytes.NewReader(img), int64(len(img)), ""); err != nil {
+		t.Fatal(err)
+	}
+	first, second := make(chan int, 1), make(chan int, 1)
+	go func() {
+		first <- s.call(http.MethodPost, "/api/files/"+u.File.ID+"/complete", ayse, nil, nil).StatusCode
+	}()
+	<-st.firstAtThumb
+	if err := st.Dir.Put(ctx, "uploads/"+u.File.ID, bytes.NewReader(text), int64(len(text)), ""); err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		second <- s.call(http.MethodPost, "/api/files/"+u.File.ID+"/complete", ayse, nil, nil).StatusCode
+	}()
+	var secondStatus int
+	select {
+	case <-st.secondInCheck: // the second one got to the bytes (before the fix)
+	case secondStatus = <-second:
+	case <-time.After(20 * time.Second):
+		t.Fatal("the second completion hangs")
+	}
+	close(st.releaseFirst)
+	if status := <-first; status != http.StatusOK {
+		t.Errorf("first completion = %d", status)
+	}
+	close(st.releaseSecond)
+	if secondStatus == 0 {
+		secondStatus = <-second
+	}
+	if secondStatus != http.StatusConflict {
+		t.Errorf("second completion = %d, want 409 while the first checks", secondStatus)
+	}
+
+	var status, contentType string
+	if err := s.pool.QueryRow(ctx, "SELECT status, content_type FROM files WHERE id = $1", u.File.ID).Scan(&status, &contentType); err != nil {
+		t.Fatal(err)
+	}
+	obj, err := st.Dir.Open(ctx, "files/"+u.File.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, _ := io.ReadAll(obj)
+	_ = obj.Close()
+	if status != "ready" || contentType != "image/png" || !bytes.Equal(stored, img) {
+		t.Errorf("file %s %s holds the checked image = %v", status, contentType, bytes.Equal(stored, img))
+	}
+	// Completing again answers with the verdict.
+	var f fileInfo
+	if res := s.call(http.MethodPost, "/api/files/"+u.File.ID+"/complete", ayse, nil, &f); res.StatusCode != http.StatusOK || f.ContentType != "image/png" {
+		t.Errorf("complete again = %d %s", res.StatusCode, f.ContentType)
 	}
 }

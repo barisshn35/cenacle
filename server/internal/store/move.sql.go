@@ -90,7 +90,7 @@ func (q *Queries) MoveExportChannels(ctx context.Context, workspaceID pgtype.UUI
 }
 
 const moveExportFiles = `-- name: MoveExportFiles :many
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files WHERE message_id = ANY($1::uuid[]) AND status = 'ready' ORDER BY id
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until FROM files WHERE message_id = ANY($1::uuid[]) AND status = 'ready' ORDER BY id
 `
 
 func (q *Queries) MoveExportFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error) {
@@ -123,6 +123,8 @@ func (q *Queries) MoveExportFiles(ctx context.Context, messageIds []pgtype.UUID)
 			&i.ContentText,
 			&i.ContentState,
 			&i.Encrypted,
+			&i.CheckClaim,
+			&i.CheckUntil,
 		); err != nil {
 			return nil, err
 		}

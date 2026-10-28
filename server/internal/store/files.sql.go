@@ -40,6 +40,51 @@ func (q *Queries) AttachFiles(ctx context.Context, arg AttachFilesParams) (int64
 	return result.RowsAffected(), nil
 }
 
+const claimUpload = `-- name: ClaimUpload :one
+UPDATE files SET check_claim = gen_random_uuid(), check_until = now() + interval '10 minutes'
+WHERE id = $1 AND uploader_id = $2 AND status = 'uploading'
+  AND (check_until IS NULL OR check_until < now())
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until
+`
+
+type ClaimUploadParams struct {
+	ID         pgtype.UUID `json:"id"`
+	UploaderID pgtype.UUID `json:"uploader_id"`
+}
+
+// ClaimUpload lets one completion check an upload (for ten minutes): no row
+// when the file is not the uploader's unchecked upload or another
+// completion holds it.
+func (q *Queries) ClaimUpload(ctx context.Context, arg ClaimUploadParams) (File, error) {
+	row := q.db.QueryRow(ctx, claimUpload, arg.ID, arg.UploaderID)
+	var i File
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.ChannelID,
+		&i.UploaderID,
+		&i.MessageID,
+		&i.AttachedAt,
+		&i.Name,
+		&i.ContentType,
+		&i.Size,
+		&i.Status,
+		&i.Width,
+		&i.Height,
+		&i.HasThumbnail,
+		&i.CreatedAt,
+		&i.MediaKind,
+		&i.DurationMs,
+		&i.Waveform,
+		&i.ContentText,
+		&i.ContentState,
+		&i.Encrypted,
+		&i.CheckClaim,
+		&i.CheckUntil,
+	)
+	return i, err
+}
+
 const countUnsentFiles = `-- name: CountUnsentFiles :one
 SELECT count(*) FROM files WHERE uploader_id = $1 AND message_id IS NULL AND attached_at IS NULL
 `
@@ -56,7 +101,7 @@ const createFile = `-- name: CreateFile :one
 INSERT INTO files (workspace_id, channel_id, uploader_id, name, content_type, size, media_kind, duration_ms, waveform, encrypted)
 VALUES ($1, $2, $3, $4, $5, $6,
         $7, $8, $9, $10)
-RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until
 `
 
 type CreateFileParams struct {
@@ -107,6 +152,8 @@ func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (File, e
 		&i.ContentText,
 		&i.ContentState,
 		&i.Encrypted,
+		&i.CheckClaim,
+		&i.CheckUntil,
 	)
 	return i, err
 }
@@ -122,7 +169,7 @@ func (q *Queries) DeleteFiles(ctx context.Context, ids []pgtype.UUID) error {
 
 const deleteUnattachedFile = `-- name: DeleteUnattachedFile :one
 DELETE FROM files WHERE id = $1 AND uploader_id = $2 AND message_id IS NULL
-RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until
 `
 
 type DeleteUnattachedFileParams struct {
@@ -154,15 +201,17 @@ func (q *Queries) DeleteUnattachedFile(ctx context.Context, arg DeleteUnattached
 		&i.ContentText,
 		&i.ContentState,
 		&i.Encrypted,
+		&i.CheckClaim,
+		&i.CheckUntil,
 	)
 	return i, err
 }
 
 const finishUpload = `-- name: FinishUpload :one
 UPDATE files SET status = $1, content_type = $2, width = $3,
-    height = $4, has_thumbnail = $5
-WHERE id = $6 AND status = 'uploading'
-RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted
+    height = $4, has_thumbnail = $5, check_until = NULL
+WHERE id = $6 AND status = 'uploading' AND check_claim = $7
+RETURNING id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until
 `
 
 type FinishUploadParams struct {
@@ -172,9 +221,11 @@ type FinishUploadParams struct {
 	Height       pgtype.Int4 `json:"height"`
 	HasThumbnail bool        `json:"has_thumbnail"`
 	ID           pgtype.UUID `json:"id"`
+	CheckClaim   pgtype.UUID `json:"check_claim"`
 }
 
-// FinishUpload records what the server found out about an uploaded file.
+// FinishUpload records what the server found out about an uploaded file;
+// only the completion holding the current claim may (no row otherwise).
 func (q *Queries) FinishUpload(ctx context.Context, arg FinishUploadParams) (File, error) {
 	row := q.db.QueryRow(ctx, finishUpload,
 		arg.Status,
@@ -183,6 +234,7 @@ func (q *Queries) FinishUpload(ctx context.Context, arg FinishUploadParams) (Fil
 		arg.Height,
 		arg.HasThumbnail,
 		arg.ID,
+		arg.CheckClaim,
 	)
 	var i File
 	err := row.Scan(
@@ -206,12 +258,14 @@ func (q *Queries) FinishUpload(ctx context.Context, arg FinishUploadParams) (Fil
 		&i.ContentText,
 		&i.ContentState,
 		&i.Encrypted,
+		&i.CheckClaim,
+		&i.CheckUntil,
 	)
 	return i, err
 }
 
 const getFile = `-- name: GetFile :one
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files WHERE id = $1
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until FROM files WHERE id = $1
 `
 
 func (q *Queries) GetFile(ctx context.Context, id pgtype.UUID) (File, error) {
@@ -238,12 +292,14 @@ func (q *Queries) GetFile(ctx context.Context, id pgtype.UUID) (File, error) {
 		&i.ContentText,
 		&i.ContentState,
 		&i.Encrypted,
+		&i.CheckClaim,
+		&i.CheckUntil,
 	)
 	return i, err
 }
 
 const getFileForReader = `-- name: GetFileForReader :one
-SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, f.encrypted, (m.deleted_at IS NOT NULL)::boolean AS message_deleted
+SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, f.encrypted, f.check_claim, f.check_until, (m.deleted_at IS NOT NULL)::boolean AS message_deleted
 FROM files f LEFT JOIN messages m ON m.id = f.message_id
 WHERE f.id = $1
 `
@@ -269,6 +325,8 @@ type GetFileForReaderRow struct {
 	ContentText    pgtype.Text        `json:"content_text"`
 	ContentState   string             `json:"content_state"`
 	Encrypted      bool               `json:"encrypted"`
+	CheckClaim     pgtype.UUID        `json:"check_claim"`
+	CheckUntil     pgtype.Timestamptz `json:"check_until"`
 	MessageDeleted bool               `json:"message_deleted"`
 }
 
@@ -298,13 +356,15 @@ func (q *Queries) GetFileForReader(ctx context.Context, id pgtype.UUID) (GetFile
 		&i.ContentText,
 		&i.ContentState,
 		&i.Encrypted,
+		&i.CheckClaim,
+		&i.CheckUntil,
 		&i.MessageDeleted,
 	)
 	return i, err
 }
 
 const listChannelFiles = `-- name: ListChannelFiles :many
-SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, f.encrypted, u.display_name AS uploader_name
+SELECT f.id, f.workspace_id, f.channel_id, f.uploader_id, f.message_id, f.attached_at, f.name, f.content_type, f.size, f.status, f.width, f.height, f.has_thumbnail, f.created_at, f.media_kind, f.duration_ms, f.waveform, f.content_text, f.content_state, f.encrypted, f.check_claim, f.check_until, u.display_name AS uploader_name
 FROM files f
 JOIN messages m ON m.id = f.message_id AND m.deleted_at IS NULL
 JOIN users u ON u.id = f.uploader_id
@@ -341,6 +401,8 @@ type ListChannelFilesRow struct {
 	ContentText  pgtype.Text        `json:"content_text"`
 	ContentState string             `json:"content_state"`
 	Encrypted    bool               `json:"encrypted"`
+	CheckClaim   pgtype.UUID        `json:"check_claim"`
+	CheckUntil   pgtype.Timestamptz `json:"check_until"`
 	UploaderName string             `json:"uploader_name"`
 }
 
@@ -376,6 +438,8 @@ func (q *Queries) ListChannelFiles(ctx context.Context, arg ListChannelFilesPara
 			&i.ContentText,
 			&i.ContentState,
 			&i.Encrypted,
+			&i.CheckClaim,
+			&i.CheckUntil,
 			&i.UploaderName,
 		); err != nil {
 			return nil, err
@@ -389,7 +453,7 @@ func (q *Queries) ListChannelFiles(ctx context.Context, arg ListChannelFilesPara
 }
 
 const listMessageFiles = `-- name: ListMessageFiles :many
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files WHERE message_id = ANY($1::uuid[]) ORDER BY id
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until FROM files WHERE message_id = ANY($1::uuid[]) ORDER BY id
 `
 
 func (q *Queries) ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID) ([]File, error) {
@@ -422,6 +486,8 @@ func (q *Queries) ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID
 			&i.ContentText,
 			&i.ContentState,
 			&i.Encrypted,
+			&i.CheckClaim,
+			&i.CheckUntil,
 		); err != nil {
 			return nil, err
 		}
@@ -434,7 +500,7 @@ func (q *Queries) ListMessageFiles(ctx context.Context, messageIds []pgtype.UUID
 }
 
 const listStaleFiles = `-- name: ListStaleFiles :many
-SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted FROM files
+SELECT id, workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type, size, status, width, height, has_thumbnail, created_at, media_kind, duration_ms, waveform, content_text, content_state, encrypted, check_claim, check_until FROM files
 WHERE message_id IS NULL AND (attached_at IS NOT NULL OR created_at < now() - interval '1 day')
 ORDER BY created_at
 LIMIT $1
@@ -472,6 +538,8 @@ func (q *Queries) ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, e
 			&i.ContentText,
 			&i.ContentState,
 			&i.Encrypted,
+			&i.CheckClaim,
+			&i.CheckUntil,
 		); err != nil {
 			return nil, err
 		}
@@ -481,4 +549,21 @@ func (q *Queries) ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, e
 		return nil, err
 	}
 	return items, nil
+}
+
+const releaseUpload = `-- name: ReleaseUpload :exec
+UPDATE files SET check_until = NULL
+WHERE id = $1 AND check_claim = $2 AND status = 'uploading'
+`
+
+type ReleaseUploadParams struct {
+	ID         pgtype.UUID `json:"id"`
+	CheckClaim pgtype.UUID `json:"check_claim"`
+}
+
+// ReleaseUpload gives up a claim that found nothing to check (the upload can
+// be completed again at once).
+func (q *Queries) ReleaseUpload(ctx context.Context, arg ReleaseUploadParams) error {
+	_, err := q.db.Exec(ctx, releaseUpload, arg.ID, arg.CheckClaim)
+	return err
 }

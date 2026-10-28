@@ -94,6 +94,10 @@ type Querier interface {
 	// ClaimImportedUser gives an imported person's account to the identity that
 	// signs in with their verified address for the first time.
 	ClaimImportedUser(ctx context.Context, arg ClaimImportedUserParams) (User, error)
+	// ClaimUpload lets one completion check an upload (for ten minutes): no row
+	// when the file is not the uploader's unchecked upload or another
+	// completion holds it.
+	ClaimUpload(ctx context.Context, arg ClaimUploadParams) (File, error)
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
@@ -295,7 +299,8 @@ type Querier interface {
 	FinishDelivery(ctx context.Context, arg FinishDeliveryParams) error
 	FinishRun(ctx context.Context, id pgtype.UUID) (PlaybookRun, error)
 	FinishScheduled(ctx context.Context, arg FinishScheduledParams) error
-	// FinishUpload records what the server found out about an uploaded file.
+	// FinishUpload records what the server found out about an uploaded file;
+	// only the completion holding the current claim may (no row otherwise).
 	FinishUpload(ctx context.Context, arg FinishUploadParams) (File, error)
 	FinishWorkflowTask(ctx context.Context, arg FinishWorkflowTaskParams) (WorkflowTask, error)
 	// FollowImportedThreads makes the authors of imported threads follow them,
@@ -723,6 +728,9 @@ type Querier interface {
 	// keep spillage.
 	RedactMessage(ctx context.Context, arg RedactMessageParams) (RedactMessageRow, error)
 	ReleaseLegalHold(ctx context.Context, arg ReleaseLegalHoldParams) (LegalHold, error)
+	// ReleaseUpload gives up a claim that found nothing to check (the upload can
+	// be completed again at once).
+	ReleaseUpload(ctx context.Context, arg ReleaseUploadParams) error
 	// ReleaseUsername takes a @username from others when the directory gives it
 	// to someone (they get a new one).
 	ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error

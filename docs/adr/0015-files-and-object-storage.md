@@ -27,7 +27,10 @@ file served from the app's own origin must never act as a page of the app.
    by the name or the declared type: a "PNG" that is a page becomes
    `application/octet-stream`), and makes a preview (≤ 480 px, JPEG or PNG, EXIF
    orientation applied, metadata dropped; images over 50 megapixels or 40 MB keep no
-   preview). Decoding runs at most four at a time.
+   preview). Decoding runs at most four at a time. One completion at a time checks a file:
+   it claims the upload (for ten minutes) before moving the bytes to the file's key, and
+   only that claim records the verdict, so a verdict always belongs to the bytes served;
+   a second completion meanwhile gets 409 `upload_incomplete` (later, the verdict).
 4. **Downloads go through the server**, which checks that the reader is a member of the
    channel and that the message is not deleted (unsent uploads: only the uploader). Files
    are served from the app's origin with `Content-Security-Policy: sandbox`, `nosniff`, a

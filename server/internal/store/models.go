@@ -391,6 +391,8 @@ type File struct {
 	ContentText  pgtype.Text        `json:"content_text"`
 	ContentState string             `json:"content_state"`
 	Encrypted    bool               `json:"encrypted"`
+	CheckClaim   pgtype.UUID        `json:"check_claim"`
+	CheckUntil   pgtype.Timestamptz `json:"check_until"`
 }
 
 type Form struct {

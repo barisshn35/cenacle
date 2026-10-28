@@ -96,6 +96,8 @@ type options struct {
 	ai *ai.Client
 	// sessionMaxAge replaces the sessions' 24 hours (runs longer than a day).
 	sessionMaxAge time.Duration
+	// store connects this object store instead.
+	store storage.Store
 }
 
 func newStack(t *testing.T, sh shared, o options) *stack {
@@ -146,6 +148,8 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	var maxFileSize int64
 	var uploads http.Handler
 	switch {
+	case o.store != nil:
+		files, maxFileSize = chat.NewFiles(o.store, o.scanner, 5<<20), 5<<20
 	case o.dir:
 		d, err := storage.NewDir(t.TempDir(), srv.URL+app.UploadsPath, sh.valkey)
 		if err != nil {

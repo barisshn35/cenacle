@@ -18,11 +18,27 @@ SELECT f.*, (m.deleted_at IS NOT NULL)::boolean AS message_deleted
 FROM files f LEFT JOIN messages m ON m.id = f.message_id
 WHERE f.id = @id;
 
+-- name: ClaimUpload :one
+-- ClaimUpload lets one completion check an upload (for ten minutes): no row
+-- when the file is not the uploader's unchecked upload or another
+-- completion holds it.
+UPDATE files SET check_claim = gen_random_uuid(), check_until = now() + interval '10 minutes'
+WHERE id = @id AND uploader_id = @uploader_id AND status = 'uploading'
+  AND (check_until IS NULL OR check_until < now())
+RETURNING *;
+
+-- name: ReleaseUpload :exec
+-- ReleaseUpload gives up a claim that found nothing to check (the upload can
+-- be completed again at once).
+UPDATE files SET check_until = NULL
+WHERE id = @id AND check_claim = @check_claim AND status = 'uploading';
+
 -- name: FinishUpload :one
--- FinishUpload records what the server found out about an uploaded file.
+-- FinishUpload records what the server found out about an uploaded file;
+-- only the completion holding the current claim may (no row otherwise).
 UPDATE files SET status = @status, content_type = @content_type, width = sqlc.narg(width),
-    height = sqlc.narg(height), has_thumbnail = @has_thumbnail
-WHERE id = @id AND status = 'uploading'
+    height = sqlc.narg(height), has_thumbnail = @has_thumbnail, check_until = NULL
+WHERE id = @id AND status = 'uploading' AND check_claim = @check_claim
 RETURNING *;
 
 -- name: AttachFiles :execrows

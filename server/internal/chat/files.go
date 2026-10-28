@@ -313,6 +313,26 @@ func (h *Handlers) CompleteUpload(w http.ResponseWriter, r *http.Request, fileID
 		blocked(w, r)
 		return
 	}
+	// One completion at a time: the claimant alone moves the bytes to the
+	// file's key, checks them and records the verdict, so a verdict always
+	// belongs to the bytes that are served.
+	claimed, err := h.Queries.ClaimUpload(r.Context(), store.ClaimUploadParams{ID: f.ID, UploaderID: p.User.ID})
+	if isNoRows(err) {
+		h.claimedElsewhere(w, r, f.ID)
+		return
+	}
+	if err != nil {
+		h.unavailable(w, r, "claim upload", err)
+		return
+	}
+	f = claimed
+	finished := false
+	defer func() {
+		if !finished { // nothing recorded: the upload can be completed again at once
+			_ = h.Queries.ReleaseUpload(context.WithoutCancel(r.Context()),
+				store.ReleaseUploadParams{ID: f.ID, CheckClaim: f.CheckClaim})
+		}
+	}()
 	// The upload moves to the file's key now; what arrives later under the
 	// upload key again is never checked or served.
 	if st, ok := h.Files.Store.(storage.Staged); ok {
@@ -337,13 +357,15 @@ func (h *Handlers) CompleteUpload(w http.ResponseWriter, r *http.Request, fileID
 		return
 	}
 	updated, err := h.Queries.FinishUpload(r.Context(), done)
-	if isNoRows(err) { // finished meanwhile by another request
-		updated, err = h.Queries.GetFile(r.Context(), f.ID)
+	if isNoRows(err) { // the claim ran out and another completion took over
+		h.claimedElsewhere(w, r, f.ID)
+		return
 	}
 	if err != nil {
 		h.unavailable(w, r, "finish upload", err)
 		return
 	}
+	finished = true
 	telemetry.Uploads.WithLabelValues(updated.Status).Inc()
 	if updated.Status == "ready" {
 		telemetry.UploadBytes.Add(float64(updated.Size))
@@ -355,6 +377,25 @@ func (h *Handlers) CompleteUpload(w http.ResponseWriter, r *http.Request, fileID
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, fileAPI(updated))
+}
+
+// claimedElsewhere answers a completion that another one is checking or has
+// checked: with that one's verdict when there is one.
+func (h *Handlers) claimedElsewhere(w http.ResponseWriter, r *http.Request, id pgtype.UUID) {
+	f, err := h.Queries.GetFile(r.Context(), id)
+	if err != nil {
+		h.unavailable(w, r, "get file", err)
+		return
+	}
+	switch f.Status {
+	case "ready":
+		httpx.WriteJSON(w, http.StatusOK, fileAPI(f))
+	case "blocked":
+		blocked(w, r)
+	default:
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeUploadIncomplete,
+			Detail: "The file is being checked; try again in a moment."})
+	}
 }
 
 func blocked(w http.ResponseWriter, r *http.Request) {
@@ -371,6 +412,10 @@ func (fs *Files) Open(ctx context.Context, f store.File) (storage.Object, error)
 // import) and checks them as an upload: scanned, images recognized, previews
 // made.
 func (fs *Files) Ingest(ctx context.Context, q *store.Queries, f store.File, r io.Reader) error {
+	f, err := q.ClaimUpload(ctx, store.ClaimUploadParams{ID: f.ID, UploaderID: f.UploaderID})
+	if err != nil {
+		return err
+	}
 	if err := fs.Store.Put(ctx, fileKey(f.ID), r, f.Size, f.ContentType); err != nil {
 		return err
 	}
@@ -384,7 +429,7 @@ func (fs *Files) Ingest(ctx context.Context, q *store.Queries, f store.File, r i
 
 // check scans an uploaded file, recognizes images and makes their preview.
 func (fs *Files) check(ctx context.Context, f store.File) (store.FinishUploadParams, error) {
-	out := store.FinishUploadParams{ID: f.ID, Status: "ready", ContentType: f.ContentType}
+	out := store.FinishUploadParams{ID: f.ID, CheckClaim: f.CheckClaim, Status: "ready", ContentType: f.ContentType}
 	if f.Encrypted {
 		return out, nil // ciphertext: nothing to scan, recognize or preview
 	}
