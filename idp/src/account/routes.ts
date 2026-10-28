@@ -426,8 +426,11 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
   ) {
     // The authenticator shows the account by its address (or sign-in name).
     const label = user.email ?? user.username ?? user.displayName;
+    // Every setup gets a new secret (one shown earlier is never confirmed
+    // later); a wrong code shows the same one again.
     const setup =
-      (await mfa.pendingSecret(user.id, label)) ?? (await mfa.beginSetup(user.id, label));
+      (error ? await mfa.pendingSecret(user.id, label) : null) ??
+      (await mfa.beginSetup(user.id, label));
     const qrSvg = await QRCode.toString(setup.uri, {
       type: 'svg',
       margin: 1,
