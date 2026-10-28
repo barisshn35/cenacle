@@ -920,6 +920,11 @@ func (h *Handlers) federatedMessage(ctx context.Context, q *store.Queries, conn 
 	}
 	nonce := "fed-" + remoteID.String()
 	m, err := postMessageTo(ctx, q, c, author, body, nonce, []byte("[]"), reply, postExtras{})
+	if errors.Is(err, errNonceReused) {
+		// A repeat of a message deleted here since (or moved): dropped, so
+		// the connection's later events still go through.
+		return nil
+	}
 	if err != nil {
 		return err
 	}

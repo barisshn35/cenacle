@@ -4,6 +4,7 @@ package app_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -129,5 +130,47 @@ func TestFederationOneSenderPerConnection(t *testing.T) {
 	_ = tx.Rollback(ctx)
 	if n, err := p.a.federation.Run(ctx); err != nil || n != 1 {
 		t.Fatalf("sent = %d %v", n, err)
+	}
+}
+
+// A repeated creation of a message the other server has deleted since (its
+// answer to the first delivery was lost) is dropped there, not refused: the
+// connection's later events still arrive.
+func TestFederationRepeatOfDeletedMessage(t *testing.T) {
+	p := newFedPair(t)
+	ctx := context.Background()
+	m, res := p.a.send(p.author, p.general, "first", "fed-repeat-0001")
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("send = %d", res.StatusCode)
+	}
+	federate(t, p.a, p.b)
+	got := p.b.timeline(p.admin, p.mirror)
+	if len(got) != 1 {
+		t.Fatalf("mirror = %+v", got)
+	}
+	if r := p.b.call(http.MethodDelete, "/api/channels/"+p.mirror+"/messages/"+got[0].Id.String(), p.admin, nil, nil); r.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete there = %d", r.StatusCode)
+	}
+
+	// The creation again, as a retry would send it.
+	var author string
+	if err := p.a.pool.QueryRow(ctx, `SELECT author_id::text FROM messages WHERE id = $1`, m.ID).Scan(&author); err != nil {
+		t.Fatal(err)
+	}
+	ev, _ := json.Marshal(map[string]any{"type": "message.created", "channel_id": p.mirror, "body": "first",
+		"message": map[string]string{"ours": m.ID}, "author": map[string]string{"id": author, "name": "Author"}})
+	if _, err := p.a.pool.Exec(ctx, `INSERT INTO federation_deliveries (connection_id, event) VALUES ($1, $2)`, p.aConn, ev); err != nil {
+		t.Fatal(err)
+	}
+	if _, res := p.a.send(p.author, p.general, "second", "fed-repeat-0002"); res.StatusCode != http.StatusCreated {
+		t.Fatalf("send = %d", res.StatusCode)
+	}
+	federate(t, p.a, p.b)
+	if n := p.queued(""); n != 0 {
+		t.Fatalf("deliveries left = %d (the repeat holds up the connection)", n)
+	}
+	got = p.b.timeline(p.admin, p.mirror)
+	if len(got) != 1 || got[0].Body != "second" {
+		t.Fatalf("mirror = %+v", got)
 	}
 }
