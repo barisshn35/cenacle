@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import { deepLinkTarget, returnPath } from './security.js';
+import { deepLinkTarget, issuerOrigin, returnPath } from './security.js';
 
 const server = 'https://chat.example.com';
 
@@ -108,6 +108,32 @@ describe('returnPath', () => {
       null,
     ]) {
       expect(returnPath(to, server), String(to)).toBe('/');
+    }
+  });
+});
+
+describe('issuerOrigin', () => {
+  const login = `${server}/api/auth/login?desktop=x&return_to=%2F`;
+  it('takes the redirect of the server sign-in to Cenacle ID', () => {
+    expect(issuerOrigin(server, login, 'https://id.example.com/auth?client_id=chat')).toBe(
+      'https://id.example.com',
+    );
+  });
+  it('ignores every page the sign-in visits after that', () => {
+    for (const [from, to] of [
+      // Cenacle ID sending the person on to an organization's own provider
+      ['https://id.example.com/interaction/abc', 'https://evil.example/login'],
+      // a link on any page of the sign-in
+      ['https://evil.example/login', 'https://evil.example/next'],
+      // other pages of the server
+      [`${server}/api/auth/callback?code=1`, 'https://evil.example/'],
+      [`${server}/signin`, 'https://evil.example/'],
+      // the server itself, and what is not a web page
+      [login, `${server}/desktop/signed-in?code=1`],
+      [login, 'javascript:alert(1)'],
+      ['not a url', 'https://id.example.com/'],
+    ] as const) {
+      expect(issuerOrigin(server, from, to), `${from} -> ${to}`).toBeNull();
     }
   });
 });

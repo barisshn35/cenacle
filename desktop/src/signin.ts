@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { net, session, type BrowserWindow, type Session, type WebContentsView } from 'electron';
 import { createHash, randomBytes } from 'node:crypto';
-import { hardenSession } from './security.js';
+import { hardenSession, issuerOrigin } from './security.js';
 
 export type SignInResult =
   | { token: string }
@@ -26,7 +26,7 @@ export function signIn(opts: {
   returnTo: string;
   /** Opens a window with the app's bar (the address of the page) around a page view. */
   frame: (ses: Session, parent?: BrowserWindow) => { win: BrowserWindow; view: WebContentsView };
-  /** Called with the origin of each page of the sign-in that is not the server. */
+  /** Called with the origin of Cenacle ID, where the server's sign-in redirects. */
   onIdentityProvider: (origin: string) => void;
 }): Promise<SignInResult> {
   const verifier = base64url(randomBytes(32));
@@ -48,9 +48,15 @@ export function signIn(opts: {
       if (!win.isDestroyed()) win.destroy();
     };
 
+    const url = new URL('/api/auth/login', opts.server);
+    url.searchParams.set('desktop', challenge);
+    url.searchParams.set('return_to', opts.returnTo);
+
     const signedIn = `${opts.server}/desktop/signed-in`;
     const failedAt = `${opts.server}/signin`;
-    const follow = (event: { preventDefault: () => void }, target: string) => {
+    // The address the top frame is at, to tell which step a redirect leaves.
+    let current = url.toString();
+    const follow = (event: { preventDefault: () => void }, target: string, redirect: boolean) => {
       if (target.startsWith(signedIn)) {
         event.preventDefault();
         const code = new URL(target).searchParams.get('code') ?? '';
@@ -69,24 +75,26 @@ export function signIn(opts: {
         });
         return;
       }
-      let origin: string;
       try {
-        origin = new URL(target).origin;
+        new URL(target);
       } catch {
         event.preventDefault();
         return;
       }
-      if (origin !== opts.server) opts.onIdentityProvider(origin);
+      // Cenacle ID is where the server's sign-in redirects, never just any
+      // page the sign-in window visits (links there open in Cenacle ID's window).
+      const issuer = redirect ? issuerOrigin(opts.server, current, target) : null;
+      if (issuer) opts.onIdentityProvider(issuer);
+      current = target;
     };
-    page.on('will-redirect', follow);
-    page.on('will-navigate', follow);
+    page.on('will-redirect', (event) => {
+      if (event.isMainFrame) follow(event, event.url, true);
+    });
+    page.on('will-navigate', (event) => follow(event, event.url, false));
     // No pop-ups from the sign-in pages.
     page.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.on('closed', () => finish({ error: 'closed' }));
 
-    const url = new URL('/api/auth/login', opts.server);
-    url.searchParams.set('desktop', challenge);
-    url.searchParams.set('return_to', opts.returnTo);
     void page.loadURL(url.toString());
   });
 }

@@ -79,3 +79,22 @@ export function returnPath(returnTo: unknown, server: string): string {
     return '/';
   }
 }
+
+/**
+ * The origin of Cenacle ID as the server names it: the server's sign-in
+ * (`/api/auth/login`) redirects to its issuer, and only that hop counts.
+ * Pages that the sign-in visits afterwards (an organization's own sign-in
+ * provider, or any site a page there links to) never become Cenacle ID.
+ * null for every other step of the sign-in.
+ */
+export function issuerOrigin(server: string, from: string, to: string): string | null {
+  let source: URL;
+  try {
+    source = new URL(from);
+  } catch {
+    return null;
+  }
+  if (source.origin !== server || source.pathname !== '/api/auth/login') return null;
+  const origin = originOf(to);
+  return origin && origin !== server ? origin : null;
+}
