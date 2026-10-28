@@ -263,6 +263,14 @@ function parseFilter(filter: string | undefined, allowed: Record<string, string>
   return { column, value: m[2]!.replace(/\\(.)/g, '$1') };
 }
 
+/**
+ * Whether the provider vouches for the addresses it pushes: as at its sign-ins
+ * for SAML (trustEmail), by its own setting for OIDC. Unvouched addresses are
+ * kept unverified and never link a local account.
+ */
+const vouchesForEmail = (provider: Provider) =>
+  provider.kind === 'saml' ? provider.config.trustEmail : provider.config.scimTrustEmail;
+
 const isUnique = (err: unknown) => (err as { code?: string }).code === '23505';
 
 /** Role from the provider's admin and guest groups, as at a sign-in. */
@@ -425,17 +433,26 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
         try {
           if (id === null) {
             // Someone who signed in before provisioning started (or, with
-            // linkByEmail, a local account with the address) becomes managed.
-            // A disabled local account is not revived by linking it: its
-            // address makes the new account a conflict (409) instead.
+            // linkByEmail and an address the provider vouches for, a local
+            // account with the address) becomes managed. A disabled local
+            // account is not revived by linking it, and administrators and
+            // accounts with a second step are never taken over without their
+            // own sign-in: their address makes the new account a conflict
+            // (409) instead.
             const { rows: existing } = await pool.query<{ id: string }>(
               `SELECT id FROM users
                WHERE NOT scim_managed AND (
                  (source_id = $1 AND (external_id = $2 OR ($3::citext IS NOT NULL AND email = $3::citext)))
                  OR ($4 AND source_id IS NULL AND disabled_at IS NULL
+                     AND NOT is_admin AND totp_enabled_at IS NULL
                      AND $3::citext IS NOT NULL AND email = $3::citext))
                ORDER BY source_id NULLS LAST LIMIT 1`,
-              [provider.id, f.externalId ?? f.userName, f.email, provider.config.linkByEmail],
+              [
+                provider.id,
+                f.externalId ?? f.userName,
+                f.email,
+                provider.config.linkByEmail && vouchesForEmail(provider),
+              ],
             );
             if (existing[0]) {
               await pool.query(
@@ -448,7 +465,7 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
             const { rows } = await pool.query<{ id: string }>(
               `INSERT INTO users (source_id, external_id, scim_external_id, scim_user_name, scim_managed,
                                   display_name, email, email_verified, title, synced_at, disabled_at)
-               VALUES ($1, $2, $3, $4, true, $5, $6::citext, $6::citext IS NOT NULL, $7, now(),
+               VALUES ($1, $2, $3, $4, true, $5, $6::citext, $6::citext IS NOT NULL AND $9, $7, now(),
                        CASE WHEN $8 THEN NULL ELSE now() END)
                RETURNING id`,
               [
@@ -460,20 +477,36 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
                 f.email,
                 f.title,
                 f.active,
+                vouchesForEmail(provider),
               ],
             );
             await record(request, 'scim.user.created', provider, { user: rows[0]!.id });
             return rows[0]!.id;
           }
+          // An address the provider does not vouch for stays unverified; one a
+          // sign-in verified stays verified while it does not change.
           const { rows } = await pool.query<{ was_active: boolean }>(
             `UPDATE users u SET scim_external_id = $3, scim_user_name = $4, display_name = $5,
-                 email = $6::citext, email_verified = $6::citext IS NOT NULL, title = $7, synced_at = now(),
+                 email = $6::citext,
+                 email_verified = $6::citext IS NOT NULL
+                   AND ($9 OR (u.email = $6::citext AND u.email_verified)),
+                 title = $7, synced_at = now(),
                  disabled_at = CASE WHEN $8 THEN NULL ELSE coalesce(u.disabled_at, now()) END,
                  updated_at = now()
                FROM (SELECT disabled_at IS NULL AS was_active FROM users WHERE id = $1) old
                WHERE u.id = $1 AND u.source_id = $2
                RETURNING old.was_active`,
-            [id, provider.id, f.externalId, f.userName, f.displayName, f.email, f.title, f.active],
+            [
+              id,
+              provider.id,
+              f.externalId,
+              f.userName,
+              f.displayName,
+              f.email,
+              f.title,
+              f.active,
+              vouchesForEmail(provider),
+            ],
           );
           if (rows[0]?.was_active && !f.active) {
             await endSessions(pool, [id]);

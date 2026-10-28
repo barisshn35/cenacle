@@ -121,6 +121,7 @@ function providerFormOf(kind: ProviderKind, body: Body, hasSecret: boolean): Pro
             clientId: text('clientId'),
             scopes: text('scopes') || 'openid email profile',
             groupsClaim: text('groupsClaim'),
+            scimTrustEmail: body.scimTrustEmail === '1',
             ...common,
           }
         : {

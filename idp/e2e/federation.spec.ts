@@ -152,6 +152,7 @@ test('signing in to an app with an OpenID Connect provider', async ({ page }) =>
       clientId: 'cenacle-id',
       scopes: 'openid email profile',
       groupsClaim: 'groups',
+      scimTrustEmail: false,
       linkByEmail: false,
       adminGroups: ['cenacle-admins'],
       guestGroups: [],

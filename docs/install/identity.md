@@ -94,6 +94,11 @@ before they sign in; deactivating someone there ends their sessions within a min
 - People are matched at their first sign-in by their verified e-mail address and are then
   bound to the provider's id; someone who signed in before provisioning started is taken
   over when the provider pushes them.
+- SCIM carries no verified flag: pushed addresses are kept **unverified** unless the provider
+  vouches for them (SAML: "vouches for the e-mail addresses it sends"; OIDC: "vouches for
+  the e-mail addresses it provisions over SCIM"). Only a vouched address links a local
+  account (with **Link by e-mail**), and administrators of Cenacle ID and accounts with a
+  second step are never linked this way: their address makes the push a conflict (409).
 - With SCIM on, **groups come from SCIM**, not from sign-ins. The administrator and guest
   groups of the provider still decide roles.
 - Deleting a person over SCIM deactivates the account (their messages keep their author).

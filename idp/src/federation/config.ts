@@ -32,6 +32,11 @@ export const oidcConfigSchema = z.object({
     .max(100)
     .regex(/^[A-Za-z0-9_.:-]*$/)
     .default('groups'),
+  /**
+   * The provider vouches for the e-mail addresses it pushes over SCIM (SCIM has
+   * no verified flag; sign-ins carry email_verified).
+   */
+  scimTrustEmail: z.boolean().default(false),
   ...common,
 });
 export type OidcConfig = z.infer<typeof oidcConfigSchema>;
@@ -60,7 +65,7 @@ export const samlConfigSchema = z.object({
     .string()
     .max(200)
     .default('http://schemas.microsoft.com/ws/2008/06/identity/claims/groups'),
-  /** The provider vouches for the addresses it sends (SAML has no verified flag). */
+  /** The provider vouches for the addresses it sends, at sign-ins and over SCIM (SAML has no verified flag). */
   trustEmail: z.boolean().default(false),
   ...common,
 });

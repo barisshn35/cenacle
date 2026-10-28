@@ -184,6 +184,7 @@ const en = {
     nameAttribute: 'Display name attribute',
     groupsAttribute: 'Groups attribute',
     trustEmail: 'The provider vouches for the e-mail addresses it sends',
+    scimTrustEmail: 'The provider vouches for the e-mail addresses it provisions over SCIM',
     accounts: 'Accounts and roles',
     linkByEmail:
       'An existing account with the same verified e-mail address becomes this provider’s account',
@@ -391,6 +392,7 @@ const tr: AdminMessages = {
     nameAttribute: 'Görünen ad özniteliği',
     groupsAttribute: 'Gruplar özniteliği',
     trustEmail: 'Sağlayıcı gönderdiği e-posta adreslerine kefil olur',
+    scimTrustEmail: 'Sağlayıcı SCIM ile gönderdiği e-posta adreslerine kefil olur',
     accounts: 'Hesaplar ve roller',
     linkByEmail: 'Aynı doğrulanmış e-posta adresine sahip mevcut hesap bu sağlayıcının hesabı olur',
     linkByEmailHint:

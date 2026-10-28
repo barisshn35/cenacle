@@ -5,7 +5,7 @@ import Fastify from 'fastify';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AuditLog } from '../src/accounts/audit.ts';
-import { oidcConfigSchema } from '../src/federation/config.ts';
+import { oidcConfigSchema, samlConfigSchema, type SamlConfig } from '../src/federation/config.ts';
 import { signInFederated } from '../src/federation/people.ts';
 import { ProviderStore, type Provider } from '../src/federation/store.ts';
 import { registerScim } from '../src/scim/routes.ts';
@@ -207,6 +207,7 @@ describe.skipIf(!hasTestDatabase)('SCIM provisioning (database)', () => {
         issuer: 'https://okta.example.com',
         clientId: 'cenacle',
         linkByEmail: true,
+        scimTrustEmail: true,
       }),
     });
     token = await providers.newScimToken(linking.id);
@@ -235,6 +236,82 @@ describe.skipIf(!hasTestDatabase)('SCIM provisioning (database)', () => {
     });
     expect(linked.statusCode).toBe(201);
     expect(linked.json().id).toBe(on);
+  });
+
+  it('keeps pushed addresses unverified unless the provider vouches for them', async () => {
+    const saml = await providers.create({
+      kind: 'saml',
+      name: 'Partner',
+      enabled: true,
+      secret: '',
+      config: samlConfigSchema.parse({
+        entryPoint: 'https://partner.example.com/sso',
+        idpEntityId: 'https://partner.example.com',
+        idpCert: '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----',
+        linkByEmail: true,
+      }),
+    });
+    token = await providers.newScimToken(saml.id);
+    const verified = async (id: string) =>
+      (await pool.query('SELECT email_verified FROM users WHERE id = $1', [id])).rows[0]
+        .email_verified;
+
+    // An unheld address is kept, unverified.
+    const pushed = (await call('POST', '/Users', ada)).json();
+    expect(pushed.emails).toEqual([{ value: 'ada@example.com', type: 'work', primary: true }]);
+    expect(await verified(pushed.id)).toBe(false);
+
+    // An address it does not vouch for never takes over a local account.
+    const local = async (email: string, extra = '') => {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO users (email, email_verified, display_name, password_hash${extra ? ', ' : ''}${extra})
+         VALUES ($1, true, 'Local', 'x'${extra ? ', true' : ''}) RETURNING id`,
+        [email],
+      );
+      return rows[0]!.id;
+    };
+    const grace = await local('grace@example.com');
+    const graceUser = {
+      ...ada,
+      userName: 'grace',
+      externalId: 'nameid-grace',
+      emails: [{ value: 'grace@example.com', primary: true }],
+    };
+    expect((await call('POST', '/Users', graceUser)).statusCode).toBe(409);
+    const unlinked = await pool.query('SELECT source_id, password_hash FROM users WHERE id = $1', [
+      grace,
+    ]);
+    expect(unlinked.rows[0]).toEqual({ source_id: null, password_hash: 'x' });
+
+    // Vouched: addresses are verified, but administrators are still not taken over.
+    await providers.update(saml.id, {
+      name: saml.name,
+      enabled: true,
+      config: { ...(saml.config as SamlConfig), trustEmail: true },
+    });
+    const admin = await local('root@example.com', 'is_admin');
+    expect(
+      (
+        await call('POST', '/Users', {
+          ...graceUser,
+          userName: 'root',
+          externalId: 'nameid-root',
+          emails: [{ value: 'root@example.com', primary: true }],
+        })
+      ).statusCode,
+    ).toBe(409);
+    expect(
+      (await pool.query('SELECT source_id FROM users WHERE id = $1', [admin])).rows[0],
+    ).toEqual({ source_id: null });
+    const linked = await call('POST', '/Users', graceUser);
+    expect(linked.json().id).toBe(grace);
+    expect(await verified(grace)).toBe(true);
+    const changed = await call('PUT', `/Users/${pushed.id}`, {
+      ...ada,
+      emails: [{ value: 'ada.l@example.com', primary: true }],
+    });
+    expect(changed.statusCode).toBe(200);
+    expect(await verified(pushed.id)).toBe(true);
   });
 
   it('writes only the attributes it keeps, never an object prototype', async () => {

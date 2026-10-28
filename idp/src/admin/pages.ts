@@ -757,7 +757,8 @@ ${value}</textarea>
                   hint: f.hasSecret ? m.clientSecretKeep : undefined,
                 })}
                 ${field('scopes', m.scopes, c.scopes)}
-                ${field('groupsClaim', m.groupsClaim, c.groupsClaim)}`
+                ${field('groupsClaim', m.groupsClaim, c.groupsClaim)}
+                ${check('scimTrustEmail', m.scimTrustEmail, c.scimTrustEmail)}`
               : html`${field('entryPoint', m.entryPoint, c.entryPoint, { type: 'url' })}
                 ${field('idpEntityId', m.idpEntityId, c.idpEntityId)}
                 ${area('idpCert', m.idpCert, c.idpCert ?? '')}`
