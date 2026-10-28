@@ -196,7 +196,8 @@ services:
       IDP_ENV: production
       IDP_ISSUER: https://${CENACLE_ID_DOMAIN}
       IDP_COOKIE_DOMAIN: ${IDP_COOKIE_DOMAIN:-}
-      IDP_TRUST_PROXY: 'true'
+      # One proxy (Caddy) in front of Cenacle ID.
+      IDP_TRUST_PROXY: '1'
       IDP_DATABASE_URL_FILE: /run/secrets/idp_database_url
       IDP_KEY_ENCRYPTION_KEY_FILE: /run/secrets/idp_key_encryption_key
       IDP_COOKIE_KEYS_FILE: /run/secrets/idp_cookie_keys

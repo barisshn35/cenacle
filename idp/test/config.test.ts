@@ -30,6 +30,20 @@ describe('loadConfig', () => {
     );
   });
 
+  it('trusts a number of proxies or their addresses, never every hop', () => {
+    const trust = (v: string) => loadConfig({ ...base, IDP_TRUST_PROXY: v }).trustProxy;
+    expect(trust('false')).toBe(false);
+    expect(trust('0')).toBe(false);
+    // true (what installs before 0.99.2 set behind Caddy) is the one proxy.
+    expect(trust('true')).toBe(1);
+    expect(trust('2')).toBe(2);
+    expect(trust('10.0.0.0/8, 192.0.2.7,fd00::/8,loopback')).toBe(
+      '10.0.0.0/8,192.0.2.7,fd00::/8,loopback',
+    );
+    for (const bad of ['yes', '11', '10.0.0.0/33', 'example.com', '10.0.0.1/8/1'])
+      expect(() => trust(bad)).toThrow(/IDP_TRUST_PROXY/);
+  });
+
   it('reads *_FILE secrets and splits cookie keys', () => {
     const files: Record<string, string> = {
       '/run/secrets/db': `${DB}\n`,

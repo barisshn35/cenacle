@@ -17,6 +17,23 @@ afterEach(async () => {
 });
 
 describe('idp http', () => {
+  it('takes the client address from the trusted proxies only', async () => {
+    const forwarded = { 'x-forwarded-for': '203.0.113.9, 198.51.100.7' };
+    for (const [trustProxy, ip] of [
+      [false, '127.0.0.1'],
+      [1, '198.51.100.7'],
+      [2, '203.0.113.9'],
+      ['127.0.0.1', '198.51.100.7'],
+    ] as const) {
+      app = await buildApp({ trustProxy });
+      app.get('/ip', async (request) => ({ ip: request.ip }));
+      const res = await app.inject({ url: '/ip', headers: forwarded });
+      expect(res.json()).toEqual({ ip });
+      await app.close();
+    }
+    app = await buildApp({});
+  });
+
   it('GET /healthz returns 200 with a request id', async () => {
     app = await buildApp({ checks: [down] });
     const res = await app.inject({ method: 'GET', url: '/healthz' });

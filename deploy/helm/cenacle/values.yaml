@@ -150,6 +150,10 @@ idp:
   signinNotice: ''
   # Share Cenacle ID cookies across subdomains, e.g. example.com.
   cookieDomain: ''
+  # The proxies in front of Cenacle ID whose X-Forwarded-For counts: the number
+  # of hops (1: the ingress controller; 2 with a load balancer that appends to
+  # it in front), or their addresses and CIDR ranges, comma-separated.
+  trustProxy: '1'
   resources:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }

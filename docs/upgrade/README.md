@@ -65,6 +65,14 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ## Version notes
 
+### 0.99.2
+
+- Cenacle ID: `IDP_TRUST_PROXY` is the number of proxies in front of it (or their addresses
+  and CIDR ranges), no longer "trust every hop". `true` now means one proxy, what Compose
+  (Caddy) and Helm (the ingress controller) have; Compose and Helm set `1`. With a load
+  balancer that appends to `X-Forwarded-For` in front of the ingress controller, set Helm
+  `idp.trustProxy` to `2`.
+
 ### 0.99.1
 
 - No migrations; rolling back to 0.99.0 is changing the version.

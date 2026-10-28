@@ -14,6 +14,7 @@ import type Provider from 'oidc-provider';
 import type { AuditLog } from './accounts/audit.ts';
 import type { MfaStore } from './accounts/mfa.ts';
 import type { UserStore } from './accounts/users.ts';
+import type { TrustProxy } from './config.ts';
 import { registerAccount } from './account/routes.ts';
 import type { PasskeyStore } from './accounts/passkeys.ts';
 import type { PolicyStore } from './accounts/policy.ts';
@@ -85,7 +86,8 @@ export interface AppOptions {
   oidc?: OidcOptions;
   /** Directory with the built page assets (served under /assets/). */
   assetsDir?: string;
-  trustProxy?: boolean;
+  /** Proxies whose X-Forwarded-* headers count (config.ts TrustProxy). */
+  trustProxy?: TrustProxy;
 }
 
 /** Request IDs share the format of the chat server: REQ-<base32>. */
@@ -115,10 +117,13 @@ function parseCookies(header: string | undefined): Record<string, string> {
 export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> {
   const checks = opts.checks ?? [];
   const readyTimeoutMs = opts.readyTimeoutMs ?? 2000;
+  const trust = opts.trustProxy ?? false;
 
   const app = Fastify({
     logger: opts.logger ?? false,
-    trustProxy: opts.trustProxy ?? false,
+    // A number of hops: the nearest ones are trusted (what proxy-addr does
+    // for a number, which Fastify's types leave out).
+    trustProxy: typeof trust === 'number' ? (_addr: string, hop: number) => hop < trust : trust,
     requestIdHeader: false,
     logController: new LogController({ requestIdLogLabel: 'request_id' }),
     genReqId: (req) => {

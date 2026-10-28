@@ -72,6 +72,12 @@ Ingress controllers close idle connections; raise the timeout for `/ws` (e.g. ng
 `nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"`) and the request body size for
 uploads (`proxy-body-size` at least `files.maxSizeMB`).
 
+Cenacle ID limits sign-in attempts per client address and takes that address from
+`X-Forwarded-For`, trusting `idp.trustProxy` proxies (default `1`: the ingress controller).
+With a load balancer in front of the controller that appends to the header, set `2`, or the
+proxies' addresses and CIDR ranges (`10.0.0.0/8,192.0.2.7`). Never trust more hops than
+there are proxies: a client could then choose its own address.
+
 Options: `metrics.serviceMonitor.enabled` (Prometheus Operator), `otlpEndpoint`,
 `networkPolicy.enabled`, `podDisruptionBudget`, resources and scheduling per component;
 `server.logLevel`, `server.sessionIdleTimeout`, `server.sessionMaxAge`, `server.webApp`,

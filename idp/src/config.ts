@@ -1,6 +1,46 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { readFileSync } from 'node:fs';
+import { isIP } from 'node:net';
 import { z } from 'zod';
+
+/**
+ * Which proxies may tell Cenacle ID the client's address and the original
+ * scheme and host (X-Forwarded-*): none (false), the number of proxies in front
+ * of it (the client address is the one the outermost of them saw), or their
+ * addresses and CIDR ranges (comma-separated).
+ */
+export type TrustProxy = false | number | string;
+
+/** Named ranges proxy-addr knows besides addresses and CIDR ranges. */
+const NAMED_RANGES = new Set(['loopback', 'linklocal', 'uniquelocal']);
+
+function trustProxyOf(value: string, ctx: z.RefinementCtx): TrustProxy {
+  const v = value.trim().toLowerCase();
+  if (v === '' || v === 'false' || v === '0') return false;
+  // One proxy (Caddy, an ingress controller): the address it saw, never one a
+  // client put in front of it.
+  if (v === 'true') return 1;
+  if (/^\d+$/.test(v)) {
+    const hops = Number(v);
+    if (hops <= 10) return hops;
+  } else {
+    const entries = v.split(',').map((e) => e.trim());
+    const valid = (e: string) => {
+      if (NAMED_RANGES.has(e)) return true;
+      const [addr, prefix, extra] = e.split('/');
+      const family = isIP(addr ?? '');
+      if (!family || extra !== undefined) return false;
+      if (prefix === undefined) return true;
+      return /^\d{1,3}$/.test(prefix) && Number(prefix) <= (family === 4 ? 32 : 128);
+    };
+    if (entries.every(valid)) return entries.join(',');
+  }
+  ctx.addIssue({
+    code: 'custom',
+    message: 'false, a number of proxy hops (1-10), or proxy addresses and CIDR ranges',
+  });
+  return z.NEVER;
+}
 
 /**
  * Identity server configuration. Every variable can also be read from a file
@@ -52,11 +92,8 @@ const serverSchema = keySchema.extend({
     .refine((keys) => keys.every((k) => k.length >= 32), 'each key needs at least 32 characters'),
   /** JSON file with the registered OIDC clients. */
   IDP_CLIENTS_FILE: z.string().min(1),
-  /** Trust X-Forwarded-* headers (set when running behind the Caddy proxy). */
-  IDP_TRUST_PROXY: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((v) => v === 'true'),
+  /** The proxies in front of Cenacle ID (TrustProxy): 1 behind Caddy or an ingress; true is 1. */
+  IDP_TRUST_PROXY: z.string().default('false').transform(trustProxyOf),
   IDP_READY_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2000),
   /** Sign-in attempts per client address and minute (raise it for many users behind one NAT). */
   IDP_LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).max(100_000).default(10),
@@ -89,7 +126,7 @@ export interface Config {
   keyEncryptionKey: Buffer;
   retiredKeyGraceSeconds: number;
   clientsFile: string;
-  trustProxy: boolean;
+  trustProxy: TrustProxy;
   database: DatabaseConfig;
   readyTimeoutMs: number;
   shutdownTimeoutMs: number;

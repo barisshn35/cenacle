@@ -3,6 +3,7 @@ import Provider, { type Configuration, type KoaContextWithOIDC } from 'oidc-prov
 import type { JWK } from 'jose';
 import type pg from 'pg';
 import type { UserStore } from '../accounts/users.ts';
+import type { TrustProxy } from '../config.ts';
 import { pickLocale } from '../ui/messages.ts';
 import { errorPage, loggedOutPage, logoutPage } from '../ui/pages.ts';
 import { createPostgresAdapter } from './adapter.ts';
@@ -17,7 +18,7 @@ export interface ProviderOptions {
   signingKeys: JWK[];
   cookieKeys: string[];
   cookieDomain: string;
-  trustProxy: boolean;
+  trustProxy: TrustProxy;
   /** Origins sign-in forms may redirect to (CSP form-action). */
   formActionOrigins: string[];
 }
@@ -179,6 +180,8 @@ export function createProvider(opts: ProviderOptions): Provider {
   };
 
   const provider = new Provider(opts.issuer, configuration);
-  provider.proxy = opts.trustProxy;
+  provider.proxy = opts.trustProxy !== false;
+  // The client address is the one the outermost trusted proxy saw.
+  provider.maxIpsCount = typeof opts.trustProxy === 'number' ? opts.trustProxy : 1;
   return provider;
 }

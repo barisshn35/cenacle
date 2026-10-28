@@ -66,7 +66,7 @@ spec:
           env:
             - { name: IDP_ISSUER, value: {{ printf "https://%s" .Values.idDomain | quote }} }
             - { name: IDP_COOKIE_DOMAIN, value: {{ .Values.idp.cookieDomain | quote }} }
-            - { name: IDP_TRUST_PROXY, value: 'true' }
+            - { name: IDP_TRUST_PROXY, value: {{ .Values.idp.trustProxy | quote }} }
             - { name: IDP_DATABASE_URL_FILE, value: /run/secrets/cenacle/idp-database-url }
             - { name: IDP_KEY_ENCRYPTION_KEY_FILE, value: /run/secrets/cenacle/idp-key-encryption-key }
             - { name: IDP_COOKIE_KEYS_FILE, value: /run/secrets/cenacle/idp-cookie-keys }
