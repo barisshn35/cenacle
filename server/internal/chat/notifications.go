@@ -308,10 +308,20 @@ func (h *Handlers) AddPushSubscription(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, r, "Too many browsers receive push; remove some first.")
 		return
 	}
-	if err := h.Queries.AddPushSubscription(ctx, store.AddPushSubscriptionParams{
-		UserID: p.User.ID, Endpoint: in.Endpoint, P256dh: in.Keys.P256dh, Auth: in.Keys.Auth,
-	}); err != nil {
+	// A subscription lives as long as the session that made it (bots have none).
+	if !p.Session.ID.Valid {
+		badRequest(w, r, "Push goes to the browsers people sign in with.")
+		return
+	}
+	n, err := h.Queries.AddPushSubscription(ctx, store.AddPushSubscriptionParams{
+		UserID: p.User.ID, SessionID: p.Session.ID, Endpoint: in.Endpoint, P256dh: in.Keys.P256dh, Auth: in.Keys.Auth,
+	})
+	if err != nil {
 		h.unavailable(w, r, "add push subscription", err)
+		return
+	}
+	if n == 0 { // another person's signed-in browser holds it
+		badRequest(w, r, "This browser receives push for another account; sign that account out first.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

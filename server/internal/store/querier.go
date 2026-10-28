@@ -45,7 +45,9 @@ type Querier interface {
 	AddMessageEdit(ctx context.Context, arg AddMessageEditParams) error
 	AddPollOptions(ctx context.Context, arg AddPollOptionsParams) error
 	AddPollVotes(ctx context.Context, arg AddPollVotesParams) (int64, error)
-	AddPushSubscription(ctx context.Context, arg AddPushSubscriptionParams) error
+	// AddPushSubscription binds a browser's subscription to the session that made
+	// it. An endpoint moves to another person only once its session has ended.
+	AddPushSubscription(ctx context.Context, arg AddPushSubscriptionParams) (int64, error)
 	AddReaction(ctx context.Context, arg AddReactionParams) (int64, error)
 	AddWorkspaceMember(ctx context.Context, arg AddWorkspaceMemberParams) (int64, error)
 	AdminListBots(ctx context.Context) ([]AdminListBotsRow, error)

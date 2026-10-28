@@ -12,26 +12,37 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addPushSubscription = `-- name: AddPushSubscription :exec
-INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES ($1, $2, $3, $4)
-ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth
+const addPushSubscription = `-- name: AddPushSubscription :execrows
+INSERT INTO push_subscriptions (user_id, session_id, endpoint, p256dh, auth)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (endpoint) DO UPDATE
+SET user_id = EXCLUDED.user_id, session_id = EXCLUDED.session_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth
+WHERE push_subscriptions.user_id = EXCLUDED.user_id
+   OR NOT EXISTS (SELECT 1 FROM sessions s WHERE s.id = push_subscriptions.session_id AND s.expires_at > now())
 `
 
 type AddPushSubscriptionParams struct {
-	UserID   pgtype.UUID `json:"user_id"`
-	Endpoint string      `json:"endpoint"`
-	P256dh   string      `json:"p256dh"`
-	Auth     string      `json:"auth"`
+	UserID    pgtype.UUID `json:"user_id"`
+	SessionID pgtype.UUID `json:"session_id"`
+	Endpoint  string      `json:"endpoint"`
+	P256dh    string      `json:"p256dh"`
+	Auth      string      `json:"auth"`
 }
 
-func (q *Queries) AddPushSubscription(ctx context.Context, arg AddPushSubscriptionParams) error {
-	_, err := q.db.Exec(ctx, addPushSubscription,
+// AddPushSubscription binds a browser's subscription to the session that made
+// it. An endpoint moves to another person only once its session has ended.
+func (q *Queries) AddPushSubscription(ctx context.Context, arg AddPushSubscriptionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, addPushSubscription,
 		arg.UserID,
+		arg.SessionID,
 		arg.Endpoint,
 		arg.P256dh,
 		arg.Auth,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const countPushSubscriptions = `-- name: CountPushSubscriptions :one
@@ -262,7 +273,8 @@ func (q *Queries) ListChannelNotificationPrefs(ctx context.Context, userID pgtyp
 }
 
 const listPushSubscriptions = `-- name: ListPushSubscriptions :many
-SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1
+SELECT p.endpoint, p.p256dh, p.auth FROM push_subscriptions p JOIN sessions s ON s.id = p.session_id
+WHERE p.user_id = $1 AND s.expires_at > now()
 `
 
 type ListPushSubscriptionsRow struct {

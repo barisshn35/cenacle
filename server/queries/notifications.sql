@@ -41,9 +41,15 @@ SELECT user_id, content_type, data FROM user_sounds WHERE id = @id;
 -- name: DeleteUserSound :execrows
 DELETE FROM user_sounds WHERE id = @id AND user_id = @user_id;
 
--- name: AddPushSubscription :exec
-INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (@user_id, @endpoint, @p256dh, @auth)
-ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth;
+-- name: AddPushSubscription :execrows
+-- AddPushSubscription binds a browser's subscription to the session that made
+-- it. An endpoint moves to another person only once its session has ended.
+INSERT INTO push_subscriptions (user_id, session_id, endpoint, p256dh, auth)
+VALUES (@user_id, @session_id, @endpoint, @p256dh, @auth)
+ON CONFLICT (endpoint) DO UPDATE
+SET user_id = EXCLUDED.user_id, session_id = EXCLUDED.session_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth
+WHERE push_subscriptions.user_id = EXCLUDED.user_id
+   OR NOT EXISTS (SELECT 1 FROM sessions s WHERE s.id = push_subscriptions.session_id AND s.expires_at > now());
 
 -- name: RemovePushSubscription :exec
 DELETE FROM push_subscriptions WHERE endpoint = @endpoint AND user_id = @user_id;
@@ -55,7 +61,8 @@ DELETE FROM push_subscriptions WHERE endpoint = @endpoint;
 SELECT count(*)::int FROM push_subscriptions WHERE user_id = @user_id;
 
 -- name: ListPushSubscriptions :many
-SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = @user_id;
+SELECT p.endpoint, p.p256dh, p.auth FROM push_subscriptions p JOIN sessions s ON s.id = p.session_id
+WHERE p.user_id = @user_id AND s.expires_at > now();
 
 -- name: GetPushKeys :one
 SELECT public_key, private_key FROM push_keys WHERE id;

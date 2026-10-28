@@ -51,6 +51,22 @@ export async function enablePush(publicKey: string): Promise<boolean> {
   return true;
 }
 
+/**
+ * Tells the server again about this browser's existing subscription (no
+ * prompt). Subscriptions belong to a session, so a new sign-in renews them.
+ */
+export async function renewPush(): Promise<void> {
+  if (!pushSupported() || Notification.permission !== 'granted') return;
+  const reg = await navigator.serviceWorker.getRegistration('/');
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) return;
+  const body = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+  await apiFetch<void>(
+    '/api/me/push-subscriptions',
+    json({ endpoint: body.endpoint, keys: body.keys }, 'POST'),
+  ).catch(() => undefined);
+}
+
 /** Stops web push in this browser. */
 export async function disablePush(): Promise<void> {
   if (!pushSupported()) return;

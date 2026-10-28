@@ -393,3 +393,56 @@ func atoi(t *testing.T, s string) int {
 	}
 	return n
 }
+
+// A push subscription ends with the session that made it.
+func TestPushEndsWithSession(t *testing.T) {
+	s := newStack(t, newShared(t), options{pushKey: "BPUBLICKEY"})
+	ayse := s.user("sub-a", "Ayşe")
+	lost := s.user("sub-m", "Mert")
+	kept := s.user("sub-m", "Mert")
+	deniz := s.user("sub-d", "Deniz")
+	general := s.general(ayse)
+	var set api.NotificationSettings
+	s.call(http.MethodGet, "/api/me/notifications", lost, nil, &set)
+	set.Prefs.Push = true
+	s.call(http.MethodPut, "/api/me/notifications", lost, set.Prefs, nil)
+	sub := map[string]any{"endpoint": "https://push.example/lost", "keys": map[string]string{"p256dh": "k", "auth": "a"}}
+	if res := s.call(http.MethodPost, "/api/me/push-subscriptions", lost, sub, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("subscribe = %d", res.StatusCode)
+	}
+	// Another person cannot take over the endpoint of a signed-in browser.
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/me/push-subscriptions", deniz, sub); status != http.StatusBadRequest {
+		t.Errorf("takeover = %d", status)
+	}
+	var list struct{ Sessions []api.DeviceSession }
+	s.call(http.MethodGet, "/api/sessions", kept, nil, &list)
+	for _, x := range list.Sessions {
+		if !x.Current {
+			if res := s.call(http.MethodDelete, "/api/sessions/"+x.Id.String(), kept, nil, nil); res.StatusCode != http.StatusNoContent {
+				t.Fatalf("end session = %d", res.StatusCode)
+			}
+		}
+	}
+	ctx := context.Background()
+	var n int
+	if err := s.pool.QueryRow(ctx, "SELECT count(*) FROM push_subscriptions").Scan(&n); err != nil || n != 0 {
+		t.Errorf("subscriptions left = %d %v", n, err)
+	}
+	sender := &fakeSender{}
+	p := &notify.Pusher{Queries: store.New(s.pool), Push: sender, Presence: fakePresence{s.userID(ayse): "online"},
+		PublicURL: "http://chat.test", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	if _, err := p.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	s.send(ayse, general, "hello <@"+s.userID(kept)+">", "n-push-lost")
+	if _, err := p.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(sender.calls) != 0 {
+		t.Errorf("pushed to an ended session: %v", sender.calls)
+	}
+	// Once its session is gone the endpoint is free again.
+	if res := s.call(http.MethodPost, "/api/me/push-subscriptions", deniz, sub, nil); res.StatusCode != http.StatusNoContent {
+		t.Errorf("subscribe after sign-out = %d", res.StatusCode)
+	}
+}

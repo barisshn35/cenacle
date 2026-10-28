@@ -26,6 +26,9 @@ asks for (European Accessibility Act, EN 301 549).
    message), and an envelope is accepted for one message id only.
 4. **Signing out forgets the device.** Encryption keys, group states, decrypted messages,
    passphrase keys, drafts and the push subscription go; the server forgets the device.
+   A push subscription belongs to the session that made it, so ending that session any
+   other way (another device, sign-out everywhere, the directory, expiry) stops its
+   pushes too; the app renews the subscription after a new sign-in.
    History comes to the next device from backups sealed with the recovery key.
 5. **S3 uploads are staged.** A POST policy can be used until it expires, so browsers
    upload to `uploads/<id>` and the server copies the object to `files/<id>` (only the

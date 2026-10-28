@@ -736,6 +736,7 @@ type PushSubscription struct {
 	P256dh    string      `json:"p256dh"`
 	Auth      string      `json:"auth"`
 	CreatedAt time.Time   `json:"created_at"`
+	SessionID pgtype.UUID `json:"session_id"`
 }
 
 type SavedMessage struct {
