@@ -61,6 +61,7 @@ type env struct {
 	sessions *auth.Sessions
 	client   *http.Client
 	webApp   *auth.WebApp
+	handlers *auth.Handlers
 }
 
 func newEnv(t *testing.T) *env {
@@ -97,6 +98,7 @@ func newEnv(t *testing.T) *env {
 	}
 	router = app.NewRouter(app.Deps{Log: handlers.Log, Auth: handlers})
 	e.client = newClient(t)
+	e.handlers = handlers
 	return e
 }
 

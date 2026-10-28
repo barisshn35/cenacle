@@ -39,9 +39,96 @@ UPDATE users SET is_admin = @is_admin WHERE id = @id;
 SELECT * FROM workspace_group_mappings WHERE workspace_id = @workspace_id ORDER BY lower(group_name);
 
 -- name: UpsertWorkspaceGroupMapping :one
+-- UpsertWorkspaceGroupMapping saves a mapping; saved by hand, it is reviewed.
 INSERT INTO workspace_group_mappings (workspace_id, group_name, role) VALUES (@workspace_id, @group_name, @role)
-ON CONFLICT (workspace_id, group_name) DO UPDATE SET role = EXCLUDED.role
+ON CONFLICT (workspace_id, group_name) DO UPDATE SET role = EXCLUDED.role, review_candidates = '{}'
 RETURNING *;
+
+-- name: LockGroupRenameCursor :one
+-- LockGroupRenameCursor reads the last group rename applied and holds it until
+-- the transaction ends (a sign-in and the feed may follow renames at once).
+SELECT cursor FROM group_rename_state WHERE id FOR UPDATE;
+
+-- name: SaveGroupRenameCursor :exec
+UPDATE group_rename_state SET cursor = @cursor WHERE id;
+
+-- name: RenameWorkspaceGroupMappings :many
+-- RenameWorkspaceGroupMappings moves the mappings of a group whose name
+-- changed to its new name (one a workspace: the strongest role), unless the
+-- workspace maps the new name already.
+UPDATE workspace_group_mappings m SET group_name = @new_name
+FROM (SELECT DISTINCT ON (workspace_id) workspace_id, group_name FROM workspace_group_mappings
+      WHERE lower(group_name) = lower(@old_name)
+      ORDER BY workspace_id, CASE role WHEN 'admin' THEN 0 WHEN 'member' THEN 1 ELSE 2 END, group_name) o
+WHERE m.workspace_id = o.workspace_id AND m.group_name = o.group_name
+  AND NOT EXISTS (SELECT 1 FROM workspace_group_mappings t
+                  WHERE t.workspace_id = m.workspace_id AND lower(t.group_name) = lower(@new_name))
+RETURNING m.workspace_id, m.role;
+
+-- name: DropRenamedWorkspaceGroupMappings :many
+-- DropRenamedWorkspaceGroupMappings removes the mappings of a group's old name
+-- where the workspace maps its new name: that mapping stays as it is.
+DELETE FROM workspace_group_mappings m
+WHERE lower(m.group_name) = lower(@old_name)
+  AND EXISTS (SELECT 1 FROM workspace_group_mappings t
+              WHERE t.workspace_id = m.workspace_id AND lower(t.group_name) = lower(@new_name))
+RETURNING m.workspace_id, m.group_name, m.role,
+    (SELECT t.role FROM workspace_group_mappings t
+     WHERE t.workspace_id = m.workspace_id AND lower(t.group_name) = lower(@new_name)
+     ORDER BY t.group_name LIMIT 1)::text AS kept_role;
+
+-- name: FlagWorkspaceGroupMappings :many
+-- FlagWorkspaceGroupMappings marks the mappings of a name several groups had
+-- for review, with the groups' new names as candidates.
+UPDATE workspace_group_mappings
+SET review_candidates = ARRAY(SELECT DISTINCT x FROM unnest(review_candidates || @candidates::text[]) AS x ORDER BY x)
+WHERE lower(group_name) = lower(@old_name)
+RETURNING workspace_id, group_name, review_candidates;
+
+-- name: RenameChannelGroupMappings :many
+-- RenameChannelGroupMappings is RenameWorkspaceGroupMappings for channels.
+UPDATE channel_group_mappings m SET group_name = @new_name
+FROM (SELECT DISTINCT ON (channel_id) channel_id, group_name FROM channel_group_mappings
+      WHERE lower(group_name) = lower(@old_name) ORDER BY channel_id, group_name) o
+WHERE m.channel_id = o.channel_id AND m.group_name = o.group_name
+  AND NOT EXISTS (SELECT 1 FROM channel_group_mappings t
+                  WHERE t.channel_id = m.channel_id AND lower(t.group_name) = lower(@new_name))
+RETURNING m.channel_id, (SELECT ch.workspace_id FROM channels ch WHERE ch.id = m.channel_id)::uuid AS workspace_id;
+
+-- name: DropRenamedChannelGroupMappings :many
+-- DropRenamedChannelGroupMappings is DropRenamedWorkspaceGroupMappings for channels.
+DELETE FROM channel_group_mappings m
+WHERE lower(m.group_name) = lower(@old_name)
+  AND EXISTS (SELECT 1 FROM channel_group_mappings t
+              WHERE t.channel_id = m.channel_id AND lower(t.group_name) = lower(@new_name))
+RETURNING m.channel_id, (SELECT ch.workspace_id FROM channels ch WHERE ch.id = m.channel_id)::uuid AS workspace_id, m.group_name;
+
+-- name: FlagChannelGroupMappings :many
+-- FlagChannelGroupMappings is FlagWorkspaceGroupMappings for channels.
+UPDATE channel_group_mappings m
+SET review_candidates = ARRAY(SELECT DISTINCT x FROM unnest(m.review_candidates || @candidates::text[]) AS x ORDER BY x)
+WHERE lower(m.group_name) = lower(@old_name)
+RETURNING m.channel_id, (SELECT ch.workspace_id FROM channels ch WHERE ch.id = m.channel_id)::uuid AS workspace_id, m.group_name, m.review_candidates;
+
+-- name: RenameUserGroups :exec
+-- RenameUserGroups follows a group's new name in the groups people are in,
+-- until Cenacle ID sends them again.
+UPDATE user_groups g SET group_name = @new_name
+WHERE lower(g.group_name) = lower(@old_name)
+  AND NOT EXISTS (SELECT 1 FROM user_groups t WHERE t.user_id = g.user_id AND lower(t.group_name) = lower(@new_name));
+
+-- name: DropRenamedUserGroups :exec
+DELETE FROM user_groups g
+WHERE lower(g.group_name) = lower(@old_name)
+  AND EXISTS (SELECT 1 FROM user_groups t WHERE t.user_id = g.user_id AND lower(t.group_name) = lower(@new_name));
+
+-- name: ListChannelGroupReviews :many
+-- ListChannelGroupReviews is the groups of a channel that need review.
+SELECT group_name, review_candidates FROM channel_group_mappings
+WHERE channel_id = @channel_id AND cardinality(review_candidates) > 0 ORDER BY lower(group_name);
+
+-- name: ClearChannelGroupReview :exec
+UPDATE channel_group_mappings SET review_candidates = '{}' WHERE channel_id = @channel_id AND group_name = @group_name;
 
 -- name: DeleteWorkspaceGroupMapping :execrows
 DELETE FROM workspace_group_mappings WHERE workspace_id = @workspace_id AND group_name = @group_name;

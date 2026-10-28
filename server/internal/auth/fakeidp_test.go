@@ -35,6 +35,8 @@ type fakeIdP struct {
 	// Subject, Email and Name describe the signed-in user; SID is the IdP
 	// session put into ID tokens ("" for none).
 	Subject, Email, Name, SID string
+	// Groups is the groups claim of userinfo.
+	Groups []string
 	// AuthError makes /auth answer with this OAuth error instead of a code.
 	AuthError string
 	// Tamper hooks for negative tests.
@@ -166,7 +168,7 @@ func (f *fakeIdP) userinfo(w http.ResponseWriter, r *http.Request) {
 	if f.UserinfoSubject != "" {
 		sub = f.UserinfoSubject
 	}
-	writeJSON(w, map[string]any{"sub": sub, "email": f.Email, "email_verified": true, "name": f.Name})
+	writeJSON(w, map[string]any{"sub": sub, "email": f.Email, "email_verified": true, "name": f.Name, "groups": f.Groups})
 }
 
 func (f *fakeIdP) jwks(w http.ResponseWriter, _ *http.Request) {

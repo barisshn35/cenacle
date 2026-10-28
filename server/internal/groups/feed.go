@@ -69,9 +69,14 @@ type feedPage struct {
 	More  bool       `json:"more"`
 }
 
-// Sync reads the feed from the saved cursor to the end and applies it; it
-// returns how many people of the chat changed.
+// Sync reads the feed from the saved cursor to the end and applies it, after
+// the group renames (FollowRenames); it returns how many people of the chat
+// changed.
 func (f *Feed) Sync(ctx context.Context) (int, error) {
+	// Renamed groups first: the people sent next have their new names.
+	if err := f.FollowRenames(ctx); err != nil {
+		return 0, err
+	}
 	state, err := f.Queries.GetDirectorySyncState(ctx)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return 0, err

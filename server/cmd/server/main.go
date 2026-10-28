@@ -262,14 +262,15 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 
 	// Background jobs; River's tables come with `migrate up`.
 	background := &chat.Background{DB: pool, Queries: queries, Egress: egressClient, Files: files, Log: log}
+	directory := &groups.Feed{
+		HTTP: idpClient, Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
+		DB: pool, Queries: queries, Ephemeral: ephemeral, AdminEmail: cfg.AdminEmail, Log: log,
+	}
 	deps := jobs.Deps{
 		Purger: chat.Purger{Queries: queries}, Sessions: sessions, Log: log,
 		Integrations: background,
 		Profiles:     background,
-		Directory: &groups.Feed{
-			HTTP: idpClient, Issuer: cfg.OIDCIssuer, ClientID: cfg.OIDCClientID, ClientSecret: cfg.OIDCClientSecret,
-			DB: pool, Queries: queries, Ephemeral: ephemeral, AdminEmail: cfg.AdminEmail, Log: log,
-		},
+		Directory:    directory,
 	}
 	deps.Workflows = &chat.WorkflowRunner{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	deps.Retention = chat.RetentionPurger{Queries: queries}
@@ -344,6 +345,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			DesktopMinVersion: cfg.DesktopMinVersion,
 			PrivacyURL:        cfg.PrivacyURL,
 			SourceURL:         cfg.SourceURL,
+			GroupRenames:      directory,
 			Log:               log,
 		},
 		Chat: &chat.Handlers{

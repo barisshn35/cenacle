@@ -108,6 +108,7 @@ type Querier interface {
 	// ClearAdminExcept removes the administrator flag from everyone but one user,
 	// so that it can move to that user (there is at most one administrator).
 	ClearAdminExcept(ctx context.Context, id pgtype.UUID) error
+	ClearChannelGroupReview(ctx context.Context, arg ClearChannelGroupReviewParams) error
 	ClearCustomStatus(ctx context.Context, id pgtype.UUID) error
 	// ClearExpiredStatuses empties custom statuses whose time is up.
 	ClearExpiredStatuses(ctx context.Context) ([]pgtype.UUID, error)
@@ -255,6 +256,12 @@ type Querier interface {
 	DeleteWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) error
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
 	DetachMessageFiles(ctx context.Context, messageID pgtype.UUID) ([]DetachMessageFilesRow, error)
+	// DropRenamedChannelGroupMappings is DropRenamedWorkspaceGroupMappings for channels.
+	DropRenamedChannelGroupMappings(ctx context.Context, arg DropRenamedChannelGroupMappingsParams) ([]DropRenamedChannelGroupMappingsRow, error)
+	DropRenamedUserGroups(ctx context.Context, arg DropRenamedUserGroupsParams) error
+	// DropRenamedWorkspaceGroupMappings removes the mappings of a group's old name
+	// where the workspace maps its new name: that mapping stays as it is.
+	DropRenamedWorkspaceGroupMappings(ctx context.Context, arg DropRenamedWorkspaceGroupMappingsParams) ([]DropRenamedWorkspaceGroupMappingsRow, error)
 	// DueFederationConnections returns the active connections whose oldest queued
 	// event is due. A connection's events go in the order they were queued, so an
 	// event waiting for its retry holds back the ones queued after it.
@@ -311,6 +318,11 @@ type Querier interface {
 	// only the completion holding the current claim may (no row otherwise).
 	FinishUpload(ctx context.Context, arg FinishUploadParams) (File, error)
 	FinishWorkflowTask(ctx context.Context, arg FinishWorkflowTaskParams) (WorkflowTask, error)
+	// FlagChannelGroupMappings is FlagWorkspaceGroupMappings for channels.
+	FlagChannelGroupMappings(ctx context.Context, arg FlagChannelGroupMappingsParams) ([]FlagChannelGroupMappingsRow, error)
+	// FlagWorkspaceGroupMappings marks the mappings of a name several groups had
+	// for review, with the groups' new names as candidates.
+	FlagWorkspaceGroupMappings(ctx context.Context, arg FlagWorkspaceGroupMappingsParams) ([]FlagWorkspaceGroupMappingsRow, error)
 	// FollowImportedThreads makes the authors of imported threads follow them,
 	// read to the end.
 	FollowImportedThreads(ctx context.Context, channelID pgtype.UUID) error
@@ -504,6 +516,8 @@ type Querier interface {
 	// newest first, with their uploaders.
 	ListChannelFiles(ctx context.Context, arg ListChannelFilesParams) ([]ListChannelFilesRow, error)
 	ListChannelGroupMappings(ctx context.Context, channelID pgtype.UUID) ([]string, error)
+	// ListChannelGroupReviews is the groups of a channel that need review.
+	ListChannelGroupReviews(ctx context.Context, channelID pgtype.UUID) ([]ListChannelGroupReviewsRow, error)
 	ListChannelMemberAttributes(ctx context.Context, channelID pgtype.UUID) ([]ListChannelMemberAttributesRow, error)
 	ListChannelMemberIDs(ctx context.Context, channelID pgtype.UUID) ([]pgtype.UUID, error)
 	ListChannelNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]ListChannelNotificationPrefsRow, error)
@@ -655,6 +669,9 @@ type Querier interface {
 	// connection (false: another one is sending). The schema is part of the key,
 	// so installations sharing a database do not wait for each other.
 	LockFederationSending(ctx context.Context, connectionID pgtype.UUID) (bool, error)
+	// LockGroupRenameCursor reads the last group rename applied and holds it until
+	// the transaction ends (a sign-in and the feed may follow renames at once).
+	LockGroupRenameCursor(ctx context.Context) (int64, error)
 	// MarkChannelImported records that an import created the channel.
 	MarkChannelImported(ctx context.Context, channelID pgtype.UUID) error
 	// MarkChannelReadForAll makes the history of an imported channel read.
@@ -753,8 +770,17 @@ type Querier interface {
 	RemovePushSubscription(ctx context.Context, arg RemovePushSubscriptionParams) error
 	RemoveReaction(ctx context.Context, arg RemoveReactionParams) (int64, error)
 	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) (int64, error)
+	// RenameChannelGroupMappings is RenameWorkspaceGroupMappings for channels.
+	RenameChannelGroupMappings(ctx context.Context, arg RenameChannelGroupMappingsParams) ([]RenameChannelGroupMappingsRow, error)
 	RenameChannelTab(ctx context.Context, arg RenameChannelTabParams) (ChannelTab, error)
+	// RenameUserGroups follows a group's new name in the groups people are in,
+	// until Cenacle ID sends them again.
+	RenameUserGroups(ctx context.Context, arg RenameUserGroupsParams) error
 	RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) (Workspace, error)
+	// RenameWorkspaceGroupMappings moves the mappings of a group whose name
+	// changed to its new name (one a workspace: the strongest role), unless the
+	// workspace maps the new name already.
+	RenameWorkspaceGroupMappings(ctx context.Context, arg RenameWorkspaceGroupMappingsParams) ([]RenameWorkspaceGroupMappingsRow, error)
 	ReplaceClassification(ctx context.Context, arg ReplaceClassificationParams) (Classification, error)
 	// ReplaceUserGroups sets the directory groups of a person.
 	ReplaceUserGroups(ctx context.Context, arg ReplaceUserGroupsParams) error
@@ -784,6 +810,7 @@ type Querier interface {
 	// the writer's turn; no row means the canvas changed in between.
 	SaveCanvas(ctx context.Context, arg SaveCanvasParams) (pgtype.UUID, error)
 	SaveDirectorySyncState(ctx context.Context, cursor string) error
+	SaveGroupRenameCursor(ctx context.Context, cursor int64) error
 	SaveWorkflowRun(ctx context.Context, arg SaveWorkflowRunParams) error
 	// SearchCanvases finds canvases of the user's channels by their text.
 	SearchCanvases(ctx context.Context, arg SearchCanvasesParams) ([]SearchCanvasesRow, error)
@@ -928,6 +955,7 @@ type Querier interface {
 	// UpsertUserFromIdentity creates the user of an identity on first sign-in and
 	// refreshes the profile claims on every later one.
 	UpsertUserFromIdentity(ctx context.Context, arg UpsertUserFromIdentityParams) (User, error)
+	// UpsertWorkspaceGroupMapping saves a mapping; saved by hand, it is reviewed.
 	UpsertWorkspaceGroupMapping(ctx context.Context, arg UpsertWorkspaceGroupMappingParams) (WorkspaceGroupMapping, error)
 	// UseFederationInvite takes an unused, unexpired invitation (once).
 	UseFederationInvite(ctx context.Context, tokenHash []byte) (FederationInvite, error)

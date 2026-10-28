@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -191,18 +192,35 @@ func TestDirectoryRoles(t *testing.T) {
 
 // fakeFeed is Cenacle ID's directory feed with a page of changes.
 func fakeFeed(t *testing.T, users []map[string]any) (*httptest.Server, *int) {
+	return fakeFeedWith(t, users, nil)
+}
+
+// fakeFeedWith also has group renames (ids "1", "2", ...).
+func fakeFeedWith(t *testing.T, users []map[string]any, renames []map[string]any) (*httptest.Server, *int) {
 	var mu sync.Mutex
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, secret, ok := r.BasicAuth()
 		if !ok || id != "cenacle-chat" || secret != "feed-secret" ||
-			(r.URL.Path != "/directory/v1/changes" && !strings.HasPrefix(r.URL.Path, "/directory/v1/photos/")) {
+			(r.URL.Path != "/directory/v1/changes" && r.URL.Path != "/directory/v1/group-renames" &&
+				!strings.HasPrefix(r.URL.Path, "/directory/v1/photos/")) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		mu.Lock()
 		calls++
 		mu.Unlock()
+		if r.URL.Path == "/directory/v1/group-renames" {
+			after, _ := strconv.Atoi(r.URL.Query().Get("after"))
+			page := []map[string]any{}
+			for i, c := range renames {
+				if i+1 > after {
+					page = append(page, map[string]any{"id": strconv.Itoa(i + 1), "old": c["old"], "new": c["new"], "ambiguous": c["ambiguous"] == true})
+				}
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"renames": page, "next": strconv.Itoa(len(renames)), "more": false})
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/directory/v1/photos/") {
 			w.Header().Set("Content-Type", "image/png")
 			_, _ = w.Write(pngImage(t, 300, 300))

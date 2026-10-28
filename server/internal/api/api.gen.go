@@ -2684,6 +2684,12 @@ type ChannelFileMediaKind string
 type ChannelGroups struct {
 	Groups  []string `json:"groups"`
 	Managed bool     `json:"managed"`
+
+	// Reviewed Groups whose review is done; they stay as they are.
+	Reviewed *[]string `json:"reviewed,omitempty"`
+
+	// Reviews Groups of the channel that need review, with the new names they may mean (see GroupMapping.candidates). A group still listed keeps its review unless named in `reviewed`.
+	Reviews *[]GroupReview `json:"reviews,omitempty"`
 }
 
 // ChannelList defines model for ChannelList.
@@ -3107,12 +3113,20 @@ type ForwardInfo struct {
 
 // GroupMapping defines model for GroupMapping.
 type GroupMapping struct {
-	Group string           `json:"group"`
-	Role  GroupMappingRole `json:"role"`
+	// Candidates Set when the mapping needs review: the group's name changed at Cenacle ID, but several groups had it (ADR 0046). The new names it may mean; the mapping matches none of them until an administrator saves it (keeps it as it is), maps one of them instead or removes it.
+	Candidates *[]string        `json:"candidates,omitempty"`
+	Group      string           `json:"group"`
+	Role       GroupMappingRole `json:"role"`
 }
 
 // GroupMappingRole defines model for GroupMapping.Role.
 type GroupMappingRole string
+
+// GroupReview defines model for GroupReview.
+type GroupReview struct {
+	Candidates []string `json:"candidates"`
+	Group      string   `json:"group"`
+}
 
 // GuestLink defines model for GuestLink.
 type GuestLink struct {

@@ -154,9 +154,10 @@ type ChannelFeed struct {
 }
 
 type ChannelGroupMapping struct {
-	ChannelID pgtype.UUID `json:"channel_id"`
-	GroupName string      `json:"group_name"`
-	CreatedAt time.Time   `json:"created_at"`
+	ChannelID        pgtype.UUID `json:"channel_id"`
+	GroupName        string      `json:"group_name"`
+	CreatedAt        time.Time   `json:"created_at"`
+	ReviewCandidates []string    `json:"review_candidates"`
 }
 
 type ChannelMember struct {
@@ -415,6 +416,11 @@ type FormSubmission struct {
 	FormName    string      `json:"form_name"`
 	Answers     []byte      `json:"answers"`
 	CreatedAt   time.Time   `json:"created_at"`
+}
+
+type GroupRenameState struct {
+	ID     bool  `json:"id"`
+	Cursor int64 `json:"cursor"`
 }
 
 type GuestLink struct {
@@ -992,10 +998,11 @@ type WorkspaceAttribute struct {
 }
 
 type WorkspaceGroupMapping struct {
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	GroupName   string      `json:"group_name"`
-	Role        string      `json:"role"`
-	CreatedAt   time.Time   `json:"created_at"`
+	WorkspaceID      pgtype.UUID `json:"workspace_id"`
+	GroupName        string      `json:"group_name"`
+	Role             string      `json:"role"`
+	CreatedAt        time.Time   `json:"created_at"`
+	ReviewCandidates []string    `json:"review_candidates"`
 }
 
 type WorkspaceInvite struct {

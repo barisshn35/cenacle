@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -90,7 +91,35 @@ type Handlers struct {
 	PrivacyURL string
 	// SourceURL is the source code of this server ("" none).
 	SourceURL string
-	Log       *slog.Logger
+	// GroupRenames follows Cenacle ID's group renames before a sign-in
+	// applies the person's groups (the directory feed); optional.
+	GroupRenames GroupRenames
+	Log          *slog.Logger
+}
+
+// GroupRenames applies the group name changes at Cenacle ID the chat has not
+// applied yet (groups.Feed).
+type GroupRenames interface {
+	FollowRenames(ctx context.Context) error
+}
+
+// RenamesTimeout bounds how long a sign-in waits for group renames.
+const RenamesTimeout = 2 * time.Second
+
+// followRenames applies pending group renames before a person's groups are,
+// so mappings of a renamed group do not take memberships back and give them
+// again. Only an identity provider's groups ("<provider>/<group>") are
+// renamed. A failure leaves it to the directory feed: it never fails a
+// sign-in, nor holds it up for long.
+func (h *Handlers) followRenames(ctx context.Context, names []string) {
+	if h.GroupRenames == nil || !slices.ContainsFunc(names, func(n string) bool { return strings.Contains(n, "/") }) {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, RenamesTimeout)
+	defer cancel()
+	if err := h.GroupRenames.FollowRenames(ctx); err != nil {
+		h.Log.WarnContext(ctx, "group renames before sign-in", "error", err)
+	}
 }
 
 func randomString() string {
@@ -314,6 +343,7 @@ func (h *Handlers) finishSignIn(ctx context.Context, params api.AuthCallbackPara
 	if err != nil {
 		return signedIn{}, errUnavailable{err}
 	}
+	h.followRenames(ctx, profile.Groups)
 	if err := groups.Apply(ctx, h.Users, user, groups.Profile{
 		Username: profile.Username, Role: profile.Role, Groups: profile.Groups,
 	}, h.AdminEmail); err != nil {

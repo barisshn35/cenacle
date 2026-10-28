@@ -53,7 +53,15 @@ const (
 	UITextsChanged      = "ui_texts.changed"
 	GroupMappingDeleted = "workspace.group_mapping_deleted"
 	ChannelGroupsSet    = "channel.groups_set"
-	Unsubscribed        = "bot.subscription_deleted"
+	// A group's name changed at Cenacle ID (ADR 0046): its mappings followed,
+	// gave way to a mapping of the new name, or wait for an administrator.
+	GroupMappingRenamed     = "workspace.group_mapping_renamed"
+	GroupMappingMerged      = "workspace.group_mapping_merged"
+	GroupMappingNeedsReview = "workspace.group_mapping_needs_review"
+	ChannelGroupRenamed     = "channel.group_renamed"
+	ChannelGroupMerged      = "channel.group_merged"
+	ChannelGroupNeedsReview = "channel.group_needs_review"
+	Unsubscribed            = "bot.subscription_deleted"
 
 	SlowModeChanged                = "channel.slow_mode_changed"
 	MemberTimedOut                 = "workspace.member_timed_out"

@@ -55,6 +55,20 @@ func (q *Queries) ChannelsFromGroups(ctx context.Context, userID pgtype.UUID) ([
 	return items, nil
 }
 
+const clearChannelGroupReview = `-- name: ClearChannelGroupReview :exec
+UPDATE channel_group_mappings SET review_candidates = '{}' WHERE channel_id = $1 AND group_name = $2
+`
+
+type ClearChannelGroupReviewParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	GroupName string      `json:"group_name"`
+}
+
+func (q *Queries) ClearChannelGroupReview(ctx context.Context, arg ClearChannelGroupReviewParams) error {
+	_, err := q.db.Exec(ctx, clearChannelGroupReview, arg.ChannelID, arg.GroupName)
+	return err
+}
+
 const deleteChannelGroupMapping = `-- name: DeleteChannelGroupMapping :execrows
 DELETE FROM channel_group_mappings WHERE channel_id = $1 AND group_name = $2
 `
@@ -87,6 +101,197 @@ func (q *Queries) DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWor
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const dropRenamedChannelGroupMappings = `-- name: DropRenamedChannelGroupMappings :many
+DELETE FROM channel_group_mappings m
+WHERE lower(m.group_name) = lower($1)
+  AND EXISTS (SELECT 1 FROM channel_group_mappings t
+              WHERE t.channel_id = m.channel_id AND lower(t.group_name) = lower($2))
+RETURNING m.channel_id, (SELECT ch.workspace_id FROM channels ch WHERE ch.id = m.channel_id)::uuid AS workspace_id, m.group_name
+`
+
+type DropRenamedChannelGroupMappingsParams struct {
+	OldName string `json:"old_name"`
+	NewName string `json:"new_name"`
+}
+
+type DropRenamedChannelGroupMappingsRow struct {
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	GroupName   string      `json:"group_name"`
+}
+
+// DropRenamedChannelGroupMappings is DropRenamedWorkspaceGroupMappings for channels.
+func (q *Queries) DropRenamedChannelGroupMappings(ctx context.Context, arg DropRenamedChannelGroupMappingsParams) ([]DropRenamedChannelGroupMappingsRow, error) {
+	rows, err := q.db.Query(ctx, dropRenamedChannelGroupMappings, arg.OldName, arg.NewName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DropRenamedChannelGroupMappingsRow
+	for rows.Next() {
+		var i DropRenamedChannelGroupMappingsRow
+		if err := rows.Scan(&i.ChannelID, &i.WorkspaceID, &i.GroupName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const dropRenamedUserGroups = `-- name: DropRenamedUserGroups :exec
+DELETE FROM user_groups g
+WHERE lower(g.group_name) = lower($1)
+  AND EXISTS (SELECT 1 FROM user_groups t WHERE t.user_id = g.user_id AND lower(t.group_name) = lower($2))
+`
+
+type DropRenamedUserGroupsParams struct {
+	OldName string `json:"old_name"`
+	NewName string `json:"new_name"`
+}
+
+func (q *Queries) DropRenamedUserGroups(ctx context.Context, arg DropRenamedUserGroupsParams) error {
+	_, err := q.db.Exec(ctx, dropRenamedUserGroups, arg.OldName, arg.NewName)
+	return err
+}
+
+const dropRenamedWorkspaceGroupMappings = `-- name: DropRenamedWorkspaceGroupMappings :many
+DELETE FROM workspace_group_mappings m
+WHERE lower(m.group_name) = lower($1)
+  AND EXISTS (SELECT 1 FROM workspace_group_mappings t
+              WHERE t.workspace_id = m.workspace_id AND lower(t.group_name) = lower($2))
+RETURNING m.workspace_id, m.group_name, m.role,
+    (SELECT t.role FROM workspace_group_mappings t
+     WHERE t.workspace_id = m.workspace_id AND lower(t.group_name) = lower($2)
+     ORDER BY t.group_name LIMIT 1)::text AS kept_role
+`
+
+type DropRenamedWorkspaceGroupMappingsParams struct {
+	OldName string `json:"old_name"`
+	NewName string `json:"new_name"`
+}
+
+type DropRenamedWorkspaceGroupMappingsRow struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	GroupName   string      `json:"group_name"`
+	Role        string      `json:"role"`
+	KeptRole    string      `json:"kept_role"`
+}
+
+// DropRenamedWorkspaceGroupMappings removes the mappings of a group's old name
+// where the workspace maps its new name: that mapping stays as it is.
+func (q *Queries) DropRenamedWorkspaceGroupMappings(ctx context.Context, arg DropRenamedWorkspaceGroupMappingsParams) ([]DropRenamedWorkspaceGroupMappingsRow, error) {
+	rows, err := q.db.Query(ctx, dropRenamedWorkspaceGroupMappings, arg.OldName, arg.NewName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DropRenamedWorkspaceGroupMappingsRow
+	for rows.Next() {
+		var i DropRenamedWorkspaceGroupMappingsRow
+		if err := rows.Scan(
+			&i.WorkspaceID,
+			&i.GroupName,
+			&i.Role,
+			&i.KeptRole,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const flagChannelGroupMappings = `-- name: FlagChannelGroupMappings :many
+UPDATE channel_group_mappings m
+SET review_candidates = ARRAY(SELECT DISTINCT x FROM unnest(m.review_candidates || $1::text[]) AS x ORDER BY x)
+WHERE lower(m.group_name) = lower($2)
+RETURNING m.channel_id, (SELECT ch.workspace_id FROM channels ch WHERE ch.id = m.channel_id)::uuid AS workspace_id, m.group_name, m.review_candidates
+`
+
+type FlagChannelGroupMappingsParams struct {
+	Candidates []string `json:"candidates"`
+	OldName    string   `json:"old_name"`
+}
+
+type FlagChannelGroupMappingsRow struct {
+	ChannelID        pgtype.UUID `json:"channel_id"`
+	WorkspaceID      pgtype.UUID `json:"workspace_id"`
+	GroupName        string      `json:"group_name"`
+	ReviewCandidates []string    `json:"review_candidates"`
+}
+
+// FlagChannelGroupMappings is FlagWorkspaceGroupMappings for channels.
+func (q *Queries) FlagChannelGroupMappings(ctx context.Context, arg FlagChannelGroupMappingsParams) ([]FlagChannelGroupMappingsRow, error) {
+	rows, err := q.db.Query(ctx, flagChannelGroupMappings, arg.Candidates, arg.OldName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FlagChannelGroupMappingsRow
+	for rows.Next() {
+		var i FlagChannelGroupMappingsRow
+		if err := rows.Scan(
+			&i.ChannelID,
+			&i.WorkspaceID,
+			&i.GroupName,
+			&i.ReviewCandidates,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const flagWorkspaceGroupMappings = `-- name: FlagWorkspaceGroupMappings :many
+UPDATE workspace_group_mappings
+SET review_candidates = ARRAY(SELECT DISTINCT x FROM unnest(review_candidates || $1::text[]) AS x ORDER BY x)
+WHERE lower(group_name) = lower($2)
+RETURNING workspace_id, group_name, review_candidates
+`
+
+type FlagWorkspaceGroupMappingsParams struct {
+	Candidates []string `json:"candidates"`
+	OldName    string   `json:"old_name"`
+}
+
+type FlagWorkspaceGroupMappingsRow struct {
+	WorkspaceID      pgtype.UUID `json:"workspace_id"`
+	GroupName        string      `json:"group_name"`
+	ReviewCandidates []string    `json:"review_candidates"`
+}
+
+// FlagWorkspaceGroupMappings marks the mappings of a name several groups had
+// for review, with the groups' new names as candidates.
+func (q *Queries) FlagWorkspaceGroupMappings(ctx context.Context, arg FlagWorkspaceGroupMappingsParams) ([]FlagWorkspaceGroupMappingsRow, error) {
+	rows, err := q.db.Query(ctx, flagWorkspaceGroupMappings, arg.Candidates, arg.OldName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FlagWorkspaceGroupMappingsRow
+	for rows.Next() {
+		var i FlagWorkspaceGroupMappingsRow
+		if err := rows.Scan(&i.WorkspaceID, &i.GroupName, &i.ReviewCandidates); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getDirectorySyncState = `-- name: GetDirectorySyncState :one
@@ -316,6 +521,37 @@ func (q *Queries) ListChannelGroupMappings(ctx context.Context, channelID pgtype
 	return items, nil
 }
 
+const listChannelGroupReviews = `-- name: ListChannelGroupReviews :many
+SELECT group_name, review_candidates FROM channel_group_mappings
+WHERE channel_id = $1 AND cardinality(review_candidates) > 0 ORDER BY lower(group_name)
+`
+
+type ListChannelGroupReviewsRow struct {
+	GroupName        string   `json:"group_name"`
+	ReviewCandidates []string `json:"review_candidates"`
+}
+
+// ListChannelGroupReviews is the groups of a channel that need review.
+func (q *Queries) ListChannelGroupReviews(ctx context.Context, channelID pgtype.UUID) ([]ListChannelGroupReviewsRow, error) {
+	rows, err := q.db.Query(ctx, listChannelGroupReviews, channelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListChannelGroupReviewsRow
+	for rows.Next() {
+		var i ListChannelGroupReviewsRow
+		if err := rows.Scan(&i.GroupName, &i.ReviewCandidates); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listChannelMemberIDs = `-- name: ListChannelMemberIDs :many
 SELECT user_id FROM channel_members WHERE channel_id = $1
 `
@@ -390,7 +626,7 @@ func (q *Queries) ListUserGroups(ctx context.Context, userID pgtype.UUID) ([]str
 }
 
 const listWorkspaceGroupMappings = `-- name: ListWorkspaceGroupMappings :many
-SELECT workspace_id, group_name, role, created_at FROM workspace_group_mappings WHERE workspace_id = $1 ORDER BY lower(group_name)
+SELECT workspace_id, group_name, role, created_at, review_candidates FROM workspace_group_mappings WHERE workspace_id = $1 ORDER BY lower(group_name)
 `
 
 func (q *Queries) ListWorkspaceGroupMappings(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceGroupMapping, error) {
@@ -407,6 +643,7 @@ func (q *Queries) ListWorkspaceGroupMappings(ctx context.Context, workspaceID pg
 			&i.GroupName,
 			&i.Role,
 			&i.CreatedAt,
+			&i.ReviewCandidates,
 		); err != nil {
 			return nil, err
 		}
@@ -416,6 +653,19 @@ func (q *Queries) ListWorkspaceGroupMappings(ctx context.Context, workspaceID pg
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockGroupRenameCursor = `-- name: LockGroupRenameCursor :one
+SELECT cursor FROM group_rename_state WHERE id FOR UPDATE
+`
+
+// LockGroupRenameCursor reads the last group rename applied and holds it until
+// the transaction ends (a sign-in and the feed may follow renames at once).
+func (q *Queries) LockGroupRenameCursor(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, lockGroupRenameCursor)
+	var cursor int64
+	err := row.Scan(&cursor)
+	return cursor, err
 }
 
 const peopleSharingChannels = `-- name: PeopleSharingChannels :many
@@ -446,6 +696,109 @@ func (q *Queries) PeopleSharingChannels(ctx context.Context, arg PeopleSharingCh
 			return nil, err
 		}
 		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const renameChannelGroupMappings = `-- name: RenameChannelGroupMappings :many
+UPDATE channel_group_mappings m SET group_name = $1
+FROM (SELECT DISTINCT ON (channel_id) channel_id, group_name FROM channel_group_mappings
+      WHERE lower(group_name) = lower($2) ORDER BY channel_id, group_name) o
+WHERE m.channel_id = o.channel_id AND m.group_name = o.group_name
+  AND NOT EXISTS (SELECT 1 FROM channel_group_mappings t
+                  WHERE t.channel_id = m.channel_id AND lower(t.group_name) = lower($1))
+RETURNING m.channel_id, (SELECT ch.workspace_id FROM channels ch WHERE ch.id = m.channel_id)::uuid AS workspace_id
+`
+
+type RenameChannelGroupMappingsParams struct {
+	NewName string `json:"new_name"`
+	OldName string `json:"old_name"`
+}
+
+type RenameChannelGroupMappingsRow struct {
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+// RenameChannelGroupMappings is RenameWorkspaceGroupMappings for channels.
+func (q *Queries) RenameChannelGroupMappings(ctx context.Context, arg RenameChannelGroupMappingsParams) ([]RenameChannelGroupMappingsRow, error) {
+	rows, err := q.db.Query(ctx, renameChannelGroupMappings, arg.NewName, arg.OldName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RenameChannelGroupMappingsRow
+	for rows.Next() {
+		var i RenameChannelGroupMappingsRow
+		if err := rows.Scan(&i.ChannelID, &i.WorkspaceID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const renameUserGroups = `-- name: RenameUserGroups :exec
+UPDATE user_groups g SET group_name = $1
+WHERE lower(g.group_name) = lower($2)
+  AND NOT EXISTS (SELECT 1 FROM user_groups t WHERE t.user_id = g.user_id AND lower(t.group_name) = lower($1))
+`
+
+type RenameUserGroupsParams struct {
+	NewName string `json:"new_name"`
+	OldName string `json:"old_name"`
+}
+
+// RenameUserGroups follows a group's new name in the groups people are in,
+// until Cenacle ID sends them again.
+func (q *Queries) RenameUserGroups(ctx context.Context, arg RenameUserGroupsParams) error {
+	_, err := q.db.Exec(ctx, renameUserGroups, arg.NewName, arg.OldName)
+	return err
+}
+
+const renameWorkspaceGroupMappings = `-- name: RenameWorkspaceGroupMappings :many
+UPDATE workspace_group_mappings m SET group_name = $1
+FROM (SELECT DISTINCT ON (workspace_id) workspace_id, group_name FROM workspace_group_mappings
+      WHERE lower(group_name) = lower($2)
+      ORDER BY workspace_id, CASE role WHEN 'admin' THEN 0 WHEN 'member' THEN 1 ELSE 2 END, group_name) o
+WHERE m.workspace_id = o.workspace_id AND m.group_name = o.group_name
+  AND NOT EXISTS (SELECT 1 FROM workspace_group_mappings t
+                  WHERE t.workspace_id = m.workspace_id AND lower(t.group_name) = lower($1))
+RETURNING m.workspace_id, m.role
+`
+
+type RenameWorkspaceGroupMappingsParams struct {
+	NewName string `json:"new_name"`
+	OldName string `json:"old_name"`
+}
+
+type RenameWorkspaceGroupMappingsRow struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Role        string      `json:"role"`
+}
+
+// RenameWorkspaceGroupMappings moves the mappings of a group whose name
+// changed to its new name (one a workspace: the strongest role), unless the
+// workspace maps the new name already.
+func (q *Queries) RenameWorkspaceGroupMappings(ctx context.Context, arg RenameWorkspaceGroupMappingsParams) ([]RenameWorkspaceGroupMappingsRow, error) {
+	rows, err := q.db.Query(ctx, renameWorkspaceGroupMappings, arg.NewName, arg.OldName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RenameWorkspaceGroupMappingsRow
+	for rows.Next() {
+		var i RenameWorkspaceGroupMappingsRow
+		if err := rows.Scan(&i.WorkspaceID, &i.Role); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -490,6 +843,15 @@ ON CONFLICT (id) DO UPDATE SET cursor = EXCLUDED.cursor, synced_at = now()
 
 func (q *Queries) SaveDirectorySyncState(ctx context.Context, cursor string) error {
 	_, err := q.db.Exec(ctx, saveDirectorySyncState, cursor)
+	return err
+}
+
+const saveGroupRenameCursor = `-- name: SaveGroupRenameCursor :exec
+UPDATE group_rename_state SET cursor = $1 WHERE id
+`
+
+func (q *Queries) SaveGroupRenameCursor(ctx context.Context, cursor int64) error {
+	_, err := q.db.Exec(ctx, saveGroupRenameCursor, cursor)
 	return err
 }
 
@@ -608,8 +970,8 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 
 const upsertWorkspaceGroupMapping = `-- name: UpsertWorkspaceGroupMapping :one
 INSERT INTO workspace_group_mappings (workspace_id, group_name, role) VALUES ($1, $2, $3)
-ON CONFLICT (workspace_id, group_name) DO UPDATE SET role = EXCLUDED.role
-RETURNING workspace_id, group_name, role, created_at
+ON CONFLICT (workspace_id, group_name) DO UPDATE SET role = EXCLUDED.role, review_candidates = '{}'
+RETURNING workspace_id, group_name, role, created_at, review_candidates
 `
 
 type UpsertWorkspaceGroupMappingParams struct {
@@ -618,6 +980,7 @@ type UpsertWorkspaceGroupMappingParams struct {
 	Role        string      `json:"role"`
 }
 
+// UpsertWorkspaceGroupMapping saves a mapping; saved by hand, it is reviewed.
 func (q *Queries) UpsertWorkspaceGroupMapping(ctx context.Context, arg UpsertWorkspaceGroupMappingParams) (WorkspaceGroupMapping, error) {
 	row := q.db.QueryRow(ctx, upsertWorkspaceGroupMapping, arg.WorkspaceID, arg.GroupName, arg.Role)
 	var i WorkspaceGroupMapping
@@ -626,6 +989,7 @@ func (q *Queries) UpsertWorkspaceGroupMapping(ctx context.Context, arg UpsertWor
 		&i.GroupName,
 		&i.Role,
 		&i.CreatedAt,
+		&i.ReviewCandidates,
 	)
 	return i, err
 }

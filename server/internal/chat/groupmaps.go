@@ -5,6 +5,7 @@ package chat
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -107,7 +108,12 @@ func (h *Handlers) ListWorkspaceGroups(w http.ResponseWriter, r *http.Request, w
 	}
 	out := make([]api.GroupMapping, 0, len(rows))
 	for _, m := range rows {
-		out = append(out, api.GroupMapping{Group: m.GroupName, Role: api.GroupMappingRole(m.Role)})
+		g := api.GroupMapping{Group: m.GroupName, Role: api.GroupMappingRole(m.Role)}
+		if len(m.ReviewCandidates) > 0 {
+			// Its group was renamed, but several groups had the name (ADR 0046).
+			g.Candidates = &m.ReviewCandidates
+		}
+		out = append(out, g)
 	}
 	httpx.WriteJSON(w, http.StatusOK, struct {
 		Mappings []api.GroupMapping `json:"mappings"`
@@ -189,7 +195,26 @@ func (h *Handlers) GetChannelGroups(w http.ResponseWriter, r *http.Request, chan
 		h.unavailable(w, r, "list channel groups", err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, api.ChannelGroups{Groups: append([]string{}, names...), Managed: c.GroupManaged})
+	reviews, err := h.channelGroupReviews(r.Context(), c.ID)
+	if err != nil {
+		h.unavailable(w, r, "list channel groups", err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, api.ChannelGroups{Groups: append([]string{}, names...), Managed: c.GroupManaged, Reviews: &reviews})
+}
+
+// channelGroupReviews is the groups of a channel whose name changed at Cenacle
+// ID when several groups had it (ADR 0046), with the names they may mean.
+func (h *Handlers) channelGroupReviews(ctx context.Context, channel pgtype.UUID) ([]api.GroupReview, error) {
+	rows, err := h.Queries.ListChannelGroupReviews(ctx, channel)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]api.GroupReview, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, api.GroupReview{Group: r.GroupName, Candidates: r.ReviewCandidates})
+	}
+	return out, nil
 }
 
 // SetChannelGroups implements api.ServerInterface.
@@ -234,7 +259,11 @@ func (h *Handlers) SetChannelGroups(w http.ResponseWriter, r *http.Request, chan
 		return
 	}
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
+		// Groups that stay keep their review unless it is done.
 		for _, g := range before {
+			if slices.Contains(wanted, g) {
+				continue
+			}
 			if _, err := q.DeleteChannelGroupMapping(r.Context(), store.DeleteChannelGroupMappingParams{ChannelID: c.ID, GroupName: g}); err != nil {
 				return err
 			}
@@ -242,6 +271,13 @@ func (h *Handlers) SetChannelGroups(w http.ResponseWriter, r *http.Request, chan
 		for _, g := range wanted {
 			if err := q.AddChannelGroupMapping(r.Context(), store.AddChannelGroupMappingParams{ChannelID: c.ID, GroupName: g}); err != nil {
 				return err
+			}
+		}
+		if in.Reviewed != nil {
+			for _, g := range *in.Reviewed {
+				if err := q.ClearChannelGroupReview(r.Context(), store.ClearChannelGroupReviewParams{ChannelID: c.ID, GroupName: g}); err != nil {
+					return err
+				}
 			}
 		}
 		return q.SetChannelGroupManaged(r.Context(), store.SetChannelGroupManagedParams{ID: c.ID, GroupManaged: in.Managed})
@@ -258,5 +294,10 @@ func (h *Handlers) SetChannelGroups(w http.ResponseWriter, r *http.Request, chan
 	}
 	h.record(r, c.WorkspaceID, audit.ChannelGroupsSet, "channel", uuid(c.ID).String(),
 		map[string]any{"groups": wanted, "managed": in.Managed})
-	httpx.WriteJSON(w, http.StatusOK, api.ChannelGroups{Groups: append([]string{}, wanted...), Managed: in.Managed})
+	reviews, err := h.channelGroupReviews(r.Context(), c.ID)
+	if err != nil {
+		h.unavailable(w, r, "list channel groups", err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, api.ChannelGroups{Groups: append([]string{}, wanted...), Managed: in.Managed, Reviews: &reviews})
 }

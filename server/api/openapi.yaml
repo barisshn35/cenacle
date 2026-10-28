@@ -9171,6 +9171,21 @@ components:
       properties:
         group: { type: string, minLength: 1, maxLength: 200 }
         role: { type: string, enum: [admin, member, guest] }
+        candidates:
+          type: array
+          readOnly: true
+          items: { type: string }
+          description: >-
+            Set when the mapping needs review: the group's name changed at Cenacle ID, but
+            several groups had it (ADR 0046). The new names it may mean; the mapping matches
+            none of them until an administrator saves it (keeps it as it is), maps one of them
+            instead or removes it.
+    GroupReview:
+      type: object
+      required: [group, candidates]
+      properties:
+        group: { type: string }
+        candidates: { type: array, items: { type: string } }
     ChannelGroups:
       type: object
       required: [groups, managed]
@@ -9180,6 +9195,20 @@ components:
           maxItems: 50
           items: { type: string, minLength: 1, maxLength: 200 }
         managed: { type: boolean }
+        reviews:
+          type: array
+          readOnly: true
+          items: { $ref: '#/components/schemas/GroupReview' }
+          description: >-
+            Groups of the channel that need review, with the new names they may mean (see
+            GroupMapping.candidates). A group still listed keeps its review unless named in
+            `reviewed`.
+        reviewed:
+          type: array
+          writeOnly: true
+          maxItems: 50
+          items: { type: string, maxLength: 200 }
+          description: Groups whose review is done; they stay as they are.
     FileInfo:
       type: object
       required: [id, name, content_type, size, width, height, has_thumbnail]
