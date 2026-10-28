@@ -1114,12 +1114,11 @@ func (h *Handlers) visibleTask(w http.ResponseWriter, r *http.Request, id openap
 	task := store.WorkflowTask{ID: t.ID, RunID: t.RunID, WorkspaceID: t.WorkspaceID, Kind: t.Kind, Title: t.Title,
 		Assignees: t.Assignees, FormID: t.FormID, Status: t.Status, DoneBy: t.DoneBy, DoneAt: t.DoneAt, Comment: t.Comment,
 		SubmissionID: t.SubmissionID, CreatedAt: t.CreatedAt}
-	if !slices.Contains(t.Assignees, user.ID) {
-		role, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: t.WorkspaceID, UserID: user.ID})
-		if err != nil || (role != WorkspaceOwner && role != WorkspaceAdmin) {
-			httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such task."})
-			return task, "", false
-		}
+	// Assignees and the workspace's admins see a task, while they are in the workspace.
+	role, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: t.WorkspaceID, UserID: user.ID})
+	if err != nil || role == "" || (!slices.Contains(t.Assignees, user.ID) && role != WorkspaceOwner && role != WorkspaceAdmin) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such task."})
+		return task, "", false
 	}
 	return task, t.DoneByName, true
 }

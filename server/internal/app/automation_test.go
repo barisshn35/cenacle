@@ -422,3 +422,55 @@ func TestWorkflowIntoAnEncryptedChannelFailsAlone(t *testing.T) {
 		t.Errorf("new workflow into it = %d", status)
 	}
 }
+
+// An approver who left the workspace can no longer see or decide the task.
+func TestRemovedApproverLosesTask(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	req := s.user("sub-req", "Requester")
+	appr := s.user("sub-appr", "Approver")
+	ws := s.newWorkspace(admin, "Approvals")
+	var dir struct{ Channels []channel }
+	s.call(http.MethodGet, "/api/channels/directory?workspace_id="+ws, admin, nil, &dir)
+	ch := dir.Channels[0].ID
+	for _, tok := range []string{req, appr} {
+		s.call(http.MethodPost, "/api/invites/"+s.invite(admin, ws, map[string]any{})+"/accept", tok, nil, nil)
+	}
+	s.call(http.MethodPost, "/api/channels/"+ch+"/join", req, nil, nil)
+	apprID := s.userID(appr)
+	var wf api.Workflow
+	if res := s.call(http.MethodPost, "/api/workspaces/"+ws+"/workflows", admin, map[string]any{
+		"name": "W", "trigger": map[string]any{"kind": "manual"},
+		"steps": []map[string]any{
+			{"id": "a", "kind": "approval", "text": "Approve?", "approvers": []string{apprID}},
+			{"id": "m", "kind": "message", "text": "after-approval"},
+		},
+	}, &wf); res.StatusCode != http.StatusCreated {
+		t.Fatalf("create workflow = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodPost, "/api/workflows/"+wf.Id.String()+"/runs", req, map[string]any{"channel_id": ch}, nil); res.StatusCode != http.StatusCreated {
+		t.Fatalf("start = %d", res.StatusCode)
+	}
+	var tasks struct{ Tasks []api.Task }
+	s.call(http.MethodGet, "/api/workspaces/"+ws+"/tasks", appr, nil, &tasks)
+	if len(tasks.Tasks) != 1 {
+		t.Fatalf("tasks = %+v", tasks.Tasks)
+	}
+	id := tasks.Tasks[0].Id.String()
+	if res := s.call(http.MethodGet, "/api/tasks/"+id, appr, nil, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("assignee reads the task = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodDelete, "/api/workspaces/"+ws+"/members/"+apprID, admin, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove = %d", res.StatusCode)
+	}
+	if status, _ := problemCode(t, s, http.MethodGet, "/api/tasks/"+id, appr, nil); status != http.StatusNotFound {
+		t.Errorf("removed approver reads the task = %d", status)
+	}
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/tasks/"+id+"/decide", appr, map[string]any{"approve": true}); status != http.StatusNotFound {
+		t.Errorf("removed approver decides = %d", status)
+	}
+	s.runWorkflows()
+	if n := s.botMessages("after-approval"); n != 0 {
+		t.Errorf("the run went on: %d", n)
+	}
+}
