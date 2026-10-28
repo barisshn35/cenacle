@@ -157,6 +157,17 @@ their names and messages but cannot sign in. Imported history counts as read. Ru
 import again adds only what is missing. Files, reactions and custom emoji of other chats
 are not imported.
 
+An import writes only into workspaces and channels that an import created. If the export
+names a workspace, channel or conversation that already exists on the server and was not
+created by an import (for example a workspace people already use), the import stops before
+writing anything and lists them. To add to them on purpose, put `--merge` before the
+source (`import --merge slack <zip> <workspace>`): people of the export then join those
+existing workspaces and channels as plain members, no one's role there changes, and the
+export's administrators and channel managers get no rights in them. Workspaces and
+channels the import creates keep the roles of the export. Exports come from outside: an
+export can make anyone a member of any workspace or channel it names, so merge only an
+export you trust.
+
 ## Moving workspaces to another Cenacle server
 
 To move a whole server to a new host, restore a backup there (see
@@ -174,8 +185,9 @@ The export holds the workspaces, their people with their roles, channels and con
 with their members, and messages with threads, reactions, pins, forum titles and tags and
 their files. People are found on the new server by their Cenacle ID account when both
 servers use the same Cenacle ID, else by verified address, else they get an account to
-claim as above. A workspace whose name exists on the new server receives the channels;
-channels with the same name receive the messages (merging). Encrypted channels stay
+claim as above. A workspace whose name exists on the new server receives the channels,
+and channels with the same name receive the messages, only with `import --merge cenacle …`
+(see above: people join existing workspaces and channels as members, roles there stay). Encrypted channels stay
 behind: their messages can only be read on members' devices or with the passphrase. Settings, bots, polls,
 canvases, lists and workflows are not part of an export. Exports are readable by the same
 or a newer Cenacle.

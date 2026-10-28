@@ -139,14 +139,14 @@ func TestMoveBetweenServers(t *testing.T) {
 		t.Fatal(err)
 	}
 	dstFiles := dirFiles(t)
-	got, err := importer.Import(ctx, dst, d, log, dstFiles)
+	got, err := importer.Import(ctx, dst, d, log, dstFiles, importer.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.Workspaces != 1 || got.Users != 1 || got.Channels != 1 || got.Messages != 2 || got.Skipped != 0 {
 		t.Errorf("import = %+v", got)
 	}
-	again, err := importer.Import(ctx, dst, d, log, dstFiles)
+	again, err := importer.Import(ctx, dst, d, log, dstFiles, importer.Options{})
 	if err != nil || again.Messages != 0 || again.Skipped != 2 {
 		t.Errorf("again = %+v, %v", again, err)
 	}

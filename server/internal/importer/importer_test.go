@@ -111,7 +111,7 @@ func TestImportIntoCenacle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := importer.Import(ctx, pool, d, log, nil)
+	res, err := importer.Import(ctx, pool, d, log, nil, importer.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestImportIntoCenacle(t *testing.T) {
 		t.Errorf("result = %+v", res)
 	}
 	// Importing again adds nothing.
-	again, err := importer.Import(ctx, pool, d, log, nil)
+	again, err := importer.Import(ctx, pool, d, log, nil, importer.Options{})
 	if err != nil || again.Users+again.Channels+again.Messages+again.Workspaces != 0 {
 		t.Errorf("again = %+v, %v", again, err)
 	}
@@ -169,7 +169,7 @@ func TestImportSlack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := importer.Import(ctx, pool, d, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	res, err := importer.Import(ctx, pool, d, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, importer.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,5 +179,136 @@ func TestImportSlack(t *testing.T) {
 	var private string
 	if err := pool.QueryRow(ctx, "SELECT visibility FROM channels WHERE name = 'yonetim'").Scan(&private); err != nil || private != "private" {
 		t.Errorf("private channel = %q %v", private, err)
+	}
+}
+
+// An export naming a native workspace and its private channel must not add
+// people there or make them administrators unless the operator merges, and
+// merging adds them as plain members only.
+func TestImportDoesNotJoinNativeChannels(t *testing.T) {
+	pool := testdb.Open(t)
+	ctx := context.Background()
+	q := store.New(pool)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	owner, err := q.UpsertUserFromIdentity(ctx, store.UpsertUserFromIdentityParams{
+		AuthService: "cenacle-id", AuthData: "sub-owner", Email: "owner@example.com", EmailVerified: true, DisplayName: "Owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bob, err := q.UpsertUserFromIdentity(ctx, store.UpsertUserFromIdentityParams{
+		AuthService: "cenacle-id", AuthData: "sub-bob", Email: "bob@else.test", EmailVerified: true, DisplayName: "Bob",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ws, err := q.CreateWorkspace(ctx, store.CreateWorkspaceParams{Name: "Ops"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := q.AddWorkspaceMember(ctx, store.AddWorkspaceMemberParams{WorkspaceID: ws.ID, UserID: owner.ID, Role: "owner"}); err != nil {
+		t.Fatal(err)
+	}
+	secret, err := q.CreateChannel(ctx, store.CreateChannelParams{
+		WorkspaceID: ws.ID, Name: "secret", Kind: "standard", Visibility: "private", CreatedBy: owner.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const export = `{"type":"version","version":1}
+{"type":"team","team":{"name":"ops","display_name":"Ops","type":"O"}}
+{"type":"channel","channel":{"team":"ops","name":"secret","display_name":"secret","type":"P"}}
+{"type":"user","user":{"username":"bob","email":"bob@else.test","roles":"system_user system_admin","teams":[{"name":"ops","roles":"team_user team_admin","channels":[{"name":"secret","roles":"channel_user channel_admin"}]}]}}
+{"type":"post","post":{"team":"ops","channel":"secret","user":"bob","message":"planted","create_at":1600000000000}}
+`
+	d, err := importer.ReadMattermost(strings.NewReader(export), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	membership := func() (wsRole, chRole string, messages int) {
+		t.Helper()
+		_ = pool.QueryRow(ctx, "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2", ws.ID, bob.ID).Scan(&wsRole)
+		_ = pool.QueryRow(ctx, "SELECT role FROM channel_members WHERE channel_id = $1 AND user_id = $2", secret.ID, bob.ID).Scan(&chRole)
+		if err := pool.QueryRow(ctx, "SELECT count(*) FROM messages WHERE channel_id = $1", secret.ID).Scan(&messages); err != nil {
+			t.Fatal(err)
+		}
+		return wsRole, chRole, messages
+	}
+
+	// Without merging, the import stops before writing anything.
+	if _, err := importer.Import(ctx, pool, d, log, nil, importer.Options{}); err == nil ||
+		!strings.Contains(err.Error(), `workspace "Ops"`) {
+		t.Fatalf("import into a native workspace: %v", err)
+	}
+	if wsRole, chRole, n := membership(); wsRole != "" || chRole != "" || n != 0 {
+		t.Fatalf("without merge: workspace role %q, channel role %q, %d messages", wsRole, chRole, n)
+	}
+
+	// Merging: Bob joins as a member, not as an administrator or manager.
+	if _, err := importer.Import(ctx, pool, d, log, nil, importer.Options{Merge: true}); err != nil {
+		t.Fatal(err)
+	}
+	if wsRole, chRole, n := membership(); wsRole != "member" || chRole != "member" || n != 1 {
+		t.Fatalf("merge: workspace role %q, channel role %q, %d messages", wsRole, chRole, n)
+	}
+}
+
+// A workspace an earlier import created takes the next import without
+// merging; a channel made there natively afterwards does not.
+func TestImportAgainIntoImportedWorkspace(t *testing.T) {
+	pool := testdb.Open(t)
+	ctx := context.Background()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	d, err := importer.ReadMattermost(strings.NewReader(mattermostExport), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := importer.Import(ctx, pool, d, log, nil, importer.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	q := store.New(pool)
+	ws, err := q.FindWorkspaceByName(ctx, "ACME Ltd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := q.CreateChannel(ctx, store.CreateChannelParams{
+		WorkspaceID: ws.ID, Name: "later", Kind: "standard", Visibility: "private",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	native := append(d.Channels, importer.Channel{Key: "later", Workspace: "ACME Ltd", Name: "later", Members: []string{"mert"}})
+	withNative := d
+	withNative.Channels = native
+	if _, err := importer.Import(ctx, pool, withNative, log, nil, importer.Options{}); err == nil ||
+		!strings.Contains(err.Error(), `channel "later"`) {
+		t.Fatalf("import into a native channel of an imported workspace: %v", err)
+	}
+	if again, err := importer.Import(ctx, pool, d, log, nil, importer.Options{}); err != nil || again.Messages != 0 {
+		t.Fatalf("again = %+v, %v", again, err)
+	}
+}
+
+// An address an account has not verified does not tie an export's person to it.
+func TestImportMatchesVerifiedAddressesOnly(t *testing.T) {
+	pool := testdb.Open(t)
+	ctx := context.Background()
+	q := store.New(pool)
+	unverified, err := q.UpsertUserFromIdentity(ctx, store.UpsertUserFromIdentityParams{
+		AuthService: "cenacle-id", AuthData: "sub-mert", Email: "mert@example.com", DisplayName: "Mert",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := importer.ReadMattermost(strings.NewReader(mattermostExport), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := importer.Import(ctx, pool, d, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, importer.Options{})
+	if err != nil || res.Users != 2 {
+		t.Fatalf("result = %+v, %v", res, err)
+	}
+	var n int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM messages WHERE author_id = $1", unverified.ID).Scan(&n); err != nil || n != 0 {
+		t.Errorf("messages by the unverified account = %d, %v", n, err)
 	}
 }

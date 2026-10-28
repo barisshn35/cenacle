@@ -101,7 +101,10 @@ commands:
   import cenacle <export.zip>
                    import a Cenacle export (from server export) with threads,
                    reactions, pins and files
-                   An <export> is a directory, a .zip or a .tar.gz.
+                   An <export> is a directory, a .zip or a .tar.gz. An import
+                   stops if the export names workspaces or channels that exist
+                   and were not created by an import; import --merge <source>
+                   adds to them (people join as members, roles stay as they are).
   export <file.zip> [workspace...]
                    export workspaces (default: all of them) to move them to
                    another Cenacle server
@@ -480,6 +483,10 @@ func openFiles(cfg config.Config, tickets storage.Tickets) (storage.Store, http.
 
 // importExport reads another chat's export into Cenacle.
 func importExport(ctx context.Context, cfg config.Config, log *slog.Logger, args []string) error {
+	var opts importer.Options
+	if len(args) > 0 && args[0] == "--merge" {
+		opts.Merge, args = true, args[1:]
+	}
 	if len(args) < 2 {
 		return errors.New(usage)
 	}
@@ -553,7 +560,7 @@ func importExport(ctx context.Context, cfg config.Config, log *slog.Logger, args
 	}
 	defer closeFiles()
 	log.Info("import starting", "people", len(data.Users), "channels", len(data.Channels), "messages", len(data.Messages))
-	res, err := importer.Import(ctx, pool, data, log, files)
+	res, err := importer.Import(ctx, pool, data, log, files, opts)
 	if err != nil {
 		return err
 	}

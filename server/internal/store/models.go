@@ -429,6 +429,16 @@ type GuestLink struct {
 	RevokedAt    pgtype.Timestamptz `json:"revoked_at"`
 }
 
+type ImportedChannel struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type ImportedWorkspace struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	CreatedAt   time.Time   `json:"created_at"`
+}
+
 type IncomingWebhook struct {
 	ID         pgtype.UUID        `json:"id"`
 	BotID      pgtype.UUID        `json:"bot_id"`

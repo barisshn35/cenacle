@@ -121,6 +121,17 @@ type Result struct {
 	Workspaces, Users, Channels, Messages, Skipped int
 }
 
+// Options are the operator's choices for an import.
+type Options struct {
+	// Merge lets an import write into workspaces and channels of the same
+	// names that it did not create. Without it such an import stops before
+	// writing anything: an export's author must not be able to add people to
+	// a native private channel or make them administrators. Even when
+	// merging, people join those workspaces and channels as plain members and
+	// nobody's role there changes.
+	Merge bool
+}
+
 // DB starts transactions (pgxpool.Pool).
 type DB interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
@@ -131,12 +142,15 @@ const batch = 1000
 // Import writes the data. Messages go in batches of a thousand per
 // transaction; everything before them in one. Files of messages are stored
 // with files (nil: files are left out).
-func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Files) (Result, error) {
+func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Files, opts Options) (Result, error) {
 	var res Result
 	users := map[string]store.User{}
 	channels := map[string]store.Channel{}
 	workspaces := map[string]store.Workspace{}
+	// owned: created by an import (this one or an earlier one).
+	ownedWorkspaces := map[string]bool{}
 	err := inTx(ctx, db, func(q *store.Queries) error {
+		var foreign []string // existing workspaces and channels an import did not create
 		names := make([]string, 0, len(d.Workspaces)+len(d.Channels))
 		for _, w := range d.Workspaces {
 			names = append(names, w.Name)
@@ -152,6 +166,14 @@ func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Fi
 			if err != nil {
 				return err
 			}
+			owned, err := imported(ctx, created, ws.ID, q.MarkWorkspaceImported, q.IsWorkspaceImported)
+			if err != nil {
+				return err
+			}
+			if !owned && !opts.Merge {
+				foreign = append(foreign, fmt.Sprintf("workspace %q", ws.Name))
+			}
+			ownedWorkspaces[name] = owned
 			if created {
 				res.Workspaces++
 				// A new workspace belongs to the instance administrator.
@@ -167,6 +189,9 @@ func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Fi
 				}
 			}
 			workspaces[name] = ws
+		}
+		if len(foreign) > 0 {
+			return notCreated(foreign)
 		}
 		for _, u := range d.Users {
 			cu, created, err := user(ctx, q, d.Source, u)
@@ -190,7 +215,7 @@ func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Fi
 				}); err != nil {
 					return err
 				}
-				if role := m.Role; role != chat.WorkspaceMember && validWorkspaceRole(role) {
+				if role := m.Role; ownedWorkspaces[w.Name] && role != chat.WorkspaceMember && validWorkspaceRole(role) {
 					if err := q.SetWorkspaceMemberRole(ctx, store.SetWorkspaceMemberRoleParams{
 						Role: role, WorkspaceID: ws.ID, UserID: u.ID,
 					}); err != nil {
@@ -222,13 +247,32 @@ func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Fi
 				log.Warn("conversation skipped (needs two people)", "channel", c.Key)
 				continue
 			}
+			owned, err := imported(ctx, created, ch.ID, q.MarkChannelImported, q.IsChannelImported)
+			if err != nil {
+				return err
+			}
+			if !owned && !opts.Merge {
+				what := fmt.Sprintf("channel %q of %q", ch.Name, ws.Name)
+				if c.Conversation {
+					what = fmt.Sprintf("a conversation of %d people in %q", len(members), ws.Name)
+				}
+				foreign = append(foreign, what)
+				continue
+			}
 			if created {
 				res.Channels++
 			}
 			channels[c.Key] = ch
+			// A conversation's people are its key: nobody joins one an
+			// import did not create.
+			if !owned && c.Conversation {
+				continue
+			}
 			managers := map[string]bool{}
-			for _, k := range c.Managers {
-				managers[k] = true
+			if owned {
+				for _, k := range c.Managers {
+					managers[k] = true
+				}
 			}
 			for _, k := range c.Members {
 				u, found := users[k]
@@ -244,11 +288,17 @@ func Import(ctx context.Context, db DB, d Data, log *slog.Logger, files *chat.Fi
 				}
 			}
 		}
+		if len(foreign) > 0 {
+			return notCreated(foreign)
+		}
 		for _, u := range d.Users {
 			if !u.Admin {
 				continue
 			}
-			for _, ws := range workspaces {
+			for name, ws := range workspaces {
+				if !ownedWorkspaces[name] {
+					continue
+				}
 				if err := q.SetWorkspaceMemberRole(ctx, store.SetWorkspaceMemberRoleParams{
 					Role: chat.WorkspaceAdmin, WorkspaceID: ws.ID, UserID: users[u.Key].ID,
 				}); err != nil {
@@ -411,6 +461,23 @@ func cleanFileName(name string) string {
 		name = "file"
 	}
 	return name
+}
+
+// imported tells whether an import created a workspace or channel, and
+// records it when this one just did.
+func imported(ctx context.Context, created bool, id pgtype.UUID,
+	mark func(context.Context, pgtype.UUID) error, check func(context.Context, pgtype.UUID) (bool, error),
+) (bool, error) {
+	if created {
+		return true, mark(ctx, id)
+	}
+	return check(ctx, id)
+}
+
+// notCreated refuses an import into existing workspaces or channels.
+func notCreated(what []string) error {
+	return fmt.Errorf("%s already exist and were not created by an import; "+
+		"merge to import into them (people join as members, roles stay as they are)", strings.Join(what, ", "))
 }
 
 func validWorkspaceRole(role string) bool {

@@ -287,7 +287,8 @@ type Querier interface {
 	// FindImportedMessage finds a message imported before (for its replies).
 	FindImportedMessage(ctx context.Context, arg FindImportedMessageParams) (pgtype.UUID, error)
 	// FindUserByEmail finds the account of an address (a person who signed in
-	// already wins over an earlier import).
+	// already wins over an earlier import). A signed-in account counts only with
+	// a verified address: an export must not name anyone's account by a claim.
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	FindUserForEscrow(ctx context.Context, email string) (FindUserForEscrowRow, error)
 	FindWorkspaceByName(ctx context.Context, name string) (Workspace, error)
@@ -430,6 +431,8 @@ type Querier interface {
 	InsertUserSound(ctx context.Context, arg InsertUserSoundParams) (InsertUserSoundRow, error)
 	// InstanceCounts summarizes the installation (support bundle, status).
 	InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
+	IsChannelImported(ctx context.Context, channelID pgtype.UUID) (bool, error)
+	IsWorkspaceImported(ctx context.Context, workspaceID pgtype.UUID) (bool, error)
 	JoinChannelViaGroup(ctx context.Context, arg JoinChannelViaGroupParams) (int64, error)
 	// JoinDefaultChannels makes a user a member of every default channel of the
 	// workspaces they belong to (or of one of them) and returns the channels they
@@ -639,6 +642,8 @@ type Querier interface {
 	// connection (false: another one is sending). The schema is part of the key,
 	// so installations sharing a database do not wait for each other.
 	LockFederationSending(ctx context.Context, connectionID pgtype.UUID) (bool, error)
+	// MarkChannelImported records that an import created the channel.
+	MarkChannelImported(ctx context.Context, channelID pgtype.UUID) error
 	// MarkChannelReadForAll makes the history of an imported channel read.
 	MarkChannelReadForAll(ctx context.Context, channelID pgtype.UUID) error
 	// MarkRead moves a member's read position forward (never back).
@@ -651,6 +656,8 @@ type Querier interface {
 	// MarkUnreadFrom moves a member's read position back to just before a message,
 	// so it and everything after it count as unread again.
 	MarkUnreadFrom(ctx context.Context, arg MarkUnreadFromParams) (pgtype.UUID, error)
+	// MarkWorkspaceImported records that an import created the workspace.
+	MarkWorkspaceImported(ctx context.Context, workspaceID pgtype.UUID) error
 	// MissedForEmail lists unread mentions, conversation messages and replies in
 	// followed threads of a person after a message id and older than a moment,
 	// oldest first.

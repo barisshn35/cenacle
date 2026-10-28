@@ -140,11 +140,13 @@ func (q *Queries) FindImportedMessage(ctx context.Context, arg FindImportedMessa
 
 const findUserByEmail = `-- name: FindUserByEmail :one
 SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id FROM users WHERE email <> '' AND lower(email) = lower($1)
+    AND (email_verified OR auth_service = 'import')
 ORDER BY (auth_service = 'import') LIMIT 1
 `
 
 // FindUserByEmail finds the account of an address (a person who signed in
-// already wins over an earlier import).
+// already wins over an earlier import). A signed-in account counts only with
+// a verified address: an export must not name anyone's account by a claim.
 func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, findUserByEmail, email)
 	var i User
@@ -405,6 +407,38 @@ func (q *Queries) ImportReaction(ctx context.Context, arg ImportReactionParams) 
 	return err
 }
 
+const isChannelImported = `-- name: IsChannelImported :one
+SELECT EXISTS (SELECT 1 FROM imported_channels WHERE channel_id = $1)
+`
+
+func (q *Queries) IsChannelImported(ctx context.Context, channelID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isChannelImported, channelID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const isWorkspaceImported = `-- name: IsWorkspaceImported :one
+SELECT EXISTS (SELECT 1 FROM imported_workspaces WHERE workspace_id = $1)
+`
+
+func (q *Queries) IsWorkspaceImported(ctx context.Context, workspaceID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isWorkspaceImported, workspaceID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const markChannelImported = `-- name: MarkChannelImported :exec
+INSERT INTO imported_channels (channel_id) VALUES ($1) ON CONFLICT DO NOTHING
+`
+
+// MarkChannelImported records that an import created the channel.
+func (q *Queries) MarkChannelImported(ctx context.Context, channelID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, markChannelImported, channelID)
+	return err
+}
+
 const markChannelReadForAll = `-- name: MarkChannelReadForAll :exec
 UPDATE channel_members SET last_read_id = (
     SELECT m.id FROM messages m WHERE m.channel_id = $1 ORDER BY m.id DESC LIMIT 1)
@@ -414,6 +448,16 @@ WHERE channel_id = $1
 // MarkChannelReadForAll makes the history of an imported channel read.
 func (q *Queries) MarkChannelReadForAll(ctx context.Context, channelID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, markChannelReadForAll, channelID)
+	return err
+}
+
+const markWorkspaceImported = `-- name: MarkWorkspaceImported :exec
+INSERT INTO imported_workspaces (workspace_id) VALUES ($1) ON CONFLICT DO NOTHING
+`
+
+// MarkWorkspaceImported records that an import created the workspace.
+func (q *Queries) MarkWorkspaceImported(ctx context.Context, workspaceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, markWorkspaceImported, workspaceID)
 	return err
 }
 
