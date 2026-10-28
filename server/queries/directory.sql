@@ -127,10 +127,11 @@ INSERT INTO directory_sync_state (id, cursor, synced_at) VALUES (true, @cursor, 
 ON CONFLICT (id) DO UPDATE SET cursor = EXCLUDED.cursor, synced_at = now();
 
 -- name: SetGuestRoles :exec
--- SetGuestRoles makes a person a guest wherever they are a member or an
--- administrator (or takes it back when they are not a guest any more).
+-- SetGuestRoles makes a person a guest wherever they are a member, an
+-- administrator or an owner (or takes it back when they are not a guest any
+-- more): the directory's guest role outranks any workspace role.
 UPDATE workspace_members SET role = CASE WHEN @guest::boolean THEN 'guest' ELSE 'member' END
-WHERE user_id = @user_id AND (CASE WHEN @guest::boolean THEN role IN ('member', 'admin') ELSE role = 'guest' AND NOT via_group END);
+WHERE user_id = @user_id AND (CASE WHEN @guest::boolean THEN role IN ('owner', 'member', 'admin') ELSE role = 'guest' AND NOT via_group END);
 
 -- name: UpdateUserProfile :exec
 -- UpdateUserProfile follows a change of name or address at Cenacle ID.

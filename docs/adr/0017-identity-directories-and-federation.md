@@ -68,6 +68,11 @@ several instances (ADR 0016).
 10. **Guests** see only the channels they are in and the people in them: no public channel
     list, no joining, no conversations with others, never default channels. Several
     instance administrators are allowed (the configured one and the directory's).
+    Guests stay guests on every way in (`policy.IsGuest`: the directory's guest role, a
+    guest link, a federated server): the start-up sweep leaves them out of the default
+    workspace, an accepted invitation makes them guests, nobody promotes them by hand, and a
+    directory downgrade makes owners guests too (the admins of a workspace left without an
+    owner then name the next one).
 
 ## Consequences
 

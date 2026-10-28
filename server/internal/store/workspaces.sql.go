@@ -14,10 +14,15 @@ import (
 
 const addAllUsersToWorkspace = `-- name: AddAllUsersToWorkspace :execrows
 INSERT INTO workspace_members (workspace_id, user_id)
-SELECT $1, id FROM users WHERE NOT is_bot -- bots belong to their workspace only
+SELECT $1, id FROM users
+WHERE NOT is_bot AND deactivated_at IS NULL
+  AND directory_role IS DISTINCT FROM 'guest' AND guest_link_id IS NULL AND auth_service <> 'remote'
 ON CONFLICT DO NOTHING
 `
 
+// AddAllUsersToWorkspace makes everyone a member of the default workspace but
+// bots (they belong to their workspace only), deactivated people and guests
+// (of the directory, by a guest link or of a federated server; policy.IsGuest).
 func (q *Queries) AddAllUsersToWorkspace(ctx context.Context, workspaceID pgtype.UUID) (int64, error) {
 	result, err := q.db.Exec(ctx, addAllUsersToWorkspace, workspaceID)
 	if err != nil {

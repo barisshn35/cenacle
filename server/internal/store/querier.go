@@ -26,6 +26,9 @@ type Querier interface {
 	// AddAllUsers makes every member of the channel's workspace a member of it
 	// (guests are added where they work, like bots).
 	AddAllUsers(ctx context.Context, channelID pgtype.UUID) (int64, error)
+	// AddAllUsersToWorkspace makes everyone a member of the default workspace but
+	// bots (they belong to their workspace only), deactivated people and guests
+	// (of the directory, by a guest link or of a federated server; policy.IsGuest).
 	AddAllUsersToWorkspace(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	// AddBroadcastMentions records a mention of many (@channel, @here, @admins)
 	// for each member it reaches: everyone but the author, those online (users,
@@ -842,8 +845,9 @@ type Querier interface {
 	SetFederationPolicy(ctx context.Context, arg SetFederationPolicyParams) error
 	SetFileText(ctx context.Context, arg SetFileTextParams) error
 	SetGroupCreation(ctx context.Context, arg SetGroupCreationParams) error
-	// SetGuestRoles makes a person a guest wherever they are a member or an
-	// administrator (or takes it back when they are not a guest any more).
+	// SetGuestRoles makes a person a guest wherever they are a member, an
+	// administrator or an owner (or takes it back when they are not a guest any
+	// more): the directory's guest role outranks any workspace role.
 	SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error
 	SetLastSeen(ctx context.Context, id pgtype.UUID) error
 	SetLinkState(ctx context.Context, arg SetLinkStateParams) error

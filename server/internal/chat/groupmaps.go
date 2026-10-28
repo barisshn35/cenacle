@@ -67,6 +67,12 @@ func (h *Handlers) reapply(ctx context.Context, names []string, others []pgtype.
 		people = append(people, u)
 	}
 	for _, u := range people {
+		// Only directory accounts follow the directory: bots, link guests and
+		// people of federated servers have no profile there, and deactivated
+		// people get no memberships back.
+		if u.AuthService != auth.AuthService || u.IsBot || u.DeactivatedAt.Valid {
+			continue
+		}
 		names, err := h.Queries.ListUserGroups(ctx, u.ID)
 		if err != nil {
 			return err

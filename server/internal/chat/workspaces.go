@@ -19,6 +19,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/barisshn35/cenacle/server/internal/policy"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -314,10 +315,29 @@ func (h *Handlers) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, work
 			Detail: "This person is not a member of the workspace."})
 		return
 	}
-	// Only owners grant or take the owner role.
-	if (in.Role == WorkspaceOwner || target == WorkspaceOwner) && myRole != WorkspaceOwner {
-		forbidden(w, r, httpx.CodeForbidden, "Only owners can grant or take the owner role.")
+	u, err := h.Queries.GetUser(ctx, pgUUID(userID))
+	if err != nil {
+		h.unavailable(w, r, "get user", err)
 		return
+	}
+	// Guests stay guests: the role comes from the directory, a guest link or
+	// another server, not from the workspace.
+	if policy.IsGuest(u) {
+		forbidden(w, r, httpx.CodeForbidden, "Guests keep the guest role.")
+		return
+	}
+	// Only owners grant or take the owner role, but the admins of a workspace
+	// left without one (its last owner became a guest) name the next.
+	if (in.Role == WorkspaceOwner || target == WorkspaceOwner) && myRole != WorkspaceOwner {
+		owners, err := h.Queries.CountWorkspaceOwners(ctx, ws.ID)
+		if err != nil {
+			h.unavailable(w, r, "count owners", err)
+			return
+		}
+		if owners > 0 || in.Role != WorkspaceOwner {
+			forbidden(w, r, httpx.CodeForbidden, "Only owners can grant or take the owner role.")
+			return
+		}
 	}
 	if in.Role != WorkspaceOwner {
 		if last, err := h.lastOwner(ctx, ws.ID, target); err != nil {
@@ -332,11 +352,6 @@ func (h *Handlers) SetWorkspaceRole(w http.ResponseWriter, r *http.Request, work
 		WorkspaceID: ws.ID, UserID: pgUUID(userID), Role: in.Role,
 	}); err != nil {
 		h.unavailable(w, r, "set workspace role", err)
-		return
-	}
-	u, err := h.Queries.GetUser(ctx, pgUUID(userID))
-	if err != nil {
-		h.unavailable(w, r, "get user", err)
 		return
 	}
 	h.membersOfWorkspaceChanged(ctx, ws.ID)
@@ -599,21 +614,24 @@ func (h *Handlers) AcceptInvite(w http.ResponseWriter, r *http.Request, token st
 			h.unavailable(w, r, "use invite", err)
 			return
 		}
+		// Guests stay guests: they join no channels for everyone.
+		role = policy.JoinRole(p.User, WorkspaceMember)
 		if _, err := h.Queries.AddWorkspaceMember(ctx, store.AddWorkspaceMemberParams{
-			WorkspaceID: wsID, UserID: p.User.ID, Role: WorkspaceMember,
+			WorkspaceID: wsID, UserID: p.User.ID, Role: role,
 		}); err != nil {
 			h.unavailable(w, r, "join workspace", err)
 			return
 		}
-		joined, err := h.Queries.JoinDefaultChannels(ctx, store.JoinDefaultChannelsParams{UserID: p.User.ID, WorkspaceID: wsID})
-		if err != nil {
-			h.unavailable(w, r, "join default channels", err)
-			return
+		if role != WorkspaceGuest {
+			joined, err := h.Queries.JoinDefaultChannels(ctx, store.JoinDefaultChannelsParams{UserID: p.User.ID, WorkspaceID: wsID})
+			if err != nil {
+				h.unavailable(w, r, "join default channels", err)
+				return
+			}
+			for _, c := range joined {
+				h.publish(ctx, events.ChannelMembersChanged, ChannelEvent{ChannelID: uuid(c).String()})
+			}
 		}
-		for _, c := range joined {
-			h.publish(ctx, events.ChannelMembersChanged, ChannelEvent{ChannelID: uuid(c).String()})
-		}
-		role = WorkspaceMember
 		h.publish(ctx, events.WorkspaceJoined, WorkspaceEvent{WorkspaceID: uuid(wsID).String(), UserID: uuid(p.User.ID).String()})
 		h.record(r, wsID, audit.InviteAccepted, "invite", uuid(row.WorkspaceInvite.ID).String(), nil)
 		h.membersOfWorkspaceChanged(ctx, wsID)

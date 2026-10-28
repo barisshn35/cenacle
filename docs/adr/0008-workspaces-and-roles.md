@@ -20,7 +20,8 @@ someone is).
    organize categories, manage every channel (they count as channel managers) and post in
    announcement channels. Admins change members to admins and back; only owners grant or
    take the owner role and remove owners. A workspace always keeps one owner
-   (`403 last_owner`). Channel managers stay as before and can now appoint other managers.
+   (`403 last_owner`); if its last owner becomes a directory guest, its admins name the
+   next one. Channel managers stay as before and can now appoint other managers.
 3. **The instance administrator.** `CENACLE_ADMIN_EMAIL` now names the instance
    administrator: they create workspaces and own the default workspace (made owner at
    sign-in). Changing the address does not take workspace roles away; owners do that.

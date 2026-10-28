@@ -192,7 +192,7 @@ func Apply(ctx context.Context, q Querier, user store.User, p Profile, adminEmai
 			return err
 		}
 	}
-	if admin {
+	if admin && !guest { // a guest owns nothing, whatever the configured address
 		def, err := q.GetDefaultWorkspace(ctx)
 		if err != nil {
 			return err

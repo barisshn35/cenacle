@@ -545,7 +545,7 @@ func (q *Queries) SetDirectoryProfile(ctx context.Context, arg SetDirectoryProfi
 
 const setGuestRoles = `-- name: SetGuestRoles :exec
 UPDATE workspace_members SET role = CASE WHEN $1::boolean THEN 'guest' ELSE 'member' END
-WHERE user_id = $2 AND (CASE WHEN $1::boolean THEN role IN ('member', 'admin') ELSE role = 'guest' AND NOT via_group END)
+WHERE user_id = $2 AND (CASE WHEN $1::boolean THEN role IN ('owner', 'member', 'admin') ELSE role = 'guest' AND NOT via_group END)
 `
 
 type SetGuestRolesParams struct {
@@ -553,8 +553,9 @@ type SetGuestRolesParams struct {
 	UserID pgtype.UUID `json:"user_id"`
 }
 
-// SetGuestRoles makes a person a guest wherever they are a member or an
-// administrator (or takes it back when they are not a guest any more).
+// SetGuestRoles makes a person a guest wherever they are a member, an
+// administrator or an owner (or takes it back when they are not a guest any
+// more): the directory's guest role outranks any workspace role.
 func (q *Queries) SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error {
 	_, err := q.db.Exec(ctx, setGuestRoles, arg.Guest, arg.UserID)
 	return err
