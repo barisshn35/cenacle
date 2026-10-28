@@ -167,6 +167,72 @@ func TestAutomodAndReports(t *testing.T) {
 	}
 }
 
+// Moderation does not open conversations to the workspace's moderators:
+// AutoMod blocks there but never flags, and reports of a conversation's
+// messages reach only moderators who are in it.
+func TestModerationLeavesConversationsPrivate(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	owner := s.admin()
+	ayse := s.user("sub-ayse", "Ayşe")
+	mert := s.user("sub-mert", "Mert")
+	mod := s.user("sub-mod", "Moderator")
+	for _, u := range []string{owner, ayse, mert, mod} {
+		s.general(u)
+	}
+	if res := s.call(http.MethodPatch, "/api/workspaces/"+s.defaultWS+"/members/"+s.userID(mod), owner, map[string]string{"role": "admin"}, nil); res.StatusCode >= 300 {
+		t.Fatalf("promote = %d", res.StatusCode)
+	}
+	rules := "/api/workspaces/" + s.defaultWS + "/automod"
+	s.call(http.MethodPost, rules, mod, map[string]any{"name": "Watch", "kind": "keywords", "words": []string{"secret*"}, "action": "flag"}, nil)
+	s.call(http.MethodPost, rules, mod, map[string]any{"name": "Spam", "kind": "keywords", "words": []string{"bedava"}, "action": "block"}, nil)
+
+	dm, st := s.open(ayse, s.defaultWS, s.userID(mert))
+	if st != http.StatusCreated && st != http.StatusOK {
+		t.Fatalf("open = %d", st)
+	}
+	if _, res := s.send(ayse, dm.ID, "bedava", "nonce-mc-1"); res.StatusCode != http.StatusBadRequest {
+		t.Errorf("block rule in a conversation = %d", res.StatusCode)
+	}
+	private, res := s.send(ayse, dm.ID, "secrets between us", "nonce-mc-2")
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("send = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodPost, "/api/channels/"+dm.ID+"/messages/"+private.ID+"/report", mert, map[string]any{"reason": "x"}, nil); res.StatusCode != http.StatusNoContent {
+		t.Errorf("report = %d", res.StatusCode)
+	}
+	var queue struct{ Reports []api.Report }
+	for _, who := range []string{owner, mod} {
+		s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/reports", who, nil, &queue)
+		if len(queue.Reports) != 0 {
+			t.Errorf("a moderator outside the conversation sees %+v", queue.Reports)
+		}
+	}
+
+	// A moderator in the conversation sees its report; others cannot act on it.
+	withMod, _ := s.open(ayse, s.defaultWS, s.userID(mod))
+	hello, _ := s.send(ayse, withMod.ID, "hello", "nonce-mc-3")
+	s.call(http.MethodPost, "/api/channels/"+withMod.ID+"/messages/"+hello.ID+"/report", mod, map[string]any{}, nil)
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/reports", mod, nil, &queue)
+	if len(queue.Reports) != 1 || queue.Reports[0].Message.Id.String() != hello.ID {
+		t.Fatalf("participant's queue = %+v", queue.Reports)
+	}
+	report := queue.Reports[0].Id.String()
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/reports", owner, nil, &queue)
+	if len(queue.Reports) != 0 {
+		t.Errorf("owner outside the conversation sees %+v", queue.Reports)
+	}
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/reports/"+report+"/resolve", owner, map[string]any{"action": "delete"}); status != http.StatusNotFound {
+		t.Errorf("owner resolving a conversation's report = %d", status)
+	}
+	found := false
+	for _, m := range s.timeline(ayse, withMod.ID) {
+		found = found || m.Id.String() == hello.ID
+	}
+	if !found {
+		t.Error("the conversation's message was deleted")
+	}
+}
+
 func TestPollsAndForums(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	admin := s.admin()

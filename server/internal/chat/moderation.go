@@ -182,6 +182,8 @@ func automodMatch(rule store.AutomodRule, body string) bool {
 
 // automod checks a message against the workspace's rules: a blocking rule
 // answers 400; flagging rules are returned to be reported once it is sent.
+// Conversations are never flagged: a report would show their text to
+// moderators who are not in them (blocking reveals nothing).
 func (h *Handlers) automod(w http.ResponseWriter, r *http.Request, c store.Channel, role access, body string) ([]string, bool) {
 	if body == "" {
 		return nil, true
@@ -201,7 +203,9 @@ func (h *Handlers) automod(w http.ResponseWriter, r *http.Request, c store.Chann
 				Detail: "The workspace's rule “" + rule.Name + "” does not allow this message."})
 			return nil, false
 		}
-		flags = append(flags, rule.Name)
+		if !isConversation(c) {
+			flags = append(flags, rule.Name)
+		}
 	}
 	return flags, true
 }
@@ -465,6 +469,16 @@ func flagMessage(ctx context.Context, q *store.Queries, c store.Channel, message
 	return emit(ctx, q, events.ReportCreated, ReportEvent{WorkspaceID: uuid(c.WorkspaceID).String()})
 }
 
+// reportVisible says whether a moderator may see and act on a reported
+// message: a conversation's messages only to its own people.
+func (h *Handlers) reportVisible(ctx context.Context, user store.User, m store.GetMessagesByIDsRow) (bool, error) {
+	if m.ChannelKind != KindDirect && m.ChannelKind != KindGroup {
+		return true, nil
+	}
+	role, err := h.Queries.GetMemberRole(ctx, store.GetMemberRoleParams{ChannelID: m.ChannelID, UserID: user.ID})
+	return role != "", err
+}
+
 // ListReports implements api.ServerInterface.
 func (h *Handlers) ListReports(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID, params api.ListReportsParams) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
@@ -490,6 +504,12 @@ func (h *Handlers) ListReports(w http.ResponseWriter, r *http.Request, workspace
 	for _, row := range rows {
 		m, ok := byRow[uuid(row.MessageID)]
 		if !ok {
+			continue
+		}
+		if visible, err := h.reportVisible(r.Context(), p.User, m); err != nil {
+			h.unavailable(w, r, "check reported message", err)
+			return
+		} else if !visible {
 			continue
 		}
 		rep := api.Report{
@@ -534,6 +554,13 @@ func (h *Handlers) ResolveReport(w http.ResponseWriter, r *http.Request, reportI
 		return
 	}
 	m := msgs[0]
+	if visible, err := h.reportVisible(r.Context(), p.User, m); err != nil {
+		h.unavailable(w, r, "check reported message", err)
+		return
+	} else if !visible {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such report."})
+		return
+	}
 	status, action := "resolved", ""
 	var until time.Time
 	switch in.Action {

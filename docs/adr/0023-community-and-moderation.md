@@ -34,6 +34,9 @@ them openly, without a paid tier.
    - Reports from members (one open report per person and message) and AutoMod flags form
      the moderation queue; resolving dismisses, deletes the message or times its author out,
      for every open report of that message. Timeouts and resolutions are audited.
+   - Conversations stay private (ADR 0009): AutoMod's blocking rules apply there, but it
+     never flags a conversation's message, and a report of one is listed and resolved only
+     by owners and admins who are in that conversation.
 5. **Welcome**: a workspace message, rules and suggested public channels, shown once to each
    member; closing it joins the chosen channels.
 6. **Playbooks** (Mattermost Playbooks): checklists a workspace's owners and admins write;
