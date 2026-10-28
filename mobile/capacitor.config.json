@@ -3,11 +3,11 @@
   "appName": "Cenacle",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
-    "allowNavigation": ["*"]
+    "androidScheme": "https"
   },
   "android": {
-    "allowMixedContent": false
+    "allowMixedContent": false,
+    "minWebViewVersion": 120
   },
   "plugins": {
     "CapacitorHttp": { "enabled": true }

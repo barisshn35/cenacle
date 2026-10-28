@@ -5,6 +5,15 @@ people enter their organization's Cenacle server address, the app checks that it
 Cenacle (`/api/meta`) and then opens that server's web app, as the desktop app does. Sign-in,
 data and updates come from the server; the app holds only the list of recent servers.
 
+Only the app's own pairing page reaches Capacitor's native bridge: `server.allowNavigation` is
+empty, so the server's pages run as plain web pages. The server's pages and its sign-in (Cenacle
+ID and an organization's own provider, reached by redirect) stay in the app; a link someone taps
+to another site opens in the system browser (`NavigationPolicy` on Android, `NavigationGuard` on
+iOS). On Android the app keeps nothing in device or cloud backups (`allowBackup="false"`), since
+the web view holds the chat session cookie, and needs Android System WebView 120 or later.
+On iOS, WKWebView offers the bridge to every page it loads; the navigation guard keeps tapped
+links out of it.
+
 Status: a working scaffold. Push notifications, deep links, switching servers from inside the
 app and store releases come with the mobile release (v1.2).
 
