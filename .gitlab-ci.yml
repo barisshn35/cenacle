@@ -4,7 +4,8 @@
 # Jobs run on the project's own runner (docs/operations/ci.md): in the CI
 # image (ci/image), sharing the network of the CI Docker engine, so test
 # services started with ci/services.sh answer on 127.0.0.1. Caches (Go,
-# pnpm, Playwright, image layers) live in /cache on the runner.
+# pnpm, Playwright, image layers) live in /cache on the runner, apart for
+# protected pipelines (main, release-*, v* tags) and all others.
 
 workflow:
   rules:
@@ -13,6 +14,10 @@ workflow:
     # Branches of supported versions (docs/operations/support-policy.md).
     - if: $CI_COMMIT_BRANCH =~ /^release-\d+\.\d+$/
     - if: $CI_COMMIT_TAG =~ /^v/
+      variables:
+        # Release pipelines run in a CI image built afresh for them (ci-image);
+        # bump with CI_IMAGE below.
+        CI_IMAGE: cenacle-ci:2-release
   auto_cancel:
     on_new_commit: interruptible
 
@@ -28,17 +33,23 @@ variables:
   # Signing releases (with the project's key, CI/CD variables COSIGN_KEY and
   # COSIGN_PASSWORD) and their SBOMs; docs/security/README.md says how to verify.
   COSIGN_IMAGE: ghcr.io/sigstore/cosign/cosign:v3.1.4@sha256:0f06154836d2de34f887a5c273506d52ca43edaa1d9e53e6510fa78a48f69c2d
+  # The buildx builders' BuildKit, by digest rather than whatever the CI engine has tagged.
+  BUILDKIT_IMAGE: moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
   SYFT_IMAGE: anchore/syft:v1.54.1@sha256:3eb5379ba7b409c3f4069b686110527af0c47df993fa5c10d13e7cf34f49b1aa
-  GOMODCACHE: /cache/go/mod
-  GOCACHE: /cache/go/build
-  GOLANGCI_LINT_CACHE: /cache/golangci
-  PLAYWRIGHT_BROWSERS_PATH: /cache/ms-playwright
+  # Protected pipelines never read what other pipelines (merge requests) wrote
+  # to the caches: /cache/protected-true and /cache/protected-false.
+  CACHE_ROOT: /cache/protected-$CI_COMMIT_REF_PROTECTED
+  GOMODCACHE: $CACHE_ROOT/go/mod
+  GOCACHE: $CACHE_ROOT/go/build
+  GOLANGCI_LINT_CACHE: $CACHE_ROOT/golangci
+  PLAYWRIGHT_BROWSERS_PATH: $CACHE_ROOT/ms-playwright
   # Electron's runtime and electron-builder's tools, downloaded once.
-  ELECTRON_CACHE: /cache/electron
-  ELECTRON_BUILDER_CACHE: /cache/electron-builder
+  ELECTRON_CACHE: $CACHE_ROOT/electron
+  ELECTRON_BUILDER_CACHE: $CACHE_ROOT/electron-builder
+  MAKEMSIX_CACHE: $CACHE_ROOT/makemsix
   # The desktop app's packaging image (Node.js, Wine for the Windows installer).
   DESKTOP_BUILDER_IMAGE: electronuserland/builder:22-wine-10.26@sha256:7e725c402e1a950b901263107da1c63afae9a2db02d5eed97102bd68f0decb59
-  PNPM_STORE: /cache/pnpm-store
+  PNPM_STORE: $CACHE_ROOT/pnpm-store
   FORCE_COLOR: '1'
   GIT_DEPTH: '50'
   # Development-only keys of the CI Garage (deploy/compose/garage/dev.toml).
@@ -53,6 +64,7 @@ default:
 .tools-cache: &tools-cache
   key:
     files: [Makefile]
+    prefix: protected-$CI_COMMIT_REF_PROTECTED
   paths: [.bin/]
 
 .pnpm-install: &pnpm-install
@@ -63,7 +75,19 @@ ci-image:
   stage: prepare
   image: docker:29.9.2-cli@sha256:5e6baf67325a79f64ed3bed6863954d5e05d0f3d4e57cbdb14809346814bbfdb
   script:
-    - docker image inspect "$CI_IMAGE" >/dev/null 2>&1 || docker build -t "$CI_IMAGE" ci/image
+    # Release pipelines build their image from this commit with nothing cached
+    # (base images pulled by digest) and pass its ID on; the release jobs check
+    # that they run in it (ci/check-job-image.sh).
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        docker build --pull --no-cache -t "$CI_IMAGE" ci/image
+      else
+        docker image inspect "$CI_IMAGE" >/dev/null 2>&1 || docker build -t "$CI_IMAGE" ci/image
+      fi
+    - echo "CI_IMAGE_ID=$(docker image inspect -f '{{.Id}}' "$CI_IMAGE")" > ci-image.env
+  artifacts:
+    reports:
+      dotenv: ci-image.env
 
 # ---------------------------------------------------------------- lint ---
 lint-go:
@@ -207,7 +231,7 @@ security:
     - docker run --rm -v "$PWD:/repo:ro" "$GITLEAKS_IMAGE" git /repo --no-banner --redact --exit-code 1
     # Dependencies, secrets and Dockerfiles.
     - >
-      docker run --rm -v "$PWD:/src:ro" -v /cache/trivy:/root/.cache/trivy "$TRIVY_IMAGE" fs --quiet
+      docker run --rm -v "$PWD:/src:ro" -v "$CACHE_ROOT/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" fs --quiet
       --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --ignore-unfixed
       --ignorefile /src/.trivyignore.yaml --exit-code 1 /src
 
@@ -239,7 +263,12 @@ licenses:
 # check above has passed.
 images:
   stage: build
-  needs: [licenses, test-e2e, security]
+  needs:
+    - licenses
+    - test-e2e
+    - security
+    - job: ci-image
+      artifacts: true
   timeout: 2h
   parallel:
     matrix:
@@ -262,10 +291,23 @@ images:
         DOCKERFILE: deploy/compose/caddy/Dockerfile
         BUILD_ARGS: --build-arg FIPS=true
   variables:
-    BUILDX_CACHE: /cache/buildx/$IMAGE
+    BUILDX_CACHE: $CACHE_ROOT/buildx/$IMAGE
   before_script:
-    - docker buildx inspect cenacle >/dev/null 2>&1 ||
-      docker buildx create --name cenacle --driver docker-container --driver-opt network=host
+    # Release builds: in the image this pipeline built, with a builder of their
+    # own (removed afterwards) and no layer cache from earlier pipelines. Other
+    # pipelines keep a builder per trust level, never shared with protected ones.
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        ci/check-job-image.sh
+        export BUILDER="cenacle-release-$CI_JOB_ID" CACHE_FROM=""
+        docker buildx create --name "$BUILDER" --driver docker-container --driver-opt network=host \
+          --driver-opt "image=$BUILDKIT_IMAGE" >/dev/null
+      else
+        export BUILDER="cenacle-protected-$CI_COMMIT_REF_PROTECTED" CACHE_FROM="--cache-from type=local,src=$BUILDX_CACHE"
+        docker buildx inspect "$BUILDER" >/dev/null 2>&1 ||
+          docker buildx create --name "$BUILDER" --driver docker-container --driver-opt network=host \
+            --driver-opt "image=$BUILDKIT_IMAGE" >/dev/null
+      fi
     - export VERSION="${CI_COMMIT_TAG:-$CI_COMMIT_SHA}"
     # Reproducible: the runner checks out with umask 0000 and keeps the times
     # of earlier checkouts; files get the modes and times of a fresh clone
@@ -273,9 +315,9 @@ images:
     - find . -path ./.git -prune -o ! -type l -exec chmod go-w {} +
     - git ls-files -z | xargs -0 touch -h -d "@$(git log -1 --format=%ct)"
   script:
-    - docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$VERSION" ${BUILD_ARGS:-}
+    - docker buildx build --builder "$BUILDER" -f "$DOCKERFILE" --build-arg VERSION="$VERSION" ${BUILD_ARGS:-}
       --platform linux/amd64 --load -t "cenacle-$IMAGE:ci"
-      --cache-from "type=local,src=$BUILDX_CACHE" --cache-to "type=local,dest=$BUILDX_CACHE.new,mode=max" .
+      $CACHE_FROM --cache-to "type=local,dest=$BUILDX_CACHE.new,mode=max" .
     - rm -rf "$BUILDX_CACHE" && mv "$BUILDX_CACHE.new" "$BUILDX_CACHE"
     # The image runs as non-root.
     - user="$(docker inspect -f '{{.Config.User}}' "cenacle-$IMAGE:ci")" && echo "user=$user"
@@ -283,7 +325,7 @@ images:
     # Hardening (docs/security/stig.md): no setuid or setgid files.
     - ci/check-image.sh "cenacle-$IMAGE:ci" "$IMAGE"
     - >
-      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /cache/trivy:/root/.cache/trivy
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$CACHE_ROOT/trivy:/root/.cache/trivy"
       "$TRIVY_IMAGE" image --quiet --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "cenacle-$IMAGE:ci"
     # ------------------------------------------------- publish (tags only) ---
     - |
@@ -295,7 +337,8 @@ images:
         archive="$CI_PROJECT_DIR/.image-$IMAGE.tar"
         # Reproducible: file times are the commit's (docs/security/README.md).
         epoch="$(git log -1 --format=%ct)"
-        docker buildx build --builder cenacle -f "$DOCKERFILE" --build-arg VERSION="$version" ${BUILD_ARGS:-} \
+        # The layer cache here is the one the amd64 build above just wrote.
+        docker buildx build --builder "$BUILDER" -f "$DOCKERFILE" --build-arg VERSION="$version" ${BUILD_ARGS:-} \
           --build-arg SOURCE_DATE_EPOCH="$epoch" \
           --platform linux/amd64,linux/arm64 \
           --label org.opencontainers.image.title="cenacle-$IMAGE" \
@@ -332,6 +375,8 @@ images:
         rm -rf "$auth" "$archive" "$SBOM_DIR"
         exit $status
       fi
+  after_script:
+    - '[ -z "${CI_COMMIT_TAG:-}" ] || docker buildx rm "cenacle-release-$CI_JOB_ID" >/dev/null 2>&1 || true'
 
 # The desktop app (v* tags): Windows (one installer for x64 and arm64, the
 # MSI for organizations, MSIX packages for the Microsoft Store) and Linux
@@ -388,9 +433,12 @@ desktop-sign:
   needs:
     - job: desktop
       artifacts: true
+    - job: ci-image
+      artifacts: true
   rules:
     - if: $CI_COMMIT_TAG =~ /^v/
   script:
+    - ci/check-job-image.sh
     - |
       if [ -z "${COSIGN_KEY:-}" ] || [ -z "${COSIGN_PASSWORD:-}" ]; then
         echo "COSIGN_KEY is not set: the desktop app's checksums are not signed"

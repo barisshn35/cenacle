@@ -85,6 +85,37 @@ Keep it to this project's maintainers:
 - `main`, `release-*` (the supported versions) and `v*` tags are protected: only maintainers
   push them, never by force, and only their pipelines see the signing keys.
 
+### Protected pipelines and the shared engine
+
+Every job can drive the CI engine (its socket is mounted) and write `/cache`, so a job of a
+merge request's pipeline can change what later jobs run in: a locally tagged image, a
+buildx builder, a cache. The pipeline keeps protected pipelines (`main`, `release-*`, `v*`
+tags; `CI_COMMIT_REF_PROTECTED`) apart from the others as far as a pipeline can:
+
+- Caches live in `/cache/protected-true` and `/cache/protected-false` (`CACHE_ROOT`), and
+  GitLab's own caches carry the same prefix, so a protected pipeline never reads a module,
+  build, browser, Electron, trivy or image-layer cache that a merge request wrote.
+- buildx builders are per trust level (`cenacle-protected-true`, `cenacle-protected-false`);
+  a release (`v*` tag) builds with a builder of its own, removed after the job, starts with
+  no layer cache from any earlier pipeline, and runs BuildKit by digest (`BUILDKIT_IMAGE`).
+- A release builds its CI image afresh from the tagged commit (`--pull --no-cache`, as
+  `cenacle-ci:<n>-release`) and passes on the image's ID; the jobs that use the signing keys
+  (`images` on tags, `desktop-sign`) stop unless they run in exactly that image
+  (`ci/check-job-image.sh`).
+
+None of this holds against a job that sets out to attack the engine: with the socket it can
+reach every container and, the engine being privileged, the host. That boundary is the
+runner's, so:
+
+- **Recommended:** run protected pipelines on a runner of their own: a second runner with its
+  own CI engine and `/cache`, registered with GitLab's **Protected** flag (it then takes only
+  jobs of protected branches and tags) and its own tag, and keep this runner for the rest.
+- Otherwise, let no one below Maintainer run pipelines in this project: only maintainers are
+  members who can push branches or open merge requests here, and contributors' merge
+  requests come from forks, whose pipelines run in the fork.
+- Keep `COSIGN_KEY`, `COSIGN_PASSWORD`, `GHCR_TOKEN` and the GPG variables **protected**
+  (and masked), so no other pipeline reads them.
+
 ## Housekeeping
 
 Run daily on the CI host (it cleans the CI engine only, never the host's Docker):
@@ -92,8 +123,12 @@ Run daily on the CI host (it cleans the CI engine only, never the host's Docker)
 ```sh
 docker exec cenacle-ci-docker-1 docker -H unix:///run/ci-docker/docker.sock container prune -f --filter until=24h
 docker exec cenacle-ci-docker-1 docker -H unix:///run/ci-docker/docker.sock image prune -af --filter until=168h --filter 'label!=cenacle.ci.keep'
-find /var/lib/cenacle-ci/cache/buildx -mindepth 1 -maxdepth 1 -mtime +14 -exec rm -rf {} +
+find /var/lib/cenacle-ci/cache/protected-*/buildx -mindepth 1 -maxdepth 1 -mtime +14 -exec rm -rf {} +
 ```
+
+The caches of 0.99.1 and earlier (`/var/lib/cenacle-ci/cache/{go,golangci,ms-playwright,electron,electron-builder,makemsix,pnpm-store,trivy,buildx}`)
+are no longer used and can be removed, as can the old shared builder
+(`docker exec cenacle-ci-docker-1 docker -H unix:///run/ci-docker/docker.sock buildx rm cenacle`).
 
 ## Publishing images
 
