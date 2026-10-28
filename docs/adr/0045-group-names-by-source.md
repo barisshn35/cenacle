@@ -33,7 +33,8 @@ provider or its SCIM client, could create a group with the name of a directory g
 
 - After the upgrade, mappings of a provider's groups by their bare name stop matching and
   the memberships they gave are taken back at the next sign-in or feed change; they must
-  be mapped again as `<provider>/<group>` (upgrade notes, 0.99.2).
+  be mapped again as `<provider>/<group>` (upgrade notes, 0.99.2). Since 0.99.3 the chat's
+  mappings follow these renames by themselves ([ADR 0046](0046-group-mappings-follow-renames.md)).
 - A directory group whose name starts with a provider's name and `/` could still meet that
   provider's group; directory names are set by the directory's administrators, whom
   Cenacle ID trusts as much as its own.

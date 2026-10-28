@@ -8,6 +8,22 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **Group mappings follow renamed groups**: Cenacle ID records when the name apps see for a
+  group changes (the 0.99.2 `<provider>/<group>` prefix, renaming a provider) and the chat
+  moves its workspace and channel mappings along, before the directory feed's people and at
+  sign-in, so upgrading from 0.99.1 or 0.99.2 no longer needs mappings made again by hand. A
+  mapping of a name several providers had is not moved but listed for review in the group
+  settings with the new names; a mapping of the new name that exists already keeps its role.
+  Every change is audited ([ADR 0046](docs/adr/0046-group-mappings-follow-renames.md)).
+
+### Fixed
+
+- **Cenacle ID:** two identity providers could give their groups the same prefix
+  (`Corp/EU` and `Corp-EU`); names are now compared with `/` as `-`, held by a unique index,
+  and existing pairs are renamed by a migration.
+
 ## [0.99.2] - 2026-10-28
 
 Fixes from a source-level security audit of 0.99.1 (every finding reproduced locally and

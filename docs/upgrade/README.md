@@ -65,6 +65,39 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ## Version notes
 
+### 0.99.3
+
+- Chat migration `00054` (quick): group mappings can be marked for review, and the chat keeps
+  where it stands in Cenacle ID's group renames. Cenacle ID migrations `0011` and `0012`
+  (small; rolling back runs their Down, which keeps renamed providers' new names).
+- **Group mappings follow renamed groups** ([ADR 0046](../adr/0046-group-mappings-follow-renames.md)):
+  the chat's directory sync moves workspace and channel mappings of a provider's group to its
+  new name, before it applies the people the feed sends, and a sign-in does the same first.
+  This covers the 0.99.2 prefix (`<provider>/<group>`) and every later provider rename. The
+  manual step of the 0.99.2 notes is no longer needed:
+  - from **0.99.1** straight to 0.99.3: mappings of provider groups by their bare name keep
+    working; a bare name that is also a directory (LDAP) group's keeps meaning that group;
+  - on **0.99.2**, mappings already made again with the prefix are unaffected: the bare ones
+    were deleted (nothing to move) or, if kept, give way to the prefixed ones, which keep
+    their role; bare ones never re-mapped come back, and their people get their memberships
+    again when the feed sends them (Cenacle ID marks them changed, as in 0.99.2).
+  - A bare name several providers had cannot be followed by itself: the mapping matches none
+    of the groups and the workspace or channel group settings show it as **needs review**
+    with the new names to choose from (or keep it as it is, or remove it). On 0.99.2 such
+    mappings already gave no access; coming from 0.99.1, the memberships they gave are taken
+    back until an administrator chooses (as in 0.99.2, but now listed).
+  - Every moved, replaced or marked mapping is in the workspace's audit log.
+  - Renames are followed only through the directory feed (`"directory_feed": true` for the
+    chat's client, as Compose and Helm ship it). Without it, map renamed groups again by hand
+    as in 0.99.2.
+- Two identity providers may no longer give their groups the same prefix: `Corp/EU` and
+  `Corp-EU` (both `Corp-EU/`) or names that differ only in case. Migration `0012` renames
+  every provider but the oldest of such a set to `<name> (<id>)` and marks the mappings of its
+  groups' old names for review; rename them as you like afterwards (the mappings follow).
+- Tested: the rename rules by regression tests (Cenacle ID's migration from 0.99.1 data,
+  provider renames, the chat following them); the new migrations rolled back and applied
+  again.
+
 ### 0.99.2
 
 - Chat migrations `00048`–`00053` (all quick):
