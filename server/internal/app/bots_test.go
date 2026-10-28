@@ -176,3 +176,52 @@ func TestBotsTokensAndWebhooks(t *testing.T) {
 		t.Errorf("search = %+v", people.Users)
 	}
 }
+
+// An incoming webhook writes under the rules of the bot's own messages:
+// broadcast rights, AutoMod.
+func TestWebhookFollowsMessageRules(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	s.general(admin)
+	b := s.newBot(admin, "Alarm")
+	s.call(http.MethodPost, "/api/channels/"+general+"/members", admin, map[string]string{"user_id": b.UserID}, nil)
+	var hook struct {
+		URL string `json:"url"`
+	}
+	s.call(http.MethodPost, "/api/bots/"+b.ID+"/webhooks", admin, map[string]string{"name": "h", "channel_id": general, "kind": "generic"}, &hook)
+	if hook.URL == "" {
+		t.Fatal("no webhook")
+	}
+	if res := s.call(http.MethodPatch, "/api/channels/"+general, admin, map[string]any{"moderation": map[string]string{
+		"post": "everyone", "reply": "everyone", "react": "everyone", "broadcast": "managers"}}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("moderation = %d", res.StatusCode)
+	}
+	if res := s.raw(http.MethodPost, hook.URL, "", `{"text":"@channel via hook"}`); res.StatusCode != http.StatusForbidden {
+		t.Errorf("hook @channel = %d", res.StatusCode)
+	}
+	if n := s.count(`SELECT count(*) FROM messages WHERE body = '@channel via hook'`); n != 0 {
+		t.Errorf("hook @channel posted %d messages", n)
+	}
+	// A command's answer is posted under its caller's rights.
+	rv := newReceiver(t)
+	s.call(http.MethodPost, "/api/bots/"+b.ID+"/commands", admin, map[string]string{"trigger": "relay", "url": rv.URL}, nil)
+	rv.set(http.StatusOK, `{"response_type":"in_channel","text":"@channel via command"}`)
+	if status, code := problemCode(t, s, http.MethodPost, "/api/channels/"+general+"/commands", ayse, map[string]string{"command": "relay", "text": "x"}); status != http.StatusForbidden || code != "broadcast_not_allowed" {
+		t.Errorf("command answer @channel = %d %s", status, code)
+	}
+
+	rules := "/api/workspaces/" + s.defaultWS + "/automod"
+	s.call(http.MethodPost, rules, admin, map[string]any{"name": "Spam", "kind": "keywords", "words": []string{"bedava"}, "action": "block"}, nil)
+	s.call(http.MethodPost, rules, admin, map[string]any{"name": "Watch", "kind": "keywords", "words": []string{"deploy*"}, "action": "flag"}, nil)
+	if res := s.raw(http.MethodPost, hook.URL, "", `{"text":"bedava"}`); res.StatusCode != http.StatusBadRequest {
+		t.Errorf("blocked hook message = %d", res.StatusCode)
+	}
+	if res := s.raw(http.MethodPost, hook.URL, "", `{"text":"deployed 1.4"}`); res.StatusCode != http.StatusOK {
+		t.Fatalf("flagged hook message = %d", res.StatusCode)
+	}
+	if n := s.count(`SELECT count(*) FROM message_reports r JOIN messages m ON m.id = r.message_id WHERE m.body = 'deployed 1.4' AND r.rule_name = 'Watch'`); n != 1 {
+		t.Errorf("flag reports = %d", n)
+	}
+}

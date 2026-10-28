@@ -2773,6 +2773,8 @@ paths:
         No session: the URL is the secret. A `generic` webhook takes
         `{"text": "Markdown", "attachments": [...]}`; a `jira` webhook takes Jira's
         webhook payloads (issue created, updated, deleted; comment created).
+        The message is held to the rules of one the bot sends with its token:
+        the channel's broadcast rights, slow mode, the bot's timeout and AutoMod.
       requestBody:
         required: true
         content:
@@ -2782,6 +2784,8 @@ paths:
         '200':
           description: Posted (or ignored, for events that say nothing worth posting).
         '400':
+          $ref: '#/components/responses/Problem'
+        '403':
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'

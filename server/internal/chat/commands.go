@@ -414,10 +414,15 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 	if h.slowedDown(w, r, c, role, user) {
 		return
 	}
+	noGroups, ok := h.mentionRights(w, r, c, role, msg)
+	if !ok {
+		return
+	}
 	var posted api.Message
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
-		posted, err = postMessage(r.Context(), q, c, row.User, msg, "cmd-"+randomNonce(), raw)
+		posted, err = postMessageTo(r.Context(), q, c, row.User, msg, "cmd-"+randomNonce(), raw, replyTo{},
+			postExtras{presence: h.Presence, noGroups: noGroups})
 		return err
 	})
 	if err != nil {

@@ -568,7 +568,8 @@ func (h *Handlers) PostWebhook(w http.ResponseWriter, r *http.Request, token str
 	}
 	// The channel's rules apply as for the bot's token: bots are members, so
 	// announcement channels are read-only for them.
-	if !canPost(c, access{ch: member, ws: WorkspaceMember}) {
+	role := access{ch: member, ws: WorkspaceMember}
+	if !canPost(c, role) {
 		forbidden(w, r, CodeReadOnlyChannel, "Only the workspace's owners and admins can send messages in this channel.")
 		return
 	}
@@ -576,8 +577,25 @@ func (h *Handlers) PostWebhook(w http.ResponseWriter, r *http.Request, token str
 		forbidden(w, r, CodeEncrypted, "The channel is encrypted end to end: bots cannot write in it.")
 		return
 	}
+	// Held to the rules of a message the bot sends with its token.
+	if h.timedOut(w, r, c.WorkspaceID, bot) || h.slowedDown(w, r, c, role, bot) {
+		return
+	}
+	noGroups, ok := h.mentionRights(w, r, c, role, body)
+	if !ok {
+		return
+	}
+	flags, ok := h.automod(w, r, c, role, body)
+	if !ok {
+		return
+	}
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
-		if _, err := postMessage(r.Context(), q, c, bot, body, "hook-"+randomNonce(), raw); err != nil {
+		out, err := postMessageTo(r.Context(), q, c, bot, body, "hook-"+randomNonce(), raw, replyTo{},
+			postExtras{presence: h.Presence, noGroups: noGroups})
+		if err != nil {
+			return err
+		}
+		if err := flagMessage(r.Context(), q, c, out.Id, flags); err != nil {
 			return err
 		}
 		return q.TouchWebhook(r.Context(), hook.ID)

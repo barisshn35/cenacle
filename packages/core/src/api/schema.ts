@@ -1783,6 +1783,8 @@ export interface paths {
      * @description No session: the URL is the secret. A `generic` webhook takes
      *     `{"text": "Markdown", "attachments": [...]}`; a `jira` webhook takes Jira's
      *     webhook payloads (issue created, updated, deleted; comment created).
+     *     The message is held to the rules of one the bot sends with its token:
+     *     the channel's broadcast rights, slow mode, the bot's timeout and AutoMod.
      */
     post: operations['postWebhook'];
     delete?: never;
@@ -9874,6 +9876,7 @@ export interface operations {
         content?: never;
       };
       400: components['responses']['Problem'];
+      403: components['responses']['Problem'];
       404: components['responses']['Problem'];
       429: components['responses']['Problem'];
     };
