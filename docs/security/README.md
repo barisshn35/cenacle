@@ -193,6 +193,9 @@ same way with `ci/setup-linux-signing.sh`.
 
 - [Review 0.42](review-0.42.md): what the project tested before the release candidate
   (dependencies, scans, the authorization matrix, the OAuth profile, files, fuzzing).
+- Source audit of 0.99.1: a full review of the source by trust boundary, every finding
+  reproduced locally and checked twice; its fixes are 0.99.2 (see the
+  [changelog](../../CHANGELOG.md)).
 - [QA report 0.99.1](../qa/report-0.99.1.md): the hardening round before 1.0 (the
   repository's history, supply chain and licenses, OWASP ZAP and nuclei against a running
   installation, brute force, failures and network partitions, restores, Kubernetes, MLS test

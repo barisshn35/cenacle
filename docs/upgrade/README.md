@@ -67,6 +67,38 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ### 0.99.2
 
+- Chat migrations `00048`–`00053` (all quick):
+  - `00048`/`00049` order federation deliveries per connection and record the signature
+    version;
+  - `00050` records which workspaces and channels an import created;
+  - `00051` adds upload claims;
+  - `00052` binds web push subscriptions to the session that made them and **removes the
+    existing ones**: browsers that had push on subscribe again by themselves the next time
+    the web app opens;
+  - `00053` repairs guest roles: link guests and people from federated servers leave the
+    default workspace (and its channels) unless they are guests there, every guest's role is
+    set to guest, and directory guests leave the channels for everyone. Its Down changes
+    nothing, as the removed rows were wrong.
+- Guests stay guests everywhere: an invite, the default workspace or a directory change no
+  longer makes them members or owners. A workspace whose only owner became a directory guest
+  can be given a new owner by its admins.
+- Channel access rules now apply to every way into a channel (group mappings, onboarding,
+  the welcome channels, guest links, webhooks). Group mappings take back memberships the
+  rules forbid; guest links of channels with rules stop working.
+- Imports: an export that names an existing workspace, channel or conversation that no
+  import created is refused; `server import --merge` joins people to them as plain members
+  (no roles change). Workspaces imported before 0.99.2 count as existing, so importing into
+  them again needs `--merge`.
+- Federation: events of a connection reach the peer in order, a peer refusing one event
+  holds up the rest of that connection (both sides show the error), and requests are signed
+  for their connection and endpoint (`v2`) with replays refused. A peer moved back below
+  0.99.2 after it signed with `v2` must be connected again.
+- AutoMod's flag rules leave direct and group conversations alone, and reports of
+  conversation messages reach only moderators taking part in them.
+- CI (own runner): caches now live under `/cache/protected-true` and `/cache/protected-false`
+  and tag builds use their own buildx builder; the old `/cache/*` directories and the
+  `cenacle` builder can be removed ([CI](../operations/ci.md)).
+- Tested path: 0.99.1 → 0.99.2 with data; the new migrations rolled back and applied again.
 - Cenacle ID migrations `0009` and `0010` (small; rolling back runs their Down).
 - **Groups of identity providers (OIDC, SAML, SCIM) reach the chat as
   `<provider>/<group>`** ([ADR 0045](../adr/0045-group-names-by-source.md)); directory

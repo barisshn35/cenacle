@@ -8,6 +8,65 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.99.2] - 2026-10-28
+
+Fixes from a source-level security audit of 0.99.1 (every finding reproduced locally and
+checked by two independent reviewers): guests and access rules on every way in, the identity
+of groups and e-mail addresses from other identity providers, copies left behind by removals,
+and stricter federation, imports and uploads. See the [upgrade notes](docs/upgrade/README.md)
+before upgrading: provider groups are renamed and web push subscriptions are renewed.
+
+### Security
+
+- **Guests:** at every start the server made link guests, directory guests and people from
+  federated servers full members of the default workspace; accepting an invite made a
+  directory guest a member, and a directory downgrade left owners as owners. Guests now stay
+  guests on every way in, and a migration repairs existing memberships.
+- **What guests see:** presence, events, mention groups and the live stream (new channels for
+  everyone) showed guests people or messages outside the channels they share.
+- **Channel access rules** were skipped by group mappings, onboarding, the welcome channels,
+  guest links and webhooks; they now apply to every way into a channel.
+- **Cenacle ID, SCIM:** a PATCH path could write to the process's object prototype; pushed
+  e-mail addresses counted as verified whatever the provider's trust setting (chat grants the
+  admin address and imported histories on verified addresses); a provisioned account could be
+  bound to a second sign-in id by its address.
+- **Cenacle ID, groups:** groups of different identity providers with the same name met in
+  the chat's mappings; provider groups now reach the chat as `<provider>/<group>`
+  ([ADR 0045](docs/adr/0045-group-names-by-source.md)).
+- **Cenacle ID:** `IDP_TRUST_PROXY` trusted every `X-Forwarded-For` hop, so sign-in rate
+  limits keyed on a client-chosen address behind an appending proxy; it is now a number of
+  proxies or their addresses. Administrators and accounts with two-step verification are never
+  linked to a provider by address, and every two-step setup starts with a new secret.
+- **Outgoing requests:** IPv6 addresses with a zone (`[::1%25x]`) passed the blocklist.
+- **Conversations:** AutoMod's flag rules copied direct and group conversation messages into
+  the moderators' queue; they now stay out of it unless the moderator takes part.
+- **Removals:** removing a spilled message left it in forwarded copies and pending reminders;
+  ending a session left its device receiving push notifications; a deactivated person's
+  scheduled messages were still sent; people removed from a workspace could still decide its
+  workflow tasks.
+- **Anonymous polls:** live updates told every member who had voted for what.
+- **Encrypted channels:** form answers, tabs, canvases, lists and playbook run names could
+  still be written in plain text.
+- **Moderation:** timed-out members could still post through commands, message buttons and
+  dialogs, and incoming webhooks could use `@channel` where broadcasts are limited.
+- **Imports:** directory exports could follow links out of the export, and an export could
+  add its people and roles to existing private channels and workspaces (now only with
+  `--merge`, and without roles).
+- **Uploads:** two completions of one upload at once could pair a check with other bytes;
+  Office and OpenDocument text reading had no overall size or time limit.
+- **Federation:** a deletion could reach a peer before the message it removed; signed
+  requests could be replayed within the time window or sent back to their sender.
+- The access log no longer records the tokens of invite, guest-link and workflow-hook links.
+
+### Changed
+
+- CI keeps protected pipelines apart from merge requests' caches and builders, and signs the
+  desktop checksums the desktop job produced.
+- Desktop: Cenacle ID's address is taken only from the server's sign-in redirect.
+- Mobile (preview): the native bridge serves only the pairing page, links to other sites
+  open in the browser, and app data is left out of backups.
+- Workspace creation follows the admin network policy like other admin actions.
+
 ### Fixed
 
 - **Reproducible images:** CI built the 0.99.1 images from a checkout that gave everyone
@@ -1340,7 +1399,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.1...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.2...HEAD
+[0.99.2]: https://github.com/barisshn35/cenacle/compare/v0.99.1...v0.99.2
 [0.99.1]: https://github.com/barisshn35/cenacle/compare/v0.99.0...v0.99.1
 [0.99.0]: https://github.com/barisshn35/cenacle/compare/v0.43.0...v0.99.0
 [0.43.0]: https://github.com/barisshn35/cenacle/compare/v0.42.0...v0.43.0
