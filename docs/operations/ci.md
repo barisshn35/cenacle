@@ -128,7 +128,10 @@ A release bumps the version in every one of these files, in one commit
 
 `ci/publish-image.sh` signs every published image with cosign and attaches a signed SPDX
 SBOM (syft) to each platform's image; the SBOMs also go to the package registry as
-`cenacle-sbom/<version>/`. The job `desktop-sign` signs the desktop app's `SHA256SUMS`.
+`cenacle-sbom/<version>/`. The job `desktop-sign` signs the desktop app's `SHA256SUMS`:
+the file the `desktop` job made, passed on as a job artifact with its digest, never one
+fetched by name from the package registry (anyone who can write packages can replace
+those); it refuses to sign when the registry serves a different file.
 They need the protected CI/CD variables `COSIGN_KEY` (a file) and `COSIGN_PASSWORD`, and
 `v*` tags protected so their pipelines can read them. Set all of it up once with:
 

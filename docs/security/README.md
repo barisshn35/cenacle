@@ -150,11 +150,13 @@ so verifying needs only the public key and the registry — also without Interne
 
 - **Linux packages (0.99):** the rpm packages are signed with the project's GPG key, and
   `SHA256SUMS.asc` signs the checksums for tools that know GPG rather than cosign. The
-  public key is `cenacle-linux.asc` in each release:
+  public key is `deploy/cenacle-linux.asc` in this repository; take it from there, not
+  from a release, since whoever could replace a release's files could replace the copy of
+  the key that comes with them (`cenacle-linux.asc`, kept for package managers):
 
   ```sh
-  sudo rpm --import cenacle-linux.asc && rpm -K Cenacle-0.99.0-x86_64.rpm
-  gpg --import cenacle-linux.asc && gpg --verify SHA256SUMS.asc SHA256SUMS
+  sudo rpm --import deploy/cenacle-linux.asc && rpm -K Cenacle-0.99.0-x86_64.rpm
+  gpg --import deploy/cenacle-linux.asc && gpg --verify SHA256SUMS.asc SHA256SUMS
   ```
 
 - **Rebuilding an image yourself (0.99.1):** the images are reproducible: built from the

@@ -363,6 +363,9 @@ desktop:
     # with GPG for Linux package managers).
     - (cd release && sha256sum *.exe *.msi *.msix *.zip *.AppImage *.deb *.rpm > SHA256SUMS)
     - sh scripts/sign-linux.sh sums
+    # desktop-sign signs exactly this file: it gets it as an artifact with its digest,
+    # never by name from the package registry, which others with write access could replace.
+    - echo "DESKTOP_SUMS_SHA256=$(sha256sum release/SHA256SUMS | cut -d' ' -f1)" > "$CI_PROJECT_DIR/desktop-sums.env"
     - |
       for file in release/*.exe release/*.msi release/*.msix release/*.zip release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.blockmap release/index.json release/SHA256SUMS release/*.asc; do
         [ -f "$file" ] || continue
@@ -370,12 +373,21 @@ desktop:
         curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version/$(basename "$file")"
       done
+  artifacts:
+    expire_in: 1 day
+    paths: [desktop/release/SHA256SUMS]
+    reports:
+      dotenv: desktop-sums.env
 
 # The desktop app's checksums, signed with the project's key (v* tags):
 # SHA256SUMS.sigstore.json next to SHA256SUMS in cenacle-desktop/<version>/.
+# It signs the SHA256SUMS the desktop job made (its artifact, checked against
+# the digest the job recorded), and only if the registry serves the same file.
 desktop-sign:
   stage: build
-  needs: [desktop]
+  needs:
+    - job: desktop
+      artifacts: true
   rules:
     - if: $CI_COMMIT_TAG =~ /^v/
   script:
@@ -387,9 +399,17 @@ desktop-sign:
     - version="${CI_COMMIT_TAG#v}"
     - packages="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version"
     - work="$CI_PROJECT_DIR/.sign" && mkdir -p "$work" && chmod 700 "$work"
-    - (umask 077 && cp "$COSIGN_KEY" "$work/cosign.key")
     - |
-      curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" -o "$work/SHA256SUMS" "$packages/SHA256SUMS"
+      sums=desktop/release/SHA256SUMS
+      [ -n "${DESKTOP_SUMS_SHA256:-}" ] && [ -f "$sums" ] || { echo "no SHA256SUMS from the desktop job"; exit 1; }
+      echo "$DESKTOP_SUMS_SHA256  $sums" | sha256sum -c -
+      cp "$sums" "$work/SHA256SUMS"
+      curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" -o "$work/published" "$packages/SHA256SUMS"
+      if ! cmp -s "$work/SHA256SUMS" "$work/published"; then
+        echo "the registry's SHA256SUMS is not the one the desktop job made: not signing"
+        exit 1
+      fi
+    - (umask 077 && cp "$COSIGN_KEY" "$work/cosign.key")
     - >
       docker run --rm --user 0 --network host -v "$work:/w" -v "$CI_PROJECT_DIR/ci/signing-config.json:/signing-config.json:ro"
       -e COSIGN_PASSWORD "$COSIGN_IMAGE" sign-blob --key /w/cosign.key --signing-config /signing-config.json
