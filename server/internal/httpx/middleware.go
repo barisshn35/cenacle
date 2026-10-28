@@ -56,10 +56,27 @@ func AccessLog(log *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// loggedPath hides secrets carried in paths (incoming webhook addresses).
+// secretPathPrefixes are routes whose next path segment is a bearer secret
+// (webhook addresses, invite and guest-link tokens).
+var secretPathPrefixes = []string{
+	"/api/hooks/",
+	"/api/workflow-hooks/",
+	"/api/invites/",
+	"/api/guest-links/",
+}
+
+// loggedPath hides secrets carried in paths: the token segment is replaced,
+// the rest of the path (e.g. /accept, /join) is kept.
 func loggedPath(path string) string {
-	if strings.HasPrefix(path, "/api/hooks/") {
-		return "/api/hooks/[redacted]"
+	for _, prefix := range secretPathPrefixes {
+		rest, ok := strings.CutPrefix(path, prefix)
+		if !ok {
+			continue
+		}
+		if i := strings.IndexByte(rest, '/'); i >= 0 && prefix != "/api/hooks/" {
+			return prefix + "[redacted]" + rest[i:]
+		}
+		return prefix + "[redacted]"
 	}
 	return path
 }
