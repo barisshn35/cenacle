@@ -540,10 +540,9 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
     const parsed = schema.safeParse(form.config);
     const fields = new Set<string>();
     if (!form.name || form.name.length > 100) fields.add('name');
-    // Apps see a provider's groups by its name: two providers never share one.
-    const name = form.name.toLowerCase();
-    if ((await providers!.list()).some((p) => p.id !== id && p.name.toLowerCase() === name))
-      fields.add('name');
+    // Apps see a provider's groups by its name ("/" as "-"): two providers
+    // never share that prefix.
+    if (form.name && (await providers!.nameTaken(form.name, id))) fields.add('name');
     if (!parsed.success) for (const issue of parsed.error.issues) fields.add(String(issue.path[0]));
     return parsed.success && fields.size === 0 ? { config: parsed.data } : { fields: [...fields] };
   }

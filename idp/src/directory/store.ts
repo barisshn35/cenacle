@@ -224,6 +224,16 @@ export class SourceStore {
 export type Role = 'admin' | 'guest' | null;
 
 /**
+ * The name apps see for a group (SQL expression over a source's kind and
+ * name and the group's name): a directory's by name, an identity provider's
+ * as "<provider>/<name>" with "/" in the provider's name as "-" (ADR 0045).
+ * Changing it changes every group's name for apps: record the changes in
+ * group_name_changes (ADR 0046) as migration 0011 did for this rule.
+ */
+export const appGroupName = (kind: string, sourceName: string, groupName: string) =>
+  `CASE WHEN ${kind} = 'ldap' THEN ${groupName} ELSE replace(${sourceName}, '/', '-') || '/' || ${groupName} END`;
+
+/**
  * The groups of user $1 as apps see them (the groups claim, the directory
  * feed): a directory's by name, an identity provider's as "<provider>/<name>"
  * ("/" in the provider's name becomes "-"), so a provider can never name a
@@ -231,7 +241,7 @@ export type Role = 'admin' | 'guest' | null;
  * characters, the most an app keeps: left out.
  */
 export const APP_GROUPS_SQL = `SELECT n FROM (
-    SELECT CASE WHEN s.kind = 'ldap' THEN g.name ELSE replace(s.name, '/', '-') || '/' || g.name END AS n
+    SELECT ${appGroupName('s.kind', 's.name', 'g.name')} AS n
     FROM user_groups ug JOIN directory_groups g ON g.id = ug.group_id
     JOIN identity_sources s ON s.id = g.source_id WHERE ug.user_id = $1) app_groups
   WHERE char_length(n) <= 200`;

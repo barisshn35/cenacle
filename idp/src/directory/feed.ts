@@ -95,4 +95,40 @@ export function registerDirectoryFeed(
       more: rows.length > PAGE,
     });
   });
+
+  // Changes of the names apps see for groups (ADR 0046), oldest first, so an
+  // app's group mappings follow them; read before the changed people.
+  app.get<{ Querystring: { after?: string } }>(
+    '/directory/v1/group-renames',
+    async (request, reply) => {
+      if (!authorized(request.headers.authorization, opts.clients)) {
+        return reply.code(401).header('www-authenticate', 'Basic realm="cenacle-id"').send();
+      }
+      const raw = request.query.after ?? '';
+      const after = /^\d{1,18}$/.test(raw) ? raw : '0';
+      // As above: changes of the last two seconds wait for the next call.
+      const { rows } = await opts.pool.query<{
+        id: string;
+        old_name: string;
+        new_name: string;
+        ambiguous: boolean;
+      }>(
+        `SELECT id::text, old_name, new_name, ambiguous FROM group_name_changes
+         WHERE id > $1::bigint AND created_at < now() - interval '2 seconds'
+         ORDER BY group_name_changes.id LIMIT $2`,
+        [after, PAGE + 1],
+      );
+      const page = rows.slice(0, PAGE);
+      return reply.header('cache-control', 'no-store').send({
+        renames: page.map((r) => ({
+          id: r.id,
+          old: r.old_name,
+          new: r.new_name,
+          ambiguous: r.ambiguous,
+        })),
+        next: page.at(-1)?.id ?? after,
+        more: rows.length > PAGE,
+      });
+    },
+  );
 }

@@ -3,6 +3,7 @@
 // sign-ins at them that are on their way.
 import { createHash, randomBytes } from 'node:crypto';
 import type pg from 'pg';
+import { appGroupName } from '../directory/store.ts';
 import { openPrivateKey, sealPrivateKey } from '../keys/crypto.ts';
 import {
   oidcConfigSchema,
@@ -127,26 +128,66 @@ export class ProviderStore {
     return (await this.get(id))!;
   }
 
+  /**
+   * Whether another provider gives its groups the same prefix for apps (its
+   * name with "/" as "-", case-insensitively; a unique index holds it too).
+   */
+  async nameTaken(name: string, exceptId?: string): Promise<boolean> {
+    const { rows } = await this.pool.query(
+      `SELECT 1 FROM identity_sources
+       WHERE kind IN ('oidc', 'saml') AND lower(replace(name, '/', '-')) = lower(replace($1, '/', '-'))
+         AND id IS DISTINCT FROM $2::uuid`,
+      [name, exceptId ?? null],
+    );
+    return rows.length > 0;
+  }
+
   /** Changes settings; a secret of undefined keeps the stored one. */
   async update(
     id: string,
     input: { name: string; config: OidcConfig | SamlConfig; enabled: boolean; secret?: string },
   ): Promise<void> {
-    const { rows } = await this.pool.query<{ renamed: boolean }>(
-      `UPDATE identity_sources s SET name = $2, config = $3, enabled = $4, updated_at = now()
-       FROM (SELECT name FROM identity_sources WHERE id = $1) old
-       WHERE s.id = $1 AND s.kind IN ('oidc', 'saml')
-       RETURNING old.name IS DISTINCT FROM $2 AS renamed`,
-      [id, input.name, JSON.stringify(input.config), input.enabled],
-    );
-    if (rows[0]?.renamed) {
-      // Its groups are named after it (APP_GROUPS_SQL): apps follow the change.
-      await this.pool.query(
-        `UPDATE users SET updated_at = now() WHERE id IN (
-           SELECT ug.user_id FROM user_groups ug JOIN directory_groups g ON g.id = ug.group_id
-           WHERE g.source_id = $1)`,
-        [id],
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ renamed: boolean; old_name: string }>(
+        `UPDATE identity_sources s SET name = $2, config = $3, enabled = $4, updated_at = now()
+         FROM (SELECT name FROM identity_sources WHERE id = $1 FOR UPDATE) old
+         WHERE s.id = $1 AND s.kind IN ('oidc', 'saml')
+         RETURNING old.name IS DISTINCT FROM $2 AS renamed, old.name AS old_name`,
+        [id, input.name, JSON.stringify(input.config), input.enabled],
       );
+      if (rows[0]?.renamed) {
+        // Its groups are named after it (appGroupName): apps follow the change
+        // (ADR 0046). An old name a directory's group also has meant that
+        // group too, so apps may not move it by themselves.
+        await client.query(
+          `INSERT INTO group_name_changes (old_name, new_name, ambiguous)
+           SELECT o, n, EXISTS (
+               SELECT 1 FROM directory_groups dg JOIN identity_sources ds ON ds.id = dg.source_id
+               WHERE ds.kind = 'ldap' AND lower(dg.name) = lower(o))
+           FROM (SELECT ${appGroupName('s.kind', '$2::text', 'g.name')} AS o,
+                        ${appGroupName('s.kind', 's.name', 'g.name')} AS n
+                 FROM directory_groups g JOIN identity_sources s ON s.id = g.source_id
+                 WHERE g.source_id = $1) c
+           WHERE o <> n AND char_length(o) <= 200 AND char_length(n) <= 200
+           ORDER BY lower(o), o`,
+          [id, rows[0].old_name],
+        );
+        // Its people count as changed: the feed sends their groups again.
+        await client.query(
+          `UPDATE users SET updated_at = now() WHERE id IN (
+             SELECT ug.user_id FROM user_groups ug JOIN directory_groups g ON g.id = ug.group_id
+             WHERE g.source_id = $1)`,
+          [id],
+        );
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
     if (input.secret !== undefined) await this.setSecret(id, input.secret);
   }

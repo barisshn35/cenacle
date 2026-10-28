@@ -17,6 +17,6 @@ export async function openTestDatabase(): Promise<pg.Pool> {
 
 export async function resetTestDatabase(pool: pg.Pool): Promise<void> {
   await pool.query(
-    'TRUNCATE users, oidc_payloads, signing_keys, audit_events, identity_sources, webauthn_challenges CASCADE',
+    'TRUNCATE users, oidc_payloads, signing_keys, audit_events, identity_sources, webauthn_challenges, group_name_changes CASCADE',
   );
 }
