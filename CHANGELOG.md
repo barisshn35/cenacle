@@ -57,6 +57,8 @@ before upgrading: provider groups are renamed and web push subscriptions are ren
 - **Federation:** a deletion could reach a peer before the message it removed; signed
   requests could be replayed within the time window or sent back to their sender.
 - The access log no longer records the tokens of invite, guest-link and workflow-hook links.
+- Dependencies: `golang.org/x/net` 0.62.0 (quadratic HTML parsing in link previews,
+  GO-2026-6860) and, in the proxy image, `go-jose` 4.1.6 (CVE-2026-116587).
 
 ### Changed
 
