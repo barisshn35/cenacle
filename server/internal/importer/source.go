@@ -39,7 +39,7 @@ func Open(name string) (fs.FS, func() error, error) {
 		return nil, nil, err
 	}
 	if info.IsDir() {
-		return os.DirFS(name), func() error { return nil }, nil
+		return openDir(name, func() error { return nil })
 	}
 	lower := strings.ToLower(name)
 	switch {
@@ -59,9 +59,59 @@ func Open(name string) (fs.FS, func() error, error) {
 			_ = cleanup()
 			return nil, nil, err
 		}
-		return os.DirFS(dir), cleanup, nil
+		fsys, closeDir, err := openDir(dir, cleanup)
+		if err != nil {
+			_ = cleanup()
+		}
+		return fsys, closeDir, err
 	}
 	return nil, nil, fmt.Errorf("%s: expected a directory, a .zip or a .tar.gz", name)
+}
+
+// errNotRegular refuses an entry of an export that is neither a plain file
+// nor a directory (a device or a pipe could block or leak the host).
+var errNotRegular = errors.New("not a regular file")
+
+// openDir reads a directory export through an os.Root: a path or a link that
+// leads outside the directory is refused (an export unpacked by hand may
+// carry links to the host's files), and so is anything but plain files and
+// directories. done runs after the root is closed.
+func openDir(name string, done func() error) (fs.FS, func() error, error) {
+	root, err := os.OpenRoot(name)
+	if err != nil {
+		return nil, nil, err
+	}
+	closeDir := func() error {
+		return errors.Join(root.Close(), done())
+	}
+	return regularFS{root.FS()}, closeDir, nil
+}
+
+// regularFS opens only plain files and directories of an os.Root's FS.
+type regularFS struct{ fsys fs.FS }
+
+func (r regularFS) Open(name string) (fs.File, error) {
+	// Stat before opening: opening a pipe would block.
+	info, err := fs.Stat(r.fsys, name)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() && !info.IsDir() {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: errNotRegular}
+	}
+	f, err := r.fsys.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	// The entry may have changed between the two calls.
+	if info, err = f.Stat(); err != nil || (!info.Mode().IsRegular() && !info.IsDir()) {
+		_ = f.Close()
+		if err == nil {
+			err = &fs.PathError{Op: "open", Path: name, Err: errNotRegular}
+		}
+		return nil, err
+	}
+	return f, nil
 }
 
 func untar(name, dir string) error {
