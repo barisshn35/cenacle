@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/barisshn35/cenacle/server/internal/events"
@@ -90,8 +91,14 @@ func (f *Feed) Sync(ctx context.Context) (int, error) {
 		}
 		for _, u := range page.Users {
 			ok, err := f.apply(ctx, u)
+			if err != nil && !entryProblem(err) {
+				return changed, err // the database or the network: this page again next round
+			}
 			if err != nil {
-				return changed, err
+				// This entry's data cannot be stored: later entries,
+				// deactivations above all, are not held up for it.
+				f.Log.WarnContext(ctx, "directory feed entry not applied", "sub", u.Sub, "error", err)
+				continue
 			}
 			if ok {
 				changed++
@@ -106,6 +113,13 @@ func (f *Feed) Sync(ctx context.Context) (int, error) {
 		}
 	}
 	return changed, nil
+}
+
+// entryProblem says whether err is about the data of one feed entry (a
+// constraint or a value the database refuses), not the database's state.
+func entryProblem(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && (strings.HasPrefix(pgErr.Code, "22") || strings.HasPrefix(pgErr.Code, "23"))
 }
 
 func (f *Feed) fetch(ctx context.Context, cursor string) (feedPage, error) {
