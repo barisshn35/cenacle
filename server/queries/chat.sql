@@ -38,7 +38,7 @@ WHERE c.workspace_id = @workspace_id
 ORDER BY c.is_mandatory DESC, lower(c.name);
 
 -- name: ListMemberChannelIDs :many
-SELECT m.channel_id, c.workspace_id
+SELECT m.channel_id, c.workspace_id, m.joined_at
 FROM channel_members m
 JOIN channels c ON c.id = m.channel_id
 WHERE m.user_id = @user_id;

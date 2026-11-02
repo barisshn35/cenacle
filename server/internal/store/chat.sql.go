@@ -910,7 +910,7 @@ func (q *Queries) ListEditsOfMessages(ctx context.Context, messageIds []pgtype.U
 }
 
 const listMemberChannelIDs = `-- name: ListMemberChannelIDs :many
-SELECT m.channel_id, c.workspace_id
+SELECT m.channel_id, c.workspace_id, m.joined_at
 FROM channel_members m
 JOIN channels c ON c.id = m.channel_id
 WHERE m.user_id = $1
@@ -919,6 +919,7 @@ WHERE m.user_id = $1
 type ListMemberChannelIDsRow struct {
 	ChannelID   pgtype.UUID `json:"channel_id"`
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	JoinedAt    time.Time   `json:"joined_at"`
 }
 
 func (q *Queries) ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelIDsRow, error) {
@@ -930,7 +931,7 @@ func (q *Queries) ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) 
 	var items []ListMemberChannelIDsRow
 	for rows.Next() {
 		var i ListMemberChannelIDsRow
-		if err := rows.Scan(&i.ChannelID, &i.WorkspaceID); err != nil {
+		if err := rows.Scan(&i.ChannelID, &i.WorkspaceID, &i.JoinedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

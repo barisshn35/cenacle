@@ -98,6 +98,8 @@ type options struct {
 	sessionMaxAge time.Duration
 	// store connects this object store instead.
 	store storage.Store
+	// members wraps what the realtime handler reads memberships from.
+	members func(realtime.MembershipSource) realtime.MembershipSource
 }
 
 func newStack(t *testing.T, sh shared, o options) *stack {
@@ -125,6 +127,10 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	go hub.Run(ctx)
 	go hub.RunEphemeral(ctx)
 	go (&events.Relay{Pool: sh.pool, Log: eventLog, Logger: log, Idle: 100 * time.Millisecond}).Run(ctx)
+	var members realtime.MembershipSource = queries
+	if o.members != nil {
+		members = o.members(queries)
+	}
 	presence := &realtime.Presence{Valkey: sh.valkey, Ephemeral: ephemeral, Workspaces: realtime.WorkspacesOf(store.New(sh.pool)), Log: log,
 		Offline: func(ctx context.Context, user pgtype.UUID) { _ = store.New(sh.pool).SetLastSeen(ctx, user) }}
 
@@ -177,7 +183,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			Presence: presence, LinkPreviews: true, AI: o.ai, Sessions: sessions,
 		},
 		Realtime: &realtime.Handler{
-			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: queries, Presence: presence, Cookies: cookies, PublicURL: public,
+			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: members, Presence: presence, Cookies: cookies, PublicURL: public,
 			Settings: o.settings, Log: log,
 		},
 		Uploads: uploads,

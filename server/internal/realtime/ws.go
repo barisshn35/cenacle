@@ -3,6 +3,7 @@
 package realtime
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	guuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -46,6 +48,10 @@ type Settings struct {
 	QueueSize int
 	// MaxBacklog is the most events sent when resuming; more means resync.
 	MaxBacklog int64
+	// GuestRefresh is how often at most a guest's connection works out again
+	// whom it may see after the members of its channels changed (one second
+	// when zero).
+	GuestRefresh time.Duration
 }
 
 // DefaultSettings are used in production.
@@ -54,6 +60,7 @@ var DefaultSettings = Settings{
 	SessionCheck: time.Minute,
 	QueueSize:    256,
 	MaxBacklog:   500,
+	GuestRefresh: time.Second,
 }
 
 // SessionChecker tells whether a session is still active.
@@ -64,6 +71,7 @@ type SessionChecker interface {
 // MembershipSource lists the channels and workspaces a user belongs to.
 type MembershipSource interface {
 	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]store.ListMemberChannelIDsRow, error)
+	ReplayableMessages(ctx context.Context, ids []pgtype.UUID) ([]pgtype.UUID, error)
 	ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([]store.ListUserWorkspacesRow, error)
 	GetWorkspaceRole(ctx context.Context, arg store.GetWorkspaceRoleParams) (string, error)
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]store.ListWorkspaceMembersRow, error)
@@ -222,6 +230,9 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	start, backlog, resync, err := h.startingPoint(ctx, r.URL.Query().Get("last_event_id"))
+	if err == nil {
+		backlog, err = h.replayable(ctx, backlog)
+	}
 	if err != nil {
 		log.WarnContext(ctx, "websocket start", "error", err)
 		_ = conn.Close(websocket.StatusTryAgainLater, "events unavailable")
@@ -245,6 +256,11 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sent := start
+	// Whom a guest sees follows the members of their channels: changes made
+	// by others are taken in at most once per GuestRefresh, whatever their
+	// number.
+	stale := map[string]bool{} // guest workspaces to work out again
+	var refresh <-chan time.Time
 	sendWire := func(b []byte) error {
 		wctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
@@ -270,20 +286,39 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			return nil // already sent
 		}
 		sent = id
-		if !p.valid || !aud.allowsData(ev.Type, &p.data) {
+		if !p.valid || !aud.allowsData(ev.Type, &p.data) || aud.beforeJoining(ev.Type, &p.data, id.Ms) {
 			return nil
 		}
-		if ev.Type == events.WorkspaceJoined || ev.Type == events.ChannelCreated ||
-			(aud.guest() && (ev.Type == events.ChannelJoined || ev.Type == events.ChannelLeft || ev.Type == events.ChannelMembersChanged)) {
-			// Joining a workspace joins its channels for everyone too, and a new
-			// channel for everyone has every member but guests and bots: take the
-			// memberships from the database rather than guessing them. Whom a
-			// guest sees follows their channels' members.
+		switch ev.Type {
+		case events.WorkspaceJoined, events.ChannelCreated:
+			// Joining a workspace (or a new role there) joins its channels for
+			// everyone too, and a new channel for everyone has every member but
+			// guests and bots: take the memberships from the database rather than
+			// guessing them.
 			fresh, err := h.audience(ctx, t.UserID)
 			if err != nil {
 				return err
 			}
 			aud = fresh
+			clear(stale)
+			if ev.Type == events.ChannelCreated && !aud.inChannel(p.data.Channel.ID) {
+				return nil
+			}
+		case events.ChannelJoined, events.ChannelLeft:
+			// The user's own channels changed.
+			if ws := p.data.Channel.WorkspaceID; aud.guestIn[ws] {
+				if err := h.refreshVisible(ctx, aud, ws); err != nil {
+					return err
+				}
+				delete(stale, ws)
+			}
+		case events.ChannelMembersChanged:
+			if ws := aud.channels[p.data.ChannelID]; aud.guestIn[ws] {
+				if len(stale) == 0 {
+					refresh = time.After(cmp.Or(h.Settings.GuestRefresh, time.Second))
+				}
+				stale[ws] = true
+			}
 		}
 		return sendWire(p.wire)
 	}
@@ -333,6 +368,16 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 			if err := forward(ev); err != nil {
 				return
 			}
+		case <-refresh:
+			refresh = nil
+			for ws := range stale {
+				if aud.guestIn[ws] {
+					if err := h.refreshVisible(ctx, aud, ws); err != nil {
+						return
+					}
+				}
+			}
+			clear(stale)
 		case <-ping.C:
 			pctx, cancel := context.WithTimeout(ctx, h.Settings.Heartbeat)
 			err := conn.Ping(pctx)
@@ -368,13 +413,17 @@ func (h *Handler) audience(ctx context.Context, userID pgtype.UUID) (*audience, 
 	}
 	a := &audience{
 		user:       uuidString(userID),
+		userID:     userID,
 		channels:   make(map[string]string, len(chs)),
+		joined:     make(map[string]uint64, len(chs)),
 		workspaces: make(map[string]bool, len(wss)),
 		guestIn:    map[string]bool{},
-		visible:    map[string]bool{},
+		visible:    map[string]map[string]bool{},
 	}
 	for _, c := range chs {
-		a.channels[uuidString(c.ChannelID)] = uuidString(c.WorkspaceID)
+		id := uuidString(c.ChannelID)
+		a.channels[id] = uuidString(c.WorkspaceID)
+		a.joined[id] = uint64(max(c.JoinedAt.UnixMilli(), 0))
 	}
 	for _, w := range wss {
 		ws := uuidString(w.Workspace.ID)
@@ -383,15 +432,95 @@ func (h *Handler) audience(ctx context.Context, userID pgtype.UUID) (*audience, 
 			continue
 		}
 		a.guestIn[ws] = true
-		people, err := policy.VisiblePeople(ctx, h.Members, w.Workspace.ID, userID, w.Role)
-		if err != nil {
+		if err := h.refreshVisible(ctx, a, ws); err != nil {
 			return nil, err
-		}
-		for id := range people {
-			a.visible[uuidString(id)] = true
 		}
 	}
 	return a, nil
+}
+
+// refreshVisible works out again whom a guest sees in a workspace.
+func (h *Handler) refreshVisible(ctx context.Context, a *audience, ws string) error {
+	id, err := guuid.Parse(ws)
+	if err != nil {
+		return err
+	}
+	people, err := policy.VisiblePeople(ctx, h.Members, pgtype.UUID{Bytes: id, Valid: true}, a.userID, policy.Guest)
+	if err != nil {
+		return err
+	}
+	visible := make(map[string]bool, len(people))
+	for p := range people {
+		visible[uuidString(p)] = true
+	}
+	a.visible[ws] = visible
+	return nil
+}
+
+// replayable prepares a resumed backlog: the stored versions of a message
+// removed since (deleted, spilled, erased, purged) are not sent again, and a
+// message's newest stored version replaces the older ones (an edit, or a
+// forwarded copy emptied by a spillage review, comes after them).
+func (h *Handler) replayable(ctx context.Context, backlog []events.Event) ([]events.Event, error) {
+	var ref struct {
+		ID        string `json:"id"`
+		MessageID string `json:"message_id"`
+	}
+	refs := make([]string, len(backlog))
+	newest := map[string]json.RawMessage{}
+	var ids []pgtype.UUID
+	for i, ev := range backlog {
+		ref.ID, ref.MessageID = "", ""
+		switch ev.Type {
+		case events.MessageCreated, events.MessageUpdated, events.MessagePreview, events.PollUpdated:
+		default:
+			continue
+		}
+		_ = json.Unmarshal(ev.Data, &ref)
+		msg := ref.MessageID
+		if ev.Type == events.MessageCreated || ev.Type == events.MessageUpdated {
+			msg = ref.ID
+		}
+		id, err := guuid.Parse(msg)
+		if err != nil {
+			refs[i] = "-" // not a message: nothing to send
+			continue
+		}
+		refs[i] = id.String()
+		if ev.Type == events.MessageCreated || ev.Type == events.MessageUpdated {
+			if _, ok := newest[refs[i]]; !ok {
+				ids = append(ids, pgtype.UUID{Bytes: id, Valid: true})
+			}
+			newest[refs[i]] = ev.Data
+		} else if _, ok := newest[refs[i]]; !ok {
+			newest[refs[i]] = nil
+			ids = append(ids, pgtype.UUID{Bytes: id, Valid: true})
+		}
+	}
+	if len(ids) == 0 {
+		return backlog, nil
+	}
+	rows, err := h.Members.ReplayableMessages(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	kept := make(map[string]bool, len(rows))
+	for _, id := range rows {
+		kept[uuidString(id)] = true
+	}
+	out := make([]events.Event, 0, len(backlog))
+	for i, ev := range backlog {
+		if refs[i] != "" {
+			if !kept[refs[i]] {
+				continue
+			}
+			if ev.Type == events.MessageCreated || ev.Type == events.MessageUpdated {
+				ev.Data = newest[refs[i]]
+			}
+		}
+		out = append(out, ev)
+	}
+	return out, nil
 }
 
 func uuidString(id pgtype.UUID) string { return openapi_types.UUID(id.Bytes).String() }

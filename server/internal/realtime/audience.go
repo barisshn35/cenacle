@@ -3,6 +3,10 @@
 package realtime
 
 import (
+	"slices"
+
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/barisshn35/cenacle/server/internal/events"
 )
 
@@ -11,18 +15,19 @@ import (
 // workspaces, and changes of the user's memberships, which it tracks as they
 // arrive.
 type audience struct {
-	user string
+	user   string
+	userID pgtype.UUID
 	// channel id -> workspace id
-	channels   map[string]string
+	channels map[string]string
+	// joined: channel id -> when the user joined it (Unix ms; absent when the
+	// join itself came as an event, which orders it).
+	joined     map[string]uint64
 	workspaces map[string]bool
 	// guestIn: workspaces where the user is a guest; there they hear only of
-	// the people in visible (policy.VisiblePeople).
+	// the people in visible[workspace] (policy.VisiblePeople).
 	guestIn map[string]bool
-	visible map[string]bool
+	visible map[string]map[string]bool
 }
-
-// guest reports whether the user is a guest in some workspace.
-func (a *audience) guest() bool { return len(a.guestIn) > 0 }
 
 type eventData struct {
 	Channel struct {
@@ -33,6 +38,8 @@ type eventData struct {
 	ChannelID    string   `json:"channel_id"`
 	WorkspaceID  string   `json:"workspace_id"`
 	WorkspaceIDs []string `json:"workspace_ids"`
+	// To: the only members an event of a channel is for (conversation.read).
+	To []string `json:"to"`
 }
 
 func (a *audience) inChannel(id string) bool {
@@ -40,32 +47,56 @@ func (a *audience) inChannel(id string) bool {
 	return ok
 }
 
+// channelEvents go to the members of the channel named by channel_id.
+var channelEvents = map[string]bool{
+	events.MessageCreated: true, events.MessageUpdated: true, events.MessageDeleted: true,
+	events.ReactionAdded: true, events.ReactionRemoved: true,
+	events.ChannelUpdated: true, events.ChannelMembersChanged: true, events.ThreadUpdated: true,
+	events.PollUpdated: true, events.RunUpdated: true, events.MessagePreview: true,
+	events.TabsChanged: true, events.CanvasUpdated: true, events.ListChanged: true, events.MessageAck: true,
+	events.ConversationRead: true, events.E2EChanged: true,
+}
+
+// beforeJoining reports whether an event of a channel the user is in happened
+// (at Unix ms) before they joined it: a resumed connection gets only what it
+// would have got live, whatever position it resumes from.
+func (a *audience) beforeJoining(typ string, d *eventData, ms uint64) bool {
+	if !channelEvents[typ] {
+		return false
+	}
+	joined, ok := a.joined[d.ChannelID]
+	return ok && ms < joined
+}
+
 // allowsData decides on an event whose data the caller parsed already
 // (once for all connections).
 func (a *audience) allowsData(typ string, d *eventData) bool {
-	switch typ {
-	case events.MessageCreated, events.MessageUpdated, events.MessageDeleted,
-		events.ReactionAdded, events.ReactionRemoved,
-		events.ChannelUpdated, events.ChannelMembersChanged, events.ThreadUpdated,
-		events.PollUpdated, events.RunUpdated, events.MessagePreview,
-		events.TabsChanged, events.CanvasUpdated, events.ListChanged, events.MessageAck, events.ConversationRead,
-		events.E2EChanged:
+	if typ == events.ConversationRead {
+		// Read receipts go both ways: only to the members who share theirs.
+		return a.inChannel(d.ChannelID) && slices.Contains(d.To, a.user)
+	}
+	if channelEvents[typ] {
 		return a.inChannel(d.ChannelID)
+	}
+	switch typ {
 	case events.ChannelCreated:
 		// A channel for everyone in its workspace, but not every member is in it
-		// (guests and bots are not): the caller reloads the memberships.
+		// (guests and bots are not): the caller reloads the memberships and
+		// sends it only to those in it.
 		return a.workspaces[d.Channel.WorkspaceID]
 	case events.ChannelJoined:
 		if d.UserID != a.user {
 			return false
 		}
 		a.channels[d.Channel.ID] = d.Channel.WorkspaceID
+		delete(a.joined, d.Channel.ID)
 		return true
 	case events.ChannelLeft:
 		if d.UserID != a.user {
 			return false
 		}
 		delete(a.channels, d.Channel.ID)
+		delete(a.joined, d.Channel.ID)
 		return true
 	case events.Typing: // others typing in the user's channels
 		return d.UserID != a.user && a.inChannel(d.ChannelID)
@@ -77,7 +108,7 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 			return true
 		}
 		for _, ws := range d.WorkspaceIDs {
-			if a.workspaces[ws] && (!a.guestIn[ws] || a.visible[d.UserID]) {
+			if a.workspaces[ws] && (!a.guestIn[ws] || a.visible[ws][d.UserID]) {
 				return true
 			}
 		}
@@ -101,6 +132,7 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 		for id, ws := range a.channels {
 			if ws == d.WorkspaceID {
 				delete(a.channels, id)
+				delete(a.joined, id)
 			}
 		}
 		return true

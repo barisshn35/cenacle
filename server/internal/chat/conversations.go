@@ -200,12 +200,21 @@ func (h *Handlers) MarkRead(w http.ResponseWriter, r *http.Request, channelID op
 		h.unavailable(w, r, "mark read", err)
 		return
 	}
-	// With read receipts, the others in the conversation see it too.
+	// With read receipts, the others in the conversation who share theirs see
+	// it too (receipts go both ways, as in ListConversationReads).
 	if c.Kind == KindDirect || c.Kind == KindGroup {
 		allowed, err := h.Queries.ReceiptsAllowed(r.Context(), store.ReceiptsAllowedParams{ChannelID: c.ID, UserID: p.User.ID})
+		var sharing []store.ConversationReadsRow
 		if err == nil && allowed {
+			sharing, err = h.Queries.ConversationReads(r.Context(), store.ConversationReadsParams{ChannelID: c.ID, UserID: p.User.ID})
+		}
+		if err == nil && len(sharing) > 0 {
+			to := make([]string, 0, len(sharing))
+			for _, m := range sharing {
+				to = append(to, uuid(m.UserID).String())
+			}
 			h.publish(r.Context(), events.ConversationRead, ConversationReadEvent{
-				ChannelID: uuid(c.ID).String(), UserID: uuid(p.User.ID).String(), MessageID: uuid(message).String(),
+				ChannelID: uuid(c.ID).String(), UserID: uuid(p.User.ID).String(), MessageID: uuid(message).String(), To: to,
 			})
 		}
 	}
@@ -218,6 +227,8 @@ type ConversationReadEvent struct {
 	ChannelID string `json:"channel_id"`
 	UserID    string `json:"user_id"`
 	MessageID string `json:"message_id"`
+	// To: the members who see it (those who share their read receipts).
+	To []string `json:"to"`
 }
 
 // ListConversationReads implements api.ServerInterface.

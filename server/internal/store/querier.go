@@ -793,6 +793,11 @@ type Querier interface {
 	ReplaceClassification(ctx context.Context, arg ReplaceClassificationParams) (Classification, error)
 	// ReplaceUserGroups sets the directory groups of a person.
 	ReplaceUserGroups(ctx context.Context, arg ReplaceUserGroupsParams) error
+	// ReplayableMessages keeps the messages whose stored events a resuming
+	// connection may still be sent: not deleted (by their author, a moderator, a
+	// spillage reviewer, an erasure or a burn) and not by a person who was erased.
+	// Purged messages are gone, so they are not returned either.
+	ReplayableMessages(ctx context.Context, ids []pgtype.UUID) ([]pgtype.UUID, error)
 	// RequireFederationV2 records that the connection's server signs with v2, so
 	// requests without it are refused from now on (and that it no longer looks
 	// moved back).
