@@ -42,6 +42,8 @@ previous release keeps working against the new schema while instances are replac
 | Logs    | JSON on stdout with `request_id` and, when tracing, `trace_id`                                                                        |
 
 Nothing is sent anywhere unless you configure it; there is no telemetry to the project.
+Traces and the access log record request paths with the tokens of webhook, workflow-hook,
+invite and guest-link addresses replaced by `[redacted]`.
 
 The optional observability stack runs Prometheus, Tempo, Loki (with Alloy collecting the
 containers' logs) and Grafana with a Cenacle dashboard, on an internal network:
