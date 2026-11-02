@@ -78,7 +78,7 @@ WHERE user_id = @user_id AND message_id = ANY(@message_ids::uuid[]);
 -- whose time is up, and any older than a week. Messages a legal hold keeps are
 -- deleted for people instead (and stay for eDiscovery).
 WITH due AS (
-    SELECT m.id, message_held(m.channel_id, m.author_id, m.created_at) AS held
+    SELECT m.id, message_held(m.channel_id, m.author_id, m.created_at) OR thread_held(m.id) AS held
     FROM messages m
     WHERE m.burn_seconds IS NOT NULL AND m.deleted_at IS NULL
       AND (m.created_at < now() - interval '7 days'

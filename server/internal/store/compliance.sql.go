@@ -512,12 +512,13 @@ DELETE FROM messages WHERE id = ANY (ARRAY(
         SELECT id, author_id, created_at FROM messages
         WHERE channel_id = due.channel_id AND id < due.before_id AND created_at < due.before
     ) m
-    WHERE NOT message_held(due.channel_id, m.author_id, m.created_at)
+    WHERE NOT message_held(due.channel_id, m.author_id, m.created_at) AND NOT thread_held(m.id)
     LIMIT $1))
 `
 
 // PurgeExpiredMessages deletes up to row_limit messages older than their
-// channel's (or workspace's) retention, except those a legal hold keeps.
+// channel's (or workspace's) retention, except those a legal hold keeps
+// (thread roots too while it keeps one of their replies).
 // Only channels with a retention are read, each through its (channel_id, id)
 // index: message ids are UUIDv7 made from the message's time (imported ones
 // too), so the oldest id of the cut-off's millisecond bounds the range. The

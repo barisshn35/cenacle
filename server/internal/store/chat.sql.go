@@ -1292,11 +1292,12 @@ func (q *Queries) NewestTimelineMessage(ctx context.Context, channelID pgtype.UU
 
 const purgeDeletedMessages = `-- name: PurgeDeletedMessages :execrows
 DELETE FROM messages WHERE deleted_at <= now() - $1::interval
-    AND NOT message_held(channel_id, author_id, created_at)
+    AND NOT message_held(channel_id, author_id, created_at) AND NOT thread_held(id)
 `
 
 // PurgeDeletedMessages removes messages that can no longer be restored.
-// Messages a legal hold keeps stay (for eDiscovery).
+// Messages a legal hold keeps stay (for eDiscovery), and so do thread roots
+// with a reply it keeps (deleting a root deletes its replies).
 func (q *Queries) PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error) {
 	result, err := q.db.Exec(ctx, purgeDeletedMessages, restoreWindow)
 	if err != nil {

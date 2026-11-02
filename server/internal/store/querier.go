@@ -753,11 +753,13 @@ type Querier interface {
 	// deleted for people instead (and stay for eDiscovery).
 	PurgeBurned(ctx context.Context) (int64, error)
 	// PurgeDeletedMessages removes messages that can no longer be restored.
-	// Messages a legal hold keeps stay (for eDiscovery).
+	// Messages a legal hold keeps stay (for eDiscovery), and so do thread roots
+	// with a reply it keeps (deleting a root deletes its replies).
 	PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error)
 	PurgeDialogs(ctx context.Context) (int64, error)
 	// PurgeExpiredMessages deletes up to row_limit messages older than their
-	// channel's (or workspace's) retention, except those a legal hold keeps.
+	// channel's (or workspace's) retention, except those a legal hold keeps
+	// (thread roots too while it keeps one of their replies).
 	// Only channels with a retention are read, each through its (channel_id, id)
 	// index: message ids are UUIDv7 made from the message's time (imported ones
 	// too), so the oldest id of the cut-off's millisecond bounds the range. The
