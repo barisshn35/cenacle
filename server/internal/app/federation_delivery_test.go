@@ -370,3 +370,52 @@ func TestFederationMovedBack(t *testing.T) {
 		t.Fatalf("v1 after v2 again = %d", status)
 	}
 }
+
+// Pausing a connection holds its events until it resumes: a deletion or edit
+// made meanwhile still reaches the other server, and a message deleted while
+// its creation waited never shows there.
+func TestFederationPausedConnectionKeepsChanges(t *testing.T) {
+	p := newFedPair(t)
+	pauseOnA := func(paused bool) {
+		if res := p.a.call(http.MethodPatch, "/api/federation/connections/"+p.aConn, p.admin, map[string]any{"enabled": !paused}, nil); res.StatusCode != http.StatusOK {
+			t.Fatalf("pause = %d", res.StatusCode)
+		}
+	}
+	delivered, _ := p.a.send(p.author, p.general, "PAUSE-DELIVERED", "fed-pause-1")
+	edited, _ := p.a.send(p.author, p.general, "PAUSE-BEFORE-EDIT", "fed-pause-2")
+	federate(t, p.a, p.b)
+
+	pauseOnA(true)
+	p.a.call(http.MethodDelete, "/api/channels/"+p.general+"/messages/"+delivered.ID, p.author, nil, nil)
+	p.a.call(http.MethodPatch, "/api/channels/"+p.general+"/messages/"+edited.ID, p.author, map[string]string{"body": "PAUSE-AFTER-EDIT"}, nil)
+	federate(t, p.a, p.b) // nothing goes while paused
+	if q := p.queued(""); q != 2 {
+		t.Fatalf("queued while paused = %d", q)
+	}
+	pauseOnA(false)
+	federate(t, p.a, p.b)
+
+	// The creation waits for its retry when the pause starts.
+	p.pauseOnB(true)
+	waiting, _ := p.a.send(p.author, p.general, "PAUSE-WAITING", "fed-pause-3")
+	federate(t, p.a, p.b)
+	pauseOnA(true)
+	p.a.call(http.MethodDelete, "/api/channels/"+p.general+"/messages/"+waiting.ID, p.author, nil, nil)
+	pauseOnA(false)
+	p.pauseOnB(false)
+	p.retryNow(t)
+	federate(t, p.a, p.b)
+
+	if q := p.queued(""); q != 0 {
+		t.Fatalf("deliveries left = %d", q)
+	}
+	var bodies []string
+	for _, x := range p.b.timeline(p.admin, p.mirror) {
+		bodies = append(bodies, x.Body)
+	}
+	all := strings.Join(bodies, "|")
+	if strings.Contains(all, "PAUSE-DELIVERED") || strings.Contains(all, "PAUSE-WAITING") || strings.Contains(all, "PAUSE-BEFORE-EDIT") ||
+		!strings.Contains(all, "PAUSE-AFTER-EDIT") {
+		t.Errorf("the other server shows %q", bodies)
+	}
+}

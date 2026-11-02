@@ -150,9 +150,10 @@ WHERE id = ANY (@ids::uuid[]);
 
 -- name: ActiveSharesOfChannel :many
 -- ActiveSharesOfChannel returns where a channel's events go: active shares of
--- active connections.
+-- connections that are active or paused (a paused connection's events wait, in
+-- order, until it resumes, so an edit or deletion made meanwhile is not lost).
 SELECT s.connection_id, s.remote_channel_id FROM shared_channels s
-JOIN federation_connections f ON f.id = s.connection_id AND f.status = 'active'
+JOIN federation_connections f ON f.id = s.connection_id AND f.status IN ('active', 'disabled')
 WHERE s.channel_id = @channel_id AND s.status = 'active';
 
 -- name: GetRemoteAuthor :one

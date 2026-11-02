@@ -22,7 +22,8 @@ type Querier interface {
 	AckMessage(ctx context.Context, arg AckMessageParams) (int64, error)
 	ActivateFederationConnection(ctx context.Context, arg ActivateFederationConnectionParams) (FederationConnection, error)
 	// ActiveSharesOfChannel returns where a channel's events go: active shares of
-	// active connections.
+	// connections that are active or paused (a paused connection's events wait, in
+	// order, until it resumes, so an edit or deletion made meanwhile is not lost).
 	ActiveSharesOfChannel(ctx context.Context, channelID pgtype.UUID) ([]ActiveSharesOfChannelRow, error)
 	// ActiveUserCount counts the people seen in the last 30 days.
 	ActiveUserCount(ctx context.Context) (int64, error)
