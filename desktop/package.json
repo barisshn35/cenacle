@@ -1,6 +1,6 @@
 {
   "name": "@cenacle/desktop",
-  "version": "0.99.2",
+  "version": "0.99.3",
   "private": true,
   "description": "Cenacle desktop app (Electron) for Windows and Linux.",
   "license": "AGPL-3.0-only",

@@ -1,6 +1,6 @@
 {
   "name": "@cenacle/idp",
-  "version": "0.99.2",
+  "version": "0.99.3",
   "private": true,
   "description": "Cenacle ID: the identity server (OpenID Provider) of Cenacle.",
   "license": "AGPL-3.0-only",

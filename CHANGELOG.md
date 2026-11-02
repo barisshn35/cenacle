@@ -8,6 +8,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.99.3] - 2026-11-02
+
 Fixes from a second source-level security audit, of 0.99.2 (every finding reproduced
 locally and checked by an independent reviewer): rules applied once for every way a message
 is posted, removals that reach every copy of a message, live connections that follow role
@@ -1487,7 +1489,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.2...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.3...HEAD
+[0.99.3]: https://github.com/barisshn35/cenacle/compare/v0.99.2...v0.99.3
 [0.99.2]: https://github.com/barisshn35/cenacle/compare/v0.99.1...v0.99.2
 [0.99.1]: https://github.com/barisshn35/cenacle/compare/v0.99.0...v0.99.1
 [0.99.0]: https://github.com/barisshn35/cenacle/compare/v0.43.0...v0.99.0
