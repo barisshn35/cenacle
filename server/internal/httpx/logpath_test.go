@@ -5,7 +5,7 @@ package httpx
 import "testing"
 
 func TestLoggedPathHidesWebhookSecrets(t *testing.T) {
-	if got := loggedPath("/api/hooks/cnh_secret"); got != "/api/hooks/[redacted]" {
+	if got := RedactPath("/api/hooks/cnh_secret"); got != "/api/hooks/[redacted]" {
 		t.Errorf("hook path logged as %q", got)
 	}
 	for path, want := range map[string]string{
@@ -18,11 +18,11 @@ func TestLoggedPathHidesWebhookSecrets(t *testing.T) {
 		"/api/workspaces/ws1/invites/inv_id":   "/api/workspaces/ws1/invites/inv_id",
 		"/api/channels/c1/guest-links/link_id": "/api/channels/c1/guest-links/link_id",
 	} {
-		if got := loggedPath(path); got != want {
+		if got := RedactPath(path); got != want {
 			t.Errorf("%s logged as %q, want %q", path, got, want)
 		}
 	}
-	if got := loggedPath("/api/channels"); got != "/api/channels" {
+	if got := RedactPath("/api/channels"); got != "/api/channels" {
 		t.Errorf("path logged as %q", got)
 	}
 }

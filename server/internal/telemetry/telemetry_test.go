@@ -10,6 +10,9 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 func TestMiddlewareRecordsRoutes(t *testing.T) {
@@ -42,5 +45,48 @@ func TestMiddlewareRecordsRoutes(t *testing.T) {
 	}
 	if strings.Contains(out, "secret-id") {
 		t.Error("metrics carry a raw path")
+	}
+}
+
+// Traced requests record the path as the access log does: tokens in paths
+// never reach a span.
+func TestTraceHandlerRedactsPathTokens(t *testing.T) {
+	spans := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spans))
+	r := chi.NewRouter()
+	r.Use(Middleware)
+	r.Post("/api/hooks/{token}", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	r.Post("/api/invites/{token}/accept", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	r.Get("/api/channels", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	srv := httptest.NewServer(TraceHandler(r, otelhttp.WithTracerProvider(tp)))
+	defer srv.Close()
+	for _, p := range []string{"/api/hooks/cnh_secret-hook", "/api/invites/secret-invite/accept"} {
+		res, err := http.Post(srv.URL+p, "application/json", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+	}
+	res, err := http.Get(srv.URL + "/api/channels")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = res.Body.Close()
+
+	paths := map[string]bool{}
+	for _, s := range spans.Ended() {
+		for _, a := range s.Attributes() {
+			if strings.Contains(a.Value.String(), "secret") {
+				t.Errorf("span %q records %s=%s", s.Name(), a.Key, a.Value.String())
+			}
+			if a.Key == "url.path" {
+				paths[a.Value.AsString()] = true
+			}
+		}
+	}
+	for _, want := range []string{"/api/hooks/[redacted]", "/api/invites/[redacted]/accept", "/api/channels"} {
+		if !paths[want] {
+			t.Errorf("url.path %q not recorded (got %v)", want, paths)
+		}
 	}
 }

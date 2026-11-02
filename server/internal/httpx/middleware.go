@@ -47,7 +47,7 @@ func AccessLog(log *slog.Logger) func(http.Handler) http.Handler {
 			log.LogAttrs(r.Context(), slog.LevelInfo, "http request",
 				slog.String("request_id", RequestIDFrom(r.Context())),
 				slog.String("method", r.Method),
-				slog.String("path", loggedPath(r.URL.Path)),
+				slog.String("path", RedactPath(r.URL.Path)),
 				slog.Int("status", ww.Status()),
 				slog.Int("bytes", ww.BytesWritten()),
 				slog.Duration("duration", time.Since(start)),
@@ -65,9 +65,10 @@ var secretPathPrefixes = []string{
 	"/api/guest-links/",
 }
 
-// loggedPath hides secrets carried in paths: the token segment is replaced,
-// the rest of the path (e.g. /accept, /join) is kept.
-func loggedPath(path string) string {
+// RedactPath hides secrets carried in paths: the token segment is replaced,
+// the rest of the path (e.g. /accept, /join) is kept. The access log and the
+// traces record paths through it.
+func RedactPath(path string) string {
 	for _, prefix := range secretPathPrefixes {
 		rest, ok := strings.CutPrefix(path, prefix)
 		if !ok {

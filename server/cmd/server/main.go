@@ -39,7 +39,6 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/lock"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/barisshn35/cenacle/server/internal/admin"
 	"github.com/barisshn35/cenacle/server/internal/ai"
@@ -390,7 +389,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 		Uploads: uploads,
 	})
 	if telemetry.TracingEnabled() {
-		handler = otelhttp.NewHandler(handler, "http")
+		handler = telemetry.TraceHandler(handler)
 	}
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

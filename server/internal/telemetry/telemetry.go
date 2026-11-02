@@ -22,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -29,6 +30,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/barisshn35/cenacle/server/internal/httpx"
 )
 
 // Registry holds Cenacle's metrics (and Go runtime and process metrics).
@@ -123,6 +126,17 @@ func Middleware(next http.Handler) http.Handler {
 		trace.SpanFromContext(r.Context()).SetName(r.Method + " " + route)
 		httpDuration.WithLabelValues(r.Method, route, strconv.Itoa(cmp.Or(ww.Status(), http.StatusOK))).Observe(time.Since(start).Seconds())
 	})
+}
+
+// TraceHandler traces every request handled by next. The span's url.path is
+// the path as the access log records it: tokens carried in paths (webhook,
+// invite and guest-link addresses) never leave the process.
+func TraceHandler(next http.Handler, opts ...otelhttp.Option) http.Handler {
+	redacted := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		trace.SpanFromContext(r.Context()).SetAttributes(semconv.URLPath(httpx.RedactPath(r.URL.Path)))
+		next.ServeHTTP(w, r)
+	})
+	return otelhttp.NewHandler(redacted, "http", opts...)
 }
 
 // TracingEnabled says whether an OTLP endpoint is configured.
