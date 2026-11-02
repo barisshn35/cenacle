@@ -179,3 +179,25 @@ and commit the `deploy/cosign.pub` it writes. Signing uses no transparency log
 (`ci/signing-config.json` names no services), so verification works offline with the
 public key alone (`docs/security/README.md`). Without the variables, releases are
 published unsigned.
+
+### Desktop update key
+
+The desktop app installs an update only when its update file (`latest.yml`,
+`latest-linux.yml`, `latest-linux-arm64.yml`) is signed with a release key built into the
+app (`desktop/src/update-keys.ts`, Ed25519): the server the app is paired with only hosts
+the files. The `desktop` job signs them with `desktop/scripts/sign-updates.mjs`, which
+writes `<file>.sig` next to each and refuses a key that is not built into the app. It needs
+the protected CI/CD variable `DESKTOP_UPDATE_KEY` (type **file**: the PEM private key).
+Without it the release has no `.sig` files, and installed apps do not take it as an update.
+
+To make a new key (for example when an organization builds the app itself):
+
+```sh
+openssl genpkey -algorithm ed25519 -out desktop-update-key.pem
+openssl pkey -in desktop-update-key.pem -pubout
+```
+
+Put the public key in `desktop/src/update-keys.ts` and the private key in
+`DESKTOP_UPDATE_KEY`, and keep it nowhere else. To replace a key, ship a release that has
+both the old and the new public key, sign the next ones with the new key, and drop the old
+key a release later. Losing the key means installed apps have to be updated by hand once.

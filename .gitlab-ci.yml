@@ -397,6 +397,9 @@ desktop:
     - pnpm --filter @cenacle/desktop build
     - cd desktop
     - ./node_modules/.bin/electron-builder --config electron-builder.yml --linux --win --publish never
+    # The update files, signed with the release key the app has built in
+    # (DESKTOP_UPDATE_KEY, a protected file variable; docs/operations/ci.md).
+    - node scripts/sign-updates.mjs
     - apt-get update -qq && apt-get install -y -qq --no-install-recommends wixl >/dev/null
     - node scripts/msi.mjs
     - MAKEMSIX="$(sh scripts/makemsix.sh)" node scripts/msix.mjs
@@ -412,7 +415,7 @@ desktop:
     # never by name from the package registry, which others with write access could replace.
     - echo "DESKTOP_SUMS_SHA256=$(sha256sum release/SHA256SUMS | cut -d' ' -f1)" > "$CI_PROJECT_DIR/desktop-sums.env"
     - |
-      for file in release/*.exe release/*.msi release/*.msix release/*.zip release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.blockmap release/index.json release/SHA256SUMS release/*.asc; do
+      for file in release/*.exe release/*.msi release/*.msix release/*.zip release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.yml.sig release/*.blockmap release/index.json release/SHA256SUMS release/*.asc; do
         [ -f "$file" ] || continue
         [ "$(basename "$file")" = builder-debug.yml ] && continue
         curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \

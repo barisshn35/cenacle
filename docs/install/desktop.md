@@ -19,6 +19,7 @@ registry as `cenacle-desktop/<version>/`:
 | `Cenacle-<version>-amd64.deb`, `-arm64.deb`     | Debian, Ubuntu                                                                |
 | `Cenacle-<version>-x86_64.rpm`, `-aarch64.rpm`  | Fedora, RHEL, SUSE                                                            |
 | `latest.yml`, `latest-linux*.yml`, `*.blockmap` | the app's updates (checksums, sizes)                                          |
+| `latest.yml.sig`, `latest-linux*.yml.sig`       | the update files' signatures: the app installs no update without them         |
 | `SHA256SUMS`, `SHA256SUMS.sigstore.json`        | checksums of the files above, and their signature                             |
 | `SHA256SUMS.asc`, `cenacle-linux.asc`           | the checksums signed with GPG, and the key (also of the rpms)                 |
 | `index.json`                                    | the list the web app shows on its "Use the Cenacle app" page                  |
@@ -33,8 +34,11 @@ Copy all files of a release into `deploy/compose/downloads/desktop/` (or the fol
 are then served at `https://<chat-domain>/downloads/desktop/`:
 
 - the app checks there for updates (a minute after start, then every six hours) and asks
-  people before downloading and before restarting; nothing else is contacted. Apps from the
-  Microsoft Store and from the MSI do not: the Store or the organization updates them;
+  people before downloading and before restarting; nothing else is contacted. It takes an
+  update only when the update file is signed with the release key built into the app (the
+  `.sig` files), so a server can offer the project's releases but not installers of its
+  own. Apps from the Microsoft Store and from the MSI do not look: the Store or the
+  organization updates them;
 - the web app's "Use the Cenacle app" page (shown when the web app is turned off) lists the
   installers.
 

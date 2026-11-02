@@ -2,6 +2,7 @@
 import { dialog, type BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { fill, t } from './i18n.js';
+import { SignedProvider } from './update-provider.js';
 
 let serverOf: () => string | null = () => null;
 let windowOf: () => BrowserWindow | null = () => null;
@@ -11,7 +12,9 @@ let enabled = false;
 /**
  * Updates come from the paired server only: its administrators put the
  * installers and the update files (latest.yml, latest-linux.yml) under
- * /downloads/desktop/. Nothing else is asked, and nothing is sent.
+ * /downloads/desktop/. Nothing else is asked, and nothing is sent. An update
+ * is taken only when the release key built into the app signed its update
+ * file (SignedProvider): the server hosts updates, it cannot make them.
  */
 export function setupUpdates(
   server: () => string | null,
@@ -26,6 +29,9 @@ export function setupUpdates(
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowPrerelease = false;
   autoUpdater.logger = null;
+  // Whole installers only: the signed update file names their sha512, the
+  // pieces of a differential download (blockmaps) are not signed.
+  autoUpdater.disableDifferentialDownload = true;
   autoUpdater.on('update-available', (info) => void offer(info.version));
   autoUpdater.on('update-downloaded', (info) => void ready(info.version));
   // Once a while after the start, then every six hours.
@@ -36,7 +42,11 @@ export function setupUpdates(
 export async function checkForUpdates(manual: boolean): Promise<void> {
   const server = serverOf();
   if (!server || !enabled) return;
-  autoUpdater.setFeedURL({ provider: 'generic', url: `${server}/downloads/desktop` });
+  autoUpdater.setFeedURL({
+    provider: 'custom',
+    updateProvider: SignedProvider,
+    url: `${server}/downloads/desktop`,
+  });
   asked = manual;
   try {
     const result = await autoUpdater.checkForUpdates();
