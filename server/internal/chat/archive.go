@@ -33,6 +33,9 @@ import (
 
 const archivePage = 500
 
+// CodeArchiveRewriting: a daily export is being written again after a removal.
+const CodeArchiveRewriting = "archive_rewriting"
+
 var archiveTypes = map[string]struct{ contentType, ext string }{
 	"csv":      {"text/csv; charset=utf-8", "csv"},
 	"actiance": {"application/xml", "xml"},
@@ -392,6 +395,12 @@ func (h *Handlers) DownloadArchiveExport(w http.ResponseWriter, r *http.Request,
 	if !h.requireWorkspaceOwner(w, r, uuid(e.WorkspaceID), p.User, "Only the workspace's owners download its archive exports.") {
 		return
 	}
+	// Messages of the day were removed since: not served until written again.
+	if e.StaleAt.Valid {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeArchiveRewriting,
+			Detail: "This day's export is being written again after a removal; try again in a few minutes."})
+		return
+	}
 	obj, err := h.Files.Store.Open(r.Context(), e.ObjectKey)
 	if err != nil {
 		h.unavailable(w, r, "open archive export", err)
@@ -438,7 +447,60 @@ func (a *ArchiveExporter) Run(ctx context.Context) (int, error) {
 			day = day.Add(24 * time.Hour)
 		}
 	}
+	n, err := a.rewriteStale(ctx)
+	return done + n, err
+}
+
+// rewriteStale writes again the days whose messages were removed (spillage,
+// erasure, retention, burn-on-read) since they were exported, so no copy
+// outlives the removal; a day with nothing left loses its export.
+func (a *ArchiveExporter) rewriteStale(ctx context.Context) (int, error) {
+	stale, err := a.Queries.ListStaleArchiveExports(ctx, 20)
+	if err != nil {
+		return 0, err
+	}
+	done := 0
+	for _, e := range stale {
+		if err := a.rewrite(ctx, e); err != nil {
+			a.Log.WarnContext(ctx, "archive rewrite", "export", uuid(e.ID).String(), "error", err)
+			continue
+		}
+		done++
+	}
 	return done, nil
+}
+
+func (a *ArchiveExporter) rewrite(ctx context.Context, e store.ArchiveExport) error {
+	tmp, err := os.CreateTemp("", "cenacle-archive-*")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tmp.Close(); _ = os.Remove(tmp.Name()) }()
+	day := e.Day.Time.UTC()
+	n, err := writeArchive(ctx, a.Queries, tmp, e.Format, e.WorkspaceID, day, day.Add(24*time.Hour), a.Host)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		if _, err := a.Queries.DeleteStaleArchiveExport(ctx, store.DeleteStaleArchiveExportParams{ID: e.ID, StaleAt: e.StaleAt}); err != nil {
+			return err
+		}
+		return a.Files.Store.Remove(ctx, e.ObjectKey)
+	}
+	size, err := tmp.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return err
+	}
+	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	if err := a.Files.Store.Put(ctx, e.ObjectKey, tmp, size, archiveTypes[e.Format].contentType); err != nil {
+		return err
+	}
+	_, err = a.Queries.RewroteArchiveExport(ctx, store.RewroteArchiveExportParams{
+		ID: e.ID, StaleAt: e.StaleAt, Size: size, Messages: int32(n), //nolint:gosec // a day's messages
+	})
+	return err
 }
 
 func (a *ArchiveExporter) exportDay(ctx context.Context, ws pgtype.UUID, format string, day time.Time) error {

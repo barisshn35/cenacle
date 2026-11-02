@@ -42,3 +42,30 @@ LIMIT 20;
 
 -- name: SetArchiveLastDay :exec
 UPDATE workspaces SET archive_last_day = @day WHERE id = @id;
+
+-- name: MarkArchiveStale :execrows
+-- MarkArchiveStale marks the daily export holding a message to be written again.
+UPDATE archive_exports e SET stale_at = now()
+FROM messages m JOIN channels c ON c.id = m.channel_id
+WHERE m.id = @message_id AND e.workspace_id = c.workspace_id AND e.day = (m.created_at AT TIME ZONE 'UTC')::date;
+
+-- name: MarkArchiveStaleForAuthor :exec
+-- MarkArchiveStaleForAuthor marks the daily exports holding a person's
+-- messages (their name and address) to be written again.
+UPDATE archive_exports e SET stale_at = now()
+FROM (SELECT DISTINCT c.workspace_id, (m.created_at AT TIME ZONE 'UTC')::date AS day
+      FROM messages m JOIN channels c ON c.id = m.channel_id
+      WHERE m.author_id = @author_id) d
+WHERE e.workspace_id = d.workspace_id AND e.day = d.day;
+
+-- name: ListStaleArchiveExports :many
+SELECT * FROM archive_exports WHERE stale_at IS NOT NULL ORDER BY stale_at LIMIT @row_limit;
+
+-- name: RewroteArchiveExport :execrows
+-- RewroteArchiveExport records a stale export written again, unless it was
+-- marked again meanwhile.
+UPDATE archive_exports SET size = @size, messages = @messages, stale_at = NULL, created_at = now()
+WHERE id = @id AND stale_at = @stale_at;
+
+-- name: DeleteStaleArchiveExport :execrows
+DELETE FROM archive_exports WHERE id = @id AND stale_at = @stale_at;

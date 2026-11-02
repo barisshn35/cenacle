@@ -254,6 +254,7 @@ type Querier interface {
 	// DeleteSessionsBySubject ends every session of an identity (logout without sid).
 	DeleteSessionsBySubject(ctx context.Context, arg DeleteSessionsBySubjectParams) ([]pgtype.UUID, error)
 	DeleteSlashCommand(ctx context.Context, arg DeleteSlashCommandParams) (int64, error)
+	DeleteStaleArchiveExport(ctx context.Context, arg DeleteStaleArchiveExportParams) (int64, error)
 	DeleteSticker(ctx context.Context, id pgtype.UUID) error
 	DeleteSubscription(ctx context.Context, arg DeleteSubscriptionParams) (int64, error)
 	DeleteUITexts(ctx context.Context, locale string) error
@@ -646,6 +647,7 @@ type Querier interface {
 	// ListSharedChannels returns the channels shared over a connection, with their names.
 	ListSharedChannels(ctx context.Context, connectionID pgtype.UUID) ([]ListSharedChannelsRow, error)
 	ListSpillageReports(ctx context.Context, arg ListSpillageReportsParams) ([]ListSpillageReportsRow, error)
+	ListStaleArchiveExports(ctx context.Context, rowLimit int32) ([]ArchiveExport, error)
 	// ListStaleFiles finds files to remove: uploads never sent with a message
 	// within a day, and files whose message was purged.
 	ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, error)
@@ -697,6 +699,11 @@ type Querier interface {
 	// LockGroupRenameCursor reads the last group rename applied and holds it until
 	// the transaction ends (a sign-in and the feed may follow renames at once).
 	LockGroupRenameCursor(ctx context.Context) (int64, error)
+	// MarkArchiveStale marks the daily export holding a message to be written again.
+	MarkArchiveStale(ctx context.Context, messageID pgtype.UUID) (int64, error)
+	// MarkArchiveStaleForAuthor marks the daily exports holding a person's
+	// messages (their name and address) to be written again.
+	MarkArchiveStaleForAuthor(ctx context.Context, authorID pgtype.UUID) error
 	// MarkChannelImported records that an import created the channel.
 	MarkChannelImported(ctx context.Context, channelID pgtype.UUID) error
 	// MarkChannelReadForAll makes the history of an imported channel read.
@@ -870,6 +877,9 @@ type Querier interface {
 	RevokeEmailAdminsExcept(ctx context.Context, id pgtype.UUID) error
 	RevokeGuestLink(ctx context.Context, arg RevokeGuestLinkParams) (int64, error)
 	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
+	// RewroteArchiveExport records a stale export written again, unless it was
+	// marked again meanwhile.
+	RewroteArchiveExport(ctx context.Context, arg RewroteArchiveExportParams) (int64, error)
 	// SaveCanvas writes a new body over the version it was edited from, and ends
 	// the writer's turn; no row means the canvas changed in between.
 	SaveCanvas(ctx context.Context, arg SaveCanvasParams) (pgtype.UUID, error)

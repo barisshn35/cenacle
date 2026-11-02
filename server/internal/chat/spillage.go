@@ -328,10 +328,15 @@ func (h *Handlers) DecideSpillage(w http.ResponseWriter, r *http.Request, report
 			if err != nil {
 				return err
 			}
+			// Daily archive objects holding it are written again.
+			archives, err := q.MarkArchiveStale(r.Context(), msg.ID)
+			if err != nil {
+				return err
+			}
 			incident["removed"] = map[string]any{"edits": counts.Edits, "reactions": counts.Reactions, "mentions": counts.Mentions,
 				"saved": counts.Saved, "reminders": counts.Reminders, "sent_reminders": len(reminded), "forwards": len(copies),
 				"bot_deliveries": int64(counts.Deliveries) + forwardDeliveries, "server_deliveries": counts.Federated, "files": list,
-				"workflow_runs": runs, "workflow_messages": posted}
+				"workflow_runs": runs, "workflow_messages": posted, "archive_days": archives}
 			ref := MessageRef{ID: uuid(msg.ID).String(), ChannelID: uuid(c.ID).String()}
 			if msg.RootID.Valid {
 				ref.RootID = uuid(msg.RootID).String()

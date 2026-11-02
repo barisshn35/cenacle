@@ -13,8 +13,11 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/barisshn35/cenacle/server/internal/testdb"
+	"github.com/barisshn35/cenacle/server/migrations"
 )
 
+// wake makes every sleeping workflow run due now.
 func (s *stack) wake() {
 	s.t.Helper()
 	if _, err := s.pool.Exec(context.Background(), `UPDATE workflow_runs SET wake_at = now() WHERE status = 'running'`); err != nil {
@@ -22,6 +25,7 @@ func (s *stack) wake() {
 	}
 }
 
+// spill reports a message and has the owner remove it.
 func (s *stack) spill(reporter, owner, channelID, messageID string) {
 	s.t.Helper()
 	var rep api.SpillageReport
@@ -42,6 +46,8 @@ func (s *stack) newWorkflow(admin, ws string, body map[string]any) {
 	}
 }
 
+// Spillage removal reaches the workflow runs a message started: waiting ones
+// do not post it later, and what they posted is emptied.
 func TestSpillageReachesWorkflowRuns(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	admin := s.admin()
@@ -98,6 +104,7 @@ func TestSpillageReachesWorkflowRuns(t *testing.T) {
 	}
 }
 
+// A deleted (or purged) message's text is not posted by a run that waited.
 func TestDeletedMessageNotPostedByWaitingRun(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	admin := s.admin()
@@ -134,6 +141,7 @@ func TestDeletedMessageNotPostedByWaitingRun(t *testing.T) {
 	}
 }
 
+// A saved message's reminder is not sent once the message is deleted or purged.
 func TestSavedReminderOfDeletedMessage(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	ayse := s.user("sub-a", "Ayşe")
@@ -171,6 +179,7 @@ func TestSavedReminderOfDeletedMessage(t *testing.T) {
 	}
 }
 
+// Urgent reminders of a burn-on-read message carry no text.
 func TestBurnReminderCarriesNoText(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	ayse := s.user("sub-a", "Ayşe")
@@ -197,6 +206,8 @@ func TestBurnReminderCarriesNoText(t *testing.T) {
 	}
 }
 
+// What a reviewer removed as spillage cannot be restored, and the removed
+// message keeps no forwarded snapshot.
 func TestSpillageRemovalCannotBeRestored(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	owner := s.admin()
@@ -228,6 +239,8 @@ func TestSpillageRemovalCannotBeRestored(t *testing.T) {
 	}
 }
 
+// A legal hold on a reply keeps its thread's root from both purges (deleting
+// a root deletes its replies).
 func TestHeldReplySurvivesRootPurge(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	admin := s.admin()
@@ -271,6 +284,78 @@ func TestHeldReplySurvivesRootPurge(t *testing.T) {
 	}
 }
 
+// Daily archive objects are written again after a removal: no spilled text,
+// no erased person's name or address, no purged message.
+func TestArchiveObjectsFollowRemovals(t *testing.T) {
+	s := newStack(t, newShared(t), options{dir: true})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	bea := s.userWithEmail("sub-bea", "Bea", "bea-archive@example.com")
+	general := s.general(ayse)
+	s.general(bea)
+	spilled, _ := s.send(ayse, general, "ARCH-SPILL", "archrm-nonce-1")
+	s.send(bea, general, "ARCH-BEA", "archrm-nonce-2")
+	s.send(ayse, general, "ARCH-KEPT", "archrm-nonce-3")
+	schedule := "/api/workspaces/" + s.defaultWS + "/archive-schedule"
+	if res := s.call(http.MethodPut, schedule, admin, map[string]string{"format": "csv"}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("schedule = %d", res.StatusCode)
+	}
+	ctx := context.Background()
+	if _, err := s.pool.Exec(ctx, `UPDATE messages SET created_at = created_at - interval '1 day'`); err != nil {
+		t.Fatal(err)
+	}
+	exporter := &chat.ArchiveExporter{Queries: store.New(s.pool), Files: s.bg.Files, Host: "chat.test"}
+	if n, err := exporter.Run(ctx); err != nil || n != 1 {
+		t.Fatalf("exporter = %d %v", n, err)
+	}
+	var sched api.ArchiveSchedule
+	s.call(http.MethodGet, schedule, admin, nil, &sched)
+	if len(sched.Exports) != 1 {
+		t.Fatalf("exports = %+v", sched.Exports)
+	}
+	download := "/api/archive-exports/" + sched.Exports[0].Id.String()
+	if _, body := s.fetch(admin, download); !strings.Contains(string(body), "ARCH-SPILL") {
+		t.Fatalf("export = %s", body)
+	}
+
+	s.spill(bea, admin, general, spilled.ID)
+	if status, _ := s.fetch(admin, download); status != http.StatusConflict {
+		t.Errorf("stale export served = %d", status)
+	}
+	if n, err := exporter.Run(ctx); err != nil || n != 1 {
+		t.Fatalf("rewrite = %d %v", n, err)
+	}
+	status, body := s.fetch(admin, download)
+	if status != http.StatusOK || strings.Contains(string(body), "ARCH-SPILL") || !strings.Contains(string(body), "ARCH-KEPT") {
+		t.Errorf("after spillage = %d %s", status, body)
+	}
+
+	// Erasure: the name and address go at once, the messages with the purge.
+	if res := s.call(http.MethodPost, "/api/admin/users/"+s.userID(bea)+"/erase", admin, map[string]string{"confirm": "Bea"}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("erase = %d", res.StatusCode)
+	}
+	if n, err := exporter.Run(ctx); err != nil || n != 1 {
+		t.Fatalf("rewrite = %d %v", n, err)
+	}
+	if _, body := s.fetch(admin, download); strings.Contains(string(body), "bea-archive@example.com") || strings.Contains(string(body), ",Bea,") {
+		t.Errorf("after erasure = %s", body)
+	}
+	if _, err := s.pool.Exec(ctx, `UPDATE messages SET deleted_at = now() - interval '30 days' WHERE deleted_at IS NOT NULL`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (chat.Purger{Queries: store.New(s.pool)}).PurgeDeleted(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := exporter.Run(ctx); err != nil || n != 1 {
+		t.Fatalf("rewrite = %d %v", n, err)
+	}
+	if _, body := s.fetch(admin, download); strings.Contains(string(body), "ARCH-BEA") || !strings.Contains(string(body), "ARCH-KEPT") {
+		t.Errorf("after purge = %s", body)
+	}
+}
+
+// A workflow's direct messages and approvals do not reach people removed
+// from the workspace.
 func TestWorkflowDoesNotReachRemovedMember(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	admin := s.admin()
@@ -310,6 +395,7 @@ func TestWorkflowDoesNotReachRemovedMember(t *testing.T) {
 	}
 }
 
+// Event reminders are only for people who can still see the event's channel.
 func TestEventReminderAfterLosingTheChannel(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	admin := s.admin()
@@ -354,5 +440,20 @@ func TestEventReminderAfterLosingTheChannel(t *testing.T) {
 	}
 	if n := s.botMessages("Renamed-EV") + s.botMessages("Budget starts"); n != 0 {
 		t.Errorf("reminders reached an outsider: %d", n)
+	}
+}
+
+// Migration 00057 rolls back and applies again.
+func TestRemovalCopiesMigrationDown(t *testing.T) {
+	pool := testdb.Open(t)
+	raw, err := migrations.FS.ReadFile("00057_removal_reaches_copies.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	up, down, _ := strings.Cut(string(raw), "-- +goose Down")
+	for _, sql := range []string{down, up} {
+		if _, err := pool.Exec(context.Background(), sql); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

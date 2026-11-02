@@ -243,6 +243,10 @@ func (h *Handlers) EraseUser(w http.ResponseWriter, r *http.Request, userID open
 		if err := q.EraseUserTraces(r.Context(), u.ID); err != nil {
 			return err
 		}
+		// Daily archive objects with their name, address and messages are written again.
+		if err := q.MarkArchiveStaleForAuthor(r.Context(), u.ID); err != nil {
+			return err
+		}
 		_, err = q.EraseUser(r.Context(), store.EraseUserParams{ID: u.ID, DisplayName: ErasedName})
 		return err
 	})

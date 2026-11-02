@@ -98,7 +98,7 @@ INSERT INTO archive_exports (workspace_id, format, day, object_key, size, messag
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (workspace_id, format, day) DO UPDATE SET object_key = EXCLUDED.object_key, size = EXCLUDED.size,
     messages = EXCLUDED.messages, created_at = now()
-RETURNING id, workspace_id, format, day, object_key, size, messages, created_at
+RETURNING id, workspace_id, format, day, object_key, size, messages, created_at, stale_at
 `
 
 type CreateArchiveExportParams struct {
@@ -129,12 +129,30 @@ func (q *Queries) CreateArchiveExport(ctx context.Context, arg CreateArchiveExpo
 		&i.Size,
 		&i.Messages,
 		&i.CreatedAt,
+		&i.StaleAt,
 	)
 	return i, err
 }
 
+const deleteStaleArchiveExport = `-- name: DeleteStaleArchiveExport :execrows
+DELETE FROM archive_exports WHERE id = $1 AND stale_at = $2
+`
+
+type DeleteStaleArchiveExportParams struct {
+	ID      pgtype.UUID        `json:"id"`
+	StaleAt pgtype.Timestamptz `json:"stale_at"`
+}
+
+func (q *Queries) DeleteStaleArchiveExport(ctx context.Context, arg DeleteStaleArchiveExportParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteStaleArchiveExport, arg.ID, arg.StaleAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getArchiveExport = `-- name: GetArchiveExport :one
-SELECT id, workspace_id, format, day, object_key, size, messages, created_at FROM archive_exports WHERE id = $1
+SELECT id, workspace_id, format, day, object_key, size, messages, created_at, stale_at FROM archive_exports WHERE id = $1
 `
 
 func (q *Queries) GetArchiveExport(ctx context.Context, id pgtype.UUID) (ArchiveExport, error) {
@@ -149,12 +167,13 @@ func (q *Queries) GetArchiveExport(ctx context.Context, id pgtype.UUID) (Archive
 		&i.Size,
 		&i.Messages,
 		&i.CreatedAt,
+		&i.StaleAt,
 	)
 	return i, err
 }
 
 const listArchiveExports = `-- name: ListArchiveExports :many
-SELECT id, workspace_id, format, day, object_key, size, messages, created_at FROM archive_exports WHERE workspace_id = $1 ORDER BY day DESC, id DESC LIMIT 60
+SELECT id, workspace_id, format, day, object_key, size, messages, created_at, stale_at FROM archive_exports WHERE workspace_id = $1 ORDER BY day DESC, id DESC LIMIT 60
 `
 
 func (q *Queries) ListArchiveExports(ctx context.Context, workspaceID pgtype.UUID) ([]ArchiveExport, error) {
@@ -175,6 +194,7 @@ func (q *Queries) ListArchiveExports(ctx context.Context, workspaceID pgtype.UUI
 			&i.Size,
 			&i.Messages,
 			&i.CreatedAt,
+			&i.StaleAt,
 		); err != nil {
 			return nil, err
 		}
@@ -184,6 +204,97 @@ func (q *Queries) ListArchiveExports(ctx context.Context, workspaceID pgtype.UUI
 		return nil, err
 	}
 	return items, nil
+}
+
+const listStaleArchiveExports = `-- name: ListStaleArchiveExports :many
+SELECT id, workspace_id, format, day, object_key, size, messages, created_at, stale_at FROM archive_exports WHERE stale_at IS NOT NULL ORDER BY stale_at LIMIT $1
+`
+
+func (q *Queries) ListStaleArchiveExports(ctx context.Context, rowLimit int32) ([]ArchiveExport, error) {
+	rows, err := q.db.Query(ctx, listStaleArchiveExports, rowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ArchiveExport
+	for rows.Next() {
+		var i ArchiveExport
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Format,
+			&i.Day,
+			&i.ObjectKey,
+			&i.Size,
+			&i.Messages,
+			&i.CreatedAt,
+			&i.StaleAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markArchiveStale = `-- name: MarkArchiveStale :execrows
+UPDATE archive_exports e SET stale_at = now()
+FROM messages m JOIN channels c ON c.id = m.channel_id
+WHERE m.id = $1 AND e.workspace_id = c.workspace_id AND e.day = (m.created_at AT TIME ZONE 'UTC')::date
+`
+
+// MarkArchiveStale marks the daily export holding a message to be written again.
+func (q *Queries) MarkArchiveStale(ctx context.Context, messageID pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markArchiveStale, messageID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const markArchiveStaleForAuthor = `-- name: MarkArchiveStaleForAuthor :exec
+UPDATE archive_exports e SET stale_at = now()
+FROM (SELECT DISTINCT c.workspace_id, (m.created_at AT TIME ZONE 'UTC')::date AS day
+      FROM messages m JOIN channels c ON c.id = m.channel_id
+      WHERE m.author_id = $1) d
+WHERE e.workspace_id = d.workspace_id AND e.day = d.day
+`
+
+// MarkArchiveStaleForAuthor marks the daily exports holding a person's
+// messages (their name and address) to be written again.
+func (q *Queries) MarkArchiveStaleForAuthor(ctx context.Context, authorID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, markArchiveStaleForAuthor, authorID)
+	return err
+}
+
+const rewroteArchiveExport = `-- name: RewroteArchiveExport :execrows
+UPDATE archive_exports SET size = $1, messages = $2, stale_at = NULL, created_at = now()
+WHERE id = $3 AND stale_at = $4
+`
+
+type RewroteArchiveExportParams struct {
+	Size     int64              `json:"size"`
+	Messages int32              `json:"messages"`
+	ID       pgtype.UUID        `json:"id"`
+	StaleAt  pgtype.Timestamptz `json:"stale_at"`
+}
+
+// RewroteArchiveExport records a stale export written again, unless it was
+// marked again meanwhile.
+func (q *Queries) RewroteArchiveExport(ctx context.Context, arg RewroteArchiveExportParams) (int64, error) {
+	result, err := q.db.Exec(ctx, rewroteArchiveExport,
+		arg.Size,
+		arg.Messages,
+		arg.ID,
+		arg.StaleAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const setArchiveFormat = `-- name: SetArchiveFormat :exec

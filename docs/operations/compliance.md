@@ -56,6 +56,11 @@ its file is written under `archive/<workspace>/<day>.<ext>` and listed for downl
 server that was down catches up a week at a time. Deliver files to a vendor with your own
 transfer (SFTP, the vendor's agent); Cenacle does not send them.
 
+A day's file follows removals made after it was written: when messages of that day are
+removed as spillage, purged (deleted, retention, burn-on-read) or their author is erased,
+the file is written again from what is left (and removed when nothing is). Until then
+(at most ten minutes) it is not served.
+
 ## Data spillage
 
 Anyone can **Report spillage** on a message (message actions). The workspace's spillage
@@ -64,10 +69,12 @@ chosen) see the message and decide:
 
 - **Remove everywhere:** the text, edit history, files (their bytes too), reactions,
   mentions, saved copies with their reminders (also those already sent), the copy shown in
-  forwarded messages, the pin and the copies still queued for bots and shared servers go,
-  **also where a legal hold would keep them**; devices drop it at once and shared servers
-  are told to delete it. Notifications already shown on
-  devices and copies outside Cenacle (e-mails, exports already taken) cannot be taken back.
+  forwarded messages, the text in workflow runs it started (and what they posted with it),
+  the daily archive files holding it, the pin and the copies still queued for bots and
+  shared servers go, **also where a legal hold would keep them**; devices drop it at once
+  and shared servers are told to delete it. A removal cannot be restored. Notifications
+  already shown on devices and copies outside Cenacle (e-mails, exports already downloaded)
+  cannot be taken back.
 - **Dismiss:** the message stays.
 
 Either way an **incident report** (JSON) records the report, the decision, the author,

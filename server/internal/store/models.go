@@ -28,14 +28,15 @@ type AiRequest struct {
 }
 
 type ArchiveExport struct {
-	ID          pgtype.UUID `json:"id"`
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	Format      string      `json:"format"`
-	Day         pgtype.Date `json:"day"`
-	ObjectKey   string      `json:"object_key"`
-	Size        int64       `json:"size"`
-	Messages    int32       `json:"messages"`
-	CreatedAt   time.Time   `json:"created_at"`
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Format      string             `json:"format"`
+	Day         pgtype.Date        `json:"day"`
+	ObjectKey   string             `json:"object_key"`
+	Size        int64              `json:"size"`
+	Messages    int32              `json:"messages"`
+	CreatedAt   time.Time          `json:"created_at"`
+	StaleAt     pgtype.Timestamptz `json:"stale_at"`
 }
 
 type AuditEvent struct {
