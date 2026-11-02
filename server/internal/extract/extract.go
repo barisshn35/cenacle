@@ -136,10 +136,9 @@ func pdfText(ctx context.Context, r io.ReaderAt, size int64) (out string, err er
 	deadline := time.Now().Add(pdfTime)
 	budget := int64(maxPDFContent)
 	var b strings.Builder
-	for i := 1; i <= doc.NumPage() && b.Len() < MaxText*4 && !timeUp(ctx, deadline); i++ {
-		page := doc.Page(i)
-		if page.V.IsNull() {
-			continue
+	for _, page := range pdfPages(ctx, doc, deadline) {
+		if b.Len() >= MaxText*4 || timeUp(ctx, deadline) {
+			break
 		}
 		content := page.V.Key("Contents")
 		n, ok := streamSize(content, maxPageContent)
@@ -153,6 +152,55 @@ func pdfText(ctx context.Context, r io.ReaderAt, size int64) (out string, err er
 		b.WriteString("\n")
 	}
 	return b.String(), nil
+}
+
+// Bounds of walking a PDF's page tree: the library follows /Kids and
+// /Parent without noticing cycles, so the tree is walked here, within these.
+const (
+	maxPageNodes = 100_000 // nodes of the page tree visited
+	maxPageDepth = 64      // nesting of the page tree
+	maxParents   = 32      // /Parent links followed for inherited resources
+)
+
+// pdfPages lists the leaf pages of a PDF in order without trusting its page
+// tree: a cycle or a deep or huge tree ends the walk with the pages found.
+func pdfPages(ctx context.Context, doc *pdf.Reader, deadline time.Time) []pdf.Page {
+	var out []pdf.Page
+	nodes := 0
+	var walk func(v pdf.Value, depth int)
+	walk = func(v pdf.Value, depth int) {
+		if depth > maxPageDepth || nodes >= maxPageNodes || timeUp(ctx, deadline) {
+			return
+		}
+		nodes++
+		switch v.Key("Type").Name() {
+		case "Page":
+			out = append(out, pdf.Page{V: v})
+		case "Pages":
+			kids := v.Key("Kids")
+			for i := 0; i < kids.Len() && nodes < maxPageNodes; i++ {
+				walk(kids.Index(i), depth+1)
+			}
+		}
+	}
+	walk(doc.Trailer().Key("Root").Key("Pages"), 0)
+	return out
+}
+
+// pageResources finds a page's resources, inherited through at most
+// maxParents /Parent links (a cycle ends there).
+func pageResources(page pdf.Page) pdf.Value {
+	v := page.V
+	for range maxParents {
+		if v.IsNull() {
+			break
+		}
+		if r := v.Key("Resources"); !r.IsNull() {
+			return r
+		}
+		v = v.Key("Parent")
+	}
+	return pdf.Value{}
 }
 
 // streamSize measures a stream's decompressed size, reading at most limit+1
@@ -181,7 +229,7 @@ func (rawEncoding) Decode(raw string) string { return raw }
 // the bounds): a broken page adds what was read before it broke.
 func pageText(ctx context.Context, b *strings.Builder, page pdf.Page, content pdf.Value, deadline time.Time) {
 	defer func() { _ = recover() }() // errStop or a malformed page
-	fonts := page.Resources().Key("Font")
+	fonts := pageResources(page).Key("Font")
 	encoders := map[string]pdf.TextEncoding{}
 	var enc pdf.TextEncoding = rawEncoding{}
 	show := func(s string) {

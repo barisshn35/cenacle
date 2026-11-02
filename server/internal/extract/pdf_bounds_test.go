@@ -45,6 +45,11 @@ func pdfOf(cmap string, contents ...string) []byte {
 			objs = append(objs, fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(c), c))
 		}
 	}
+	return rawPDF(objs...)
+}
+
+// rawPDF builds a PDF of the objects 1, 2, ... (1 is the catalog).
+func rawPDF(objs ...string) []byte {
 	var b bytes.Buffer
 	b.WriteString("%PDF-1.4\n")
 	offsets := make([]int, len(objs))
@@ -98,5 +103,49 @@ func TestPDFToUnicode(t *testing.T) {
 	text, err := Text(context.Background(), bytes.NewReader(data), int64(len(data)), "application/pdf", "c.pdf")
 	if err != nil || text != "ZZZZZ" {
 		t.Errorf("text = %q, %v", text, err)
+	}
+}
+
+// A page tree with a cycle (a node among its own kids, or pages that are
+// each other's parents) ends within the time the caller gives, with the
+// text of the pages that are there.
+func TestPDFPageTreeCycles(t *testing.T) {
+	content := "BT /F1 12 Tf (cycle page) Tj ET"
+	stream := fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(content), content)
+	for name, data := range map[string][]byte{
+		"kids": rawPDF(
+			"<< /Type /Catalog /Pages 2 0 R >>",
+			"<< /Type /Pages /Kids [2 0 R] /Count 1 >>",
+		),
+		"kids with a page": rawPDF(
+			"<< /Type /Catalog /Pages 2 0 R >>",
+			"<< /Type /Pages /Kids [3 0 R 2 0 R] /Count 2 >>",
+			"<< /Type /Page /Parent 2 0 R /Contents 4 0 R /Resources << >> >>",
+			stream,
+		),
+		"parents": rawPDF(
+			"<< /Type /Catalog /Pages 2 0 R >>",
+			"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+			"<< /Type /Page /Parent 5 0 R /Contents 4 0 R >>",
+			stream,
+			"<< /Type /Pages /Parent 6 0 R >>",
+			"<< /Type /Pages /Parent 5 0 R >>",
+		),
+	} {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		done := make(chan string, 1)
+		go func() {
+			text, _ := Text(ctx, bytes.NewReader(data), int64(len(data)), "application/pdf", "cycle.pdf")
+			done <- text
+		}()
+		select {
+		case text := <-done:
+			if name != "kids" && !strings.Contains(text, "cycle page") {
+				t.Errorf("%s: text = %q", name, text)
+			}
+		case <-time.After(6 * time.Second):
+			t.Errorf("%s: still reading after 6 s", name)
+		}
+		cancel()
 	}
 }
