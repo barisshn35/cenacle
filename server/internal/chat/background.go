@@ -232,11 +232,27 @@ func sendScheduled(ctx context.Context, q *store.Queries, s store.ScheduledMessa
 	case !canPost(c, role):
 		return pgtype.UUID{}, "You can no longer send messages in the channel.", nil
 	}
-	m, err := postMessage(ctx, q, c, author, s.Body, "scheduled-"+uuid(s.ID).String(), []byte("[]"))
+	// A message of a person meets the posting rules again when it is sent
+	// (reminders come from the system bot to their owner).
+	var v postVerdict
+	if s.Kind == "message" {
+		var no *postRefusal
+		if v, no, err = postingRules(ctx, q, c, role, author, s.Body, postOptions{}); err != nil {
+			return pgtype.UUID{}, "", err
+		}
+		if no != nil {
+			return pgtype.UUID{}, no.detail, nil
+		}
+	}
+	m, err := postMessageTo(ctx, q, c, author, s.Body, "scheduled-"+uuid(s.ID).String(), []byte("[]"), replyTo{},
+		postExtras{noGroups: v.noGroups})
 	if errors.Is(err, errNonceReused) {
 		return pgtype.UUID{}, "The message could not be sent.", nil
 	}
 	if err != nil {
+		return pgtype.UUID{}, "", err
+	}
+	if err := flagMessage(ctx, q, c, m.Id, v.flags); err != nil {
 		return pgtype.UUID{}, "", err
 	}
 	return pgUUID(m.Id), "", nil

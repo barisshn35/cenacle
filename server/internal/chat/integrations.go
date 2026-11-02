@@ -493,6 +493,10 @@ func (h *Handlers) ScheduleMessage(w http.ResponseWriter, r *http.Request, chann
 		refuseEncrypted(w, r)
 		return
 	}
+	// Refused now what would be refused if sent now (checked again when it is sent).
+	if _, ok := h.postingAllowed(w, r, c, role, p.User, body, postOptions{}); !ok {
+		return
+	}
 	if !h.belowScheduledLimit(w, r, p.User) {
 		return
 	}

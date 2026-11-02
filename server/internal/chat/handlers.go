@@ -392,15 +392,11 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 // says whether their group mentions notify no one (the scheme's rules). Every
 // way of writing a message goes through it: sending, editing, forwarding, commands.
 func (h *Handlers) mentionRights(w http.ResponseWriter, r *http.Request, c store.Channel, role access, body string) (noGroups, ok bool) {
-	scheme, ok := h.schemeOf(w, r, c)
-	if !ok {
+	noGroups, no, err := broadcastRule(r.Context(), h.Queries, c, role, body, nil)
+	if h.refused(w, r, "get workspace")(no, err) {
 		return false, false
 	}
-	if len(broadcasts(body)) > 0 && (!scheme.Allows(PermBroadcast, role.ws) || !canBroadcastHere(c, role)) {
-		forbidden(w, r, CodeNoBroadcast, "You may not mention everyone in this channel.")
-		return false, false
-	}
-	return !scheme.Allows(PermGroupMentions, role.ws), true
+	return noGroups, true
 }
 
 func postMessage(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, rawAttachments []byte, files ...pgtype.UUID) (api.Message, error) {

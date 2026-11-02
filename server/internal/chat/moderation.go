@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -79,42 +78,27 @@ func (h *Handlers) requireWorkspaceAdmin(w http.ResponseWriter, r *http.Request,
 
 // timedOut answers 403 when the user is timed out in the workspace.
 func (h *Handlers) timedOut(w http.ResponseWriter, r *http.Request, workspace pgtype.UUID, user store.User) bool {
-	until, err := h.Queries.GetMemberTimeout(r.Context(), store.GetMemberTimeoutParams{WorkspaceID: workspace, UserID: user.ID})
-	if err != nil && !isNoRows(err) {
-		h.unavailable(w, r, "get timeout", err)
-		return true
-	}
-	if until.Valid && until.Time.After(time.Now()) {
-		w.Header().Set("Retry-After", strconv.Itoa(int(time.Until(until.Time).Seconds())+1))
-		forbidden(w, r, CodeTimedOut, "A moderator has paused your messages in this workspace until "+
-			until.Time.UTC().Format(time.RFC3339)+".")
-		return true
-	}
-	return false
+	return h.refused(w, r, "get timeout")(memberTimeout(r.Context(), h.Queries, workspace, user))
 }
 
 // slowedDown answers 429 when slow mode makes the member wait (managers are exempt).
 func (h *Handlers) slowedDown(w http.ResponseWriter, r *http.Request, c store.Channel, role access, user store.User) bool {
-	if c.SlowModeSeconds <= 0 || canManage(c, role) || role.admin() {
+	return h.refused(w, r, "slow mode")(slowMode(r.Context(), h.Queries, c, role, user))
+}
+
+// refused answers a posting rule's refusal or failure and says whether there was one.
+func (h *Handlers) refused(w http.ResponseWriter, r *http.Request, what string) func(*postRefusal, error) bool {
+	return func(no *postRefusal, err error) bool {
+		if err != nil {
+			h.unavailable(w, r, what, err)
+			return true
+		}
+		if no != nil {
+			no.write(w, r)
+			return true
+		}
 		return false
 	}
-	last, err := h.Queries.LastMessageAt(r.Context(), store.LastMessageAtParams{ChannelID: c.ID, AuthorID: user.ID})
-	if isNoRows(err) {
-		return false
-	}
-	if err != nil {
-		h.unavailable(w, r, "slow mode", err)
-		return true
-	}
-	wait := time.Until(last.Add(time.Duration(c.SlowModeSeconds) * time.Second))
-	if wait <= 0 {
-		return false
-	}
-	secs := int(wait.Seconds()) + 1
-	w.Header().Set("Retry-After", strconv.Itoa(secs))
-	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusTooManyRequests, Code: CodeSlowMode,
-		Detail: fmt.Sprintf("Slow mode: wait %d seconds before your next message here.", secs)})
-	return true
 }
 
 // ---------------------------------------------------------------- AutoMod ---
@@ -249,32 +233,13 @@ func automodMatch(rule store.AutomodRule, body string) bool {
 	return false
 }
 
-// automod checks a message against the workspace's rules: a blocking rule
-// answers 400; flagging rules are returned to be reported once it is sent.
-// Conversations are never flagged: a report would show their text to
-// moderators who are not in them (blocking reveals nothing).
+// automod checks a message against the workspace's rules (automodRules):
+// a blocking rule answers 400; flagging rules are returned to be reported
+// once it is sent.
 func (h *Handlers) automod(w http.ResponseWriter, r *http.Request, c store.Channel, role access, body string) ([]string, bool) {
-	if body == "" {
-		return nil, true
-	}
-	rules, err := h.Queries.ListEnabledAutomodRules(r.Context(), c.WorkspaceID)
-	if err != nil {
-		h.unavailable(w, r, "automod", err)
+	flags, no, err := automodRules(r.Context(), h.Queries, c, role, body)
+	if h.refused(w, r, "automod")(no, err) {
 		return nil, false
-	}
-	var flags []string
-	for _, rule := range rules {
-		if slices.Contains(rule.ExemptRoles, role.ws) || !automodMatch(rule, body) {
-			continue
-		}
-		if rule.Action == "block" {
-			httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadRequest, Code: CodeAutomodBlocked,
-				Detail: "The workspace's rule “" + rule.Name + "” does not allow this message."})
-			return nil, false
-		}
-		if !isConversation(c) {
-			flags = append(flags, rule.Name)
-		}
 	}
 	return flags, true
 }
