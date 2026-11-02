@@ -31,8 +31,13 @@ CREATE INDEX signin_attempts_user ON signin_attempts (user_id, kind, at);
 -- before this time too.
 ALTER TABLE users ADD COLUMN account_sessions_ended_at timestamptz;
 
+-- A person a directory lists but Cenacle ID cannot keep (their sign-in name
+-- belongs to another account) is skipped, and the synchronization goes on.
+ALTER TABLE sync_runs ADD COLUMN users_skipped integer NOT NULL DEFAULT 0;
+
 -- Down Migration
 
+ALTER TABLE sync_runs DROP COLUMN users_skipped;
 ALTER TABLE users DROP COLUMN account_sessions_ended_at;
 
 DROP TABLE signin_attempts;

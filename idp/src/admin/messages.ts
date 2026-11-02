@@ -131,6 +131,7 @@ const en = {
     syncNow: 'Synchronize now',
     synced:
       'Synchronized: {seen} people, {created} new, {updated} changed, {deactivated} deactivated.',
+    skipped: '{skipped} people skipped: their sign-in name belongs to another account.',
     history: 'Recent synchronizations',
     historyNone: 'Not synchronized yet.',
     started: 'Started',
@@ -344,6 +345,7 @@ const tr: AdminMessages = {
     previewGroups: 'Gruplar',
     syncNow: 'Şimdi eşitle',
     synced: 'Eşitlendi: {seen} kişi, {created} yeni, {updated} değişen, {deactivated} devre dışı.',
+    skipped: '{skipped} kişi atlandı: giriş adları başka bir hesabın.',
     history: 'Son eşitlemeler',
     historyNone: 'Henüz eşitlenmedi.',
     started: 'Başlangıç',

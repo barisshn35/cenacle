@@ -546,6 +546,7 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
           created: c.usersCreated,
           updated: c.usersUpdated,
           deactivated: c.usersDeactivated,
+          skipped: c.usersSkipped,
         });
       } catch (err) {
         const text = err instanceof DirectoryError ? err.message : message(err);

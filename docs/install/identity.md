@@ -42,6 +42,9 @@ _OpenLDAP_. The presets fill in the usual attributes; check them against your di
   and groups are refreshed; people the filter no longer admits are deactivated in Cenacle ID
   and in the chat within a minute, and all their sessions end. If a synchronization finds
   nobody (a wrong filter, an empty search base), nothing is deactivated.
+- Someone whose sign-in name another account already has (a former colleague's reused login,
+  the same login in two directories) is skipped and named in the synchronization history; the
+  rest of the synchronization, deactivations included, goes on.
 - A local account with the same e-mail address becomes the directory's account.
 - Disabling a directory account in **Accounts** (or with `cenacle-idp users disable`) blocks it
   in Cenacle ID whatever the directory says: synchronizations and directory sign-ins keep it

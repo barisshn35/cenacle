@@ -25,6 +25,12 @@ function roleOf(dn: string, admins: Set<string>, guests: Set<string>): Role {
   return null;
 }
 
+function describe(err: unknown): string {
+  if ((err as { code?: string }).code === '23505')
+    return 'another account has this sign-in name or e-mail address';
+  return err instanceof Error ? err.message : String(err);
+}
+
 /** Reads every person and group of a directory and brings Cenacle ID up to date. */
 export async function syncSource(
   pool: pg.Pool,
@@ -51,29 +57,42 @@ export async function syncSource(
       usersCreated: 0,
       usersUpdated: 0,
       usersDeactivated: 0,
+      usersSkipped: 0,
       groups: groups.length,
     };
+    const skipped: string[] = [];
     for (const p of people) {
       const ids = [...(member.get(p.externalId) ?? [])]
         .map((g) => groupIds.get(g)!)
         .filter(Boolean);
-      const r = await upsertPerson(
-        pool,
-        source.id,
-        p,
-        roleOf(p.dn, admins, guests),
-        ids,
-        source.config.linkByEmail,
-      );
+      let r;
+      try {
+        r = await upsertPerson(
+          pool,
+          source.id,
+          p,
+          roleOf(p.dn, admins, guests),
+          ids,
+          source.config.linkByEmail,
+        );
+      } catch (err) {
+        // One person Cenacle ID cannot keep (their sign-in name belongs to
+        // another account) is skipped and reported: the others, and the
+        // deactivation of people no longer listed, go on.
+        counts.usersSkipped++;
+        skipped.push(`${p.username || p.externalId}: ${describe(err)}`);
+        continue;
+      }
       if (r.created) counts.usersCreated++;
       else if (r.changed) counts.usersUpdated++;
     }
+    // Skipped people are still listed: never deactivated for it.
     counts.usersDeactivated = await deactivateMissing(
       pool,
       source.id,
       people.map((p) => p.externalId),
     );
-    await sources.finishRun(run, source.id, counts);
+    await sources.finishRun(run, source.id, counts, '', skipped.join('; '));
     return counts;
   } catch (err) {
     await sources.finishRun(run, source.id, null, err instanceof Error ? err.message : String(err));

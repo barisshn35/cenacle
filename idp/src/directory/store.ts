@@ -37,7 +37,9 @@ export interface SyncRun {
   usersCreated: number;
   usersUpdated: number;
   usersDeactivated: number;
+  usersSkipped: number;
   groups: number;
+  /** Why it failed, or which people it skipped. */
   error: string;
 }
 
@@ -46,6 +48,8 @@ export interface SyncCounts {
   usersCreated: number;
   usersUpdated: number;
   usersDeactivated: number;
+  /** People listed but not kept (their sign-in name belongs to another account). */
+  usersSkipped: number;
   groups: number;
 }
 
@@ -185,15 +189,18 @@ export class SourceStore {
     return rows[0]!.id;
   }
 
+  /** Ends a run: failed with `error`, or succeeded with counts (and what it skipped). */
   async finishRun(
     runId: string,
     sourceId: string,
     counts: SyncCounts | null,
     error = '',
+    skipped = '',
   ): Promise<void> {
     await this.pool.query(
       `UPDATE sync_runs SET status = $2, finished_at = now(), users_seen = $3, users_created = $4,
-         users_updated = $5, users_deactivated = $6, groups = $7, error = $8 WHERE id = $1`,
+         users_updated = $5, users_deactivated = $6, groups = $7, error = $8, users_skipped = $9
+       WHERE id = $1`,
       [
         runId,
         error ? 'failed' : 'succeeded',
@@ -202,7 +209,8 @@ export class SourceStore {
         counts?.usersUpdated ?? 0,
         counts?.usersDeactivated ?? 0,
         counts?.groups ?? 0,
-        error.slice(0, 2000),
+        (error || skipped).slice(0, 2000),
+        counts?.usersSkipped ?? 0,
       ],
     );
     if (!error) {
@@ -215,7 +223,7 @@ export class SourceStore {
   async runs(sourceId: string, limit = 20): Promise<SyncRun[]> {
     const { rows } = await this.pool.query(
       `SELECT id, trigger, status, started_at, finished_at, users_seen, users_created, users_updated,
-         users_deactivated, groups, error FROM sync_runs WHERE source_id = $1 ORDER BY started_at DESC LIMIT $2`,
+         users_deactivated, users_skipped, groups, error FROM sync_runs WHERE source_id = $1 ORDER BY started_at DESC LIMIT $2`,
       [sourceId, limit],
     );
     return rows.map((r) => ({
@@ -228,6 +236,7 @@ export class SourceStore {
       usersCreated: r.users_created,
       usersUpdated: r.users_updated,
       usersDeactivated: r.users_deactivated,
+      usersSkipped: r.users_skipped,
       groups: r.groups,
       error: r.error,
     }));

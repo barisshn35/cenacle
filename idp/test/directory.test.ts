@@ -123,6 +123,41 @@ describe.skipIf(!hasTestDatabase || !LDAP_URL)('directory (LDAP)', () => {
     });
   });
 
+  it('skips a person whose sign-in name another account has, and still deactivates leavers', async () => {
+    // Another account holds Carol's sign-in name (a departed person, another directory).
+    await pool.query(
+      `INSERT INTO users (email, display_name, username) VALUES ('old@example.com', 'Old', 'CAROL')`,
+    );
+    const s = await sources.create({
+      name: 'Test',
+      config: config(),
+      secret: LDAP_PASSWORD,
+      syncIntervalMinutes: 60,
+    });
+    expect(await syncSource(pool, sources, s, 'manual')).toMatchObject({
+      usersCreated: 3,
+      usersSkipped: 1,
+    });
+    const [run] = await sources.runs(s.id);
+    expect(run).toMatchObject({ status: 'succeeded', usersSkipped: 1 });
+    expect(run!.error).toContain('carol');
+
+    await sources.update(s.id, {
+      name: 'Test',
+      enabled: true,
+      syncIntervalMinutes: 60,
+      config: config({
+        userFilter: '(&(objectClass=inetOrgPerson)(!(description=disabled))(!(uid=bob)))',
+      }),
+    });
+    expect(await syncSource(pool, sources, (await sources.get(s.id))!, 'schedule')).toMatchObject({
+      usersDeactivated: 1,
+      usersSkipped: 1,
+    });
+    const { rows } = await pool.query(`SELECT username FROM users WHERE disabled_at IS NOT NULL`);
+    expect(rows.map((r) => r.username)).toEqual(['bob']);
+  });
+
   it('a directory that returns nobody changes nothing', async () => {
     const s = await sources.create({
       name: 'Test',

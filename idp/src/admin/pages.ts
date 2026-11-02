@@ -281,7 +281,14 @@ export type DirectoryOutcome =
   | { kind: 'invalid'; fields: string[] }
   | { kind: 'error'; message: string }
   | { kind: 'test'; people: number; groups: number }
-  | { kind: 'synced'; seen: number; created: number; updated: number; deactivated: number }
+  | {
+      kind: 'synced';
+      seen: number;
+      created: number;
+      updated: number;
+      deactivated: number;
+      skipped: number;
+    }
   | {
       kind: 'preview';
       person: {
@@ -367,7 +374,7 @@ ${value}</textarea>
         created: o.created,
         updated: o.updated,
         deactivated: o.deactivated,
-      }),
+      }) + (o.skipped ? ` ${format(m.skipped, { skipped: o.skipped })}` : ''),
     );
   else if (o?.kind === 'preview')
     outcome = o.person
@@ -423,16 +430,24 @@ ${value}</textarea>
                     <p>${m[r.status]}</p>
                     <p class="${hint}">
                       ${
-                        r.error ||
-                        format(m.counts, {
-                          seen: r.usersSeen,
-                          created: r.usersCreated,
-                          updated: r.usersUpdated,
-                          deactivated: r.usersDeactivated,
-                          groups: r.groups,
-                        })
+                        r.status === 'failed'
+                          ? r.error
+                          : format(m.counts, {
+                              seen: r.usersSeen,
+                              created: r.usersCreated,
+                              updated: r.usersUpdated,
+                              deactivated: r.usersDeactivated,
+                              groups: r.groups,
+                            })
                       }
                     </p>
+                    ${
+                      r.status !== 'failed' && r.usersSkipped
+                        ? html`<p class="${hint}">
+                            ${format(m.skipped, { skipped: r.usersSkipped })} ${r.error}
+                          </p>`
+                        : null
+                    }
                   </td>
                 </tr>`,
             )}
