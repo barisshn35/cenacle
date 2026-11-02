@@ -110,7 +110,52 @@ export async function forgetThisDevice(userId: string): Promise<void> {
       () => undefined,
     );
   }
+  opened.clear();
   await wipe();
+}
+
+const STALE = 'cenacle-mls-stale-device';
+
+/**
+ * The session ended without signing out (it timed out, or was ended
+ * elsewhere or by the session policy): the keys, group states and texts go as
+ * on signing out. The server cannot be told now; it forgets the device when
+ * its person next signs in here (dropStaleDevice).
+ */
+export async function forgetLocally(owner: string | null): Promise<void> {
+  opened.clear();
+  synced.clear();
+  if (owner) {
+    const known = await get<Device>('device', owner).catch(() => undefined);
+    try {
+      if (known) localStorage.setItem(STALE, JSON.stringify({ u: owner, d: known.id }));
+    } catch {
+      // No local storage: the device stays listed until its person removes it.
+    }
+  }
+  await wipe().catch(() => undefined);
+}
+
+function staleDevice(): { u?: unknown; d?: unknown } | null {
+  try {
+    return JSON.parse(localStorage.getItem(STALE) ?? 'null') as { u?: unknown; d?: unknown } | null;
+  } catch {
+    return null;
+  }
+}
+
+/** Tells the server to forget a device forgotten here while signed out. */
+export async function dropStaleDevice(userId: string): Promise<void> {
+  const stale = staleDevice();
+  if (stale?.u !== userId || typeof stale.d !== 'string') return;
+  await apiFetch<void>(`/api/e2e/devices/${encodeURIComponent(stale.d)}`, {
+    method: 'DELETE',
+  }).catch(() => undefined);
+  try {
+    localStorage.removeItem(STALE);
+  } catch {
+    // Nothing kept.
+  }
 }
 
 /** The device the server no longer knows (removed elsewhere): start over. */

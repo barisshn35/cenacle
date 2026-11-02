@@ -126,8 +126,16 @@ async function persist(channelId: string, key: CryptoKey | null) {
   }
 }
 
-/** Signing out: this device forgets the channel keys it was given. */
+// Keys loaded before a forgetKeys are not taken.
+let generation = 0;
+
+/**
+ * The session ended (signing out, or any other way): this device forgets the
+ * channel keys it was given.
+ */
 export async function forgetKeys(): Promise<void> {
+  generation++;
+  useChannelKeys.setState({ keys: {} });
   try {
     const d = await db();
     const tx = d.transaction(STORE, 'readwrite');
@@ -178,12 +186,15 @@ export const useChannelKeys = create<{
   },
 }));
 
-if (typeof indexedDB !== 'undefined') {
-  void loadAll().then((keys) =>
-    useChannelKeys.setState((s) => ({ keys: { ...keys, ...s.keys }, loaded: true })),
-  );
-} else {
-  useChannelKeys.setState({ loaded: true });
+/**
+ * Loads the keys this device keeps, once it is known whose they are
+ * (claimBrowser: another person's are gone by then).
+ */
+export async function loadKeys(): Promise<void> {
+  const at = generation;
+  const keys = typeof indexedDB === 'undefined' ? {} : await loadAll();
+  if (at !== generation) return;
+  useChannelKeys.setState((s) => ({ keys: { ...keys, ...s.keys }, loaded: true }));
 }
 
 /** Encrypts a body for its channel when the channel has a key here. */

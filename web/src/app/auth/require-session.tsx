@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import { Button } from '@cenacle/ui/components/button';
 import { ErrorState } from '@cenacle/ui/components/error-state';
 import { Logo } from '@cenacle/ui/brand';
 import { SessionContext, sessionQuery, signinSearchFor } from './session';
+import { claimBrowser, sessionEnded } from './browser-data';
 import { AppearanceSync } from '../appearance/appearance-sync';
 import { NotificationsSync } from '../notifications/notifications-sync';
 import { RealtimeProvider } from '../chat/realtime';
@@ -22,7 +23,8 @@ import { TermsGate } from '../community/terms-gate';
  * Renders the app for signed-in users. When the session ends while the app
  * is open (idle timeout, sign-out in another tab), it goes to /signin with
  * the current location, so signing in again returns to the same place
- * (drafts stay in IndexedDB).
+ * (drafts stay in IndexedDB; encryption keys and decrypted texts go). The app
+ * shows only once this browser's data is the signed-in person's.
  */
 export function RequireSession() {
   const { t } = useTranslation();
@@ -37,15 +39,31 @@ export function RequireSession() {
   useEffect(() => {
     if (ended && !redirected.current) {
       redirected.current = true;
-      void navigate({
-        to: '/signin',
-        search: signinSearchFor(href, 'session_expired'),
-        replace: true,
-      });
+      void sessionEnded().finally(
+        () =>
+          void navigate({
+            to: '/signin',
+            search: signinSearchFor(href, 'session_expired'),
+            replace: true,
+          }),
+      );
     }
   }, [ended, href, navigate]);
 
-  if (session.data && !ended) {
+  const userId = session.data?.user.id;
+  const [claimed, setClaimed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    void claimBrowser(userId).finally(() => {
+      if (live) setClaimed(userId);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
+
+  if (session.data && !ended && claimed === session.data.user.id) {
     return (
       <SessionContext.Provider value={session.data}>
         <TermsGate>

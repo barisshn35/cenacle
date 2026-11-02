@@ -13,6 +13,7 @@ import { RootLayout } from './root';
 import { AppShell } from './shell/app-shell';
 import { NotFound } from './not-found';
 import { RequireSession } from './auth/require-session';
+import { sessionEnded } from './auth/browser-data';
 import { SigninPage } from './auth/signin';
 import { sessionQuery, signinSearchFor, validateSigninSearch } from './auth/session';
 import { queryClient } from './query-client';
@@ -36,6 +37,8 @@ const appRoute = createRoute({
       await queryClient.ensureQueryData(sessionQuery);
     } catch (err) {
       if (isUnauthenticated(err)) {
+        // No session (any more): what was kept for one goes first.
+        await sessionEnded();
         throw redirect({ to: '/signin', search: signinSearchFor(location.href), replace: true });
       }
     }
