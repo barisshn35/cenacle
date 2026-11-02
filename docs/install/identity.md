@@ -31,6 +31,9 @@ _OpenLDAP_. The presets fill in the usual attributes; check them against your di
 
 - The service account only needs read access. Passwords of people are checked by binding
   as them and are never stored.
+- The saved service account password is never shown and is only sent where it was entered
+  for: changing the server addresses, the service account or the TLS settings asks for it
+  again.
 - Use `ldaps://` or StartTLS. Paste your CA certificate (PEM) if the directory's certificate
   is not issued by a public CA.
 - **Test the connection** and **Preview a person** before turning the directory on.

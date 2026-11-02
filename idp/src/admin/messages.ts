@@ -78,7 +78,8 @@ const en = {
     caCert: 'Trusted certificate (PEM, optional)',
     bindDn: 'Service account (bind DN)',
     bindPassword: 'Service account password',
-    bindPasswordKeep: 'Leave empty to keep the saved password.',
+    bindPasswordKeep:
+      'Leave empty to keep the saved password. Enter it again when you change the servers, the service account or TLS.',
     people: 'People',
     baseDn: 'Search base',
     userFilter: 'Who may sign in (filter)',
@@ -291,7 +292,8 @@ const tr: AdminMessages = {
     caCert: 'Güvenilen sertifika (PEM, isteğe bağlı)',
     bindDn: 'Hizmet hesabı (bind DN)',
     bindPassword: 'Hizmet hesabının parolası',
-    bindPasswordKeep: 'Kayıtlı parolayı korumak için boş bırak.',
+    bindPasswordKeep:
+      'Kayıtlı parolayı korumak için boş bırak. Sunucuları, hizmet hesabını veya TLS ayarını değiştirirsen yeniden gir.',
     people: 'Kişiler',
     baseDn: 'Arama kökü',
     userFilter: 'Kimler giriş yapabilir (filtre)',

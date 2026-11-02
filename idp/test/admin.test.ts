@@ -10,6 +10,7 @@ import { PolicyStore, type SignInPolicy } from '../src/accounts/policy.ts';
 import { UserStore, type User } from '../src/accounts/users.ts';
 import { ACCOUNT_COOKIE, signAccount } from '../src/account/session.ts';
 import { registerAdmin } from '../src/admin/routes.ts';
+import { ldapConfigSchema, PRESETS } from '../src/directory/ldap.ts';
 import { SourceStore } from '../src/directory/store.ts';
 import { oidcConfigSchema } from '../src/federation/config.ts';
 import { ProviderStore } from '../src/federation/store.ts';
@@ -174,5 +175,109 @@ describe.skipIf(!hasTestDatabase)('administration ends sessions (database)', () 
     expect(reset.statusCode).toBe(303);
     expect((await sessions()).sort()).toEqual([admin, federated].sort());
     expect(without).toBeTruthy();
+  });
+});
+
+describe.skipIf(!hasTestDatabase)('administration and saved secrets (database)', () => {
+  let pool: pg.Pool;
+  let sources: SourceStore;
+  let providers: ProviderStore;
+  let adminId: string;
+  const a = Fastify();
+
+  beforeAll(async () => {
+    pool = await openTestDatabase();
+    const kek = randomBytes(32);
+    sources = new SourceStore(pool, kek);
+    providers = new ProviderStore(pool, kek);
+    a.decorateRequest(
+      'cookieValue',
+      function (this: { headers: { cookie?: string } }, name: string) {
+        const m = new RegExp(`(?:^|; )${name}=([^;]*)`).exec(this.headers.cookie ?? '');
+        return m?.[1];
+      },
+    );
+    await a.register(formbody);
+    await registerAdmin(a, {
+      pool,
+      users: new UserStore(pool),
+      mfa: new MfaStore(pool, randomBytes(32)),
+      audit: new AuditLog(pool),
+      sources,
+      providers,
+      issuer: ISSUER,
+      cookieKeys: KEYS,
+      formActionOrigins: [],
+    });
+    await a.ready();
+  });
+  afterAll(async () => {
+    await a.close();
+    await pool.end();
+  });
+  beforeEach(async () => {
+    await resetTestDatabase(pool);
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO users (email, display_name, is_admin) VALUES ('admin@example.com', 'Admin', true)
+       RETURNING id`,
+    );
+    adminId = rows[0]!.id;
+  });
+
+  const send = (url: string, form: Record<string, string>) =>
+    a.inject({
+      method: 'POST',
+      url,
+      headers: { ...post, cookie: `${ACCOUNT_COOKIE}=${signAccount(KEYS, adminId)}` },
+      payload: new URLSearchParams(form).toString(),
+    });
+
+  it('asks for the bind password again when the directory server changes', async () => {
+    const config = ldapConfigSchema.parse({
+      ...PRESETS.openldap,
+      urls: ['ldaps://dc1.example.com'],
+      bindDn: 'cn=reader,dc=example,dc=com',
+      baseDn: 'dc=example,dc=com',
+    });
+    const s = await sources.create({
+      name: 'Corp',
+      config,
+      secret: 'service-password',
+      syncIntervalMinutes: 60,
+    });
+    const form = (urls: string, bindPassword = '') => {
+      const body: Record<string, string> = {
+        name: 'Corp',
+        enabled: '1',
+        syncInterval: '60',
+        urls,
+        groupMembership: config.groupMembership,
+        bindPassword,
+      };
+      for (const [k, v] of Object.entries(config))
+        if (typeof v === 'string' && !(k in body)) body[k] = v;
+      return body;
+    };
+    const url = `/account/admin/directories/${s.id}`;
+
+    // Another server without the password: refused, the saved one stays.
+    expect((await send(url, form('ldaps://evil.example.net'))).statusCode).toBe(400);
+    expect((await sources.get(s.id))!.config.urls).toEqual(['ldaps://dc1.example.com']);
+    expect(await sources.secret(s.id)).toBe('service-password');
+
+    // The same server keeps it; another one with a new password takes that.
+    expect((await send(url, form('ldaps://dc1.example.com'))).statusCode).toBe(303);
+    expect(await sources.secret(s.id)).toBe('service-password');
+    expect((await send(url, form('ldaps://dc2.example.com', 'new-password'))).statusCode).toBe(303);
+    expect(await sources.secret(s.id)).toBe('new-password');
+
+    // The store drops a saved password whose server changed (any caller).
+    await sources.update(s.id, {
+      name: 'Corp',
+      config: { ...config, urls: ['ldaps://dc3.example.com'] },
+      enabled: true,
+      syncIntervalMinutes: 60,
+    });
+    expect(await sources.secret(s.id)).toBe('');
   });
 });

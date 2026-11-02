@@ -11,6 +11,7 @@ import {
   DirectoryError,
   ldapConfigSchema,
   PRESETS,
+  sameBindTarget,
   type LdapConfig,
 } from '../directory/ldap.ts';
 import { endSessions, type SourceStore } from '../directory/store.ts';
@@ -430,6 +431,23 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
       if ('fields' in v)
         return show(request, reply, source.id, { kind: 'invalid', fields: v.fields }, form, 400);
       const password = request.body?.bindPassword ?? '';
+      // The saved password goes only where it was entered for: another
+      // server, service account or TLS setting needs it again.
+      if (
+        !password &&
+        source.hasSecret &&
+        v.config.bindDn &&
+        !sameBindTarget(source.config, v.config)
+      ) {
+        return show(
+          request,
+          reply,
+          source.id,
+          { kind: 'invalid', fields: ['bindPassword'] },
+          { ...form, hasSecret: false },
+          400,
+        );
+      }
       await sources.update(source.id, {
         name: form.name,
         config: v.config,

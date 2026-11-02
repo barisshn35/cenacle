@@ -51,6 +51,21 @@ export const ldapConfigSchema = z.object({
 });
 export type LdapConfig = z.infer<typeof ldapConfigSchema>;
 
+/**
+ * Whether the saved bind password may go where `next` sends it: the same
+ * service account, no server it was not entered for, and the same TLS
+ * settings. Otherwise it has to be entered again.
+ */
+export function sameBindTarget(saved: LdapConfig, next: LdapConfig): boolean {
+  const urls = new Set(saved.urls.map((u) => u.toLowerCase().replace(/\/$/, '')));
+  return (
+    next.bindDn === saved.bindDn &&
+    next.startTls === saved.startTls &&
+    next.caCert === saved.caCert &&
+    next.urls.every((u) => urls.has(u.toLowerCase().replace(/\/$/, '')))
+  );
+}
+
 /** Starting points for the two common directories. */
 export const PRESETS: Record<'active_directory' | 'openldap', Partial<LdapConfig>> = {
   active_directory: {

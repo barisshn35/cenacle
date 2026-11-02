@@ -3,7 +3,7 @@
 // their people and groups. Identity providers (oidc, saml): federation/store.ts.
 import type pg from 'pg';
 import { openPrivateKey, sealPrivateKey } from '../keys/crypto.ts';
-import { ldapConfigSchema, type DirectoryPerson, type LdapConfig } from './ldap.ts';
+import { ldapConfigSchema, sameBindTarget, type DirectoryPerson, type LdapConfig } from './ldap.ts';
 
 export interface Source {
   id: string;
@@ -128,7 +128,10 @@ export class SourceStore {
     }
   }
 
-  /** Changes settings; a secret of undefined keeps the stored one. */
+  /**
+   * Changes settings; a secret of undefined keeps the stored one, unless the
+   * settings send it elsewhere (sameBindTarget): then it is dropped.
+   */
   async update(
     id: string,
     input: {
@@ -139,20 +142,39 @@ export class SourceStore {
       syncIntervalMinutes: number;
     },
   ): Promise<void> {
-    await this.pool.query(
-      `UPDATE identity_sources SET name = $2, config = $3, enabled = $4, sync_interval_minutes = $5,
-         secret_enc = CASE WHEN $6::boolean THEN $7 ELSE secret_enc END, updated_at = now()
-       WHERE id = $1`,
-      [
-        id,
-        input.name,
-        JSON.stringify(input.config),
-        input.enabled,
-        input.syncIntervalMinutes,
-        input.secret !== undefined,
-        input.secret ? sealPrivateKey(this.kek, `source:${id}`, input.secret) : null,
-      ],
-    );
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ config: unknown }>(
+        `SELECT config FROM identity_sources WHERE id = $1 AND kind = 'ldap' FOR UPDATE`,
+        [id],
+      );
+      const saved = rows[0] ? ldapConfigSchema.safeParse(rows[0].config) : null;
+      const secret =
+        input.secret === undefined && !(saved?.success && sameBindTarget(saved.data, input.config))
+          ? ''
+          : input.secret;
+      await client.query(
+        `UPDATE identity_sources SET name = $2, config = $3, enabled = $4, sync_interval_minutes = $5,
+           secret_enc = CASE WHEN $6::boolean THEN $7 ELSE secret_enc END, updated_at = now()
+         WHERE id = $1`,
+        [
+          id,
+          input.name,
+          JSON.stringify(input.config),
+          input.enabled,
+          input.syncIntervalMinutes,
+          secret !== undefined,
+          secret ? sealPrivateKey(this.kek, `source:${id}`, secret) : null,
+        ],
+      );
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async startRun(sourceId: string, trigger: SyncRun['trigger']): Promise<string> {
