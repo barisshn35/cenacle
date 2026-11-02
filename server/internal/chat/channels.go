@@ -277,6 +277,12 @@ func (h *Handlers) CreateChannel(w http.ResponseWriter, r *http.Request) {
 		visibility = string(*in.Visibility)
 	}
 	isDefault := in.IsDefault != nil && *in.IsDefault
+	// Guests never share a channel for everyone, even when the workspace lets
+	// them create channels: it would show them every member.
+	if isDefault && wsRole == WorkspaceGuest {
+		forbidden(w, r, httpx.CodeForbidden, "Guests do not create channels for everyone.")
+		return
+	}
 	encrypted, keyCheck := in.Encrypted != nil && *in.Encrypted, deref1(in.KeyCheck)
 	switch {
 	case problem != "":
