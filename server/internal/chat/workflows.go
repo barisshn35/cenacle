@@ -889,7 +889,16 @@ loop:
 			if err != nil {
 				return run, err
 			}
-			if _, err := postWorkflowMessage(ctx, q, c, bot, vars.render(deref1(s.Text)), run, s, pgtype.UUID{}); errors.Is(err, errEncrypted) {
+			text := vars.render(deref1(s.Text))
+			v, refused, err := workflowRules(ctx, q, c, bot, deref1(s.Text), text)
+			if err != nil {
+				return run, err
+			}
+			if refused != "" {
+				status, problem = "failed", refused
+				break loop
+			}
+			if _, err := postWorkflowMessage(ctx, q, c, bot, text, run, s, pgtype.UUID{}, v); errors.Is(err, errEncrypted) {
 				status, problem = "failed", "The conversation is encrypted end to end."
 				break loop
 			} else if err != nil {
@@ -910,7 +919,16 @@ loop:
 			if err != nil {
 				return run, err
 			}
-			if _, err := postWorkflowMessage(ctx, q, dm, bot, vars.render(deref1(s.Text)), run, s, pgtype.UUID{}); errors.Is(err, errEncrypted) {
+			text := vars.render(deref1(s.Text))
+			v, refused, err := workflowRules(ctx, q, dm, bot, deref1(s.Text), text)
+			if err != nil {
+				return run, err
+			}
+			if refused != "" {
+				status, problem = "failed", refused
+				break loop
+			}
+			if _, err := postWorkflowMessage(ctx, q, dm, bot, text, run, s, pgtype.UUID{}, v); errors.Is(err, errEncrypted) {
 				status, problem = "failed", "The conversation is encrypted end to end."
 				break loop
 			} else if err != nil {
@@ -954,7 +972,7 @@ loop:
 				if err != nil {
 					return run, err
 				}
-				if _, err := postWorkflowMessage(ctx, q, dm, bot, "", run, s, task.ID); errors.Is(err, errEncrypted) {
+				if _, err := postWorkflowMessage(ctx, q, dm, bot, "", run, s, task.ID, postVerdict{}); errors.Is(err, errEncrypted) {
 					status, problem = "failed", "The conversation is encrypted end to end."
 					break loop
 				} else if err != nil {
@@ -1005,9 +1023,26 @@ func deref0(p *int) int {
 	return *p
 }
 
+// workflowRules holds the text a run's variables put into a step's message
+// (what a webhook's sender or a member wrote) to the posting rules of a
+// member: it may not mention everyone, notify groups or pass AutoMod where
+// they could not. What the workflow's admins wrote themselves stays allowed.
+// It returns why the rules refuse the message.
+func workflowRules(ctx context.Context, q *store.Queries, c store.Channel, bot store.User, template, text string) (postVerdict, string, error) {
+	if text == template {
+		return postVerdict{}, "", nil
+	}
+	v, no, err := postingRules(ctx, q, c, access{ch: RoleMember, ws: WorkspaceMember}, bot, text,
+		postOptions{anyChannel: true, granted: broadcasts(template)})
+	if err != nil || no == nil {
+		return v, "", err
+	}
+	return v, no.detail, nil
+}
+
 // postWorkflowMessage posts a step's message as the workspace's system bot,
 // with the workflow's name as a card title (people see what sent it).
-func postWorkflowMessage(ctx context.Context, q *store.Queries, c store.Channel, bot store.User, body string, run store.WorkflowRun, s api.WorkflowStep, task pgtype.UUID) (api.Message, error) {
+func postWorkflowMessage(ctx context.Context, q *store.Queries, c store.Channel, bot store.User, body string, run store.WorkflowRun, s api.WorkflowStep, task pgtype.UUID, v postVerdict) (api.Message, error) {
 	nonce := fmt.Sprintf("wf-%s-%s", uuid(run.ID), s.Id)
 	if task.Valid {
 		nonce += "-" + uuid(c.ID).String()[:8]
@@ -1017,7 +1052,11 @@ func postWorkflowMessage(ctx context.Context, q *store.Queries, c store.Channel,
 	if task.Valid || body == "" {
 		attachments = []byte("[]")
 	}
-	return postMessageTo(ctx, q, c, bot, body, nonce, attachments, replyTo{}, postExtras{task: task})
+	m, err := postMessageTo(ctx, q, c, bot, body, nonce, attachments, replyTo{}, postExtras{task: task, noGroups: v.noGroups})
+	if err != nil {
+		return m, err
+	}
+	return m, flagMessage(ctx, q, c, m.Id, v.flags)
 }
 
 // callOut sends a workflow's variables to another server, signed like event

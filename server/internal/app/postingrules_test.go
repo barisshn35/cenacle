@@ -3,8 +3,11 @@
 package app_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -168,6 +171,57 @@ func TestInteractionUpdatesFollowAutomod(t *testing.T) {
 	}
 	if n := s.count("SELECT count(*) FROM messages WHERE body LIKE '%bedava%'"); n != 0 {
 		t.Errorf("%d blocked updates were stored", n)
+	}
+}
+
+// Text a workflow webhook's sender puts into a message step is held to the
+// rules of a member; what the workflow's admin wrote stays allowed.
+func TestWorkflowVariablesFollowPostingRules(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	s.general(admin)
+	s.moderate(admin)
+	hook := func(text string) string {
+		var wf api.Workflow
+		if res := s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/workflows", admin, map[string]any{
+			"name": "Alerts", "trigger": map[string]any{"kind": "webhook", "channel_id": general},
+			"steps": []map[string]any{{"id": "say", "kind": "message", "text": text}},
+		}, &wf); res.StatusCode != http.StatusCreated || wf.WebhookUrl == nil {
+			t.Fatalf("workflow = %d", res.StatusCode)
+		}
+		return (*wf.WebhookUrl)[strings.Index(*wf.WebhookUrl, "/api/"):]
+	}
+	send := func(path, text string) {
+		t.Helper()
+		body, _ := json.Marshal(map[string]string{"text": text})
+		req, _ := http.NewRequest(http.MethodPost, s.srv.URL+path, bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := s.client.Do(req)
+		if err != nil || res.StatusCode != http.StatusAccepted {
+			t.Fatalf("hook = %v %v", res, err)
+		}
+		_ = res.Body.Close()
+	}
+	alerts, announce := hook("Alert: @{{webhook.text}}"), hook("@channel {{webhook.text}}")
+	send(alerts, "channel wf")
+	send(alerts, "_bedava_ wf")
+	send(alerts, "disk full")
+	send(announce, "deploy at five")
+	s.runWorkflows()
+
+	if n := s.count("SELECT count(*) FROM messages WHERE body LIKE '%wf%'"); n != 0 {
+		t.Errorf("%d refused workflow messages were posted", n)
+	}
+	if n := s.count("SELECT count(*) FROM workflow_runs WHERE status = 'failed' AND error <> ''"); n != 2 {
+		t.Errorf("failed runs = %d", n)
+	}
+	if s.botMessages("disk full") != 1 || s.botMessages("deploy at five") != 1 {
+		t.Error("allowed workflow messages were not posted")
+	}
+	if n := s.count("SELECT count(*) FROM message_mentions WHERE kind = 'channel'"); n == 0 {
+		t.Error("the admin's own @channel notified no one")
 	}
 }
 
