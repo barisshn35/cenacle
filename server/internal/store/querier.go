@@ -265,6 +265,9 @@ type Querier interface {
 	// DropRenamedWorkspaceGroupMappings removes the mappings of a group's old name
 	// where the workspace maps its new name: that mapping stays as it is.
 	DropRenamedWorkspaceGroupMappings(ctx context.Context, arg DropRenamedWorkspaceGroupMappingsParams) ([]DropRenamedWorkspaceGroupMappingsRow, error)
+	// DropSpillageReviewer takes a person who became a guest off the spillage
+	// reviewers of the workspaces where they are a guest.
+	DropSpillageReviewer(ctx context.Context, userID pgtype.UUID) error
 	// DueFederationConnections returns the active connections whose oldest queued
 	// event is due. A connection's events go in the order they were queued, so an
 	// event waiting for its retry holds back the ones queued after it.
@@ -881,8 +884,9 @@ type Querier interface {
 	SetGroupCreation(ctx context.Context, arg SetGroupCreationParams) error
 	// SetGuestRoles makes a person a guest wherever they are a member, an
 	// administrator or an owner (or takes it back when they are not a guest any
-	// more): the directory's guest role outranks any workspace role.
-	SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error
+	// more): the directory's guest role outranks any workspace role. It returns
+	// the workspaces where the role changed.
+	SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) ([]pgtype.UUID, error)
 	SetLastSeen(ctx context.Context, id pgtype.UUID) error
 	SetLinkState(ctx context.Context, arg SetLinkStateParams) error
 	SetListItemPosition(ctx context.Context, arg SetListItemPositionParams) error

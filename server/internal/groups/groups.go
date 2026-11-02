@@ -81,10 +81,21 @@ func Apply(ctx context.Context, q Querier, user store.User, p Profile, adminEmai
 	}
 	guest := p.Role == "guest"
 	uid := id(user.ID)
-	if err := q.SetGuestRoles(ctx, store.SetGuestRolesParams{UserID: user.ID, Guest: guest}); err != nil {
+	changed, err := q.SetGuestRoles(ctx, store.SetGuestRolesParams{UserID: user.ID, Guest: guest})
+	if err != nil {
 		return err
 	}
+	for _, ws := range changed {
+		// The person's open connections reload what they may hear there.
+		if err := emit(ctx, q, events.WorkspaceJoined, membership{WorkspaceID: id(ws), UserID: uid}); err != nil {
+			return err
+		}
+	}
 	if guest {
+		// A guest reviews no spillage.
+		if err := q.DropSpillageReviewer(ctx, user.ID); err != nil {
+			return err
+		}
 		left, err := q.LeaveDefaultChannelsAsGuest(ctx, user.ID)
 		if err != nil {
 			return err

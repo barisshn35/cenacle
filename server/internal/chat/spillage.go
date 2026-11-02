@@ -35,8 +35,12 @@ const (
 )
 
 // isSpillageReviewer: the workspace's chosen reviewers, or its owners when
-// none are chosen.
+// none are chosen. The role is the current one: a reviewer who became a guest
+// (or left) reviews no more, whatever the list says.
 func isSpillageReviewer(ws store.Workspace, user pgtype.UUID, role string) bool {
+	if role == "" || role == WorkspaceGuest {
+		return false
+	}
 	if len(ws.SpillageReviewers) == 0 {
 		return role == WorkspaceOwner
 	}

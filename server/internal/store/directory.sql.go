@@ -209,6 +209,19 @@ func (q *Queries) DropRenamedWorkspaceGroupMappings(ctx context.Context, arg Dro
 	return items, nil
 }
 
+const dropSpillageReviewer = `-- name: DropSpillageReviewer :exec
+UPDATE workspaces w SET spillage_reviewers = array_remove(w.spillage_reviewers, $1::uuid)
+WHERE $1::uuid = ANY (w.spillage_reviewers)
+  AND EXISTS (SELECT 1 FROM workspace_members m WHERE m.workspace_id = w.id AND m.user_id = $1::uuid AND m.role = 'guest')
+`
+
+// DropSpillageReviewer takes a person who became a guest off the spillage
+// reviewers of the workspaces where they are a guest.
+func (q *Queries) DropSpillageReviewer(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, dropSpillageReviewer, userID)
+	return err
+}
+
 const flagChannelGroupMappings = `-- name: FlagChannelGroupMappings :many
 UPDATE channel_group_mappings m
 SET review_candidates = ARRAY(SELECT DISTINCT x FROM unnest(m.review_candidates || $1::text[]) AS x ORDER BY x)
@@ -905,9 +918,10 @@ func (q *Queries) SetDirectoryProfile(ctx context.Context, arg SetDirectoryProfi
 	return err
 }
 
-const setGuestRoles = `-- name: SetGuestRoles :exec
+const setGuestRoles = `-- name: SetGuestRoles :many
 UPDATE workspace_members SET role = CASE WHEN $1::boolean THEN 'guest' ELSE 'member' END
 WHERE user_id = $2 AND (CASE WHEN $1::boolean THEN role IN ('owner', 'member', 'admin') ELSE role = 'guest' AND NOT via_group END)
+RETURNING workspace_id
 `
 
 type SetGuestRolesParams struct {
@@ -917,10 +931,26 @@ type SetGuestRolesParams struct {
 
 // SetGuestRoles makes a person a guest wherever they are a member, an
 // administrator or an owner (or takes it back when they are not a guest any
-// more): the directory's guest role outranks any workspace role.
-func (q *Queries) SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) error {
-	_, err := q.db.Exec(ctx, setGuestRoles, arg.Guest, arg.UserID)
-	return err
+// more): the directory's guest role outranks any workspace role. It returns
+// the workspaces where the role changed.
+func (q *Queries) SetGuestRoles(ctx context.Context, arg SetGuestRolesParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, setGuestRoles, arg.Guest, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var workspace_id pgtype.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setUserDeactivated = `-- name: SetUserDeactivated :one

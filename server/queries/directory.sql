@@ -213,12 +213,21 @@ SELECT * FROM directory_sync_state WHERE id;
 INSERT INTO directory_sync_state (id, cursor, synced_at) VALUES (true, @cursor, now())
 ON CONFLICT (id) DO UPDATE SET cursor = EXCLUDED.cursor, synced_at = now();
 
--- name: SetGuestRoles :exec
+-- name: SetGuestRoles :many
 -- SetGuestRoles makes a person a guest wherever they are a member, an
 -- administrator or an owner (or takes it back when they are not a guest any
--- more): the directory's guest role outranks any workspace role.
+-- more): the directory's guest role outranks any workspace role. It returns
+-- the workspaces where the role changed.
 UPDATE workspace_members SET role = CASE WHEN @guest::boolean THEN 'guest' ELSE 'member' END
-WHERE user_id = @user_id AND (CASE WHEN @guest::boolean THEN role IN ('owner', 'member', 'admin') ELSE role = 'guest' AND NOT via_group END);
+WHERE user_id = @user_id AND (CASE WHEN @guest::boolean THEN role IN ('owner', 'member', 'admin') ELSE role = 'guest' AND NOT via_group END)
+RETURNING workspace_id;
+
+-- name: DropSpillageReviewer :exec
+-- DropSpillageReviewer takes a person who became a guest off the spillage
+-- reviewers of the workspaces where they are a guest.
+UPDATE workspaces w SET spillage_reviewers = array_remove(w.spillage_reviewers, @user_id::uuid)
+WHERE @user_id::uuid = ANY (w.spillage_reviewers)
+  AND EXISTS (SELECT 1 FROM workspace_members m WHERE m.workspace_id = w.id AND m.user_id = @user_id::uuid AND m.role = 'guest');
 
 -- name: UpdateUserProfile :exec
 -- UpdateUserProfile follows a change of name or address at Cenacle ID.
