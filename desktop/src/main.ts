@@ -425,6 +425,8 @@ async function signOut() {
   }
   clearToken();
   await session.fromPartition(ID_PARTITION).clearStorageData();
+  // Files and pictures seen while signed in leave the disk cache too.
+  await session.fromPartition(APP_PARTITION).clearCache();
   app.setBadgeCount(0);
   main?.setOverlayIcon(null, '');
   if (server) void main?.loadURL(new URL('/signin', server).toString());
