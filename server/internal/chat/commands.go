@@ -167,14 +167,7 @@ func (h *Handlers) postOwnCommand(w http.ResponseWriter, r *http.Request, c stor
 		ephemeral(w, "This channel is encrypted end to end: commands cannot write in it.")
 		return
 	}
-	if h.timedOut(w, r, c.WorkspaceID, author) || h.slowedDown(w, r, c, role, author) {
-		return
-	}
-	noGroups, ok := h.mentionRights(w, r, c, role, body)
-	if !ok {
-		return
-	}
-	flags, ok := h.automod(w, r, c, role, body)
+	v, ok := h.postingAllowed(w, r, c, role, author, body, postOptions{slowMode: true})
 	if !ok {
 		return
 	}
@@ -182,11 +175,11 @@ func (h *Handlers) postOwnCommand(w http.ResponseWriter, r *http.Request, c stor
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
 		out, err = postMessageTo(r.Context(), q, c, author, body, "cmd-"+randomNonce(), []byte("[]"), replyTo{},
-			postExtras{presence: h.Presence, noGroups: noGroups})
+			postExtras{presence: h.Presence, noGroups: v.noGroups})
 		if err != nil {
 			return err
 		}
-		return flagMessage(r.Context(), q, c, out.Id, flags)
+		return flagMessage(r.Context(), q, c, out.Id, v.flags)
 	})
 	if err != nil {
 		h.unavailable(w, r, "post command message", err)
@@ -408,10 +401,7 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 		ephemeral(w, "This channel is encrypted end to end: bots cannot write in it.")
 		return
 	}
-	if h.slowedDown(w, r, c, role, user) {
-		return
-	}
-	noGroups, ok := h.mentionRights(w, r, c, role, msg)
+	v, ok := h.postingAllowed(w, r, c, role, user, msg, postOptions{slowMode: true})
 	if !ok {
 		return
 	}
@@ -419,8 +409,11 @@ func (h *Handlers) customCommand(w http.ResponseWriter, r *http.Request, user st
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
 		posted, err = postMessageTo(r.Context(), q, c, row.User, msg, "cmd-"+randomNonce(), raw, replyTo{},
-			postExtras{presence: h.Presence, noGroups: noGroups})
-		return err
+			postExtras{presence: h.Presence, noGroups: v.noGroups})
+		if err != nil {
+			return err
+		}
+		return flagMessage(r.Context(), q, c, posted.Id, v.flags)
 	})
 	if err != nil {
 		h.unavailable(w, r, "post command answer", err)

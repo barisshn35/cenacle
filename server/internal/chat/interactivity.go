@@ -488,12 +488,26 @@ func (h *Handlers) updateByBot(ctx context.Context, c store.Channel, id pgtype.U
 			}
 			raw = clean
 		}
+		// New text from the bot is held to AutoMod like the bot's messages.
+		var flags []string
+		if body != m.Body && !c.Encrypted {
+			var no *postRefusal
+			if flags, no, err = automodRules(ctx, q, c, access{ch: RoleMember, ws: WorkspaceMember}, body); err != nil {
+				return err
+			}
+			if no != nil {
+				return fmt.Errorf("%w: %s", errBot, no.detail)
+			}
+		}
 		updated, err := q.UpdateMessageByBot(ctx, store.UpdateMessageByBotParams{ID: id, Body: body, Attachments: raw})
 		if err != nil {
 			return err
 		}
 		msgs := []api.Message{messageAPI(updated, m.AuthorName, m.AuthorIsBot)}
 		if err := decorate(ctx, q, m.AuthorID, msgs); err != nil {
+			return err
+		}
+		if err := flagMessage(ctx, q, c, msgs[0].Id, flags); err != nil {
 			return err
 		}
 		return emit(ctx, q, events.MessageUpdated, msgs[0])

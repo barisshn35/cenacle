@@ -115,6 +115,62 @@ func TestScheduledMessageFailsAlone(t *testing.T) {
 	}
 }
 
+// A command's answer in the channel is held to AutoMod like the caller's own message.
+func TestCommandAnswersFollowAutomod(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	s.moderate(admin)
+	b := s.newBot(admin, "Echo")
+	rv := newReceiver(t)
+	if res := s.call(http.MethodPost, "/api/bots/"+b.ID+"/commands", admin, map[string]string{"trigger": "echo", "url": rv.URL}, nil); res.StatusCode != http.StatusCreated {
+		t.Fatalf("create command = %d", res.StatusCode)
+	}
+	rv.set(http.StatusOK, `{"response_type": "in_channel", "text": "_bedava_ echo"}`)
+	if _, res := s.run(ayse, general, "echo", "bedava echo"); res.StatusCode != http.StatusBadRequest {
+		t.Errorf("blocked answer = %d", res.StatusCode)
+	}
+	rv.set(http.StatusOK, `{"response_type": "in_channel", "text": "merhaba echo"}`)
+	if r, res := s.run(ayse, general, "echo", "merhaba echo"); res.StatusCode != http.StatusOK || r.ResponseType != "in_channel" {
+		t.Errorf("answer = %d %+v", res.StatusCode, r)
+	}
+	if n := s.count("SELECT count(*) FROM messages WHERE body LIKE '%bedava%'"); n != 0 {
+		t.Errorf("%d blocked answers were posted", n)
+	}
+}
+
+// The text a bot writes into its message after a button press is held to AutoMod too.
+func TestInteractionUpdatesFollowAutomod(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	s.moderate(admin)
+	b := s.newBot(admin, "Deploy")
+	s.call(http.MethodPost, "/api/channels/"+general+"/members", admin, map[string]string{"user_id": b.UserID}, nil)
+	var token struct{ Secret string }
+	s.call(http.MethodPost, "/api/bots/"+b.ID+"/tokens", admin, map[string]any{"name": "app", "scopes": []string{"messages:write"}}, &token)
+	rv := newReceiver(t)
+	s.call(http.MethodPut, "/api/bots/"+b.ID+"/interactions", admin, map[string]string{"url": rv.URL}, nil)
+	var card api.Message
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/messages", token.Secret, map[string]any{
+		"body": "Release", "nonce": "card-nonce-1",
+		"attachments": []map[string]any{{"title": "Release 1.4",
+			"actions": []map[string]any{{"id": "approve", "type": "button", "text": "Approve", "value": "1.4"}}}},
+	}, &card); res.StatusCode != http.StatusCreated {
+		t.Fatalf("card = %d", res.StatusCode)
+	}
+	rv.set(http.StatusOK, `{"text": "ok", "update": {"text": "bedava release"}}`)
+	actions := "/api/channels/" + general + "/messages/" + card.Id.String() + "/actions"
+	if res := s.call(http.MethodPost, actions, ayse, map[string]any{"attachment": 0, "action_id": "approve"}, nil); res.StatusCode == http.StatusOK {
+		t.Error("a blocked update was taken")
+	}
+	if n := s.count("SELECT count(*) FROM messages WHERE body LIKE '%bedava%'"); n != 0 {
+		t.Errorf("%d blocked updates were stored", n)
+	}
+}
+
 // Notices written in a member's name (playbook runs, events) follow their
 // posting rules.
 func TestNoticesFollowPostingRules(t *testing.T) {

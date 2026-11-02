@@ -582,24 +582,17 @@ func (h *Handlers) PostWebhook(w http.ResponseWriter, r *http.Request, token str
 		return
 	}
 	// Held to the rules of a message the bot sends with its token.
-	if h.timedOut(w, r, c.WorkspaceID, bot) || h.slowedDown(w, r, c, role, bot) {
-		return
-	}
-	noGroups, ok := h.mentionRights(w, r, c, role, body)
-	if !ok {
-		return
-	}
-	flags, ok := h.automod(w, r, c, role, body)
+	v, ok := h.postingAllowed(w, r, c, role, bot, body, postOptions{slowMode: true})
 	if !ok {
 		return
 	}
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
 		out, err := postMessageTo(r.Context(), q, c, bot, body, "hook-"+randomNonce(), raw, replyTo{},
-			postExtras{presence: h.Presence, noGroups: noGroups})
+			postExtras{presence: h.Presence, noGroups: v.noGroups})
 		if err != nil {
 			return err
 		}
-		if err := flagMessage(r.Context(), q, c, out.Id, flags); err != nil {
+		if err := flagMessage(r.Context(), q, c, out.Id, v.flags); err != nil {
 			return err
 		}
 		return q.TouchWebhook(r.Context(), hook.ID)
