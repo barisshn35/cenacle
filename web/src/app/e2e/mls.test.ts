@@ -5,7 +5,16 @@
  * "browser" is a fresh module with its own IndexedDB.
  */
 import { IDBFactory } from 'fake-indexeddb';
-import { decodeMlsMessage } from 'ts-mls';
+import {
+  createApplicationMessage,
+  decodeGroupState,
+  decodeMlsMessage,
+  encodeGroupState,
+  encodeMlsMessage,
+  getCiphersuiteFromName,
+  getCiphersuiteImpl,
+} from 'ts-mls';
+import { defaultClientConfig } from 'ts-mls/clientConfig.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface Dev {
@@ -151,6 +160,30 @@ async function browser(user: string): Promise<Engine> {
   (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
   vi.doMock('@cenacle/core/api', () => apiFor(user));
   return import('./mls');
+}
+
+/**
+ * A changed client: seals whatever it likes inside, with the group state a
+ * browser keeps (its db module).
+ */
+async function forge(db: typeof import('./db'), inside: Record<string, unknown>): Promise<string> {
+  const saved = (await db.get<{ state: Uint8Array; joined: string }>('groups', CH))!;
+  const state = { ...decodeGroupState(saved.state, 0)![0], clientConfig: defaultClientConfig };
+  const impl = await getCiphersuiteImpl(
+    getCiphersuiteFromName('MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519'),
+  );
+  const res = await createApplicationMessage(
+    state,
+    new TextEncoder().encode(JSON.stringify(inside)),
+    impl,
+  );
+  await db.put('groups', CH, { state: encodeGroupState(res.newState), joined: saved.joined });
+  const wire = encodeMlsMessage({
+    privateMessage: res.privateMessage,
+    wireformat: 'mls_private_message',
+    version: 'mls10',
+  });
+  return 'mls:v1:' + db.b64(wire);
 }
 
 const AYSE = '11111111-1111-4111-8111-111111111111';
@@ -307,5 +340,30 @@ describe('MLS client', () => {
     });
     expect(ayse.parseIdentity(new TextEncoder().encode('not-an-identity'))).toBeNull();
     expect(await ayse.fingerprint(new Uint8Array(32))).toMatch(/^([0-9a-f]{4} ){7}[0-9a-f]{4}$/);
+  });
+
+  it('a message opens only as written by the person whose device sent it', async () => {
+    const ayse = await browser(AYSE);
+    await ayse.enable(CH, AYSE);
+    const mert = await browser(MERT);
+    const mertDB = await import('./db');
+    await ayse.open(CH, AYSE, await mert.seal(CH, MERT, { v: 1, t: 'katıldım' }));
+
+    // No author inside: the MLS sender (Mert) decides.
+    const bare = await forge(mertDB, { v: 1, t: 'yazarsız' });
+    expect(await ayse.open(CH, AYSE, bare, { id: 'm1', author: AYSE })).toEqual({
+      unavailable: 'broken',
+    });
+    expect(await ayse.open(CH, AYSE, bare, { id: 'm1', author: MERT })).toEqual({
+      payload: { v: 1, t: 'yazarsız' },
+    });
+    // Another person named inside: refused whatever the server says.
+    const forged = await forge(mertDB, { v: 1, t: 'Ayşe yazdı', a: AYSE });
+    expect(await ayse.open(CH, AYSE, forged, { id: 'm2', author: AYSE })).toEqual({
+      unavailable: 'broken',
+    });
+    expect(await ayse.open(CH, AYSE, forged, { id: 'm2', author: MERT })).toEqual({
+      unavailable: 'broken',
+    });
   });
 });

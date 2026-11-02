@@ -13,6 +13,7 @@
 import * as mls from 'ts-mls';
 import { defaultClientConfig } from 'ts-mls/clientConfig.js';
 import { ratchetTreeFromExtension } from 'ts-mls/groupInfo.js';
+import { decryptSenderData } from 'ts-mls/privateMessage.js';
 import { ApiError, apiFetch, type components } from '@cenacle/core/api';
 import { b64, del, exclusive, get, put, sha256, unb64, wipe } from './db';
 
@@ -459,9 +460,18 @@ export interface Payload {
   t: string;
   /** Files encrypted in the browser (their keys). */
   f?: FileKey[];
-  /** The sender's user id: inside the encryption, so the server cannot
-   * show one person's message as another's. */
+  /** The sender's user id (as the sender's client says; what counts is
+   * the MLS sender, see senderOf). */
   a?: string;
+}
+
+/** A text this device opened: s is the person of the MLS sender's credential. */
+interface Plain {
+  channelId: string;
+  payload: Payload;
+  /** The message it was first seen in (replays are refused). */
+  m?: string;
+  s?: string;
 }
 
 export interface FileKey {
@@ -479,10 +489,10 @@ const opened = new Map<string, Payload>();
 
 export const openedPayload = (envelope: string) => opened.get(envelope);
 
-async function remember(channelId: string, envelope: string, payload: Payload) {
+async function remember(channelId: string, envelope: string, payload: Payload, sender: string) {
   opened.set(envelope, payload);
   const key = b64(await sha256(envelope));
-  await put('plain', key, { channelId, payload });
+  await put('plain', key, { channelId, payload, s: sender } satisfies Plain);
   backupHook?.(channelId, key, payload);
 }
 
@@ -523,7 +533,7 @@ export async function seal(channelId: string, userId: string, plain: Payload): P
       )
     );
   });
-  await remember(channelId, envelope, payload);
+  await remember(channelId, envelope, payload, userId);
   return envelope;
 }
 
@@ -561,14 +571,38 @@ export interface Claimed {
 }
 
 /**
+ * The person who sent a private message, from the credential of the leaf its
+ * sender data names: processing the message checks its signature with that
+ * leaf's key, so a member cannot send under another member's leaf.
+ */
+async function senderOf(
+  state: mls.ClientState,
+  pm: mls.PrivateMessage,
+): Promise<string | undefined> {
+  const earlier =
+    pm.epoch < state.groupContext.epoch ? state.historicalReceiverData.get(pm.epoch) : undefined;
+  const secret = earlier ? earlier.senderDataSecret : state.keySchedule.senderDataSecret;
+  const tree = earlier ? earlier.ratchetTree : state.ratchetTree;
+  const data = await decryptSenderData(pm, secret, await impl());
+  if (!data) return undefined;
+  const node = tree[data.leafIndex * 2];
+  if (node?.nodeType !== 'leaf' || node.leaf.credential.credentialType !== 'basic')
+    return undefined;
+  return parseIdentity(node.leaf.credential.identity)?.userId;
+}
+
+/**
  * What the server says about a message must match what is inside: its author
- * the sender's, and the envelope not one already seen in another message (a
- * replay). Messages from before 0.41 carry no author.
+ * the person whose device sent it (the MLS sender), and the envelope not one
+ * already seen in another message (a replay). Texts kept from before this
+ * check (and backups) name the sender only in the payload, if at all.
  */
 async function vouch(key: string, payload: Payload, claimed?: Claimed): Promise<Opened> {
   if (!claimed) return { payload };
-  if (payload.a && payload.a !== claimed.author) return { unavailable: 'broken' };
-  const rec = await get<{ channelId: string; payload: Payload; m?: string }>('plain', key);
+  const rec = await get<Plain>('plain', key);
+  const sender = rec?.s ?? payload.a;
+  if (payload.a && payload.a !== sender) return { unavailable: 'broken' };
+  if (sender && sender !== claimed.author) return { unavailable: 'broken' };
   if (rec?.m && rec.m !== claimed.id) return { unavailable: 'broken' };
   if (rec && !rec.m) await put('plain', key, { ...rec, m: claimed.id });
   return { payload };
@@ -608,13 +642,15 @@ export async function open(
     }
     if (!local || pm.epoch < local.joined) return { unavailable: 'before' as const };
     try {
+      const sender = await senderOf(local.state, pm);
       const res = await mls.processPrivateMessage(local.state, pm, mls.emptyPskIndex, await impl());
       await save(channelId, res.newState, local.joined);
-      if (res.kind !== 'applicationMessage') return { unavailable: 'broken' as const };
+      if (res.kind !== 'applicationMessage' || !sender) return { unavailable: 'broken' as const };
       const payload = JSON.parse(dec.decode(res.message)) as Payload;
       if (payload?.v !== 1 || typeof payload.t !== 'string')
         return { unavailable: 'broken' as const };
-      await remember(channelId, envelope, payload);
+      if (payload.a && payload.a !== sender) return { unavailable: 'broken' as const };
+      await remember(channelId, envelope, payload, sender);
       return await vouch(key, payload, claimed);
     } catch {
       return { unavailable: 'broken' as const };
