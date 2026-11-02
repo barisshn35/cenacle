@@ -45,17 +45,22 @@ WHERE s.disabled_at IS NULL AND @event_type::text = ANY(s.events)
 -- name: ClaimDueDeliveries :many
 -- ClaimDueDeliveries takes due deliveries for one attempt; concurrent workers skip
 -- each other's rows. The attempt is counted up front so a crash does not retry forever.
+-- What the bot may no longer get (disabled, unsubscribed or out of the channel since
+-- the event) fails instead of going out (sendable is false).
 UPDATE event_deliveries d SET attempts = d.attempts + 1,
-       next_attempt_at = now() + interval '10 minutes'
+       next_attempt_at = now() + interval '10 minutes',
+       status = CASE WHEN due.sendable THEN d.status ELSE 'failed' END,
+       last_error = CASE WHEN due.sendable THEN d.last_error
+                         ELSE 'The bot is disabled, unsubscribed or no longer in the channel.' END
 FROM (
-    SELECT id FROM event_deliveries
-    WHERE status = 'pending' AND next_attempt_at <= now()
-    ORDER BY next_attempt_at
+    SELECT ed.id, delivery_sendable(ed.subscription_id, ed.payload) AS sendable FROM event_deliveries ed
+    WHERE ed.status = 'pending' AND ed.next_attempt_at <= now()
+    ORDER BY ed.next_attempt_at
     LIMIT @row_limit
     FOR UPDATE SKIP LOCKED
 ) due, event_subscriptions s
 WHERE d.id = due.id AND s.id = d.subscription_id
-RETURNING d.*, s.url, s.secret;
+RETURNING d.*, s.url, s.secret, due.sendable;
 
 -- name: FinishDelivery :exec
 UPDATE event_deliveries
@@ -72,11 +77,16 @@ ORDER BY id DESC
 LIMIT @row_limit;
 
 -- name: ResendDelivery :one
+-- ResendDelivery queues a delivery again if the bot may still get it (sendable);
+-- otherwise it stays as it is.
 UPDATE event_deliveries d
-SET status = 'pending', next_attempt_at = now(), attempts = 0, last_error = ''
+SET status = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN 'pending' ELSE d.status END,
+    next_attempt_at = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN now() ELSE d.next_attempt_at END,
+    attempts = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN 0 ELSE d.attempts END,
+    last_error = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN '' ELSE d.last_error END
 FROM event_subscriptions s
 WHERE d.id = @id AND s.id = d.subscription_id AND s.bot_id = @bot_id
-RETURNING d.*;
+RETURNING delivery_sendable(d.subscription_id, d.payload)::boolean AS sendable;
 
 -- name: PruneDeliveries :execrows
 DELETE FROM event_deliveries WHERE created_at < now() - interval '14 days';

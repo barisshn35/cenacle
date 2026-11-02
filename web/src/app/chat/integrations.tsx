@@ -602,7 +602,14 @@ function Deliveries({ bot, subscription }: { bot: Bot; subscription: Subscriptio
       toast(t('bots.resent'));
       await queryClient.invalidateQueries({ queryKey: ['deliveries', bot.id, subscription.id] });
     },
-    onError: () => toast.error(t('bots.resendFailed')),
+    onError: (err) =>
+      toast.error(
+        t(
+          err instanceof ApiError && err.problem.code === 'delivery_not_sendable'
+            ? 'bots.resendNotSendable'
+            : 'bots.resendFailed',
+        ),
+      ),
   });
   const time = new Intl.DateTimeFormat(dateLocale(i18n.language), {
     dateStyle: 'short',

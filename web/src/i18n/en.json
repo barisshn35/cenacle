@@ -657,6 +657,7 @@
     "resend": "Send again",
     "resent": "It will be sent again shortly.",
     "resendFailed": "It could not be sent again.",
+    "resendNotSendable": "The bot is disabled, unsubscribed or no longer in the channel, so it does not get this again.",
     "webhookCreatedFor": {
       "jira": "The webhook address. In Jira: System → WebHooks → Create, paste it as the URL and pick issue created, updated, deleted and comment created.",
       "gitlab": "The webhook address. In GitLab: Settings → Webhooks → Add new webhook, paste it as the URL and pick push, merge request, pipeline, issue and comment events.",

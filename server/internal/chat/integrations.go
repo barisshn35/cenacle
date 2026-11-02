@@ -29,6 +29,9 @@ var SubscribableEvents = []string{
 	"message.created", "message.updated", "message.deleted", "reaction.added", "reaction.removed",
 }
 
+// CodeDeliveryNotSendable: the bot may no longer get the delivery.
+const CodeDeliveryNotSendable = "delivery_not_sendable"
+
 // MaxScheduleAhead bounds how far ahead a message can be scheduled.
 const MaxScheduleAhead = 365 * 24 * time.Hour
 
@@ -371,13 +374,18 @@ func (h *Handlers) ResendDelivery(w http.ResponseWriter, r *http.Request, botID,
 	if !ok {
 		return
 	}
-	_, err := h.Queries.ResendDelivery(r.Context(), store.ResendDeliveryParams{ID: pgUUID(deliveryID), BotID: b.Bot.ID})
+	sendable, err := h.Queries.ResendDelivery(r.Context(), store.ResendDeliveryParams{ID: pgUUID(deliveryID), BotID: b.Bot.ID})
 	if isNoRows(err) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No delivery with this id."})
 		return
 	}
 	if err != nil {
 		h.unavailable(w, r, "resend delivery", err)
+		return
+	}
+	if !sendable {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeDeliveryNotSendable,
+			Detail: "The bot is disabled, no longer subscribed or no longer in the channel, so the delivery cannot be sent again."})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

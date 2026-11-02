@@ -3089,6 +3089,10 @@ paths:
       tags: [bots]
       operationId: resendDelivery
       summary: Send a delivery again
+      description: >-
+        Only while the bot may still get it: it is enabled, the subscription is on and the bot
+        is a member of the event's channel (otherwise `409`, code `delivery_not_sendable`).
+        Deliveries of a deleted or removed message are gone (`404`).
       responses:
         '204':
           description: Queued.
@@ -3097,6 +3101,8 @@ paths:
         '403':
           $ref: '#/components/responses/Problem'
         '404':
+          $ref: '#/components/responses/Problem'
+        '409':
           $ref: '#/components/responses/Problem'
   /api/bots/{bot_id}/interactions:
     parameters:

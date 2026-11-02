@@ -46,16 +46,19 @@ func (q *Queries) CancelScheduledOf(ctx context.Context, userID pgtype.UUID) (in
 
 const claimDueDeliveries = `-- name: ClaimDueDeliveries :many
 UPDATE event_deliveries d SET attempts = d.attempts + 1,
-       next_attempt_at = now() + interval '10 minutes'
+       next_attempt_at = now() + interval '10 minutes',
+       status = CASE WHEN due.sendable THEN d.status ELSE 'failed' END,
+       last_error = CASE WHEN due.sendable THEN d.last_error
+                         ELSE 'The bot is disabled, unsubscribed or no longer in the channel.' END
 FROM (
-    SELECT id FROM event_deliveries
-    WHERE status = 'pending' AND next_attempt_at <= now()
-    ORDER BY next_attempt_at
+    SELECT ed.id, delivery_sendable(ed.subscription_id, ed.payload) AS sendable FROM event_deliveries ed
+    WHERE ed.status = 'pending' AND ed.next_attempt_at <= now()
+    ORDER BY ed.next_attempt_at
     LIMIT $1
     FOR UPDATE SKIP LOCKED
 ) due, event_subscriptions s
 WHERE d.id = due.id AND s.id = d.subscription_id
-RETURNING d.id, d.subscription_id, d.event_type, d.payload, d.status, d.attempts, d.next_attempt_at, d.last_status, d.last_error, d.created_at, d.delivered_at, s.url, s.secret
+RETURNING d.id, d.subscription_id, d.event_type, d.payload, d.status, d.attempts, d.next_attempt_at, d.last_status, d.last_error, d.created_at, d.delivered_at, s.url, s.secret, due.sendable
 `
 
 type ClaimDueDeliveriesRow struct {
@@ -72,10 +75,13 @@ type ClaimDueDeliveriesRow struct {
 	DeliveredAt    pgtype.Timestamptz `json:"delivered_at"`
 	Url            string             `json:"url"`
 	Secret         string             `json:"secret"`
+	Sendable       bool               `json:"sendable"`
 }
 
 // ClaimDueDeliveries takes due deliveries for one attempt; concurrent workers skip
 // each other's rows. The attempt is counted up front so a crash does not retry forever.
+// What the bot may no longer get (disabled, unsubscribed or out of the channel since
+// the event) fails instead of going out (sendable is false).
 func (q *Queries) ClaimDueDeliveries(ctx context.Context, rowLimit int32) ([]ClaimDueDeliveriesRow, error) {
 	rows, err := q.db.Query(ctx, claimDueDeliveries, rowLimit)
 	if err != nil {
@@ -99,6 +105,7 @@ func (q *Queries) ClaimDueDeliveries(ctx context.Context, rowLimit int32) ([]Cla
 			&i.DeliveredAt,
 			&i.Url,
 			&i.Secret,
+			&i.Sendable,
 		); err != nil {
 			return nil, err
 		}
@@ -689,10 +696,13 @@ func (q *Queries) QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams
 
 const resendDelivery = `-- name: ResendDelivery :one
 UPDATE event_deliveries d
-SET status = 'pending', next_attempt_at = now(), attempts = 0, last_error = ''
+SET status = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN 'pending' ELSE d.status END,
+    next_attempt_at = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN now() ELSE d.next_attempt_at END,
+    attempts = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN 0 ELSE d.attempts END,
+    last_error = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN '' ELSE d.last_error END
 FROM event_subscriptions s
 WHERE d.id = $1 AND s.id = d.subscription_id AND s.bot_id = $2
-RETURNING d.id, d.subscription_id, d.event_type, d.payload, d.status, d.attempts, d.next_attempt_at, d.last_status, d.last_error, d.created_at, d.delivered_at
+RETURNING delivery_sendable(d.subscription_id, d.payload)::boolean AS sendable
 `
 
 type ResendDeliveryParams struct {
@@ -700,21 +710,11 @@ type ResendDeliveryParams struct {
 	BotID pgtype.UUID `json:"bot_id"`
 }
 
-func (q *Queries) ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (EventDelivery, error) {
+// ResendDelivery queues a delivery again if the bot may still get it (sendable);
+// otherwise it stays as it is.
+func (q *Queries) ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (bool, error) {
 	row := q.db.QueryRow(ctx, resendDelivery, arg.ID, arg.BotID)
-	var i EventDelivery
-	err := row.Scan(
-		&i.ID,
-		&i.SubscriptionID,
-		&i.EventType,
-		&i.Payload,
-		&i.Status,
-		&i.Attempts,
-		&i.NextAttemptAt,
-		&i.LastStatus,
-		&i.LastError,
-		&i.CreatedAt,
-		&i.DeliveredAt,
-	)
-	return i, err
+	var sendable bool
+	err := row.Scan(&sendable)
+	return sendable, err
 }

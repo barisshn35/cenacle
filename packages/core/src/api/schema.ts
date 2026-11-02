@@ -1951,7 +1951,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Send a delivery again */
+    /**
+     * Send a delivery again
+     * @description Only while the bot may still get it: it is enabled, the subscription is on and the bot is a member of the event's channel (otherwise `409`, code `delivery_not_sendable`). Deliveries of a deleted or removed message are gone (`404`).
+     */
     post: operations['resendDelivery'];
     delete?: never;
     options?: never;
@@ -10220,6 +10223,7 @@ export interface operations {
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
     };
   };
   setBotInteractions: {

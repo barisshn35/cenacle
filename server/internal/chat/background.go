@@ -104,6 +104,10 @@ func collect(errs <-chan error) []error {
 }
 
 func (b *Background) deliver(ctx context.Context, d store.ClaimDueDeliveriesRow) error {
+	if !d.Sendable { // failed when claimed: the bot may no longer get it
+		telemetry.Deliveries.WithLabelValues("failed").Inc()
+		return nil
+	}
 	body, err := json.Marshal(delivery{ID: uuid(d.ID).String(), Type: d.EventType, CreatedAt: d.CreatedAt, Data: d.Payload})
 	if err != nil {
 		return err

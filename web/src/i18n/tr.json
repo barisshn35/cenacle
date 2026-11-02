@@ -657,6 +657,7 @@
     "resend": "Yeniden gönder",
     "resent": "Birazdan yeniden gönderilecek.",
     "resendFailed": "Yeniden gönderilemedi.",
+    "resendNotSendable": "Bot kapalı, aboneliği yok ya da artık kanalda değil; bu yüzden bunu yeniden almaz.",
     "webhookCreatedFor": {
       "jira": "Webhook adresi. Jira'da: System → WebHooks → Create; adresi URL olarak yapıştır, issue created, updated, deleted ve comment created olaylarını seç.",
       "gitlab": "Webhook adresi. GitLab'da: Settings → Webhooks → Add new webhook; adresi URL olarak yapıştır, push, merge request, pipeline, issue ve comment olaylarını seç.",

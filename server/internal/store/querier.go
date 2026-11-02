@@ -91,6 +91,8 @@ type Querier interface {
 	ChannelsOfDevice(ctx context.Context, deviceID pgtype.UUID) ([]pgtype.UUID, error)
 	// ClaimDueDeliveries takes due deliveries for one attempt; concurrent workers skip
 	// each other's rows. The attempt is counted up front so a crash does not retry forever.
+	// What the bot may no longer get (disabled, unsubscribed or out of the channel since
+	// the event) fails instead of going out (sendable is false).
 	ClaimDueDeliveries(ctx context.Context, rowLimit int32) ([]ClaimDueDeliveriesRow, error)
 	ClaimDueScheduled(ctx context.Context, rowLimit int32) ([]ScheduledMessage, error)
 	// ClaimDueSchedules returns scheduled workflows that are due, locked for this
@@ -818,7 +820,9 @@ type Querier interface {
 	// requests without it are refused from now on (and that it no longer looks
 	// moved back).
 	RequireFederationV2(ctx context.Context, id pgtype.UUID) error
-	ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (EventDelivery, error)
+	// ResendDelivery queues a delivery again if the bot may still get it (sendable);
+	// otherwise it stays as it is.
+	ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (bool, error)
 	// ResolveReports closes every open report of a message.
 	ResolveReports(ctx context.Context, arg ResolveReportsParams) ([]MessageReport, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.

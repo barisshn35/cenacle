@@ -305,8 +305,11 @@ it.
 Answer any `2xx` quickly. Otherwise Cenacle tries again after 30 s, 1 min, 2 min … up to an
 hour between attempts, eight attempts in all; then the delivery is marked failed. The
 **Deliveries** list of a subscription shows each delivery's state, last HTTP status and
-error, and can send any delivery again. Deliveries are kept for 14 days. A delivery can
+error, and can send a delivery again. Deliveries are kept for 14 days. A delivery can
 arrive more than once: use its id to ignore repeats.
+
+What a bot may no longer get is not sent: once the bot is disabled, the subscription is
+removed or the bot leaves the channel, its waiting deliveries fail and none is sent again.
 
 ## Interactive messages
 
