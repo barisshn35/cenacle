@@ -268,6 +268,12 @@ func sendScheduled(ctx context.Context, q *store.Queries, s store.ScheduledMessa
 	case !canPost(c, role):
 		return pgtype.UUID{}, "You can no longer send messages in the channel.", nil
 	}
+	if s.Kind == "reminder" {
+		problem, err := reminderProblem(ctx, q, s, c.WorkspaceID)
+		if err != nil || problem != "" {
+			return pgtype.UUID{}, problem, err
+		}
+	}
 	// A message of a person meets the posting rules again when it is sent
 	// (reminders come from the system bot to their owner).
 	var v postVerdict
@@ -294,4 +300,56 @@ func sendScheduled(ctx context.Context, q *store.Queries, s store.ScheduledMessa
 		return pgtype.UUID{}, "", err
 	}
 	return pgUUID(m.Id), "", nil
+}
+
+// reminderProblem says why a reminder is no longer for its owner: they left
+// the workspace, or what it is about (a saved message, an event) is gone or
+// out of their sight.
+func reminderProblem(ctx context.Context, q *store.Queries, s store.ScheduledMessage, workspace pgtype.UUID) (string, error) {
+	ws, err := q.GetWorkspaceRole(ctx, store.GetWorkspaceRoleParams{WorkspaceID: workspace, UserID: s.OwnerID})
+	if err != nil || ws == "" {
+		return "You are no longer a member of the workspace.", err
+	}
+	about, err := q.ReminderSubject(ctx, s.ID)
+	if err != nil {
+		return "", err
+	}
+	channel, gone := pgtype.UUID{}, ""
+	switch {
+	case about.AboutMessageID.Valid && !about.MessageLive:
+		return "The message was deleted.", nil
+	case about.AboutMessageID.Valid:
+		channel, gone = about.MessageChannelID, "You can no longer see the message."
+	case about.ForEvent && about.EventChannelID.Valid:
+		channel, gone = about.EventChannelID, "You can no longer see the event's channel."
+	}
+	if channel.Valid {
+		ok, err := seesChannel(ctx, q, channel, s.OwnerID)
+		if err != nil || !ok {
+			return gone, err
+		}
+	}
+	return "", nil
+}
+
+// seesChannel: whether a person may see a channel (as visibleChannel decides).
+func seesChannel(ctx context.Context, q *store.Queries, channel, user pgtype.UUID) (bool, error) {
+	c, err := q.GetChannel(ctx, channel)
+	if isNoRows(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	ws, err := q.GetWorkspaceRole(ctx, store.GetWorkspaceRoleParams{WorkspaceID: c.WorkspaceID, UserID: user})
+	if err != nil {
+		return false, err
+	}
+	ch, err := q.GetMemberRole(ctx, store.GetMemberRoleParams{ChannelID: c.ID, UserID: user})
+	if err != nil {
+		return false, err
+	}
+	a := access{ch: ch, ws: ws}
+	hidden := c.Visibility == Private || ws == WorkspaceGuest
+	return ws != "" && (!hidden || ch != "" || (a.admin() && !isConversation(c))), nil
 }

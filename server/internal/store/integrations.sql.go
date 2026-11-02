@@ -129,7 +129,7 @@ FROM (
     FOR UPDATE SKIP LOCKED
 ) due
 WHERE sm.id = due.id
-RETURNING sm.id, sm.kind, sm.channel_id, sm.author_id, sm.owner_id, sm.body, sm.send_at, sm.status, sm.error, sm.message_id, sm.created_at
+RETURNING sm.id, sm.kind, sm.channel_id, sm.author_id, sm.owner_id, sm.body, sm.send_at, sm.status, sm.error, sm.message_id, sm.created_at, sm.about_message_id
 `
 
 func (q *Queries) ClaimDueScheduled(ctx context.Context, rowLimit int32) ([]ScheduledMessage, error) {
@@ -153,6 +153,7 @@ func (q *Queries) ClaimDueScheduled(ctx context.Context, rowLimit int32) ([]Sche
 			&i.Error,
 			&i.MessageID,
 			&i.CreatedAt,
+			&i.AboutMessageID,
 		); err != nil {
 			return nil, err
 		}
@@ -178,7 +179,7 @@ func (q *Queries) CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID
 const createScheduledMessage = `-- name: CreateScheduledMessage :one
 INSERT INTO scheduled_messages (kind, channel_id, author_id, owner_id, body, send_at)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, kind, channel_id, author_id, owner_id, body, send_at, status, error, message_id, created_at
+RETURNING id, kind, channel_id, author_id, owner_id, body, send_at, status, error, message_id, created_at, about_message_id
 `
 
 type CreateScheduledMessageParams struct {
@@ -212,6 +213,7 @@ func (q *Queries) CreateScheduledMessage(ctx context.Context, arg CreateSchedule
 		&i.Error,
 		&i.MessageID,
 		&i.CreatedAt,
+		&i.AboutMessageID,
 	)
 	return i, err
 }
@@ -524,27 +526,28 @@ func (q *Queries) ListDeliveries(ctx context.Context, arg ListDeliveriesParams) 
 }
 
 const listScheduledMessages = `-- name: ListScheduledMessages :many
-SELECT sm.id, sm.kind, sm.channel_id, sm.author_id, sm.owner_id, sm.body, sm.send_at, sm.status, sm.error, sm.message_id, sm.created_at, c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
+SELECT sm.id, sm.kind, sm.channel_id, sm.author_id, sm.owner_id, sm.body, sm.send_at, sm.status, sm.error, sm.message_id, sm.created_at, sm.about_message_id, c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
 FROM scheduled_messages sm JOIN channels c ON c.id = sm.channel_id
 WHERE sm.owner_id = $1 AND sm.status = 'pending'
 ORDER BY sm.send_at
 `
 
 type ListScheduledMessagesRow struct {
-	ID          pgtype.UUID `json:"id"`
-	Kind        string      `json:"kind"`
-	ChannelID   pgtype.UUID `json:"channel_id"`
-	AuthorID    pgtype.UUID `json:"author_id"`
-	OwnerID     pgtype.UUID `json:"owner_id"`
-	Body        string      `json:"body"`
-	SendAt      time.Time   `json:"send_at"`
-	Status      string      `json:"status"`
-	Error       string      `json:"error"`
-	MessageID   pgtype.UUID `json:"message_id"`
-	CreatedAt   time.Time   `json:"created_at"`
-	ChannelName string      `json:"channel_name"`
-	ChannelKind string      `json:"channel_kind"`
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	ID             pgtype.UUID `json:"id"`
+	Kind           string      `json:"kind"`
+	ChannelID      pgtype.UUID `json:"channel_id"`
+	AuthorID       pgtype.UUID `json:"author_id"`
+	OwnerID        pgtype.UUID `json:"owner_id"`
+	Body           string      `json:"body"`
+	SendAt         time.Time   `json:"send_at"`
+	Status         string      `json:"status"`
+	Error          string      `json:"error"`
+	MessageID      pgtype.UUID `json:"message_id"`
+	CreatedAt      time.Time   `json:"created_at"`
+	AboutMessageID pgtype.UUID `json:"about_message_id"`
+	ChannelName    string      `json:"channel_name"`
+	ChannelKind    string      `json:"channel_kind"`
+	WorkspaceID    pgtype.UUID `json:"workspace_id"`
 }
 
 func (q *Queries) ListScheduledMessages(ctx context.Context, ownerID pgtype.UUID) ([]ListScheduledMessagesRow, error) {
@@ -568,6 +571,7 @@ func (q *Queries) ListScheduledMessages(ctx context.Context, ownerID pgtype.UUID
 			&i.Error,
 			&i.MessageID,
 			&i.CreatedAt,
+			&i.AboutMessageID,
 			&i.ChannelName,
 			&i.ChannelKind,
 			&i.WorkspaceID,
@@ -701,6 +705,40 @@ func (q *Queries) QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams
 	return result.RowsAffected(), nil
 }
 
+const reminderSubject = `-- name: ReminderSubject :one
+SELECT s.about_message_id, m.channel_id AS message_channel_id,
+       (m.id IS NOT NULL AND m.deleted_at IS NULL)::bool AS message_live,
+       (r.event_id IS NOT NULL)::bool AS for_event, e.channel_id AS event_channel_id
+FROM scheduled_messages s
+LEFT JOIN messages m ON m.id = s.about_message_id
+LEFT JOIN event_rsvps r ON r.reminder_id = s.id
+LEFT JOIN events e ON e.id = r.event_id
+WHERE s.id = $1
+`
+
+type ReminderSubjectRow struct {
+	AboutMessageID   pgtype.UUID `json:"about_message_id"`
+	MessageChannelID pgtype.UUID `json:"message_channel_id"`
+	MessageLive      bool        `json:"message_live"`
+	ForEvent         bool        `json:"for_event"`
+	EventChannelID   pgtype.UUID `json:"event_channel_id"`
+}
+
+// ReminderSubject is what a reminder is about: a saved message (whether it is
+// still there) or an event (its channel).
+func (q *Queries) ReminderSubject(ctx context.Context, id pgtype.UUID) (ReminderSubjectRow, error) {
+	row := q.db.QueryRow(ctx, reminderSubject, id)
+	var i ReminderSubjectRow
+	err := row.Scan(
+		&i.AboutMessageID,
+		&i.MessageChannelID,
+		&i.MessageLive,
+		&i.ForEvent,
+		&i.EventChannelID,
+	)
+	return i, err
+}
+
 const resendDelivery = `-- name: ResendDelivery :one
 UPDATE event_deliveries d
 SET status = CASE WHEN delivery_sendable(d.subscription_id, d.payload) THEN 'pending' ELSE d.status END,
@@ -724,4 +762,19 @@ func (q *Queries) ResendDelivery(ctx context.Context, arg ResendDeliveryParams) 
 	var sendable bool
 	err := row.Scan(&sendable)
 	return sendable, err
+}
+
+const setReminderMessage = `-- name: SetReminderMessage :exec
+UPDATE scheduled_messages SET about_message_id = $1 WHERE id = $2
+`
+
+type SetReminderMessageParams struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	ID        pgtype.UUID `json:"id"`
+}
+
+// SetReminderMessage records the message a reminder is about.
+func (q *Queries) SetReminderMessage(ctx context.Context, arg SetReminderMessageParams) error {
+	_, err := q.db.Exec(ctx, setReminderMessage, arg.MessageID, arg.ID)
+	return err
 }

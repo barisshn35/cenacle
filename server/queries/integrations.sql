@@ -98,6 +98,22 @@ INSERT INTO scheduled_messages (kind, channel_id, author_id, owner_id, body, sen
 VALUES (@kind, @channel_id, @author_id, @owner_id, @body, @send_at)
 RETURNING *;
 
+-- name: SetReminderMessage :exec
+-- SetReminderMessage records the message a reminder is about.
+UPDATE scheduled_messages SET about_message_id = @message_id WHERE id = @id;
+
+-- name: ReminderSubject :one
+-- ReminderSubject is what a reminder is about: a saved message (whether it is
+-- still there) or an event (its channel).
+SELECT s.about_message_id, m.channel_id AS message_channel_id,
+       (m.id IS NOT NULL AND m.deleted_at IS NULL)::bool AS message_live,
+       (r.event_id IS NOT NULL)::bool AS for_event, e.channel_id AS event_channel_id
+FROM scheduled_messages s
+LEFT JOIN messages m ON m.id = s.about_message_id
+LEFT JOIN event_rsvps r ON r.reminder_id = s.id
+LEFT JOIN events e ON e.id = r.event_id
+WHERE s.id = @id;
+
 -- name: ListScheduledMessages :many
 SELECT sm.*, c.name AS channel_name, c.kind AS channel_kind, c.workspace_id
 FROM scheduled_messages sm JOIN channels c ON c.id = sm.channel_id

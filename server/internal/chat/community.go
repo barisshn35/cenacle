@@ -651,6 +651,25 @@ func (h *Handlers) moveEventReminders(ctx context.Context, q *store.Queries, e s
 		if err := q.CancelScheduled(ctx, rem.ReminderID); err != nil {
 			return err
 		}
+		// Only for those who can still see the event (its channel).
+		var sees bool
+		if e.ChannelID.Valid {
+			if sees, err = seesChannel(ctx, q, e.ChannelID, rem.UserID); err != nil {
+				return err
+			}
+		} else {
+			role, err := q.GetWorkspaceRole(ctx, store.GetWorkspaceRoleParams{WorkspaceID: e.WorkspaceID, UserID: rem.UserID})
+			if err != nil {
+				return err
+			}
+			sees = role != ""
+		}
+		if !sees {
+			if err := q.SetRsvp(ctx, store.SetRsvpParams{EventID: e.ID, UserID: rem.UserID, Status: "going"}); err != nil {
+				return err
+			}
+			continue
+		}
 		user, err := q.GetUser(ctx, rem.UserID)
 		if err != nil {
 			return err

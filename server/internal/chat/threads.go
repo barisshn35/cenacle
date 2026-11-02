@@ -609,6 +609,10 @@ func (h *Handlers) SaveMessage(w http.ResponseWriter, r *http.Request, messageID
 				if err != nil {
 					return err
 				}
+				// Not sent once the message is deleted or out of sight.
+				if err := q.SetReminderMessage(r.Context(), store.SetReminderMessageParams{ID: s.ID, MessageID: m.ID}); err != nil {
+					return err
+				}
 				reminder = s.ID
 			}
 			if err := q.SetSavedReminder(r.Context(), store.SetSavedReminderParams{

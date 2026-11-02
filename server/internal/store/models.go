@@ -761,17 +761,18 @@ type SavedMessage struct {
 }
 
 type ScheduledMessage struct {
-	ID        pgtype.UUID `json:"id"`
-	Kind      string      `json:"kind"`
-	ChannelID pgtype.UUID `json:"channel_id"`
-	AuthorID  pgtype.UUID `json:"author_id"`
-	OwnerID   pgtype.UUID `json:"owner_id"`
-	Body      string      `json:"body"`
-	SendAt    time.Time   `json:"send_at"`
-	Status    string      `json:"status"`
-	Error     string      `json:"error"`
-	MessageID pgtype.UUID `json:"message_id"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID             pgtype.UUID `json:"id"`
+	Kind           string      `json:"kind"`
+	ChannelID      pgtype.UUID `json:"channel_id"`
+	AuthorID       pgtype.UUID `json:"author_id"`
+	OwnerID        pgtype.UUID `json:"owner_id"`
+	Body           string      `json:"body"`
+	SendAt         time.Time   `json:"send_at"`
+	Status         string      `json:"status"`
+	Error          string      `json:"error"`
+	MessageID      pgtype.UUID `json:"message_id"`
+	CreatedAt      time.Time   `json:"created_at"`
+	AboutMessageID pgtype.UUID `json:"about_message_id"`
 }
 
 type Session struct {

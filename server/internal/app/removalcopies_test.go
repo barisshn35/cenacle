@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/chat"
@@ -130,6 +131,43 @@ func TestDeletedMessageNotPostedByWaitingRun(t *testing.T) {
 	}
 	if n := s.botMessages("Heard: delkw KEPT-RUN-3"); n != 1 {
 		t.Errorf("kept message's run = %d", n)
+	}
+}
+
+func TestSavedReminderOfDeletedMessage(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	general := s.general(ayse)
+	s.general(mert)
+	save := func(id string) {
+		t.Helper()
+		if res := s.call(http.MethodPut, "/api/me/saved/"+id, mert,
+			map[string]any{"remind_at": time.Now().Add(2 * time.Hour).Truncate(time.Second)}, nil); res.StatusCode != http.StatusOK {
+			t.Fatalf("save = %d", res.StatusCode)
+		}
+	}
+	deleted, _ := s.send(ayse, general, "SAVED-GONE-1", "savedrem-nonce-1")
+	purged, _ := s.send(ayse, general, "SAVED-GONE-2", "savedrem-nonce-2")
+	kept, _ := s.send(ayse, general, "SAVED-KEPT-3", "savedrem-nonce-3")
+	save(deleted.ID)
+	save(purged.ID)
+	save(kept.ID)
+	if res := s.call(http.MethodDelete, "/api/channels/"+general+"/messages/"+deleted.ID, ayse, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete = %d", res.StatusCode)
+	}
+	if _, err := s.pool.Exec(context.Background(), `DELETE FROM messages WHERE id = $1`, purged.ID); err != nil {
+		t.Fatal(err)
+	}
+	s.due()
+	if _, err := s.bg.SendDueScheduled(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if n := s.botMessages("SAVED-GONE"); n != 0 {
+		t.Errorf("reminders quoted removed text: %d", n)
+	}
+	if n := s.botMessages("SAVED-KEPT-3"); n != 1 {
+		t.Errorf("reminder of a kept message = %d", n)
 	}
 }
 
@@ -269,5 +307,52 @@ func TestWorkflowDoesNotReachRemovedMember(t *testing.T) {
 	}
 	if n := s.count(`SELECT count(*) FROM workflow_runs WHERE workspace_id = $1 AND status = 'failed'`, ws); n != 2 {
 		t.Errorf("failed runs = %d", n)
+	}
+}
+
+func TestEventReminderAfterLosingTheChannel(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	s.general(ayse)
+	var board channel
+	s.call(http.MethodPost, "/api/channels", admin, map[string]any{"name": "Board", "visibility": "private"}, &board)
+	ayseID := s.userID(ayse)
+	s.call(http.MethodPost, "/api/channels/"+board.ID+"/members", admin, map[string]string{"user_id": ayseID}, nil)
+	start := time.Now().Add(2 * time.Hour).Truncate(time.Second)
+	event := func(title string) api.Event {
+		t.Helper()
+		var e api.Event
+		if res := s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/events", admin, map[string]any{
+			"title": title, "starts_at": start, "ends_at": start.Add(time.Hour), "channel_id": board.ID,
+		}, &e); res.StatusCode != http.StatusCreated {
+			t.Fatalf("event = %d", res.StatusCode)
+		}
+		if res := s.call(http.MethodPut, "/api/events/"+e.Id.String()+"/rsvp", ayse, map[string]any{"status": "going"}, nil); res.StatusCode != http.StatusOK {
+			t.Fatalf("rsvp = %d", res.StatusCode)
+		}
+		return e
+	}
+	moved := event("Planning")
+	event("Budget")
+	if res := s.call(http.MethodDelete, "/api/channels/"+board.ID+"/members/"+ayseID, admin, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodPut, "/api/events/"+moved.Id.String(), admin, map[string]any{
+		"title": "Renamed-EV", "starts_at": start.Add(time.Hour), "ends_at": start.Add(2 * time.Hour), "channel_id": board.ID,
+	}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("update = %d", res.StatusCode)
+	}
+	for _, sc := range s.scheduled(ayse) {
+		if strings.Contains(sc.Body, "Renamed-EV") {
+			t.Errorf("rescheduled for an outsider: %+v", sc)
+		}
+	}
+	s.due()
+	if _, err := s.bg.SendDueScheduled(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if n := s.botMessages("Renamed-EV") + s.botMessages("Budget starts"); n != 0 {
+		t.Errorf("reminders reached an outsider: %d", n)
 	}
 }

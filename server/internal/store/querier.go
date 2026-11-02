@@ -811,6 +811,9 @@ type Querier interface {
 	// over one it made before: the previous holder gets their new name with
 	// their own change.
 	ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error
+	// ReminderSubject is what a reminder is about: a saved message (whether it is
+	// still there) or an event (its channel).
+	ReminderSubject(ctx context.Context, id pgtype.UUID) (ReminderSubjectRow, error)
 	RemoteMessageOf(ctx context.Context, arg RemoteMessageOfParams) (pgtype.UUID, error)
 	RemoveMLSMembers(ctx context.Context, arg RemoveMLSMembersParams) error
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
@@ -952,6 +955,8 @@ type Querier interface {
 	SetOnboarded(ctx context.Context, arg SetOnboardedParams) (int64, error)
 	SetPinned(ctx context.Context, arg SetPinnedParams) (Message, error)
 	SetRecovery(ctx context.Context, arg SetRecoveryParams) (E2eRecovery, error)
+	// SetReminderMessage records the message a reminder is about.
+	SetReminderMessage(ctx context.Context, arg SetReminderMessageParams) error
 	SetRsvp(ctx context.Context, arg SetRsvpParams) error
 	SetRunChecklists(ctx context.Context, arg SetRunChecklistsParams) (PlaybookRun, error)
 	SetSavedReminder(ctx context.Context, arg SetSavedReminderParams) error
