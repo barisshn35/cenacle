@@ -18,12 +18,17 @@ export interface User {
   displayName: string;
   locale: string | null;
   updatedAt: Date;
-  /** Signs in nowhere: an administrator or the account's source turned it off. */
+  /**
+   * Signs in nowhere, with no factor: an administrator or the account's
+   * source turned it off, or its identity provider is turned off.
+   */
   disabled: boolean;
   /** Disabled by an administrator (no directory or SCIM undoes it). */
   adminDisabled: boolean;
   /** A directory or SCIM manages whether the account is active. */
   sourceManaged: boolean;
+  /** Its identity provider (OIDC, SAML) is turned off. */
+  sourceOff: boolean;
   /** Account-page cookies issued until then no longer sign in (endSessions). */
   accountSessionsEndedAt: Date | null;
   /** The sign-in name of a directory account. */
@@ -57,11 +62,13 @@ interface UserRow {
   is_admin: boolean;
   source_id: string | null;
   source_kind: 'ldap' | 'oidc' | 'saml' | null;
+  source_off: boolean;
 }
 
 const COLUMNS =
   'id, email, email_verified, display_name, locale, updated_at, disabled_at, admin_disabled_at, scim_managed, account_sessions_ended_at, password_hash, username, title, directory_role, is_admin, source_id, ' +
-  '(SELECT kind FROM identity_sources WHERE identity_sources.id = source_id) AS source_kind';
+  '(SELECT kind FROM identity_sources WHERE identity_sources.id = source_id) AS source_kind, ' +
+  "coalesce((SELECT NOT enabled FROM identity_sources WHERE identity_sources.id = source_id AND kind IN ('oidc', 'saml')), false) AS source_off";
 
 function toUser(r: UserRow): User {
   return {
@@ -71,9 +78,12 @@ function toUser(r: UserRow): User {
     displayName: r.display_name,
     locale: r.locale,
     updatedAt: r.updated_at,
-    disabled: r.disabled_at !== null || r.admin_disabled_at !== null,
+    // Turning a provider off ends its people's sign-ins, whatever factor
+    // (a passkey added here) they would use.
+    disabled: r.disabled_at !== null || r.admin_disabled_at !== null || r.source_off,
     adminDisabled: r.admin_disabled_at !== null,
     sourceManaged: r.source_kind === 'ldap' || r.scim_managed,
+    sourceOff: r.source_off,
     accountSessionsEndedAt: r.account_sessions_ended_at,
     username: r.username,
     title: r.title,

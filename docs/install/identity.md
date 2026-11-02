@@ -88,6 +88,8 @@ container.
   the provider (they can no longer sign in) and disable their account in **Accounts** to end
   their sessions. With SCIM (below) the provider does this itself. An account an
   administrator disabled stays disabled whatever the provider pushes over SCIM.
+- Turning a provider off signs its people out of Cenacle ID and stops every sign-in of their
+  accounts, including passkeys they added here, until it is turned on again.
 
 ### Provisioning (SCIM 2.0)
 

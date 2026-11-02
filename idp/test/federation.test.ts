@@ -4,6 +4,8 @@
 import { randomBytes } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { PasskeyStore } from '../src/accounts/passkeys.ts';
+import { checkPasskey } from '../src/accounts/signin.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { oidcConfigSchema } from '../src/federation/config.ts';
 import { signInFederated, type FederatedPerson } from '../src/federation/people.ts';
@@ -126,6 +128,24 @@ describe.skipIf(!hasTestDatabase)('signing in at identity providers (database)',
     expect(await users.setDisabledById(userId, true)).toBe(true);
     expect(await signInFederated(pool, p, ada)).toEqual({ error: 'disabled' });
     expect((await users.findById(userId))!.disabled).toBe(true);
+  });
+
+  it('signs no one in with any factor while their provider is off', async () => {
+    const p = await provider();
+    const { userId } = (await signInFederated(pool, p, ada)) as { userId: string };
+    // A passkey the person added on the account page.
+    const passkeys = {
+      authenticate: async () => ({ userId, synced: true }),
+    } as unknown as PasskeyStore;
+    const body = { challenge: 'c', response: JSON.stringify({ id: 'k', response: {} }) };
+    expect(await checkPasskey(users, passkeys, 'login', body)).not.toBeNull();
+
+    await providers.update(p.id, { name: p.name, config: p.config, enabled: false });
+    expect(await users.findById(userId)).toMatchObject({ disabled: true, sourceOff: true });
+    expect(await checkPasskey(users, passkeys, 'login', body)).toBeNull();
+
+    await providers.update(p.id, { name: p.name, config: p.config, enabled: true });
+    expect(await checkPasskey(users, passkeys, 'login', body)).not.toBeNull();
   });
 
   it('keeps sign-ins on their way bound to their browser and place', async () => {
