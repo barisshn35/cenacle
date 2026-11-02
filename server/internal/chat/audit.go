@@ -25,6 +25,27 @@ func (h *Handlers) record(r *http.Request, workspace pgtype.UUID, action, target
 	})
 }
 
+// ownerAudit are the events about what only a workspace's owners see (legal
+// holds, eDiscovery and archive exports); spillageAudit those about what only
+// its spillage reviewers see.
+var (
+	ownerAudit    = []string{audit.LegalHoldChanged, audit.MessagesExported, audit.ArchiveExported}
+	spillageAudit = []string{audit.SpillageReported, audit.SpillageDecided}
+)
+
+// hiddenAudit are the actions of a workspace's audit log a reader does not
+// see: its events tell no more than the objects they are about.
+func hiddenAudit(ws store.Workspace, user pgtype.UUID, role string) []string {
+	out := []string{}
+	if role != WorkspaceOwner {
+		out = append(out, ownerAudit...)
+	}
+	if !isSpillageReviewer(ws, user, role) {
+		out = append(out, spillageAudit...)
+	}
+	return out
+}
+
 // ListWorkspaceAudit implements api.ServerInterface.
 func (h *Handlers) ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID, params api.ListWorkspaceAuditParams) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
@@ -51,9 +72,14 @@ func (h *Handlers) ListWorkspaceAudit(w http.ResponseWriter, r *http.Request, wo
 	if params.Before != nil {
 		before = pgUUID(*params.Before)
 	}
+	ws, err := h.Queries.GetWorkspace(r.Context(), pgUUID(workspaceID))
+	if err != nil {
+		h.unavailable(w, r, "get workspace", err)
+		return
+	}
 	rows, err := h.Queries.ListWorkspaceAudit(r.Context(), store.ListWorkspaceAuditParams{
 		WorkspaceID: pgUUID(workspaceID), Before: before, RowLimit: int32(limit + 1), //nolint:gosec // 2..101
-		ActionPrefix: deref1(params.Prefix),
+		ActionPrefix: deref1(params.Prefix), HiddenActions: hiddenAudit(ws, p.User.ID, role),
 	})
 	if err != nil {
 		h.unavailable(w, r, "list audit events", err)

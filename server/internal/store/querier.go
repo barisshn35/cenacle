@@ -662,7 +662,8 @@ type Querier interface {
 	ListWorkflows(ctx context.Context, workspaceID pgtype.UUID) ([]Workflow, error)
 	ListWorkspaceActiveRuns(ctx context.Context, arg ListWorkspaceActiveRunsParams) ([]PlaybookRun, error)
 	ListWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) ([]WorkspaceAttribute, error)
-	// ListWorkspaceAudit returns a workspace's events newest first, before a cursor.
+	// ListWorkspaceAudit returns a workspace's events newest first, before a cursor,
+	// without the hidden actions (those the reader may not see).
 	ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAuditParams) ([]ListWorkspaceAuditRow, error)
 	// ListWorkspaceCommands returns the custom commands of a workspace whose bot is enabled.
 	ListWorkspaceCommands(ctx context.Context, workspaceID pgtype.UUID) ([]SlashCommand, error)

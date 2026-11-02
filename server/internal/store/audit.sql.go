@@ -232,15 +232,17 @@ LEFT JOIN users u ON u.id = e.actor_id
 WHERE e.workspace_id = $1
   AND ($2::uuid IS NULL OR e.id < $2::uuid)
   AND ($3::text = '' OR starts_with(e.action, $3::text))
+  AND NOT (e.action = ANY($4::text[]))
 ORDER BY e.id DESC
-LIMIT $4
+LIMIT $5
 `
 
 type ListWorkspaceAuditParams struct {
-	WorkspaceID  pgtype.UUID `json:"workspace_id"`
-	Before       pgtype.UUID `json:"before"`
-	ActionPrefix string      `json:"action_prefix"`
-	RowLimit     int32       `json:"row_limit"`
+	WorkspaceID   pgtype.UUID `json:"workspace_id"`
+	Before        pgtype.UUID `json:"before"`
+	ActionPrefix  string      `json:"action_prefix"`
+	HiddenActions []string    `json:"hidden_actions"`
+	RowLimit      int32       `json:"row_limit"`
 }
 
 type ListWorkspaceAuditRow struct {
@@ -256,12 +258,14 @@ type ListWorkspaceAuditRow struct {
 	ActorName   string      `json:"actor_name"`
 }
 
-// ListWorkspaceAudit returns a workspace's events newest first, before a cursor.
+// ListWorkspaceAudit returns a workspace's events newest first, before a cursor,
+// without the hidden actions (those the reader may not see).
 func (q *Queries) ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAuditParams) ([]ListWorkspaceAuditRow, error) {
 	rows, err := q.db.Query(ctx, listWorkspaceAudit,
 		arg.WorkspaceID,
 		arg.Before,
 		arg.ActionPrefix,
+		arg.HiddenActions,
 		arg.RowLimit,
 	)
 	if err != nil {

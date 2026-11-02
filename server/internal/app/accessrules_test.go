@@ -100,3 +100,55 @@ func TestEnsureDefaultsKeepsPrivateChannel(t *testing.T) {
 		t.Error("the public channel of a configured name did not become a channel for everyone")
 	}
 }
+
+// A workspace admin who is not an owner does not read in the audit log what
+// only owners (legal holds, eDiscovery) and spillage reviewers see.
+func TestWorkspaceAuditHidesOwnerOnlyEvents(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	owner := s.admin()
+	deputy := s.user("sub-d", "Deputy")
+	mert := s.user("sub-m", "Mert")
+	zeynep := s.user("sub-z", "Zeynep")
+	ws := "/api/workspaces/" + s.defaultWS
+	if res := s.call(http.MethodPatch, ws+"/members/"+s.userID(deputy), owner, map[string]string{"role": "admin"}, nil); res.StatusCode >= 300 {
+		t.Fatalf("promote = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodPost, ws+"/legal-holds", owner, map[string]any{"name": "secret-hold", "user_ids": []string{s.userID(mert)}, "channel_ids": []string{}}, nil); res.StatusCode != http.StatusCreated {
+		t.Fatalf("hold = %d", res.StatusCode)
+	}
+	s.call(http.MethodGet, ws+"/export?q=secret-query", owner, nil, nil)
+	dm, _ := s.open(mert, s.defaultWS, s.userID(zeynep))
+	m, _ := s.send(mert, dm.ID, "oops", "audit-hide-1")
+	if res := s.call(http.MethodPost, "/api/channels/"+dm.ID+"/messages/"+m.ID+"/spillage", mert, map[string]string{"reason": "secret"}, nil); res.StatusCode != http.StatusCreated {
+		t.Fatalf("report = %d", res.StatusCode)
+	}
+	actions := func(token string) map[string]bool {
+		var page struct {
+			Events []auditEvent `json:"events"`
+		}
+		if res := s.call(http.MethodGet, ws+"/audit?limit=100", token, nil, &page); res.StatusCode != http.StatusOK {
+			t.Fatalf("audit = %d", res.StatusCode)
+		}
+		out := map[string]bool{}
+		for _, e := range page.Events {
+			out[e.Action] = true
+		}
+		return out
+	}
+	hidden := []string{"legal_hold.changed", "messages.exported", "spillage.reported"}
+	seen := actions(deputy)
+	for _, a := range hidden {
+		if seen[a] {
+			t.Errorf("a non-owner admin reads %s", a)
+		}
+	}
+	if !seen["workspace.role_changed"] {
+		t.Errorf("deputy's audit = %v", seen)
+	}
+	seen = actions(owner)
+	for _, a := range hidden {
+		if !seen[a] {
+			t.Errorf("the owner does not read %s", a)
+		}
+	}
+}
