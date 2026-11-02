@@ -53,6 +53,7 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/e2e"
 	"github.com/barisshn35/cenacle/server/internal/egress"
 	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/barisshn35/cenacle/server/internal/extract"
 	"github.com/barisshn35/cenacle/server/internal/groups"
 	"github.com/barisshn35/cenacle/server/internal/health"
 	"github.com/barisshn35/cenacle/server/internal/importer"
@@ -132,6 +133,10 @@ func run(args []string) error {
 			fmt.Println(version)
 		}
 		return nil
+	case extract.ChildCommand:
+		// Hidden: the server starts itself this way to read one PDF (stdin)
+		// in a process of its own (text on stdout).
+		return extract.ChildMain(os.Stdin, os.Stdout)
 	case "healthcheck":
 		// Distroless images have no curl; the binary probes itself.
 		// Only CENACLE_HTTP_ADDR is read, so a broken config cannot hide liveness.
@@ -276,6 +281,13 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	deps.Reminders = &chat.Reminders{DB: pool, Queries: queries, Log: log}
 	deps.Feeds = &chat.FeedReader{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	deps.Federation = &chat.FederationSender{DB: pool, Queries: queries, Egress: egressClient, Log: log}
+	// PDFs are read by a child process of this binary: the PDF library can
+	// hang or crash on a crafted file, and the child is what goes down.
+	exe, err := os.Executable()
+	if err != nil {
+		log.Warn("PDF files are not indexed for search: own executable not found", "error", err)
+	}
+	extract.IsolatePDF(exe, extract.ChildCommand)
 	deps.FileText = &chat.FileTextReader{Queries: queries, Files: files, Log: log}
 	deps.Archive = &chat.ArchiveExporter{Queries: queries, Files: files, Host: cfg.PublicURL.Hostname(), Log: log}
 	deps.AuditStream = &chat.AuditForwarder{Queries: queries, Egress: egressClient, Server: cfg.PublicURL.String(), Log: log}

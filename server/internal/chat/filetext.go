@@ -63,7 +63,13 @@ func (f *FileTextReader) read(ctx context.Context, file store.PendingFileTextsRo
 	defer func() { _ = obj.Close() }()
 	text, err := extract.Text(ctx, obj, file.Size, file.ContentType, file.Name)
 	if err != nil || text == "" {
-		if err != nil && !errors.Is(err, extract.ErrUnsupported) && f.Log != nil {
+		switch {
+		case err == nil || errors.Is(err, extract.ErrUnsupported) || f.Log == nil:
+		case errors.Is(err, extract.ErrReaderFailed):
+			// The PDF reader's process crashed, hit a limit or ran out of
+			// time: a crafted or badly broken file.
+			f.Log.WarnContext(ctx, "file text not read", "file", uuid(file.ID).String(), "error", err)
+		default:
 			f.Log.InfoContext(ctx, "file text not read", "file", uuid(file.ID).String(), "error", err)
 		}
 		return "", "none"

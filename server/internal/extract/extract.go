@@ -2,8 +2,9 @@
 
 // Package extract reads the text of uploaded files for search: plain text,
 // PDF, Office Open XML (docx, xlsx, pptx) and OpenDocument (odt, ods, odp).
-// Everything runs in the server's process without external tools; inputs are
-// bounded, and a file that cannot be read simply has no text.
+// Everything runs without external tools; inputs are bounded, and a file that
+// cannot be read simply has no text. The server reads PDFs in a child process
+// of its own binary (see IsolatePDF); everything else runs in its process.
 package extract
 
 import (
@@ -76,7 +77,7 @@ func Text(ctx context.Context, r io.ReaderAt, size int64, contentType, name stri
 		}
 		out = string(b)
 	case "pdf":
-		out, err = pdfText(ctx, r, size)
+		out, err = readPDF(ctx, r, size)
 	case "docx":
 		out, err = zipText(ctx, r, size, func(n string) bool {
 			return n == "word/document.xml" || strings.HasPrefix(n, "word/header") || strings.HasPrefix(n, "word/footer")
