@@ -85,14 +85,24 @@ describe.skipIf(!hasTestDatabase)('MfaStore (database)', () => {
     expect(await mfa.takeAttempt(id, 'account')).toBeNull();
   });
 
-  it('an account allows a limited number of failures across challenges', async () => {
-    for (let i = 0; i < ACCOUNT_FAILURES; i++) {
-      await pool.query(
-        "INSERT INTO audit_events (user_id, action) VALUES ($1, 'signin.second_step_failed')",
-        [userId],
-      );
-    }
+  it('an account allows a limited number of failures across challenges, even in parallel', async () => {
+    const ids = await Promise.all(
+      [1, 2, 3].map((n) => mfa.createChallenge(userId, 'login', `uid-${n}`)),
+    );
+    // Fifteen attempts at once (five per challenge): only the account's ten are taken.
+    const taken = await Promise.all(
+      ids.flatMap((id) =>
+        Array.from({ length: CHALLENGE_ATTEMPTS }, () => mfa.takeAttempt(id, 'login')),
+      ),
+    );
+    expect(taken.filter(Boolean)).toHaveLength(ACCOUNT_FAILURES);
     const id = await mfa.createChallenge(userId, 'login', 'uid-fresh');
     expect(await mfa.takeAttempt(id, 'login')).toBeNull();
+
+    // A code that passed is no failure: the account has one attempt again.
+    await mfa.passed(taken.find(Boolean)!);
+    const next = await mfa.createChallenge(userId, 'login', 'uid-next');
+    expect(await mfa.takeAttempt(next, 'login')).not.toBeNull();
+    expect(await mfa.takeAttempt(next, 'login')).toBeNull();
   });
 });

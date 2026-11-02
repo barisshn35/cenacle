@@ -15,8 +15,8 @@ export interface DirectoryAccess {
 
 /**
  * `userId` is the account a failed password was for, when one is known: the
- * caller records the failure with it (signin.failed), which is what the
- * per-account limit counts.
+ * caller records the failure with it (signin.failed) in the audit log. The
+ * per-account limit counts attempts itself (attempts.ts).
  */
 export type SignInResult =
   { user: User } | { error: 'invalid'; userId?: string } | { error: 'unavailable' };
@@ -30,7 +30,8 @@ export const PASSWORD_FAILURE_WINDOW_SECONDS = 15 * 60;
  * connected directories by their login attribute (a directory password is
  * checked by binding as the person; it is never stored). An account with too
  * many recent failures is not checked at all and answers like a wrong
- * password, so it reads the same as an unknown account.
+ * password, so it reads the same as an unknown account. The attempt is
+ * counted before the check, so parallel requests cannot pass the limit.
  */
 export async function checkPassword(
   users: UserStore,
@@ -39,22 +40,36 @@ export async function checkPassword(
   password: string,
   onError?: (err: unknown) => void,
 ): Promise<SignInResult> {
-  const known = await users.passwordFailures(identifier, PASSWORD_FAILURE_WINDOW_SECONDS);
-  if (known && known.failures >= PASSWORD_FAILURES) {
+  const known = await users.passwordAttempt(
+    identifier,
+    PASSWORD_FAILURES,
+    PASSWORD_FAILURE_WINDOW_SECONDS,
+  );
+  if (known && !known.attempt.allowed) {
     // Spend the time a check takes, so a locked account is not told apart.
     await burnPasswordCheck(password);
     return { error: 'invalid', userId: known.id };
   }
+  // A failure keeps counting; a sign-in or an unanswered directory does not.
+  const forget = async () => {
+    if (known) await users.forgetAttempt(known.attempt);
+  };
   const invalid = { error: 'invalid' as const, ...(known ? { userId: known.id } : {}) };
   const local = await users.authenticate(identifier, password);
-  if (local) return { user: local };
+  if (local) {
+    await forget();
+    return { user: local };
+  }
   if (!directory) return invalid;
   try {
     const id = await signInWithDirectory(directory.pool, directory.sources, identifier, password);
     const user = id ? await users.findById(id) : null;
-    return user && !user.disabled ? { user } : invalid;
+    if (!user || user.disabled) return invalid;
+    await forget();
+    return { user };
   } catch (err) {
     onError?.(err);
+    await forget();
     return { error: 'unavailable' };
   }
 }

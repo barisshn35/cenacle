@@ -326,6 +326,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
           attemptsLeft: challenge.attemptsLeft,
         });
       }
+      await mfa.passed(challenge);
       await opts.audit?.record('two_step.enabled', user.id, request.ip);
       await mfa.confirmSetupChallenge(d.uid, user.id);
       return page(
@@ -401,6 +402,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
         const left = challenge.attemptsLeft;
         return show(401, left > 0 ? { attemptsLeft: left } : 'expired');
       }
+      await mfa.passed(challenge);
       await mfa.finishChallenge(d.uid);
       request.log.info({ uid: d.uid, sub: challenge.userId }, 'sign-in succeeded');
       if (factor === 'recovery') {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type pg from 'pg';
 import { APP_GROUPS_SQL } from '../directory/store.ts';
+import { forgetAttempt, takeAttempt, type Attempt } from './attempts.ts';
 import {
   burnPasswordCheck,
   checkPasswordPolicy,
@@ -144,23 +145,28 @@ export class UserStore {
   }
 
   /**
-   * The account an identifier (an e-mail address or a directory sign-in name)
-   * names, with its failed password sign-ins in the last `windowSeconds`
-   * (signin.failed events recorded with the account).
+   * Takes a password attempt of the account an identifier (an e-mail address
+   * or a directory sign-in name) names, before the password is checked: at
+   * most `limit` per window (attempts.ts). Null for an unknown identifier.
    */
-  async passwordFailures(
+  async passwordAttempt(
     identifier: string,
+    limit: number,
     windowSeconds: number,
-  ): Promise<{ id: string; failures: number } | null> {
-    const { rows } = await this.pool.query<{ id: string; failures: number }>(
-      `SELECT u.id, (SELECT count(*)::int FROM audit_events a
-                     WHERE a.user_id = u.id AND a.action = 'signin.failed'
-                       AND a.at > now() - make_interval(secs => $2)) AS failures
-       FROM users u WHERE u.email = $1 OR u.username = $1
+  ): Promise<{ id: string; attempt: Attempt } | null> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT u.id FROM users u WHERE u.email = $1 OR u.username = $1
        ORDER BY (u.email = $1) DESC NULLS LAST LIMIT 1`,
-      [identifier.trim(), windowSeconds],
+      [identifier.trim()],
     );
-    return rows[0] ?? null;
+    const id = rows[0]?.id;
+    if (!id) return null;
+    return { id, attempt: await takeAttempt(this.pool, id, 'password', limit, windowSeconds) };
+  }
+
+  /** A password attempt that succeeded (or was never decided) does not count. */
+  async forgetAttempt(attempt: Attempt): Promise<void> {
+    await forgetAttempt(this.pool, attempt);
   }
 
   /**

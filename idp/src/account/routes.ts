@@ -258,6 +258,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
         secondStepPage({ locale: loc, action: '/account/second-step', challenge: id, error }),
       );
     }
+    await mfa.passed(challenge);
     await mfa.finishChallenge(id);
     if (factor === 'recovery')
       await audit.record('recovery_code.used', challenge.userId, request.ip);

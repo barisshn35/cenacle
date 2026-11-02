@@ -3,6 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { generateSecret, generateURI, verify } from 'otplib';
 import type pg from 'pg';
 import { openPrivateKey, sealPrivateKey } from '../keys/crypto.ts';
+import { forgetAttempt, takeAttempt as takeAccountAttempt, type Attempt } from './attempts.ts';
 
 /** Codes from the clock step before and after the current one are accepted (30 s each way). */
 const TOLERANCE_SECONDS = 30;
@@ -25,6 +26,8 @@ export interface Challenge {
   userId: string;
   purpose: Purpose;
   attemptsLeft: number;
+  /** The account's attempt taken with it (takeAttempt): a failure until passed. */
+  attempt?: Attempt;
 }
 
 /** Recovery codes look like "k7f3m-2qx9a": lower case, no look-alike characters. */
@@ -198,10 +201,11 @@ export class MfaStore {
   }
 
   /**
-   * Takes one attempt of a live challenge before the code is checked, so
-   * parallel requests cannot exceed the limit. Returns the user and the
-   * attempts left after this one, or null when the challenge is spent,
-   * expired, or the account had too many failures lately.
+   * Takes one attempt of a live challenge, and one of the account, before the
+   * code is checked, so parallel requests cannot exceed either limit. Returns
+   * the user and the attempts left after this one, or null when the challenge
+   * is spent, expired, or the account had too many failures lately. A code
+   * that passes is reported with passed().
    */
   async takeAttempt(id: string, purpose: Purpose): Promise<Challenge | null> {
     const { rows } = await this.pool.query<{ user_id: string; attempts: number }>(
@@ -211,19 +215,27 @@ export class MfaStore {
       [id, purpose, CHALLENGE_ATTEMPTS],
     );
     const row = rows[0];
-    if (!row || (await this.recentFailures(row.user_id)) >= ACCOUNT_FAILURES) return null;
-    return { id, userId: row.user_id, purpose, attemptsLeft: CHALLENGE_ATTEMPTS - row.attempts };
+    if (!row) return null;
+    const attempt = await takeAccountAttempt(
+      this.pool,
+      row.user_id,
+      'second_step',
+      ACCOUNT_FAILURES,
+      ACCOUNT_FAILURE_WINDOW_SECONDS,
+    );
+    if (!attempt.allowed) return null;
+    return {
+      id,
+      userId: row.user_id,
+      purpose,
+      attemptsLeft: CHALLENGE_ATTEMPTS - row.attempts,
+      attempt,
+    };
   }
 
-  /** Failed second steps of an account in the window (from the audit log). */
-  private async recentFailures(userId: string): Promise<number> {
-    const { rows } = await this.pool.query<{ n: number }>(
-      `SELECT count(*)::int AS n FROM audit_events
-       WHERE user_id = $1 AND action = 'signin.second_step_failed'
-         AND at > now() - make_interval(secs => $2)`,
-      [userId, ACCOUNT_FAILURE_WINDOW_SECONDS],
-    );
-    return rows[0]!.n;
+  /** The code of a taken attempt passed: it is no failure of the account. */
+  async passed(challenge: Challenge): Promise<void> {
+    if (challenge.attempt) await forgetAttempt(this.pool, challenge.attempt);
   }
 
   /**

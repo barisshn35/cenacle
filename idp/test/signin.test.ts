@@ -59,8 +59,29 @@ describe.skipIf(!hasTestDatabase)('password sign-in limit per account (database)
       userId: user.id,
     });
     // Older failures fall out of the window.
-    await pool.query(`UPDATE audit_events SET at = now() - interval '16 minutes'`);
+    await pool.query(`UPDATE signin_attempts SET at = now() - interval '16 minutes'`);
     expect('user' in (await attempt('ada@example.com', PASSWORD))).toBe(true);
+  });
+
+  it('checks no more passwords than the limit when they arrive together', async () => {
+    await users.create({ email: 'ada@example.com', displayName: 'Ada', password: PASSWORD });
+    let checked = 0;
+    const authenticate = users.authenticate.bind(users);
+    users.authenticate = async (...args) => {
+      checked++;
+      return authenticate(...args);
+    };
+    try {
+      await Promise.all(
+        Array.from({ length: PASSWORD_FAILURES * 2 }, (_, i) =>
+          attempt('ada@example.com', `wrong passphrase number ${i}`),
+        ),
+      );
+    } finally {
+      users.authenticate = authenticate;
+    }
+    expect(checked).toBe(PASSWORD_FAILURES);
+    expect(await attempt('ada@example.com', PASSWORD)).toMatchObject({ error: 'invalid' });
   });
 
   it('answers an unknown account the same way, without locking anything', async () => {
