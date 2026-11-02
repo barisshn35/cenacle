@@ -323,9 +323,15 @@ func (h *Handlers) DecideSpillage(w http.ResponseWriter, r *http.Request, report
 					return err
 				}
 			}
+			// Workflow runs it started: their variables and tasks, and what they posted.
+			runs, posted, err := redactRunCopies(r.Context(), q, c.WorkspaceID, msg.ID, p.User.ID)
+			if err != nil {
+				return err
+			}
 			incident["removed"] = map[string]any{"edits": counts.Edits, "reactions": counts.Reactions, "mentions": counts.Mentions,
 				"saved": counts.Saved, "reminders": counts.Reminders, "sent_reminders": len(reminded), "forwards": len(copies),
-				"bot_deliveries": int64(counts.Deliveries) + forwardDeliveries, "server_deliveries": counts.Federated, "files": list}
+				"bot_deliveries": int64(counts.Deliveries) + forwardDeliveries, "server_deliveries": counts.Federated, "files": list,
+				"workflow_runs": runs, "workflow_messages": posted}
 			ref := MessageRef{ID: uuid(msg.ID).String(), ChannelID: uuid(c.ID).String()}
 			if msg.RootID.Valid {
 				ref.RootID = uuid(msg.RootID).String()
@@ -382,4 +388,35 @@ func (h *Handlers) GetSpillageIncident(w http.ResponseWriter, r *http.Request, r
 	w.Header().Set("Content-Disposition", `attachment; filename="cenacle-spillage-`+uuid(rep.ID).String()+`.json"`)
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = w.Write(rep.Report)
+}
+
+// redactRunCopies takes a spilled message's text out of the workflow runs it
+// started and empties what they posted; it returns how many of each.
+func redactRunCopies(ctx context.Context, q *store.Queries, workspace, message, by pgtype.UUID) (int, int, error) {
+	runs, err := q.ForgetTriggerMessage(ctx, message)
+	if err != nil || len(runs) == 0 {
+		return 0, 0, err
+	}
+	bot, err := systemBot(ctx, q, workspace)
+	if err != nil {
+		return 0, 0, err
+	}
+	prefixes := make([]string, 0, len(runs))
+	for _, id := range runs {
+		prefixes = append(prefixes, "wf-"+uuid(id).String()+"-%")
+	}
+	posted, err := q.RedactRunMessages(ctx, store.RedactRunMessagesParams{RemovedBy: by, BotID: bot.ID, Prefixes: prefixes})
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, m := range posted {
+		ref := MessageRef{ID: uuid(m.ID).String(), ChannelID: uuid(m.ChannelID).String()}
+		if m.RootID.Valid {
+			ref.RootID = uuid(m.RootID).String()
+		}
+		if err := emit(ctx, q, events.MessageDeleted, ref); err != nil {
+			return 0, 0, err
+		}
+	}
+	return len(runs), len(posted), nil
 }

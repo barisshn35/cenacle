@@ -941,20 +941,21 @@ type Workflow struct {
 }
 
 type WorkflowRun struct {
-	ID            pgtype.UUID        `json:"id"`
-	WorkflowID    pgtype.UUID        `json:"workflow_id"`
-	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
-	WorkflowName  string             `json:"workflow_name"`
-	Steps         []byte             `json:"steps"`
-	Step          int32              `json:"step"`
-	Status        string             `json:"status"`
-	Vars          []byte             `json:"vars"`
-	WakeAt        time.Time          `json:"wake_at"`
-	TriggerUserID pgtype.UUID        `json:"trigger_user_id"`
-	ChannelID     pgtype.UUID        `json:"channel_id"`
-	Error         string             `json:"error"`
-	CreatedAt     time.Time          `json:"created_at"`
-	FinishedAt    pgtype.Timestamptz `json:"finished_at"`
+	ID               pgtype.UUID        `json:"id"`
+	WorkflowID       pgtype.UUID        `json:"workflow_id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	WorkflowName     string             `json:"workflow_name"`
+	Steps            []byte             `json:"steps"`
+	Step             int32              `json:"step"`
+	Status           string             `json:"status"`
+	Vars             []byte             `json:"vars"`
+	WakeAt           time.Time          `json:"wake_at"`
+	TriggerUserID    pgtype.UUID        `json:"trigger_user_id"`
+	ChannelID        pgtype.UUID        `json:"channel_id"`
+	Error            string             `json:"error"`
+	CreatedAt        time.Time          `json:"created_at"`
+	FinishedAt       pgtype.Timestamptz `json:"finished_at"`
+	TriggerMessageID pgtype.UUID        `json:"trigger_message_id"`
 }
 
 type WorkflowTask struct {

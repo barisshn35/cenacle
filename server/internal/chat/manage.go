@@ -513,6 +513,10 @@ func (h *Handlers) DeleteMessage(w http.ResponseWriter, r *http.Request, channel
 			if _, err := q.DeleteMessage(r.Context(), store.DeleteMessageParams{ID: m.ID, DeletedBy: p.User.ID}); err != nil {
 				return err
 			}
+			// Waiting workflow runs it started do not post its text later.
+			if _, err := q.ForgetTriggerMessage(r.Context(), m.ID); err != nil {
+				return err
+			}
 			ref := MessageRef{ID: uuid(m.ID).String(), ChannelID: uuid(c.ID).String()}
 			if m.RootID.Valid {
 				ref.RootID = uuid(m.RootID).String()

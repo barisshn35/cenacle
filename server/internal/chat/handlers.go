@@ -359,7 +359,7 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 			return nil
 		}
 		lower := strings.ToLower(body)
-		return triggerWorkflows(r.Context(), q, TriggerKeyword, c, p.User,
+		return triggerWorkflows(r.Context(), q, TriggerKeyword, c, p.User, pgUUID(out.Id),
 			func(t api.WorkflowTrigger) bool {
 				return t.Keyword != nil && strings.Contains(lower, strings.ToLower(*t.Keyword))
 			}, runVars{"trigger.message": body})

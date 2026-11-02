@@ -584,8 +584,9 @@ func (v runVars) render(text string) string {
 	})
 }
 
-// newRun starts a run of a workflow (inside the caller's transaction).
-func newRun(ctx context.Context, q *store.Queries, wf store.Workflow, user pgtype.UUID, channel pgtype.UUID, vars runVars) (store.WorkflowRun, error) {
+// newRun starts a run of a workflow (inside the caller's transaction);
+// message is the message that triggered it, whose text is in vars.
+func newRun(ctx context.Context, q *store.Queries, wf store.Workflow, user pgtype.UUID, channel pgtype.UUID, message pgtype.UUID, vars runVars) (store.WorkflowRun, error) {
 	vars["workflow.name"] = wf.Name
 	if user.Valid {
 		vars["trigger.user"] = "<@" + uuid(user).String() + ">"
@@ -601,7 +602,7 @@ func newRun(ctx context.Context, q *store.Queries, wf store.Workflow, user pgtyp
 	raw, _ := json.Marshal(vars)
 	return q.CreateWorkflowRun(ctx, store.CreateWorkflowRunParams{
 		WorkflowID: wf.ID, WorkspaceID: wf.WorkspaceID, WorkflowName: wf.Name, Steps: wf.Steps, Vars: raw,
-		TriggerUserID: user, ChannelID: channel,
+		TriggerUserID: user, ChannelID: channel, TriggerMessageID: message,
 	})
 }
 
@@ -651,7 +652,7 @@ func (h *Handlers) StartWorkflow(w http.ResponseWriter, r *http.Request, workflo
 			return err
 		}
 		var err error
-		run, err = newRun(r.Context(), q, wf, p.User.ID, c.ID, runVars{})
+		run, err = newRun(r.Context(), q, wf, p.User.ID, c.ID, pgtype.UUID{}, runVars{})
 		if err != nil {
 			return err
 		}
@@ -731,7 +732,7 @@ func (h *Handlers) TriggerWorkflowWebhook(w http.ResponseWriter, r *http.Request
 			}
 			return err
 		}
-		_, err := newRun(r.Context(), q, wf, pgtype.UUID{}, wf.ChannelID, vars)
+		_, err := newRun(r.Context(), q, wf, pgtype.UUID{}, wf.ChannelID, pgtype.UUID{}, vars)
 		return err
 	})
 	if errors.Is(err, errWorkflowBusy) {
@@ -748,9 +749,10 @@ func (h *Handlers) TriggerWorkflowWebhook(w http.ResponseWriter, r *http.Request
 }
 
 // triggerWorkflows starts the workflows a channel event triggers (inside the
-// caller's transaction). Workflows never trigger on bots, their own messages
-// included, so they cannot start each other in a loop.
-func triggerWorkflows(ctx context.Context, q *store.Queries, kind string, c store.Channel, user store.User, match func(api.WorkflowTrigger) bool, vars runVars) error {
+// caller's transaction); message is the message the event is about, if any.
+// Workflows never trigger on bots, their own messages included, so they
+// cannot start each other in a loop.
+func triggerWorkflows(ctx context.Context, q *store.Queries, kind string, c store.Channel, user store.User, message pgtype.UUID, match func(api.WorkflowTrigger) bool, vars runVars) error {
 	if user.IsBot || isConversation(c) {
 		return nil
 	}
@@ -774,7 +776,7 @@ func triggerWorkflows(ctx context.Context, q *store.Queries, kind string, c stor
 		for k, val := range vars {
 			v[k] = val
 		}
-		if _, err := newRun(ctx, q, wf, user.ID, c.ID, v); err != nil {
+		if _, err := newRun(ctx, q, wf, user.ID, c.ID, message, v); err != nil {
 			return err
 		}
 	}
@@ -784,7 +786,7 @@ func triggerWorkflows(ctx context.Context, q *store.Queries, kind string, c stor
 // memberJoined starts the workflows that greet people joining a channel.
 func (h *Handlers) memberJoined(ctx context.Context, c store.Channel, user store.User) {
 	err := h.inTx(ctx, func(q *store.Queries) error {
-		return triggerWorkflows(ctx, q, TriggerMemberJoined, c, user, nil, runVars{})
+		return triggerWorkflows(ctx, q, TriggerMemberJoined, c, user, pgtype.UUID{}, nil, runVars{})
 	})
 	if err != nil {
 		h.Log.ErrorContext(ctx, "start workflows", "error", err)
@@ -820,7 +822,7 @@ func (wr *WorkflowRunner) Run(ctx context.Context) (int, error) {
 			if err := q.SetWorkflowNextRun(ctx, store.SetWorkflowNextRunParams{ID: wf.ID, NextRunAt: pgtype.Timestamptz{Time: next, Valid: true}}); err != nil {
 				return err
 			}
-			if _, err := newRun(ctx, q, wf, pgtype.UUID{}, wf.ChannelID, runVars{}); err != nil {
+			if _, err := newRun(ctx, q, wf, pgtype.UUID{}, wf.ChannelID, pgtype.UUID{}, runVars{}); err != nil {
 				return err
 			}
 			n++
@@ -862,6 +864,16 @@ func advance(ctx context.Context, q *store.Queries, out *egress.Client, run stor
 	vars := runVars{}
 	_ = json.Unmarshal(run.Vars, &vars)
 	vars["run.id"] = uuid(run.ID).String()
+	// A deleted or removed message's text is not published again.
+	if run.TriggerMessageID.Valid {
+		live, err := q.MessageLive(ctx, run.TriggerMessageID)
+		if err != nil {
+			return run, err
+		}
+		if !live {
+			delete(vars, "trigger.message")
+		}
+	}
 	status, wake, problem := "running", time.Now(), ""
 	bot, err := systemBot(ctx, q, run.WorkspaceID)
 	if err != nil {

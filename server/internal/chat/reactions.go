@@ -107,7 +107,7 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 		if m.BurnSeconds.Valid {
 			return nil
 		}
-		return triggerWorkflows(r.Context(), q, TriggerReaction, c, p.User,
+		return triggerWorkflows(r.Context(), q, TriggerReaction, c, p.User, m.ID,
 			func(t api.WorkflowTrigger) bool { return t.Emoji != nil && *t.Emoji == emoji },
 			runVars{"trigger.emoji": emoji, "trigger.message": m.Body})
 	})

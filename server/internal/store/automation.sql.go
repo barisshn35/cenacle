@@ -86,7 +86,7 @@ func (q *Queries) ClaimDueSchedules(ctx context.Context, rowLimit int32) ([]Work
 }
 
 const claimDueWorkflowRuns = `-- name: ClaimDueWorkflowRuns :many
-SELECT id, workflow_id, workspace_id, workflow_name, steps, step, status, vars, wake_at, trigger_user_id, channel_id, error, created_at, finished_at FROM workflow_runs
+SELECT id, workflow_id, workspace_id, workflow_name, steps, step, status, vars, wake_at, trigger_user_id, channel_id, error, created_at, finished_at, trigger_message_id FROM workflow_runs
 WHERE status = 'running' AND wake_at <= now()
 ORDER BY wake_at LIMIT $1
 FOR UPDATE SKIP LOCKED
@@ -116,6 +116,7 @@ func (q *Queries) ClaimDueWorkflowRuns(ctx context.Context, rowLimit int32) ([]W
 			&i.Error,
 			&i.CreatedAt,
 			&i.FinishedAt,
+			&i.TriggerMessageID,
 		); err != nil {
 			return nil, err
 		}
@@ -293,19 +294,22 @@ func (q *Queries) CreateWorkflow(ctx context.Context, arg CreateWorkflowParams) 
 }
 
 const createWorkflowRun = `-- name: CreateWorkflowRun :one
-INSERT INTO workflow_runs (workflow_id, workspace_id, workflow_name, steps, vars, trigger_user_id, channel_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, workflow_id, workspace_id, workflow_name, steps, step, status, vars, wake_at, trigger_user_id, channel_id, error, created_at, finished_at
+INSERT INTO workflow_runs (workflow_id, workspace_id, workflow_name, steps, vars, trigger_user_id, channel_id,
+    trigger_message_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+    $8)
+RETURNING id, workflow_id, workspace_id, workflow_name, steps, step, status, vars, wake_at, trigger_user_id, channel_id, error, created_at, finished_at, trigger_message_id
 `
 
 type CreateWorkflowRunParams struct {
-	WorkflowID    pgtype.UUID `json:"workflow_id"`
-	WorkspaceID   pgtype.UUID `json:"workspace_id"`
-	WorkflowName  string      `json:"workflow_name"`
-	Steps         []byte      `json:"steps"`
-	Vars          []byte      `json:"vars"`
-	TriggerUserID pgtype.UUID `json:"trigger_user_id"`
-	ChannelID     pgtype.UUID `json:"channel_id"`
+	WorkflowID       pgtype.UUID `json:"workflow_id"`
+	WorkspaceID      pgtype.UUID `json:"workspace_id"`
+	WorkflowName     string      `json:"workflow_name"`
+	Steps            []byte      `json:"steps"`
+	Vars             []byte      `json:"vars"`
+	TriggerUserID    pgtype.UUID `json:"trigger_user_id"`
+	ChannelID        pgtype.UUID `json:"channel_id"`
+	TriggerMessageID pgtype.UUID `json:"trigger_message_id"`
 }
 
 func (q *Queries) CreateWorkflowRun(ctx context.Context, arg CreateWorkflowRunParams) (WorkflowRun, error) {
@@ -317,6 +321,7 @@ func (q *Queries) CreateWorkflowRun(ctx context.Context, arg CreateWorkflowRunPa
 		arg.Vars,
 		arg.TriggerUserID,
 		arg.ChannelID,
+		arg.TriggerMessageID,
 	)
 	var i WorkflowRun
 	err := row.Scan(
@@ -334,6 +339,7 @@ func (q *Queries) CreateWorkflowRun(ctx context.Context, arg CreateWorkflowRunPa
 		&i.Error,
 		&i.CreatedAt,
 		&i.FinishedAt,
+		&i.TriggerMessageID,
 	)
 	return i, err
 }
@@ -423,6 +429,39 @@ func (q *Queries) FinishWorkflowTask(ctx context.Context, arg FinishWorkflowTask
 	return i, err
 }
 
+const forgetTriggerMessage = `-- name: ForgetTriggerMessage :many
+WITH runs AS (
+    UPDATE workflow_runs r SET vars = r.vars - 'trigger.message'
+    WHERE r.trigger_message_id = $1
+    RETURNING r.id, r.workflow_name
+), tasks AS (
+    UPDATE workflow_tasks t SET title = runs.workflow_name FROM runs WHERE t.run_id = runs.id RETURNING 1
+)
+SELECT id FROM runs
+`
+
+// ForgetTriggerMessage takes a removed message's text out of the runs it
+// started (their variables) and of their tasks (titles rendered from them).
+func (q *Queries) ForgetTriggerMessage(ctx context.Context, messageID pgtype.UUID) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, forgetTriggerMessage, messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var id pgtype.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getForm = `-- name: GetForm :one
 SELECT id, workspace_id, name, description, fields, created_by, created_at, updated_at, archived_at FROM forms WHERE id = $1
 `
@@ -501,7 +540,7 @@ func (q *Queries) GetWorkflowByWebhook(ctx context.Context, webhookHash []byte) 
 }
 
 const getWorkflowRunForUpdate = `-- name: GetWorkflowRunForUpdate :one
-SELECT id, workflow_id, workspace_id, workflow_name, steps, step, status, vars, wake_at, trigger_user_id, channel_id, error, created_at, finished_at FROM workflow_runs WHERE id = $1 FOR UPDATE
+SELECT id, workflow_id, workspace_id, workflow_name, steps, step, status, vars, wake_at, trigger_user_id, channel_id, error, created_at, finished_at, trigger_message_id FROM workflow_runs WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetWorkflowRunForUpdate(ctx context.Context, id pgtype.UUID) (WorkflowRun, error) {
@@ -522,6 +561,7 @@ func (q *Queries) GetWorkflowRunForUpdate(ctx context.Context, id pgtype.UUID) (
 		&i.Error,
 		&i.CreatedAt,
 		&i.FinishedAt,
+		&i.TriggerMessageID,
 	)
 	return i, err
 }
@@ -897,7 +937,7 @@ func (q *Queries) ListTriggeredWorkflows(ctx context.Context, arg ListTriggeredW
 }
 
 const listWorkflowRuns = `-- name: ListWorkflowRuns :many
-SELECT r.id, r.workflow_id, r.workspace_id, r.workflow_name, r.steps, r.step, r.status, r.vars, r.wake_at, r.trigger_user_id, r.channel_id, r.error, r.created_at, r.finished_at, coalesce(u.display_name, '') AS trigger_user_name
+SELECT r.id, r.workflow_id, r.workspace_id, r.workflow_name, r.steps, r.step, r.status, r.vars, r.wake_at, r.trigger_user_id, r.channel_id, r.error, r.created_at, r.finished_at, r.trigger_message_id, coalesce(u.display_name, '') AS trigger_user_name
 FROM workflow_runs r LEFT JOIN users u ON u.id = r.trigger_user_id
 WHERE r.workflow_id = $1
 ORDER BY r.id DESC LIMIT $2
@@ -909,21 +949,22 @@ type ListWorkflowRunsParams struct {
 }
 
 type ListWorkflowRunsRow struct {
-	ID              pgtype.UUID        `json:"id"`
-	WorkflowID      pgtype.UUID        `json:"workflow_id"`
-	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
-	WorkflowName    string             `json:"workflow_name"`
-	Steps           []byte             `json:"steps"`
-	Step            int32              `json:"step"`
-	Status          string             `json:"status"`
-	Vars            []byte             `json:"vars"`
-	WakeAt          time.Time          `json:"wake_at"`
-	TriggerUserID   pgtype.UUID        `json:"trigger_user_id"`
-	ChannelID       pgtype.UUID        `json:"channel_id"`
-	Error           string             `json:"error"`
-	CreatedAt       time.Time          `json:"created_at"`
-	FinishedAt      pgtype.Timestamptz `json:"finished_at"`
-	TriggerUserName string             `json:"trigger_user_name"`
+	ID               pgtype.UUID        `json:"id"`
+	WorkflowID       pgtype.UUID        `json:"workflow_id"`
+	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
+	WorkflowName     string             `json:"workflow_name"`
+	Steps            []byte             `json:"steps"`
+	Step             int32              `json:"step"`
+	Status           string             `json:"status"`
+	Vars             []byte             `json:"vars"`
+	WakeAt           time.Time          `json:"wake_at"`
+	TriggerUserID    pgtype.UUID        `json:"trigger_user_id"`
+	ChannelID        pgtype.UUID        `json:"channel_id"`
+	Error            string             `json:"error"`
+	CreatedAt        time.Time          `json:"created_at"`
+	FinishedAt       pgtype.Timestamptz `json:"finished_at"`
+	TriggerMessageID pgtype.UUID        `json:"trigger_message_id"`
+	TriggerUserName  string             `json:"trigger_user_name"`
 }
 
 func (q *Queries) ListWorkflowRuns(ctx context.Context, arg ListWorkflowRunsParams) ([]ListWorkflowRunsRow, error) {
@@ -950,6 +991,7 @@ func (q *Queries) ListWorkflowRuns(ctx context.Context, arg ListWorkflowRunsPara
 			&i.Error,
 			&i.CreatedAt,
 			&i.FinishedAt,
+			&i.TriggerMessageID,
 			&i.TriggerUserName,
 		); err != nil {
 			return nil, err
@@ -1063,6 +1105,18 @@ func (q *Queries) ListWorkflows(ctx context.Context, workspaceID pgtype.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const messageLive = `-- name: MessageLive :one
+SELECT EXISTS (SELECT 1 FROM messages WHERE id = $1 AND deleted_at IS NULL)
+`
+
+// MessageLive: the message exists and is not deleted.
+func (q *Queries) MessageLive(ctx context.Context, id pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, messageLive, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const saveWorkflowRun = `-- name: SaveWorkflowRun :exec

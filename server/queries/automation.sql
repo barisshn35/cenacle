@@ -93,9 +93,27 @@ FOR UPDATE SKIP LOCKED;
 UPDATE workflows SET next_run_at = @next_run_at WHERE id = @id;
 
 -- name: CreateWorkflowRun :one
-INSERT INTO workflow_runs (workflow_id, workspace_id, workflow_name, steps, vars, trigger_user_id, channel_id)
-VALUES (@workflow_id, @workspace_id, @workflow_name, @steps, @vars, sqlc.narg(trigger_user_id), sqlc.narg(channel_id))
+INSERT INTO workflow_runs (workflow_id, workspace_id, workflow_name, steps, vars, trigger_user_id, channel_id,
+    trigger_message_id)
+VALUES (@workflow_id, @workspace_id, @workflow_name, @steps, @vars, sqlc.narg(trigger_user_id), sqlc.narg(channel_id),
+    sqlc.narg(trigger_message_id))
 RETURNING *;
+
+-- name: ForgetTriggerMessage :many
+-- ForgetTriggerMessage takes a removed message's text out of the runs it
+-- started (their variables) and of their tasks (titles rendered from them).
+WITH runs AS (
+    UPDATE workflow_runs r SET vars = r.vars - 'trigger.message'
+    WHERE r.trigger_message_id = @message_id
+    RETURNING r.id, r.workflow_name
+), tasks AS (
+    UPDATE workflow_tasks t SET title = runs.workflow_name FROM runs WHERE t.run_id = runs.id RETURNING 1
+)
+SELECT id FROM runs;
+
+-- name: MessageLive :one
+-- MessageLive: the message exists and is not deleted.
+SELECT EXISTS (SELECT 1 FROM messages WHERE id = @id AND deleted_at IS NULL);
 
 -- name: ClaimDueWorkflowRuns :many
 SELECT * FROM workflow_runs

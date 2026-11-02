@@ -346,6 +346,9 @@ type Querier interface {
 	FollowImportedThreads(ctx context.Context, channelID pgtype.UUID) error
 	// FollowThread makes people follow a thread unless they chose otherwise before.
 	FollowThread(ctx context.Context, arg FollowThreadParams) error
+	// ForgetTriggerMessage takes a removed message's text out of the runs it
+	// started (their variables) and of their tasks (titles rendered from them).
+	ForgetTriggerMessage(ctx context.Context, messageID pgtype.UUID) ([]pgtype.UUID, error)
 	GetAIConsent(ctx context.Context, userID pgtype.UUID) (AiConsent, error)
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
 	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
@@ -710,6 +713,8 @@ type Querier interface {
 	MarkUnreadFrom(ctx context.Context, arg MarkUnreadFromParams) (pgtype.UUID, error)
 	// MarkWorkspaceImported records that an import created the workspace.
 	MarkWorkspaceImported(ctx context.Context, workspaceID pgtype.UUID) error
+	// MessageLive: the message exists and is not deleted.
+	MessageLive(ctx context.Context, id pgtype.UUID) (bool, error)
 	// MissedForEmail lists unread mentions, conversation messages and replies in
 	// followed threads of a person after a message id and older than a moment,
 	// oldest first.
@@ -794,6 +799,9 @@ type Querier interface {
 	// RedactMessage empties a spilled message and its traces; legal holds do not
 	// keep spillage.
 	RedactMessage(ctx context.Context, arg RedactMessageParams) (RedactMessageRow, error)
+	// RedactRunMessages empties what workflow runs (nonce prefixes wf-<run>-)
+	// posted as the system bot; task cards carry no text and stay.
+	RedactRunMessages(ctx context.Context, arg RedactRunMessagesParams) ([]RedactRunMessagesRow, error)
 	ReleaseLegalHold(ctx context.Context, arg ReleaseLegalHoldParams) (LegalHold, error)
 	// ReleaseUpload gives up a claim that found nothing to check (the upload can
 	// be completed again at once).

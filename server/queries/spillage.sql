@@ -90,3 +90,12 @@ RETURNING *;
 
 -- name: DetachMessageFiles :many
 DELETE FROM files WHERE message_id = @message_id RETURNING id, name, size, content_type;
+
+-- name: RedactRunMessages :many
+-- RedactRunMessages empties what workflow runs (nonce prefixes wf-<run>-)
+-- posted as the system bot; task cards carry no text and stay.
+UPDATE messages m SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
+    deleted_at = coalesce(m.deleted_at, now()), deleted_by = @removed_by, edited_at = NULL,
+    pinned_at = NULL, pinned_by = NULL
+WHERE m.author_id = @bot_id AND m.task_id IS NULL AND m.nonce LIKE ANY (@prefixes::text[])
+RETURNING m.id, m.channel_id, m.root_id;

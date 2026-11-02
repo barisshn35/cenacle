@@ -372,6 +372,48 @@ func (q *Queries) RedactMessage(ctx context.Context, arg RedactMessageParams) (R
 	return i, err
 }
 
+const redactRunMessages = `-- name: RedactRunMessages :many
+UPDATE messages m SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
+    deleted_at = coalesce(m.deleted_at, now()), deleted_by = $1, edited_at = NULL,
+    pinned_at = NULL, pinned_by = NULL
+WHERE m.author_id = $2 AND m.task_id IS NULL AND m.nonce LIKE ANY ($3::text[])
+RETURNING m.id, m.channel_id, m.root_id
+`
+
+type RedactRunMessagesParams struct {
+	RemovedBy pgtype.UUID `json:"removed_by"`
+	BotID     pgtype.UUID `json:"bot_id"`
+	Prefixes  []string    `json:"prefixes"`
+}
+
+type RedactRunMessagesRow struct {
+	ID        pgtype.UUID `json:"id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	RootID    pgtype.UUID `json:"root_id"`
+}
+
+// RedactRunMessages empties what workflow runs (nonce prefixes wf-<run>-)
+// posted as the system bot; task cards carry no text and stay.
+func (q *Queries) RedactRunMessages(ctx context.Context, arg RedactRunMessagesParams) ([]RedactRunMessagesRow, error) {
+	rows, err := q.db.Query(ctx, redactRunMessages, arg.RemovedBy, arg.BotID, arg.Prefixes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RedactRunMessagesRow
+	for rows.Next() {
+		var i RedactRunMessagesRow
+		if err := rows.Scan(&i.ID, &i.ChannelID, &i.RootID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const removeReminderCopies = `-- name: RemoveReminderCopies :many
 UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
     deleted_at = coalesce(x.deleted_at, now()), deleted_by = $1, edited_at = NULL

@@ -4,6 +4,7 @@ package app_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -12,6 +13,13 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
+
+func (s *stack) wake() {
+	s.t.Helper()
+	if _, err := s.pool.Exec(context.Background(), `UPDATE workflow_runs SET wake_at = now() WHERE status = 'running'`); err != nil {
+		s.t.Fatal(err)
+	}
+}
 
 func (s *stack) spill(reporter, owner, channelID, messageID string) {
 	s.t.Helper()
@@ -30,6 +38,98 @@ func (s *stack) newWorkflow(admin, ws string, body map[string]any) {
 	s.t.Helper()
 	if res := s.call(http.MethodPost, "/api/workspaces/"+ws+"/workflows", admin, body, nil); res.StatusCode != http.StatusCreated {
 		s.t.Fatalf("create workflow %v = %d", body["name"], res.StatusCode)
+	}
+}
+
+func TestSpillageReachesWorkflowRuns(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	general := s.general(ayse)
+	s.general(mert)
+	later := func(name string, trigger map[string]any, text string) {
+		s.newWorkflow(admin, s.defaultWS, map[string]any{"name": name, "trigger": trigger, "steps": []map[string]any{
+			{"id": "wait", "kind": "delay", "minutes": 5},
+			{"id": "say", "kind": "message", "text": text},
+			{"id": "ask", "kind": "approval", "text": "Approve {{trigger.message}}?", "approvers": []string{s.userID(admin)}},
+		}})
+	}
+	later("Keyword", map[string]any{"kind": "keyword", "channel_id": general, "keyword": "spillkw"}, "KW {{trigger.message}}")
+	later("Reaction", map[string]any{"kind": "reaction", "channel_id": general, "emoji": "👍"}, "RX {{trigger.message}}")
+	s.newWorkflow(admin, s.defaultWS, map[string]any{
+		"name": "Now", "trigger": map[string]any{"kind": "keyword", "channel_id": general, "keyword": "spillkw"},
+		"steps": []map[string]any{{"id": "say", "kind": "message", "text": "NOW {{trigger.message}}"}},
+	})
+	m, _ := s.send(ayse, general, "spillkw text SPILL-RUN-1", "wfspill-nonce-1")
+	s.call(http.MethodPut, "/api/channels/"+general+"/messages/"+m.ID+"/reactions/%F0%9F%91%8D", mert, nil, nil)
+	s.runWorkflows()
+	if n := s.botMessages("SPILL-RUN-1"); n != 1 {
+		t.Fatalf("posted at once = %d", n)
+	}
+
+	s.spill(mert, admin, general, m.ID)
+	if n := s.count(`SELECT count(*) FROM workflow_runs WHERE vars::text LIKE '%SPILL-RUN-1%'`); n != 0 {
+		t.Errorf("runs still hold the text: %d", n)
+	}
+	if n := s.count(`SELECT count(*) FROM messages WHERE body LIKE '%SPILL-RUN-1%'`); n != 0 {
+		t.Errorf("messages still hold the text: %d", n)
+	}
+	s.wake()
+	s.runWorkflows()
+	if n := s.count(`SELECT count(*) FROM messages WHERE body LIKE '%SPILL-RUN-1%'`); n != 0 {
+		t.Errorf("waiting runs posted the text: %d", n)
+	}
+	if n := s.count(`SELECT count(*) FROM workflow_tasks WHERE title LIKE '%SPILL-RUN-1%'`); n != 0 {
+		t.Errorf("tasks hold the text: %d", n)
+	}
+	var incident struct {
+		Removed struct {
+			WorkflowRuns     int `json:"workflow_runs"`
+			WorkflowMessages int `json:"workflow_messages"`
+		}
+	}
+	var raw []byte
+	_ = s.pool.QueryRow(context.Background(), `SELECT report FROM spillage_reports WHERE message_ref = $1`, m.ID).Scan(&raw)
+	_ = json.Unmarshal(raw, &incident)
+	if incident.Removed.WorkflowRuns != 3 || incident.Removed.WorkflowMessages != 1 {
+		t.Errorf("incident = %s", raw)
+	}
+}
+
+func TestDeletedMessageNotPostedByWaitingRun(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	s.newWorkflow(admin, s.defaultWS, map[string]any{
+		"name": "Later", "trigger": map[string]any{"kind": "keyword", "channel_id": general, "keyword": "delkw"},
+		"steps": []map[string]any{
+			{"id": "wait", "kind": "delay", "minutes": 5},
+			{"id": "say", "kind": "message", "text": "Heard: {{trigger.message}}"},
+		},
+	})
+	deleted, _ := s.send(ayse, general, "delkw DEL-RUN-1", "wfdel-nonce-1")
+	purged, _ := s.send(ayse, general, "delkw DEL-RUN-2", "wfdel-nonce-2")
+	s.send(ayse, general, "delkw KEPT-RUN-3", "wfdel-nonce-3")
+	s.runWorkflows()
+	if res := s.call(http.MethodDelete, "/api/channels/"+general+"/messages/"+deleted.ID, ayse, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete = %d", res.StatusCode)
+	}
+	if n := s.count(`SELECT count(*) FROM workflow_runs WHERE vars::text LIKE '%DEL-RUN-1%'`); n != 0 {
+		t.Errorf("the run still holds the deleted text: %d", n)
+	}
+	// Gone for good (as the purges do), with no word to the runs.
+	if _, err := s.pool.Exec(context.Background(), `DELETE FROM messages WHERE id = $1`, purged.ID); err != nil {
+		t.Fatal(err)
+	}
+	s.wake()
+	s.runWorkflows()
+	if n := s.botMessages("DEL-RUN"); n != 0 {
+		t.Errorf("removed text posted: %d", n)
+	}
+	if n := s.botMessages("Heard: delkw KEPT-RUN-3"); n != 1 {
+		t.Errorf("kept message's run = %d", n)
 	}
 }
 
