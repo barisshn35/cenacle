@@ -101,6 +101,38 @@ func TestEnsureDefaultsKeepsPrivateChannel(t *testing.T) {
 	}
 }
 
+// Reactions, edits and the other changes that reach a whole channel have a
+// per-user rate limit of their own, like messages.
+func TestMemberActionsAreRateLimited(t *testing.T) {
+	s := newStack(t, newShared(t), options{perWindow: 2})
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	m, _ := s.send(ayse, general, "hello", "actions-nonce-1")
+	reaction := "/api/channels/" + general + "/messages/" + m.ID + "/reactions/%F0%9F%91%8D"
+	limit := 5 * 2
+	for i := range limit {
+		method := http.MethodPut
+		if i%2 == 1 {
+			method = http.MethodDelete
+		}
+		if res := s.call(method, reaction, ayse, nil, nil); res.StatusCode >= 300 {
+			t.Fatalf("toggle %d = %d", i, res.StatusCode)
+		}
+	}
+	res := s.call(http.MethodPatch, "/api/channels/"+general+"/messages/"+m.ID, ayse, map[string]string{"body": "edited"}, nil)
+	if res.StatusCode != http.StatusTooManyRequests || res.Header.Get("Retry-After") == "" {
+		t.Errorf("edit past the limit = %d, Retry-After %q", res.StatusCode, res.Header.Get("Retry-After"))
+	}
+	if res := s.call(http.MethodPut, "/api/me/status", ayse, map[string]any{"emoji": "🌴"}, nil); res.StatusCode != http.StatusTooManyRequests {
+		t.Errorf("status past the limit = %d", res.StatusCode)
+	}
+	// Another member's limit is their own.
+	mert := s.user("sub-m", "Mert")
+	if res := s.call(http.MethodPut, reaction, mert, nil, nil); res.StatusCode >= 300 {
+		t.Errorf("another member's reaction = %d", res.StatusCode)
+	}
+}
+
 // A workspace admin who is not an owner does not read in the audit log what
 // only owners (legal holds, eDiscovery) and spillage reviewers see.
 func TestWorkspaceAuditHidesOwnerOnlyEvents(t *testing.T) {

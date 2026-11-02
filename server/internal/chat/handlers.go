@@ -204,6 +204,28 @@ func (h *Handlers) allowMessage(w http.ResponseWriter, r *http.Request, user sto
 	return true
 }
 
+// actionsPerMessage: a member's other changes that reach everyone in a
+// channel (reactions, edits, pins, votes, acknowledgements, read positions,
+// status) may come this many times as often as messages.
+const actionsPerMessage = 5
+
+// allowAction counts such a change of the user against its own rate limit;
+// past it, it answers 429 and returns false.
+func (h *Handlers) allowAction(w http.ResponseWriter, r *http.Request, user store.User) bool {
+	n, wait, err := h.Limiter.Hit(r.Context(), "cenacle:rl:actions:"+uuid(user.ID).String(), h.Window)
+	if err != nil {
+		h.unavailable(w, r, "rate limit", err)
+		return false
+	}
+	if n > actionsPerMessage*h.MessagesPerWindow {
+		w.Header().Set("Retry-After", strconv.Itoa(int((wait+time.Second-1)/time.Second)))
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusTooManyRequests, Code: httpx.CodeRateLimited,
+			Detail: "Too many changes in a short time."})
+		return false
+	}
+	return true
+}
+
 // errNonceReused: the author used the nonce for another message.
 var errNonceReused = errors.New("nonce reused")
 

@@ -40,6 +40,9 @@ func (h *Handlers) react(w http.ResponseWriter, r *http.Request, channelID, mess
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	custom := customEmojiName(emoji)
 	if custom == "" && !validEmoji(emoji) {
 		badRequest(w, r, "A reaction is one emoji.")

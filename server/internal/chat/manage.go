@@ -344,6 +344,9 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	var in struct {
 		Body string `json:"body"`
 	}

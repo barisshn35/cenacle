@@ -165,6 +165,9 @@ func (h *Handlers) MarkRead(w http.ResponseWriter, r *http.Request, channelID op
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	var in api.MarkReadJSONBody
 	if !decode(w, r, &in) {
 		return

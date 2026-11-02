@@ -55,6 +55,9 @@ func (h *Handlers) ack(w http.ResponseWriter, r *http.Request, channelID, messag
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	c, _, m, ok := h.message(w, r, channelID, messageID, p.User)
 	if !ok {
 		return

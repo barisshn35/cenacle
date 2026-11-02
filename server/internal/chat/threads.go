@@ -375,6 +375,9 @@ func (h *Handlers) setPinned(w http.ResponseWriter, r *http.Request, channelID, 
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	c, role, m, ok := h.message(w, r, channelID, messageID, p.User)
 	if !ok {
 		return

@@ -169,6 +169,9 @@ func (h *Handlers) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	var in api.UpdateMyProfileJSONBody
 	if !decode(w, r, &in) {
 		return
@@ -269,6 +272,9 @@ func (h *Handlers) SetCustomStatus(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	var in api.CustomStatus
 	if !decode(w, r, &in) {
 		return
@@ -294,6 +300,9 @@ func (h *Handlers) SetCustomStatus(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) ClearCustomStatus(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
 	if !ok {
+		return
+	}
+	if !h.allowAction(w, r, p.User) {
 		return
 	}
 	if err := h.Queries.ClearCustomStatus(r.Context(), p.User.ID); err != nil {

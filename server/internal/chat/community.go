@@ -261,6 +261,9 @@ func (h *Handlers) VotePoll(w http.ResponseWriter, r *http.Request, channelID, m
 	if !ok {
 		return
 	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
 	var in api.VotePollJSONBody
 	if !decode(w, r, &in) {
 		return
