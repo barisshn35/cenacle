@@ -372,6 +372,8 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.Cookies.clearSession(w)
+	// A shared computer keeps nothing: files and pictures leave the cache.
+	w.Header().Set("Clear-Site-Data", `"cache"`)
 	httpx.WriteJSON(w, http.StatusOK, api.Logout{
 		EndSessionUrl: h.IdP.EndSessionURL(h.PublicURL.String() + "/"),
 	})

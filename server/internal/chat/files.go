@@ -590,8 +590,9 @@ func (h *Handlers) serveObject(w http.ResponseWriter, r *http.Request, key, name
 	hd.Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": name}))
 	hd.Set("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'")
 	hd.Set("Cross-Origin-Resource-Policy", "same-origin")
-	// Files never change; caches keep them for the signed-in user only.
-	hd.Set("Cache-Control", "private, max-age=86400, immutable")
+	// Access ends (signing out, deletion, spillage): a cached copy is used
+	// only after the server has checked access again (a cheap 304).
+	hd.Set("Cache-Control", "private, no-cache")
 	// Large files take longer than the server's usual write timeout.
 	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(fileWriteTimeout))
 	http.ServeContent(w, r, "", modified, obj)
