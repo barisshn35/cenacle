@@ -5,11 +5,39 @@ package app_test
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
+
+func TestBurnReminderCarriesNoText(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	dm, _ := s.open(ayse, s.defaultWS, s.userID(mert))
+	var m api.Message
+	if res := s.call(http.MethodPost, "/api/channels/"+dm.ID+"/messages", ayse, map[string]any{
+		"body": "BURN-SECRET <@" + s.userID(mert) + ">", "nonce": "burnrem-nonce-1", "burn_seconds": 30,
+		"priority": "urgent", "persistent": true,
+	}, &m); res.StatusCode != http.StatusCreated {
+		t.Fatalf("send = %d", res.StatusCode)
+	}
+	if _, err := s.pool.Exec(context.Background(), "UPDATE messages SET created_at = now() - interval '6 minutes' WHERE id = $1", m.Id); err != nil {
+		t.Fatal(err)
+	}
+	conn := s.connect(mert, "")
+	read(t, conn) // hello
+	reminders := &chat.Reminders{DB: s.pool, Queries: store.New(s.pool)}
+	if n, err := reminders.Run(context.Background()); err != nil || n != 1 {
+		t.Fatalf("reminders = %d %v", n, err)
+	}
+	if ev := read(t, conn); ev.Type != "message.reminder" || strings.Contains(string(ev.Data), "BURN-SECRET") {
+		t.Errorf("reminder = %s %s", ev.Type, ev.Data)
+	}
+}
 
 func TestHeldReplySurvivesRootPurge(t *testing.T) {
 	s := newStack(t, newShared(t), options{})

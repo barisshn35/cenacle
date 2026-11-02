@@ -71,7 +71,8 @@ func (q *Queries) ConversationReads(ctx context.Context, arg ConversationReadsPa
 const dueReminders = `-- name: DueReminders :many
 SELECT m.id AS message_id, m.channel_id, c.name AS channel_name, c.kind AS channel_kind,
        a.display_name AS author_name,
-       (CASE WHEN c.encrypted THEN '' ELSE m.body END)::text AS body,
+       -- Burn-on-read text is shown only when revealed.
+       (CASE WHEN c.encrypted OR m.burn_seconds IS NOT NULL THEN '' ELSE m.body END)::text AS body,
        mm.user_id
 FROM messages m
 JOIN channels c ON c.id = m.channel_id
