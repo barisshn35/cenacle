@@ -30,9 +30,9 @@ import {
 import {
   accountCookie,
   ACCOUNT_COOKIE,
+  accountUser,
   clearAccountCookie,
   signAccount,
-  verifyAccount,
 } from './session.ts';
 
 /** Where "Back to Cenacle" leads (an app origin), remembered for the visit. */
@@ -88,10 +88,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
 
   /** The signed-in user of the account pages, or null. */
   async function current(request: FastifyRequest) {
-    const sub = verifyAccount(cookieKeys, request.cookieValue(ACCOUNT_COOKIE));
-    if (!sub) return null;
-    const user = await users.findById(sub);
-    return user && !user.disabled ? user : null;
+    return accountUser(users, cookieKeys, request.cookieValue(ACCOUNT_COOKIE));
   }
 
   function signedIn(reply: FastifyReply, userId: string) {

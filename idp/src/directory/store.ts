@@ -431,11 +431,24 @@ export async function deactivateMissing(
   return rows.length;
 }
 
-/** Ends every Cenacle ID session and grant of these accounts. */
-export async function endSessions(db: pg.Pool | pg.PoolClient, userIds: string[]): Promise<void> {
+/**
+ * Ends every Cenacle ID session and grant of these accounts, and their
+ * account pages' sign-ins (account/session.ts), but for `keepAccountPagesOf`
+ * (the administrator making the change).
+ */
+export async function endSessions(
+  db: pg.Pool | pg.PoolClient,
+  userIds: string[],
+  keepAccountPagesOf?: string,
+): Promise<void> {
   await db.query(
     `DELETE FROM oidc_payloads WHERE model IN ('Session', 'Grant', 'AccessToken', 'RefreshToken', 'AuthorizationCode')
        AND payload->>'accountId' = ANY($1::text[])`,
     [userIds],
+  );
+  await db.query(
+    `UPDATE users SET account_sessions_ended_at = now()
+     WHERE id::text = ANY($1::text[]) AND id IS DISTINCT FROM $2::uuid`,
+    [userIds, keepAccountPagesOf ?? null],
   );
 }

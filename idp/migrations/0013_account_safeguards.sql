@@ -26,7 +26,14 @@ CREATE TABLE signin_attempts (
 );
 CREATE INDEX signin_attempts_user ON signin_attempts (user_id, kind, at);
 
+-- Account pages (/account) are signed in with a stateless cookie: ending a
+-- person's sessions (a two-step reset, a deactivation) ends cookies issued
+-- before this time too.
+ALTER TABLE users ADD COLUMN account_sessions_ended_at timestamptz;
+
 -- Down Migration
+
+ALTER TABLE users DROP COLUMN account_sessions_ended_at;
 
 DROP TABLE signin_attempts;
 

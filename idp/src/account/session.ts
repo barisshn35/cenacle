@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { createHmac } from 'node:crypto';
 import { safeEqual } from '../accounts/mfa.ts';
+import type { User, UserStore } from '../accounts/users.ts';
 
 /** Cookie of the account pages (separate from the OIDC session). */
 export const ACCOUNT_COOKIE = 'cenacle_id_account';
@@ -26,6 +27,15 @@ export function verifyAccount(
   value: string | undefined,
   now = Date.now(),
 ): string | null {
+  return verifyAccountSession(keys, value, now)?.sub ?? null;
+}
+
+/** The user id and issue time (whole seconds) of a valid, unexpired cookie value, or null. */
+function verifyAccountSession(
+  keys: string[],
+  value: string | undefined,
+  now: number,
+): { sub: string; issuedAt: number } | null {
   if (!value) return null;
   const parts = value.split('.');
   if (parts.length !== 3) return null;
@@ -33,7 +43,25 @@ export function verifyAccount(
   const payload = `${sub}.${exp}`;
   if (!keys.some((k) => safeEqual(mac(k, payload), sig))) return null;
   if (!/^\d+$/.test(exp) || Number(exp) * 1000 <= now) return null;
-  return sub;
+  return { sub, issuedAt: (Number(exp) - ACCOUNT_TTL_SECONDS) * 1000 };
+}
+
+/**
+ * The active user a cookie value signs in, or null: also when the user's
+ * sessions were ended (endSessions) after the cookie was issued. Issue times
+ * are whole seconds, so one issued in the same second ends too.
+ */
+export async function accountUser(
+  users: Pick<UserStore, 'findById'>,
+  keys: string[],
+  value: string | undefined,
+  now = Date.now(),
+): Promise<User | null> {
+  const session = verifyAccountSession(keys, value, now);
+  const user = session ? await users.findById(session.sub) : null;
+  if (!user || user.disabled) return null;
+  const ended = user.accountSessionsEndedAt?.getTime();
+  return ended !== undefined && session!.issuedAt <= ended ? null : user;
 }
 
 export function accountCookie(value: string, secure: boolean): string {

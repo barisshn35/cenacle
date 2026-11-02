@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AuditAction, AuditLog } from '../accounts/audit.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
 import type { User, UserStore } from '../accounts/users.ts';
-import { ACCOUNT_COOKIE, verifyAccount } from '../account/session.ts';
+import { ACCOUNT_COOKIE, accountUser } from '../account/session.ts';
 import {
   Directory,
   DirectoryError,
@@ -159,9 +159,8 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
 
   /** The signed-in administrator, or a redirect to the account sign-in. */
   async function admin(request: FastifyRequest, reply: FastifyReply): Promise<User | null> {
-    const sub = verifyAccount(cookieKeys, request.cookieValue(ACCOUNT_COOKIE));
-    const user = sub ? await users.findById(sub) : null;
-    if (!user || user.disabled) {
+    const user = await accountUser(users, cookieKeys, request.cookieValue(ACCOUNT_COOKIE));
+    if (!user) {
       await reply.redirect('/account', 303);
       return null;
     }
@@ -294,6 +293,8 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
         await endSessions(
           opts.pool,
           rows.map((r) => r.id),
+          // The administrator stays on the page (and is sent to set it up).
+          user.id,
         );
     }
     await audit.record('admin.sign_in_policy.changed', user.id, request.ip, {

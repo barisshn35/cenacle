@@ -24,6 +24,8 @@ export interface User {
   adminDisabled: boolean;
   /** A directory or SCIM manages whether the account is active. */
   sourceManaged: boolean;
+  /** Account-page cookies issued until then no longer sign in (endSessions). */
+  accountSessionsEndedAt: Date | null;
   /** The sign-in name of a directory account. */
   username: string | null;
   title: string | null;
@@ -47,6 +49,7 @@ interface UserRow {
   disabled_at: Date | null;
   admin_disabled_at: Date | null;
   scim_managed: boolean;
+  account_sessions_ended_at: Date | null;
   password_hash: string | null;
   username: string | null;
   title: string | null;
@@ -57,7 +60,7 @@ interface UserRow {
 }
 
 const COLUMNS =
-  'id, email, email_verified, display_name, locale, updated_at, disabled_at, admin_disabled_at, scim_managed, password_hash, username, title, directory_role, is_admin, source_id, ' +
+  'id, email, email_verified, display_name, locale, updated_at, disabled_at, admin_disabled_at, scim_managed, account_sessions_ended_at, password_hash, username, title, directory_role, is_admin, source_id, ' +
   '(SELECT kind FROM identity_sources WHERE identity_sources.id = source_id) AS source_kind';
 
 function toUser(r: UserRow): User {
@@ -71,6 +74,7 @@ function toUser(r: UserRow): User {
     disabled: r.disabled_at !== null || r.admin_disabled_at !== null,
     adminDisabled: r.admin_disabled_at !== null,
     sourceManaged: r.source_kind === 'ldap' || r.scim_managed,
+    accountSessionsEndedAt: r.account_sessions_ended_at,
     username: r.username,
     title: r.title,
     directoryRole: r.directory_role,

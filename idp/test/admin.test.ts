@@ -176,6 +176,33 @@ describe.skipIf(!hasTestDatabase)('administration ends sessions (database)', () 
     expect((await sessions()).sort()).toEqual([admin, federated].sort());
     expect(without).toBeTruthy();
   });
+
+  it('ends the account pages of a reset account, not those of the administrator', async () => {
+    const admin = await person('admin@example.com', true);
+    const other = await person('admin-other@example.com', true);
+    const page = (id: string, issued = Date.now() - 2000) =>
+      a.inject({
+        url: '/account/admin',
+        headers: { cookie: `${ACCOUNT_COOKIE}=${signAccount(KEYS, id, issued)}` },
+      });
+    expect((await page(other)).statusCode).toBe(200);
+
+    expect((await send(admin, `/account/admin/accounts/${other}/reset-two-step`)).statusCode).toBe(
+      303,
+    );
+    // Signed in before the reset: signed out. A new sign-in works.
+    const stale = await page(other);
+    expect(stale.statusCode).toBe(303);
+    expect(stale.headers.location).toBe('/account');
+    expect((await page(other, Date.now() + 2000)).statusCode).toBe(200);
+
+    // Requiring two-step ends others' sign-ins, never the administrator's own page.
+    await pool.query('UPDATE users SET totp_enabled_at = NULL');
+    expect((await send(admin, '/account/admin/sign-in', 'require_two_step=on')).statusCode).toBe(
+      303,
+    );
+    expect((await page(admin)).headers.location).toBe('/account/two-step/setup');
+  });
 });
 
 describe.skipIf(!hasTestDatabase)('administration and saved secrets (database)', () => {
