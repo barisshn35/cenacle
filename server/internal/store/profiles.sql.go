@@ -206,8 +206,8 @@ func (q *Queries) InsertPicture(ctx context.Context, arg InsertPictureParams) (p
 }
 
 const releaseUsername = `-- name: ReleaseUsername :exec
-UPDATE users SET username = NULL
-WHERE lower(username) = lower($1) AND id <> $2 AND NOT username_from_directory
+UPDATE users SET username = NULL, username_from_directory = false
+WHERE lower(username) = lower($1) AND id <> $2
 `
 
 type ReleaseUsernameParams struct {
@@ -216,7 +216,9 @@ type ReleaseUsernameParams struct {
 }
 
 // ReleaseUsername takes a @username from others when the directory gives it
-// to someone (they get a new one).
+// to someone (they get a new one). The directory's present assignment wins
+// over one it made before: the previous holder gets their new name with
+// their own change.
 func (q *Queries) ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error {
 	_, err := q.db.Exec(ctx, releaseUsername, arg.Username, arg.ID)
 	return err

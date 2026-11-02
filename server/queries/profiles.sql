@@ -35,9 +35,11 @@ WHERE u.id = @id AND u.username IS NULL;
 
 -- name: ReleaseUsername :exec
 -- ReleaseUsername takes a @username from others when the directory gives it
--- to someone (they get a new one).
-UPDATE users SET username = NULL
-WHERE lower(username) = lower(@username) AND id <> @id AND NOT username_from_directory;
+-- to someone (they get a new one). The directory's present assignment wins
+-- over one it made before: the previous holder gets their new name with
+-- their own change.
+UPDATE users SET username = NULL, username_from_directory = false
+WHERE lower(username) = lower(@username) AND id <> @id;
 
 -- name: UsersWithoutUsername :many
 SELECT id FROM users WHERE username IS NULL LIMIT 100;

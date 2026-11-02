@@ -772,7 +772,9 @@ type Querier interface {
 	// be completed again at once).
 	ReleaseUpload(ctx context.Context, arg ReleaseUploadParams) error
 	// ReleaseUsername takes a @username from others when the directory gives it
-	// to someone (they get a new one).
+	// to someone (they get a new one). The directory's present assignment wins
+	// over one it made before: the previous holder gets their new name with
+	// their own change.
 	ReleaseUsername(ctx context.Context, arg ReleaseUsernameParams) error
 	RemoteMessageOf(ctx context.Context, arg RemoteMessageOfParams) (pgtype.UUID, error)
 	RemoveMLSMembers(ctx context.Context, arg RemoveMLSMembersParams) error
