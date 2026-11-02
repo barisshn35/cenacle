@@ -843,7 +843,9 @@ type Querier interface {
 	SearchMessagesForAI(ctx context.Context, arg SearchMessagesForAIParams) ([]SearchMessagesForAIRow, error)
 	SearchQueryValid(ctx context.Context, query string) (bool, error)
 	// SearchUsers finds members of a workspace by name or e-mail address
-	// (pattern: a LIKE pattern with % and _ escaped by the caller).
+	// (pattern: a LIKE pattern with % and _ escaped by the caller). With
+	// restrict, only the given people match (a guest's visible people), before
+	// the limit, so hidden members never take a place in the result.
 	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error)
 	// ServerTime returns the database clock; used as a smoke test of the
 	// sqlc/pgx setup.

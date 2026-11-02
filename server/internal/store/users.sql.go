@@ -80,15 +80,18 @@ const searchUsers = `-- name: SearchUsers :many
 SELECT u.id, u.display_name, u.email, u.is_bot
 FROM users u
 JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = $1
-WHERE u.display_name ILIKE $2 OR u.email ILIKE $2
+WHERE (u.display_name ILIKE $2 OR u.email ILIKE $2)
+  AND (NOT $3::boolean OR u.id = ANY($4::uuid[]))
 ORDER BY lower(u.display_name), u.id
-LIMIT $3
+LIMIT $5
 `
 
 type SearchUsersParams struct {
-	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	Pattern     string      `json:"pattern"`
-	RowLimit    int32       `json:"row_limit"`
+	WorkspaceID pgtype.UUID   `json:"workspace_id"`
+	Pattern     string        `json:"pattern"`
+	Restrict    bool          `json:"restrict"`
+	VisibleIds  []pgtype.UUID `json:"visible_ids"`
+	RowLimit    int32         `json:"row_limit"`
 }
 
 type SearchUsersRow struct {
@@ -99,9 +102,17 @@ type SearchUsersRow struct {
 }
 
 // SearchUsers finds members of a workspace by name or e-mail address
-// (pattern: a LIKE pattern with % and _ escaped by the caller).
+// (pattern: a LIKE pattern with % and _ escaped by the caller). With
+// restrict, only the given people match (a guest's visible people), before
+// the limit, so hidden members never take a place in the result.
 func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error) {
-	rows, err := q.db.Query(ctx, searchUsers, arg.WorkspaceID, arg.Pattern, arg.RowLimit)
+	rows, err := q.db.Query(ctx, searchUsers,
+		arg.WorkspaceID,
+		arg.Pattern,
+		arg.Restrict,
+		arg.VisibleIds,
+		arg.RowLimit,
+	)
 	if err != nil {
 		return nil, err
 	}

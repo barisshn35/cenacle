@@ -727,15 +727,22 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 	}
 	// The search text is literal: escape LIKE's wildcards.
 	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q)
-	rows, err := h.Queries.SearchUsers(r.Context(), store.SearchUsersParams{
-		WorkspaceID: pgUUID(params.WorkspaceId), Pattern: "%" + escaped + "%", RowLimit: int32(limit),
-	})
-	if err != nil {
-		h.unavailable(w, r, "search users", err)
-		return
-	}
+	// A guest's visibility applies in the query, before the limit: people
+	// the guest may not see must not take places in the result.
 	visible, ok := h.visiblePeople(w, r, params.WorkspaceId, p.User, wsRole)
 	if !ok {
+		return
+	}
+	in := store.SearchUsersParams{
+		WorkspaceID: pgUUID(params.WorkspaceId), Pattern: "%" + escaped + "%", RowLimit: int32(limit),
+		Restrict: visible != nil, VisibleIds: []pgtype.UUID{},
+	}
+	for id := range visible {
+		in.VisibleIds = append(in.VisibleIds, id)
+	}
+	rows, err := h.Queries.SearchUsers(r.Context(), in)
+	if err != nil {
+		h.unavailable(w, r, "search users", err)
 		return
 	}
 	out := make([]api.Person, 0, len(rows))

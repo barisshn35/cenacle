@@ -35,11 +35,14 @@ WHERE is_admin AND (@email::text = '' OR lower(email) <> lower(@email::text))
 
 -- name: SearchUsers :many
 -- SearchUsers finds members of a workspace by name or e-mail address
--- (pattern: a LIKE pattern with % and _ escaped by the caller).
+-- (pattern: a LIKE pattern with % and _ escaped by the caller). With
+-- restrict, only the given people match (a guest's visible people), before
+-- the limit, so hidden members never take a place in the result.
 SELECT u.id, u.display_name, u.email, u.is_bot
 FROM users u
 JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = @workspace_id
-WHERE u.display_name ILIKE @pattern OR u.email ILIKE @pattern
+WHERE (u.display_name ILIKE @pattern OR u.email ILIKE @pattern)
+  AND (NOT @restrict::boolean OR u.id = ANY(@visible_ids::uuid[]))
 ORDER BY lower(u.display_name), u.id
 LIMIT @row_limit;
 
