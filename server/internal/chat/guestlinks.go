@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"golang.org/x/crypto/argon2"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/audit"
@@ -45,33 +46,76 @@ const (
 	argonKeyLen  = 32
 )
 
-func hashGuestPassword(password string) string {
-	salt := make([]byte, 16)
-	_, _ = rand.Read(salt)
-	key := argon2.IDKey([]byte(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
-	enc := base64.RawStdEncoding
-	return fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s", argonMemory, argonTime, argonThreads,
-		enc.EncodeToString(salt), enc.EncodeToString(key))
+// guestHashBudget bounds the memory (KiB) that guest-password hashing takes
+// at once, across the server: each hash holds its m KiB while it runs, and
+// joining needs no account. Hashes wait for room up to guestHashWait.
+const (
+	guestHashBudget = 4 * argonMemory
+	guestHashWait   = 5 * time.Second
+)
+
+var (
+	guestHashing = semaphore.NewWeighted(guestHashBudget)
+	// guestArgon is argon2.IDKey (a variable for tests).
+	guestArgon = argon2.IDKey
+	// errHashBusy: no room to hash a guest password in time.
+	errHashBusy = errors.New("guest password hashing is busy")
+)
+
+// argonBounded runs Argon2id within guestHashBudget.
+func argonBounded(ctx context.Context, password, salt []byte, t, m uint32, p uint8, keyLen uint32) ([]byte, error) {
+	weight := min(int64(m), guestHashBudget)
+	ctx, cancel := context.WithTimeout(ctx, guestHashWait)
+	defer cancel()
+	if err := guestHashing.Acquire(ctx, weight); err != nil {
+		return nil, errHashBusy
+	}
+	defer guestHashing.Release(weight)
+	return guestArgon(password, salt, t, m, p, keyLen), nil
 }
 
-func checkGuestPassword(encoded, password string) bool {
+func hashGuestPassword(ctx context.Context, password string) (string, error) {
+	salt := make([]byte, 16)
+	_, _ = rand.Read(salt)
+	key, err := argonBounded(ctx, []byte(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
+	if err != nil {
+		return "", err
+	}
+	enc := base64.RawStdEncoding
+	return fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s", argonMemory, argonTime, argonThreads,
+		enc.EncodeToString(salt), enc.EncodeToString(key)), nil
+}
+
+// checkGuestPassword says whether password matches; errHashBusy when there
+// was no room to hash it.
+func checkGuestPassword(ctx context.Context, encoded, password string) (bool, error) {
 	parts := strings.Split(encoded, "$")
 	if len(parts) != 6 || parts[1] != "argon2id" {
-		return false
+		return false, nil
 	}
 	var m, t uint32
 	var p uint8
 	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &m, &t, &p); err != nil || m > 256*1024 || t > 10 || p == 0 {
-		return false
+		return false, nil
 	}
 	enc := base64.RawStdEncoding
 	salt, err1 := enc.DecodeString(parts[4])
 	want, err2 := enc.DecodeString(parts[5])
 	if err1 != nil || err2 != nil || len(want) == 0 || len(want) > 64 {
-		return false
+		return false, nil
 	}
-	got := argon2.IDKey([]byte(password), salt, t, m, p, uint32(len(want))) //nolint:gosec // at most 64
-	return subtle.ConstantTimeCompare(got, want) == 1
+	got, err := argonBounded(ctx, []byte(password), salt, t, m, p, uint32(len(want))) //nolint:gosec // at most 64
+	if err != nil {
+		return false, err
+	}
+	return subtle.ConstantTimeCompare(got, want) == 1, nil
+}
+
+// hashingBusy answers that guest passwords cannot be checked right now.
+func hashingBusy(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Retry-After", "1")
+	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusServiceUnavailable, Code: httpx.CodeUnavailable,
+		Detail: "The server is busy; try again in a moment."})
 }
 
 func guestLinkAPI(l store.GuestLink, guests int) api.GuestLink {
@@ -173,9 +217,14 @@ func (h *Handlers) CreateGuestLink(w http.ResponseWriter, r *http.Request, chann
 	if in.MaxUses != nil {
 		maxUses = pgtype.Int4{Int32: int32(*in.MaxUses), Valid: true} //nolint:gosec // checked above
 	}
+	passwordHash, err := hashGuestPassword(r.Context(), in.Password)
+	if err != nil {
+		hashingBusy(w, r)
+		return
+	}
 	token := randomToken()
 	link, err := h.Queries.CreateGuestLink(r.Context(), store.CreateGuestLinkParams{
-		ChannelID: c.ID, Name: name, TokenHash: hashToken(token), PasswordHash: hashGuestPassword(in.Password),
+		ChannelID: c.ID, Name: name, TokenHash: hashToken(token), PasswordHash: passwordHash,
 		CreatedBy: p.User.ID, ExpiresAt: time.Now().Add(ttl), MaxUses: maxUses,
 	})
 	if err != nil {
@@ -296,7 +345,12 @@ func (h *Handlers) JoinGuestLink(w http.ResponseWriter, r *http.Request, token s
 			return
 		}
 	}
-	if !checkGuestPassword(l.PasswordHash, in.Password) {
+	match, err := checkGuestPassword(r.Context(), l.PasswordHash, in.Password)
+	if err != nil {
+		hashingBusy(w, r)
+		return
+	}
+	if !match {
 		forbidden(w, r, CodeWrongPassword, "The password is not right.")
 		return
 	}
