@@ -916,6 +916,10 @@ loop:
 				break loop
 			}
 			dm, err := botConversation(ctx, q, run.WorkspaceID, bot, to)
+			if errors.Is(err, errNotInWorkspace) {
+				status, problem = "failed", "The person is no longer in the workspace."
+				break loop
+			}
 			if err != nil {
 				return run, err
 			}
@@ -953,8 +957,19 @@ loop:
 				}
 				assignees, title, form = []pgtype.UUID{run.TriggerUserID}, f.Name, f.ID
 			} else {
+				// Approvers who left the workspace get nothing of it.
 				for _, a := range deref(s.Approvers) {
-					assignees = append(assignees, pgUUID(a))
+					role, err := q.GetWorkspaceRole(ctx, store.GetWorkspaceRoleParams{WorkspaceID: run.WorkspaceID, UserID: pgUUID(a)})
+					if err != nil {
+						return run, err
+					}
+					if role != "" {
+						assignees = append(assignees, pgUUID(a))
+					}
+				}
+				if len(assignees) == 0 {
+					status, problem = "failed", "None of the approvers is in the workspace any more."
+					break loop
 				}
 				title = truncate(vars.render(deref1(s.Text)), 4000)
 				if strings.TrimSpace(title) == "" {
@@ -969,6 +984,10 @@ loop:
 			}
 			for _, person := range assignees {
 				dm, err := botConversation(ctx, q, run.WorkspaceID, bot, person)
+				if errors.Is(err, errNotInWorkspace) {
+					status, problem = "failed", "The person is no longer in the workspace."
+					break loop
+				}
 				if err != nil {
 					return run, err
 				}

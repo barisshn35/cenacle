@@ -431,9 +431,19 @@ func (h *Handlers) commandFailed(w http.ResponseWriter, r *http.Request, trigger
 	httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusBadGateway, Code: CodeCommandFailed, Detail: detail})
 }
 
+// errNotInWorkspace: the person is not a member of the workspace.
+var errNotInWorkspace = errors.New("not a member of the workspace")
+
 // botConversation returns a person's conversation with the workspace's system
-// bot, created when needed.
+// bot, created when needed; only for members of the workspace.
 func botConversation(ctx context.Context, q *store.Queries, workspace pgtype.UUID, bot store.User, user pgtype.UUID) (store.Channel, error) {
+	role, err := q.GetWorkspaceRole(ctx, store.GetWorkspaceRoleParams{WorkspaceID: workspace, UserID: user})
+	if err != nil {
+		return store.Channel{}, err
+	}
+	if role == "" {
+		return store.Channel{}, errNotInWorkspace
+	}
 	kind, key := conversationKey([]string{uuid(user).String(), uuid(bot.ID).String()})
 	dm, err := q.GetChannelByName(ctx, store.GetChannelByNameParams{WorkspaceID: workspace, Name: key})
 	if isNoRows(err) {

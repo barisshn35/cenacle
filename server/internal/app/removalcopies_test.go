@@ -26,6 +26,13 @@ func (s *stack) spill(reporter, owner, channelID, messageID string) {
 	}
 }
 
+func (s *stack) newWorkflow(admin, ws string, body map[string]any) {
+	s.t.Helper()
+	if res := s.call(http.MethodPost, "/api/workspaces/"+ws+"/workflows", admin, body, nil); res.StatusCode != http.StatusCreated {
+		s.t.Fatalf("create workflow %v = %d", body["name"], res.StatusCode)
+	}
+}
+
 func TestBurnReminderCarriesNoText(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	ayse := s.user("sub-a", "Ayşe")
@@ -123,5 +130,44 @@ func TestHeldReplySurvivesRootPurge(t *testing.T) {
 	s.purgeExpired()
 	if n := s.count(`SELECT count(*) FROM messages WHERE id = $1`, reply.Id.String()); n != 1 {
 		t.Error("the retention purge took a held reply")
+	}
+}
+
+func TestWorkflowDoesNotReachRemovedMember(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	carol := s.user("sub-carol", "Carol")
+	dave := s.user("sub-dave", "Dave")
+	ws := s.newWorkspace(admin, "Ops2")
+	var dir struct{ Channels []channel }
+	s.call(http.MethodGet, "/api/channels/directory?workspace_id="+ws, admin, nil, &dir)
+	ch := dir.Channels[0].ID
+	for _, tok := range []string{carol, dave} {
+		s.call(http.MethodPost, "/api/invites/"+s.invite(admin, ws, map[string]any{})+"/accept", tok, nil, nil)
+		s.call(http.MethodPost, "/api/channels/"+ch+"/join", tok, nil, nil)
+	}
+	carolID := s.userID(carol)
+	s.newWorkflow(admin, ws, map[string]any{
+		"name": "Copy", "trigger": map[string]any{"kind": "keyword", "channel_id": ch, "keyword": "release"},
+		"steps": []map[string]any{{"id": "copy", "kind": "dm", "to": carolID, "text": "Copy: {{trigger.message}}"}},
+	})
+	s.newWorkflow(admin, ws, map[string]any{
+		"name": "Ask", "trigger": map[string]any{"kind": "keyword", "channel_id": ch, "keyword": "release"},
+		"steps": []map[string]any{{"id": "ask", "kind": "approval", "text": "OK?", "approvers": []string{carolID}}},
+	})
+	if res := s.call(http.MethodDelete, "/api/workspaces/"+ws+"/members/"+carolID, admin, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove = %d", res.StatusCode)
+	}
+	s.send(dave, ch, "release at 9 REMOVED-DM-1", "wfremoved-nonce-1")
+	s.runWorkflows()
+	if n := s.count(`SELECT count(*) FROM channel_members cm JOIN channels c ON c.id = cm.channel_id
+		WHERE cm.user_id = $1 AND c.workspace_id = $2`, carolID, ws); n != 0 {
+		t.Errorf("the removed member was added back to %d channels", n)
+	}
+	if n := s.botMessages("REMOVED-DM-1"); n != 0 {
+		t.Errorf("sent to the removed member: %d", n)
+	}
+	if n := s.count(`SELECT count(*) FROM workflow_runs WHERE workspace_id = $1 AND status = 'failed'`, ws); n != 2 {
+		t.Errorf("failed runs = %d", n)
 	}
 }
