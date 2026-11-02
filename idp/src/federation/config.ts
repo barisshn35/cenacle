@@ -41,6 +41,19 @@ export const oidcConfigSchema = z.object({
 });
 export type OidcConfig = z.infer<typeof oidcConfigSchema>;
 
+/**
+ * Whether a saved client secret may go where `next` sends it: the same
+ * issuer (whose token endpoint receives it) and client id. Otherwise it has
+ * to be entered again.
+ */
+export function sameSecretTarget(saved: unknown, next: unknown): boolean {
+  const a = oidcConfigSchema.safeParse(saved);
+  const b = oidcConfigSchema.safeParse(next);
+  return (
+    a.success && b.success && a.data.issuer === b.data.issuer && a.data.clientId === b.data.clientId
+  );
+}
+
 export const samlConfigSchema = z.object({
   /** The identity provider's single sign-on URL (HTTP-Redirect binding). */
   entryPoint: z.url({ protocol: /^https?$/ }).max(2000),

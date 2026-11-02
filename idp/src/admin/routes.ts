@@ -31,7 +31,12 @@ import {
   type DirectoryOutcome,
   type ProviderForm,
 } from './pages.ts';
-import { oidcConfigSchema, samlConfigSchema, type ProviderKind } from '../federation/config.ts';
+import {
+  oidcConfigSchema,
+  samlConfigSchema,
+  sameSecretTarget,
+  type ProviderKind,
+} from '../federation/config.ts';
 import { endProviderSessions } from '../federation/people.ts';
 import { DEFAULT_POLICY, type PolicyStore } from '../accounts/policy.ts';
 import type { ProviderStore } from '../federation/store.ts';
@@ -721,6 +726,21 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
         );
       }
       const secret = request.body?.clientSecret ?? '';
+      // The saved secret goes only to the issuer and client id it was
+      // entered for: changing them needs it again.
+      if (!secret && p.hasSecret && !sameSecretTarget(p.config, v.config)) {
+        return page(
+          reply,
+          400,
+          providerPage({
+            locale: locale(request),
+            issuer,
+            id: p.id,
+            form: { ...form, hasSecret: false },
+            invalid: ['clientSecret'],
+          }),
+        );
+      }
       await providers.update(p.id, {
         name: form.name,
         config: v.config,

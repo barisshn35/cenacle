@@ -280,4 +280,49 @@ describe.skipIf(!hasTestDatabase)('administration and saved secrets (database)',
     });
     expect(await sources.secret(s.id)).toBe('');
   });
+
+  it('asks for the client secret again when the issuer or client id changes', async () => {
+    const config = oidcConfigSchema.parse({
+      issuer: 'https://login.example.com',
+      clientId: 'cenacle',
+    });
+    const p = await providers.create({
+      kind: 'oidc',
+      name: 'Entra ID',
+      enabled: true,
+      secret: 'client-secret',
+      config,
+    });
+    const url = `/account/admin/providers/${p.id}`;
+    const form = (issuer: string, clientId: string, clientSecret = '') => ({
+      name: 'Entra ID',
+      enabled: '1',
+      issuer,
+      clientId,
+      clientSecret,
+    });
+
+    for (const [issuer, clientId] of [
+      ['https://evil.example.net', 'cenacle'],
+      ['https://login.example.com', 'another'],
+    ]) {
+      expect((await send(url, form(issuer!, clientId!))).statusCode).toBe(400);
+      expect((await providers.get(p.id))!.config).toMatchObject({ issuer: config.issuer });
+      expect(await providers.secret(p.id)).toBe('client-secret');
+    }
+    expect((await send(url, form(config.issuer, 'cenacle'))).statusCode).toBe(303);
+    expect(await providers.secret(p.id)).toBe('client-secret');
+    expect((await send(url, form('https://new.example.com', 'c', 'new-secret'))).statusCode).toBe(
+      303,
+    );
+    expect(await providers.secret(p.id)).toBe('new-secret');
+
+    // The store drops a saved secret whose issuer changed (any caller).
+    await providers.update(p.id, {
+      name: 'Entra ID',
+      enabled: true,
+      config: { ...config, issuer: 'https://other.example.com' },
+    });
+    expect(await providers.secret(p.id)).toBe('');
+  });
 });

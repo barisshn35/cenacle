@@ -8,6 +8,7 @@ import { openPrivateKey, sealPrivateKey } from '../keys/crypto.ts';
 import {
   oidcConfigSchema,
   samlConfigSchema,
+  sameSecretTarget,
   type OidcConfig,
   type ProviderKind,
   type SamlConfig,
@@ -142,7 +143,10 @@ export class ProviderStore {
     return rows.length > 0;
   }
 
-  /** Changes settings; a secret of undefined keeps the stored one. */
+  /**
+   * Changes settings; a secret of undefined keeps the stored one, unless the
+   * settings send it elsewhere (sameSecretTarget): then it is dropped.
+   */
   async update(
     id: string,
     input: { name: string; config: OidcConfig | SamlConfig; enabled: boolean; secret?: string },
@@ -150,13 +154,25 @@ export class ProviderStore {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      const { rows } = await client.query<{ renamed: boolean; old_name: string }>(
+      const { rows } = await client.query<{
+        renamed: boolean;
+        old_name: string;
+        old_config: unknown;
+      }>(
         `UPDATE identity_sources s SET name = $2, config = $3, enabled = $4, updated_at = now()
-         FROM (SELECT name FROM identity_sources WHERE id = $1 FOR UPDATE) old
+         FROM (SELECT name, config FROM identity_sources WHERE id = $1 FOR UPDATE) old
          WHERE s.id = $1 AND s.kind IN ('oidc', 'saml')
-         RETURNING old.name IS DISTINCT FROM $2 AS renamed, old.name AS old_name`,
+         RETURNING old.name IS DISTINCT FROM $2 AS renamed, old.name AS old_name,
+           old.config AS old_config`,
         [id, input.name, JSON.stringify(input.config), input.enabled],
       );
+      if (
+        rows[0] &&
+        input.secret === undefined &&
+        !sameSecretTarget(rows[0].old_config, input.config)
+      ) {
+        await client.query('UPDATE identity_sources SET secret_enc = NULL WHERE id = $1', [id]);
+      }
       if (rows[0]?.renamed) {
         // Its groups are named after it (appGroupName): apps follow the change
         // (ADR 0046). An old name a directory's group also has meant that

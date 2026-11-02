@@ -62,6 +62,8 @@ container.
    (`https://<id-domain>/federation/<id>/callback`) as a web application at the provider.
 3. Groups: name the claim that lists them (`groups` by default). Entra ID sends group ids
    unless the app is set to send names (or use app roles with the `roles` claim).
+4. The saved client secret is never shown and goes only to the issuer it was entered for:
+   changing the issuer or the client id asks for it again.
 
 ### SAML 2.0 (AD FS, Entra ID, Okta, Shibboleth, …)
 

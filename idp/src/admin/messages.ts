@@ -176,7 +176,8 @@ const en = {
     issuerHint: 'Its discovery document is read from /.well-known/openid-configuration.',
     clientId: 'Client id',
     clientSecret: 'Client secret',
-    clientSecretKeep: 'Leave empty to keep the saved secret.',
+    clientSecretKeep:
+      'Leave empty to keep the saved secret. Enter it again when you change the issuer or client id.',
     scopes: 'Scopes',
     groupsClaim: 'Groups claim',
     entryPoint: 'Single sign-on URL (HTTP-Redirect)',
@@ -387,7 +388,8 @@ const tr: AdminMessages = {
     issuerHint: 'Keşif belgesi /.well-known/openid-configuration adresinden okunur.',
     clientId: 'İstemci kimliği',
     clientSecret: 'İstemci sırrı',
-    clientSecretKeep: 'Kayıtlı sırrı korumak için boş bırak.',
+    clientSecretKeep:
+      'Kayıtlı sırrı korumak için boş bırak. Yayıncıyı veya istemci kimliğini değiştirirsen yeniden gir.',
     scopes: 'Kapsamlar',
     groupsClaim: 'Gruplar talebi',
     entryPoint: 'Çoklu oturum açma URL’si (HTTP-Redirect)',
