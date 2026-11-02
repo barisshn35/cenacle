@@ -1209,7 +1209,8 @@ func queueFederation(ctx context.Context, q store.Querier, typ string, raw []byt
 			}
 		}
 		raw, _ := json.Marshal(ev)
-		if err := q.QueueFederationDelivery(ctx, store.QueueFederationDeliveryParams{ConnectionID: s.ConnectionID, Event: raw}); err != nil {
+		if err := q.QueueFederationDelivery(ctx, store.QueueFederationDeliveryParams{ConnectionID: s.ConnectionID, Event: raw,
+			MessageID: copiedMessage(typ, d.ID, d.MessageID)}); err != nil {
 			return err
 		}
 	}

@@ -236,6 +236,10 @@ func (h *Handlers) EraseUser(w http.ResponseWriter, r *http.Request, userID open
 		if counts, err = q.EraseUserMessages(r.Context(), store.EraseUserMessagesParams{UserID: u.ID, ErasedBy: p.User.ID}); err != nil {
 			return err
 		}
+		// Copies on their way to bots and other servers go too.
+		if _, err := q.EraseUserDeliveries(r.Context(), u.ID); err != nil {
+			return err
+		}
 		if err := q.EraseUserTraces(r.Context(), u.ID); err != nil {
 			return err
 		}

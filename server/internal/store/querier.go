@@ -304,6 +304,10 @@ type Querier interface {
 	// EraseUser anonymizes an account: no name, address, picture or status; it can
 	// no longer sign in (a new sign-in makes a new account).
 	EraseUser(ctx context.Context, arg EraseUserParams) (User, error)
+	// EraseUserDeliveries removes the queued bot and federation deliveries of a
+	// person's messages (also those a legal hold keeps: the hold keeps the message,
+	// not copies on their way out) and the bot deliveries of their reactions.
+	EraseUserDeliveries(ctx context.Context, userID pgtype.UUID) (int32, error)
 	// EraseUserMessages deletes a person's messages that no legal hold keeps (the
 	// purge removes them for good within the restore window) and counts those kept.
 	EraseUserMessages(ctx context.Context, arg EraseUserMessagesParams) (EraseUserMessagesRow, error)
@@ -766,7 +770,11 @@ type Querier interface {
 	PutSidebarLayout(ctx context.Context, arg PutSidebarLayoutParams) error
 	// QueueDeliveries records an event for every enabled subscription of a bot that is a
 	// member of the event's channel and wants this event, except the bot's own messages.
+	// An event that carries a message's content names it (message_id), so the copy goes
+	// when the message does.
 	QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error)
+	// QueueFederationDelivery queues an event; one that carries a message's content
+	// names it (message_id), so the copy goes when the message does.
 	QueueFederationDelivery(ctx context.Context, arg QueueFederationDeliveryParams) error
 	// ReceiptsAllowed tells whether a person sees and shows read receipts in a
 	// channel: a conversation of a workspace that turned them on, and the person
@@ -778,6 +786,9 @@ type Querier interface {
 	// RedactForwardCopies empties the snapshot of a spilled message in the
 	// messages that forwarded it.
 	RedactForwardCopies(ctx context.Context, id pgtype.UUID) ([]Message, error)
+	// RedactForwardDeliveries empties the snapshot of a spilled message in the
+	// queued bot deliveries of the messages that forwarded it.
+	RedactForwardDeliveries(ctx context.Context, id pgtype.UUID) (int64, error)
 	// RedactMessage empties a spilled message and its traces; legal holds do not
 	// keep spillage.
 	RedactMessage(ctx context.Context, arg RedactMessageParams) (RedactMessageRow, error)
@@ -797,6 +808,9 @@ type Querier interface {
 	RemovePushEndpoint(ctx context.Context, endpoint string) error
 	RemovePushSubscription(ctx context.Context, arg RemovePushSubscriptionParams) error
 	RemoveReaction(ctx context.Context, arg RemoveReactionParams) (int64, error)
+	// RemoveReminderCopies removes the reminders already sent for saved copies of a
+	// spilled message: they quote it. Run before RedactMessage (which drops the saved rows).
+	RemoveReminderCopies(ctx context.Context, arg RemoveReminderCopiesParams) ([]RemoveReminderCopiesRow, error)
 	RemoveWorkspaceMember(ctx context.Context, arg RemoveWorkspaceMemberParams) (int64, error)
 	// RenameChannelGroupMappings is RenameWorkspaceGroupMappings for channels.
 	RenameChannelGroupMappings(ctx context.Context, arg RenameChannelGroupMappingsParams) ([]RenameChannelGroupMappingsRow, error)

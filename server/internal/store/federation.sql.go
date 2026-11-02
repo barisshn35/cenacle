@@ -142,7 +142,7 @@ func (q *Queries) ActiveSharesOfChannel(ctx context.Context, channelID pgtype.UU
 }
 
 const claimFederationDeliveries = `-- name: ClaimFederationDeliveries :many
-SELECT d.id, d.connection_id, d.event, d.attempts, d.next_attempt_at, d.created_at FROM federation_deliveries d
+SELECT d.id, d.connection_id, d.event, d.attempts, d.next_attempt_at, d.created_at, d.message_id FROM federation_deliveries d
 WHERE d.connection_id = $1
   AND (SELECT o.next_attempt_at FROM federation_deliveries o
        WHERE o.connection_id = $1 ORDER BY o.id LIMIT 1) <= now()
@@ -175,6 +175,7 @@ func (q *Queries) ClaimFederationDeliveries(ctx context.Context, arg ClaimFedera
 			&i.Attempts,
 			&i.NextAttemptAt,
 			&i.CreatedAt,
+			&i.MessageID,
 		); err != nil {
 			return nil, err
 		}
@@ -675,16 +676,20 @@ func (q *Queries) NoteFederationV1Refused(ctx context.Context, id pgtype.UUID) e
 }
 
 const queueFederationDelivery = `-- name: QueueFederationDelivery :exec
-INSERT INTO federation_deliveries (connection_id, event) VALUES ($1, $2)
+INSERT INTO federation_deliveries (connection_id, event, message_id)
+VALUES ($1, $2, (SELECT x.id FROM messages x WHERE x.id = $3::uuid))
 `
 
 type QueueFederationDeliveryParams struct {
 	ConnectionID pgtype.UUID `json:"connection_id"`
 	Event        []byte      `json:"event"`
+	MessageID    pgtype.UUID `json:"message_id"`
 }
 
+// QueueFederationDelivery queues an event; one that carries a message's content
+// names it (message_id), so the copy goes when the message does.
 func (q *Queries) QueueFederationDelivery(ctx context.Context, arg QueueFederationDeliveryParams) error {
-	_, err := q.db.Exec(ctx, queueFederationDelivery, arg.ConnectionID, arg.Event)
+	_, err := q.db.Exec(ctx, queueFederationDelivery, arg.ConnectionID, arg.Event, arg.MessageID)
 	return err
 }
 

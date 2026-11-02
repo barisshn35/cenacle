@@ -293,6 +293,23 @@ func (q *Queries) RedactForwardCopies(ctx context.Context, id pgtype.UUID) ([]Me
 	return items, nil
 }
 
+const redactForwardDeliveries = `-- name: RedactForwardDeliveries :execrows
+UPDATE event_deliveries d SET payload = jsonb_set(d.payload, '{forward,body}', to_jsonb('[removed: spillage]'::text))
+FROM messages f
+WHERE f.id = d.message_id AND f.forward ->> 'message_id' = ($1::uuid)::text
+  AND d.payload -> 'forward' ->> 'message_id' = ($1::uuid)::text
+`
+
+// RedactForwardDeliveries empties the snapshot of a spilled message in the
+// queued bot deliveries of the messages that forwarded it.
+func (q *Queries) RedactForwardDeliveries(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, redactForwardDeliveries, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const redactMessage = `-- name: RedactMessage :one
 WITH m AS (
     UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
@@ -305,12 +322,20 @@ WITH m AS (
    mentions AS (DELETE FROM message_mentions n WHERE n.message_id = $2 RETURNING 1),
    saved AS (DELETE FROM saved_messages s WHERE s.message_id = $2 RETURNING s.reminder_id),
    -- A reminder of a saved copy carries an excerpt of the text.
-   reminders AS (UPDATE scheduled_messages sm SET status = 'canceled'
+   reminders AS (UPDATE scheduled_messages sm SET status = 'canceled', body = '[removed: spillage]'
                  WHERE sm.id IN (SELECT reminder_id FROM saved WHERE reminder_id IS NOT NULL) AND sm.status = 'pending'
-                 RETURNING 1)
+                 RETURNING 1),
+   done_reminders AS (UPDATE scheduled_messages sm SET body = '[removed: spillage]'
+                 WHERE sm.id IN (SELECT reminder_id FROM saved WHERE reminder_id IS NOT NULL) AND sm.status <> 'pending'
+                 RETURNING 1),
+   -- Queued bot and federation deliveries carry it too (the deletion that
+   -- follows names no content, so it still goes).
+   deliveries AS (DELETE FROM event_deliveries d WHERE d.message_id = $2 RETURNING 1),
+   federated AS (DELETE FROM federation_deliveries f WHERE f.message_id = $2 RETURNING 1)
 SELECT (SELECT count(*) FROM m)::int AS redacted, (SELECT count(*) FROM edits)::int AS edits,
        (SELECT count(*) FROM reactions)::int AS reactions, (SELECT count(*) FROM mentions)::int AS mentions,
-       (SELECT count(*) FROM saved)::int AS saved, (SELECT count(*) FROM reminders)::int AS reminders
+       (SELECT count(*) FROM saved)::int AS saved, (SELECT count(*) FROM reminders)::int AS reminders,
+       (SELECT count(*) FROM deliveries)::int AS deliveries, (SELECT count(*) FROM federated)::int AS federated
 `
 
 type RedactMessageParams struct {
@@ -319,12 +344,14 @@ type RedactMessageParams struct {
 }
 
 type RedactMessageRow struct {
-	Redacted  int32 `json:"redacted"`
-	Edits     int32 `json:"edits"`
-	Reactions int32 `json:"reactions"`
-	Mentions  int32 `json:"mentions"`
-	Saved     int32 `json:"saved"`
-	Reminders int32 `json:"reminders"`
+	Redacted   int32 `json:"redacted"`
+	Edits      int32 `json:"edits"`
+	Reactions  int32 `json:"reactions"`
+	Mentions   int32 `json:"mentions"`
+	Saved      int32 `json:"saved"`
+	Reminders  int32 `json:"reminders"`
+	Deliveries int32 `json:"deliveries"`
+	Federated  int32 `json:"federated"`
 }
 
 // RedactMessage empties a spilled message and its traces; legal holds do not
@@ -339,8 +366,51 @@ func (q *Queries) RedactMessage(ctx context.Context, arg RedactMessageParams) (R
 		&i.Mentions,
 		&i.Saved,
 		&i.Reminders,
+		&i.Deliveries,
+		&i.Federated,
 	)
 	return i, err
+}
+
+const removeReminderCopies = `-- name: RemoveReminderCopies :many
+UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
+    deleted_at = coalesce(x.deleted_at, now()), deleted_by = $1, edited_at = NULL
+FROM saved_messages s JOIN scheduled_messages sm ON sm.id = s.reminder_id
+WHERE s.message_id = $2 AND sm.status = 'sent' AND x.id = sm.message_id
+RETURNING x.id, x.channel_id, x.root_id
+`
+
+type RemoveReminderCopiesParams struct {
+	RemovedBy pgtype.UUID `json:"removed_by"`
+	ID        pgtype.UUID `json:"id"`
+}
+
+type RemoveReminderCopiesRow struct {
+	ID        pgtype.UUID `json:"id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	RootID    pgtype.UUID `json:"root_id"`
+}
+
+// RemoveReminderCopies removes the reminders already sent for saved copies of a
+// spilled message: they quote it. Run before RedactMessage (which drops the saved rows).
+func (q *Queries) RemoveReminderCopies(ctx context.Context, arg RemoveReminderCopiesParams) ([]RemoveReminderCopiesRow, error) {
+	rows, err := q.db.Query(ctx, removeReminderCopies, arg.RemovedBy, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RemoveReminderCopiesRow
+	for rows.Next() {
+		var i RemoveReminderCopiesRow
+		if err := rows.Scan(&i.ID, &i.ChannelID, &i.RootID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setSpillageReviewers = `-- name: SetSpillageReviewers :exec

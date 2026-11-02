@@ -310,6 +310,9 @@ arrive more than once: use its id to ignore repeats.
 
 What a bot may no longer get is not sent: once the bot is disabled, the subscription is
 removed or the bot leaves the channel, its waiting deliveries fail and none is sent again.
+Deleting a message (or removing it as spillage, or erasing its author) also takes the
+deliveries carrying it out of the list, so its text is never sent afterwards; the
+`message.deleted` delivery still goes.
 
 ## Interactive messages
 

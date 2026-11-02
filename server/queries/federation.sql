@@ -109,7 +109,10 @@ SELECT * FROM channel_offers WHERE id = @id;
 DELETE FROM channel_offers WHERE id = @id;
 
 -- name: QueueFederationDelivery :exec
-INSERT INTO federation_deliveries (connection_id, event) VALUES (@connection_id, @event);
+-- QueueFederationDelivery queues an event; one that carries a message's content
+-- names it (message_id), so the copy goes when the message does.
+INSERT INTO federation_deliveries (connection_id, event, message_id)
+VALUES (@connection_id, @event, (SELECT x.id FROM messages x WHERE x.id = sqlc.narg(message_id)::uuid));
 
 -- name: DueFederationConnections :many
 -- DueFederationConnections returns the active connections whose oldest queued

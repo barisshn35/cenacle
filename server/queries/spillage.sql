@@ -49,12 +49,37 @@ WITH m AS (
    mentions AS (DELETE FROM message_mentions n WHERE n.message_id = @id RETURNING 1),
    saved AS (DELETE FROM saved_messages s WHERE s.message_id = @id RETURNING s.reminder_id),
    -- A reminder of a saved copy carries an excerpt of the text.
-   reminders AS (UPDATE scheduled_messages sm SET status = 'canceled'
+   reminders AS (UPDATE scheduled_messages sm SET status = 'canceled', body = '[removed: spillage]'
                  WHERE sm.id IN (SELECT reminder_id FROM saved WHERE reminder_id IS NOT NULL) AND sm.status = 'pending'
-                 RETURNING 1)
+                 RETURNING 1),
+   done_reminders AS (UPDATE scheduled_messages sm SET body = '[removed: spillage]'
+                 WHERE sm.id IN (SELECT reminder_id FROM saved WHERE reminder_id IS NOT NULL) AND sm.status <> 'pending'
+                 RETURNING 1),
+   -- Queued bot and federation deliveries carry it too (the deletion that
+   -- follows names no content, so it still goes).
+   deliveries AS (DELETE FROM event_deliveries d WHERE d.message_id = @id RETURNING 1),
+   federated AS (DELETE FROM federation_deliveries f WHERE f.message_id = @id RETURNING 1)
 SELECT (SELECT count(*) FROM m)::int AS redacted, (SELECT count(*) FROM edits)::int AS edits,
        (SELECT count(*) FROM reactions)::int AS reactions, (SELECT count(*) FROM mentions)::int AS mentions,
-       (SELECT count(*) FROM saved)::int AS saved, (SELECT count(*) FROM reminders)::int AS reminders;
+       (SELECT count(*) FROM saved)::int AS saved, (SELECT count(*) FROM reminders)::int AS reminders,
+       (SELECT count(*) FROM deliveries)::int AS deliveries, (SELECT count(*) FROM federated)::int AS federated;
+
+-- name: RemoveReminderCopies :many
+-- RemoveReminderCopies removes the reminders already sent for saved copies of a
+-- spilled message: they quote it. Run before RedactMessage (which drops the saved rows).
+UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
+    deleted_at = coalesce(x.deleted_at, now()), deleted_by = @removed_by, edited_at = NULL
+FROM saved_messages s JOIN scheduled_messages sm ON sm.id = s.reminder_id
+WHERE s.message_id = @id AND sm.status = 'sent' AND x.id = sm.message_id
+RETURNING x.id, x.channel_id, x.root_id;
+
+-- name: RedactForwardDeliveries :execrows
+-- RedactForwardDeliveries empties the snapshot of a spilled message in the
+-- queued bot deliveries of the messages that forwarded it.
+UPDATE event_deliveries d SET payload = jsonb_set(d.payload, '{forward,body}', to_jsonb('[removed: spillage]'::text))
+FROM messages f
+WHERE f.id = d.message_id AND f.forward ->> 'message_id' = (@id::uuid)::text
+  AND d.payload -> 'forward' ->> 'message_id' = (@id::uuid)::text;
 
 -- name: RedactForwardCopies :many
 -- RedactForwardCopies empties the snapshot of a spilled message in the

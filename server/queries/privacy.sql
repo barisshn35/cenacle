@@ -43,6 +43,22 @@ SELECT (SELECT count(*) FROM erased)::int AS erased,
        (SELECT count(*) FROM messages h WHERE h.author_id = @user_id AND message_held(h.channel_id, h.author_id, h.created_at))::int AS held,
        (SELECT count(*) FROM edits)::int AS edits;
 
+-- name: EraseUserDeliveries :one
+-- EraseUserDeliveries removes the queued bot and federation deliveries of a
+-- person's messages (also those a legal hold keeps: the hold keeps the message,
+-- not copies on their way out) and the bot deliveries of their reactions.
+WITH bots AS (
+    DELETE FROM event_deliveries d
+    WHERE d.message_id IN (SELECT m.id FROM messages m WHERE m.author_id = @user_id)
+       OR (d.event_type IN ('reaction.added', 'reaction.removed') AND d.payload ->> 'user_id' = (@user_id::uuid)::text)
+    RETURNING 1
+), servers AS (
+    DELETE FROM federation_deliveries f
+    WHERE f.message_id IN (SELECT m.id FROM messages m WHERE m.author_id = @user_id)
+    RETURNING 1
+)
+SELECT ((SELECT count(*) FROM bots) + (SELECT count(*) FROM servers))::int AS removed;
+
 -- name: EraseUserTraces :exec
 -- EraseUserTraces removes what a person kept or set for themselves.
 SELECT erase_user_traces(@user_id::uuid);

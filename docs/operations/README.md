@@ -111,9 +111,10 @@ the top of the sidebar, for owners and admins): one side creates an invitation c
 other connects with it, then channels are offered and accepted. Both servers must reach
 each other at their public address; the connection shows when the other side was last
 heard from and the last delivery error. Pausing a connection keeps events queued until it
-resumes (edits and deletions made meanwhile too). The installation's federation policy
-(System console) matches a server however its address is written: letter case, a trailing
-dot, international names in either form, and the default port.
+resumes (edits and deletions made meanwhile too; a message deleted before it went out is
+taken out of the queue). The installation's federation policy (System console) matches a
+server however its address is written: letter case, a trailing dot, international names
+in either form, and the default port.
 
 ## Moving from another chat
 

@@ -275,6 +275,21 @@ func (h *Handlers) DecideSpillage(w http.ResponseWriter, r *http.Request, report
 	var files []store.DetachMessageFilesRow
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		if removed {
+			// Reminders already sent for saved copies quote it: they go (before
+			// RedactMessage drops the saved rows that lead to them).
+			reminded, err := q.RemoveReminderCopies(r.Context(), store.RemoveReminderCopiesParams{ID: msg.ID, RemovedBy: p.User.ID})
+			if err != nil {
+				return err
+			}
+			for _, x := range reminded {
+				ref := MessageRef{ID: uuid(x.ID).String(), ChannelID: uuid(x.ChannelID).String()}
+				if x.RootID.Valid {
+					ref.RootID = uuid(x.RootID).String()
+				}
+				if err := emit(r.Context(), q, events.MessageDeleted, ref); err != nil {
+					return err
+				}
+			}
 			counts, err := q.RedactMessage(r.Context(), store.RedactMessageParams{ID: msg.ID, RemovedBy: p.User.ID})
 			if err != nil {
 				return err
@@ -288,6 +303,10 @@ func (h *Handlers) DecideSpillage(w http.ResponseWriter, r *http.Request, report
 			}
 			// Copies elsewhere go too: forwarded snapshots (shown again to their readers).
 			copies, err := q.RedactForwardCopies(r.Context(), msg.ID)
+			if err != nil {
+				return err
+			}
+			forwardDeliveries, err := q.RedactForwardDeliveries(r.Context(), msg.ID)
 			if err != nil {
 				return err
 			}
@@ -305,7 +324,8 @@ func (h *Handlers) DecideSpillage(w http.ResponseWriter, r *http.Request, report
 				}
 			}
 			incident["removed"] = map[string]any{"edits": counts.Edits, "reactions": counts.Reactions, "mentions": counts.Mentions,
-				"saved": counts.Saved, "reminders": counts.Reminders, "forwards": len(copies), "files": list}
+				"saved": counts.Saved, "reminders": counts.Reminders, "sent_reminders": len(reminded), "forwards": len(copies),
+				"bot_deliveries": int64(counts.Deliveries) + forwardDeliveries, "server_deliveries": counts.Federated, "files": list}
 			ref := MessageRef{ID: uuid(msg.ID).String(), ChannelID: uuid(c.ID).String()}
 			if msg.RootID.Valid {
 				ref.RootID = uuid(msg.RootID).String()

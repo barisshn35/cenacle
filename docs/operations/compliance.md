@@ -37,8 +37,8 @@ chat's host). Receivers inside your network need `CENACLE_EGRESS_ALLOW` (and
 - **Erasure:** System console → People → Erase (type the name to confirm). The account
   loses its name, address, picture and status and can no longer sign in; its messages are
   deleted (purged for good within the restore window) except those a legal hold keeps,
-  which go when the hold is released; reactions, saved items, scheduled messages, devices
-  and sessions go. The audit log keeps that it happened, not who it was. Also delete the
+  which go when the hold is released; reactions, saved items, scheduled messages, devices,
+  sessions and the copies of their messages still queued for bots and shared servers go. The audit log keeps that it happened, not who it was. Also delete the
   person in Cenacle ID (or the directory), or a new sign-in makes a new account.
 
 ## Archive exports
@@ -63,9 +63,10 @@ reviewers (chosen by the owners in the Spillage reports dialog; the owners when 
 chosen) see the message and decide:
 
 - **Remove everywhere:** the text, edit history, files (their bytes too), reactions,
-  mentions, saved copies with their pending reminders, the copy shown in forwarded
-  messages and the pin go, **also where a legal hold would keep them**; devices
-  drop it at once and shared servers are told to delete it. Notifications already shown on
+  mentions, saved copies with their reminders (also those already sent), the copy shown in
+  forwarded messages, the pin and the copies still queued for bots and shared servers go,
+  **also where a legal hold would keep them**; devices drop it at once and shared servers
+  are told to delete it. Notifications already shown on
   devices and copies outside Cenacle (e-mails, exports already taken) cannot be taken back.
 - **Dismiss:** the message stays.
 

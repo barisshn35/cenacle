@@ -298,6 +298,7 @@ type EventDelivery struct {
 	LastError      string             `json:"last_error"`
 	CreatedAt      time.Time          `json:"created_at"`
 	DeliveredAt    pgtype.Timestamptz `json:"delivered_at"`
+	MessageID      pgtype.UUID        `json:"message_id"`
 }
 
 type EventOutbox struct {
@@ -359,6 +360,7 @@ type FederationDelivery struct {
 	Attempts      int32       `json:"attempts"`
 	NextAttemptAt time.Time   `json:"next_attempt_at"`
 	CreatedAt     time.Time   `json:"created_at"`
+	MessageID     pgtype.UUID `json:"message_id"`
 }
 
 type FederationInvite struct {

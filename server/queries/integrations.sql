@@ -34,8 +34,10 @@ DELETE FROM event_subscriptions WHERE id = @id AND bot_id = @bot_id;
 -- name: QueueDeliveries :execrows
 -- QueueDeliveries records an event for every enabled subscription of a bot that is a
 -- member of the event's channel and wants this event, except the bot's own messages.
-INSERT INTO event_deliveries (subscription_id, event_type, payload)
-SELECT s.id, @event_type::text, @payload::jsonb
+-- An event that carries a message's content names it (message_id), so the copy goes
+-- when the message does.
+INSERT INTO event_deliveries (subscription_id, event_type, payload, message_id)
+SELECT s.id, @event_type::text, @payload::jsonb, (SELECT x.id FROM messages x WHERE x.id = sqlc.narg(message_id)::uuid)
 FROM event_subscriptions s
 JOIN bots b ON b.id = s.bot_id AND b.disabled_at IS NULL
 JOIN channel_members m ON m.user_id = b.user_id AND m.channel_id = @channel_id

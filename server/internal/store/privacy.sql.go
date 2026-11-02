@@ -65,6 +65,30 @@ func (q *Queries) EraseUser(ctx context.Context, arg EraseUserParams) (User, err
 	return i, err
 }
 
+const eraseUserDeliveries = `-- name: EraseUserDeliveries :one
+WITH bots AS (
+    DELETE FROM event_deliveries d
+    WHERE d.message_id IN (SELECT m.id FROM messages m WHERE m.author_id = $1)
+       OR (d.event_type IN ('reaction.added', 'reaction.removed') AND d.payload ->> 'user_id' = ($1::uuid)::text)
+    RETURNING 1
+), servers AS (
+    DELETE FROM federation_deliveries f
+    WHERE f.message_id IN (SELECT m.id FROM messages m WHERE m.author_id = $1)
+    RETURNING 1
+)
+SELECT ((SELECT count(*) FROM bots) + (SELECT count(*) FROM servers))::int AS removed
+`
+
+// EraseUserDeliveries removes the queued bot and federation deliveries of a
+// person's messages (also those a legal hold keeps: the hold keeps the message,
+// not copies on their way out) and the bot deliveries of their reactions.
+func (q *Queries) EraseUserDeliveries(ctx context.Context, userID pgtype.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, eraseUserDeliveries, userID)
+	var removed int32
+	err := row.Scan(&removed)
+	return removed, err
+}
+
 const eraseUserMessages = `-- name: EraseUserMessages :one
 WITH erased AS (
     UPDATE messages m SET deleted_at = coalesce(m.deleted_at, now()), deleted_by = coalesce(m.deleted_by, $2)

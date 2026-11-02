@@ -58,7 +58,7 @@ FROM (
     FOR UPDATE SKIP LOCKED
 ) due, event_subscriptions s
 WHERE d.id = due.id AND s.id = d.subscription_id
-RETURNING d.id, d.subscription_id, d.event_type, d.payload, d.status, d.attempts, d.next_attempt_at, d.last_status, d.last_error, d.created_at, d.delivered_at, s.url, s.secret, due.sendable
+RETURNING d.id, d.subscription_id, d.event_type, d.payload, d.status, d.attempts, d.next_attempt_at, d.last_status, d.last_error, d.created_at, d.delivered_at, d.message_id, s.url, s.secret, due.sendable
 `
 
 type ClaimDueDeliveriesRow struct {
@@ -73,6 +73,7 @@ type ClaimDueDeliveriesRow struct {
 	LastError      string             `json:"last_error"`
 	CreatedAt      time.Time          `json:"created_at"`
 	DeliveredAt    pgtype.Timestamptz `json:"delivered_at"`
+	MessageID      pgtype.UUID        `json:"message_id"`
 	Url            string             `json:"url"`
 	Secret         string             `json:"secret"`
 	Sendable       bool               `json:"sendable"`
@@ -103,6 +104,7 @@ func (q *Queries) ClaimDueDeliveries(ctx context.Context, rowLimit int32) ([]Cla
 			&i.LastError,
 			&i.CreatedAt,
 			&i.DeliveredAt,
+			&i.MessageID,
 			&i.Url,
 			&i.Secret,
 			&i.Sendable,
@@ -475,7 +477,7 @@ func (q *Queries) ListBotCommands(ctx context.Context, botID pgtype.UUID) ([]Sla
 }
 
 const listDeliveries = `-- name: ListDeliveries :many
-SELECT id, subscription_id, event_type, payload, status, attempts, next_attempt_at, last_status, last_error, created_at, delivered_at FROM event_deliveries
+SELECT id, subscription_id, event_type, payload, status, attempts, next_attempt_at, last_status, last_error, created_at, delivered_at, message_id FROM event_deliveries
 WHERE subscription_id = $1
   AND ($2::uuid IS NULL OR id < $2::uuid)
 ORDER BY id DESC
@@ -509,6 +511,7 @@ func (q *Queries) ListDeliveries(ctx context.Context, arg ListDeliveriesParams) 
 			&i.LastError,
 			&i.CreatedAt,
 			&i.DeliveredAt,
+			&i.MessageID,
 		); err != nil {
 			return nil, err
 		}
@@ -663,28 +666,32 @@ func (q *Queries) PruneDeliveries(ctx context.Context) (int64, error) {
 }
 
 const queueDeliveries = `-- name: QueueDeliveries :execrows
-INSERT INTO event_deliveries (subscription_id, event_type, payload)
-SELECT s.id, $1::text, $2::jsonb
+INSERT INTO event_deliveries (subscription_id, event_type, payload, message_id)
+SELECT s.id, $1::text, $2::jsonb, (SELECT x.id FROM messages x WHERE x.id = $3::uuid)
 FROM event_subscriptions s
 JOIN bots b ON b.id = s.bot_id AND b.disabled_at IS NULL
-JOIN channel_members m ON m.user_id = b.user_id AND m.channel_id = $3
+JOIN channel_members m ON m.user_id = b.user_id AND m.channel_id = $4
 WHERE s.disabled_at IS NULL AND $1::text = ANY(s.events)
-  AND ($4::uuid IS NULL OR b.user_id <> $4::uuid)
+  AND ($5::uuid IS NULL OR b.user_id <> $5::uuid)
 `
 
 type QueueDeliveriesParams struct {
 	EventType string      `json:"event_type"`
 	Payload   []byte      `json:"payload"`
+	MessageID pgtype.UUID `json:"message_id"`
 	ChannelID pgtype.UUID `json:"channel_id"`
 	ActorID   pgtype.UUID `json:"actor_id"`
 }
 
 // QueueDeliveries records an event for every enabled subscription of a bot that is a
 // member of the event's channel and wants this event, except the bot's own messages.
+// An event that carries a message's content names it (message_id), so the copy goes
+// when the message does.
 func (q *Queries) QueueDeliveries(ctx context.Context, arg QueueDeliveriesParams) (int64, error) {
 	result, err := q.db.Exec(ctx, queueDeliveries,
 		arg.EventType,
 		arg.Payload,
+		arg.MessageID,
 		arg.ChannelID,
 		arg.ActorID,
 	)

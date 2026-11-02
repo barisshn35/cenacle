@@ -20,6 +20,7 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/barisshn35/cenacle/server/internal/events"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -287,7 +288,9 @@ func queueDeliveries(ctx context.Context, q store.Querier, typ string, raw []byt
 		return nil
 	}
 	var ref struct {
+		ID        string `json:"id"`
 		ChannelID string `json:"channel_id"`
+		MessageID string `json:"message_id"`
 		UserID    string `json:"user_id"`
 		Author    *struct {
 			ID string `json:"id"`
@@ -310,8 +313,25 @@ func queueDeliveries(ctx context.Context, q store.Querier, typ string, raw []byt
 	}
 	_, err = q.QueueDeliveries(ctx, store.QueueDeliveriesParams{
 		EventType: typ, Payload: raw, ChannelID: pgUUID(channel), ActorID: actorID,
+		MessageID: copiedMessage(typ, ref.ID, ref.MessageID),
 	})
 	return err
+}
+
+// copiedMessage is the message whose content a queued event carries, so the
+// queued copy goes when the message does. A deletion carries none.
+func copiedMessage(typ, id, messageID string) pgtype.UUID {
+	switch typ {
+	case events.MessageCreated, events.MessageUpdated:
+	case events.ReactionAdded, events.ReactionRemoved:
+		id = messageID
+	default:
+		return pgtype.UUID{}
+	}
+	if m, err := guuid.Parse(id); err == nil {
+		return pgUUID(m)
+	}
+	return pgtype.UUID{}
 }
 
 // ackMessages fills in the acknowledgements of the messages that ask for them.

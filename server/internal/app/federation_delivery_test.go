@@ -79,40 +79,53 @@ func (p fedPair) queued(typ string) int {
 	return p.a.count(`SELECT count(*) FROM federation_deliveries WHERE connection_id = $1 AND ($2 = '' OR event->>'type' = $2)`, p.aConn, typ)
 }
 
-// A connection's events arrive in the order they were made: a deletion queued
-// while the message's creation waits for its retry does not overtake it (so
-// the other server never shows a message deleted here).
+// A connection's events arrive in the order they were made: an edit queued
+// while the message's creation waits for its retry does not overtake it, and a
+// message deleted meanwhile is taken out of the queue (so the other server
+// never shows a message deleted here).
 func TestFederationKeepsOrder(t *testing.T) {
 	p := newFedPair(t)
 	p.pauseOnB(true)
-	m, res := p.a.send(p.author, p.general, "withdrawn before it got there", "fed-order-0001")
+	m, res := p.a.send(p.author, p.general, "first draft", "fed-order-0001")
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("send = %d", res.StatusCode)
 	}
+	w, _ := p.a.send(p.author, p.general, "withdrawn before it got there", "fed-order-0002")
 	federate(t, p.a, p.b) // refused there: backed off
-	if n := p.a.count(`SELECT count(*) FROM federation_deliveries WHERE connection_id = $1 AND next_attempt_at > now()`, p.aConn); n != 1 {
+	if n := p.a.count(`SELECT count(*) FROM federation_deliveries WHERE connection_id = $1 AND next_attempt_at > now()`, p.aConn); n != 2 {
 		t.Fatalf("backed-off deliveries = %d", n)
 	}
 
 	p.pauseOnB(false)
-	if r := p.a.call(http.MethodDelete, "/api/channels/"+p.general+"/messages/"+m.ID, p.author, nil, nil); r.StatusCode != http.StatusNoContent {
+	if r := p.a.call(http.MethodPatch, "/api/channels/"+p.general+"/messages/"+m.ID, p.author, map[string]string{"body": "final text"}, nil); r.StatusCode != http.StatusOK {
+		t.Fatalf("edit = %d", r.StatusCode)
+	}
+	if r := p.a.call(http.MethodDelete, "/api/channels/"+p.general+"/messages/"+w.ID, p.author, nil, nil); r.StatusCode != http.StatusNoContent {
 		t.Fatalf("delete = %d", r.StatusCode)
 	}
 	federate(t, p.a, p.b)
-	if n := p.queued("message.deleted"); n != 1 {
-		t.Fatalf("the deletion went ahead of the creation (queued: %d)", n)
+	if n := p.queued("message.updated"); n != 1 {
+		t.Fatalf("the edit went ahead of the creation (queued: %d)", n)
+	}
+	if n := p.queued("message.created"); n != 1 {
+		t.Fatalf("queued creations = %d (the deleted one stays queued)", n)
 	}
 
-	// The retry is due: both go, in order.
+	// The retry is due: all go, in order.
 	p.retryNow(t)
 	federate(t, p.a, p.b)
 	if n := p.queued(""); n != 0 {
 		t.Fatalf("deliveries left = %d", n)
 	}
+	edited := false
 	for _, x := range p.b.timeline(p.admin, p.mirror) {
 		if strings.Contains(x.Body, "withdrawn") {
 			t.Fatalf("the other server shows the deleted message: %+v", x)
 		}
+		edited = edited || x.Body == "final text"
+	}
+	if !edited {
+		t.Error("the other server does not show the edit")
 	}
 }
 
