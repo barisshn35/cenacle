@@ -4,7 +4,6 @@ package chat
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -272,6 +271,12 @@ func (h *Handlers) StartRun(w http.ResponseWriter, r *http.Request, playbookID o
 	if !serverReadable(w, r, c) { // the run's name is kept as the server reads it
 		return
 	}
+	// The run's notice is written in the caller's name: it follows their posting rules.
+	body := fmt.Sprintf("▶️ Started **%s** (playbook “%s”).", name, pb.Name)
+	notice, ok := h.postingAllowed(w, r, c, role, p.User, body, postOptions{})
+	if !ok {
+		return
+	}
 	var lists []api.PlaybookChecklist
 	_ = json.Unmarshal(pb.Checklists, &lists)
 	runLists := make([]runChecklist, len(lists))
@@ -294,8 +299,7 @@ func (h *Handlers) StartRun(w http.ResponseWriter, r *http.Request, playbookID o
 		if err != nil {
 			return err
 		}
-		body := fmt.Sprintf("▶️ Started **%s** (playbook “%s”).", name, pb.Name)
-		if _, err := postMessage(r.Context(), q, c, p.User, body, "run-"+uuid(run.ID).String(), []byte("[]")); err != nil && !errors.Is(err, errEncrypted) { // encrypted channels get no notice
+		if err := postNotice(r.Context(), q, c, p.User, body, "run-"+uuid(run.ID).String(), notice); err != nil {
 			return err
 		}
 		return emit(r.Context(), q, events.RunUpdated, RunEvent{ChannelID: uuid(c.ID).String(), Run: runAPI(run, p.User.DisplayName)})
@@ -476,14 +480,20 @@ func (h *Handlers) FinishRun(w http.ResponseWriter, r *http.Request, runID opena
 		forbidden(w, r, httpx.CodeForbidden, "Only the run's owner or a channel manager finishes it.")
 		return
 	}
+	// Who finishes a run is its own rule; the notice in their name follows
+	// the rest of their posting rules.
+	body := fmt.Sprintf("✅ Finished **%s**.", run.Name)
+	notice, ok := h.postingAllowed(w, r, c, role, p.User, body, postOptions{anyChannel: true})
+	if !ok {
+		return
+	}
 	var finished store.PlaybookRun
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
 		if finished, err = q.FinishRun(r.Context(), run.ID); err != nil {
 			return err
 		}
-		body := fmt.Sprintf("✅ Finished **%s**.", run.Name)
-		if _, err := postMessage(r.Context(), q, c, p.User, body, "run-done-"+uuid(run.ID).String(), []byte("[]")); err != nil && !errors.Is(err, errEncrypted) { // encrypted channels get no notice
+		if err := postNotice(r.Context(), q, c, p.User, body, "run-done-"+uuid(run.ID).String(), notice); err != nil {
 			return err
 		}
 		return emit(r.Context(), q, events.RunUpdated, RunEvent{ChannelID: uuid(c.ID).String(), Run: runAPI(finished, h.ownerName(r, finished))})

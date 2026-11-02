@@ -4,6 +4,7 @@ package chat
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -182,4 +183,18 @@ func automodRules(ctx context.Context, q store.Querier, c store.Channel, role ac
 		}
 	}
 	return flags, nil, nil
+}
+
+// postNotice posts a notice a person's action writes in their name (a run
+// started, an event planned) once postingRules allowed it; encrypted
+// channels get no notice.
+func postNotice(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body, nonce string, v postVerdict) error {
+	m, err := postMessageTo(ctx, q, c, author, body, nonce, []byte("[]"), replyTo{}, postExtras{noGroups: v.noGroups})
+	if errors.Is(err, errEncrypted) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return flagMessage(ctx, q, c, m.Id, v.flags)
 }

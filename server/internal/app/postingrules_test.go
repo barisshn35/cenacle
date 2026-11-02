@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/barisshn35/cenacle/server/internal/api"
 )
 
 // moderate sets up the rules of moderation the tests below are held to:
@@ -110,5 +112,54 @@ func TestScheduledMessageFailsAlone(t *testing.T) {
 	}
 	if n := s.count("SELECT count(*) FROM scheduled_messages WHERE body = 'sonra yazarım' AND status = 'failed'"); n != 1 {
 		t.Error("the message for the encrypted conversation did not fail")
+	}
+}
+
+// Notices written in a member's name (playbook runs, events) follow their
+// posting rules.
+func TestNoticesFollowPostingRules(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	general := s.general(ayse)
+	s.general(admin)
+	s.moderate(admin)
+	var pb api.Playbook
+	if res := s.call(http.MethodPost, "/api/workspaces/"+s.defaultWS+"/playbooks", admin, map[string]any{"name": "Incident",
+		"checklists": []map[string]any{{"title": "Triage", "items": []map[string]any{{"title": "Page on-call"}}}}}, &pb); res.StatusCode != http.StatusCreated {
+		t.Fatalf("playbook = %d", res.StatusCode)
+	}
+	runs := "/api/playbooks/" + pb.Id.String() + "/runs"
+	events := "/api/workspaces/" + s.defaultWS + "/events"
+	start := time.Now().Add(2 * time.Hour)
+	event := func(title string) map[string]any {
+		return map[string]any{"title": title, "starts_at": start, "ends_at": start.Add(time.Hour), "channel_id": general}
+	}
+
+	for name, want := range map[string]string{"@channel run": "broadcast_not_allowed", "bedava run": "automod_blocked"} {
+		if _, code := problemCode(t, s, http.MethodPost, runs, ayse, map[string]any{"channel_id": general, "name": name}); code != want {
+			t.Errorf("run %q = %s", name, code)
+		}
+	}
+	if _, code := problemCode(t, s, http.MethodPost, events, ayse, event("bedava event")); code != "automod_blocked" {
+		t.Errorf("blocked event = %s", code)
+	}
+	var run api.Run
+	if res := s.call(http.MethodPost, runs, ayse, map[string]any{"channel_id": general, "name": "DB outage"}, &run); res.StatusCode != http.StatusCreated {
+		t.Fatalf("run = %d", res.StatusCode)
+	}
+
+	s.timeOut(admin, s.userID(ayse), time.Now().Add(time.Hour))
+	if _, code := problemCode(t, s, http.MethodPost, runs, ayse, map[string]any{"channel_id": general, "name": "Another"}); code != "timed_out" {
+		t.Errorf("run while timed out = %s", code)
+	}
+	if _, code := problemCode(t, s, http.MethodPost, events, ayse, event("Review")); code != "timed_out" {
+		t.Errorf("event while timed out = %s", code)
+	}
+	if _, code := problemCode(t, s, http.MethodPost, "/api/runs/"+run.Id.String()+"/finish", ayse, nil); code != "timed_out" {
+		t.Errorf("finish while timed out = %s", code)
+	}
+	if n := s.count("SELECT count(*) FROM messages WHERE body LIKE '%bedava%' OR body LIKE '%@channel%' OR body LIKE '%Another%' OR body LIKE '%Review%'"); n != 0 {
+		t.Errorf("%d refused notices were posted", n)
 	}
 }

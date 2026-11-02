@@ -518,6 +518,18 @@ func (h *Handlers) CreateEvent(w http.ResponseWriter, r *http.Request, workspace
 		badRequest(w, r, "An event starts in the future.")
 		return
 	}
+	// The notice in the channel is written in the caller's name: it follows
+	// their posting rules.
+	var notice postVerdict
+	if arg.ChannelID.Valid {
+		c, role, ok := h.memberChannel(w, r, uuid(arg.ChannelID), p.User)
+		if !ok {
+			return
+		}
+		if notice, ok = h.postingAllowed(w, r, c, role, p.User, eventNotice(arg.Title, arg.Description), postOptions{}); !ok {
+			return
+		}
+	}
 	var e store.Event
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
 		var err error
@@ -529,15 +541,7 @@ func (h *Handlers) CreateEvent(w http.ResponseWriter, r *http.Request, workspace
 			if err != nil {
 				return err
 			}
-			body := "📅 **" + e.Title + "**"
-			if e.Description != "" {
-				body += "\n\n" + e.Description
-			}
-			// The notice fits in a message (the description alone may fill one).
-			if runes := []rune(body); len(runes) > 4000 {
-				body = string(runes[:3999]) + "…"
-			}
-			if _, err := postMessage(r.Context(), q, c, p.User, body, "event-"+uuid(e.ID).String(), []byte("[]")); err != nil && !errors.Is(err, errEncrypted) { // encrypted channels get no notice
+			if err := postNotice(r.Context(), q, c, p.User, eventNotice(e.Title, e.Description), "event-"+uuid(e.ID).String(), notice); err != nil {
 				return err
 			}
 		}
@@ -548,6 +552,19 @@ func (h *Handlers) CreateEvent(w http.ResponseWriter, r *http.Request, workspace
 		return
 	}
 	h.writeEvent(w, r, http.StatusCreated, e, p.User, role)
+}
+
+// eventNotice is the message announcing an event in its channel.
+func eventNotice(title, description string) string {
+	body := "📅 **" + title + "**"
+	if description != "" {
+		body += "\n\n" + description
+	}
+	// The notice fits in a message (the description alone may fill one).
+	if runes := []rune(body); len(runes) > 4000 {
+		body = string(runes[:3999]) + "…"
+	}
+	return body
 }
 
 // editableEvent loads an event the user may change (its creator or a workspace admin).
