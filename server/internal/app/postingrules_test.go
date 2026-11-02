@@ -225,6 +225,98 @@ func TestWorkflowVariablesFollowPostingRules(t *testing.T) {
 	}
 }
 
+// People of a federated server are guests here, held to the posting rules of
+// the shared channel; what the rules refuse is dropped, the rest goes through.
+func TestFederatedMessagesFollowPostingRules(t *testing.T) {
+	sh := newShared(t)
+	acme := newStack(t, sh, options{})
+	partner := newStack(t, sh, options{})
+	admin := acme.admin()
+	ayse := acme.user("sub-ayse", "Ayşe")
+	general := acme.general(ayse)
+	central := acme.channelID(ayse, "Central")
+	partnerWS := partner.newWorkspace(admin, "Partner")
+	acme.moderate(admin)
+
+	var inv struct{ Code string }
+	acme.call(http.MethodPost, "/api/workspaces/"+acme.defaultWS+"/federation/invites", admin, map[string]any{"name": "Partner Inc"}, &inv)
+	if res := partner.call(http.MethodPost, "/api/workspaces/"+partnerWS+"/federation/connections", admin, map[string]any{"code": inv.Code, "name": "Acme"}, nil); res.StatusCode != http.StatusCreated {
+		t.Fatalf("connect = %d", res.StatusCode)
+	}
+	var here federation
+	acme.call(http.MethodGet, "/api/workspaces/"+acme.defaultWS+"/federation", admin, nil, &here)
+	conn := here.Connections[0].Id.String()
+	mirrors := map[string]string{}
+	for _, ch := range []string{general, central} {
+		if res := acme.call(http.MethodPost, "/api/channels/"+ch+"/shares", admin, map[string]any{"connection_id": conn}, nil); res.StatusCode != http.StatusCreated {
+			t.Fatalf("share = %d", res.StatusCode)
+		}
+	}
+	federate(t, acme, partner)
+	var there federation
+	partner.call(http.MethodGet, "/api/workspaces/"+partnerWS+"/federation", admin, nil, &there)
+	for _, o := range there.Offers {
+		var mirror api.Channel
+		if res := partner.call(http.MethodPost, "/api/federation/offers/"+o.Id.String()+"/accept", admin, nil, &mirror); res.StatusCode != http.StatusCreated {
+			t.Fatalf("accept = %d", res.StatusCode)
+		}
+		mirrors[o.Name] = mirror.Id.String()
+	}
+	federate(t, acme, partner)
+	if len(mirrors) != 2 {
+		t.Fatalf("mirrors = %v", mirrors)
+	}
+
+	target, _ := acme.send(ayse, general, "react here", "fed-rule-0")
+	partner.send(admin, mirrors["General"], "hello one", "fed-rule-1")
+	partner.send(admin, mirrors["General"], "@channel fed", "fed-rule-2")
+	partner.send(admin, mirrors["General"], "_bedava_ fed", "fed-rule-3")
+	partner.send(admin, mirrors["Central"], "central fed", "fed-rule-4")
+	partner.send(admin, mirrors["General"], "hello two", "fed-rule-5")
+	federate(t, acme, partner)
+	if n := acme.count("SELECT count(*) FROM messages WHERE body IN ('hello one', 'hello two') AND channel_id = $1", general); n != 2 {
+		t.Errorf("allowed messages here = %d", n)
+	}
+	if n := acme.count("SELECT count(*) FROM messages WHERE body LIKE '%fed' AND channel_id IN ($1, $2)", general, central); n != 0 {
+		t.Errorf("%d refused messages were taken", n)
+	}
+
+	// An edit is held to the same rules.
+	for _, m := range partner.timeline(admin, mirrors["General"]) {
+		if m.Body == "hello one" {
+			partner.call(http.MethodPatch, "/api/channels/"+mirrors["General"]+"/messages/"+m.Id.String(), admin, map[string]any{"body": "bedava now"}, nil)
+		}
+	}
+	federate(t, acme, partner)
+	if n := acme.count("SELECT count(*) FROM messages WHERE body = 'hello one' AND channel_id = $1", general); n != 1 {
+		t.Error("a refused edit was taken")
+	}
+
+	// A remote guest timed out here posts and reacts no more.
+	var guest string
+	if err := acme.pool.QueryRow(context.Background(), "SELECT id FROM users WHERE display_name LIKE '%(Partner Inc)'").Scan(&guest); err != nil {
+		t.Fatal(err)
+	}
+	acme.timeOut(admin, guest, time.Now().Add(time.Hour))
+	federate(t, acme, partner)
+	partner.send(admin, mirrors["General"], "timed out fed", "fed-rule-6")
+	for _, m := range partner.timeline(admin, mirrors["General"]) {
+		if m.Body == "react here" {
+			partner.call(http.MethodPut, "/api/channels/"+mirrors["General"]+"/messages/"+m.Id.String()+"/reactions/%F0%9F%91%8D", admin, nil, nil)
+		}
+	}
+	federate(t, acme, partner)
+	if n := acme.count("SELECT count(*) FROM messages WHERE body = 'timed out fed' AND channel_id = $1", general); n != 0 {
+		t.Error("a timed-out remote guest posted")
+	}
+	if n := acme.count("SELECT count(*) FROM message_reactions WHERE message_id = $1", target.ID); n != 0 {
+		t.Error("a timed-out remote guest reacted")
+	}
+	if n := partner.count("SELECT count(*) FROM federation_deliveries"); n != 0 {
+		t.Errorf("deliveries left there = %d", n)
+	}
+}
+
 // Notices written in a member's name (playbook runs, events) follow their
 // posting rules.
 func TestNoticesFollowPostingRules(t *testing.T) {

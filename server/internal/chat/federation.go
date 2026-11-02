@@ -921,12 +921,24 @@ func (h *Handlers) applyFederated(ctx context.Context, q *store.Queries, conn st
 		if problem != "" || m.DeletedAt.Valid || body == m.Body {
 			return nil
 		}
+		// An edit is held to the author's posting rules here, as a local edit is.
+		author, err := q.GetUser(ctx, m.AuthorID)
+		if err != nil {
+			return err
+		}
+		v, ok, err := federatedRules(ctx, q, c, author, body, postOptions{anyChannel: true})
+		if err != nil || !ok {
+			return err
+		}
 		edited, err := q.EditMessage(ctx, store.EditMessageParams{ID: m.ID, Body: body})
 		if err != nil {
 			return err
 		}
 		msgs := []api.Message{messageAPI(edited, m.AuthorName, false)}
 		if err := decorate(ctx, q, m.AuthorID, msgs); err != nil {
+			return err
+		}
+		if err := flagMessage(ctx, q, c, msgs[0].Id, v.flags); err != nil {
 			return err
 		}
 		return emit(ctx, q, events.MessageUpdated, msgs[0])
@@ -936,12 +948,28 @@ func (h *Handlers) applyFederated(ctx context.Context, q *store.Queries, conn st
 			return err
 		}
 		person, err := remoteMember(ctx, q, conn, c, *ev.Author)
+		if errors.Is(err, errFederated) {
+			return nil
+		}
 		if err != nil {
 			return err
 		}
 		var n int64
 		if ev.Type == events.ReactionAdded {
-			n, err = q.AddReaction(ctx, store.AddReactionParams{MessageID: m.ID, Emoji: ev.Emoji, UserID: person.ID})
+			// The channel's rules on reacting apply to the remote guest, as here.
+			role, err := memberAccess(ctx, q, c, person)
+			if err != nil {
+				return err
+			}
+			if !canReact(c, role) {
+				return nil
+			}
+			if no, err := memberTimeout(ctx, q, c.WorkspaceID, person); err != nil || no != nil {
+				return err
+			}
+			if n, err = q.AddReaction(ctx, store.AddReactionParams{MessageID: m.ID, Emoji: ev.Emoji, UserID: person.ID}); err != nil {
+				return err
+			}
 		} else {
 			n, err = q.RemoveReaction(ctx, store.RemoveReactionParams{MessageID: m.ID, Emoji: ev.Emoji, UserID: person.ID})
 		}
@@ -974,6 +1002,27 @@ func remoteMember(ctx context.Context, q *store.Queries, conn store.FederationCo
 	}
 	_, err = q.AddMember(ctx, store.AddMemberParams{ChannelID: c.ID, UserID: u.ID, Role: RoleMember})
 	return u, err
+}
+
+// memberAccess is what a person may do in a channel by their roles there.
+func memberAccess(ctx context.Context, q *store.Queries, c store.Channel, user store.User) (access, error) {
+	ws, err := q.GetWorkspaceRole(ctx, store.GetWorkspaceRoleParams{WorkspaceID: c.WorkspaceID, UserID: user.ID})
+	if err != nil {
+		return access{}, err
+	}
+	ch, err := q.GetMemberRole(ctx, store.GetMemberRoleParams{ChannelID: c.ID, UserID: user.ID})
+	return access{ch: ch, ws: ws}, err
+}
+
+// federatedRules applies this server's posting rules to what a person of
+// another server writes in a shared channel; ok is false when they refuse it.
+func federatedRules(ctx context.Context, q *store.Queries, c store.Channel, author store.User, body string, o postOptions) (postVerdict, bool, error) {
+	role, err := memberAccess(ctx, q, c, author)
+	if err != nil {
+		return postVerdict{}, false, err
+	}
+	v, no, err := postingRules(ctx, q, c, role, author, body, o)
+	return v, no == nil && err == nil, err
 }
 
 // federatedTarget finds the local message an event refers to.
@@ -1037,14 +1086,31 @@ func (h *Handlers) federatedMessage(ctx context.Context, q *store.Queries, conn 
 			reply = replyTo{root: root}
 		}
 	}
+	// The remote author is a guest here, held to this channel's posting
+	// rules like a local guest; a message they refuse is dropped. Slow mode
+	// is left to the author's server: a batch held back by an outage arrives
+	// at once and must not lose its messages.
+	v, ok, err := federatedRules(ctx, q, c, author, body, postOptions{})
+	if err != nil || !ok {
+		return err
+	}
+	if reply.isReply() {
+		role, err := memberAccess(ctx, q, c, author)
+		if err != nil || !canReply(c, role) {
+			return err
+		}
+	}
 	nonce := "fed-" + remoteID.String()
-	m, err := postMessageTo(ctx, q, c, author, body, nonce, []byte("[]"), reply, postExtras{})
+	m, err := postMessageTo(ctx, q, c, author, body, nonce, []byte("[]"), reply, postExtras{noGroups: v.noGroups})
 	if errors.Is(err, errNonceReused) {
 		// A repeat of a message deleted here since (or moved): dropped, so
 		// the connection's later events still go through.
 		return nil
 	}
 	if err != nil {
+		return err
+	}
+	if err := flagMessage(ctx, q, c, m.Id, v.flags); err != nil {
 		return err
 	}
 	return q.RecordFederatedMessage(ctx, store.RecordFederatedMessageParams{MessageID: pgUUID(m.Id), ConnectionID: conn.ID, RemoteMessageID: pgUUID(remoteID)})
