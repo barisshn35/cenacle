@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -123,10 +125,11 @@ type automodConfig struct {
 	AllowedDomains []string `json:"allowed_domains,omitempty"`
 }
 
-// fold lowers text and removes accents (Turkish dotted and dotless i too).
+// fold lowers text and removes accents (Turkish dotted and dotless i too)
+// and compatibility forms (full-width letters).
 func fold(s string) string {
 	s = strings.NewReplacer("İ", "i", "I", "i", "ı", "i").Replace(s)
-	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	t := transform.Chain(norm.NFKD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	out, _, err := transform.String(t, s)
 	if err != nil {
 		out = s
@@ -134,46 +137,112 @@ func fold(s string) string {
 	return strings.ToLower(out)
 }
 
+// automodText is a message's text as the client shows it, for AutoMod:
+// character references decoded, invisible format characters (zero-width
+// spaces, soft hyphens) and markdown's backslash escapes removed.
+func automodText(s string) string {
+	s = html.UnescapeString(s)
+	s = strings.Map(func(r rune) rune {
+		if unicode.Is(unicode.Cf, r) {
+			return -1
+		}
+		return r
+	}, s)
+	return escapeRE.ReplaceAllString(s, "$1")
+}
+
 var (
-	wordRE = regexp.MustCompile(`[\p{L}\p{N}_]+`)
-	linkRE = regexp.MustCompile(`(?i)\bhttps?://([^/\s:?#]+)`)
+	// wordRE: words; markdown's emphasis (_word_, __word__) is no part of them.
+	wordRE = regexp.MustCompile(`[\p{L}\p{N}]+`)
+	// escapeRE: a backslash escape of ASCII punctuation (markdown shows the character).
+	escapeRE = regexp.MustCompile("\\\\([!-/:-@\\[-`{-~])")
+	// linkRE finds the hosts of what the client shows as links: http(s)
+	// addresses (in text, autolinks and destinations; browsers also take
+	// backslashes or no slashes), GFM's www. autolinks and scheme-relative
+	// destinations ([x](//host), [x]: //host).
+	linkRE = regexp.MustCompile(`(?i)https?:[/\\]*([^/\\\s?#<>()\[\]"'` + "`" + `]+)` +
+		`|(?:^|[\s*_~(])(www\.[^/\\\s?#<>()\[\]"'` + "`" + `]+)` +
+		`|(?:\]\(\s*<?|^\s*\[[^\]]*\]:\s*<?)//([^/\\\s?#<>()\[\]"'` + "`" + `]+)`)
 )
 
-// automodMatch reports whether a rule matches a message body.
+// words splits folded text into its words.
+func words(s string) []string { return wordRE.FindAllString(fold(s), -1) }
+
+// hasWords reports whether text has the keyword's words in a row (a
+// trailing * matches any word starting with the last one).
+func hasWords(text []string, keyword string) bool {
+	keyword = strings.TrimSpace(keyword)
+	prefix := strings.HasSuffix(keyword, "*")
+	k := words(strings.TrimSuffix(keyword, "*"))
+	if len(k) == 0 {
+		return false
+	}
+	for i := 0; i+len(k) <= len(text); i++ {
+		match := true
+		for j, w := range k {
+			t := text[i+j]
+			if t != w && (!prefix || j != len(k)-1 || !strings.HasPrefix(t, w)) {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
+}
+
+// linkHost is a link's host as a browser reads it: no user part, no port,
+// percent escapes decoded, lower case, without the punctuation that ends a
+// sentence after it.
+func linkHost(h string) string {
+	if i := strings.LastIndex(h, "@"); i >= 0 {
+		h = h[i+1:]
+	}
+	if i := strings.Index(h, ":"); i >= 0 {
+		h = h[:i]
+	}
+	if u, err := url.PathUnescape(h); err == nil {
+		h = u
+	}
+	return strings.ToLower(strings.TrimRight(h, ".,;:!*_~'\""))
+}
+
+// automodMatch reports whether a rule matches a message body, read as the
+// client shows it (see automodText).
 func automodMatch(rule store.AutomodRule, body string) bool {
 	var cfg automodConfig
 	_ = json.Unmarshal(rule.Config, &cfg)
+	body = automodText(body)
 	switch rule.Kind {
 	case "keywords":
-		words := wordRE.FindAllString(fold(body), -1)
+		text := words(body)
 		for _, k := range cfg.Words {
-			k = fold(strings.TrimSpace(k))
-			prefix := strings.HasSuffix(k, "*")
-			k = strings.TrimSuffix(k, "*")
-			if k == "" {
-				continue
-			}
-			for _, w := range words {
-				if w == k || (prefix && strings.HasPrefix(w, k)) {
-					return true
-				}
+			if hasWords(text, k) {
+				return true
 			}
 		}
 	case "mentions":
 		return cfg.MaxMentions > 0 && len(mentionedIDs(body)) > cfg.MaxMentions
 	case "links":
-		for _, m := range linkRE.FindAllStringSubmatch(body, -1) {
-			host := strings.ToLower(strings.TrimSuffix(m[1], "."))
-			allowed := false
-			for _, d := range cfg.AllowedDomains {
-				d = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(d), "."))
-				if host == d || strings.HasSuffix(host, "."+d) {
-					allowed = true
-					break
+		for _, line := range strings.Split(body, "\n") {
+			for _, m := range linkRE.FindAllStringSubmatch(line, -1) {
+				host := linkHost(m[1] + m[2] + m[3])
+				if host == "" {
+					continue
 				}
-			}
-			if !allowed {
-				return true
+				allowed := false
+				for _, d := range cfg.AllowedDomains {
+					d = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(d), "."))
+					if host == d || strings.HasSuffix(host, "."+d) {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					return true
+				}
 			}
 		}
 	}
