@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/barisshn35/cenacle/server/internal/egress"
@@ -168,16 +169,24 @@ func (b *Background) PruneDeliveries(ctx context.Context) (int64, error) {
 
 // SendDueScheduled posts the scheduled messages that are due. A batch is one
 // transaction: a crash leaves the batch pending, never marked sent unsent.
+// Each message is sent in a savepoint: one that cannot be sent fails on its
+// own and does not hold up the others.
 func (b *Background) SendDueScheduled(ctx context.Context) (int, error) {
 	n := 0
-	err := inTx(ctx, b.DB, func(q *store.Queries) error {
+	tx, err := b.DB.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	err = func() error {
+		q := store.New(tx)
 		rows, err := q.ClaimDueScheduled(ctx, scheduledBatch)
 		if err != nil {
 			return err
 		}
 		n = len(rows)
 		for _, s := range rows {
-			msgID, problem, err := sendScheduled(ctx, q, s)
+			msgID, problem, err := b.sendOne(ctx, tx, s)
 			if err != nil {
 				return err
 			}
@@ -190,8 +199,31 @@ func (b *Background) SendDueScheduled(ctx context.Context) (int, error) {
 			}
 		}
 		return nil
-	})
-	return n, err
+	}()
+	if err != nil {
+		return n, err
+	}
+	return n, tx.Commit(ctx)
+}
+
+// sendOne sends a scheduled message in a savepoint of tx. A failure of its
+// own (not of the database) rolls back what it wrote and fails the message.
+func (b *Background) sendOne(ctx context.Context, tx pgx.Tx, s store.ScheduledMessage) (pgtype.UUID, string, error) {
+	sp, err := tx.Begin(ctx)
+	if err != nil {
+		return pgtype.UUID{}, "", err
+	}
+	msgID, problem, err := sendScheduled(ctx, store.New(sp), s)
+	if err == nil {
+		return msgID, problem, sp.Commit(ctx)
+	}
+	if rerr := sp.Rollback(ctx); rerr != nil || ctx.Err() != nil {
+		return pgtype.UUID{}, "", err // the transaction itself is gone
+	}
+	if b.Log != nil {
+		b.Log.WarnContext(ctx, "scheduled message failed", "id", uuid(s.ID).String(), "error", err)
+	}
+	return pgtype.UUID{}, "The message could not be sent.", nil
 }
 
 // sendScheduled posts one scheduled message if its author may still post there.
@@ -246,10 +278,12 @@ func sendScheduled(ctx context.Context, q *store.Queries, s store.ScheduledMessa
 	}
 	m, err := postMessageTo(ctx, q, c, author, s.Body, "scheduled-"+uuid(s.ID).String(), []byte("[]"), replyTo{},
 		postExtras{noGroups: v.noGroups})
-	if errors.Is(err, errNonceReused) {
+	switch {
+	case errors.Is(err, errNonceReused):
 		return pgtype.UUID{}, "The message could not be sent.", nil
-	}
-	if err != nil {
+	case errors.Is(err, errEncrypted):
+		return pgtype.UUID{}, "The conversation is now encrypted end to end.", nil
+	case err != nil:
 		return pgtype.UUID{}, "", err
 	}
 	if err := flagMessage(ctx, q, c, m.Id, v.flags); err != nil {

@@ -78,3 +78,37 @@ func TestScheduledMessagesFollowPostingRules(t *testing.T) {
 		t.Errorf("channel mentions = %d", n)
 	}
 }
+
+// A scheduled message that can no longer be sent (its conversation was
+// encrypted since) fails alone: the rest of the batch goes out.
+func TestScheduledMessageFailsAlone(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ctx := context.Background()
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	zeynep := s.user("sub-z", "Zeynep")
+	general := s.general(zeynep)
+	dm, status := s.open(ayse, s.defaultWS, s.userID(mert))
+	if status != http.StatusCreated && status != http.StatusOK {
+		t.Fatalf("open = %d", status)
+	}
+	later := time.Now().Add(time.Hour)
+	s.call(http.MethodPost, "/api/channels/"+dm.ID+"/scheduled", ayse, map[string]any{"body": "sonra yazarım", "send_at": later}, nil)
+	s.call(http.MethodPost, "/api/channels/"+general+"/scheduled", zeynep, map[string]any{"body": "günaydın herkese", "send_at": later}, nil)
+	if _, err := s.pool.Exec(ctx, "UPDATE channels SET encrypted = true, mls = true WHERE id = $1", dm.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.pool.Exec(ctx, `UPDATE scheduled_messages SET send_at = now() - CASE WHEN body = 'sonra yazarım'
+		THEN interval '2 minutes' ELSE interval '1 minute' END`); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := s.bg.SendDueScheduled(ctx); err != nil || n != 2 {
+		t.Fatalf("sent %d, %v", n, err)
+	}
+	if n := s.count("SELECT count(*) FROM messages WHERE body = 'günaydın herkese'"); n != 1 {
+		t.Errorf("the healthy message was posted %d times", n)
+	}
+	if n := s.count("SELECT count(*) FROM scheduled_messages WHERE body = 'sonra yazarım' AND status = 'failed'"); n != 1 {
+		t.Error("the message for the encrypted conversation did not fail")
+	}
+}
