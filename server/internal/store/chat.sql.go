@@ -1324,8 +1324,9 @@ func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) (int
 }
 
 const restoreMessage = `-- name: RestoreMessage :one
-UPDATE messages SET deleted_at = NULL, deleted_by = NULL
-WHERE id = $1 AND deleted_at > now() - $2::interval
+UPDATE messages x SET deleted_at = NULL, deleted_by = NULL
+WHERE x.id = $1 AND x.deleted_at > now() - $2::interval
+  AND NOT EXISTS (SELECT 1 FROM spillage_reports s WHERE s.message_ref = x.id AND s.status = 'removed')
 RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
 `
 
@@ -1335,6 +1336,7 @@ type RestoreMessageParams struct {
 }
 
 // RestoreMessage brings back a message deleted less than restore_window ago.
+// What was removed as spillage stays removed.
 func (q *Queries) RestoreMessage(ctx context.Context, arg RestoreMessageParams) (Message, error) {
 	row := q.db.QueryRow(ctx, restoreMessage, arg.ID, arg.RestoreWindow)
 	var i Message

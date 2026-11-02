@@ -195,8 +195,10 @@ RETURNING *;
 
 -- name: RestoreMessage :one
 -- RestoreMessage brings back a message deleted less than restore_window ago.
-UPDATE messages SET deleted_at = NULL, deleted_by = NULL
-WHERE id = @id AND deleted_at > now() - sqlc.arg(restore_window)::interval
+-- What was removed as spillage stays removed.
+UPDATE messages x SET deleted_at = NULL, deleted_by = NULL
+WHERE x.id = @id AND x.deleted_at > now() - sqlc.arg(restore_window)::interval
+  AND NOT EXISTS (SELECT 1 FROM spillage_reports s WHERE s.message_ref = x.id AND s.status = 'removed')
 RETURNING *;
 
 -- name: PurgeDeletedMessages :execrows

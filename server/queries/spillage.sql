@@ -39,7 +39,7 @@ WHERE cm.channel_id = @channel_id AND NOT u.is_bot ORDER BY lower(u.display_name
 -- RedactMessage empties a spilled message and its traces; legal holds do not
 -- keep spillage.
 WITH m AS (
-    UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
+    UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL, forward = NULL,
         deleted_at = coalesce(x.deleted_at, now()), deleted_by = @removed_by, edited_at = NULL,
         pinned_at = NULL, pinned_by = NULL
     WHERE x.id = @id

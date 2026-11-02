@@ -312,7 +312,7 @@ func (q *Queries) RedactForwardDeliveries(ctx context.Context, id pgtype.UUID) (
 
 const redactMessage = `-- name: RedactMessage :one
 WITH m AS (
-    UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL,
+    UPDATE messages x SET body = '[removed: spillage]', attachments = '[]', title = NULL, link_url = NULL, forward = NULL,
         deleted_at = coalesce(x.deleted_at, now()), deleted_by = $1, edited_at = NULL,
         pinned_at = NULL, pinned_by = NULL
     WHERE x.id = $2

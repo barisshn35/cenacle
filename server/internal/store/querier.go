@@ -843,6 +843,7 @@ type Querier interface {
 	// ResolveReports closes every open report of a message.
 	ResolveReports(ctx context.Context, arg ResolveReportsParams) ([]MessageReport, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.
+	// What was removed as spillage stays removed.
 	RestoreMessage(ctx context.Context, arg RestoreMessageParams) (Message, error)
 	RetryFederationDeliveries(ctx context.Context, ids []pgtype.UUID) error
 	// RevealBurn records when a reader first saw a burn-on-read message.

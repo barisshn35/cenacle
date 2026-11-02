@@ -13,6 +13,19 @@ import (
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
+func (s *stack) spill(reporter, owner, channelID, messageID string) {
+	s.t.Helper()
+	var rep api.SpillageReport
+	if res := s.call(http.MethodPost, "/api/channels/"+channelID+"/messages/"+messageID+"/spillage", reporter,
+		map[string]string{"reason": "secret"}, &rep); res.StatusCode != http.StatusCreated {
+		s.t.Fatalf("report = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodPost, "/api/spillage/"+rep.Id.String()+"/decision", owner,
+		map[string]string{"decision": "remove"}, nil); res.StatusCode != http.StatusOK {
+		s.t.Fatalf("decide = %d", res.StatusCode)
+	}
+}
+
 func TestBurnReminderCarriesNoText(t *testing.T) {
 	s := newStack(t, newShared(t), options{})
 	ayse := s.user("sub-a", "Ayşe")
@@ -36,6 +49,37 @@ func TestBurnReminderCarriesNoText(t *testing.T) {
 	}
 	if ev := read(t, conn); ev.Type != "message.reminder" || strings.Contains(string(ev.Data), "BURN-SECRET") {
 		t.Errorf("reminder = %s %s", ev.Type, ev.Data)
+	}
+}
+
+func TestSpillageRemovalCannotBeRestored(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	owner := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	rev := s.user("sub-r", "Reviewer")
+	general := s.general(ayse)
+	var low channel
+	s.call(http.MethodPost, "/api/channels", owner, map[string]any{"name": "Low"}, &low)
+	s.call(http.MethodPost, "/api/channels/"+low.ID+"/join", ayse, nil, nil)
+	if res := s.call(http.MethodPut, "/api/workspaces/"+s.defaultWS+"/spillage-reviewers", owner,
+		map[string]any{"user_ids": []string{s.userID(rev)}}, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("reviewers = %d", res.StatusCode)
+	}
+	m, _ := s.send(ayse, general, "RESTORE-MARKER", "spillrestore-nonce-1")
+	var f api.Message
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/messages/"+m.ID+"/forward", ayse,
+		map[string]any{"channel_id": low.ID, "comment": "fyi"}, &f); res.StatusCode != http.StatusCreated {
+		t.Fatalf("forward = %d", res.StatusCode)
+	}
+	s.spill(ayse, rev, low.ID, f.Id.String())
+	if n := s.count(`SELECT count(*) FROM messages WHERE id = $1 AND forward IS NOT NULL`, f.Id.String()); n != 0 {
+		t.Error("the removed message keeps its forwarded snapshot")
+	}
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/channels/"+low.ID+"/messages/"+f.Id.String()+"/restore", owner, nil); status == http.StatusOK {
+		t.Error("an owner who is not a reviewer restored a spillage removal")
+	}
+	if n := s.count(`SELECT count(*) FROM messages WHERE id = $1 AND deleted_at IS NULL`, f.Id.String()); n != 0 {
+		t.Error("the removed message is back")
 	}
 }
 
