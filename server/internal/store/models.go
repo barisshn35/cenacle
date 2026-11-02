@@ -670,8 +670,9 @@ type NotificationPref struct {
 }
 
 type NotifyCursor struct {
-	Name   string      `json:"name"`
-	Cursor pgtype.UUID `json:"cursor"`
+	Name       string      `json:"name"`
+	Cursor     pgtype.UUID `json:"cursor"`
+	CursorUser pgtype.UUID `json:"cursor_user"`
 }
 
 type Picture struct {
@@ -737,13 +738,15 @@ type PushKey struct {
 }
 
 type PushSubscription struct {
-	ID        pgtype.UUID `json:"id"`
-	UserID    pgtype.UUID `json:"user_id"`
-	Endpoint  string      `json:"endpoint"`
-	P256dh    string      `json:"p256dh"`
-	Auth      string      `json:"auth"`
-	CreatedAt time.Time   `json:"created_at"`
-	SessionID pgtype.UUID `json:"session_id"`
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Endpoint  string             `json:"endpoint"`
+	P256dh    string             `json:"p256dh"`
+	Auth      string             `json:"auth"`
+	CreatedAt time.Time          `json:"created_at"`
+	SessionID pgtype.UUID        `json:"session_id"`
+	Failures  int32              `json:"failures"`
+	RetryAt   pgtype.Timestamptz `json:"retry_at"`
 }
 
 type SavedMessage struct {

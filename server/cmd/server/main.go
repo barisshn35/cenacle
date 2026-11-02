@@ -295,7 +295,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 		}
 		pushPublicKey = func(context.Context) (string, error) { return public, nil }
 		deps.Push = &notify.Pusher{
-			Queries: queries, Presence: presence, PublicURL: cfg.PublicURL.String(), Log: log,
+			Queries: queries, Presence: presence, Sessions: sessions, PublicURL: cfg.PublicURL.String(), Log: log,
 			// Not egressClient: its allow list is for bots, endpoints come from browsers.
 			Push: &notify.Push{Egress: notify.PushEgress(), Subscriber: cfg.WebPushSubject, PublicKey: public, PrivateKey: private},
 		}

@@ -52,13 +52,31 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :execrows
-DELETE FROM sessions
-WHERE expires_at <= now()
-   OR last_seen_at <= now() - $1::interval
+DELETE FROM sessions s
+USING users u
+WHERE u.id = s.user_id
+  AND (s.expires_at <= now()
+   OR s.last_seen_at <= now() - CASE WHEN u.directory_role = 'guest' THEN $1::interval ELSE $2::interval END
+   OR s.created_at <= now() - CASE WHEN u.directory_role = 'guest' THEN $3::interval ELSE $4::interval END)
 `
 
-func (q *Queries) DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteExpiredSessions, idleTimeout)
+type DeleteExpiredSessionsParams struct {
+	GuestIdleTimeout pgtype.Interval `json:"guest_idle_timeout"`
+	IdleTimeout      pgtype.Interval `json:"idle_timeout"`
+	GuestMaxAge      pgtype.Interval `json:"guest_max_age"`
+	MaxAge           pgtype.Interval `json:"max_age"`
+}
+
+// DeleteExpiredSessions removes the sessions GetActiveSession no longer
+// accepts (the session policy included), so what hangs on a session (push
+// subscriptions) ends with it.
+func (q *Queries) DeleteExpiredSessions(ctx context.Context, arg DeleteExpiredSessionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredSessions,
+		arg.GuestIdleTimeout,
+		arg.IdleTimeout,
+		arg.GuestMaxAge,
+		arg.MaxAge,
+	)
 	if err != nil {
 		return 0, err
 	}

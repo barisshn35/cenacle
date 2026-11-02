@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/barisshn35/cenacle/server/internal/auth"
 	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
@@ -80,17 +82,39 @@ func recipients(ctx context.Context, q store.Querier, ids []pgtype.UUID) (map[pg
 
 const pushCursor = "push"
 
-// sendTimeout bounds one push or one e-mail: a slow push service or relay
-// holds up only its own notification, not the whole run.
+// lastPerson stands after every person in the cursor: the whole message is
+// done.
+var lastPerson = pgtype.UUID{Bytes: [16]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, Valid: true}
+
+// sendTimeout bounds one e-mail: a slow relay holds up only its own
+// notification, not the whole run.
 const sendTimeout = 30 * time.Second
 
 // recordTimeout bounds noting what was sent; it runs even when the run's
 // context has just ended, so a sent notification is not sent again.
 const recordTimeout = 10 * time.Second
 
+const (
+	// pushPage is how many candidates (a message and a person) are read at once.
+	pushPage = 2000
+	// pushWorkers is how many pushes go out at the same time: a slow push
+	// service holds up one of them, not everyone's.
+	pushWorkers = 16
+	// pushPersonBudget is how long one person's pushes may take in a run;
+	// the rest of theirs are dropped in this run, everyone else's go on.
+	pushPersonBudget = 15 * time.Second
+	// pushReserve: no new page is started this close to the run's deadline.
+	pushReserve = 2 * pushTimeout
+)
+
 // Sender delivers one web push notification (Push; a fake in tests).
 type Sender interface {
 	Send(ctx context.Context, endpoint, p256dh, auth string, payload Payload) error
+}
+
+// SessionLimits gives the limits a session must be within to be used.
+type SessionLimits interface {
+	Limits(ctx context.Context) (auth.Limits, error)
 }
 
 // Pusher tells offline people about new mentions and messages over web push.
@@ -98,6 +122,7 @@ type Pusher struct {
 	Queries   *store.Queries
 	Push      Sender
 	Presence  Presence
+	Sessions  SessionLimits // nil: sessions end only by their expiry (tests)
 	PublicURL string
 	Log       *slog.Logger
 	Now       func() time.Time
@@ -110,35 +135,75 @@ func (p *Pusher) now() time.Time {
 	return time.Now()
 }
 
-// Run looks at the messages since the last run; it returns how many
-// notifications went out.
+func (p *Pusher) limits(ctx context.Context) (auth.Limits, error) {
+	if p.Sessions != nil {
+		return p.Sessions.Limits(ctx)
+	}
+	century := pgtype.Interval{Microseconds: (100 * 365 * 24 * time.Hour).Microseconds(), Valid: true}
+	return auth.Limits{Idle: century, GuestIdle: century, MaxAge: century, GuestMaxAge: century}, nil
+}
+
+// pushKey is a place in the candidates: a message and a person.
+type pushKey struct{ message, user pgtype.UUID }
+
+func (p *Pusher) setCursor(ctx context.Context, k pushKey) error {
+	return p.Queries.SetNotifyCursor(ctx, store.SetNotifyCursorParams{Name: pushCursor, Cursor: k.message, CursorUser: k.user})
+}
+
+// Run pushes about the messages since the last run, a page of candidates at
+// a time until none are left or the run's time is nearly up; it returns how
+// many notifications went out.
 func (p *Pusher) Run(ctx context.Context) (int, error) {
 	q := p.Queries
-	cursor, err := q.GetNotifyCursor(ctx, pushCursor)
+	c, err := q.GetNotifyCursor(ctx, pushCursor)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// First run: start from now, not from the history.
 		newest, err := q.NewestMessageID(ctx)
 		if err != nil {
 			return 0, err
 		}
-		return 0, q.SetNotifyCursor(ctx, store.SetNotifyCursorParams{Name: pushCursor, Cursor: newest})
+		return 0, p.setCursor(ctx, pushKey{newest, lastPerson})
 	}
 	if err != nil {
 		return 0, err
 	}
-	const limit = 2000
-	rows, err := q.NotifyCandidates(ctx, store.NotifyCandidatesParams{After: cursor, RowLimit: limit})
-	if err != nil || len(rows) == 0 {
+	limits, err := p.limits(ctx)
+	if err != nil {
 		return 0, err
 	}
-	last := rows[len(rows)-1].MessageID
-	if len(rows) == limit && rows[0].MessageID != last {
-		// The page may end inside a message: that one comes again next time.
-		for len(rows) > 0 && rows[len(rows)-1].MessageID == last {
-			rows = rows[:len(rows)-1]
-		}
-		last = rows[len(rows)-1].MessageID
+	policy, err := q.GetNotificationPolicy(ctx)
+	if err != nil {
+		return 0, err
 	}
+	at := pushKey{c.Cursor, c.CursorUser}
+	sent := 0
+	for {
+		if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < pushReserve {
+			return sent, nil // the rest on the next run
+		}
+		rows, err := q.NotifyCandidates(ctx, store.NotifyCandidatesParams{AfterMessage: at.message, AfterUser: at.user, RowLimit: pushPage})
+		if err != nil || len(rows) == 0 {
+			return sent, err
+		}
+		n, next, err := p.page(ctx, rows, at, limits, policy)
+		sent += n
+		if err != nil || len(rows) < pushPage {
+			return sent, err
+		}
+		at = next
+	}
+}
+
+// pushJob is one notification to one browser; row is its candidate.
+type pushJob struct {
+	row     int
+	sub     store.ListPushSubscriptionsRow
+	payload Payload
+}
+
+// page pushes one page of candidates and returns where the next one starts.
+func (p *Pusher) page(ctx context.Context, rows []store.NotifyCandidatesRow, start pushKey, limits auth.Limits, policy store.GetNotificationPolicyRow) (int, pushKey, error) {
+	q := p.Queries
 	ids := make([]pgtype.UUID, 0, len(rows))
 	strIDs := make([]string, 0, len(rows))
 	seen := map[pgtype.UUID]bool{}
@@ -151,27 +216,16 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 	}
 	people, err := recipients(ctx, q, ids)
 	if err != nil {
-		return 0, err
+		return 0, start, err
 	}
 	online, err := p.Presence.Statuses(ctx, strIDs)
 	if err != nil {
 		online = map[string]string{} // offline it is: better told twice than never
 	}
-	policy, err := q.GetNotificationPolicy(ctx)
-	if err != nil {
-		return 0, err
-	}
-	// At most once: the cursor moves past a message before its pushes go out,
-	// so a run cut short (its timeout, a restart) or one running next to it
-	// never pushes a message twice; a push lost to a crash is the lesser harm
-	// (the message still waits, unread, in the app).
-	sent := 0
 	now := p.now()
-	var claimed pgtype.UUID
-	for _, r := range rows {
-		if err := ctx.Err(); err != nil {
-			return sent, err
-		}
+	subsOf := map[pgtype.UUID][]store.ListPushSubscriptionsRow{}
+	var jobs []pushJob
+	for i, r := range rows {
 		who, ok := people[r.UserID]
 		if !ok || !who.prefs.Push || online[idString(r.UserID)] != "" {
 			continue
@@ -180,18 +234,16 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 		if !Notifies(who.prefs, Channel{Level: r.Level, MutedUntil: timeOf(r.ChannelMutedUntil), WorkspaceMutedUntil: timeOf(r.WorkspaceMutedUntil)}, kind, now, who.tz) {
 			continue
 		}
-		subs, err := q.ListPushSubscriptions(ctx, r.UserID)
-		if err != nil {
-			return sent, err
-		}
-		if len(subs) == 0 {
-			continue
-		}
-		if claimed != r.MessageID {
-			if err := q.SetNotifyCursor(ctx, store.SetNotifyCursorParams{Name: pushCursor, Cursor: r.MessageID}); err != nil {
-				return sent, err
+		subs, ok := subsOf[r.UserID]
+		if !ok {
+			subs, err = q.ListPushSubscriptions(ctx, store.ListPushSubscriptionsParams{
+				UserID: r.UserID, IdleTimeout: limits.Idle, GuestIdleTimeout: limits.GuestIdle,
+				MaxAge: limits.MaxAge, GuestMaxAge: limits.GuestMaxAge,
+			})
+			if err != nil {
+				return 0, start, err
 			}
-			claimed = r.MessageID
+			subsOf[r.UserID] = subs
 		}
 		payload := Payload{
 			Title: notificationTitle(r.AuthorName, r.ChannelName, r.ChannelKind),
@@ -206,20 +258,133 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 			payload.Title, payload.Body = "Cenacle", newActivity
 		}
 		for _, s := range subs {
-			sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
-			err := p.Push.Send(sendCtx, s.Endpoint, s.P256dh, s.Auth, payload)
-			cancel()
-			switch {
-			case errors.Is(err, ErrGone):
-				_ = q.RemovePushEndpoint(ctx, s.Endpoint)
-			case err != nil:
-				p.Log.WarnContext(ctx, "web push", "error", err)
-			default:
-				sent++
-			}
+			jobs = append(jobs, pushJob{row: i, sub: s, payload: payload})
 		}
 	}
-	return sent, q.SetNotifyCursor(ctx, store.SetNotifyCursorParams{Name: pushCursor, Cursor: last})
+	keyOf := func(i int) pushKey { return pushKey{rows[i].MessageID, rows[i].UserID} }
+	end := keyOf(len(rows) - 1)
+	if len(jobs) == 0 {
+		return 0, end, p.setCursor(ctx, end)
+	}
+	// At most once: the cursor moves past a message before its pushes go
+	// out, so a run that crashes or runs next to another never pushes twice
+	// (a lost push is the lesser harm: the message still waits, unread, in
+	// the app). A run cut short gives back the pushes it had not started.
+	claim := make([]int, len(rows)) // the last row of each row's message
+	for i := len(rows) - 1; i >= 0; i-- {
+		if i == len(rows)-1 || rows[i+1].MessageID != rows[i].MessageID {
+			claim[i] = i
+		} else {
+			claim[i] = claim[i+1]
+		}
+	}
+	d := &delivery{p: p, rows: rows, jobs: jobs, claim: claim, keyOf: keyOf, claimed: -1,
+		failed: map[string]bool{}, spent: map[pgtype.UUID]time.Duration{}}
+	var wg sync.WaitGroup
+	for range min(pushWorkers, len(jobs)) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			d.work(ctx)
+		}()
+	}
+	wg.Wait()
+	if d.err == nil && d.next == len(jobs) {
+		return d.sent, end, p.setCursor(ctx, end)
+	}
+	back := start
+	if d.next > 0 {
+		back = keyOf(jobs[d.next-1].row)
+	}
+	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), recordTimeout)
+	defer cancel()
+	if err := p.setCursor(recCtx, back); err != nil {
+		return d.sent, back, err
+	}
+	if d.err != nil {
+		return d.sent, back, d.err
+	}
+	return d.sent, back, ctx.Err()
+}
+
+// delivery sends a page's pushes with a few workers. Jobs start in order; a
+// push endpoint that fails rests for the rest of the run (and for a while
+// after it, longer each time), and a person whose pushes have used their
+// budget gets no more in this run, so one person's slow endpoints delay only
+// their own notifications.
+type delivery struct {
+	p     *Pusher
+	rows  []store.NotifyCandidatesRow
+	jobs  []pushJob
+	claim []int
+	keyOf func(int) pushKey
+
+	mu      sync.Mutex
+	next    int // the first job not started
+	claimed int // the row the cursor was moved to
+	err     error
+	sent    int
+	failed  map[string]bool
+	spent   map[pgtype.UUID]time.Duration
+}
+
+// take starts the next job, moving the cursor past its message first.
+func (d *delivery) take(ctx context.Context) (pushJob, bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for d.err == nil && ctx.Err() == nil && d.next < len(d.jobs) {
+		j := d.jobs[d.next]
+		if c := d.claim[j.row]; c > d.claimed {
+			if err := d.p.setCursor(ctx, d.keyOf(c)); err != nil {
+				d.err = err
+				return pushJob{}, false
+			}
+			d.claimed = c
+		}
+		d.next++
+		if d.failed[j.sub.Endpoint] || d.spent[d.rows[j.row].UserID] >= pushPersonBudget {
+			continue
+		}
+		return j, true
+	}
+	return pushJob{}, false
+}
+
+func (d *delivery) work(ctx context.Context) {
+	q := d.p.Queries
+	for {
+		j, ok := d.take(ctx)
+		if !ok {
+			return
+		}
+		began := time.Now()
+		sendCtx, cancel := context.WithTimeout(ctx, pushTimeout)
+		err := d.p.Push.Send(sendCtx, j.sub.Endpoint, j.sub.P256dh, j.sub.Auth, j.payload)
+		cancel()
+		recCtx, cancelRec := context.WithTimeout(context.WithoutCancel(ctx), recordTimeout)
+		d.mu.Lock()
+		d.spent[d.rows[j.row].UserID] += time.Since(began)
+		switch {
+		case errors.Is(err, ErrGone):
+			d.failed[j.sub.Endpoint] = true
+			d.mu.Unlock()
+			_ = q.RemovePushEndpoint(recCtx, j.sub.Endpoint)
+		case err != nil && ctx.Err() != nil:
+			d.mu.Unlock() // the run ended, not the endpoint
+		case err != nil:
+			d.failed[j.sub.Endpoint] = true
+			d.mu.Unlock()
+			d.p.Log.WarnContext(ctx, "web push", "error", err)
+			_ = q.PushFailed(recCtx, j.sub.Endpoint)
+		default:
+			d.sent++
+			d.mu.Unlock()
+			if j.sub.Failures > 0 {
+				_ = q.PushDelivered(recCtx, j.sub.Endpoint)
+			}
+		}
+		cancelRec()
+	}
 }
 
 // newActivity is the text of notifications that may show nothing (in both

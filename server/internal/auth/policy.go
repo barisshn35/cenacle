@@ -128,33 +128,36 @@ func stricter(a, b time.Duration) time.Duration {
 	return min(a, b)
 }
 
-// limits are the four intervals the session queries apply.
-type limits struct{ idle, guestIdle, maxAge, guestMaxAge pgtype.Interval }
+// Limits are the four intervals the session queries apply: the operator's
+// limits and the administrator's session policy, whichever is stricter.
+type Limits struct{ Idle, GuestIdle, MaxAge, GuestMaxAge pgtype.Interval }
 
-func (s *Sessions) limits(ctx context.Context) (limits, error) {
+// Limits returns the limits a session must be within to be used; everything
+// that hangs on a session (push subscriptions) applies them too.
+func (s *Sessions) Limits(ctx context.Context) (Limits, error) {
 	p, err := s.Policy(ctx)
 	if err != nil {
-		return limits{}, err
+		return Limits{}, err
 	}
 	at := func(operator, admin time.Duration) pgtype.Interval {
 		return interval(orNoLimit(stricter(operator, admin)))
 	}
-	return limits{
-		idle:        at(s.IdleTimeout, p.IdleTimeout),
-		guestIdle:   at(s.IdleTimeout, stricter(p.IdleTimeout, p.GuestIdleTimeout)),
-		maxAge:      at(s.MaxAge, p.MaxAge),
-		guestMaxAge: at(s.MaxAge, stricter(p.MaxAge, p.GuestMaxAge)),
+	return Limits{
+		Idle:        at(s.IdleTimeout, p.IdleTimeout),
+		GuestIdle:   at(s.IdleTimeout, stricter(p.IdleTimeout, p.GuestIdleTimeout)),
+		MaxAge:      at(s.MaxAge, p.MaxAge),
+		GuestMaxAge: at(s.MaxAge, stricter(p.MaxAge, p.GuestMaxAge)),
 	}, nil
 }
 
 // ListUserSessions returns a user's usable sessions, most recently used first.
 func (s *Sessions) ListUserSessions(ctx context.Context, userID pgtype.UUID) ([]store.Session, error) {
-	l, err := s.limits(ctx)
+	l, err := s.Limits(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return s.Queries.ListUserSessions(ctx, store.ListUserSessionsParams{
-		UserID: userID, IdleTimeout: l.idle, GuestIdleTimeout: l.guestIdle, MaxAge: l.maxAge, GuestMaxAge: l.guestMaxAge,
+		UserID: userID, IdleTimeout: l.Idle, GuestIdleTimeout: l.GuestIdle, MaxAge: l.MaxAge, GuestMaxAge: l.GuestMaxAge,
 	})
 }
 

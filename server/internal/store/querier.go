@@ -221,7 +221,10 @@ type Querier interface {
 	DeleteCustomEmoji(ctx context.Context, id pgtype.UUID) error
 	DeleteDialog(ctx context.Context, id pgtype.UUID) error
 	DeleteEscrowKey(ctx context.Context) error
-	DeleteExpiredSessions(ctx context.Context, idleTimeout pgtype.Interval) (int64, error)
+	// DeleteExpiredSessions removes the sessions GetActiveSession no longer
+	// accepts (the session policy included), so what hangs on a session (push
+	// subscriptions) ends with it.
+	DeleteExpiredSessions(ctx context.Context, arg DeleteExpiredSessionsParams) (int64, error)
 	DeleteFederationConnection(ctx context.Context, id pgtype.UUID) error
 	DeleteFederationDeliveries(ctx context.Context, ids []pgtype.UUID) error
 	DeleteFeed(ctx context.Context, arg DeleteFeedParams) (int64, error)
@@ -403,7 +406,7 @@ type Querier interface {
 	GetMessagesByIDs(ctx context.Context, ids []pgtype.UUID) ([]GetMessagesByIDsRow, error)
 	GetNotificationPolicy(ctx context.Context) (GetNotificationPolicyRow, error)
 	GetNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]byte, error)
-	GetNotifyCursor(ctx context.Context, name string) (pgtype.UUID, error)
+	GetNotifyCursor(ctx context.Context, name string) (GetNotifyCursorRow, error)
 	GetPicture(ctx context.Context, id pgtype.UUID) (GetPictureRow, error)
 	GetPlaybook(ctx context.Context, id pgtype.UUID) (Playbook, error)
 	GetPoll(ctx context.Context, messageID pgtype.UUID) (Poll, error)
@@ -611,7 +614,10 @@ type Querier interface {
 	// ListPollVoters returns who chose what in polls that are not anonymous.
 	ListPollVoters(ctx context.Context, messageIds []pgtype.UUID) ([]ListPollVotersRow, error)
 	ListPolls(ctx context.Context, messageIds []pgtype.UUID) ([]Poll, error)
-	ListPushSubscriptions(ctx context.Context, userID pgtype.UUID) ([]ListPushSubscriptionsRow, error)
+	// ListPushSubscriptions returns a person's push subscriptions whose session
+	// can still be used (the limits of SessionIsActive, the session policy
+	// included) and that are not resting after failed deliveries.
+	ListPushSubscriptions(ctx context.Context, arg ListPushSubscriptionsParams) ([]ListPushSubscriptionsRow, error)
 	// ListReactions sums up the reactions of messages: count and whether the user
 	// reacted, in the order the emoji were first used.
 	ListReactions(ctx context.Context, arg ListReactionsParams) ([]ListReactionsRow, error)
@@ -723,11 +729,12 @@ type Querier interface {
 	// NoteFederationV1Refused records that a valid request signed only with v1
 	// was refused on a connection that requires v2 (at most once a minute).
 	NoteFederationV1Refused(ctx context.Context, id pgtype.UUID) error
-	// NotifyCandidates lists, for messages after a cursor, the people who may be
-	// told about them: the members of the message's channel other than its author,
-	// what the message is to them (a mention, a conversation, any message) and
-	// their channel and workspace settings. A reply kept in its thread is only for
-	// the people it mentions and those following the thread, as a mention.
+	// NotifyCandidates lists, after a cursor (a message and a person), the people
+	// who may be told about messages: the members of the message's channel other
+	// than its author who have a push subscription, what the message is to them (a
+	// mention, a conversation, any message) and their channel and workspace
+	// settings. A reply kept in its thread is only for the people it mentions and
+	// those following the thread, as a mention.
 	NotifyCandidates(ctx context.Context, arg NotifyCandidatesParams) ([]NotifyCandidatesRow, error)
 	PendingFileTexts(ctx context.Context, rowLimit int32) ([]PendingFileTextsRow, error)
 	// PeopleSharingChannels is everyone who is in a channel of the workspace with
@@ -749,6 +756,10 @@ type Querier interface {
 	// too), so the oldest id of the cut-off's millisecond bounds the range. The
 	// ids are collected first, so the delete finds them by primary key.
 	PurgeExpiredMessages(ctx context.Context, rowLimit int32) (int64, error)
+	PushDelivered(ctx context.Context, endpoint string) error
+	// PushFailed rests an endpoint after a failed delivery: a minute, doubling
+	// with each failure in a row, an hour at most.
+	PushFailed(ctx context.Context, endpoint string) error
 	PutSidebarLayout(ctx context.Context, arg PutSidebarLayoutParams) error
 	// QueueDeliveries records an event for every enabled subscription of a bot that is a
 	// member of the event's channel and wants this event, except the bot's own messages.

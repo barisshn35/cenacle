@@ -61,8 +61,27 @@ DELETE FROM push_subscriptions WHERE endpoint = @endpoint;
 SELECT count(*)::int FROM push_subscriptions WHERE user_id = @user_id;
 
 -- name: ListPushSubscriptions :many
-SELECT p.endpoint, p.p256dh, p.auth FROM push_subscriptions p JOIN sessions s ON s.id = p.session_id
-WHERE p.user_id = @user_id AND s.expires_at > now();
+-- ListPushSubscriptions returns a person's push subscriptions whose session
+-- can still be used (the limits of SessionIsActive, the session policy
+-- included) and that are not resting after failed deliveries.
+SELECT p.endpoint, p.p256dh, p.auth, p.failures FROM push_subscriptions p
+JOIN sessions s ON s.id = p.session_id
+JOIN users u ON u.id = s.user_id
+WHERE p.user_id = @user_id AND (p.retry_at IS NULL OR p.retry_at <= now())
+  AND s.expires_at > now()
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_idle_timeout)::interval ELSE sqlc.arg(idle_timeout)::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_max_age)::interval ELSE sqlc.arg(max_age)::interval END;
+
+-- name: PushDelivered :exec
+UPDATE push_subscriptions SET failures = 0, retry_at = NULL WHERE endpoint = @endpoint AND failures > 0;
+
+-- name: PushFailed :exec
+-- PushFailed rests an endpoint after a failed delivery: a minute, doubling
+-- with each failure in a row, an hour at most.
+UPDATE push_subscriptions
+SET failures = failures + 1,
+    retry_at = now() + least(interval '1 minute' * power(2, least(failures, 6)), interval '1 hour')
+WHERE endpoint = @endpoint;
 
 -- name: GetPushKeys :one
 SELECT public_key, private_key FROM push_keys WHERE id;
@@ -71,11 +90,12 @@ SELECT public_key, private_key FROM push_keys WHERE id;
 INSERT INTO push_keys (public_key, private_key) VALUES (@public_key, @private_key) ON CONFLICT DO NOTHING;
 
 -- name: NotifyCandidates :many
--- NotifyCandidates lists, for messages after a cursor, the people who may be
--- told about them: the members of the message's channel other than its author,
--- what the message is to them (a mention, a conversation, any message) and
--- their channel and workspace settings. A reply kept in its thread is only for
--- the people it mentions and those following the thread, as a mention.
+-- NotifyCandidates lists, after a cursor (a message and a person), the people
+-- who may be told about messages: the members of the message's channel other
+-- than its author who have a push subscription, what the message is to them (a
+-- mention, a conversation, any message) and their channel and workspace
+-- settings. A reply kept in its thread is only for the people it mentions and
+-- those following the thread, as a mention.
 SELECT m.id AS message_id, m.channel_id,
     (CASE WHEN m.burn_seconds IS NULL AND NOT c.encrypted THEN m.body ELSE '' END)::text AS body, m.created_at, c.name AS channel_name, c.kind AS channel_kind,
        c.workspace_id, a.display_name AS author_name,
@@ -91,12 +111,14 @@ LEFT JOIN message_mentions mm ON mm.message_id = m.id AND mm.user_id = cm.user_i
 LEFT JOIN thread_follows tf ON tf.root_id = m.root_id AND tf.user_id = cm.user_id
 LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.channel_id = m.channel_id
 LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
-WHERE m.id > @after AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day'
+WHERE m.id >= @after_message AND (m.id, cm.user_id) > (@after_message::uuid, @after_user::uuid)
+  AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day'
+  AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.user_id = cm.user_id)
   AND (CASE WHEN m.root_id IS NULL OR m.also_in_channel
             THEN cm.last_read_id IS NULL OR cm.last_read_id < m.id
             ELSE (mm.user_id IS NOT NULL OR coalesce(tf.following, false))
                  AND (tf.last_read_id IS NULL OR tf.last_read_id < m.id) END)
-ORDER BY m.id
+ORDER BY m.id, cm.user_id
 LIMIT @row_limit;
 
 -- name: NewestMessageID :one
@@ -115,11 +137,11 @@ INSERT INTO email_notifications (user_id, last_message, sent_at) VALUES (@user_i
 ON CONFLICT (user_id) DO UPDATE SET last_message = EXCLUDED.last_message, sent_at = now();
 
 -- name: GetNotifyCursor :one
-SELECT cursor FROM notify_cursors WHERE name = @name;
+SELECT cursor, cursor_user FROM notify_cursors WHERE name = @name;
 
 -- name: SetNotifyCursor :exec
-INSERT INTO notify_cursors (name, cursor) VALUES (@name, @cursor)
-ON CONFLICT (name) DO UPDATE SET cursor = EXCLUDED.cursor;
+INSERT INTO notify_cursors (name, cursor, cursor_user) VALUES (@name, @cursor, @cursor_user)
+ON CONFLICT (name) DO UPDATE SET cursor = EXCLUDED.cursor, cursor_user = EXCLUDED.cursor_user;
 
 -- name: EmailRecipients :many
 -- EmailRecipients are people who want e-mail about what they missed and have

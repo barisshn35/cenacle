@@ -143,8 +143,9 @@ func PushEgress() *egress.Client {
 	return egress.New(egress.Policy{Timeout: pushTimeout, MaxResponse: 64 << 10})
 }
 
-// pushTimeout bounds one delivery to a push service.
-const pushTimeout = 10 * time.Second
+// pushTimeout bounds one delivery to a push service (they answer well within
+// it): a stalled one holds up one push worker no longer.
+const pushTimeout = 5 * time.Second
 
 // Payload is what the service worker shows.
 type Payload struct {

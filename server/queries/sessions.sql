@@ -26,9 +26,15 @@ WHERE id = @id AND last_seen_at < now() - interval '1 minute';
 DELETE FROM sessions WHERE id = @id;
 
 -- name: DeleteExpiredSessions :execrows
-DELETE FROM sessions
-WHERE expires_at <= now()
-   OR last_seen_at <= now() - sqlc.arg(idle_timeout)::interval;
+-- DeleteExpiredSessions removes the sessions GetActiveSession no longer
+-- accepts (the session policy included), so what hangs on a session (push
+-- subscriptions) ends with it.
+DELETE FROM sessions s
+USING users u
+WHERE u.id = s.user_id
+  AND (s.expires_at <= now()
+   OR s.last_seen_at <= now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_idle_timeout)::interval ELSE sqlc.arg(idle_timeout)::interval END
+   OR s.created_at <= now() - CASE WHEN u.directory_role = 'guest' THEN sqlc.arg(guest_max_age)::interval ELSE sqlc.arg(max_age)::interval END);
 
 -- name: SessionIsActive :one
 -- SessionIsActive checks a session without recording use (long-lived

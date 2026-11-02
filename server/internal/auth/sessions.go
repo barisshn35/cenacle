@@ -102,9 +102,6 @@ func orNoLimit(d time.Duration) time.Duration {
 	return d
 }
 
-// idle is the idle timeout as an SQL interval (no limit: a century).
-func (s *Sessions) idle() pgtype.Interval { return interval(orNoLimit(s.IdleTimeout)) }
-
 // Create starts a session for userID and returns its token. idpSID is the
 // identity provider's session it came from ("" if unknown).
 func (s *Sessions) Create(ctx context.Context, userID pgtype.UUID, client ClientInfo, idpSID string) (string, store.Session, error) {
@@ -148,13 +145,13 @@ func (s *Sessions) Authenticate(ctx context.Context, token string, client Client
 	if !validTokenFormat(token) {
 		return Principal{}, ErrNoSession
 	}
-	l, err := s.limits(ctx)
+	l, err := s.Limits(ctx)
 	if err != nil {
 		return Principal{}, err
 	}
 	row, err := s.Queries.GetActiveSession(ctx, store.GetActiveSessionParams{
-		TokenHash: hashToken(token), IdleTimeout: l.idle, GuestIdleTimeout: l.guestIdle,
-		MaxAge: l.maxAge, GuestMaxAge: l.guestMaxAge,
+		TokenHash: hashToken(token), IdleTimeout: l.Idle, GuestIdleTimeout: l.GuestIdle,
+		MaxAge: l.MaxAge, GuestMaxAge: l.GuestMaxAge,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Principal{}, ErrNoSession
@@ -179,12 +176,12 @@ func (s *Sessions) Authenticate(ctx context.Context, token string, client Client
 // SessionActive reports whether a session can still be used, without
 // recording use.
 func (s *Sessions) SessionActive(ctx context.Context, id pgtype.UUID) (bool, error) {
-	l, err := s.limits(ctx)
+	l, err := s.Limits(ctx)
 	if err != nil {
 		return false, err
 	}
 	return s.Queries.SessionIsActive(ctx, store.SessionIsActiveParams{
-		ID: id, IdleTimeout: l.idle, GuestIdleTimeout: l.guestIdle, MaxAge: l.maxAge, GuestMaxAge: l.guestMaxAge,
+		ID: id, IdleTimeout: l.Idle, GuestIdleTimeout: l.GuestIdle, MaxAge: l.MaxAge, GuestMaxAge: l.GuestMaxAge,
 	})
 }
 
@@ -202,7 +199,13 @@ func (s *Sessions) DeleteExpired(ctx context.Context) (int64, error) {
 	if err := s.Queries.DeleteLinkGuestSessions(ctx); err != nil {
 		return 0, fmt.Errorf("end link guest sessions: %w", err)
 	}
-	return s.Queries.DeleteExpiredSessions(ctx, s.idle())
+	l, err := s.Limits(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return s.Queries.DeleteExpiredSessions(ctx, store.DeleteExpiredSessionsParams{
+		IdleTimeout: l.Idle, GuestIdleTimeout: l.GuestIdle, MaxAge: l.MaxAge, GuestMaxAge: l.GuestMaxAge,
+	})
 }
 
 func interval(d time.Duration) pgtype.Interval {

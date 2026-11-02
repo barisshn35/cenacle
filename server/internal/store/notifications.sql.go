@@ -140,14 +140,19 @@ func (q *Queries) GetNotificationPrefs(ctx context.Context, userID pgtype.UUID) 
 }
 
 const getNotifyCursor = `-- name: GetNotifyCursor :one
-SELECT cursor FROM notify_cursors WHERE name = $1
+SELECT cursor, cursor_user FROM notify_cursors WHERE name = $1
 `
 
-func (q *Queries) GetNotifyCursor(ctx context.Context, name string) (pgtype.UUID, error) {
+type GetNotifyCursorRow struct {
+	Cursor     pgtype.UUID `json:"cursor"`
+	CursorUser pgtype.UUID `json:"cursor_user"`
+}
+
+func (q *Queries) GetNotifyCursor(ctx context.Context, name string) (GetNotifyCursorRow, error) {
 	row := q.db.QueryRow(ctx, getNotifyCursor, name)
-	var cursor pgtype.UUID
-	err := row.Scan(&cursor)
-	return cursor, err
+	var i GetNotifyCursorRow
+	err := row.Scan(&i.Cursor, &i.CursorUser)
+	return i, err
 }
 
 const getPushKeys = `-- name: GetPushKeys :one
@@ -273,18 +278,41 @@ func (q *Queries) ListChannelNotificationPrefs(ctx context.Context, userID pgtyp
 }
 
 const listPushSubscriptions = `-- name: ListPushSubscriptions :many
-SELECT p.endpoint, p.p256dh, p.auth FROM push_subscriptions p JOIN sessions s ON s.id = p.session_id
-WHERE p.user_id = $1 AND s.expires_at > now()
+SELECT p.endpoint, p.p256dh, p.auth, p.failures FROM push_subscriptions p
+JOIN sessions s ON s.id = p.session_id
+JOIN users u ON u.id = s.user_id
+WHERE p.user_id = $1 AND (p.retry_at IS NULL OR p.retry_at <= now())
+  AND s.expires_at > now()
+  AND s.last_seen_at > now() - CASE WHEN u.directory_role = 'guest' THEN $2::interval ELSE $3::interval END
+  AND s.created_at > now() - CASE WHEN u.directory_role = 'guest' THEN $4::interval ELSE $5::interval END
 `
+
+type ListPushSubscriptionsParams struct {
+	UserID           pgtype.UUID     `json:"user_id"`
+	GuestIdleTimeout pgtype.Interval `json:"guest_idle_timeout"`
+	IdleTimeout      pgtype.Interval `json:"idle_timeout"`
+	GuestMaxAge      pgtype.Interval `json:"guest_max_age"`
+	MaxAge           pgtype.Interval `json:"max_age"`
+}
 
 type ListPushSubscriptionsRow struct {
 	Endpoint string `json:"endpoint"`
 	P256dh   string `json:"p256dh"`
 	Auth     string `json:"auth"`
+	Failures int32  `json:"failures"`
 }
 
-func (q *Queries) ListPushSubscriptions(ctx context.Context, userID pgtype.UUID) ([]ListPushSubscriptionsRow, error) {
-	rows, err := q.db.Query(ctx, listPushSubscriptions, userID)
+// ListPushSubscriptions returns a person's push subscriptions whose session
+// can still be used (the limits of SessionIsActive, the session policy
+// included) and that are not resting after failed deliveries.
+func (q *Queries) ListPushSubscriptions(ctx context.Context, arg ListPushSubscriptionsParams) ([]ListPushSubscriptionsRow, error) {
+	rows, err := q.db.Query(ctx, listPushSubscriptions,
+		arg.UserID,
+		arg.GuestIdleTimeout,
+		arg.IdleTimeout,
+		arg.GuestMaxAge,
+		arg.MaxAge,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +320,12 @@ func (q *Queries) ListPushSubscriptions(ctx context.Context, userID pgtype.UUID)
 	var items []ListPushSubscriptionsRow
 	for rows.Next() {
 		var i ListPushSubscriptionsRow
-		if err := rows.Scan(&i.Endpoint, &i.P256dh, &i.Auth); err != nil {
+		if err := rows.Scan(
+			&i.Endpoint,
+			&i.P256dh,
+			&i.Auth,
+			&i.Failures,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -482,18 +515,21 @@ LEFT JOIN message_mentions mm ON mm.message_id = m.id AND mm.user_id = cm.user_i
 LEFT JOIN thread_follows tf ON tf.root_id = m.root_id AND tf.user_id = cm.user_id
 LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.channel_id = m.channel_id
 LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
-WHERE m.id > $1 AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day'
+WHERE m.id >= $1 AND (m.id, cm.user_id) > ($1::uuid, $2::uuid)
+  AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day'
+  AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.user_id = cm.user_id)
   AND (CASE WHEN m.root_id IS NULL OR m.also_in_channel
             THEN cm.last_read_id IS NULL OR cm.last_read_id < m.id
             ELSE (mm.user_id IS NOT NULL OR coalesce(tf.following, false))
                  AND (tf.last_read_id IS NULL OR tf.last_read_id < m.id) END)
-ORDER BY m.id
-LIMIT $2
+ORDER BY m.id, cm.user_id
+LIMIT $3
 `
 
 type NotifyCandidatesParams struct {
-	After    pgtype.UUID `json:"after"`
-	RowLimit int32       `json:"row_limit"`
+	AfterMessage pgtype.UUID `json:"after_message"`
+	AfterUser    pgtype.UUID `json:"after_user"`
+	RowLimit     int32       `json:"row_limit"`
 }
 
 type NotifyCandidatesRow struct {
@@ -512,13 +548,14 @@ type NotifyCandidatesRow struct {
 	WorkspaceMutedUntil pgtype.Timestamptz `json:"workspace_muted_until"`
 }
 
-// NotifyCandidates lists, for messages after a cursor, the people who may be
-// told about them: the members of the message's channel other than its author,
-// what the message is to them (a mention, a conversation, any message) and
-// their channel and workspace settings. A reply kept in its thread is only for
-// the people it mentions and those following the thread, as a mention.
+// NotifyCandidates lists, after a cursor (a message and a person), the people
+// who may be told about messages: the members of the message's channel other
+// than its author who have a push subscription, what the message is to them (a
+// mention, a conversation, any message) and their channel and workspace
+// settings. A reply kept in its thread is only for the people it mentions and
+// those following the thread, as a mention.
 func (q *Queries) NotifyCandidates(ctx context.Context, arg NotifyCandidatesParams) ([]NotifyCandidatesRow, error) {
-	rows, err := q.db.Query(ctx, notifyCandidates, arg.After, arg.RowLimit)
+	rows, err := q.db.Query(ctx, notifyCandidates, arg.AfterMessage, arg.AfterUser, arg.RowLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -549,6 +586,29 @@ func (q *Queries) NotifyCandidates(ctx context.Context, arg NotifyCandidatesPara
 		return nil, err
 	}
 	return items, nil
+}
+
+const pushDelivered = `-- name: PushDelivered :exec
+UPDATE push_subscriptions SET failures = 0, retry_at = NULL WHERE endpoint = $1 AND failures > 0
+`
+
+func (q *Queries) PushDelivered(ctx context.Context, endpoint string) error {
+	_, err := q.db.Exec(ctx, pushDelivered, endpoint)
+	return err
+}
+
+const pushFailed = `-- name: PushFailed :exec
+UPDATE push_subscriptions
+SET failures = failures + 1,
+    retry_at = now() + least(interval '1 minute' * power(2, least(failures, 6)), interval '1 hour')
+WHERE endpoint = $1
+`
+
+// PushFailed rests an endpoint after a failed delivery: a minute, doubling
+// with each failure in a row, an hour at most.
+func (q *Queries) PushFailed(ctx context.Context, endpoint string) error {
+	_, err := q.db.Exec(ctx, pushFailed, endpoint)
+	return err
 }
 
 const removePushEndpoint = `-- name: RemovePushEndpoint :exec
@@ -631,17 +691,18 @@ func (q *Queries) SetNotificationPrefs(ctx context.Context, arg SetNotificationP
 }
 
 const setNotifyCursor = `-- name: SetNotifyCursor :exec
-INSERT INTO notify_cursors (name, cursor) VALUES ($1, $2)
-ON CONFLICT (name) DO UPDATE SET cursor = EXCLUDED.cursor
+INSERT INTO notify_cursors (name, cursor, cursor_user) VALUES ($1, $2, $3)
+ON CONFLICT (name) DO UPDATE SET cursor = EXCLUDED.cursor, cursor_user = EXCLUDED.cursor_user
 `
 
 type SetNotifyCursorParams struct {
-	Name   string      `json:"name"`
-	Cursor pgtype.UUID `json:"cursor"`
+	Name       string      `json:"name"`
+	Cursor     pgtype.UUID `json:"cursor"`
+	CursorUser pgtype.UUID `json:"cursor_user"`
 }
 
 func (q *Queries) SetNotifyCursor(ctx context.Context, arg SetNotifyCursorParams) error {
-	_, err := q.db.Exec(ctx, setNotifyCursor, arg.Name, arg.Cursor)
+	_, err := q.db.Exec(ctx, setNotifyCursor, arg.Name, arg.Cursor, arg.CursorUser)
 	return err
 }
 
