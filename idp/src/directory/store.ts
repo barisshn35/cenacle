@@ -269,7 +269,7 @@ export async function upsertPerson(
   if (person.email && linkByEmail) {
     await db.query(
       `UPDATE users SET source_id = $1, external_id = $2, password_hash = NULL, updated_at = now()
-       WHERE source_id IS NULL AND email = $3::citext AND disabled_at IS NULL
+       WHERE source_id IS NULL AND email = $3::citext AND disabled_at IS NULL AND admin_disabled_at IS NULL
          AND ($4 OR (NOT is_admin AND totp_enabled_at IS NULL))
          AND NOT EXISTS (SELECT 1 FROM users WHERE source_id = $1 AND external_id = $2)`,
       [sourceId, person.externalId, person.email, linkPrivileged],

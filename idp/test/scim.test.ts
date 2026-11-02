@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 import type pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AuditLog } from '../src/accounts/audit.ts';
+import { UserStore } from '../src/accounts/users.ts';
 import { oidcConfigSchema, samlConfigSchema, type SamlConfig } from '../src/federation/config.ts';
 import { signInFederated } from '../src/federation/people.ts';
 import { ProviderStore, type Provider } from '../src/federation/store.ts';
@@ -132,6 +133,43 @@ describe.skipIf(!hasTestDatabase)('SCIM provisioning (database)', () => {
       [user.id],
     );
     expect(kept[0].disabled).toBe(true);
+  });
+
+  it("never undoes an administrator's disable", async () => {
+    // Signed in before provisioning started, then disabled by an administrator.
+    const before = await signInFederated(pool, provider, {
+      externalId: 'entra-ada',
+      displayName: 'Ada',
+      email: 'ada@example.com',
+      emailVerified: true,
+      groups: [],
+    });
+    if (!('userId' in before)) throw new Error('no sign-in');
+    const users = new UserStore(pool);
+    expect(await users.setDisabledById(before.userId, true)).toBe(true);
+
+    // Adopted, replaced and patched active: still disabled.
+    const adopted = await call('POST', '/Users', ada);
+    expect(adopted.json()).toMatchObject({ id: before.userId });
+    await call('PUT', `/Users/${before.userId}`, { ...ada, active: true });
+    await call('PATCH', `/Users/${before.userId}`, {
+      schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+      Operations: [{ op: 'replace', path: 'active', value: true }],
+    });
+    expect(await users.findById(before.userId)).toMatchObject({ disabled: true });
+    expect(
+      await signInFederated(pool, provider, {
+        externalId: 'entra-ada',
+        displayName: 'Ada',
+        email: 'ada@example.com',
+        emailVerified: true,
+        groups: [],
+      }),
+    ).toEqual({ error: 'disabled' });
+
+    // The administrator enables it: SCIM's own state counts again.
+    await users.setDisabledById(before.userId, false);
+    expect(await users.findById(before.userId)).toMatchObject({ disabled: false });
   });
 
   it('keeps groups and the roles they give', async () => {

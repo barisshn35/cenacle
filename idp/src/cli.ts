@@ -9,6 +9,7 @@ import { createPool } from './db.ts';
 import { migrate } from './db/migrate.ts';
 import { KeyStore } from './keys/store.ts';
 import { UserError, UserStore } from './accounts/users.ts';
+import { endSessions } from './directory/store.ts';
 import { PASSWORD_MIN_LENGTH } from './accounts/passwords.ts';
 import { readSecret } from './prompt.ts';
 
@@ -111,10 +112,18 @@ async function runUsers(args: string[]): Promise<void> {
         console.log(`password updated for ${email}`);
         return;
       case 'disable':
-      case 'enable':
-        await users.setDisabled(email, action === 'disable');
-        console.log(`${email} ${action}d`);
+      case 'enable': {
+        // Like the admin panel: kept over directory syncs, directory sign-ins
+        // and SCIM, and a disabled account's sessions end.
+        const account = await users.setDisabled(email, action === 'disable');
+        if (action === 'disable') await endSessions(pool, [account.id]);
+        console.log(
+          account.disabled && action === 'enable'
+            ? `${email} enabled by you; its directory or SCIM provider still keeps it disabled`
+            : `${email} ${action}d`,
+        );
         return;
+      }
       case 'admin':
       case 'no-admin':
         await users.setAdmin(email, action === 'admin');

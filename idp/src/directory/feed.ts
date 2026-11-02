@@ -65,7 +65,7 @@ export function registerDirectoryFeed(
     // still committing could otherwise slip behind the cursor.
     const { rows } = await opts.pool.query(
       `SELECT u.id, u.updated_at::text AS cursor_at, u.display_name, u.email, u.email_verified, u.username,
-              u.directory_role, u.disabled_at IS NOT NULL AS disabled,
+              u.directory_role, (u.disabled_at IS NOT NULL OR u.admin_disabled_at IS NOT NULL) AS disabled,
               coalesce((SELECT encode(sha256(p.data), 'hex') FROM user_photos p
                         WHERE p.user_id = u.id AND p.origin = 'directory'), '') AS picture,
               coalesce((SELECT array_agg(n ORDER BY n) FROM (${APP_GROUPS_SQL.replace('$1', 'u.id')}) ag), '{}') AS groups

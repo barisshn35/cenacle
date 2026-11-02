@@ -29,6 +29,8 @@ export interface AdminAccount {
   fromDirectory: boolean;
   fromProvider: boolean;
   disabled: boolean;
+  adminDisabled: boolean;
+  sourceManaged: boolean;
   twoStep: boolean;
   isAdmin: boolean;
 }
@@ -112,6 +114,11 @@ export function accountsPage(opts: {
         </td>
         <td class="px-3 py-2.5">
           <p>${a.disabled ? m.disabled : m.active}</p>
+          ${
+            a.disabled && !a.adminDisabled && a.sourceManaged
+              ? html`<p class="${hint}">${m.disabledBySource}</p>`
+              : null
+          }
           ${a.twoStep ? html`<p class="${hint}">${m.twoStep}</p>` : null}
           ${a.isAdmin ? html`<p class="${hint}">${m.admin}</p>` : null}
         </td>
@@ -121,12 +128,14 @@ export function accountsPage(opts: {
               a.id === opts.selfId
                 ? html`<span class="${hint}">—</span>`
                 : html`${
-                    a.fromDirectory
-                      ? html`<span class="${hint} self-center">${m.managedByDirectory}</span>`
+                    // Enable takes back an administrator's disable; one by a
+                    // directory or SCIM stays theirs (Disable still adds one).
+                    a.adminDisabled || (a.disabled && !a.sourceManaged)
+                      ? actionForm(`/account/admin/accounts/${a.id}/enable`, m.enable, secondary)
                       : actionForm(
-                          `/account/admin/accounts/${a.id}/${a.disabled ? 'enable' : 'disable'}`,
-                          a.disabled ? m.enable : m.disable,
-                          a.disabled ? secondary : destructive,
+                          `/account/admin/accounts/${a.id}/disable`,
+                          m.disable,
+                          destructive,
                         )
                   }
                   ${

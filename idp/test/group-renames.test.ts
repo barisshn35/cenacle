@@ -70,9 +70,18 @@ describe.skipIf(!hasTestDatabase)('group renames (database)', () => {
       )
     ).rows;
 
+  /** Rolls back the migrations from `name` (included) to the latest. */
+  const downTo = async (name: string) => {
+    const { rows } = await pool.query<{ name: string }>(
+      'SELECT name FROM idp_migrations ORDER BY id DESC',
+    );
+    const count = rows.findIndex((r) => r.name === name) + 1;
+    await migrate({ databaseUrl: TEST_DATABASE_URL!, direction: 'down', count });
+  };
+
   it('records the 0.99.2 names of provider groups, never over a directory group', async () => {
     // The groups as a 0.99.1 installation has them, before migration 0011.
-    await migrate({ databaseUrl: TEST_DATABASE_URL!, direction: 'down', count: 2 });
+    await downTo('0011_group_name_changes');
     try {
       const corp = await source('ldap', 'Corp');
       const acme = await source('oidc', 'Ac/me');
@@ -132,7 +141,7 @@ describe.skipIf(!hasTestDatabase)('group renames (database)', () => {
 
   it('never lets two providers give their groups the same prefix', async () => {
     // Saved before the rule held: "Corp/EU" next to "Corp-EU" (both "Corp-EU/").
-    await migrate({ databaseUrl: TEST_DATABASE_URL!, direction: 'down', count: 1 });
+    await downTo('0012_provider_prefix_unique');
     let second = '';
     try {
       await group(await source('oidc', 'Corp-EU'), 'Staff');

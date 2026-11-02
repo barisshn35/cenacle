@@ -29,7 +29,8 @@ export async function signInFederated(
 ): Promise<FederatedSignIn> {
   const externalId = person.externalId.slice(0, 500);
   const { rows: existing } = await pool.query<{ disabled: boolean }>(
-    `SELECT disabled_at IS NOT NULL AS disabled FROM users WHERE source_id = $1 AND external_id = $2`,
+    `SELECT (disabled_at IS NOT NULL OR admin_disabled_at IS NOT NULL) AS disabled
+     FROM users WHERE source_id = $1 AND external_id = $2`,
     [provider.id, externalId],
   );
   if (existing[0]?.disabled) return { error: 'disabled' };
@@ -50,7 +51,7 @@ export async function signInFederated(
        WHERE id = (SELECT id FROM users WHERE source_id = $1 AND scim_managed AND scim_pending_bind
                      AND (email = $3::citext OR lower(scim_user_name) = lower($3)) LIMIT 1)
          AND NOT EXISTS (SELECT 1 FROM users WHERE source_id = $1 AND external_id = $2)
-       RETURNING disabled_at IS NOT NULL AS disabled`,
+       RETURNING (disabled_at IS NOT NULL OR admin_disabled_at IS NOT NULL) AS disabled`,
       [provider.id, externalId, person.email.slice(0, 320)],
     );
     if (provisioned[0]?.disabled) return { error: 'disabled' };
@@ -61,7 +62,8 @@ export async function signInFederated(
   if (email && link) {
     // A disabled local account is not revived by linking it.
     const { rowCount } = await pool.query(
-      `SELECT 1 FROM users WHERE email = $1::citext AND source_id IS NULL AND disabled_at IS NOT NULL`,
+      `SELECT 1 FROM users WHERE email = $1::citext AND source_id IS NULL
+         AND (disabled_at IS NOT NULL OR admin_disabled_at IS NOT NULL)`,
       [email],
     );
     if (rowCount) return { error: 'disabled' };

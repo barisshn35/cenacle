@@ -40,6 +40,9 @@ _OpenLDAP_. The presets fill in the usual attributes; check them against your di
   and in the chat within a minute, and all their sessions end. If a synchronization finds
   nobody (a wrong filter, an empty search base), nothing is deactivated.
 - A local account with the same e-mail address becomes the directory's account.
+- Disabling a directory account in **Accounts** (or with `cenacle-idp users disable`) blocks it
+  in Cenacle ID whatever the directory says: synchronizations and directory sign-ins keep it
+  disabled until an administrator enables it again.
 
 Allow outbound 389/tcp or 636/tcp (3268/3269 for a Global Catalog) from the `idp`
 container.
@@ -78,7 +81,8 @@ container.
   sign-ins skip the second step, so such a person gets a separate provider account.
 - Without provisioning, providers do not tell Cenacle ID when someone leaves: block them at
   the provider (they can no longer sign in) and disable their account in **Accounts** to end
-  their sessions. With SCIM (below) the provider does this itself.
+  their sessions. With SCIM (below) the provider does this itself. An account an
+  administrator disabled stays disabled whatever the provider pushes over SCIM.
 
 ### Provisioning (SCIM 2.0)
 

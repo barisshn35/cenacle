@@ -385,7 +385,8 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
         }),
       );
 
-      // People.
+      // People. "active" is SCIM's own state; an administrator's disable is
+      // Cenacle ID's and not the provider's to see or undo.
       const userSelect = `SELECT u.id, u.scim_user_name, u.scim_external_id, u.display_name, u.email, u.title,
           u.disabled_at IS NOT NULL AS disabled, u.created_at, u.updated_at,
           coalesce((SELECT json_agg(json_build_object('value', g.id, 'display', g.name) ORDER BY g.name)
@@ -443,7 +444,7 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
               `SELECT id FROM users
                WHERE NOT scim_managed AND (
                  (source_id = $1 AND (external_id = $2 OR ($3::citext IS NOT NULL AND email = $3::citext)))
-                 OR ($4 AND source_id IS NULL AND disabled_at IS NULL
+                 OR ($4 AND source_id IS NULL AND disabled_at IS NULL AND admin_disabled_at IS NULL
                      AND NOT is_admin AND totp_enabled_at IS NULL
                      AND $3::citext IS NOT NULL AND email = $3::citext))
                ORDER BY source_id NULLS LAST LIMIT 1`,
@@ -487,7 +488,9 @@ export async function registerScim(app: FastifyInstance, opts: ScimOptions): Pro
             return rows[0]!.id;
           }
           // An address the provider does not vouch for stays unverified; one a
-          // sign-in verified stays verified while it does not change.
+          // sign-in verified stays verified while it does not change. SCIM
+          // sets and clears only its own deactivation (disabled_at): an
+          // administrator's disable (admin_disabled_at) stays.
           const { rows } = await pool.query<{ was_active: boolean }>(
             `UPDATE users u SET scim_external_id = $3, scim_user_name = $4, display_name = $5,
                  email = $6::citext,

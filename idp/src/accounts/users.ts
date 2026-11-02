@@ -17,7 +17,12 @@ export interface User {
   displayName: string;
   locale: string | null;
   updatedAt: Date;
+  /** Signs in nowhere: an administrator or the account's source turned it off. */
   disabled: boolean;
+  /** Disabled by an administrator (no directory or SCIM undoes it). */
+  adminDisabled: boolean;
+  /** A directory or SCIM manages whether the account is active. */
+  sourceManaged: boolean;
   /** The sign-in name of a directory account. */
   username: string | null;
   title: string | null;
@@ -39,6 +44,8 @@ interface UserRow {
   locale: string | null;
   updated_at: Date;
   disabled_at: Date | null;
+  admin_disabled_at: Date | null;
+  scim_managed: boolean;
   password_hash: string | null;
   username: string | null;
   title: string | null;
@@ -49,7 +56,7 @@ interface UserRow {
 }
 
 const COLUMNS =
-  'id, email, email_verified, display_name, locale, updated_at, disabled_at, password_hash, username, title, directory_role, is_admin, source_id, ' +
+  'id, email, email_verified, display_name, locale, updated_at, disabled_at, admin_disabled_at, scim_managed, password_hash, username, title, directory_role, is_admin, source_id, ' +
   '(SELECT kind FROM identity_sources WHERE identity_sources.id = source_id) AS source_kind';
 
 function toUser(r: UserRow): User {
@@ -60,7 +67,9 @@ function toUser(r: UserRow): User {
     displayName: r.display_name,
     locale: r.locale,
     updatedAt: r.updated_at,
-    disabled: r.disabled_at !== null,
+    disabled: r.disabled_at !== null || r.admin_disabled_at !== null,
+    adminDisabled: r.admin_disabled_at !== null,
+    sourceManaged: r.source_kind === 'ldap' || r.scim_managed,
     username: r.username,
     title: r.title,
     directoryRole: r.directory_role,
@@ -81,6 +90,14 @@ export class UserError extends Error {
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+$/;
+
+/** An administrator's disable ($2 true) or enable ($2 false) of the accounts the WHERE clause names. */
+const SET_DISABLED = `UPDATE users SET
+    admin_disabled_at = CASE WHEN $2 THEN coalesce(admin_disabled_at, now()) ELSE NULL END,
+    disabled_at = CASE WHEN $2 OR scim_managed
+                         OR source_id IN (SELECT id FROM identity_sources WHERE kind = 'ldap')
+                       THEN disabled_at ELSE NULL END,
+    updated_at = now()`;
 
 export class UserStore {
   constructor(private readonly pool: pg.Pool) {}
@@ -162,7 +179,7 @@ export class UserStore {
       return null;
     }
     const ok = await verifyPassword(row.password_hash, password);
-    if (!ok || row.disabled_at !== null) return null;
+    if (!ok || toUser(row).disabled) return null;
     if (needsRehash(row.password_hash)) {
       // Switching to or from FIPS mode: the password moves to this mode's hash.
       await this.pool.query(
@@ -200,16 +217,14 @@ export class UserStore {
   }
 
   /**
-   * Disables or enables an account by id: local accounts and those of identity
-   * providers (directories manage their own).
+   * Disables or enables an account by id, as an administrator: no directory
+   * sync or sign-in and no SCIM push undoes it. Enabling takes back only the
+   * administrator's disable; whether a directory or SCIM keeps the account
+   * active stays theirs (accounts no source manages any more are enabled).
    */
   async setDisabledById(id: string, disabled: boolean): Promise<boolean> {
-    const { rowCount } = await this.pool.query(
-      `UPDATE users SET disabled_at = CASE WHEN $2 THEN now() ELSE NULL END, updated_at = now()
-       WHERE id = $1 AND (source_id IS NULL
-         OR source_id IN (SELECT id FROM identity_sources WHERE kind <> 'ldap'))`,
-      [id, disabled],
-    );
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return false;
+    const { rowCount } = await this.pool.query(`${SET_DISABLED} WHERE id = $1`, [id, disabled]);
     return rowCount === 1;
   }
 
@@ -246,12 +261,18 @@ export class UserStore {
     return rows.map((r) => r.n);
   }
 
-  async setDisabled(email: string, disabled: boolean): Promise<void> {
-    const { rowCount } = await this.pool.query(
-      `UPDATE users SET disabled_at = CASE WHEN $2 THEN now() ELSE NULL END, updated_at = now()
-       WHERE email = $1`,
+  /**
+   * Disables or enables an account by e-mail address (the CLI), like
+   * setDisabledById. Returns the account and whether it is disabled now (by
+   * its directory or SCIM, after an enable).
+   */
+  async setDisabled(email: string, disabled: boolean): Promise<{ id: string; disabled: boolean }> {
+    const { rows } = await this.pool.query<{ id: string; disabled: boolean }>(
+      `${SET_DISABLED} WHERE email = $1
+       RETURNING id, (disabled_at IS NOT NULL OR admin_disabled_at IS NOT NULL) AS disabled`,
       [email.trim(), disabled],
     );
-    if (rowCount === 0) throw new UserError('not_found');
+    if (!rows[0]) throw new UserError('not_found');
+    return rows[0];
   }
 }

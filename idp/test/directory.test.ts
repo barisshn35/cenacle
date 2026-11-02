@@ -185,6 +185,37 @@ describe.skipIf(!hasTestDatabase || !LDAP_URL)('directory (LDAP)', () => {
     expect('user' in byMail).toBe(true);
   });
 
+  it("keeps an administrator's disable over directory sign-ins and syncs", async () => {
+    const s = await sources.create({
+      name: 'Test',
+      config: config(),
+      secret: LDAP_PASSWORD,
+      syncIntervalMinutes: 60,
+    });
+    const directory = { pool, sources };
+    await syncSource(pool, sources, s, 'manual');
+    // The CLI (by address) and the admin panel (by id) alike.
+    expect(await users.setDisabled('bob@cenacle.test', true)).toMatchObject({ disabled: true });
+    const carol = (await pool.query(`SELECT id FROM users WHERE username = 'carol'`)).rows[0].id;
+    expect(await users.setDisabledById(carol, true)).toBe(true);
+
+    expect(await checkPassword(users, directory, 'bob', 'bob-dev-password')).toMatchObject({
+      error: 'invalid',
+    });
+    expect(await checkPassword(users, directory, 'carol', 'carol-dev-password')).toMatchObject({
+      error: 'invalid',
+    });
+    await syncSource(pool, sources, (await sources.get(s.id))!, 'schedule');
+    expect(await users.findById(carol)).toMatchObject({ disabled: true, adminDisabled: true });
+    expect(await checkPassword(users, directory, 'bob', 'bob-dev-password')).toMatchObject({
+      error: 'invalid',
+    });
+
+    // Enabled again: the directory decides once more.
+    expect(await users.setDisabled('bob@cenacle.test', false)).toMatchObject({ disabled: false });
+    expect('user' in (await checkPassword(users, directory, 'bob', 'bob-dev-password'))).toBe(true);
+  });
+
   it('an unreachable directory is reported, not treated as a wrong password', async () => {
     await sources.create({
       name: 'Down',
