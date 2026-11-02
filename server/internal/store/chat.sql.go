@@ -401,8 +401,10 @@ const ensureChannel = `-- name: EnsureChannel :one
 INSERT INTO channels (workspace_id, name, topic, kind, is_default, is_mandatory)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (workspace_id, (lower(name))) DO UPDATE
-SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory,
-    visibility = 'public'
+SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory
+WHERE channels.visibility = 'public' AND channels.access_rules = '[]'::jsonb
+  AND NOT channels.encrypted AND NOT channels.mls AND NOT channels.group_managed
+  AND channels.kind IN ('standard', 'announcement', 'forum')
 RETURNING id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation, mls
 `
 
@@ -416,8 +418,10 @@ type EnsureChannelParams struct {
 }
 
 // EnsureChannel creates a configured channel or brings an existing one of that
-// name to the configured kind and flags (and public: everyone is a member);
-// the topic of an existing channel is kept.
+// name to the configured kind and flags; the topic of an existing channel is
+// kept. Only a public channel open to everyone is taken over: a private,
+// ruled, encrypted, group-managed channel or a conversation of that name is
+// left alone and no row is returned.
 func (q *Queries) EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error) {
 	row := q.db.QueryRow(ctx, ensureChannel,
 		arg.WorkspaceID,

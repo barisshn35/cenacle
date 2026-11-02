@@ -843,6 +843,13 @@ func EnsureDefaults(ctx context.Context, q store.Querier, d Defaults) error {
 		c, err := q.EnsureChannel(ctx, store.EnsureChannelParams{
 			WorkspaceID: ws.ID, Name: s.name, Topic: s.topic, Kind: s.kind, IsDefault: true, IsMandatory: s.mandatory,
 		})
+		if isNoRows(err) {
+			// A private, ruled or encrypted channel has this name: its members
+			// stay the ones its managers chose.
+			slog.WarnContext(ctx, "configured channel name is taken by a channel that is not open to everyone; not applied",
+				"channel", s.name)
+			continue
+		}
 		if err != nil {
 			return fmt.Errorf("ensure channel %q: %w", s.name, err)
 		}

@@ -99,13 +99,17 @@ RETURNING *;
 
 -- name: EnsureChannel :one
 -- EnsureChannel creates a configured channel or brings an existing one of that
--- name to the configured kind and flags (and public: everyone is a member);
--- the topic of an existing channel is kept.
+-- name to the configured kind and flags; the topic of an existing channel is
+-- kept. Only a public channel open to everyone is taken over: a private,
+-- ruled, encrypted, group-managed channel or a conversation of that name is
+-- left alone and no row is returned.
 INSERT INTO channels (workspace_id, name, topic, kind, is_default, is_mandatory)
 VALUES (@workspace_id, @name, @topic, @kind, @is_default, @is_mandatory)
 ON CONFLICT (workspace_id, (lower(name))) DO UPDATE
-SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory,
-    visibility = 'public'
+SET kind = EXCLUDED.kind, is_default = EXCLUDED.is_default, is_mandatory = EXCLUDED.is_mandatory
+WHERE channels.visibility = 'public' AND channels.access_rules = '[]'::jsonb
+  AND NOT channels.encrypted AND NOT channels.mls AND NOT channels.group_managed
+  AND channels.kind IN ('standard', 'announcement', 'forum')
 RETURNING *;
 
 -- name: AddMember :execrows

@@ -3,10 +3,13 @@
 package app_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
+	"github.com/barisshn35/cenacle/server/internal/chat"
 	"github.com/barisshn35/cenacle/server/internal/groups"
+	"github.com/barisshn35/cenacle/server/internal/store"
 )
 
 // A guest's people search does not depend on members the guest may not see:
@@ -61,5 +64,39 @@ func TestGuestCreatesNoChannelForEveryone(t *testing.T) {
 		if m.User.ID == s.userID(hidden) {
 			t.Error("the guest sees a member sharing no channel with them")
 		}
+	}
+}
+
+// Configuring a channel for everyone whose name an existing private, ruled
+// channel already has leaves that channel and its members as they are; a
+// public channel of a configured name is still taken over.
+func TestEnsureDefaultsKeepsPrivateChannel(t *testing.T) {
+	sh := newShared(t)
+	s := newStack(t, sh, options{})
+	r := newRuledScene(s)
+	bob := s.user("sub-bob", "Bob")
+	var private, open channel
+	s.call(http.MethodPost, "/api/channels", r.admin, map[string]any{"name": "hr-private", "visibility": "private"}, &private)
+	s.setRules(r.admin, private.ID)
+	s.call(http.MethodPost, "/api/channels", r.admin, map[string]any{"name": "lobby"}, &open)
+
+	if err := chat.EnsureDefaults(context.Background(), store.New(sh.pool), chat.Defaults{
+		Announcement: "Central", Channels: []string{"General", "HR-Private", "Lobby"}, AdminEmail: adminEmail,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var visibility string
+	var isDefault bool
+	if err := sh.pool.QueryRow(context.Background(), "SELECT visibility, is_default FROM channels WHERE id = $1", private.ID).Scan(&visibility, &isDefault); err != nil {
+		t.Fatal(err)
+	}
+	if visibility != "private" || isDefault {
+		t.Errorf("private channel after EnsureDefaults: visibility=%s default=%v", visibility, isDefault)
+	}
+	if s.isMember(r.admin, private.ID, s.userID(bob)) {
+		t.Error("a member who was never added joined the private channel")
+	}
+	if !s.isMember(r.admin, open.ID, s.userID(bob)) {
+		t.Error("the public channel of a configured name did not become a channel for everyone")
 	}
 }

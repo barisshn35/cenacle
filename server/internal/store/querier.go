@@ -290,8 +290,10 @@ type Querier interface {
 	// EndLinkGuests deactivates the people of revoked and expired links.
 	EndLinkGuests(ctx context.Context) (int64, error)
 	// EnsureChannel creates a configured channel or brings an existing one of that
-	// name to the configured kind and flags (and public: everyone is a member);
-	// the topic of an existing channel is kept.
+	// name to the configured kind and flags; the topic of an existing channel is
+	// kept. Only a public channel open to everyone is taken over: a private,
+	// ruled, encrypted, group-managed channel or a conversation of that name is
+	// left alone and no row is returned.
 	EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error)
 	// EraseUser anonymizes an account: no name, address, picture or status; it can
 	// no longer sign in (a new sign-in makes a new account).
