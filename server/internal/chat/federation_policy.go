@@ -4,12 +4,16 @@ package chat
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
+
+	"golang.org/x/net/idna"
 
 	"github.com/barisshn35/cenacle/server/internal/api"
 	"github.com/barisshn35/cenacle/server/internal/audit"
@@ -31,6 +35,43 @@ func serverHost(raw string) string {
 		return ""
 	}
 	return strings.ToLower(u.Host)
+}
+
+// policyHost is the server a policy decides on, as the network reaches it: the
+// name in lower case, in IDNA ASCII and without the root dot ("chat.example.com."
+// is chat.example.com), with the port (the scheme's default when none is given).
+// Empty when the address has no usable host.
+func policyHost(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	name := u.Hostname()
+	for i := 0; i < len(name); i++ {
+		if name[i] >= utf8.RuneSelf { // as net/http does before it connects
+			if name, err = idna.Lookup.ToASCII(name); err != nil {
+				return ""
+			}
+			break
+		}
+	}
+	name = strings.TrimRight(strings.ToLower(name), ".")
+	if name == "" {
+		return ""
+	}
+	port := u.Port()
+	if port == "" {
+		switch u.Scheme {
+		case "https":
+			port = "443"
+		case "http":
+			port = "80"
+		}
+	}
+	if port == "" {
+		return name
+	}
+	return net.JoinHostPort(name, port)
 }
 
 // serverListed: a host matches an entry with or without its port; *.example.com
@@ -68,7 +109,11 @@ func serverAllowed(ctx context.Context, q store.Querier, address string) (bool, 
 	if err != nil {
 		return false, err
 	}
-	return federationAllows(p.FederationMode, p.FederationServers, serverHost(address)), nil
+	host := policyHost(address)
+	if host == "" { // nothing to match: only an open policy allows it
+		return p.FederationMode != "allow" && p.FederationMode != "deny", nil
+	}
+	return federationAllows(p.FederationMode, p.FederationServers, host), nil
 }
 
 func federationDenied(w http.ResponseWriter, r *http.Request, address string) {
