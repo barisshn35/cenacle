@@ -8,6 +8,67 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+Fixes from a second source-level security audit, of 0.99.2 (every finding reproduced
+locally and checked by an independent reviewer): rules applied once for every way a message
+is posted, removals that reach every copy of a message, live connections that follow role
+changes, Cenacle ID secrets and account disables, and signed desktop updates
+([ADR 0048](docs/adr/0048-audit-fixes-0993.md)). See the [upgrade notes](docs/upgrade/README.md)
+before upgrading: some workflows and scheduled messages now fail with a reason, and desktop
+update files come with signatures.
+
+### Security
+
+- **Posting rules:** scheduled messages, messages, edits and reactions from federated
+  servers, playbook and event notices, workflow messages built from variables, custom slash
+  command answers and bot updates skipped some of the channel's rules (read-only
+  announcements, timeouts, AutoMod, mentions of everyone, group mentions). All of them now
+  go through the same check, at scheduling and again at sending.
+- **AutoMod** reads messages as they are displayed: emphasised words, character references,
+  invisible characters, `/me`, `www.` and scheme-relative links no longer slip past keyword
+  and link rules. Keyword rules can hold several words.
+- **Removals:** a deleted, purged, retention-removed, erased or spilled message stayed in
+  queued bot and federation deliveries, in workflow runs it had started, in reminders of
+  saved copies, in urgent-message reminders (burn-on-read), in daily archive files and in the
+  live resume stream. These copies now go with the message, and archive days are written
+  again. A spillage removal can no longer be restored.
+- **Legal hold:** thread replies under a hold were deleted together with their unheld root.
+- **Bots:** a disabled bot, or one taken out of a channel or unsubscribed, still received
+  deliveries queued before; sending them again is now refused.
+- **Federation:** a paused connection dropped deletions; the allow and deny list missed a
+  server written with a trailing dot, another letter case or a default port.
+- **Live connections:** a reconnecting client could receive deleted bodies and a channel's
+  events from before its user joined. Guests received the notice of new channels for
+  everyone. A member made a guest by the directory kept the member's view and the spillage
+  reviewer role. Read receipts reached members who do not share theirs.
+- **Access:** a guest's people search was limited before it was filtered; guests allowed
+  to create channels could create channels for everyone; a configured default channel name
+  made an existing private or access-ruled channel public; workspace admins saw owner-only
+  audit details (legal holds, eDiscovery, archive exports, spillage).
+- **Workflows and events:** direct messages, approval tasks and event reminders still
+  reached people removed from the workspace or no longer able to see the channel.
+- **Traces:** OpenTelemetry request spans recorded webhook, workflow-hook, invite and
+  guest-link tokens in their paths.
+- **Load:** guest-link password checks had no server-wide memory bound; reactions, edits,
+  pins, votes, acknowledgements, read positions and status changes had no per-user rate
+  limit; a crafted PDF made text extraction run forever or crash the
+  server (PDFs are now read in a separate, limited process); one failing entry
+  stopped the directory feed, one unsendable scheduled message stopped all scheduled
+  messages and reminders, and one slow push endpoint or busy channel held back web push for
+  everyone (members beyond the first 2000 of a message got none).
+- **Web push** kept reaching a device after the session policy ended its session.
+- **Desktop:** the app installed whatever update its paired server served; updates must now
+  be signed with the release key built into the app. Signing out clears its HTTP cache.
+- **Browser:** encryption keys and decrypted texts outlived session ends other than Sign out
+  and could be used by the next account; MLS message authors were taken from the payload
+  instead of the authenticated sender; file responses stayed cached for a day.
+- **Cenacle ID:** changing a directory's server or a provider's issuer sent the saved bind
+  password or client secret to the new target; an administrator's disable was undone by the
+  next directory sync, LDAP sign-in or SCIM push (and the CLI reported success); parallel
+  attempts exceeded the failed-password and second-step limits; resetting two-step
+  verification left the account pages signed in; passkeys kept working on accounts of a
+  provider that was turned off; one person with a taken sign-in name stopped the whole
+  directory sync before deactivations.
+
 ### Added
 
 - **Federation:** a server moved back below 0.99.2 no longer has to be connected again. Its

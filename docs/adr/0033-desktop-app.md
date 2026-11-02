@@ -62,6 +62,8 @@ window's bar and its buttons look like the app.
    asks before downloading and before restarting. `CENACLE_DESKTOP_MIN_VERSION` makes
    older apps update before signing in. The web app lists the installers on its "Use the
    Cenacle app" page.
+   Since 0.99.3 the app installs only updates signed with the release key built into it;
+   the server only hosts them ([ADR 0048](0048-audit-fixes-0993.md)).
 9. **Dependencies.** Two permissive licenses outside the usual list, each checked by hand
    and allowed by name in `scripts/check-licenses.mjs`: `argparse` (PSF, through the
    updater's YAML reader) and, for packaging only, `truncate-utf8-bytes` (WTFPL).

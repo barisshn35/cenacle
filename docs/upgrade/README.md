@@ -109,6 +109,54 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   ([ADR 0047](../adr/0047-federation-older-signatures.md)). Our server's own requests
   always carry `v1` as well, so the downgraded peer keeps receiving them.
 
+- **Security fixes** ([ADR 0048](../adr/0048-audit-fixes-0993.md)). Chat migrations
+  `00056`–`00058` and Cenacle ID migration `0013` (all quick, with Down migrations):
+  - `00056` records which message a queued bot or federation delivery copies, and deletes
+    the stored deliveries of messages already deleted.
+  - `00057` ties workflow runs, saved-message reminders and archive days to their messages.
+  - `00058` keeps web push cursors per member and backs off failing push endpoints.
+  - `0013` keeps an administrator's disable apart from the status a source sets. Disabled
+    local accounts, and disabled provider accounts without SCIM, become
+    administrator-disabled. Failed sign-in attempts are counted in a new table, so failures
+    from before the upgrade no longer count towards the 15-minute window.
+- Behaviour that changes for administrators:
+  - Scheduled messages, workflow runs and reminders that the rules refuse when they are sent
+    now **fail with a reason** instead of being posted. Workflow `dm` and `approval` steps
+    whose people left the workspace fail too; update such workflows.
+  - Federated messages, edits and reactions that the receiving channel's rules refuse are
+    dropped on the receiving server.
+  - AutoMod keyword and link rules may match more messages than before.
+  - Resending a delivery of a bot that is disabled, or no longer in the channel or
+    subscribed, answers `409 delivery_not_sendable`.
+  - A paused federation connection now queues its events until it is resumed.
+  - A daily archive file whose messages were removed is rewritten within about ten minutes;
+    until then its download answers `409 archive_rewriting`.
+  - Reactions, edits, pins, votes, acknowledgements, read positions and status changes
+    have a per-user limit (5 times the message limit) and may answer `429`. Guest-link
+    joins may answer `503` with `Retry-After` under heavy load.
+  - Workspace admins who are not owners no longer see legal-hold, eDiscovery and archive
+    export events in the workspace audit log, and only spillage reviewers see spillage
+    events.
+  - A name in `CENACLE_DEFAULT_CHANNELS` or `CENACLE_ANNOUNCEMENT_CHANNEL` that matches a
+    private, access-ruled, encrypted or group-managed channel is no longer applied (a
+    warning is logged at each start). Rename the channel or the setting.
+  - If tracing was on (`OTEL_EXPORTER_OTLP_ENDPOINT`), rotate incoming-webhook,
+    workflow-hook, invite and guest-link tokens that retained traces may hold, or purge the
+    old traces.
+  - Cenacle ID: saving a directory or provider whose server or issuer changed requires
+    entering its password or secret again. Directory accounts have a **Disable** button,
+    and `cenacle-idp users disable` also ends the account's sessions.
+- Uploaded PDFs are read in a short-lived child process of the chat server (its own
+  binary, limited in time and memory). A container that forbids a process from starting
+  its own executable indexes no PDF text; a warning is logged at start.
+- **Desktop app:** from 0.99.3 on, copy the `latest*.yml.sig` files to
+  `downloads/desktop/` together with the update files. Apps install only updates signed
+  with the release key built into them (`docs/operations/ci.md`). Organizations that build
+  the app themselves put their own key in `desktop/src/update-keys.ts`.
+- **Web:** after a session times out or is ended elsewhere, people unlock passphrase
+  channels again and restore MLS history from their recovery key, as after Sign out.
+  Browsers from before the upgrade keep what they hold until then.
+
 ### 0.99.2
 
 - Chat migrations `00048`–`00053` (all quick):
