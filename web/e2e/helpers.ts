@@ -832,6 +832,14 @@ export async function mockApi(
         // As the server would: the message is stored, so a refetch has it too.
         const m = data as MockMessage;
         if (!m.root_id && !stored.some((x) => x.id === m.id)) stored.push({ ...m, deleted: false });
+        // And counted, so the channel list the app reloads on connecting
+        // agrees with the event (whichever of the two arrives first).
+        const c = all.find((x) => x.id === m.channel_id);
+        if (c && !m.root_id && m.author.id !== SESSION.user.id) {
+          if (!c.last_read_id || c.last_read_id < m.id) {
+            c.unread_count = Math.min(c.unread_count + 1, 100);
+          }
+        }
       }
       this.seq++;
       const frame = JSON.stringify({ op: 'event', id: `${this.seq}-0`, type, data });
