@@ -65,6 +65,11 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ## Version notes
 
+### 0.99.4
+
+- Nothing to do beyond changing the version: the application is the same as 0.99.3 and
+  there are no migrations. Coming from an older release, follow the 0.99.3 notes below.
+
 ### 0.99.3
 
 - Chat migration `00054` (quick): group mappings can be marked for review, and the chat keeps

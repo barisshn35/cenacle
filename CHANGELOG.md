@@ -8,6 +8,17 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.99.4] - 2026-11-03
+
+The same application as 0.99.3, released again so that the release checks pass in every
+browser. Upgrade from 0.99.3 by changing the version only; there are no migrations.
+
+### Fixed
+
+- The browser test of unread counts no longer fails in Firefox: its fake server now counts
+  an incoming message as the real one does, so the channel list reloaded on connecting
+  agrees with the live event.
+
 ## [0.99.3] - 2026-11-02
 
 Fixes from a second source-level security audit, of 0.99.2 (every finding reproduced
@@ -1489,7 +1500,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.3...HEAD
+[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.4...HEAD
+[0.99.4]: https://github.com/barisshn35/cenacle/compare/v0.99.3...v0.99.4
 [0.99.3]: https://github.com/barisshn35/cenacle/compare/v0.99.2...v0.99.3
 [0.99.2]: https://github.com/barisshn35/cenacle/compare/v0.99.1...v0.99.2
 [0.99.1]: https://github.com/barisshn35/cenacle/compare/v0.99.0...v0.99.1
