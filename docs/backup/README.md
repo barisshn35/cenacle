@@ -42,8 +42,13 @@ providers have to be set up again.
 
 ## Small installations: logical dumps
 
+Commands here use the Compose project `cenacle` that `prod.yml` names. If you installed
+under another name (`COMPOSE_PROJECT_NAME`, or `-p`), set it for these commands too, or they
+reach another installation's PostgreSQL.
+
 ```sh
 cd deploy/compose
+umask 077   # the dumps and the settings are secrets
 ts=$(date +%Y%m%d-%H%M%S)
 docker compose -f prod.yml --env-file .env.prod exec -T postgres \
   pg_dump -U postgres -Fc cenacle_chat > "backup-chat-$ts.dump"
@@ -52,19 +57,31 @@ docker compose -f prod.yml --env-file .env.prod exec -T postgres \
 tar -czf "backup-secrets-$ts.tgz" secrets .env.prod idp/clients.json certs
 ```
 
-Restore into a fresh stack (services stopped except `postgres`):
+Restore into a fresh stack, always into **empty** databases (never with `--clean` over
+databases a newer release changed: tables it added stay, and the next upgrade fails):
 
-```sh
-docker compose -f prod.yml --env-file .env.prod exec -T postgres \
-  pg_restore -U postgres --clean --if-exists -d cenacle_chat < backup-chat-<ts>.dump
-docker compose -f prod.yml --env-file .env.prod exec -T postgres \
-  pg_restore -U postgres --clean --if-exists -d cenacle_idp < backup-idp-<ts>.dump
-```
+1. In a new `deploy/compose` of the same release, unpack the settings first
+   (`tar -xzf backup-secrets-<ts>.tgz`): without the old `secrets/idp_key_encryption_key`
+   the signing keys cannot be used.
+2. `docker compose -f prod.yml --env-file .env.prod up -d postgres` (its first start creates
+   the two empty databases).
+3. Restore both:
+   ```sh
+   docker compose -f prod.yml --env-file .env.prod exec -T postgres \
+     pg_restore -U postgres --exit-on-error -d cenacle_chat < backup-chat-<ts>.dump
+   docker compose -f prod.yml --env-file .env.prod exec -T postgres \
+     pg_restore -U postgres --exit-on-error -d cenacle_idp < backup-idp-<ts>.dump
+   ```
+4. `up -d garage` and copy the files back ([object store](#object-store-files)).
+5. `docker compose -f prod.yml --env-file .env.prod up -d`.
+
+To restore over an existing installation instead, empty its databases first (Rolling back,
+step 1, in the [upgrade guide](../upgrade/README.md#rolling-back)).
 
 ### Every day, kept, and off this machine
 
 `deploy/compose/backup-daily.sh` makes the dumps above every day, with the secrets and
-settings, into one folder per day under `CENACLE_BACKUP_DIR` (default
+settings, and copies the uploaded files, into one folder per day under `CENACLE_BACKUP_DIR` (default
 `/var/backups/cenacle`, readable by root only). It keeps the last **7 days** and, of the
 Sundays, the last **4 weeks** (`daily/` and `weekly/`), checks each folder with a
 `SHA256SUMS` file, and copies the whole set off the machine with `rsync` to
@@ -74,10 +91,18 @@ mails it and systemd marks the run failed. The copy is as secret as the original
 to a host that encrypts at rest, or over an encrypted target such as an rclone `crypt`
 remote mounted at that path.
 
+Files: with the bundled Garage, `files/` under `CENACLE_BACKUP_DIR` mirrors the bucket
+(through a pinned `rclone` image in Garage's network) and `files-removed/<day>/` keeps what
+left it that day, for 35 days, so an older day's databases still find their files; with
+`CENACLE_FILES_BACKEND=dir` each day's folder has `files.tar`. With Azure or your own S3
+service the script copies no files and says so: use that service's versioning or
+replication. Restore copies `files/` back, together with `files-removed/` of the days after
+the dump you restore.
+
 With cron (as root, every day at 02:30):
 
 ```cron
-30 2 * * * CENACLE_BACKUP_REMOTE=backup@vault:/srv/cenacle/ /opt/cenacle/deploy/compose/backup-daily.sh
+30 2 * * * CENACLE_BACKUP_REMOTE=backup@vault:/srv/cenacle/ /opt/cenacle/cenacle-compose-<version>/backup-daily.sh
 ```
 
 Or with a systemd timer, `/etc/systemd/system/cenacle-backup.service`:
@@ -91,10 +116,11 @@ After=network-online.target docker.service
 [Service]
 Type=oneshot
 Environment=CENACLE_BACKUP_REMOTE=backup@vault:/srv/cenacle/
-ExecStart=/opt/cenacle/deploy/compose/backup-daily.sh
+ExecStart=/opt/cenacle/cenacle-compose-<version>/backup-daily.sh
 ```
 
-and `/etc/systemd/system/cenacle-backup.timer`:
+(the paths are those of `install.sh`; with a clone, use its `deploy/compose/`), and
+`/etc/systemd/system/cenacle-backup.timer`:
 
 ```ini
 [Unit]
@@ -145,12 +171,17 @@ not change. Check archiving with
 
 ```sh
 docker volume create cenacle_postgres-restore
+# As root: the data directory, owned by postgres (uid 70).
+docker run --rm --user 0 -v cenacle_postgres-restore:/var/lib/postgresql \
+  --entrypoint sh cenacle-postgres-walg:$CENACLE_VERSION -c '
+    D=/var/lib/postgresql/18/docker
+    mkdir -p $D && chown -R postgres:postgres /var/lib/postgresql && chmod 700 $D'
+# As postgres: fetch the base backup and set up the replay.
 docker run --rm --env-file secrets/walg.env -v cenacle_postgres-restore:/var/lib/postgresql \
   --entrypoint sh cenacle-postgres-walg:$CENACLE_VERSION -c '
     D=/var/lib/postgresql/18/docker
-    mkdir -p $D && chown -R postgres:postgres /var/lib/postgresql && chmod 700 $D
-    gosu postgres wal-g backup-fetch $D LATEST
-    gosu postgres touch $D/recovery.signal
+    wal-g backup-fetch $D LATEST
+    touch $D/recovery.signal
     echo "restore_command = '\''/usr/local/bin/wal-g wal-fetch %f %p'\''" >> $D/postgresql.auto.conf'
 ```
 
@@ -167,22 +198,23 @@ holds the bytes. Back both up at the same time, database first: a file missing f
 bucket shows as "The file is gone", while bytes without a database row are removed by the
 server's hourly clean-up.
 
-With the bundled Garage, copy the bucket over S3 with any S3 tool, for example `rclone`
-(MIT) with the key from `secrets/s3_access_key` and `secrets/s3_secret_key`:
+With the bundled Garage, `backup-daily.sh` copies the bucket. By hand, run `rclone` (MIT)
+in Garage's network with the key from `secrets/s3_access_key` and `secrets/s3_secret_key`
+(Garage is not published outside the stack):
 
 ```sh
-# ~/.config/rclone/rclone.conf
-# [cenacle]
-# type = s3
-# provider = Other
-# endpoint = http://<garage address>:3900   (on the "files" network, or published for the job)
-# region = garage
-# access_key_id = …
-# secret_access_key = …
-rclone sync cenacle:cenacle-files /backup/cenacle-files-$(date +%Y%m%d)
+cd deploy/compose
+docker run --rm --network "container:$(docker compose -f prod.yml --env-file .env.prod ps -q garage)" \
+  -v /backup:/backup \
+  -e RCLONE_CONFIG_G_TYPE=s3 -e RCLONE_CONFIG_G_PROVIDER=Other \
+  -e RCLONE_CONFIG_G_ENDPOINT=http://127.0.0.1:3900 -e RCLONE_CONFIG_G_REGION=garage \
+  -e RCLONE_CONFIG_G_ACCESS_KEY_ID="$(cat secrets/s3_access_key)" \
+  -e RCLONE_CONFIG_G_SECRET_ACCESS_KEY="$(cat secrets/s3_secret_key)" \
+  rclone/rclone:1.75.0 sync g:cenacle-files /backup/cenacle-files-$(date +%Y%m%d)
 ```
 
-Restore copies the objects back (`rclone sync /backup/… cenacle:cenacle-files`). Garage
+Restore copies the objects back: the same command with `sync /backup/<folder>
+g:cenacle-files`. Garage
 also keeps snapshots of its own metadata every six hours (`metadata_auto_snapshot_interval`).
 The `garage-data` volume can be backed up as a whole while Garage is stopped. With your own
 S3 service, use its versioning or replication instead.

@@ -108,13 +108,18 @@ The manual steps below remain the reference; `install.sh` follows them.
 Before the first start, both host names need DNS records (Things to know, 3).
 
 Images come from GitHub's container registry, `ghcr.io/cenacle-tr` (`CENACLE_IMAGE_PREFIX`).
-The repository and the registry are public: `git clone` and `docker pull` need no sign-in.
+From 1.0.0 the repository and the registry are public: `git clone` and `docker pull` need no
+sign-in. Release candidates before 1.0.0 are not published there: build their images from
+the release tag of the source you were given (`git checkout v<version> && make images`, which names them
+`cenacle-<name>:dev`), then set `CENACLE_IMAGE_PREFIX=cenacle-` and `CENACLE_VERSION=dev`
+and skip `pull`.
 `ACME_EMAIL` is needed only with
 `CENACLE_TLS_MODE=acme`: without it the proxy does not start, and its log says so. With
 `internal` and `files` it may stay empty. The proxy's
 health check shows only that Caddy runs with its configuration, not that certificates were
-issued. `prod.yml` names the project `cenacle`; to run a second stack on the same host,
-give it another name with `-p`.
+issued. `prod.yml` names the project `cenacle`; to run a second stack on the same host, give it
+another name with `COMPOSE_PROJECT_NAME=<name>` in the environment (or `-p <name>`), and
+use the same name for every later command, upgrades and backups included.
 
 Every setting can also be read from a file: `CENACLE_X_FILE=/run/secrets/x` instead of
 `CENACLE_X`, and `IDP_X_FILE` instead of `IDP_X`; line breaks at the end of the file are

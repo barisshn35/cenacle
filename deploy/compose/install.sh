@@ -230,14 +230,16 @@ listening() {
 if [ -n "$running_proxy" ]; then
   say "ports 80 and 443: used by this Cenacle's proxy already"
 elif [ -z "$skip_ports" ]; then
+  busy=''
   for p in tcp:80:0050 tcp:443:01BB udp:443:01BB; do
     proto=${p%%:*} rest=${p#*:}
     port=${rest%%:*} hex=${rest#*:}
     if listening "$proto" "$hex"; then
+      busy=1
       need "port $port/$proto free: another program listens on it (see: ss -lntup | grep ':$port '). Stop it, or put Cenacle behind it (docs/install/README.md)"
     fi
   done
-  say "ports 80/tcp, 443/tcp and 443/udp: checked"
+  [ -n "$busy" ] || say "ports 80/tcp, 443/tcp and 443/udp: free"
 fi
 
 # Calls: check everything before anything is written, so a mistake leaves no half setup.
@@ -475,5 +477,7 @@ if command -v curl >/dev/null 2>&1; then
   else
     warn "https://$chat/readyz answers $code through the proxy (docker compose -f prod.yml --env-file .env.prod logs proxy)"
   fi
+else
+  warn "curl is missing: https://$chat/readyz through the proxy was not checked"
 fi
-say "done. Next: create the first administrator in Cenacle ID (docs/install/README.md, 'Administrator and default channels')."
+say "done. Next: create the first administrator in Cenacle ID (docs/install/README.md, 'First account and Cenacle ID operations')."

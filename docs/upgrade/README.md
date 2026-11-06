@@ -22,13 +22,14 @@ contain breaking changes; they are always listed under "Upgrade notes".
 checkout v<version>` in your clone). Keep your own `.env.prod`, `secrets/` and `certs/`:
    they are not in the repository.
 4. Compare `.env.prod` with the new `.env.prod.example` and add the settings that are new
-   (their defaults are fine unless the release notes say otherwise), then run
+   (their defaults are fine unless the release notes say otherwise); also compare the
+   values of `CENACLE_IMAGE_PREFIX` and `CENACLE_VERSION`, which a release can change. Then run
    `./gen-secrets.sh`: it creates secrets a release added and keeps the ones you have.
 5. Set `CENACLE_VERSION` in `.env.prod` to the new version.
 6. `docker compose -f prod.yml --env-file .env.prod pull`
 7. `docker compose -f prod.yml --env-file .env.prod up -d --remove-orphans` (migrations run
    first; see the release notes for long ones)
-8. Check `docker compose ps`: all services, the proxy too, are healthy.
+8. Check `docker compose -f prod.yml --env-file .env.prod ps`: all services, the proxy too, are healthy.
    `https://<chat-domain>/readyz` answers from the chat server (with several servers, from
    one of them; check a given one with
    `docker compose -f prod.yml --env-file .env.prod exec proxy wget -qO- http://server:8180/readyz`).
@@ -40,14 +41,36 @@ machines need Docker's containerd image store (see offline installs in
 
 ## Rolling back
 
-1. Prefer restoring the backup taken before the upgrade when data changed.
-2. If the new release only added migrations that are safe to revert, roll them back with the
-   **new** image before switching versions:
-   `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`
-   (repeat once per migration to revert), then set the previous `CENACLE_VERSION` and
-   `up -d`.
-3. Release notes state whether a migration is reversible. Destructive migrations
-   (dropping data) are never reversible; restore from backup instead.
+The version notes below say, for each release, whether the previous one runs on the new
+database as it is (then no migration needs reverting) and which migrations can be reverted.
+
+1. **From the backup** taken before the upgrade (when data changed, or a migration cannot be
+   reverted): restore it into **empty** databases, never over the upgraded ones (`pg_restore
+--clean` keeps the tables the new release added, and the next upgrade then fails on
+   them):
+   ```sh
+   docker compose -f prod.yml --env-file .env.prod stop server idp proxy
+   docker compose -f prod.yml --env-file .env.prod exec -T postgres psql -U postgres \
+     -c 'DROP DATABASE cenacle_chat WITH (FORCE)' -c 'CREATE DATABASE cenacle_chat OWNER cenacle_chat' \
+     -c 'REVOKE ALL ON DATABASE cenacle_chat FROM PUBLIC' \
+     -c 'DROP DATABASE cenacle_idp WITH (FORCE)' -c 'CREATE DATABASE cenacle_idp OWNER cenacle_idp' \
+     -c 'REVOKE ALL ON DATABASE cenacle_idp FROM PUBLIC'
+   docker compose -f prod.yml --env-file .env.prod exec -T postgres \
+     pg_restore -U postgres --exit-on-error -d cenacle_chat < cenacle_chat.dump
+   docker compose -f prod.yml --env-file .env.prod exec -T postgres \
+     pg_restore -U postgres --exit-on-error -d cenacle_idp < cenacle_idp.dump
+   ```
+   Then continue with step 3.
+2. **Reverting migrations** the version notes call reversible, with the **new** images and
+   before switching versions, once per migration:
+   - chat: `docker compose -f prod.yml --env-file .env.prod run --rm migrate migrate down`
+   - Cenacle ID: `docker compose -f prod.yml --env-file .env.prod run --rm idp-migrate node dist/cli.js migrate down`
+3. Take the previous release's `deploy/compose/` files (`git checkout v<previous>`: its
+   `prod.yml` goes with its proxy image), set the previous `CENACLE_VERSION` and
+   `CENACLE_IMAGE_PREFIX`, and `up -d --remove-orphans`.
+
+Destructive migrations (dropping data) are never reversible; restore from the backup
+instead.
 
 ## Tested upgrade path
 
@@ -76,9 +99,15 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   installations and every workspace stay without calls until they are turned on
   (`install.sh --calls`, `calls.enabled` in Helm, then Call settings in each workspace).
   The media service is one more image, `cenacle-media`, of the same version. Its two key
-  pairs (admission and callbacks) are separate and are not rotated automatically. Before a
-  rollback, turn calls off and let active calls end; do not run migration 00064 down,
-  which deletes call records and settings. See [calls](../install/calls.md).
+  pairs (admission and callbacks) are separate and are not rotated automatically. See
+  [calls](../install/calls.md).
+- **Images** are published at `ghcr.io/cenacle-tr/cenacle-` (`CENACLE_IMAGE_PREFIX` in the
+  new `.env.prod.example`); 0.99.4's file named the project's own registry. Set the new
+  prefix, or keep the registry or mirror you use, before `pull`.
+- **Rolling back to 0.99.4** needs no `migrate down`: 0.99.4 runs on the 0.99.5 databases
+  (tested). Turn calls off first and let active calls end. Reverting the migrations anyway
+  is chat six times (00064 to 00059; 00064's Down deletes call records and settings, 00063's
+  does nothing) and Cenacle ID twice (0015, 0014).
 - Helm: `networkPolicy.ingressNamespaceSelector` has no default any more (it named the
   ingress-nginx namespace). With `networkPolicy.enabled`, set it to your controller's
   namespace, or the chart stops with a message (see
@@ -145,7 +174,7 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   ended, which the directory feed carries so the chat ends its own sessions made before
   then. Cenacle ID migration `0015_deleted_accounts` (quick; a new, empty table) keeps the
   id and time of accounts an administrator deletes, so the directory feed reports them to
-  the chat. Rolling back runs their Down, which drops the column and the table: accounts
+  the chat. Reverting them (Rolling back, step 2) drops the column and the table: accounts
   deleted since then are no longer reported, so deactivate those people in the chat by hand
   if the chat had not read the feed yet.
 - **Bots:** the SDKs no longer have `EditMessage`/`DeleteMessage` (Go) or
