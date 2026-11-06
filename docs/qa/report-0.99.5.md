@@ -11,7 +11,7 @@ with the documentation only (install, upgrade with data, backup, restore and rol
 No blocker is open. One blocker, eight major and eleven minor findings were fixed: 1–3 and
 20 before the release was tagged, the others on `main` for 1.0. The access and supply chain
 review (21–25) and what was tried the next day (26–31) added one major and ten minor
-findings; four of the minor ones are open for 1.0 with their reasons. What was not tested
+findings, all fixed. What was not tested
 here is listed at the end.
 
 ## Findings
@@ -102,8 +102,8 @@ the dependencies, and whether the published images are the released source.
 | 21  | Images       | Rebuilt from the tag hours later, the web and Cenacle ID images differed from the published ones: the build's package update (1) took zlib 1.4, released in between. | major    | e7aaaf8  |
 | 22  | GitLab       | 27 one-day access tokens made during the release, some with the `api` scope, were still active.                                                                      | minor    | revoked  |
 | 23  | Dependencies | `klauspost/compress` 1.20.1 (GO-2026-6865); Cenacle's code does not reach it.                                                                                        | minor    | e7aaaf8  |
-| 24  | GitHub       | The CLA check fails on Dependabot's pull requests of the mirror (bots do not sign off). Not a risk; to settle with the repositories at 1.0.                          | minor    | open     |
-| 25  | GitLab       | Job logs are visible to anyone who can see the project; harmless while it is private, to turn off before it is public.                                               | minor    | open     |
+| 24  | GitHub       | The CLA check fails on Dependabot's pull requests of the mirror (bots do not sign off). Not a risk; the check now skips pull requests GitHub says Dependabot opened. | minor    | 413753d  |
+| 25  | GitLab       | Job logs are visible to anyone who can see the project; harmless while it is private; turned off (2026-11-07).                                                       | minor    | setting  |
 
 What held:
 
@@ -139,14 +139,14 @@ signing and GPG keys on GitHub (the CLI's token lacks those scopes).
 
 What the round had left untested, tried the next day (2026-11-07) on this host.
 
-| #   | Where    | What was found                                                                                                                                                  | Severity | Fixed in |
-| --- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-| 26  | Upgrades | No guide for upgrading with Helm; the usual `helm upgrade --reuse-values` from 0.99.4 stopped on `calls.enabled`, which 0.99.5 added (nothing was changed).     | major    | 20f73c8  |
-| 27  | AI       | Requests set no token limit: a model that kept writing held the request until the timeout.                                                                      | minor    | 3c57f89  |
-| 28  | AI       | Turning AI on or off for a workspace said nothing when it failed.                                                                                               | minor    | 3c57f89  |
-| 29  | Offline  | The offline guide did not say to turn link previews off, which try to reach the internet.                                                                       | minor    | 20f73c8  |
-| 30  | Mentions | `@name` typed without picking the suggestion, pasted, or sent by a bot is plain text: nobody is notified. Changing it changes how messages are stored; for 1.0. | minor    | open     |
-| 31  | TLS      | Only Let's Encrypt can issue certificates in `acme` mode; an organization's own ACME service cannot be named. A suggestion for after 1.0.                       | minor    | open     |
+| #   | Where    | What was found                                                                                                                                              | Severity | Fixed in |
+| --- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| 26  | Upgrades | No guide for upgrading with Helm; the usual `helm upgrade --reuse-values` from 0.99.4 stopped on `calls.enabled`, which 0.99.5 added (nothing was changed). | major    | 20f73c8  |
+| 27  | AI       | Requests set no token limit: a model that kept writing held the request until the timeout.                                                                  | minor    | 3c57f89  |
+| 28  | AI       | Turning AI on or off for a workspace said nothing when it failed.                                                                                           | minor    | 3c57f89  |
+| 29  | Offline  | The offline guide did not say to turn link previews off, which try to reach the internet.                                                                   | minor    | 20f73c8  |
+| 30  | Mentions | `@name` typed without picking the suggestion, pasted, or sent by a bot is plain text: nobody is notified. Now resolved when sent or edited; not in code.    | minor    | cd4a82a  |
+| 31  | TLS      | Only Let's Encrypt can issue certificates in `acme` mode; an organization's own ACME service cannot be named. New TLS mode `acme-ca`, tried against Pebble. | minor    | f3f7e70  |
 
 What held:
 
