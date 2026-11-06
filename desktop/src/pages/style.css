@@ -180,7 +180,9 @@ a:focus-visible {
   font-size: 14px;
   line-height: 1.5;
 }
-.alert[hidden] {
+.alert[hidden],
+form[hidden],
+#confirm[hidden] {
   display: none;
 }
 .after {
@@ -250,7 +252,19 @@ a:focus-visible {
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+.link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 500 14.5px var(--font);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 footer {
   padding: 16px 40px 20px;

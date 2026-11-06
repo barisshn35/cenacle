@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('electron', () => ({ app: { getVersion: () => '0.30.0' }, net: {} }));
-const { normalize, olderThan } = await import('./server.js');
+const { normalize, olderThan, privacyUrlOf } = await import('./server.js');
 
 describe('normalize', () => {
   it('takes addresses as people type them, https unless said otherwise', () => {
@@ -29,5 +29,21 @@ describe('olderThan', () => {
     expect(olderThan('0.30.0', '0.30.0')).toBe(false);
     expect(olderThan('0.9.9', '0.10.0')).toBe(true);
     expect(olderThan('1.0.0-rc.1', '0.99.0')).toBe(false);
+  });
+});
+
+describe('privacyUrlOf', () => {
+  const meta = { web_app: true, desktop_min_version: '' };
+  it('takes the http(s) address the server names', () => {
+    expect(privacyUrlOf({ ...meta, privacy_url: 'https://example.com/privacy' })).toBe(
+      'https://example.com/privacy',
+    );
+  });
+  it('ignores none, odd values and other schemes', () => {
+    expect(privacyUrlOf(meta)).toBeNull();
+    expect(privacyUrlOf({ ...meta, privacy_url: '' })).toBeNull();
+    expect(privacyUrlOf({ ...meta, privacy_url: 'javascript:alert(1)' })).toBeNull();
+    expect(privacyUrlOf({ ...meta, privacy_url: 'file:///etc/passwd' })).toBeNull();
+    expect(privacyUrlOf({ ...meta, privacy_url: 42 as unknown as string })).toBeNull();
   });
 });

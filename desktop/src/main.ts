@@ -29,8 +29,9 @@ import {
 } from './chrome.js';
 import { fill, language, setupLanguage, t } from './i18n.js';
 import { deepLinkTarget, hardenSession, originOf, returnPath } from './security.js';
-import { check, normalize, type PairError } from './server.js';
+import { check, normalize, privacyUrlOf, type PairError } from './server.js';
 import { signIn } from './signin.js';
+import { setUpSpellChecking } from './spellcheck.js';
 import {
   canKeepSession,
   clearToken,
@@ -43,6 +44,7 @@ import {
 } from './store.js';
 import { NO_POLICY, readPolicy, type Policy } from './policy.js';
 import { checkForUpdates, setupUpdates } from './updater.js';
+import { mediaPermissions } from './media.js';
 
 /** The persistent session of the server's pages: its storage, drafts and cache. */
 const APP_PARTITION = 'persist:cenacle';
@@ -121,6 +123,8 @@ function serveLocalPages() {
 }
 
 async function start() {
+  // Before any window: the dictionaries come with the app, none is downloaded.
+  setUpSpellChecking();
   setupLanguage();
   serveLocalPages();
   config = loadConfig();
@@ -179,7 +183,14 @@ const updatesOn = () =>
 
 function appSession(server: string): Session {
   const ses = session.fromPartition(APP_PARTITION);
-  hardenSession(ses, { allowNotifications: true });
+  hardenSession(ses, {
+    allowNotifications: true,
+    media: mediaPermissions({
+      window: () => main,
+      server: () => config.server ?? '',
+      signedIn: () => !!loadToken(),
+    }),
+  });
   // The session token goes along with every request to the server, added
   // here: the pages never see it, so a script in them cannot take it.
   ses.webRequest.onBeforeSendHeaders({ urls: [`${server}/*`] }, (details, callback) => {
@@ -494,6 +505,9 @@ function localWindow(page: 'pair' | 'offline', query: Record<string, string>) {
   return local;
 }
 
+/** The server the pairing page shows with its privacy policy, before going on. */
+let pending: { origin: string; privacy: string } | null = null;
+
 function showPairing() {
   localWindow('pair', {});
 }
@@ -608,17 +622,39 @@ function registerIpc() {
   });
   ipcMain.handle(
     'pair:connect',
-    async (e, address: unknown): Promise<{ ok: true } | { error: PairError; version?: string }> => {
+    async (
+      e,
+      address: unknown,
+    ): Promise<{ ok: true } | { confirm: string } | { error: PairError; version?: string }> => {
       if (!fromLocal(e) || typeof address !== 'string' || serverLocked())
         return { error: 'invalid' };
       const n = normalize(address);
       if ('error' in n) return n;
       const r = await check(n.origin);
       if ('error' in r) return r;
+      // A new server with a privacy policy: the page shows it before going on.
+      const privacy = privacyUrlOf(r.meta);
+      if (privacy && !config.recent.some((x) => x.origin === n.origin)) {
+        pending = { origin: n.origin, privacy };
+        return { confirm: new URL(n.origin).host };
+      }
       openServer(n.origin);
       return { ok: true };
     },
   );
+  ipcMain.handle('pair:continue', (e) => {
+    if (!fromLocal(e) || !pending || serverLocked()) return;
+    const { origin } = pending;
+    pending = null;
+    openServer(origin);
+  });
+  ipcMain.handle('pair:back', (e) => {
+    if (fromLocal(e)) pending = null;
+  });
+  // Only the policy of the server the page shows, in the browser.
+  ipcMain.handle('pair:privacy', (e) => {
+    if (fromLocal(e) && pending) void shell.openExternal(pending.privacy);
+  });
   ipcMain.handle('offline:retry', (e) => {
     if (fromLocal(e)) retryOnline();
   });

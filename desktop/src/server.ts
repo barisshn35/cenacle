@@ -43,6 +43,19 @@ export function olderThan(version: string, min: string): boolean {
 export interface Meta {
   web_app: boolean;
   desktop_min_version: string;
+  /** The operator's privacy policy (CENACLE_PRIVACY_URL); absent when none. */
+  privacy_url?: string;
+}
+
+/** The server's privacy policy when it names an http(s) address, otherwise null. */
+export function privacyUrlOf(meta: Meta): string | null {
+  if (typeof meta.privacy_url !== 'string') return null;
+  try {
+    const url = new URL(meta.privacy_url);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Asks a server what it is, within ten seconds. */

@@ -1,8 +1,52 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import { deepLinkTarget, issuerOrigin, returnPath } from './security.js';
+import {
+  deepLinkTarget,
+  issuerOrigin,
+  returnPath,
+  trustedMediaOrigin,
+  validMediaTypes,
+} from './security.js';
 
 const server = 'https://chat.example.com';
+
+describe('media trust boundary', () => {
+  it('requires the paired HTTPS origin in the top frame', () => {
+    expect(trustedMediaOrigin(server, `${server}/c/one`, `${server}/c/one`, true)).toBe(true);
+    expect(trustedMediaOrigin(server, `${server}/c/one`, `${server}/c/one`, false)).toBe(false);
+    for (const origin of [
+      'https://id.example.com',
+      'https://chat.example.com.evil.test',
+      'file://',
+      'https://external.test',
+    ]) {
+      expect(trustedMediaOrigin(server, `${origin}/`, `${server}/c/one`, true)).toBe(false);
+      expect(trustedMediaOrigin(server, `${server}/c/one`, `${origin}/`, true)).toBe(false);
+    }
+    expect(
+      trustedMediaOrigin(
+        'http://chat.example.com',
+        'http://chat.example.com/',
+        'http://chat.example.com/',
+        true,
+      ),
+    ).toBe(false);
+  });
+  it('never treats screen, unknown devices or an empty request as microphone/camera access', () => {
+    expect(validMediaTypes(['audio'])).toBe(true);
+    expect(validMediaTypes(['audio', 'video'])).toBe(true);
+    for (const types of [
+      [],
+      ['screen'],
+      ['audio', 'unknown'],
+      'audio',
+      null,
+      ['audio', 'video', 'audio'],
+    ]) {
+      expect(validMediaTypes(types)).toBe(false);
+    }
+  });
+});
 
 describe('deepLinkTarget', () => {
   it('opens pages of the paired server', () => {

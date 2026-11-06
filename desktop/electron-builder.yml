@@ -20,6 +20,10 @@ extraResources:
     to: LICENSE.txt
   - from: dist/THIRD_PARTY_NOTICES.txt
     to: THIRD_PARTY_NOTICES.txt
+  # Spell checker dictionaries (src/spellcheck.ts): nothing is downloaded.
+  - from: dictionaries
+    to: dictionaries
+    filter: ['*.bdic', NOTICE.txt]
 afterPack: scripts/fuses.mjs
 protocols:
   - name: Cenacle

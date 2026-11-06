@@ -15,7 +15,7 @@
     <Media Id="1" Cabinet="cenacle.cab" EmbedCab="yes" />
     <Icon Id="cenacle.ico" SourceFile="$(var.Icon)" />
     <Property Id="ARPPRODUCTICON" Value="cenacle.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://git.calaixo.com/calaxio/cenacle" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Cenacle-TR/cenacle" />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">

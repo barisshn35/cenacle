@@ -15,6 +15,8 @@ export interface Fake {
   cookies: (string | undefined)[];
   /** Exchanges that were refused. */
   refused: number;
+  /** The privacy policy the chat server names in /api/meta ("" none). */
+  privacyUrl: string;
   close: () => Promise<void>;
 }
 
@@ -108,7 +110,11 @@ export async function startFake(): Promise<Fake> {
     switch (url.pathname) {
       case '/api/meta':
         // Browsers are turned away here; the desktop app is not.
-        return json(200, { web_app: false, desktop_min_version: '' });
+        return json(200, {
+          web_app: false,
+          desktop_min_version: '',
+          ...(fake.privacyUrl ? { privacy_url: fake.privacyUrl } : {}),
+        });
       case '/api/session':
         return signedIn
           ? json(200, { user: { display_name: 'Ayşe Yılmaz' } })
@@ -166,6 +172,7 @@ export async function startFake(): Promise<Fake> {
     chat: chatUrl,
     idp: idpUrl,
     other: otherUrl,
+    privacyUrl: '',
     get authorizations() {
       return state.authorizations;
     },

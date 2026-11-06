@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('cenacleLocal', {
   recent: () => ipcRenderer.invoke('pair:recent'),
   forget: (origin: string) => ipcRenderer.invoke('pair:forget', origin),
   connect: (address: string) => ipcRenderer.invoke('pair:connect', address),
+  continue: () => ipcRenderer.invoke('pair:continue'),
+  cancel: () => ipcRenderer.invoke('pair:back'),
+  privacy: () => ipcRenderer.invoke('pair:privacy'),
   retry: () => ipcRenderer.invoke('offline:retry'),
   changeServer: () => ipcRenderer.invoke('desktop:change-server'),
   // The bar of windows for others' pages.

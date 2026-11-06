@@ -1,27 +1,92 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { Session } from 'electron';
+import type { Session, WebContents } from 'electron';
+
+export interface MediaPermissions {
+  trusted: (contents: WebContents | null, requestingURL: string, mainFrame: boolean) => boolean;
+  request: (contents: WebContents, types: readonly string[]) => Promise<boolean>;
+  display: NonNullable<Parameters<Session['setDisplayMediaRequestHandler']>[0]>;
+}
 
 const hardened = new WeakSet<Session>();
 
 /**
- * Locks a session down: no device permissions (camera, microphone,
- * location, screen, USB, …), notifications only where allowed, and no
+ * Locks a session down: media only through a trusted, prompted main frame;
+ * no location/USB rights, notifications only where allowed, and no
  * downloads without the save dialog.
  */
-export function hardenSession(ses: Session, opts: { allowNotifications: boolean }): void {
+export function hardenSession(
+  ses: Session,
+  opts: { allowNotifications: boolean; media?: MediaPermissions },
+): void {
   if (hardened.has(ses)) return;
   hardened.add(ses);
   const allowed = (permission: string) =>
     (opts.allowNotifications && permission === 'notifications') ||
     permission === 'clipboard-sanitized-write';
-  ses.setPermissionRequestHandler((_wc, permission, callback) => callback(allowed(permission)));
-  ses.setPermissionCheckHandler((_wc, permission) => allowed(permission));
+  ses.setPermissionRequestHandler((wc, permission, callback, details) => {
+    if (
+      permission === 'media' ||
+      permission === 'display-capture' ||
+      permission === 'speaker-selection'
+    ) {
+      if (!wc || !opts.media?.trusted(wc, details.requestingUrl, details.isMainFrame)) {
+        callback(false);
+        return;
+      }
+      if (permission === 'display-capture' || permission === 'speaker-selection') {
+        callback(true);
+        return;
+      }
+      const types = 'mediaTypes' in details ? details.mediaTypes : [];
+      // getDisplayMedia asks for "media" with no types; the display handler then
+      // asks the person with its picker (after a click, video only).
+      if (permission === 'media' && Array.isArray(types) && types.length === 0) {
+        callback(true);
+        return;
+      }
+      if (!validMediaTypes(types)) {
+        callback(false);
+        return;
+      }
+      void opts.media.request(wc, types).then(callback, () => callback(false));
+      return;
+    }
+    callback(allowed(permission));
+  });
+  ses.setPermissionCheckHandler((wc, permission, origin, details) => {
+    if (permission === 'media') return false; // Native consent on every capture request.
+    if (permission === 'display-capture' || permission === 'speaker-selection') {
+      return !!opts.media?.trusted(wc, details.requestingUrl ?? origin, details.isMainFrame);
+    }
+    return allowed(permission);
+  });
   ses.setDevicePermissionHandler(() => false);
-  ses.setDisplayMediaRequestHandler((_req, callback) => callback({}));
+  ses.setDisplayMediaRequestHandler(opts.media?.display ?? ((_req, callback) => callback(null)));
   // Downloads ask where to save (the default without a path); nothing is opened.
   ses.on('will-download', (_e, item) => {
     item.setSaveDialogOptions({ defaultPath: item.getFilename() });
   });
+}
+
+export function validMediaTypes(types: unknown): types is ('audio' | 'video')[] {
+  return (
+    Array.isArray(types) &&
+    types.length > 0 &&
+    types.length <= 2 &&
+    types.every((type) => type === 'audio' || type === 'video')
+  );
+}
+
+export function trustedMediaOrigin(
+  server: string,
+  requestingURL: string,
+  mainURL: string,
+  mainFrame: boolean,
+): boolean {
+  if (!mainFrame || !server || originOf(requestingURL) !== server || originOf(mainURL) !== server)
+    return false;
+  const url = new URL(server);
+  return url.protocol === 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
 }
 
 /** The origin of a URL, or null for anything that is not http(s). */

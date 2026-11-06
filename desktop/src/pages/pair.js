@@ -31,6 +31,40 @@
     $('address').setAttribute('aria-invalid', 'true');
   };
 
+  // A new server with a privacy policy: shown before going on.
+  function showConfirm(host) {
+    $('title').textContent = fill(texts.confirmTitle, { host });
+    $('lede').hidden = true;
+    $('form').hidden = true;
+    $('recent').hidden = true;
+    $('confirm').hidden = false;
+    $('continue').focus();
+  }
+
+  function showForm() {
+    $('title').textContent = texts.title;
+    $('lede').hidden = false;
+    $('form').hidden = false;
+    $('confirm').hidden = true;
+    void api.recent().then(showRecent);
+    $('address').focus();
+  }
+
+  $('confirm-lede').textContent = texts.confirmLede;
+  $('privacy').textContent = `${texts.privacy} `;
+  const note = document.createElement('span');
+  note.className = 'hint';
+  note.textContent = texts.privacyNote;
+  $('privacy').append(note);
+  $('continue').textContent = texts.continue;
+  $('other').textContent = texts.otherAddress;
+  $('privacy').addEventListener('click', () => void api.privacy());
+  $('continue').addEventListener('click', () => void api.continue());
+  $('other').addEventListener('click', () => {
+    void api.cancel();
+    showForm();
+  });
+
   async function connect(address) {
     const button = $('connect');
     button.disabled = true;
@@ -42,6 +76,8 @@
     if (result && 'error' in result) {
       error(result.error, result.version);
       $('address').focus();
+    } else if (result && 'confirm' in result) {
+      showConfirm(result.confirm);
     }
   }
 

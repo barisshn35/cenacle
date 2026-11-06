@@ -4,6 +4,16 @@ import { app } from 'electron';
 // Texts of the app's own parts (menus, dialogs, the pairing and offline
 // pages); everything else is the web app, in the language chosen there.
 const en = {
+  calls: {
+    permissionTitle: 'Allow device access?',
+    permissionMessage: '{{host}} wants to use your devices.',
+    microphone: 'Microphone',
+    camera: 'Camera',
+    allow: 'Allow this time',
+    deny: 'Deny',
+    chooseScreen: 'Choose a screen or window to share (no audio)',
+    cancel: 'Cancel',
+  },
   appName: 'Cenacle',
   menu: {
     file: 'File',
@@ -34,6 +44,12 @@ const en = {
     recent: 'Used before',
     remove: 'Remove {{origin}} from the list',
     next: 'Next you sign in with your username and password, then a code from your authenticator app.',
+    confirmTitle: 'Connect to {{host}}',
+    confirmLede: 'This server’s privacy policy says how your organization handles your data.',
+    privacy: 'Privacy policy',
+    privacyNote: '(opens in your browser)',
+    continue: 'Continue',
+    otherAddress: 'Use another address',
     errors: {
       invalid: 'This is not a server address. Check it and try again.',
       insecure: 'The server must use https. Plain http works only for this computer (localhost).',
@@ -91,6 +107,16 @@ const en = {
 export type Texts = typeof en;
 
 const tr: Texts = {
+  calls: {
+    permissionTitle: 'Cihaz erişimine izin verilsin mi?',
+    permissionMessage: '{{host}} cihazlarınızı kullanmak istiyor.',
+    microphone: 'Mikrofon',
+    camera: 'Kamera',
+    allow: 'Bu kez izin ver',
+    deny: 'İzin verme',
+    chooseScreen: 'Paylaşmak için bir ekran veya pencere seçin (ses paylaşılmaz)',
+    cancel: 'Vazgeç',
+  },
   appName: 'Cenacle',
   menu: {
     file: 'Dosya',
@@ -112,23 +138,30 @@ const tr: Texts = {
     show: 'Cenacle’ı göster',
   },
   pair: {
-    title: 'Cenacle sunucuna bağlan',
-    lede: 'Kuruluşunun Cenacle sunucusunun adresini gir. Bu adresi BT ekibin verir.',
+    title: 'Cenacle sunucunuza bağlanın',
+    lede: 'Kuruluşunuzun Cenacle sunucusunun adresini girin. Bu adresi BT ekibiniz verir.',
     address: 'Sunucu adresi',
-    example: 'Örneğin chat.sirketin.com',
+    example: 'Örneğin chat.sirketiniz.com',
     connect: 'Devam',
     connecting: 'Sunucu denetleniyor…',
     recent: 'Daha önce kullanılanlar',
     remove: '{{origin}} adresini listeden çıkar',
-    next: 'Sonra kullanıcı adın ve parolanla, ardından doğrulama uygulamandaki kodla giriş yaparsın.',
+    next: 'Sonra kullanıcı adınız ve parolanızla, ardından doğrulama uygulamanızdaki kodla giriş yaparsınız.',
+    confirmTitle: '{{host}} sunucusuna bağlanın',
+    confirmLede:
+      'Bu sunucunun gizlilik politikası, kuruluşunuzun verilerini nasıl işlediğini anlatır.',
+    privacy: 'Gizlilik politikası',
+    privacyNote: '(tarayıcınızda açılır)',
+    continue: 'Devam',
+    otherAddress: 'Başka bir adres kullan',
     errors: {
-      invalid: 'Bu bir sunucu adresi değil. Denetleyip yeniden dene.',
+      invalid: 'Bu bir sunucu adresi değil. Denetleyip yeniden deneyin.',
       insecure:
         'Sunucu https kullanmalı. Düz http yalnızca bu bilgisayar (localhost) için çalışır.',
-      unreachable: 'Sunucuya ulaşılamıyor. Adresi ve bağlantını denetle.',
+      unreachable: 'Sunucuya ulaşılamıyor. Adresi ve bağlantınızı denetleyin.',
       notCenacle: 'Bu adres bir Cenacle sunucusu gibi yanıt vermiyor.',
       tooOld:
-        'Bu sunucu Cenacle {{version}} ya da daha yenisini istiyor. Önce uygulamayı güncelle.',
+        'Bu sunucu Cenacle {{version}} ya da daha yenisini istiyor. Önce uygulamayı güncelleyin.',
     },
   },
   signIn: {
@@ -136,33 +169,34 @@ const tr: Texts = {
     failedTitle: 'Giriş olmadı',
     failed: {
       cancelled: 'Giriş iptal edildi.',
-      expired: 'Giriş çok uzun sürdü. Yeniden dene.',
-      failed: 'Cenacle ID’nin yanıtı doğrulanamadı. Yeniden dene.',
-      unavailable: 'Cenacle ID’ye şu an ulaşılamıyor. Birazdan yeniden dene.',
-      exchange: 'Sunucu girişi kabul etmedi. Yeniden dene.',
+      expired: 'Giriş çok uzun sürdü. Yeniden deneyin.',
+      failed: 'Cenacle ID’nin yanıtı doğrulanamadı. Yeniden deneyin.',
+      unavailable: 'Cenacle ID’ye şu an ulaşılamıyor. Birazdan yeniden deneyin.',
+      exchange: 'Sunucu girişi kabul etmedi. Yeniden deneyin.',
     },
     retry: 'Yeniden dene',
     close: 'Kapat',
-    notKept: 'Bu bilgisayarda şifreli anahtar deposu yok; Cenacle kapanana kadar girişli kalırsın.',
+    notKept:
+      'Bu bilgisayarda şifreli anahtar deposu yok; Cenacle kapanana kadar girişli kalırsınız.',
   },
   offline: {
     title: 'Cenacle {{host}} adresine ulaşamıyor',
-    lede: 'Bağlantını denetle. Cenacle kendiliğinden yeniden dener.',
+    lede: 'Bağlantınızı denetleyin. Cenacle kendiliğinden yeniden dener.',
     retry: 'Şimdi dene',
     changeServer: 'Sunucuyu değiştir',
   },
   update: {
     availableTitle: 'Cenacle {{version}} hazır',
-    available: 'Şimdi indirilsin mi? Kurmak için Cenacle’ı sen istediğinde yeniden başlatırız.',
+    available: 'Şimdi indirilsin mi? Kurmak için Cenacle’ı siz istediğinizde yeniden başlatırız.',
     download: 'İndir',
     later: 'Sonra',
     readyTitle: 'Cenacle {{version}} kurulmaya hazır',
-    ready: 'Güncellemeyi bitirmek için Cenacle’ı yeniden başlat.',
+    ready: 'Güncellemeyi bitirmek için Cenacle’ı yeniden başlatın.',
     restart: 'Şimdi yeniden başlat',
-    none: 'Cenacle’ın en yeni sürümü sende.',
+    none: 'Cenacle’ın en yeni sürümü sizde.',
     failed: 'Güncellemeler denetlenemedi.',
     package:
-      'Cenacle {{version}} çıktı. Paket yöneticinle ya da sunucunun indirme sayfasından kur.',
+      'Cenacle {{version}} çıktı. Paket yöneticinizle ya da sunucunun indirme sayfasından kurun.',
     ok: 'Tamam',
   },
   external: {
