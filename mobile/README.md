@@ -1,5 +1,10 @@
 # Cenacle mobile app
 
+> This folder is `mobile/` of the main repository,
+> [Cenacle-TR/cenacle](https://github.com/Cenacle-TR/cenacle). The repository
+> [Cenacle-TR/cenacle-mobile](https://github.com/Cenacle-TR/cenacle-mobile) is a read-only copy of it, updated
+> from the main repository. Install, build, report issues and send changes there.
+
 A [Capacitor](https://capacitorjs.com) app for Android and iOS. It opens on a pairing page:
 people enter their organization's Cenacle server address, the app checks that it answers as
 Cenacle (`/api/meta`) and then opens that server's web app, as the desktop app does. Sign-in,
@@ -15,7 +20,7 @@ On iOS, WKWebView offers the bridge to every page it loads; the navigation guard
 links out of it.
 
 Status: a working scaffold. Push notifications, deep links, switching servers from inside the
-app and store releases come with the mobile release (v1.2).
+app and store releases come with the mobile release (1.1).
 
 ## Build an Android debug APK
 

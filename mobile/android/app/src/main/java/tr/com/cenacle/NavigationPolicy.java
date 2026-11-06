@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-package com.calaixo.cenacle;
+package tr.com.cenacle;
 
 import java.net.URI;
 import java.net.URISyntaxException;

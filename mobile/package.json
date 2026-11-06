@@ -5,7 +5,7 @@
   "description": "Cenacle mobile app (Capacitor) for Android and iOS.",
   "license": "AGPL-3.0-only",
   "author": "Cenacle contributors",
-  "homepage": "https://git.calaixo.com/calaxio/cenacle",
+  "homepage": "https://github.com/Cenacle-TR/cenacle",
   "scripts": {
     "assets": "node scripts/assets.mjs",
     "sync": "cap sync",

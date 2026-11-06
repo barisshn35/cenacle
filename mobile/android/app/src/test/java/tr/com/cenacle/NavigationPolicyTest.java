@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-package com.calaixo.cenacle;
+package tr.com.cenacle;
 
 import static org.junit.Assert.assertEquals;
 
-import com.calaixo.cenacle.NavigationPolicy.Decision;
+import tr.com.cenacle.NavigationPolicy.Decision;
 import org.junit.Test;
 
 public class NavigationPolicyTest {

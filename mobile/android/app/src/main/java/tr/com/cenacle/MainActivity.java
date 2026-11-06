@@ -1,4 +1,4 @@
-package com.calaixo.cenacle;
+package tr.com.cenacle;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
