@@ -393,6 +393,11 @@ or when the organization's policy sets `DisableUpdates`
    internal certificates name no OCSP responder, so the proxy makes no outbound call for
    them. In air-gapped networks install from a bundle
    (see [offline installs](../operations/README.md#offline-air-gapped-installs)).
+   `acme-ca` takes certificates from another ACME service, such as your organization's own
+   (step-ca, a PKI with ACME): set `CENACLE_ACME_CA` to its directory URL and keep
+   `ACME_EMAIL`. When the service's root certificate is not publicly trusted, put it in
+   `deploy/compose/certs/acme-ca.pem` and set `CENACLE_ACME_CA_ROOT=file`. The service must
+   reach the proxy on port 80 or 443 to validate, as Let's Encrypt does.
 5. **Sharing a host:** if another reverse proxy already owns 80/443, either install Cenacle
    on a separate host or put it behind that proxy (forward both host names to Caddy on an
    internal port and remove the published ports from `prod.yml`).

@@ -38,8 +38,18 @@ services:
       - sh
       - -c
       - |
-        if [ "$$CENACLE_TLS_MODE" = acme ] && [ -z "$$ACME_EMAIL" ]; then
-          echo "set ACME_EMAIL in .env.prod: it is required with CENACLE_TLS_MODE=acme" >&2
+        case "$$CENACLE_TLS_MODE" in acme | acme-ca)
+          if [ -z "$$ACME_EMAIL" ]; then
+            echo "set ACME_EMAIL in .env.prod: it is required with CENACLE_TLS_MODE=$$CENACLE_TLS_MODE" >&2
+            exit 1
+          fi ;;
+        esac
+        if [ "$$CENACLE_TLS_MODE" = acme-ca ] && [ -z "$$CENACLE_ACME_CA" ]; then
+          echo "set CENACLE_ACME_CA in .env.prod: the ACME directory URL of CENACLE_TLS_MODE=acme-ca" >&2
+          exit 1
+        fi
+        if [ "$${CENACLE_ACME_CA_ROOT:-system}" = file ] && [ ! -s /certs/acme-ca.pem ]; then
+          echo "put the ACME service's root certificate into certs/acme-ca.pem (CENACLE_ACME_CA_ROOT=file)" >&2
           exit 1
         fi
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
@@ -48,9 +58,12 @@ services:
     environment:
       CENACLE_DOMAIN: ${CENACLE_DOMAIN:?set CENACLE_DOMAIN, e.g. chat.example.com}
       CENACLE_ID_DOMAIN: ${CENACLE_ID_DOMAIN:?set CENACLE_ID_DOMAIN, e.g. id.example.com}
-      # Required with CENACLE_TLS_MODE=acme only (the proxy does not start without it).
+      # Required with CENACLE_TLS_MODE=acme and acme-ca only (the proxy does not start without it).
       ACME_EMAIL: ${ACME_EMAIL:-}
       CENACLE_TLS_MODE: ${CENACLE_TLS_MODE:-acme}
+      # CENACLE_TLS_MODE=acme-ca only: the ACME directory, and file for certs/acme-ca.pem.
+      CENACLE_ACME_CA: ${CENACLE_ACME_CA:-}
+      CENACLE_ACME_CA_ROOT: ${CENACLE_ACME_CA_ROOT:-system}
       CENACLE_S3_BUCKET: ${CENACLE_S3_BUCKET:-cenacle-files}
     ports:
       - 80:80
@@ -59,7 +72,8 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
-      # Own certificates for CENACLE_TLS_MODE=files (tls.crt, tls.key).
+      # Own certificates for CENACLE_TLS_MODE=files (tls.crt, tls.key), or the root of the
+      # ACME service of acme-ca (acme-ca.pem).
       - ./certs:/certs:ro
     tmpfs: [/tmp]
     networks: [edge, files]

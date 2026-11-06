@@ -10,10 +10,24 @@
 #             reachable from the internet), with ACME_EMAIL for certificate notices
 #   files     your own certificate: certs/tls.crt (full chain) and certs/tls.key
 #   internal  Caddy's internal CA (testing or closed networks; clients must trust it)
-# ACME_EMAIL is needed in mode acme only: without it the configuration is
-# invalid (prod.yml checks it first and says so).
+#   acme-ca   another ACME service (your organization's, e.g. step-ca): its directory
+#             URL in CENACLE_ACME_CA; with CENACLE_ACME_CA_ROOT=file, its root
+#             certificate in certs/acme-ca.pem
+# ACME_EMAIL is needed in modes acme and acme-ca only: without it the configuration
+# is invalid (prod.yml checks it first and says so).
 (tls-acme) {
 	tls {$ACME_EMAIL}
+}
+(acme-ca-root-system) {
+}
+(acme-ca-root-file) {
+	ca_root /certs/acme-ca.pem
+}
+(tls-acme-ca) {
+	tls {$ACME_EMAIL} {
+		ca {$CENACLE_ACME_CA}
+		import acme-ca-root-{$CENACLE_ACME_CA_ROOT:system}
+	}
 }
 (tls-files) {
 	tls /certs/tls.crt /certs/tls.key

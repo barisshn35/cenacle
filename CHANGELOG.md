@@ -8,6 +8,13 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- TLS mode `acme-ca`: certificates from another ACME service, such as your organization's
+  own, with `CENACLE_ACME_CA` (its directory URL) and, for a root that is not publicly
+  trusted, `CENACLE_ACME_CA_ROOT=file` with `certs/acme-ca.pem`. The proxy stops with a
+  message when either is missing. `acme` stays as it was.
+
 ### Security
 
 - The images built on Alpine use Alpine 3.24.3 (zlib 1.3.2-r1, CVE-2026-85091) instead of
