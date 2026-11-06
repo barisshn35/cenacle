@@ -39,6 +39,26 @@ Air-gapped hosts: make a bundle with `deploy/airgap/bundle.sh` (add `--backup` w
 machines need Docker's containerd image store (see offline installs in
 [operations](../operations/README.md)).
 
+## Standard upgrade (Helm)
+
+1. Read the version notes below and **back up** the databases and the `cenacle` Secret
+   ([backup guide](../backup/README.md)).
+2. Take the new release's chart (`git checkout v<version>` in your clone) and upgrade with
+   the values you installed with, best kept in a file:
+   ```sh
+   helm upgrade cenacle deploy/helm/cenacle -f my-values.yaml --wait
+   ```
+   Without such a file, `--reset-then-reuse-values` (Helm 3.14 or later) keeps the values you
+   gave before and takes the new chart's defaults. Do not use `--reuse-values`: it keeps
+   only the old release's values, so a setting a release adds has none and the upgrade stops
+   with an error in a template (from 0.99.4 to 0.99.5: `calls.enabled`).
+3. Migrations run as a Helm hook before the pods are replaced, one at a time. Check them
+   with `kubectl exec deploy/cenacle-server -- /usr/local/bin/cenacle-server migrate status`.
+
+To roll back, `helm rollback cenacle <revision>` (`helm history cenacle` lists them), with
+the same rule for migrations as below: the version notes say whether the previous release
+runs on the new database or which migrations to revert first.
+
 ## Rolling back
 
 The version notes below say, for each release, whether the previous one runs on the new
@@ -84,6 +104,11 @@ included, was there.
 Before 0.99.0 the same was done from 0.43.0: installed from this documentation, filled,
 upgraded to 0.99.0 (migration 00047), rolled back, restored from dumps and upgraded again
 ([QA report](../qa/report-0.99.md)).
+
+Before 0.99.5's release, a Helm installation of 0.99.4 (k3s 1.35, Traefik) was filled, upgraded
+with the 0.99.5 chart (`--reset-then-reuse-values`; migrations 00059–00064) and rolled back
+with `helm rollback`: the browser stayed signed in, and messages and a file were there each
+time ([QA report](../qa/report-0.99.5.md)).
 
 Before 0.99.1, installations of 0.30.0, 0.35.0 and 0.40.0, each installed with its own
 release's files and filled, were upgraded directly to 0.99.1 with the steps above: the

@@ -157,8 +157,10 @@ Copy the directory and the repository (or at least `deploy/compose`) to the offl
    them in yourself. `smtp_password`, `ai_api_key` and `azure_key` stay empty unless used;
    with `--backup`, fill `secrets/walg.env` from `walg.env.example` (the backup bucket must
    be reachable from the host).
-3. Install as usual. With `backup.yml`, start without `--build`: the WAL-G image is
-   already loaded.
+3. Install as usual, with `CENACLE_LINK_PREVIEWS=false` in `.env.prod`: link previews fetch
+   the pages that links point to, which an offline host cannot reach (each try waits for
+   its timeout). Web push (`CENACLE_WEB_PUSH`) is off already. With `backup.yml`, start
+   without `--build`: the WAL-G image is already loaded.
 
 Without `--backup`, WAL-G backups cannot be set up offline; use the logical dumps of the
 [backup guide](../backup/README.md) there. ClamAV signatures: see the

@@ -27,6 +27,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Upgrade guide: a Helm section. `helm upgrade --reuse-values` stops on a setting a release
+  adds (0.99.5: `calls.enabled`); upgrade with your values file or
+  `--reset-then-reuse-values` instead.
+- Offline installs: turn link previews off, which otherwise try to reach the internet.
 - AI asks the model for at most 1024 tokens: without a limit, a model that kept writing held
   the request until the timeout (2 minutes).
 - Turning AI on or off for a workspace said nothing when it failed; it says so now.

@@ -58,6 +58,7 @@ pull secret. For air-gapped clusters, copy the images into your own registry and
 
 Migrations run as Helm hooks before every install and upgrade; pods are replaced one at a
 time with a drain delay ([operations](../operations/README.md#upgrades-without-downtime)).
+How to upgrade, and why not with `--reuse-values`: [upgrade guide](../upgrade/README.md#standard-upgrade-helm).
 Uploads go from browsers to the bucket through the ingress (`POST /<bucket>/`, signed
 forms only); with an external S3 service set `s3.uploadURL` to its bucket URL and allow
 `POST` from the chat domain in its CORS rules instead (the web app's content security
