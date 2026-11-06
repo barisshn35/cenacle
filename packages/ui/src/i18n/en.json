@@ -61,6 +61,11 @@
       "title": "Cenacle is temporarily unavailable.",
       "reason": "The service is starting up or under maintenance.",
       "action": "Try again in a moment."
+    },
+    "search_timeout": {
+      "title": "This search took too long.",
+      "reason": "The server stopped it after 10 seconds.",
+      "action": "Try again with more specific words."
     }
   }
 }

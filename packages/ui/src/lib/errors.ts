@@ -8,7 +8,8 @@ export type ErrorKind =
   | 'not_found'
   | 'rate_limited'
   | 'session_expired'
-  | 'service_unavailable';
+  | 'service_unavailable'
+  | 'search_timeout';
 
 const KNOWN: ReadonlySet<string> = new Set<ErrorKind>([
   'server_error',
@@ -18,6 +19,7 @@ const KNOWN: ReadonlySet<string> = new Set<ErrorKind>([
   'rate_limited',
   'session_expired',
   'service_unavailable',
+  'search_timeout',
 ]);
 
 /** Subset of an RFC 9457 problem (application/problem+json) as returned by Cenacle APIs. */

@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Button } from './button';
 import { InlineError } from './error-state';
 import { Input } from './input';
+import { cn } from '../lib/utils';
 
 /**
  * Severity levels of the destructive action pattern (UX plan 4.1):
@@ -48,7 +49,8 @@ export interface ConfirmDialogProps {
  *
  * - Focus starts on Cancel, so Enter never triggers the destructive action.
  * - Esc always cancels (except while the action is running).
- * - The destructive action is marked by color, icon and verb text.
+ * - An irreversible action (or S3) is marked in red as well as by icon and verb
+ *   text; a reversible one keeps the neutral button.
  * - Buttons act on click (pointer-up) and are disabled while running,
  *   which also prevents double submission.
  */
@@ -76,6 +78,9 @@ export function ConfirmDialog({
   const running = useRef(false);
 
   const needsTyping = severity === 's3' && confirmationText !== undefined;
+  // Red is kept for what cannot be undone; a reversible action (archive,
+  // disable, remove) is asked about calmly.
+  const destructive = irreversible || severity === 's3';
   const matches = !needsTyping || typed === confirmationText;
 
   const reset = () => {
@@ -117,6 +122,7 @@ export function ConfirmDialog({
         <AlertDialog.Popup
           data-slot="confirm-dialog"
           data-severity={severity}
+          data-destructive={destructive || undefined}
           initialFocus={cancelRef}
           aria-busy={pending || undefined}
           className="fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-5 text-sm text-popover-foreground shadow-xl ring-1 ring-foreground/10 duration-(--duration-base) outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
@@ -124,7 +130,10 @@ export function ConfirmDialog({
           <div className="flex gap-3">
             <span
               aria-hidden
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive"
+              className={cn(
+                'flex size-9 shrink-0 items-center justify-center rounded-full',
+                destructive ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground',
+              )}
             >
               <TriangleAlertIcon className="size-5" strokeWidth={1.75} />
             </span>
@@ -199,7 +208,10 @@ export function ConfirmDialog({
             </AlertDialog.Close>
             <Button
               data-slot="confirm-dialog-action"
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/40"
+              className={cn(
+                destructive &&
+                  'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/40',
+              )}
               disabled={pending || !matches}
               aria-describedby={failed ? errorId : undefined}
               onClick={confirm}

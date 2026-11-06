@@ -4,6 +4,130 @@
  */
 
 export interface paths {
+  '/api/workspaces/{workspaceId}/calls/settings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    /** Read the workspace call policy */
+    get: operations['getWorkspaceCallSettings'];
+    /** Change the workspace call policy as an administrator */
+    put: operations['setWorkspaceCallSettings'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channelId}/calls': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channelId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Start an audio or video call in a channel */
+    post: operations['startCall'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/channels/{channelId}/call': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Read the current call in a channel */
+    get: operations['getChannelCall'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calls/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Read authorized call state after a reconnect or resync */
+    get: operations['getCall'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calls/{id}/token': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reserve a participant slot and issue one media admission token */
+    post: operations['createCallToken'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calls/{id}/answer': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Accept or decline a direct call while it is ringing */
+    post: operations['answerCall'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calls/{id}/leave': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Leave the caller's participant session, idempotently */
+    post: operations['leaveCall'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces': {
     parameters: {
       query?: never;
@@ -209,7 +333,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Download everything stored about you (NDJSON) */
+    /** Download your data (NDJSON; contents listed in docs/privacy.md) */
     get: operations['exportMyData'];
     put?: never;
     post?: never;
@@ -1780,11 +1904,21 @@ export interface paths {
     put?: never;
     /**
      * Post into a channel through an incoming webhook
-     * @description No session: the URL is the secret. A `generic` webhook takes
-     *     `{"text": "Markdown", "attachments": [...]}`; a `jira` webhook takes Jira's
-     *     webhook payloads (issue created, updated, deleted; comment created).
+     * @description No session: the URL is the secret. What the body is depends on the
+     *     webhook's kind:
+     *     - `generic`: `{"text": "Markdown", "attachments": [...]}`;
+     *     - `jira`: Jira's webhook payloads (issue created, updated, deleted; comment created);
+     *     - `gitlab`: GitLab's webhook payloads (push, merge request, pipeline, issue, comment);
+     *     - `alertmanager`: Alertmanager's webhook payloads;
+     *     - `github`: GitHub's webhook payloads, the event named in `X-GitHub-Event`;
+     *     - `email`: one raw e-mail (RFC 5322), up to 10 MiB.
+     *
+     *     Other bodies are at most 1 MiB. Events of the known kinds that say nothing
+     *     worth posting are answered `200` and ignored.
      *     The message is held to the rules of one the bot sends with its token:
      *     the channel's broadcast rights, slow mode, the bot's timeout and AutoMod.
+     *     The body is read by the webhook's kind, not by `Content-Type`, which is
+     *     not checked.
      */
     post: operations['postWebhook'];
     delete?: never;
@@ -1806,7 +1940,7 @@ export interface paths {
     put?: never;
     /**
      * Run a slash command in a channel
-     * @description Built-in commands: `/remind`, `/join`, `/leave`, `/topic`, `/shrug`, `/me`. Other
+     * @description Built-in commands: `/remind`, `/join`, `/leave`, `/topic`, `/shrug`, `/me`, `/feed`. Other
      *     commands go to the bot that registered them, which answers either only to the
      *     caller (`ephemeral`) or with a message in the channel (`in_channel`).
      */
@@ -2083,7 +2217,15 @@ export interface paths {
      *     - `{"op":"ephemeral","type":"typing","data":{...}}` for short-lived notices
      *       (`typing`, `presence.changed`): no id, never resumed or replayed;
      *     - `{"op":"resync"}` when the events since `last_event_id` are no longer
-     *       available: reload the data and continue from the id in `hello`.
+     *       available: reload the data and continue from the id in `hello`;
+     *     - `{"op":"ping"}` every `heartbeat_ms` (25 seconds), once the client answered a
+     *       WebSocket ping: browsers do not see WebSocket pings, so this frame lets a client
+     *       notice a connection that went away without closing (silence for about two
+     *       heartbeats). Clients do not answer it; the WebSocket ping is answered by
+     *       the client's WebSocket implementation, and a connection that does not
+     *       answer it within a heartbeat is closed.
+     *
+     *     Clients send no messages on the WebSocket.
      *
      *     Close codes: 4001 invalid ticket, 4003 session ended, 4008 the client
      *     did not keep up (reconnect and resume).
@@ -4696,6 +4838,53 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    CallSettingsInput: {
+      enabled: boolean;
+      guest_start: boolean;
+      /** @default 8 */
+      max_participants: number;
+      /** @default 2500000 */
+      max_bitrate: number;
+    };
+    CallSettings: {
+      enabled: boolean;
+      guest_start: boolean;
+      max_participants: number;
+      max_bitrate: number;
+      available: boolean;
+    };
+    Call: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      channel_id: string;
+      /** @enum {string} */
+      state: 'ringing' | 'active' | 'ended';
+      /** Format: int64 */
+      revision: number;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      ring_until?: string | null;
+      /** Format: date-time */
+      started_at?: string | null;
+      /** Format: date-time */
+      ended_at?: string | null;
+      end_reason?: string;
+      participants: components['schemas']['CallParticipant'][];
+    };
+    CallParticipant: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      user_id?: string | null;
+      /** @enum {string} */
+      state: 'reserved' | 'connected' | 'reconnecting' | 'left';
+      /** Format: date-time */
+      joined_at?: string | null;
+      /** Format: date-time */
+      left_at?: string | null;
+    };
     FederationConnection: {
       /** Format: uuid */
       id: string;
@@ -6564,6 +6753,7 @@ export interface components {
     };
     /** @description A card under a message, e.g. from a bot (an issue, an alert). */
     Attachment: {
+      call_summary?: components['schemas']['CallSummary'];
       title?: string;
       /** @description An http(s) URL the title links to. */
       title_link?: string;
@@ -6583,6 +6773,17 @@ export interface components {
       footer?: string;
       /** @description Buttons and menus (bots with an interactions address). */
       actions?: components['schemas']['AttachmentAction'][];
+    };
+    /** @description Server-authored, local-only call outcome. Never contains media, device or session data. */
+    CallSummary: {
+      /** Format: uuid */
+      call_id: string;
+      /** @enum {string} */
+      outcome: 'ended' | 'missed' | 'declined' | 'busy' | 'failed';
+      /** Format: int64 */
+      duration_seconds: number;
+      /** Format: int64 */
+      participants: number;
     };
     MessagePage: {
       messages: components['schemas']['Message'][];
@@ -6624,6 +6825,303 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  getWorkspaceCallSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Call policy, including whether this installation supports calls. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CallSettings'];
+        };
+      };
+      /** @description Not a workspace member. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  setWorkspaceCallSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CallSettingsInput'];
+      };
+    };
+    responses: {
+      /** @description Updated call policy. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CallSettings'];
+        };
+      };
+      /** @description Workspace administrator required. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  startCall: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channelId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          nonce: string;
+        };
+      };
+    };
+    responses: {
+      /** @description A call was created, or the same nonce was retried. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Call'];
+        };
+      };
+      /** @description Calls are disabled or this member cannot start one. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description A call or user is already busy. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The media node is unavailable. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getChannelCall: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channelId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The current call. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Call'];
+        };
+      };
+      /** @description No accessible current call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getCall: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Call state without signaling data or credentials. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Call'];
+        };
+      };
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  createCallToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Single-use credential valid for 60 seconds. Never cache this response. */
+      200: {
+        headers: {
+          'Cache-Control'?: 'no-store';
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            token: string;
+            /** @enum {integer} */
+            expires_in: 60;
+            /** @enum {string} */
+            signaling_path: '/media/ws';
+            /** Format: uuid */
+            participant_id: string;
+            ice_servers?: {
+              urls: string[];
+              username: string;
+              credential: string;
+            }[];
+          };
+        };
+      };
+      /** @description Calls disabled */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Call ended */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Admission rate limit exceeded. */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Admission cannot be checked safely. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  answerCall: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          answer: 'accept' | 'decline';
+        };
+      };
+    };
+    responses: {
+      /** @description Updated call. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Call'];
+        };
+      };
+      /** @description Call expired */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  leaveCall: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Participant left. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   listWorkspaces: {
     parameters: {
       query?: never;
@@ -7998,6 +8496,15 @@ export interface operations {
       };
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
+      /** @description The search took too long (code `search_timeout`, after 10 seconds) or the database is unavailable. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+        };
+      };
     };
   };
   searchFiles: {
@@ -8028,6 +8535,15 @@ export interface operations {
       };
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
+      /** @description The search took too long (code `search_timeout`, after 10 seconds) or the database is unavailable. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+        };
+      };
     };
   };
   searchContent: {
@@ -8075,6 +8591,15 @@ export interface operations {
       };
       400: components['responses']['Problem'];
       401: components['responses']['Problem'];
+      /** @description The search took too long (code `search_timeout`, after 10 seconds) or the database is unavailable. */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+        };
+      };
     };
   };
   getNotificationSettings: {
@@ -9916,6 +10441,7 @@ export interface operations {
         'application/json': {
           [key: string]: unknown;
         };
+        'message/rfc822': string;
       };
     };
     responses: {

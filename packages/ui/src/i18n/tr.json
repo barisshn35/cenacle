@@ -13,12 +13,12 @@
   },
   "confirm": {
     "cancel": "Vazgeç",
-    "typeToConfirm": "Onaylamak için <strong>{{name}}</strong> yaz",
-    "typeToConfirmLabel": "Onaylamak için {{name}} yaz",
+    "typeToConfirm": "Onaylamak için <strong>{{name}}</strong> yazın",
+    "typeToConfirmLabel": "Onaylamak için {{name}} yazın",
     "mismatch": "Ad henüz eşleşmiyor.",
     "irreversible": "Bu işlem geri alınamaz.",
     "working": "İşleniyor…",
-    "failed": "İşlem tamamlanamadı. Hiçbir şey değişmedi. Tekrar dene."
+    "failed": "İşlem tamamlanamadı. Hiçbir şey değişmedi. Tekrar deneyin."
   },
   "undo": {
     "action": "Geri al"
@@ -30,37 +30,42 @@
     "server_error": {
       "title": "Bir şey ters gitti, bizde.",
       "reason": "Sunucu isteği tamamlayamadı.",
-      "action": "Tekrar dene. Sürerse aşağıdaki istek kimliğini yöneticine ilet."
+      "action": "Tekrar deneyin. Sürerse aşağıdaki istek kimliğini yöneticinize iletin."
     },
     "network_error": {
       "title": "Cenacle'a ulaşılamıyor.",
-      "reason": "Cihazın çevrimdışı olabilir ya da sunucuya erişilemiyor.",
-      "action": "Bağlantını kontrol edip tekrar dene."
+      "reason": "Cihazınız çevrimdışı olabilir ya da sunucuya erişilemiyor.",
+      "action": "Bağlantınızı kontrol edip tekrar deneyin."
     },
     "forbidden": {
-      "title": "Bunu yapma yetkin yok.",
-      "reason": "Bu çalışma alanındaki rolün bu işleme izin vermiyor.",
-      "action": "Erişim için çalışma alanı yöneticilerine başvur."
+      "title": "Bunu yapma yetkiniz yok.",
+      "reason": "Bu çalışma alanındaki rolünüz bu işleme izin vermiyor.",
+      "action": "Erişim için çalışma alanı yöneticilerine başvurun."
     },
     "not_found": {
       "title": "Bu sayfa yok.",
       "reason": "Taşınmış ya da silinmiş olabilir.",
-      "action": "Adresi kontrol et ya da geri dön."
+      "action": "Adresi kontrol edin ya da geri dönün."
     },
     "rate_limited": {
-      "title": "Biraz hızlı gidiyorsun.",
+      "title": "Biraz hızlı gidiyorsunuz.",
       "reason": "Kısa sürede çok fazla istek gönderildi.",
-      "action": "{{seconds}} saniye sonra tekrar dene."
+      "action": "{{seconds}} saniye sonra tekrar deneyin."
     },
     "session_expired": {
-      "title": "Oturumun sona erdi.",
-      "reason": "Güvenliğin için oturumun kapatıldı.",
-      "action": "Tekrar giriş yap. Taslakların ve konumun korunur."
+      "title": "Oturumunuz sona erdi.",
+      "reason": "Güvenliğiniz için oturumunuz kapatıldı.",
+      "action": "Tekrar giriş yapın. Taslaklarınız ve konumunuz korunur."
     },
     "service_unavailable": {
       "title": "Cenacle şu anda kullanılamıyor.",
       "reason": "Hizmet başlıyor ya da bakımda.",
-      "action": "Biraz sonra tekrar dene."
+      "action": "Biraz sonra tekrar deneyin."
+    },
+    "search_timeout": {
+      "title": "Bu arama çok uzun sürdü.",
+      "reason": "Sunucu aramayı 10 saniye sonra durdurdu.",
+      "action": "Daha belirli sözcüklerle tekrar deneyin."
     }
   }
 }

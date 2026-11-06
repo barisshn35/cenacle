@@ -42,7 +42,7 @@ describe('ErrorState', () => {
     );
     await i18next.changeLanguage('tr');
     render(<ErrorState problem={{ status: 429 }} values={{ seconds: 30 }} />);
-    expect(screen.getByRole('alert')).toHaveTextContent('30 saniye sonra tekrar dene.');
+    expect(screen.getByRole('alert')).toHaveTextContent('30 saniye sonra tekrar deneyin.');
   });
 
   it('can be a polite status', () => {

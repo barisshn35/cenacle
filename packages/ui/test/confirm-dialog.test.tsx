@@ -25,6 +25,18 @@ function Harness(props: Partial<ConfirmDialogProps> & { onClosed?: () => void })
 }
 
 describe('ConfirmDialog', () => {
+  it('keeps red for what cannot be undone: a reversible action is asked calmly', async () => {
+    const { unmount } = render(<Harness />);
+    const archive = await screen.findByRole('button', { name: 'Archive channel' });
+    expect(screen.getByRole('alertdialog')).not.toHaveAttribute('data-destructive');
+    expect(archive.className).not.toContain('bg-destructive');
+    unmount();
+    render(<Harness irreversible confirmLabel="Delete channel" />);
+    const remove = await screen.findByRole('button', { name: 'Delete channel' });
+    expect(screen.getByRole('alertdialog')).toHaveAttribute('data-destructive', 'true');
+    expect(remove.className).toContain('bg-destructive');
+  });
+
   it('opens as an alert dialog with focus on Cancel', async () => {
     render(<Harness />);
     const dialog = await screen.findByRole('alertdialog');

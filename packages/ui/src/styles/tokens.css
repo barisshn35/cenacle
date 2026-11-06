@@ -15,7 +15,7 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  /* v0.29 (docs/design/v0.29): one family, Geist; Geist Mono for record values. */
+  /* v0.29 (ADR 0031): one family, Geist; Geist Mono for record values. */
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
   --font-heading: var(--font-sans);
@@ -162,7 +162,7 @@
   --brand-tile-dark: #121212;
 
   /* --- Light theme: the record on paper, a Forest sidebar ------------ */
-  /* Roles from docs/design/v0.29/DESIGN.md: sheet (work area), panel (side
+  /* Roles: sheet (work area), panel (side
      panels), well (code, chips, lit rows), rule and rule-strong (hairlines and
      frames). Brass only for selection, focus and the primary action; red only
      for the person's own mentions, errors and destructive actions. */

@@ -23,6 +23,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       visibleToasts={2}
       containerAriaLabel={t('ui:toast.region')}
       className="toaster group"
+      // On narrow screens toasts span the width; an app can lift them above
+      // its bottom controls (the chat composer) with --toast-mobile-bottom.
+      mobileOffset={{ bottom: 'var(--toast-mobile-bottom, 16px)' }}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
