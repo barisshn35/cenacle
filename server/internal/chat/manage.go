@@ -616,6 +616,17 @@ type Purger struct{ Queries store.Querier }
 
 // PurgeDeleted implements jobs.Purger.
 func (p Purger) PurgeDeleted(ctx context.Context) (int64, error) {
+	// This runs even when calls are switched off: hold release must still erase
+	// previously redacted call identities and apply metadata retention.
+	if _, err := p.Queries.PurgeReleasedCallRedactions(ctx, retentionBatch); err != nil {
+		return 0, err
+	}
+	if _, err := p.Queries.PurgeErasedCallInitiators(ctx, retentionBatch); err != nil {
+		return 0, err
+	}
+	if _, err := p.Queries.PurgeExpiredCalls(ctx, retentionBatch); err != nil {
+		return 0, err
+	}
 	// Expired dialogs go too.
 	if _, err := p.Queries.PurgeDialogs(ctx); err != nil {
 		return 0, err

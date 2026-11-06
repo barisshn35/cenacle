@@ -110,6 +110,25 @@ func (q *Queries) DeleteSession(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const deleteSessionsBefore = `-- name: DeleteSessionsBefore :execrows
+DELETE FROM sessions WHERE user_id = $1 AND created_at < $2
+`
+
+type DeleteSessionsBeforeParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Before time.Time   `json:"before"`
+}
+
+// DeleteSessionsBefore ends a user's sessions made before a time (Cenacle ID
+// ended theirs then: a two-step reset, for one).
+func (q *Queries) DeleteSessionsBefore(ctx context.Context, arg DeleteSessionsBeforeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteSessionsBefore, arg.UserID, arg.Before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteSessionsByIdpSid = `-- name: DeleteSessionsByIdpSid :many
 DELETE FROM sessions s
 USING users u

@@ -415,6 +415,41 @@ func (q *Queries) ListStickersByID(ctx context.Context, ids []pgtype.UUID) ([]St
 	return items, nil
 }
 
+const pruneLinkPreviews = `-- name: PruneLinkPreviews :many
+DELETE FROM link_previews WHERE url IN (
+    SELECT l.url FROM link_previews l WHERE l.fetched_at < $1::timestamptz LIMIT $2
+)
+RETURNING image_id
+`
+
+type PruneLinkPreviewsParams struct {
+	Before   time.Time `json:"before"`
+	RowLimit int32     `json:"row_limit"`
+}
+
+// PruneLinkPreviews deletes up to row_limit link previews fetched before the
+// cut-off (CENACLE_LINK_PREVIEW_RETENTION) and returns their pictures; messages
+// that showed one show the bare link. A message posted later fetches it again.
+func (q *Queries) PruneLinkPreviews(ctx context.Context, arg PruneLinkPreviewsParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, pruneLinkPreviews, arg.Before, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var image_id pgtype.UUID
+		if err := rows.Scan(&image_id); err != nil {
+			return nil, err
+		}
+		items = append(items, image_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const purgeBurned = `-- name: PurgeBurned :one
 WITH due AS (
     SELECT m.id, message_held(m.channel_id, m.author_id, m.created_at) OR thread_held(m.id) AS held

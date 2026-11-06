@@ -208,6 +208,16 @@ func (PurgeExpiredArgs) Kind() string { return "purge_expired_messages" }
 // RetentionInterval is how often expired messages are deleted (in batches).
 var RetentionInterval = time.Minute
 
+// PruneRecordsArgs deletes audit events, AI request records and link previews
+// past their retention.
+type PruneRecordsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (PruneRecordsArgs) Kind() string { return "prune_records" }
+
+// RecordsInterval is how often records past their retention are deleted.
+var RecordsInterval = time.Hour
+
 // SendFederationArgs sends shared channels' events to other servers.
 type SendFederationArgs struct{}
 
@@ -271,6 +281,7 @@ const (
 	ArchiveTimeout   = time.Hour        // whole days of a workspace
 	AuditTimeout     = 10 * time.Minute // a backlog for a SIEM that was away
 	DirectoryTimeout = 15 * time.Minute // a full directory sync
+	RecordsTimeout   = 10 * time.Minute // batches of old records
 )
 
 func (w *runnerWorker[T]) Work(ctx context.Context, _ *river.Job[T]) error {
@@ -387,6 +398,8 @@ type Deps struct {
 	Workflows Runner
 	// Retention is optional.
 	Retention Runner
+	// Records is optional (records are kept unless a retention is set).
+	Records Runner
 	// Federation is optional.
 	Federation Runner
 	// AuditStream is optional.
@@ -476,6 +489,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Retention != nil {
 		river.AddWorker(workers, &runnerWorker[PurgeExpiredArgs]{r: d.Retention, what: "expired messages deleted", log: d.Log})
 		jobs = append(jobs, periodic(RetentionInterval, PurgeExpiredArgs{}))
+	}
+	if d.Records != nil {
+		river.AddWorker(workers, &runnerWorker[PruneRecordsArgs]{r: d.Records, what: "records past their retention deleted", log: d.Log, timeout: RecordsTimeout})
+		jobs = append(jobs, periodic(RecordsInterval, PruneRecordsArgs{}))
 	}
 	if d.Links != nil {
 		river.AddWorker(workers, &runnerWorker[FetchLinkPreviewsArgs]{r: d.Links, what: "link previews settled", log: d.Log})

@@ -44,3 +44,15 @@ SELECT * FROM ai_consents WHERE user_id = @user_id;
 INSERT INTO ai_consents (user_id, accepted, model) VALUES (@user_id, @accepted, @model)
 ON CONFLICT (user_id) DO UPDATE SET accepted = excluded.accepted, model = excluded.model, decided_at = now()
 RETURNING *;
+
+-- name: PruneAIRequests :execrows
+-- PruneAIRequests deletes up to row_limit records of AI requests from before the
+-- cut-off (CENACLE_AI_REQUEST_RETENTION), along the primary key like audit events.
+DELETE FROM ai_requests WHERE id IN (
+    SELECT r.id FROM ai_requests r
+    WHERE r.id < (lpad(to_hex(floor(extract(epoch FROM @before::timestamptz) * 1000)::bigint), 12, '0')
+                  || '70008000000000000000')::uuid
+      AND r.created_at < @before::timestamptz
+    ORDER BY r.id
+    LIMIT @row_limit
+);

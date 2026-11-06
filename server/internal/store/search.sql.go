@@ -113,32 +113,52 @@ func (q *Queries) SearchCanvases(ctx context.Context, arg SearchCanvasesParams) 
 }
 
 const searchFiles = `-- name: SearchFiles :many
+WITH hit AS (
+    (SELECT f.id
+     FROM files f
+     JOIN channel_members cm ON cm.channel_id = f.channel_id AND cm.user_id = $3
+     JOIN channels c ON c.id = f.channel_id
+     -- Files of a deleted message go with it (also while a legal hold keeps them).
+     JOIN messages m ON m.id = f.message_id AND m.deleted_at IS NULL
+     WHERE f.message_id IS NOT NULL AND f.status = 'ready'
+       AND cenacle_search_vector(f.name) @@ cenacle_search_query($1)
+       AND ($4::uuid IS NULL OR c.workspace_id = $4::uuid)
+       AND ($5::uuid IS NULL OR f.id < $5::uuid)
+     ORDER BY f.id DESC
+     LIMIT $2)
+    UNION
+    (SELECT f.id
+     FROM files f
+     JOIN channel_members cm ON cm.channel_id = f.channel_id AND cm.user_id = $3
+     JOIN channels c ON c.id = f.channel_id
+     JOIN messages m ON m.id = f.message_id AND m.deleted_at IS NULL
+     WHERE f.message_id IS NOT NULL AND f.status = 'ready'
+       AND f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1)
+       AND ($4::uuid IS NULL OR c.workspace_id = $4::uuid)
+       AND ($5::uuid IS NULL OR f.id < $5::uuid)
+     ORDER BY f.id DESC
+     LIMIT $2)
+)
 SELECT f.id, f.channel_id, f.message_id, f.name, f.content_type, f.size, f.width, f.height,
        f.has_thumbnail, f.created_at, u.id AS uploader_id, u.display_name AS uploader_name,
        c.name AS channel_name, c.kind AS channel_kind, c.workspace_id,
        (f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1))::boolean AS in_content,
        CASE WHEN f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1)
             THEN left(f.content_text, 20000) ELSE '' END::text AS content_head
-FROM files f
-JOIN channel_members cm ON cm.channel_id = f.channel_id AND cm.user_id = $2
+FROM hit
+JOIN files f ON f.id = hit.id
 JOIN channels c ON c.id = f.channel_id
 JOIN users u ON u.id = f.uploader_id
-JOIN messages m ON m.id = f.message_id AND m.deleted_at IS NULL
-WHERE f.message_id IS NOT NULL AND f.status = 'ready'
-  AND (cenacle_search_vector(f.name) @@ cenacle_search_query($1)
-       OR (f.content_text IS NOT NULL AND cenacle_search_vector(f.content_text) @@ cenacle_search_query($1)))
-  AND ($3::uuid IS NULL OR c.workspace_id = $3::uuid)
-  AND ($4::uuid IS NULL OR f.id < $4::uuid)
 ORDER BY f.id DESC
-LIMIT $5
+LIMIT $2
 `
 
 type SearchFilesParams struct {
 	Query       string      `json:"query"`
+	RowLimit    int32       `json:"row_limit"`
 	UserID      pgtype.UUID `json:"user_id"`
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
 	Before      pgtype.UUID `json:"before"`
-	RowLimit    int32       `json:"row_limit"`
 }
 
 type SearchFilesRow struct {
@@ -162,15 +182,18 @@ type SearchFilesRow struct {
 }
 
 // SearchFiles finds files by name or by their text in the user's channels,
-// newest first, with the matching words of the text.
-// Files of a deleted message go with it (also while a legal hold keeps them).
+// newest first, with the matching words of the text. Name and text are looked up
+// apart, each through its own index and with every filter, and each keeps the
+// newest page: asked as one condition with OR, PostgreSQL read every file newest
+// first on a large server (seconds for a rare word). UNION drops a file found both
+// ways.
 func (q *Queries) SearchFiles(ctx context.Context, arg SearchFilesParams) ([]SearchFilesRow, error) {
 	rows, err := q.db.Query(ctx, searchFiles,
 		arg.Query,
+		arg.RowLimit,
 		arg.UserID,
 		arg.WorkspaceID,
 		arg.Before,
-		arg.RowLimit,
 	)
 	if err != nil {
 		return nil, err
@@ -394,5 +417,16 @@ type SetFileTextParams struct {
 
 func (q *Queries) SetFileText(ctx context.Context, arg SetFileTextParams) error {
 	_, err := q.db.Exec(ctx, setFileText, arg.ContentText, arg.ContentState, arg.ID)
+	return err
+}
+
+const setSearchTimeout = `-- name: SetSearchTimeout :exec
+SELECT set_config('statement_timeout', $1::text, true)
+`
+
+// SetSearchTimeout limits the statements of the current transaction (in
+// milliseconds); it ends with the transaction.
+func (q *Queries) SetSearchTimeout(ctx context.Context, timeout string) error {
+	_, err := q.db.Exec(ctx, setSearchTimeout, timeout)
 	return err
 }

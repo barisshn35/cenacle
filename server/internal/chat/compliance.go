@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -825,4 +826,70 @@ type RetentionPurger struct {
 func (p RetentionPurger) Run(ctx context.Context) (int, error) {
 	n, err := p.Queries.PurgeExpiredMessages(ctx, retentionBatch)
 	return int(n), err
+}
+
+// RecordPruner deletes audit events, records of AI requests and link previews
+// older than their retention (CENACLE_AUDIT_RETENTION,
+// CENACLE_AI_REQUEST_RETENTION, CENACLE_LINK_PREVIEW_RETENTION); zero keeps them.
+type RecordPruner struct {
+	Queries                         *store.Queries
+	Audit, AIRequests, LinkPreviews time.Duration
+	// Now is the clock (time.Now when nil).
+	Now func() time.Time
+}
+
+// recordBatches bounds one run: a backlog left over goes on the next run.
+const recordBatches = 20
+
+// Run deletes what is past its retention, batch by batch.
+func (p RecordPruner) Run(ctx context.Context) (int, error) {
+	now := time.Now
+	if p.Now != nil {
+		now = p.Now
+	}
+	total := 0
+	drain := func(keep time.Duration, prune func(time.Time) (int, error)) error {
+		if keep <= 0 {
+			return nil
+		}
+		before := now().Add(-keep)
+		for range recordBatches {
+			n, err := prune(before)
+			total += n
+			if err != nil || n < retentionBatch {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := drain(p.Audit, func(before time.Time) (int, error) {
+		n, err := p.Queries.PruneAuditEvents(ctx, store.PruneAuditEventsParams{Before: before, RowLimit: retentionBatch})
+		return int(n), err
+	}); err != nil {
+		return total, fmt.Errorf("audit events: %w", err)
+	}
+	if err := drain(p.AIRequests, func(before time.Time) (int, error) {
+		n, err := p.Queries.PruneAIRequests(ctx, store.PruneAIRequestsParams{Before: before, RowLimit: retentionBatch})
+		return int(n), err
+	}); err != nil {
+		return total, fmt.Errorf("AI requests: %w", err)
+	}
+	if err := drain(p.LinkPreviews, func(before time.Time) (int, error) {
+		images, err := p.Queries.PruneLinkPreviews(ctx, store.PruneLinkPreviewsParams{Before: before, RowLimit: retentionBatch})
+		if err != nil {
+			return 0, err
+		}
+		for _, id := range images {
+			if !id.Valid {
+				continue
+			}
+			if _, err := p.Queries.DeletePictureIfUnused(ctx, id); err != nil {
+				return len(images), err
+			}
+		}
+		return len(images), nil
+	}); err != nil {
+		return total, fmt.Errorf("link previews: %w", err)
+	}
+	return total, nil
 }

@@ -522,6 +522,78 @@ func (e BannerInputLevel) Valid() bool {
 	}
 }
 
+// Defines values for CallState.
+const (
+	CallStateActive  CallState = "active"
+	CallStateEnded   CallState = "ended"
+	CallStateRinging CallState = "ringing"
+)
+
+// Valid indicates whether the value is a known member of the CallState enum.
+func (e CallState) Valid() bool {
+	switch e {
+	case CallStateActive:
+		return true
+	case CallStateEnded:
+		return true
+	case CallStateRinging:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CallParticipantState.
+const (
+	Connected    CallParticipantState = "connected"
+	Left         CallParticipantState = "left"
+	Reconnecting CallParticipantState = "reconnecting"
+	Reserved     CallParticipantState = "reserved"
+)
+
+// Valid indicates whether the value is a known member of the CallParticipantState enum.
+func (e CallParticipantState) Valid() bool {
+	switch e {
+	case Connected:
+		return true
+	case Left:
+		return true
+	case Reconnecting:
+		return true
+	case Reserved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CallSummaryOutcome.
+const (
+	CallSummaryOutcomeBusy     CallSummaryOutcome = "busy"
+	CallSummaryOutcomeDeclined CallSummaryOutcome = "declined"
+	CallSummaryOutcomeEnded    CallSummaryOutcome = "ended"
+	CallSummaryOutcomeFailed   CallSummaryOutcome = "failed"
+	CallSummaryOutcomeMissed   CallSummaryOutcome = "missed"
+)
+
+// Valid indicates whether the value is a known member of the CallSummaryOutcome enum.
+func (e CallSummaryOutcome) Valid() bool {
+	switch e {
+	case CallSummaryOutcomeBusy:
+		return true
+	case CallSummaryOutcomeDeclined:
+		return true
+	case CallSummaryOutcomeEnded:
+		return true
+	case CallSummaryOutcomeFailed:
+		return true
+	case CallSummaryOutcomeMissed:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ChannelKind.
 const (
 	ChannelKindAnnouncement ChannelKind = "announcement"
@@ -1178,19 +1250,19 @@ func (e NotificationPrefsDefaultLevel) Valid() bool {
 
 // Defines values for NotificationPrefsEmailDelayMinutes.
 const (
-	N15 NotificationPrefsEmailDelayMinutes = 15
-	N5  NotificationPrefsEmailDelayMinutes = 5
-	N60 NotificationPrefsEmailDelayMinutes = 60
+	NotificationPrefsEmailDelayMinutesN15 NotificationPrefsEmailDelayMinutes = 15
+	NotificationPrefsEmailDelayMinutesN5  NotificationPrefsEmailDelayMinutes = 5
+	NotificationPrefsEmailDelayMinutesN60 NotificationPrefsEmailDelayMinutes = 60
 )
 
 // Valid indicates whether the value is a known member of the NotificationPrefsEmailDelayMinutes enum.
 func (e NotificationPrefsEmailDelayMinutes) Valid() bool {
 	switch e {
-	case N15:
+	case NotificationPrefsEmailDelayMinutesN15:
 		return true
-	case N5:
+	case NotificationPrefsEmailDelayMinutesN5:
 		return true
-	case N60:
+	case NotificationPrefsEmailDelayMinutesN60:
 		return true
 	default:
 		return false
@@ -1770,6 +1842,54 @@ func (e CreateWebhookJSONBodyKind) Valid() bool {
 	}
 }
 
+// Defines values for AnswerCallJSONBodyAnswer.
+const (
+	Accept  AnswerCallJSONBodyAnswer = "accept"
+	Decline AnswerCallJSONBodyAnswer = "decline"
+)
+
+// Valid indicates whether the value is a known member of the AnswerCallJSONBodyAnswer enum.
+func (e AnswerCallJSONBodyAnswer) Valid() bool {
+	switch e {
+	case Accept:
+		return true
+	case Decline:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateCallToken200JSONResponseBodyExpiresIn.
+const (
+	CreateCallToken200JSONResponseBodyExpiresInN60 CreateCallToken200JSONResponseBodyExpiresIn = 60
+)
+
+// Valid indicates whether the value is a known member of the CreateCallToken200JSONResponseBodyExpiresIn enum.
+func (e CreateCallToken200JSONResponseBodyExpiresIn) Valid() bool {
+	switch e {
+	case CreateCallToken200JSONResponseBodyExpiresInN60:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateCallToken200JSONResponseBodySignalingPath.
+const (
+	Mediaws CreateCallToken200JSONResponseBodySignalingPath = "/media/ws"
+)
+
+// Valid indicates whether the value is a known member of the CreateCallToken200JSONResponseBodySignalingPath enum.
+func (e CreateCallToken200JSONResponseBodySignalingPath) Valid() bool {
+	switch e {
+	case Mediaws:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CreateUploadJSONBodyMediaKind.
 const (
 	CreateUploadJSONBodyMediaKindClip  CreateUploadJSONBodyMediaKind = "clip"
@@ -2317,6 +2437,9 @@ type Attachment struct {
 	// Actions Buttons and menus (bots with an interactions address).
 	Actions *[]AttachmentAction `json:"actions,omitempty"`
 
+	// CallSummary Server-authored, local-only call outcome. Never contains media, device or session data.
+	CallSummary *CallSummary `json:"call_summary,omitempty"`
+
 	// Color The stripe on the card's edge (meaning is never the color alone).
 	Color  *AttachmentColor `json:"color,omitempty"`
 	Fields *[]struct {
@@ -2531,6 +2654,63 @@ type BurnInfo struct {
 	RevealedAt *time.Time `json:"revealed_at"`
 	Seconds    int        `json:"seconds"`
 }
+
+// Call defines model for Call.
+type Call struct {
+	ChannelId    openapi_types.UUID `json:"channel_id"`
+	CreatedAt    time.Time          `json:"created_at"`
+	EndReason    *string            `json:"end_reason,omitempty"`
+	EndedAt      *time.Time         `json:"ended_at,omitempty"`
+	Id           openapi_types.UUID `json:"id"`
+	Participants []CallParticipant  `json:"participants"`
+	Revision     int64              `json:"revision"`
+	RingUntil    *time.Time         `json:"ring_until,omitempty"`
+	StartedAt    *time.Time         `json:"started_at,omitempty"`
+	State        CallState          `json:"state"`
+}
+
+// CallState defines model for Call.State.
+type CallState string
+
+// CallParticipant defines model for CallParticipant.
+type CallParticipant struct {
+	Id       openapi_types.UUID   `json:"id"`
+	JoinedAt *time.Time           `json:"joined_at,omitempty"`
+	LeftAt   *time.Time           `json:"left_at,omitempty"`
+	State    CallParticipantState `json:"state"`
+	UserId   *openapi_types.UUID  `json:"user_id,omitempty"`
+}
+
+// CallParticipantState defines model for CallParticipant.State.
+type CallParticipantState string
+
+// CallSettings defines model for CallSettings.
+type CallSettings struct {
+	Available       bool `json:"available"`
+	Enabled         bool `json:"enabled"`
+	GuestStart      bool `json:"guest_start"`
+	MaxBitrate      int  `json:"max_bitrate"`
+	MaxParticipants int  `json:"max_participants"`
+}
+
+// CallSettingsInput defines model for CallSettingsInput.
+type CallSettingsInput struct {
+	Enabled         bool `json:"enabled"`
+	GuestStart      bool `json:"guest_start"`
+	MaxBitrate      int  `json:"max_bitrate"`
+	MaxParticipants int  `json:"max_participants"`
+}
+
+// CallSummary Server-authored, local-only call outcome. Never contains media, device or session data.
+type CallSummary struct {
+	CallId          openapi_types.UUID `json:"call_id"`
+	DurationSeconds int64              `json:"duration_seconds"`
+	Outcome         CallSummaryOutcome `json:"outcome"`
+	Participants    int64              `json:"participants"`
+}
+
+// CallSummaryOutcome defines model for CallSummary.Outcome.
+type CallSummaryOutcome string
 
 // Canvas defines model for Canvas.
 type Canvas struct {
@@ -4508,6 +4688,20 @@ type CreateWebhookJSONBody struct {
 // CreateWebhookJSONBodyKind defines parameters for CreateWebhook.
 type CreateWebhookJSONBodyKind string
 
+// AnswerCallJSONBody defines parameters for AnswerCall.
+type AnswerCallJSONBody struct {
+	Answer AnswerCallJSONBodyAnswer `json:"answer"`
+}
+
+// AnswerCallJSONBodyAnswer defines parameters for AnswerCall.
+type AnswerCallJSONBodyAnswer string
+
+// CreateCallToken200JSONResponseBodyExpiresIn defines parameters for CreateCallToken.
+type CreateCallToken200JSONResponseBodyExpiresIn int
+
+// CreateCallToken200JSONResponseBodySignalingPath defines parameters for CreateCallToken.
+type CreateCallToken200JSONResponseBodySignalingPath string
+
 // SaveCanvasJSONBody defines parameters for SaveCanvas.
 type SaveCanvasJSONBody struct {
 	Body    string `json:"body"`
@@ -4534,6 +4728,11 @@ type UpdateCategoryJSONBody struct {
 // ListChannelDirectoryParams defines parameters for ListChannelDirectory.
 type ListChannelDirectoryParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
+}
+
+// StartCallJSONBody defines parameters for StartCall.
+type StartCallJSONBody struct {
+	Nonce openapi_types.UUID `json:"nonce"`
 }
 
 // SummarizeChannelJSONBody defines parameters for SummarizeChannel.
@@ -5281,6 +5480,9 @@ type RotateBotTokenJSONRequestBody RotateBotTokenJSONBody
 // CreateWebhookJSONRequestBody defines body for CreateWebhook for application/json ContentType.
 type CreateWebhookJSONRequestBody CreateWebhookJSONBody
 
+// AnswerCallJSONRequestBody defines body for AnswerCall for application/json ContentType.
+type AnswerCallJSONRequestBody AnswerCallJSONBody
+
 // SaveCanvasJSONRequestBody defines body for SaveCanvas for application/json ContentType.
 type SaveCanvasJSONRequestBody SaveCanvasJSONBody
 
@@ -5292,6 +5494,9 @@ type UpdateCategoryJSONRequestBody UpdateCategoryJSONBody
 
 // CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
 type CreateChannelJSONRequestBody = NewChannel
+
+// StartCallJSONRequestBody defines body for StartCall for application/json ContentType.
+type StartCallJSONRequestBody StartCallJSONBody
 
 // UpdateChannelJSONRequestBody defines body for UpdateChannel for application/json ContentType.
 type UpdateChannelJSONRequestBody = ChannelUpdate
@@ -5508,6 +5713,9 @@ type StartWorkflowJSONRequestBody StartWorkflowJSONBody
 
 // CreateWorkspaceJSONRequestBody defines body for CreateWorkspace for application/json ContentType.
 type CreateWorkspaceJSONRequestBody CreateWorkspaceJSONBody
+
+// SetWorkspaceCallSettingsJSONRequestBody defines body for SetWorkspaceCallSettings for application/json ContentType.
+type SetWorkspaceCallSettingsJSONRequestBody = CallSettingsInput
 
 // RenameWorkspaceJSONRequestBody defines body for RenameWorkspace for application/json ContentType.
 type RenameWorkspaceJSONRequestBody RenameWorkspaceJSONBody
@@ -5816,6 +6024,18 @@ type ServerInterface interface {
 	// DeleteWebhook Delete a webhook (its URL stops working)
 	// (DELETE /api/bots/{bot_id}/webhooks/{webhook_id})
 	DeleteWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, webhookId openapi_types.UUID)
+	// GetCall Read authorized call state after a reconnect or resync
+	// (GET /api/calls/{id})
+	GetCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// AnswerCall Accept or decline a direct call while it is ringing
+	// (POST /api/calls/{id}/answer)
+	AnswerCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// LeaveCall Leave the caller's participant session, idempotently
+	// (POST /api/calls/{id}/leave)
+	LeaveCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// CreateCallToken Reserve a participant slot and issue one media admission token
+	// (POST /api/calls/{id}/token)
+	CreateCallToken(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// GetCanvas A canvas (members of its channel)
 	// (GET /api/canvases/{canvas_id})
 	GetCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID)
@@ -5849,6 +6069,12 @@ type ServerInterface interface {
 	// ListChannelDirectory Channels of a workspace the user can see, with membership
 	// (GET /api/channels/directory)
 	ListChannelDirectory(w http.ResponseWriter, r *http.Request, params ListChannelDirectoryParams)
+	// GetChannelCall Read the current call in a channel
+	// (GET /api/channels/{channelId}/call)
+	GetChannelCall(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// StartCall Start an audio or video call in a channel
+	// (POST /api/channels/{channelId}/calls)
+	StartCall(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// UpdateChannel Rename, change visibility or topic (channel managers)
 	// (PATCH /api/channels/{channel_id})
 	UpdateChannel(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -6173,7 +6399,7 @@ type ServerInterface interface {
 	// SetAvatar Set your profile picture
 	// (PUT /api/me/avatar)
 	SetAvatar(w http.ResponseWriter, r *http.Request)
-	// ExportMyData Download everything stored about you (NDJSON)
+	// ExportMyData Download your data (NDJSON; contents listed in docs/privacy.md)
 	// (GET /api/me/export)
 	ExportMyData(w http.ResponseWriter, r *http.Request)
 	// ListMyFonts Fonts you uploaded
@@ -6392,6 +6618,12 @@ type ServerInterface interface {
 	// CreateWorkspace Create a workspace (the instance administrator)
 	// (POST /api/workspaces)
 	CreateWorkspace(w http.ResponseWriter, r *http.Request)
+	// GetWorkspaceCallSettings Read the workspace call policy
+	// (GET /api/workspaces/{workspaceId}/calls/settings)
+	GetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// SetWorkspaceCallSettings Change the workspace call policy as an administrator
+	// (PUT /api/workspaces/{workspaceId}/calls/settings)
+	SetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// RenameWorkspace Change a workspace's name, description or settings (owners and admins)
 	// (PATCH /api/workspaces/{workspace_id})
 	RenameWorkspace(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -6908,6 +7140,30 @@ func (_ Unimplemented) DeleteWebhook(w http.ResponseWriter, r *http.Request, bot
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetCall Read authorized call state after a reconnect or resync
+// (GET /api/calls/{id})
+func (_ Unimplemented) GetCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AnswerCall Accept or decline a direct call while it is ringing
+// (POST /api/calls/{id}/answer)
+func (_ Unimplemented) AnswerCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// LeaveCall Leave the caller's participant session, idempotently
+// (POST /api/calls/{id}/leave)
+func (_ Unimplemented) LeaveCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateCallToken Reserve a participant slot and issue one media admission token
+// (POST /api/calls/{id}/token)
+func (_ Unimplemented) CreateCallToken(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetCanvas A canvas (members of its channel)
 // (GET /api/canvases/{canvas_id})
 func (_ Unimplemented) GetCanvas(w http.ResponseWriter, r *http.Request, canvasId openapi_types.UUID) {
@@ -6971,6 +7227,18 @@ func (_ Unimplemented) CreateChannel(w http.ResponseWriter, r *http.Request) {
 // ListChannelDirectory Channels of a workspace the user can see, with membership
 // (GET /api/channels/directory)
 func (_ Unimplemented) ListChannelDirectory(w http.ResponseWriter, r *http.Request, params ListChannelDirectoryParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetChannelCall Read the current call in a channel
+// (GET /api/channels/{channelId}/call)
+func (_ Unimplemented) GetChannelCall(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// StartCall Start an audio or video call in a channel
+// (POST /api/channels/{channelId}/calls)
+func (_ Unimplemented) StartCall(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7622,7 +7890,7 @@ func (_ Unimplemented) SetAvatar(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// ExportMyData Download everything stored about you (NDJSON)
+// ExportMyData Download your data (NDJSON; contents listed in docs/privacy.md)
 // (GET /api/me/export)
 func (_ Unimplemented) ExportMyData(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -8057,6 +8325,18 @@ func (_ Unimplemented) ListWorkspaces(w http.ResponseWriter, r *http.Request) {
 // CreateWorkspace Create a workspace (the instance administrator)
 // (POST /api/workspaces)
 func (_ Unimplemented) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetWorkspaceCallSettings Read the workspace call policy
+// (GET /api/workspaces/{workspaceId}/calls/settings)
+func (_ Unimplemented) GetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetWorkspaceCallSettings Change the workspace call policy as an administrator
+// (PUT /api/workspaces/{workspaceId}/calls/settings)
+func (_ Unimplemented) SetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9899,6 +10179,110 @@ func (siw *ServerInterfaceWrapper) DeleteWebhook(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetCall operation middleware
+func (siw *ServerInterfaceWrapper) GetCall(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCall(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AnswerCall operation middleware
+func (siw *ServerInterfaceWrapper) AnswerCall(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AnswerCall(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// LeaveCall operation middleware
+func (siw *ServerInterfaceWrapper) LeaveCall(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.LeaveCall(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCallToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateCallToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCallToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetCanvas operation middleware
 func (siw *ServerInterfaceWrapper) GetCanvas(w http.ResponseWriter, r *http.Request) {
 
@@ -10154,6 +10538,58 @@ func (siw *ServerInterfaceWrapper) ListChannelDirectory(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListChannelDirectory(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetChannelCall operation middleware
+func (siw *ServerInterfaceWrapper) GetChannelCall(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", chi.URLParam(r, "channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetChannelCall(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartCall operation middleware
+func (siw *ServerInterfaceWrapper) StartCall(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", chi.URLParam(r, "channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartCall(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15118,6 +15554,58 @@ func (siw *ServerInterfaceWrapper) CreateWorkspace(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// GetWorkspaceCallSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspaceId" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspaceId", chi.URLParam(r, "workspaceId"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspaceId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWorkspaceCallSettings(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetWorkspaceCallSettings operation middleware
+func (siw *ServerInterfaceWrapper) SetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspaceId" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspaceId", chi.URLParam(r, "workspaceId"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspaceId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetWorkspaceCallSettings(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RenameWorkspace operation middleware
 func (siw *ServerInterfaceWrapper) RenameWorkspace(w http.ResponseWriter, r *http.Request) {
 
@@ -17273,6 +17761,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspaceId}/calls/settings", wrapper.GetWorkspaceCallSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/workspaces/{workspaceId}/calls/settings", wrapper.SetWorkspaceCallSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/channels/{channelId}/calls", wrapper.StartCall)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/channels/{channelId}/call", wrapper.GetChannelCall)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/calls/{id}", wrapper.GetCall)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/calls/{id}/token", wrapper.CreateCallToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/calls/{id}/answer", wrapper.AnswerCall)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/calls/{id}/leave", wrapper.LeaveCall)
+	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces", wrapper.ListWorkspaces)
 	})

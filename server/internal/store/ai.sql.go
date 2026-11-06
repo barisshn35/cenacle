@@ -100,6 +100,32 @@ func (q *Queries) ListMessagesForAI(ctx context.Context, arg ListMessagesForAIPa
 	return items, nil
 }
 
+const pruneAIRequests = `-- name: PruneAIRequests :execrows
+DELETE FROM ai_requests WHERE id IN (
+    SELECT r.id FROM ai_requests r
+    WHERE r.id < (lpad(to_hex(floor(extract(epoch FROM $1::timestamptz) * 1000)::bigint), 12, '0')
+                  || '70008000000000000000')::uuid
+      AND r.created_at < $1::timestamptz
+    ORDER BY r.id
+    LIMIT $2
+)
+`
+
+type PruneAIRequestsParams struct {
+	Before   time.Time `json:"before"`
+	RowLimit int32     `json:"row_limit"`
+}
+
+// PruneAIRequests deletes up to row_limit records of AI requests from before the
+// cut-off (CENACLE_AI_REQUEST_RETENTION), along the primary key like audit events.
+func (q *Queries) PruneAIRequests(ctx context.Context, arg PruneAIRequestsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, pruneAIRequests, arg.Before, arg.RowLimit)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const recordAIRequest = `-- name: RecordAIRequest :exec
 INSERT INTO ai_requests (workspace_id, user_id, kind, input_chars, output_chars)
 VALUES ($1, $2, $3, $4, $5)
@@ -215,7 +241,7 @@ func (q *Queries) SetAIConsent(ctx context.Context, arg SetAIConsentParams) (AiC
 }
 
 const setWorkspaceAI = `-- name: SetWorkspaceAI :one
-UPDATE workspaces SET ai_enabled = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day
+UPDATE workspaces SET ai_enabled = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate
 `
 
 type SetWorkspaceAIParams struct {
@@ -248,6 +274,10 @@ func (q *Queries) SetWorkspaceAI(ctx context.Context, arg SetWorkspaceAIParams) 
 		&i.SpillageReviewers,
 		&i.ArchiveFormat,
 		&i.ArchiveLastDay,
+		&i.CallsEnabled,
+		&i.CallsGuestStart,
+		&i.CallsMaxParticipants,
+		&i.CallsMaxBitrate,
 	)
 	return i, err
 }

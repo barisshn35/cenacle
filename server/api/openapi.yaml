@@ -52,6 +52,185 @@ tags:
   - name: playbooks
     description: Checklists teams run again and again
 paths:
+  /api/workspaces/{workspaceId}/calls/settings:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [workspaces]
+      operationId: getWorkspaceCallSettings
+      summary: Read the workspace call policy
+      responses:
+        '200':
+          description: Call policy, including whether this installation supports calls.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CallSettings' }
+        '403': { description: Not a workspace member. }
+    put:
+      tags: [workspaces]
+      operationId: setWorkspaceCallSettings
+      summary: Change the workspace call policy as an administrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CallSettingsInput' }
+      responses:
+        '200':
+          description: Updated call policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CallSettings' }
+        '403': { description: Workspace administrator required. }
+  /api/channels/{channelId}/calls:
+    parameters:
+      - name: channelId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [chat]
+      operationId: startCall
+      summary: Start an audio or video call in a channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nonce]
+              additionalProperties: false
+              properties:
+                nonce: { type: string, format: uuid }
+      responses:
+        '201':
+          description: A call was created, or the same nonce was retried.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Call' }
+        '403': { description: Calls are disabled or this member cannot start one. }
+        '409': { description: A call or user is already busy. }
+        '503': { description: The media node is unavailable. }
+  /api/channels/{channelId}/call:
+    get:
+      tags: [chat]
+      operationId: getChannelCall
+      summary: Read the current call in a channel
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The current call.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Call' }
+        '404': { description: No accessible current call. }
+  /api/calls/{id}:
+    get:
+      tags: [chat]
+      operationId: getCall
+      summary: Read authorized call state after a reconnect or resync
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Call state without signaling data or credentials.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Call' }
+        '404': { description: No accessible call. }
+  /api/calls/{id}/token:
+    post:
+      tags: [chat]
+      operationId: createCallToken
+      summary: Reserve a participant slot and issue one media admission token
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Single-use credential valid for 60 seconds. Never cache this response.
+          headers:
+            Cache-Control:
+              schema: { type: string, enum: [no-store] }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, expires_in, signaling_path, participant_id]
+                properties:
+                  token: { type: string, maxLength: 4096 }
+                  expires_in: { type: integer, enum: [60] }
+                  signaling_path: { type: string, enum: [/media/ws] }
+                  participant_id: { type: string, format: uuid }
+                  ice_servers:
+                    type: array
+                    maxItems: 1
+                    items:
+                      type: object
+                      required: [urls, username, credential]
+                      properties:
+                        urls:
+                          type: array
+                          maxItems: 2
+                          items: { type: string }
+                        username: { type: string }
+                        credential: { type: string }
+        '403': { description: Calls disabled, encrypted channel, or access denied. }
+        '409': { description: Call ended, room full, or user busy. }
+        '429': { description: Admission rate limit exceeded. }
+        '503': { description: Admission cannot be checked safely. }
+  /api/calls/{id}/answer:
+    post:
+      tags: [chat]
+      operationId: answerCall
+      summary: Accept or decline a direct call while it is ringing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answer]
+              additionalProperties: false
+              properties:
+                answer: { type: string, enum: [accept, decline] }
+      responses:
+        '200':
+          description: Updated call.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Call' }
+        '409': { description: Call expired, already answered, or member busy. }
+  /api/calls/{id}/leave:
+    post:
+      tags: [chat]
+      operationId: leaveCall
+      summary: Leave the caller's participant session, idempotently
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Participant left. }
+        '404': { description: No accessible call. }
   /api/workspaces:
     get:
       tags: [workspaces]
@@ -416,7 +595,7 @@ paths:
     get:
       tags: [account]
       operationId: exportMyData
-      summary: Download everything stored about you (NDJSON)
+      summary: Download your data (NDJSON; contents listed in docs/privacy.md)
       responses:
         '200':
           description: Your data, one item per line.
@@ -1197,6 +1376,11 @@ paths:
           $ref: '#/components/responses/Problem'
         '401':
           $ref: '#/components/responses/Problem'
+        '503':
+          description: The search took too long (code `search_timeout`, after 10 seconds) or the database is unavailable.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
   /api/search/files:
     get:
       tags: [search]
@@ -1224,6 +1408,11 @@ paths:
           $ref: '#/components/responses/Problem'
         '401':
           $ref: '#/components/responses/Problem'
+        '503':
+          description: The search took too long (code `search_timeout`, after 10 seconds) or the database is unavailable.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
   /api/search/content:
     get:
       tags: [search]
@@ -1268,6 +1457,11 @@ paths:
           $ref: '#/components/responses/Problem'
         '401':
           $ref: '#/components/responses/Problem'
+        '503':
+          description: The search took too long (code `search_timeout`, after 10 seconds) or the database is unavailable.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
   /api/me/notifications:
     get:
       tags: [notifications]
@@ -2775,16 +2969,38 @@ paths:
       operationId: postWebhook
       summary: Post into a channel through an incoming webhook
       description: |
-        No session: the URL is the secret. A `generic` webhook takes
-        `{"text": "Markdown", "attachments": [...]}`; a `jira` webhook takes Jira's
-        webhook payloads (issue created, updated, deleted; comment created).
+        No session: the URL is the secret. What the body is depends on the
+        webhook's kind:
+        - `generic`: `{"text": "Markdown", "attachments": [...]}`;
+        - `jira`: Jira's webhook payloads (issue created, updated, deleted; comment created);
+        - `gitlab`: GitLab's webhook payloads (push, merge request, pipeline, issue, comment);
+        - `alertmanager`: Alertmanager's webhook payloads;
+        - `github`: GitHub's webhook payloads, the event named in `X-GitHub-Event`;
+        - `email`: one raw e-mail (RFC 5322), up to 10 MiB.
+
+        Other bodies are at most 1 MiB. Events of the known kinds that say nothing
+        worth posting are answered `200` and ignored.
         The message is held to the rules of one the bot sends with its token:
         the channel's broadcast rights, slow mode, the bot's timeout and AutoMod.
+        The body is read by the webhook's kind, not by `Content-Type`, which is
+        not checked.
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema: { type: object, additionalProperties: true }
+          message/rfc822:
+            schema:
+              type: string
+              format: binary
+              description: |
+                For `email` webhooks: the e-mail exactly as the mail server has it
+                (RFC 5322 header fields, a blank line, the body; MIME parts and
+                transfer encodings allowed), up to 10 MiB. The card shows the
+                sender, the subject, the plain-text part (or the HTML part as
+                text), shortened to 1,900 characters, and the attachments' names.
+                Not JSON: a mail server pipes it, e.g. `curl --data-binary @-`.
       responses:
         '200':
           description: Posted (or ignored, for events that say nothing worth posting).
@@ -2807,7 +3023,7 @@ paths:
       operationId: runCommand
       summary: Run a slash command in a channel
       description: |
-        Built-in commands: `/remind`, `/join`, `/leave`, `/topic`, `/shrug`, `/me`. Other
+        Built-in commands: `/remind`, `/join`, `/leave`, `/topic`, `/shrug`, `/me`, `/feed`. Other
         commands go to the bot that registered them, which answers either only to the
         caller (`ephemeral`) or with a message in the channel (`in_channel`).
       requestBody:
@@ -3281,7 +3497,15 @@ paths:
         - `{"op":"ephemeral","type":"typing","data":{...}}` for short-lived notices
           (`typing`, `presence.changed`): no id, never resumed or replayed;
         - `{"op":"resync"}` when the events since `last_event_id` are no longer
-          available: reload the data and continue from the id in `hello`.
+          available: reload the data and continue from the id in `hello`;
+        - `{"op":"ping"}` every `heartbeat_ms` (25 seconds), once the client answered a
+          WebSocket ping: browsers do not see WebSocket pings, so this frame lets a client
+          notice a connection that went away without closing (silence for about two
+          heartbeats). Clients do not answer it; the WebSocket ping is answered by
+          the client's WebSocket implementation, and a connection that does not
+          answer it within a heartbeat is closed.
+
+        Clients send no messages on the WebSocket.
 
         Close codes: 4001 invalid ticket, 4003 session ended, 4008 the client
         did not keep up (reconnect and resume).
@@ -6194,6 +6418,7 @@ paths:
       description: |
         No session: the URL is the secret. The JSON object's top-level fields are the
         workflow's `{{webhook.<field>}}` variables (strings, numbers and booleans).
+      security: []
       requestBody:
         required: true
         content:
@@ -7239,6 +7464,49 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    CallSettingsInput:
+      type: object
+      required: [enabled, guest_start, max_participants, max_bitrate]
+      additionalProperties: false
+      properties:
+        enabled: { type: boolean }
+        guest_start: { type: boolean }
+        max_participants: { type: integer, minimum: 2, maximum: 16, default: 8 }
+        max_bitrate: { type: integer, minimum: 64000, maximum: 10000000, default: 2500000 }
+    CallSettings:
+      type: object
+      required: [enabled, guest_start, max_participants, max_bitrate, available]
+      properties:
+        enabled: { type: boolean }
+        guest_start: { type: boolean }
+        max_participants: { type: integer, minimum: 2, maximum: 16 }
+        max_bitrate: { type: integer, minimum: 64000, maximum: 10000000 }
+        available: { type: boolean }
+    Call:
+      type: object
+      required: [id, channel_id, state, revision, created_at, participants]
+      properties:
+        id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        state: { type: string, enum: [ringing, active, ended] }
+        revision: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        ring_until: { type: string, format: date-time, nullable: true }
+        started_at: { type: string, format: date-time, nullable: true }
+        ended_at: { type: string, format: date-time, nullable: true }
+        end_reason: { type: string }
+        participants:
+          type: array
+          items: { $ref: '#/components/schemas/CallParticipant' }
+    CallParticipant:
+      type: object
+      required: [id, state]
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        state: { type: string, enum: [reserved, connected, reconnecting, left] }
+        joined_at: { type: string, format: date-time, nullable: true }
+        left_at: { type: string, format: date-time, nullable: true }
     FederationConnection:
       type: object
       required: [id, name, url, status, last_error, requires_v2, shared]
@@ -9360,6 +9628,8 @@ components:
       type: object
       description: A card under a message, e.g. from a bot (an issue, an alert).
       properties:
+        call_summary:
+          $ref: '#/components/schemas/CallSummary'
         title: { type: string, maxLength: 200 }
         title_link:
           type: string
@@ -9386,6 +9656,15 @@ components:
           maxItems: 5
           description: Buttons and menus (bots with an interactions address).
           items: { $ref: '#/components/schemas/AttachmentAction' }
+    CallSummary:
+      type: object
+      description: Server-authored, local-only call outcome. Never contains media, device or session data.
+      required: [call_id, outcome, duration_seconds, participants]
+      properties:
+        call_id: { type: string, format: uuid }
+        outcome: { type: string, enum: [ended, missed, declined, busy, failed] }
+        duration_seconds: { type: integer, format: int64, minimum: 0 }
+        participants: { type: integer, format: int64, minimum: 0 }
     MessagePage:
       type: object
       required: [messages, has_more]

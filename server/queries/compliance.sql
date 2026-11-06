@@ -33,10 +33,11 @@ WITH due AS (
 DELETE FROM messages WHERE id = ANY (ARRAY(
     SELECT m.id FROM due
     CROSS JOIN LATERAL (
-        SELECT id, author_id, created_at FROM messages
+        SELECT id, author_id, created_at, attachments FROM messages
         WHERE channel_id = due.channel_id AND id < due.before_id AND created_at < due.before
     ) m
     WHERE NOT message_held(due.channel_id, m.author_id, m.created_at) AND NOT thread_held(m.id)
+      AND NOT call_summary_held(m.attachments)
     LIMIT @row_limit));
 
 -- name: ListLegalHolds :many

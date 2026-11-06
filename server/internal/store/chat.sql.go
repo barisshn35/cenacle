@@ -1293,6 +1293,7 @@ func (q *Queries) NewestTimelineMessage(ctx context.Context, channelID pgtype.UU
 const purgeDeletedMessages = `-- name: PurgeDeletedMessages :execrows
 DELETE FROM messages WHERE deleted_at <= now() - $1::interval
     AND NOT message_held(channel_id, author_id, created_at) AND NOT thread_held(id)
+    AND NOT call_summary_held(attachments)
 `
 
 // PurgeDeletedMessages removes messages that can no longer be restored.

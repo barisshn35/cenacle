@@ -18,8 +18,16 @@ import (
 // TestScale fills a workspace with many messages (written to the database
 // directly, as years of use would) and times what people open most: the
 // channel list, unreads, activity, threads, history (newest and far back) and
-// search. Settings: SCALE_MESSAGES (default 2,000,000), SCALE_CHANNELS (200),
-// SCALE_PEOPLE (50), SCALE_ROUNDS (20 timings of each), LOAD_REPORT.
+// search (messages and the text of files). Settings: SCALE_MESSAGES (default
+// 2,000,000), SCALE_CHANNELS (200), SCALE_PEOPLE (50), SCALE_ROUNDS (20 timings of
+// each), LOAD_REPORT. Searches for one rare word, or for a word in nothing, fail the
+// test when their median passes scaleSearchLimit.
+// scaleSearchLimit bounds the median of the single-word searches. They take about
+// 10 ms on 2,000,000 messages and 200,000 files; reading every message or file
+// instead took 7–40 s. A limit a hundred times above the first and well below the
+// second does not fail on a busy machine and still catches the slow plan.
+const scaleSearchLimit = time.Second
+
 func TestScale(t *testing.T) {
 	total := envInt("SCALE_MESSAGES", 2_000_000)
 	nChannels := envInt("SCALE_CHANNELS", 200)
@@ -64,6 +72,27 @@ func TestScale(t *testing.T) {
 	exec(`UPDATE channel_members m SET last_read_id = (
 		SELECT id FROM messages x WHERE x.channel_id = m.channel_id ORDER BY id DESC OFFSET 200 LIMIT 1)
 		WHERE m.user_id = $1`, s.userID(reader))
+	// One file in every ten messages, with a name and 80 words of read text.
+	exec(`INSERT INTO files (workspace_id, channel_id, uploader_id, message_id, attached_at, name, content_type,
+		                   size, status, content_text, content_state)
+		SELECT $1::uuid, m.channel_id, m.author_id, m.id, m.created_at,
+		       (ARRAY['Report','Invoice','Notes','Slides','Contract','Photo','Budget','Plan'])[1 + m.n % 8] || ' ' || (m.n % 997) || '.pdf',
+		       'application/pdf', 1000, 'ready',
+		       (SELECT string_agg((ARRAY['deploy','review','meeting','invoice','release','incident','design','budget'])[1 + (m.n * k) % 8]
+		                          || ' ' || ((m.n * k) % 9973), ' ') FROM generate_series(1, 40) k),
+		       'done'
+		FROM (SELECT id, channel_id, author_id, created_at, row_number() OVER (ORDER BY id) AS n
+		      FROM messages WHERE nonce LIKE 'scale-nonce-%') m
+		WHERE m.n % 10 = 0`, s.defaultWS)
+	exec(`UPDATE messages SET has_files = true WHERE id IN (SELECT message_id FROM files)`)
+	// A rare word, in ten messages and ten files spread over the history.
+	exec(`UPDATE messages SET body = body || ' zumrut'
+		WHERE nonce IN (SELECT 'scale-nonce-' || (g * ($1::int / 10)) FROM generate_series(1, 10) g)`, total)
+	exec(`UPDATE files SET content_text = content_text || ' yakut'
+		WHERE id IN (SELECT id FROM (SELECT id, row_number() OVER (ORDER BY id) AS n, count(*) OVER () AS c FROM files) x
+		             WHERE x.n % (x.c / 10) = 0)`)
+	exec(`VACUUM ANALYZE messages`)
+	exec(`VACUUM ANALYZE files`)
 	exec(`ANALYZE`)
 	seeded := time.Since(start)
 
@@ -103,6 +132,15 @@ func TestScale(t *testing.T) {
 		get("history, far back", "/api/channels/"+channels[1]+"/messages?before="+url.QueryEscape(deep))
 		get("search, common word", "/api/search/messages?q=review")
 		get("search, rare term", "/api/search/messages?q="+url.QueryEscape(fmt.Sprintf("item %d", total-i*7)))
+		get("search, rare word", "/api/search/messages?q=zumrut")
+		get("search, word in nothing", "/api/search/messages?q=qxzvk")
+		get("files, rare word", "/api/search/files?q=yakut")
+		get("files, word in nothing", "/api/search/files?q=qxzvk")
+	}
+	for _, name := range []string{"search, rare word", "search, word in nothing", "files, rare word", "files, word in nothing"} {
+		if p50 := time.Duration(timings[name].summary()["p50_ms"] * float64(time.Millisecond)); p50 > scaleSearchLimit {
+			t.Errorf("%s: median %v, over %v", name, p50, scaleSearchLimit)
+		}
 	}
 	report := map[string]any{"messages": total, "channels": nChannels, "people": len(people), "seed_seconds": seeded.Seconds()}
 	for name, l := range timings {

@@ -12,6 +12,91 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deletePictureIfUnused = `-- name: DeletePictureIfUnused :execrows
+DELETE FROM pictures p WHERE p.id = $1
+  AND NOT EXISTS (SELECT 1 FROM users u WHERE u.avatar_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM workspaces w WHERE w.icon_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM link_previews l WHERE l.image_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM custom_emoji e WHERE e.picture_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM stickers s WHERE s.picture_id = p.id)
+`
+
+// DeletePictureIfUnused removes a picture nothing shows any more.
+func (q *Queries) DeletePictureIfUnused(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deletePictureIfUnused, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const emitErasedMessages = `-- name: EmitErasedMessages :one
+WITH gone AS (
+    SELECT m.id, m.channel_id,
+           jsonb_strip_nulls(jsonb_build_object('id', m.id, 'channel_id', m.channel_id, 'root_id', m.root_id)) AS data
+    FROM messages m
+    WHERE m.author_id = $1 AND m.deleted_at = now()
+), origin AS (
+    -- A person who came over a connection: their events do not go back to it.
+    SELECT split_part(u.auth_data, ':', 1) AS connection FROM users u
+    WHERE u.id = $1 AND u.auth_service = 'remote'
+), outbox AS (
+    INSERT INTO event_outbox (type, data)
+    SELECT 'message.deleted', g.data FROM gone g ORDER BY g.id
+    RETURNING 1
+), bots AS (
+    INSERT INTO event_deliveries (subscription_id, event_type, payload)
+    SELECT s.id, 'message.deleted', g.data
+    FROM gone g
+    JOIN channel_members cm ON cm.channel_id = g.channel_id
+    JOIN bots b ON b.user_id = cm.user_id AND b.disabled_at IS NULL
+    JOIN event_subscriptions s ON s.bot_id = b.id AND s.disabled_at IS NULL AND 'message.deleted' = ANY (s.events)
+    ORDER BY g.id
+    RETURNING 1
+), servers AS (
+    INSERT INTO federation_deliveries (connection_id, event)
+    SELECT sc.connection_id, jsonb_build_object('type', 'message.deleted', 'channel_id', sc.remote_channel_id,
+               'message', CASE WHEN fm.remote_message_id IS NULL THEN jsonb_build_object('ours', g.id)
+                               ELSE jsonb_build_object('yours', fm.remote_message_id) END)
+    FROM gone g
+    JOIN shared_channels sc ON sc.channel_id = g.channel_id AND sc.status = 'active'
+    JOIN federation_connections f ON f.id = sc.connection_id AND f.status IN ('active', 'disabled')
+    LEFT JOIN federated_messages fm ON fm.connection_id = sc.connection_id AND fm.message_id = g.id
+    WHERE sc.connection_id::text IS DISTINCT FROM (SELECT connection FROM origin)
+    ORDER BY g.id
+    RETURNING 1
+), wake AS (
+    SELECT pg_notify('cenacle_outbox', '') WHERE EXISTS (SELECT 1 FROM outbox)
+)
+SELECT (SELECT count(*) FROM outbox)::int AS events,
+       (SELECT count(*) FROM bots)::int AS bot_deliveries,
+       (SELECT count(*) FROM servers)::int AS server_deliveries,
+       (SELECT count(*) FROM wake)::int AS woken
+`
+
+type EmitErasedMessagesRow struct {
+	Events           int32 `json:"events"`
+	BotDeliveries    int32 `json:"bot_deliveries"`
+	ServerDeliveries int32 `json:"server_deliveries"`
+	Woken            int32 `json:"woken"`
+}
+
+// EmitErasedMessages records message.deleted for every message the erasure has
+// just deleted (deleted_at is the transaction's time), all at once: for open
+// apps (the outbox), for the bots subscribed in the message's channel and for
+// the servers the channel is shared with, as emit would one by one.
+func (q *Queries) EmitErasedMessages(ctx context.Context, userID pgtype.UUID) (EmitErasedMessagesRow, error) {
+	row := q.db.QueryRow(ctx, emitErasedMessages, userID)
+	var i EmitErasedMessagesRow
+	err := row.Scan(
+		&i.Events,
+		&i.BotDeliveries,
+		&i.ServerDeliveries,
+		&i.Woken,
+	)
+	return i, err
+}
+
 const eraseUser = `-- name: EraseUser :one
 UPDATE users SET display_name = $1, email = '', email_verified = false, username = NULL,
     avatar_id = NULL, avatar_from_directory = false, directory_photo = '', timezone = '',
@@ -65,6 +150,28 @@ func (q *Queries) EraseUser(ctx context.Context, arg EraseUserParams) (User, err
 	return i, err
 }
 
+const eraseUserAuditEvents = `-- name: EraseUserAuditEvents :execrows
+UPDATE audit_events SET ip_address = '', detail = coalesce(
+    (SELECT jsonb_object_agg(k, v) FROM jsonb_each(detail) AS e(k, v) WHERE k = ANY($1::text[])),
+    '{}')
+WHERE actor_id = $2
+`
+
+type EraseUserAuditEventsParams struct {
+	Neutral []string    `json:"neutral"`
+	UserID  pgtype.UUID `json:"user_id"`
+}
+
+// EraseUserAuditEvents blanks the address (IP) of the audit events a person did
+// and keeps only the neutral parts of their detail; who did what and when stays.
+func (q *Queries) EraseUserAuditEvents(ctx context.Context, arg EraseUserAuditEventsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, eraseUserAuditEvents, arg.Neutral, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const eraseUserDeliveries = `-- name: EraseUserDeliveries :one
 WITH bots AS (
     DELETE FROM event_deliveries d
@@ -91,20 +198,20 @@ func (q *Queries) EraseUserDeliveries(ctx context.Context, userID pgtype.UUID) (
 
 const eraseUserMessages = `-- name: EraseUserMessages :one
 WITH erased AS (
-    UPDATE messages m SET deleted_at = coalesce(m.deleted_at, now()), deleted_by = coalesce(m.deleted_by, $2)
-    WHERE m.author_id = $1 AND NOT message_held(m.channel_id, m.author_id, m.created_at)
-    RETURNING m.id
+    UPDATE messages m SET deleted_at = coalesce(m.deleted_at, now()), deleted_by = coalesce(m.deleted_by, $1)
+    WHERE m.author_id = $2
+    RETURNING m.id, message_held(m.channel_id, m.author_id, m.created_at) AS held
 ), edits AS (
-    DELETE FROM message_edits WHERE message_id IN (SELECT id FROM erased) RETURNING 1
+    DELETE FROM message_edits WHERE message_id IN (SELECT id FROM erased WHERE NOT held) RETURNING 1
 )
-SELECT (SELECT count(*) FROM erased)::int AS erased,
-       (SELECT count(*) FROM messages h WHERE h.author_id = $1 AND message_held(h.channel_id, h.author_id, h.created_at))::int AS held,
+SELECT (SELECT count(*) FROM erased WHERE NOT held)::int AS erased,
+       (SELECT count(*) FROM erased WHERE held)::int AS held,
        (SELECT count(*) FROM edits)::int AS edits
 `
 
 type EraseUserMessagesParams struct {
-	UserID   pgtype.UUID `json:"user_id"`
 	ErasedBy pgtype.UUID `json:"erased_by"`
+	UserID   pgtype.UUID `json:"user_id"`
 }
 
 type EraseUserMessagesRow struct {
@@ -113,10 +220,12 @@ type EraseUserMessagesRow struct {
 	Edits  int32 `json:"edits"`
 }
 
-// EraseUserMessages deletes a person's messages that no legal hold keeps (the
-// purge removes them for good within the restore window) and counts those kept.
+// EraseUserMessages deletes a person's messages (the purge removes them for good
+// within the restore window). Those a legal hold keeps are marked deleted too,
+// so nobody sees them, and keep their text and edits for eDiscovery; the purge
+// removes them once the hold no longer keeps them.
 func (q *Queries) EraseUserMessages(ctx context.Context, arg EraseUserMessagesParams) (EraseUserMessagesRow, error) {
-	row := q.db.QueryRow(ctx, eraseUserMessages, arg.UserID, arg.ErasedBy)
+	row := q.db.QueryRow(ctx, eraseUserMessages, arg.ErasedBy, arg.UserID)
 	var i EraseUserMessagesRow
 	err := row.Scan(&i.Erased, &i.Held, &i.Edits)
 	return i, err
@@ -130,6 +239,19 @@ SELECT erase_user_traces($1::uuid)
 func (q *Queries) EraseUserTraces(ctx context.Context, userID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, eraseUserTraces, userID)
 	return err
+}
+
+const lockUserAvatar = `-- name: LockUserAvatar :one
+SELECT avatar_id FROM users WHERE id = $1 FOR UPDATE
+`
+
+// LockUserAvatar returns a person's profile picture, holding the row until the
+// erasure commits.
+func (q *Queries) LockUserAvatar(ctx context.Context, id pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, lockUserAvatar, id)
+	var avatar_id pgtype.UUID
+	err := row.Scan(&avatar_id)
+	return avatar_id, err
 }
 
 const userAuditEvents = `-- name: UserAuditEvents :many
@@ -206,6 +328,126 @@ func (q *Queries) UserChannels(ctx context.Context, userID pgtype.UUID) ([]UserC
 			&i.WorkspaceID,
 			&i.Role,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const userExportRows = `-- name: UserExportRows :many
+SELECT 'message_version'::text AS kind,
+       jsonb_build_object('message_id', e.message_id, 'body', e.body, 'written_at', e.written_at, 'replaced_at', e.replaced_at) AS data
+FROM message_edits e JOIN messages m ON m.id = e.message_id WHERE m.author_id = $1
+UNION ALL SELECT 'scheduled_message', to_jsonb(s) FROM scheduled_messages s WHERE s.owner_id = $1 OR s.author_id = $1
+UNION ALL SELECT 'form_submission', to_jsonb(f) FROM form_submissions f WHERE f.user_id = $1
+UNION ALL SELECT 'poll_vote', to_jsonb(v) FROM poll_votes v WHERE v.user_id = $1
+UNION ALL SELECT 'event_rsvp', to_jsonb(r) FROM event_rsvps r WHERE r.user_id = $1
+UNION ALL SELECT 'report', to_jsonb(r) FROM message_reports r WHERE r.reporter_id = $1
+UNION ALL SELECT 'spillage_report', to_jsonb(r) FROM spillage_reports r WHERE r.reported_by = $1
+UNION ALL SELECT 'saved_message', to_jsonb(s) FROM saved_messages s WHERE s.user_id = $1
+UNION ALL SELECT 'thread_follow', to_jsonb(t) FROM thread_follows t WHERE t.user_id = $1
+UNION ALL SELECT 'acknowledgement', to_jsonb(a) FROM message_acks a WHERE a.user_id = $1
+UNION ALL SELECT 'reminder', to_jsonb(r) FROM message_reminders r WHERE r.user_id = $1
+UNION ALL SELECT 'mention', to_jsonb(x) FROM message_mentions x WHERE x.user_id = $1
+UNION ALL SELECT 'burn_reveal', to_jsonb(b) FROM burn_reveals b WHERE b.user_id = $1
+UNION ALL SELECT 'ai_request', to_jsonb(a) FROM ai_requests a WHERE a.user_id = $1
+UNION ALL SELECT 'dialog', to_jsonb(d) FROM dialogs d WHERE d.user_id = $1
+UNION ALL SELECT 'mention_group_member', to_jsonb(g) FROM mention_group_members g WHERE g.user_id = $1
+UNION ALL SELECT 'workflow_run_started', to_jsonb(w) FROM workflow_runs w WHERE w.trigger_user_id = $1
+UNION ALL SELECT 'workflow_task_done', to_jsonb(w) FROM workflow_tasks w WHERE w.done_by = $1
+UNION ALL SELECT 'playbook_run_owned', to_jsonb(p) FROM playbook_runs p WHERE p.owner_id = $1
+UNION ALL SELECT 'notification_settings', to_jsonb(n) FROM notification_prefs n WHERE n.user_id = $1
+UNION ALL SELECT 'channel_notification_settings', to_jsonb(n) FROM channel_notification_prefs n WHERE n.user_id = $1
+UNION ALL SELECT 'workspace_notification_settings', to_jsonb(n) FROM workspace_notification_prefs n WHERE n.user_id = $1
+UNION ALL SELECT 'appearance', to_jsonb(p) FROM user_preferences p WHERE p.user_id = $1
+UNION ALL SELECT 'sidebar', to_jsonb(l) FROM sidebar_layouts l WHERE l.user_id = $1
+UNION ALL SELECT 'email_notification_state', to_jsonb(e) FROM email_notifications e WHERE e.user_id = $1
+UNION ALL SELECT 'push_subscription', to_jsonb(p) - ARRAY['p256dh', 'auth'] FROM push_subscriptions p WHERE p.user_id = $1
+UNION ALL SELECT 'encryption_device', to_jsonb(d) - 'signature_key' FROM e2e_devices d WHERE d.user_id = $1
+UNION ALL SELECT 'encryption_backup', to_jsonb(b) - 'data' FROM e2e_backups b WHERE b.user_id = $1
+UNION ALL SELECT 'encryption_recovery', jsonb_build_object('created_at', r.created_at) FROM e2e_recovery r WHERE r.user_id = $1
+UNION ALL SELECT 'font', to_jsonb(f) - 'data' || jsonb_build_object('data_base64', encode(f.data, 'base64')) FROM user_fonts f WHERE f.user_id = $1
+UNION ALL SELECT 'sound', to_jsonb(s) - 'data' || jsonb_build_object('data_base64', encode(s.data, 'base64')) FROM user_sounds s WHERE s.user_id = $1
+UNION ALL SELECT 'profile_picture', jsonb_build_object('content_type', p.content_type, 'data_base64', encode(p.data, 'base64'))
+FROM users u JOIN pictures p ON p.id = u.avatar_id WHERE u.id = $1
+UNION ALL SELECT 'created_event', to_jsonb(e) FROM events e WHERE e.created_by = $1
+UNION ALL SELECT 'created_form', to_jsonb(f) FROM forms f WHERE f.created_by = $1
+UNION ALL SELECT 'created_list_item', to_jsonb(i) FROM list_items i WHERE i.created_by = $1
+UNION ALL SELECT 'edited_canvas', to_jsonb(c) FROM canvases c WHERE c.updated_by = $1
+UNION ALL SELECT 'created_channel_tab', to_jsonb(t) FROM channel_tabs t WHERE t.created_by = $1
+UNION ALL SELECT 'created_channel_feed', to_jsonb(f) FROM channel_feeds f WHERE f.created_by = $1
+UNION ALL SELECT 'created_emoji', to_jsonb(e) FROM custom_emoji e WHERE e.created_by = $1
+UNION ALL SELECT 'created_sticker', to_jsonb(s) FROM stickers s WHERE s.created_by = $1
+UNION ALL SELECT 'created_mention_group', to_jsonb(g) FROM mention_groups g WHERE g.created_by = $1
+UNION ALL SELECT 'created_playbook', to_jsonb(p) FROM playbooks p WHERE p.created_by = $1
+UNION ALL SELECT 'created_workflow', to_jsonb(w) - ARRAY['webhook_hash', 'secret'] FROM workflows w WHERE w.created_by = $1
+UNION ALL SELECT 'created_bot', to_jsonb(b) - 'interactions_secret' FROM bots b WHERE b.created_by = $1
+UNION ALL SELECT 'created_bot_token', to_jsonb(t) - 'token_hash' FROM bot_tokens t WHERE t.created_by = $1
+UNION ALL SELECT 'created_slash_command', to_jsonb(c) - 'secret' FROM slash_commands c WHERE c.created_by = $1
+UNION ALL SELECT 'created_incoming_webhook', to_jsonb(w) - 'token_hash' FROM incoming_webhooks w WHERE w.created_by = $1
+UNION ALL SELECT 'created_event_subscription', to_jsonb(s) - 'secret' FROM event_subscriptions s WHERE s.created_by = $1
+UNION ALL SELECT 'created_guest_link', to_jsonb(g) - ARRAY['token_hash', 'password_hash'] FROM guest_links g WHERE g.created_by = $1
+UNION ALL SELECT 'audit_about', jsonb_build_object('at', a.at, 'action', a.action, 'workspace_id', a.workspace_id, 'detail', a.detail)
+FROM audit_events a WHERE a.target_type = 'user' AND a.target_id = ($1::uuid)::text AND a.actor_id IS DISTINCT FROM $1
+`
+
+type UserExportRowsRow struct {
+	Kind string `json:"kind"`
+	Data []byte `json:"data"`
+}
+
+// UserExportRows returns the rest of what is stored about a person for their
+// data export, one row per item: what they wrote or set, what they made, and
+// what was recorded about them. Secrets (token and password hashes, signing and
+// push keys, end-to-end key material) stay out; the bytes of their uploaded
+// fonts and sounds and of their profile picture are in base64.
+// Settings.
+// What they made.
+// Recorded about them by others (who did it stays out: the actor and their address).
+func (q *Queries) UserExportRows(ctx context.Context, userID pgtype.UUID) ([]UserExportRowsRow, error) {
+	rows, err := q.db.Query(ctx, userExportRows, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserExportRowsRow
+	for rows.Next() {
+		var i UserExportRowsRow
+		if err := rows.Scan(&i.Kind, &i.Data); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const userFileKeys = `-- name: UserFileKeys :many
+SELECT id, size FROM files WHERE uploader_id = $1 AND status = 'ready' ORDER BY id
+`
+
+type UserFileKeysRow struct {
+	ID   pgtype.UUID `json:"id"`
+	Size int64       `json:"size"`
+}
+
+// UserFileKeys returns a person's uploaded files whose bytes are stored.
+func (q *Queries) UserFileKeys(ctx context.Context, userID pgtype.UUID) ([]UserFileKeysRow, error) {
+	rows, err := q.db.Query(ctx, userFileKeys, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserFileKeysRow
+	for rows.Next() {
+		var i UserFileKeysRow
+		if err := rows.Scan(&i.ID, &i.Size); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -95,6 +95,36 @@ type BurnReveal struct {
 	RevealedAt time.Time   `json:"revealed_at"`
 }
 
+type Call struct {
+	ID             pgtype.UUID        `json:"id"`
+	ChannelID      pgtype.UUID        `json:"channel_id"`
+	CreatedBy      pgtype.UUID        `json:"created_by"`
+	Nonce          pgtype.UUID        `json:"nonce"`
+	State          string             `json:"state"`
+	CreatedAt      time.Time          `json:"created_at"`
+	RingUntil      pgtype.Timestamptz `json:"ring_until"`
+	StartedAt      pgtype.Timestamptz `json:"started_at"`
+	EndedAt        pgtype.Timestamptz `json:"ended_at"`
+	EndReason      string             `json:"end_reason"`
+	NodeID         string             `json:"node_id"`
+	NodeGeneration pgtype.UUID        `json:"node_generation"`
+	Revision       int64              `json:"revision"`
+}
+
+type CallParticipant struct {
+	ID                  pgtype.UUID        `json:"id"`
+	CallID              pgtype.UUID        `json:"call_id"`
+	UserID              pgtype.UUID        `json:"user_id"`
+	SessionID           pgtype.UUID        `json:"session_id"`
+	State               string             `json:"state"`
+	ReservedUntil       pgtype.Timestamptz `json:"reserved_until"`
+	JoinedAt            pgtype.Timestamptz `json:"joined_at"`
+	LeftAt              pgtype.Timestamptz `json:"left_at"`
+	RedactedAt          pgtype.Timestamptz `json:"redacted_at"`
+	LastSeenAt          time.Time          `json:"last_seen_at"`
+	TransportGeneration int64              `json:"transport_generation"`
+}
+
 type Canvase struct {
 	ID           pgtype.UUID        `json:"id"`
 	ChannelID    pgtype.UUID        `json:"channel_id"`
@@ -998,6 +1028,10 @@ type Workspace struct {
 	SpillageReviewers       []pgtype.UUID `json:"spillage_reviewers"`
 	ArchiveFormat           string        `json:"archive_format"`
 	ArchiveLastDay          pgtype.Date   `json:"archive_last_day"`
+	CallsEnabled            bool          `json:"calls_enabled"`
+	CallsGuestStart         bool          `json:"calls_guest_start"`
+	CallsMaxParticipants    int32         `json:"calls_max_participants"`
+	CallsMaxBitrate         int32         `json:"calls_max_bitrate"`
 }
 
 type WorkspaceAttribute struct {

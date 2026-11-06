@@ -48,6 +48,7 @@ type Marks interface {
 
 // Handlers implements the chat operations of the API.
 type Handlers struct {
+	Calls *CallControl
 	// AI is the model the operator configured; nil: no AI features.
 	AI *ai.Client
 	// AIPolicyURL is linked from the AI notice; optional.
@@ -101,6 +102,8 @@ type Handlers struct {
 	// MessagesPerWindow and Window limit how fast one user can send.
 	MessagesPerWindow int64
 	Window            time.Duration
+	// SearchTimeout stops a search that runs longer (default 10 s).
+	SearchTimeout time.Duration
 }
 
 func uuid(id pgtype.UUID) openapi_types.UUID { return id.Bytes }

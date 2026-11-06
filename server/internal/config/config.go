@@ -32,6 +32,7 @@ const DefaultSourceURL = "https://github.com/Cenacle-TR/cenacle"
 
 // Config is the validated server configuration.
 type Config struct {
+	Calls *Calls
 	// Env is the deployment environment: "development" or "production".
 	Env string
 	// HTTPAddr is the listen address of the HTTP server, e.g. ":8180".
@@ -82,6 +83,9 @@ type Config struct {
 	SessionIdleTimeout time.Duration
 	// SessionMaxAge ends sessions this long after sign-in, used or not; 0: no limit.
 	SessionMaxAge time.Duration
+	// AuditRetention, AIRequestRetention and LinkPreviewRetention delete audit
+	// events, records of AI requests and link previews this old; 0: kept.
+	AuditRetention, AIRequestRetention, LinkPreviewRetention time.Duration
 
 	// AdminEmail is the verified e-mail address of the one user who may
 	// create channels and post in announcement channels (until roles, v0.6).
@@ -222,6 +226,9 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.OIDCClientSecret = l.str("CENACLE_OIDC_CLIENT_SECRET", "")
 	cfg.SessionIdleTimeout = l.limit("CENACLE_SESSION_IDLE_TIMEOUT")
 	cfg.SessionMaxAge = l.limit("CENACLE_SESSION_MAX_AGE")
+	cfg.AuditRetention = l.limit("CENACLE_AUDIT_RETENTION")
+	cfg.AIRequestRetention = l.limit("CENACLE_AI_REQUEST_RETENTION")
+	cfg.LinkPreviewRetention = l.limit("CENACLE_LINK_PREVIEW_RETENTION")
 	cfg.AdminEmail = strings.TrimSpace(l.str("CENACLE_ADMIN_EMAIL", ""))
 	cfg.AnnouncementChannel = strings.TrimSpace(l.str("CENACLE_ANNOUNCEMENT_CHANNEL", "Central"))
 	if allow, err := egress.ParseAllow(l.str("CENACLE_EGRESS_ALLOW", "")); err != nil {
@@ -337,6 +344,7 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	l.validate(&cfg)
 	if serve {
 		l.validateServe(&cfg)
+		cfg.Calls = loadCalls(&l)
 	}
 	if len(l.errs) > 0 {
 		return Config{}, fmt.Errorf("invalid configuration: %w", errors.Join(l.errs...))

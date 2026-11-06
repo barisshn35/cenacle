@@ -36,6 +36,8 @@ const (
 	CodeCrossSite        = "cross_site_request"
 	CodeRateLimited      = "rate_limited"
 	CodeForbidden        = "forbidden"
+	// CodeSearchTimeout: a search ran too long and was stopped (503).
+	CodeSearchTimeout = "search_timeout"
 )
 
 // WriteProblem writes p as application/problem+json. Missing fields are

@@ -297,6 +297,37 @@ func (q *Queries) ListWorkspaceAudit(ctx context.Context, arg ListWorkspaceAudit
 	return items, nil
 }
 
+const pruneAuditEvents = `-- name: PruneAuditEvents :execrows
+DELETE FROM audit_events WHERE id IN (
+    SELECT e.id FROM audit_events e
+    WHERE e.id < (lpad(to_hex(floor(extract(epoch FROM $1::timestamptz) * 1000)::bigint), 12, '0')
+                  || '70008000000000000000')::uuid
+      AND e.at < $1::timestamptz
+      AND NOT EXISTS (SELECT 1 FROM instance_settings s
+                      WHERE s.audit_stream_kind <> 'none'
+                        AND (s.audit_stream_cursor IS NULL OR e.id > s.audit_stream_cursor))
+    ORDER BY e.id
+    LIMIT $2
+)
+`
+
+type PruneAuditEventsParams struct {
+	Before   time.Time `json:"before"`
+	RowLimit int32     `json:"row_limit"`
+}
+
+// PruneAuditEvents deletes up to row_limit audit events from before the cut-off
+// (CENACLE_AUDIT_RETENTION), never ones a running audit stream has not sent yet.
+// Event ids are UUIDv7 made from their time, so the oldest id of the cut-off's
+// millisecond bounds the walk along the primary key.
+func (q *Queries) PruneAuditEvents(ctx context.Context, arg PruneAuditEventsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, pruneAuditEvents, arg.Before, arg.RowLimit)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const setAuditStream = `-- name: SetAuditStream :exec
 UPDATE instance_settings SET audit_stream_kind = $1, audit_stream_address = $2,
     audit_stream_secret = $3, audit_stream_tls = $4, audit_stream_cursor = $5,

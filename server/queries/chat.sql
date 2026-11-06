@@ -206,7 +206,8 @@ RETURNING *;
 -- Messages a legal hold keeps stay (for eDiscovery), and so do thread roots
 -- with a reply it keeps (deleting a root deletes its replies).
 DELETE FROM messages WHERE deleted_at <= now() - sqlc.arg(restore_window)::interval
-    AND NOT message_held(channel_id, author_id, created_at) AND NOT thread_held(id);
+    AND NOT message_held(channel_id, author_id, created_at) AND NOT thread_held(id)
+    AND NOT call_summary_held(attachments);
 
 -- name: GetChannelByName :one
 SELECT * FROM channels WHERE workspace_id = @workspace_id AND lower(name) = lower(@name);

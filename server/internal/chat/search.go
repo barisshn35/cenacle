@@ -3,10 +3,14 @@
 package chat
 
 import (
+	"context"
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -17,6 +21,42 @@ import (
 )
 
 const searchPage = 20
+
+// defaultSearchTimeout is the longest a search may run. A slower one is stopped
+// and the person is asked to narrow it down, instead of waiting until the server
+// gives up on the response (30 s) and getting nothing.
+const defaultSearchTimeout = 10 * time.Second
+
+// searching runs fn's queries in a transaction whose statements stop after the
+// search timeout. SET LOCAL ends with the transaction, so the limit never stays on
+// a pooled connection that other queries use next.
+func (h *Handlers) searching(ctx context.Context, fn func(q *store.Queries) error) error {
+	limit := h.SearchTimeout
+	if limit <= 0 {
+		limit = defaultSearchTimeout
+	}
+	return h.inTx(ctx, func(q *store.Queries) error {
+		if err := q.SetSearchTimeout(ctx, strconv.FormatInt(limit.Milliseconds(), 10)); err != nil {
+			return err
+		}
+		return fn(q)
+	})
+}
+
+// searchFailed answers a failed search: too slow (the statement timeout of
+// searching), or the database is unavailable.
+func (h *Handlers) searchFailed(w http.ResponseWriter, r *http.Request, msg string, err error) {
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) && pg.Code == "57014" { // query_canceled, here by statement_timeout
+		h.Log.WarnContext(r.Context(), msg+": too slow", "request_id", httpx.RequestIDFrom(r.Context()))
+		httpx.WriteProblem(w, r, httpx.Problem{
+			Status: http.StatusServiceUnavailable, Code: httpx.CodeSearchTimeout,
+			Detail: "The search took too long and was stopped; try more specific words or a filter.",
+		})
+		return
+	}
+	h.unavailable(w, r, msg, err)
+}
 
 func optUUID(id *[16]byte) pgtype.UUID {
 	if id == nil {
@@ -83,9 +123,13 @@ func (h *Handlers) SearchMessages(w http.ResponseWriter, r *http.Request, params
 		args.HasFiles = *params.Has == api.SearchMessagesParamsHasFile
 		args.HasLink = *params.Has == api.SearchMessagesParamsHasLink
 	}
-	rows, err := h.Queries.SearchMessages(r.Context(), args)
+	var rows []store.SearchMessagesRow
+	err := h.searching(r.Context(), func(q *store.Queries) (err error) {
+		rows, err = q.SearchMessages(r.Context(), args)
+		return err
+	})
 	if err != nil {
-		h.unavailable(w, r, "search messages", err)
+		h.searchFailed(w, r, "search messages", err)
 		return
 	}
 	more := len(rows) > int(limit)
@@ -122,13 +166,17 @@ func (h *Handlers) SearchFiles(w http.ResponseWriter, r *http.Request, params ap
 		return
 	}
 	limit := searchLimit(params.Limit)
-	rows, err := h.Queries.SearchFiles(r.Context(), store.SearchFilesParams{
-		UserID: p.User.ID, Query: q, RowLimit: limit + 1,
-		WorkspaceID: optUUID((*[16]byte)(params.WorkspaceId)),
-		Before:      optUUID((*[16]byte)(params.Before)),
+	var rows []store.SearchFilesRow
+	err := h.searching(r.Context(), func(qs *store.Queries) (err error) {
+		rows, err = qs.SearchFiles(r.Context(), store.SearchFilesParams{
+			UserID: p.User.ID, Query: q, RowLimit: limit + 1,
+			WorkspaceID: optUUID((*[16]byte)(params.WorkspaceId)),
+			Before:      optUUID((*[16]byte)(params.Before)),
+		})
+		return err
 	})
 	if err != nil {
-		h.unavailable(w, r, "search files", err)
+		h.searchFailed(w, r, "search files", err)
 		return
 	}
 	more := len(rows) > int(limit)
@@ -159,14 +207,17 @@ func (h *Handlers) SearchContent(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 	ws := optUUID((*[16]byte)(params.WorkspaceId))
-	canvases, err := h.Queries.SearchCanvases(r.Context(), store.SearchCanvasesParams{UserID: p.User.ID, Query: q, WorkspaceID: ws})
+	var canvases []store.SearchCanvasesRow
+	var items []store.SearchListItemsRow
+	err := h.searching(r.Context(), func(qs *store.Queries) (err error) {
+		if canvases, err = qs.SearchCanvases(r.Context(), store.SearchCanvasesParams{UserID: p.User.ID, Query: q, WorkspaceID: ws}); err != nil {
+			return err
+		}
+		items, err = qs.SearchListItems(r.Context(), store.SearchListItemsParams{UserID: p.User.ID, Query: q, WorkspaceID: ws})
+		return err
+	})
 	if err != nil {
-		h.unavailable(w, r, "search canvases", err)
-		return
-	}
-	items, err := h.Queries.SearchListItems(r.Context(), store.SearchListItemsParams{UserID: p.User.ID, Query: q, WorkspaceID: ws})
-	if err != nil {
-		h.unavailable(w, r, "search lists", err)
+		h.searchFailed(w, r, "search canvases and lists", err)
 		return
 	}
 	type canvasHit struct {

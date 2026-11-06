@@ -16,6 +16,15 @@ ON CONFLICT (url) DO UPDATE SET ok = EXCLUDED.ok, title = EXCLUDED.title, descri
     site_name = EXCLUDED.site_name, image_id = EXCLUDED.image_id, fetched_at = now()
 RETURNING *;
 
+-- name: PruneLinkPreviews :many
+-- PruneLinkPreviews deletes up to row_limit link previews fetched before the
+-- cut-off (CENACLE_LINK_PREVIEW_RETENTION) and returns their pictures; messages
+-- that showed one show the bare link. A message posted later fetches it again.
+DELETE FROM link_previews WHERE url IN (
+    SELECT l.url FROM link_previews l WHERE l.fetched_at < @before::timestamptz LIMIT @row_limit
+)
+RETURNING image_id;
+
 -- name: ListLinkPreviews :many
 -- ListLinkPreviews returns the previews to show on messages.
 SELECT m.id AS message_id, lp.url, lp.title, lp.description, lp.site_name, lp.image_id

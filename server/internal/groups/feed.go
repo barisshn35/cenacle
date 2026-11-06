@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -62,6 +63,9 @@ type feedUser struct {
 	Disabled      bool     `json:"disabled"`
 	// Picture is the SHA-256 of the directory's photo ('' for none).
 	Picture string `json:"picture"`
+	// SessionsEndedAt is when Cenacle ID last ended the person's sessions
+	// (RFC 3339, '' for never): the chat's sessions made before then end too.
+	SessionsEndedAt string `json:"sessions_ended_at"`
 }
 
 type feedPage struct {
@@ -184,6 +188,15 @@ func (f *Feed) apply(ctx context.Context, u feedUser) (bool, error) {
 			ID: user.ID, Email: u.Email, EmailVerified: u.EmailVerified, DisplayName: name,
 		}); err != nil {
 			return err
+		}
+		if at, err := time.Parse(time.RFC3339Nano, u.SessionsEndedAt); err == nil {
+			n, err := q.DeleteSessionsBefore(ctx, store.DeleteSessionsBeforeParams{
+				UserID: user.ID, Before: at,
+			})
+			if err != nil {
+				return err
+			}
+			ended = n > 0
 		}
 		user.Email, user.EmailVerified, user.DisplayName = u.Email, u.EmailVerified, name
 		if err := Apply(ctx, q, user, Profile{Username: u.Username, Role: u.Role, Groups: u.Groups}, f.AdminEmail); err != nil {

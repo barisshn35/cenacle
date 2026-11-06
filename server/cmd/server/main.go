@@ -278,6 +278,12 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	deps.Workflows = &chat.WorkflowRunner{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	deps.Retention = chat.RetentionPurger{Queries: queries}
+	if cfg.AuditRetention > 0 || cfg.AIRequestRetention > 0 || cfg.LinkPreviewRetention > 0 {
+		deps.Records = chat.RecordPruner{
+			Queries: queries, Audit: cfg.AuditRetention,
+			AIRequests: cfg.AIRequestRetention, LinkPreviews: cfg.LinkPreviewRetention,
+		}
+	}
 	deps.Reminders = &chat.Reminders{DB: pool, Queries: queries, Log: log}
 	deps.Feeds = &chat.FeedReader{DB: pool, Queries: queries, Egress: egressClient, Log: log}
 	deps.Federation = &chat.FederationSender{DB: pool, Queries: queries, Egress: egressClient, Log: log}
@@ -329,7 +335,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 		return fmt.Errorf("start jobs (did `migrate up` run?): %w", err)
 	}
 
-	handler := app.NewRouter(app.Deps{
+	appDeps := app.Deps{
 		Log:          log,
 		Checkers:     checkers,
 		ReadyTimeout: cfg.ReadyTimeout,
@@ -399,7 +405,12 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Log:       log,
 		},
 		Uploads: uploads,
-	})
+	}
+	if cfg.Calls != nil {
+		appDeps.Chat.Calls = chat.NewCallControl(cfg.Calls, cfg.PublicURL.String(), valkey)
+		go appDeps.Chat.RunCallReconciler(ctx)
+	}
+	handler := app.NewRouter(appDeps)
 	if telemetry.TracingEnabled() {
 		handler = telemetry.TraceHandler(handler)
 	}
@@ -414,7 +425,17 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 		ErrorLog:          slog.NewLogLogger(log.Handler(), slog.LevelWarn),
 	}
 
-	errCh := make(chan error, 2)
+	errCh := make(chan error, 3)
+	if cfg.Calls != nil {
+		control := &http.Server{
+			Addr: cfg.Calls.InternalAddr, Handler: http.HandlerFunc(appDeps.Chat.ServeMediaControl),
+			ReadHeaderTimeout: 2 * time.Second, ReadTimeout: 3 * time.Second,
+			WriteTimeout: 5 * time.Second, IdleTimeout: 15 * time.Second, MaxHeaderBytes: 8192,
+			BaseContext: func(net.Listener) context.Context { return ctx },
+		}
+		go func() { errCh <- control.ListenAndServe() }()
+		defer func() { _ = control.Close() }()
+	}
 	go func() {
 		log.Info("http server listening", "addr", cfg.HTTPAddr, "env", cfg.Env)
 		errCh <- srv.ListenAndServe()

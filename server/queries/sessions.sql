@@ -63,6 +63,11 @@ DELETE FROM sessions WHERE id = @id AND user_id = @user_id;
 -- DeleteOtherSessions ends a user's sessions except one (uuid nil: all of them).
 DELETE FROM sessions WHERE user_id = @user_id AND id <> @keep;
 
+-- name: DeleteSessionsBefore :execrows
+-- DeleteSessionsBefore ends a user's sessions made before a time (Cenacle ID
+-- ended theirs then: a two-step reset, for one).
+DELETE FROM sessions WHERE user_id = @user_id AND created_at < @before;
+
 -- name: DeleteSessionsByIdpSid :many
 -- DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
 DELETE FROM sessions s

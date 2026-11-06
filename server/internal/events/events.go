@@ -29,9 +29,15 @@ type Event struct {
 
 // Event types.
 const (
-	MessageCreated = "message.created"
-	MessageUpdated = "message.updated"
-	MessageDeleted = "message.deleted"
+	CallRinging      = "call.ringing"
+	CallStarted      = "call.started"
+	CallJoined       = "call.joined"
+	CallLeft         = "call.left"
+	CallEnded        = "call.ended"
+	CallParticipants = "call.participants"
+	MessageCreated   = "message.created"
+	MessageUpdated   = "message.updated"
+	MessageDeleted   = "message.deleted"
 	// ReactionAdded and ReactionRemoved go to the channel's members.
 	ReactionAdded   = "reaction.added"
 	ReactionRemoved = "reaction.removed"

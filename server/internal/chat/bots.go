@@ -397,7 +397,7 @@ func (h *Handlers) CreateWebhook(w http.ResponseWriter, r *http.Request, botID o
 	}
 	name, problem := cleanName(in.Name)
 	if problem == "" && !slices.Contains([]string{"generic", "jira", "gitlab", "alertmanager", "github", "email"}, in.Kind) {
-		problem = "kind must be generic, jira, gitlab or alertmanager."
+		problem = "kind must be generic, jira, gitlab, alertmanager, github or email."
 	}
 	if problem != "" {
 		badRequest(w, r, problem)

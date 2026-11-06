@@ -81,6 +81,7 @@ func newShared(t *testing.T) shared {
 }
 
 type options struct {
+	calls *config.Calls
 	// files connects the test object store (and a scanner, when set).
 	files bool
 	// dir keeps the files in a directory instead (uploads go to the server).
@@ -90,6 +91,8 @@ type options struct {
 	perWindow   int64
 	maxLen      int64
 	httpTimeout time.Duration
+	// searchTimeout replaces the 10 seconds a search may run.
+	searchTimeout time.Duration
 	// pushKey turns on web push (subscriptions) with this public key.
 	pushKey string
 	// ai turns on the AI features with this model.
@@ -175,12 +178,13 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			SourceURL: config.DefaultSourceURL,
 		},
 		Chat: &chat.Handlers{
+			Calls:   chat.NewCallControl(o.calls, public.String(), sh.valkey),
 			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Replays: sh.valkey, Cookies: cookies, Log: log,
 			Audit: auditLog, PublicURL: public.String(), Egress: egressClient, Files: files,
 			AccountURL:        "http://id.test/account",
 			PushPublicKey:     pushKeyFunc(o.pushKey),
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
-			Presence: presence, LinkPreviews: true, AI: o.ai, Sessions: sessions,
+			Presence: presence, LinkPreviews: true, AI: o.ai, Sessions: sessions, SearchTimeout: o.searchTimeout,
 		},
 		Realtime: &realtime.Handler{
 			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: members, Presence: presence, Cookies: cookies, PublicURL: public,

@@ -20,6 +20,7 @@ type Querier interface {
 	AcceptSharedChannel(ctx context.Context, arg AcceptSharedChannelParams) (SharedChannel, error)
 	AcceptTerms(ctx context.Context, arg AcceptTermsParams) error
 	AckMessage(ctx context.Context, arg AckMessageParams) (int64, error)
+	ActivateCall(ctx context.Context, id pgtype.UUID) (Call, error)
 	ActivateFederationConnection(ctx context.Context, arg ActivateFederationConnectionParams) (FederationConnection, error)
 	// ActiveSharesOfChannel returns where a channel's events go: active shares of
 	// connections that are active or paused (a paused connection's events wait, in
@@ -79,6 +80,8 @@ type Querier interface {
 	AttachFiles(ctx context.Context, arg AttachFilesParams) (int64, error)
 	// AuditEventsAfter returns events after a cursor, oldest first (streaming).
 	AuditEventsAfter(ctx context.Context, arg AuditEventsAfterParams) ([]AuditEventsAfterRow, error)
+	BumpCallRevision(ctx context.Context, id pgtype.UUID) (Call, error)
+	CallAdmissionAllowed(ctx context.Context, arg CallAdmissionAllowedParams) (bool, error)
 	CancelEvent(ctx context.Context, id pgtype.UUID) (int64, error)
 	CancelScheduled(ctx context.Context, id pgtype.UUID) error
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
@@ -119,7 +122,9 @@ type Querier interface {
 	// ClearExpiredStatuses empties custom statuses whose time is up.
 	ClearExpiredStatuses(ctx context.Context) ([]pgtype.UUID, error)
 	ClearPollVotes(ctx context.Context, arg ClearPollVotesParams) error
+	CloseCallParticipants(ctx context.Context, callID pgtype.UUID) error
 	ClosePoll(ctx context.Context, messageID pgtype.UUID) error
+	ConnectCallParticipant(ctx context.Context, arg ConnectCallParticipantParams) (CallParticipant, error)
 	// ConversationReads returns how far the other members of a conversation who
 	// share read receipts have read.
 	ConversationReads(ctx context.Context, arg ConversationReadsParams) ([]ConversationReadsRow, error)
@@ -131,11 +136,15 @@ type Querier interface {
 	CountBackupBytes(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CountChannelFeeds(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountChannelTabs(ctx context.Context, channelID pgtype.UUID) (int32, error)
+	CountConnectedCallParticipants(ctx context.Context, callID pgtype.UUID) (int64, error)
 	CountCustomEmoji(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountForms(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountHeldMessages(ctx context.Context, arg CountHeldMessagesParams) (int64, error)
+	CountJoinedCallParticipants(ctx context.Context, callID pgtype.UUID) (int64, error)
 	CountListItems(ctx context.Context, listID pgtype.UUID) (int32, error)
 	CountMentionGroupManagers(ctx context.Context, groupID pgtype.UUID) (int32, error)
+	CountOpenCallParticipants(ctx context.Context, callID pgtype.UUID) (int64, error)
+	CountOpenCalls(ctx context.Context) (int64, error)
 	CountPendingScheduled(ctx context.Context, ownerID pgtype.UUID) (int64, error)
 	CountPins(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountPollVoters(ctx context.Context, messageIds []pgtype.UUID) ([]CountPollVotersRow, error)
@@ -160,6 +169,9 @@ type Querier interface {
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
 	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)
 	CreateBotUser(ctx context.Context, arg CreateBotUserParams) (User, error)
+	CreateCall(ctx context.Context, arg CreateCallParams) (Call, error)
+	// Empty body keeps this local under the federation text-only rule.
+	CreateCallSummaryMessage(ctx context.Context, arg CreateCallSummaryMessageParams) (Message, error)
 	CreateCanvas(ctx context.Context, arg CreateCanvasParams) (Canvase, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (ChannelCategory, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
@@ -244,11 +256,16 @@ type Querier interface {
 	// that committed later must stay for the next round.
 	DeleteOutboxEvents(ctx context.Context, ids []int64) error
 	DeletePicture(ctx context.Context, id pgtype.UUID) error
+	// DeletePictureIfUnused removes a picture nothing shows any more.
+	DeletePictureIfUnused(ctx context.Context, id pgtype.UUID) (int64, error)
 	// DeleteRecovery forgets the recovery key and the backups sealed with it.
 	DeleteRecovery(ctx context.Context, userID pgtype.UUID) error
 	DeleteRsvp(ctx context.Context, arg DeleteRsvpParams) error
 	DeleteSaved(ctx context.Context, arg DeleteSavedParams) (SavedMessage, error)
 	DeleteSession(ctx context.Context, id pgtype.UUID) error
+	// DeleteSessionsBefore ends a user's sessions made before a time (Cenacle ID
+	// ended theirs then: a two-step reset, for one).
+	DeleteSessionsBefore(ctx context.Context, arg DeleteSessionsBeforeParams) (int64, error)
 	// DeleteSessionsByIdpSid ends the sessions of one Cenacle ID sign-in.
 	DeleteSessionsByIdpSid(ctx context.Context, arg DeleteSessionsByIdpSidParams) ([]pgtype.UUID, error)
 	// DeleteSessionsBySubject ends every session of an identity (logout without sid).
@@ -290,9 +307,15 @@ type Querier interface {
 	// EmailRecipients are people who want e-mail about what they missed and have
 	// a verified address.
 	EmailRecipients(ctx context.Context) ([]pgtype.UUID, error)
+	// EmitErasedMessages records message.deleted for every message the erasure has
+	// just deleted (deleted_at is the transaction's time), all at once: for open
+	// apps (the outbox), for the bots subscribed in the message's channel and for
+	// the servers the channel is shared with, as emit would one by one.
+	EmitErasedMessages(ctx context.Context, userID pgtype.UUID) (EmitErasedMessagesRow, error)
 	// EnableMLS turns on end-to-end encryption with device keys; it cannot be
 	// turned off.
 	EnableMLS(ctx context.Context, id pgtype.UUID) (int64, error)
+	EndCall(ctx context.Context, arg EndCallParams) (Call, error)
 	EndCanvasTurn(ctx context.Context, arg EndCanvasTurnParams) (pgtype.UUID, error)
 	// EndLinkGuests deactivates the people of revoked and expired links.
 	EndLinkGuests(ctx context.Context) (int64, error)
@@ -302,20 +325,30 @@ type Querier interface {
 	// ruled, encrypted, group-managed channel or a conversation of that name is
 	// left alone and no row is returned.
 	EnsureChannel(ctx context.Context, arg EnsureChannelParams) (Channel, error)
+	EraseCallInitiator(ctx context.Context, userID pgtype.UUID) (int64, error)
+	EraseCallParticipants(ctx context.Context, userID pgtype.UUID) (int64, error)
 	// EraseUser anonymizes an account: no name, address, picture or status; it can
 	// no longer sign in (a new sign-in makes a new account).
 	EraseUser(ctx context.Context, arg EraseUserParams) (User, error)
+	// EraseUserAuditEvents blanks the address (IP) of the audit events a person did
+	// and keeps only the neutral parts of their detail; who did what and when stays.
+	EraseUserAuditEvents(ctx context.Context, arg EraseUserAuditEventsParams) (int64, error)
 	// EraseUserDeliveries removes the queued bot and federation deliveries of a
 	// person's messages (also those a legal hold keeps: the hold keeps the message,
 	// not copies on their way out) and the bot deliveries of their reactions.
 	EraseUserDeliveries(ctx context.Context, userID pgtype.UUID) (int32, error)
-	// EraseUserMessages deletes a person's messages that no legal hold keeps (the
-	// purge removes them for good within the restore window) and counts those kept.
+	// EraseUserMessages deletes a person's messages (the purge removes them for good
+	// within the restore window). Those a legal hold keeps are marked deleted too,
+	// so nobody sees them, and keep their text and edits for eDiscovery; the purge
+	// removes them once the hold no longer keeps them.
 	EraseUserMessages(ctx context.Context, arg EraseUserMessagesParams) (EraseUserMessagesRow, error)
 	// EraseUserTraces removes what a person kept or set for themselves.
 	EraseUserTraces(ctx context.Context, userID pgtype.UUID) error
 	// ExpireBotToken lets a token work until a time (rotation overlap).
 	ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) (BotToken, error)
+	ExpireCallReservations(ctx context.Context, callID pgtype.UUID) (int64, error)
+	ExpireDisconnectedCallParticipants(ctx context.Context, callID pgtype.UUID) (int64, error)
+	ExpireUserCallReservation(ctx context.Context, userID pgtype.UUID) error
 	// ExportMessages returns a page of messages for eDiscovery, deleted ones
 	// included, oldest first.
 	ExportMessages(ctx context.Context, arg ExportMessagesParams) ([]ExportMessagesRow, error)
@@ -347,6 +380,7 @@ type Querier interface {
 	FollowImportedThreads(ctx context.Context, channelID pgtype.UUID) error
 	// FollowThread makes people follow a thread unless they chose otherwise before.
 	FollowThread(ctx context.Context, arg FollowThreadParams) error
+	ForceLeaveCallUser(ctx context.Context, arg ForceLeaveCallUserParams) (int64, error)
 	// ForgetTriggerMessage takes a removed message's text out of the runs it
 	// started (their variables) and of their tasks (titles rendered from them).
 	ForgetTriggerMessage(ctx context.Context, messageID pgtype.UUID) ([]pgtype.UUID, error)
@@ -369,10 +403,15 @@ type Querier interface {
 	GetBanner(ctx context.Context) (InstanceBanner, error)
 	GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
 	GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotToken, error)
+	// SPDX-License-Identifier: AGPL-3.0-only
+	GetCall(ctx context.Context, id pgtype.UUID) (Call, error)
+	GetCallByNonce(ctx context.Context, arg GetCallByNonceParams) (Call, error)
+	GetCallSettings(ctx context.Context, workspaceID pgtype.UUID) (GetCallSettingsRow, error)
 	GetCanvas(ctx context.Context, id pgtype.UUID) (GetCanvasRow, error)
 	GetCategory(ctx context.Context, id pgtype.UUID) (ChannelCategory, error)
 	GetChannel(ctx context.Context, id pgtype.UUID) (Channel, error)
 	GetChannelByName(ctx context.Context, arg GetChannelByNameParams) (Channel, error)
+	GetChannelCall(ctx context.Context, channelID pgtype.UUID) (Call, error)
 	GetChannelOffer(ctx context.Context, id pgtype.UUID) (ChannelOffer, error)
 	GetChannelTab(ctx context.Context, id pgtype.UUID) (ChannelTab, error)
 	GetClassification(ctx context.Context, id pgtype.UUID) (Classification, error)
@@ -418,6 +457,7 @@ type Querier interface {
 	GetNotificationPolicy(ctx context.Context) (GetNotificationPolicyRow, error)
 	GetNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]byte, error)
 	GetNotifyCursor(ctx context.Context, name string) (GetNotifyCursorRow, error)
+	GetOpenUserCallParticipant(ctx context.Context, userID pgtype.UUID) (CallParticipant, error)
 	GetPicture(ctx context.Context, id pgtype.UUID) (GetPictureRow, error)
 	GetPlaybook(ctx context.Context, id pgtype.UUID) (Playbook, error)
 	GetPoll(ctx context.Context, messageID pgtype.UUID) (Poll, error)
@@ -495,6 +535,7 @@ type Querier interface {
 	// LastMessageAt is when a member last sent a message in a channel (slow mode).
 	LastMessageAt(ctx context.Context, arg LastMessageAtParams) (time.Time, error)
 	LatestAuditEventID(ctx context.Context) (pgtype.UUID, error)
+	LeaveCallParticipant(ctx context.Context, arg LeaveCallParticipantParams) (int64, error)
 	// LeaveChannelsViaGroup takes the person out of channels their groups no
 	// longer give: group-given memberships, and any membership of a channel
 	// managed by groups.
@@ -531,6 +572,8 @@ type Querier interface {
 	ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotToken, error)
 	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
 	ListBurnReveals(ctx context.Context, arg ListBurnRevealsParams) ([]ListBurnRevealsRow, error)
+	// Live snapshots/reconciliation are bounded; historical export has its own cursor.
+	ListCallParticipants(ctx context.Context, callID pgtype.UUID) ([]CallParticipant, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
 	ListCategoryIDs(ctx context.Context, workspaceID pgtype.UUID) ([]pgtype.UUID, error)
 	ListChannelFeeds(ctx context.Context, channelID pgtype.UUID) ([]ChannelFeed, error)
@@ -612,6 +655,7 @@ type Querier interface {
 	// ListMessagesForAI returns the newest readable messages of a channel (or of
 	// a thread: its root and replies), newest first.
 	ListMessagesForAI(ctx context.Context, arg ListMessagesForAIParams) ([]ListMessagesForAIRow, error)
+	ListOpenCalls(ctx context.Context) ([]Call, error)
 	// ListOpenWorkflowTasks returns the open tasks of a person in a workspace, newest first.
 	ListOpenWorkflowTasks(ctx context.Context, arg ListOpenWorkflowTasksParams) ([]ListOpenWorkflowTasksRow, error)
 	ListOutboxEvents(ctx context.Context, rowLimit int32) ([]EventOutbox, error)
@@ -668,6 +712,7 @@ type Querier interface {
 	ListUserDevicesFor(ctx context.Context, userIds []pgtype.UUID) ([]ListUserDevicesForRow, error)
 	ListUserFonts(ctx context.Context, userID pgtype.UUID) ([]ListUserFontsRow, error)
 	ListUserGroups(ctx context.Context, userID pgtype.UUID) ([]string, error)
+	ListUserOpenCalls(ctx context.Context, userID pgtype.UUID) ([]Call, error)
 	// ListUserSessions returns a user's usable sessions, most recently used first.
 	ListUserSessions(ctx context.Context, arg ListUserSessionsParams) ([]Session, error)
 	ListUserSounds(ctx context.Context, userID pgtype.UUID) ([]ListUserSoundsRow, error)
@@ -692,6 +737,8 @@ type Querier interface {
 	ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error)
 	ListWorkspaceNotificationPrefs(ctx context.Context, userID pgtype.UUID) ([]ListWorkspaceNotificationPrefsRow, error)
 	LocalMessageOf(ctx context.Context, arg LocalMessageOfParams) (pgtype.UUID, error)
+	LockCall(ctx context.Context, id pgtype.UUID) (Call, error)
+	LockCallCreation(ctx context.Context) error
 	// LockFederationSending makes the caller's transaction the only sender of a
 	// connection (false: another one is sending). The schema is part of the key,
 	// so installations sharing a database do not wait for each other.
@@ -699,6 +746,9 @@ type Querier interface {
 	// LockGroupRenameCursor reads the last group rename applied and holds it until
 	// the transaction ends (a sign-in and the feed may follow renames at once).
 	LockGroupRenameCursor(ctx context.Context) (int64, error)
+	// LockUserAvatar returns a person's profile picture, holding the row until the
+	// erasure commits.
+	LockUserAvatar(ctx context.Context, id pgtype.UUID) (pgtype.UUID, error)
 	// MarkArchiveStale marks the daily export holding a message to be written again.
 	MarkArchiveStale(ctx context.Context, messageID pgtype.UUID) (int64, error)
 	// MarkArchiveStaleForAuthor marks the daily exports holding a person's
@@ -759,7 +809,19 @@ type Querier interface {
 	// PeopleSharingChannels is everyone who is in a channel of the workspace with
 	// the person (what a guest may see of a workspace).
 	PeopleSharingChannels(ctx context.Context, arg PeopleSharingChannelsParams) ([]pgtype.UUID, error)
+	// PruneAIRequests deletes up to row_limit records of AI requests from before the
+	// cut-off (CENACLE_AI_REQUEST_RETENTION), along the primary key like audit events.
+	PruneAIRequests(ctx context.Context, arg PruneAIRequestsParams) (int64, error)
+	// PruneAuditEvents deletes up to row_limit audit events from before the cut-off
+	// (CENACLE_AUDIT_RETENTION), never ones a running audit stream has not sent yet.
+	// Event ids are UUIDv7 made from their time, so the oldest id of the cut-off's
+	// millisecond bounds the walk along the primary key.
+	PruneAuditEvents(ctx context.Context, arg PruneAuditEventsParams) (int64, error)
 	PruneDeliveries(ctx context.Context) (int64, error)
+	// PruneLinkPreviews deletes up to row_limit link previews fetched before the
+	// cut-off (CENACLE_LINK_PREVIEW_RETENTION) and returns their pictures; messages
+	// that showed one show the bare link. A message posted later fetches it again.
+	PruneLinkPreviews(ctx context.Context, arg PruneLinkPreviewsParams) ([]pgtype.UUID, error)
 	// PurgeBurned removes burn-on-read messages every other member has read and
 	// whose time is up, and any older than a week. Messages a legal hold keeps are
 	// deleted for people instead (and stay for eDiscovery).
@@ -769,6 +831,8 @@ type Querier interface {
 	// with a reply it keeps (deleting a root deletes its replies).
 	PurgeDeletedMessages(ctx context.Context, restoreWindow pgtype.Interval) (int64, error)
 	PurgeDialogs(ctx context.Context) (int64, error)
+	PurgeErasedCallInitiators(ctx context.Context, rowLimit int32) (int64, error)
+	PurgeExpiredCalls(ctx context.Context, rowLimit int32) (int64, error)
 	// PurgeExpiredMessages deletes up to row_limit messages older than their
 	// channel's (or workspace's) retention, except those a legal hold keeps
 	// (thread roots too while it keeps one of their replies).
@@ -777,6 +841,7 @@ type Querier interface {
 	// too), so the oldest id of the cut-off's millisecond bounds the range. The
 	// ids are collected first, so the delete finds them by primary key.
 	PurgeExpiredMessages(ctx context.Context, rowLimit int32) (int64, error)
+	PurgeReleasedCallRedactions(ctx context.Context, rowLimit int32) (int64, error)
 	PushDelivered(ctx context.Context, endpoint string) error
 	// PushFailed rests an endpoint after a failed delivery: a minute, doubling
 	// with each failure in a row, an hour at most.
@@ -794,6 +859,7 @@ type Querier interface {
 	// channel: a conversation of a workspace that turned them on, and the person
 	// shares theirs.
 	ReceiptsAllowed(ctx context.Context, arg ReceiptsAllowedParams) (bool, error)
+	ReconnectCallParticipant(ctx context.Context, arg ReconnectCallParticipantParams) (int64, error)
 	RecordAIRequest(ctx context.Context, arg RecordAIRequestParams) error
 	RecordFederatedMessage(ctx context.Context, arg RecordFederatedMessageParams) error
 	RecordReminder(ctx context.Context, arg RecordReminderParams) error
@@ -803,6 +869,7 @@ type Querier interface {
 	// RedactForwardDeliveries empties the snapshot of a spilled message in the
 	// queued bot deliveries of the messages that forwarded it.
 	RedactForwardDeliveries(ctx context.Context, id pgtype.UUID) (int64, error)
+	RedactHeldCallParticipants(ctx context.Context, userID pgtype.UUID) (int64, error)
 	// RedactMessage empties a spilled message and its traces; legal holds do not
 	// keep spillage.
 	RedactMessage(ctx context.Context, arg RedactMessageParams) (RedactMessageRow, error)
@@ -858,6 +925,7 @@ type Querier interface {
 	// ResendDelivery queues a delivery again if the bot may still get it (sendable);
 	// otherwise it stays as it is.
 	ResendDelivery(ctx context.Context, arg ResendDeliveryParams) (bool, error)
+	ReserveCallParticipant(ctx context.Context, arg ReserveCallParticipantParams) (CallParticipant, error)
 	// ResolveReports closes every open report of a message.
 	ResolveReports(ctx context.Context, arg ResolveReportsParams) ([]MessageReport, error)
 	// RestoreMessage brings back a message deleted less than restore_window ago.
@@ -889,8 +957,11 @@ type Querier interface {
 	// SearchCanvases finds canvases of the user's channels by their text.
 	SearchCanvases(ctx context.Context, arg SearchCanvasesParams) ([]SearchCanvasesRow, error)
 	// SearchFiles finds files by name or by their text in the user's channels,
-	// newest first, with the matching words of the text.
-	// Files of a deleted message go with it (also while a legal hold keeps them).
+	// newest first, with the matching words of the text. Name and text are looked up
+	// apart, each through its own index and with every filter, and each keeps the
+	// newest page: asked as one condition with OR, PostgreSQL read every file newest
+	// first on a large server (seconds for a rare word). UNION drops a file found both
+	// ways.
 	SearchFiles(ctx context.Context, arg SearchFilesParams) ([]SearchFilesRow, error)
 	// SearchListItems finds rows of the lists of the user's channels.
 	SearchListItems(ctx context.Context, arg SearchListItemsParams) ([]SearchListItemsRow, error)
@@ -970,6 +1041,9 @@ type Querier interface {
 	SetRsvp(ctx context.Context, arg SetRsvpParams) error
 	SetRunChecklists(ctx context.Context, arg SetRunChecklistsParams) (PlaybookRun, error)
 	SetSavedReminder(ctx context.Context, arg SetSavedReminderParams) error
+	// SetSearchTimeout limits the statements of the current transaction (in
+	// milliseconds); it ends with the transaction.
+	SetSearchTimeout(ctx context.Context, timeout string) error
 	SetSessionPolicy(ctx context.Context, arg SetSessionPolicyParams) error
 	SetSpillageReviewers(ctx context.Context, arg SetSpillageReviewersParams) error
 	// SetThreadFollowing records a choice to follow (from the latest reply on: older
@@ -994,6 +1068,7 @@ type Querier interface {
 	ShareChannel(ctx context.Context, arg ShareChannelParams) (SharedChannel, error)
 	// SpillageExposure is who could see a channel's message when it was removed.
 	SpillageExposure(ctx context.Context, channelID pgtype.UUID) ([]SpillageExposureRow, error)
+	StartConnectedCall(ctx context.Context, id pgtype.UUID) (Call, error)
 	// TakeCanvasTurn gives the user the turn to edit when nobody else holds it;
 	// no row means someone else is editing.
 	TakeCanvasTurn(ctx context.Context, arg TakeCanvasTurnParams) (pgtype.UUID, error)
@@ -1011,6 +1086,7 @@ type Querier interface {
 	UnshareChannel(ctx context.Context, arg UnshareChannelParams) error
 	UpdateAutomodRule(ctx context.Context, arg UpdateAutomodRuleParams) (AutomodRule, error)
 	UpdateBot(ctx context.Context, arg UpdateBotParams) error
+	UpdateCallSettings(ctx context.Context, arg UpdateCallSettingsParams) error
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (ChannelCategory, error)
 	UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error)
 	UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error)
@@ -1043,8 +1119,20 @@ type Querier interface {
 	// UseInvite counts one use of a valid invitation; no row when it is not valid.
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
 	UserAuditEvents(ctx context.Context, userID pgtype.UUID) ([]UserAuditEventsRow, error)
+	UserCallMetadataAfter(ctx context.Context, arg UserCallMetadataAfterParams) ([]UserCallMetadataAfterRow, error)
 	UserChannels(ctx context.Context, userID pgtype.UUID) ([]UserChannelsRow, error)
 	UserExists(ctx context.Context, arg UserExistsParams) (bool, error)
+	// UserExportRows returns the rest of what is stored about a person for their
+	// data export, one row per item: what they wrote or set, what they made, and
+	// what was recorded about them. Secrets (token and password hashes, signing and
+	// push keys, end-to-end key material) stay out; the bytes of their uploaded
+	// fonts and sounds and of their profile picture are in base64.
+	// Settings.
+	// What they made.
+	// Recorded about them by others (who did it stays out: the actor and their address).
+	UserExportRows(ctx context.Context, userID pgtype.UUID) ([]UserExportRowsRow, error)
+	// UserFileKeys returns a person's uploaded files whose bytes are stored.
+	UserFileKeys(ctx context.Context, userID pgtype.UUID) ([]UserFileKeysRow, error)
 	UserFiles(ctx context.Context, userID pgtype.UUID) ([]UserFilesRow, error)
 	// UserMessagesAfter returns the messages a person wrote, oldest first, after a
 	// cursor (their data export).

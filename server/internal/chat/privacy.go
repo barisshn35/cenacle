@@ -5,8 +5,10 @@ package chat
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -33,7 +35,8 @@ type exportItem struct {
 	Data any    `json:"data"`
 }
 
-// writeUserData streams everything stored about a person as NDJSON.
+// writeUserData streams what the chat stores about a person as NDJSON (their
+// Cenacle ID account has its own export).
 func (h *Handlers) writeUserData(ctx context.Context, w http.ResponseWriter, u store.User) error {
 	w.Header().Set("Content-Type", "application/x-ndjson")
 	w.Header().Set("Content-Disposition", `attachment; filename="cenacle-data.ndjson"`)
@@ -154,7 +157,73 @@ func (h *Handlers) writeUserData(ctx context.Context, w http.ResponseWriter, u s
 			return err
 		}
 	}
+	rest, err := h.Queries.UserExportRows(ctx, u.ID)
+	if err != nil {
+		return err
+	}
+	for _, row := range rest {
+		if err := put(row.Kind, json.RawMessage(row.Data)); err != nil {
+			return err
+		}
+	}
+	if err := h.writeUserFiles(ctx, out, put, u.ID); err != nil {
+		return err
+	}
+	if err := h.writeUserCalls(ctx, put, u.ID); err != nil {
+		return err
+	}
 	return out.Flush()
+}
+
+// exportChunk is how much of a file one export line carries.
+const exportChunk = 1 << 20
+
+// writeUserFiles adds the bytes of the files a person uploaded, in base64 lines
+// of at most a mebibyte each (file_id, offset).
+func (h *Handlers) writeUserFiles(ctx context.Context, out *bufio.Writer, put func(string, any) error, user pgtype.UUID) error {
+	if h.Files == nil || h.Files.Store == nil {
+		return nil
+	}
+	files, err := h.Queries.UserFileKeys(ctx, user)
+	if err != nil {
+		return err
+	}
+	buf := make([]byte, exportChunk)
+	for _, f := range files {
+		obj, err := h.Files.Store.Open(ctx, fileKey(f.ID))
+		if err != nil {
+			// A file whose object is gone says so instead of ending the export.
+			if err := put("file_content", map[string]any{"file_id": uuid(f.ID).String(), "missing": true}); err != nil {
+				return err
+			}
+			continue
+		}
+		var offset int64
+		for {
+			n, rerr := io.ReadFull(obj, buf)
+			if n > 0 {
+				if err := put("file_content", map[string]any{"file_id": uuid(f.ID).String(), "offset": offset,
+					"data_base64": base64.StdEncoding.EncodeToString(buf[:n])}); err != nil {
+					_ = obj.Close()
+					return err
+				}
+				offset += int64(n)
+				if err := out.Flush(); err != nil {
+					_ = obj.Close()
+					return err
+				}
+			}
+			if rerr == io.EOF || rerr == io.ErrUnexpectedEOF {
+				break
+			}
+			if rerr != nil {
+				_ = obj.Close()
+				return rerr
+			}
+		}
+		_ = obj.Close()
+	}
+	return nil
 }
 
 func (h *Handlers) adminTarget(w http.ResponseWriter, r *http.Request, userID openapi_types.UUID) (auth.Principal, store.User, bool) {
@@ -210,6 +279,14 @@ func (h *Handlers) ExportMyData(w http.ResponseWriter, r *http.Request) {
 }
 
 // EraseUser implements api.ServerInterface.
+// auditNeutralDetail are the parts of an audit event's detail that say nothing
+// about the person who did it; erasure keeps them and drops the rest (names,
+// addresses and whatever later events add).
+var auditNeutralDetail = []string{
+	"by", "channel", "enabled", "ended", "kept_current", "key_id", "kind", "link",
+	"messages_erased", "messages_held", "mode", "prefix", "servers", "sid", "since", "until",
+}
+
 func (h *Handlers) EraseUser(w http.ResponseWriter, r *http.Request, userID openapi_types.UUID) {
 	var in api.EraseUserJSONBody
 	if !decode(w, r, &in) {
@@ -232,22 +309,40 @@ func (h *Handlers) EraseUser(w http.ResponseWriter, r *http.Request, userID open
 	}
 	var counts store.EraseUserMessagesRow
 	err := h.inTx(r.Context(), func(q *store.Queries) error {
-		var err error
+		avatar, err := q.LockUserAvatar(r.Context(), u.ID)
+		if err != nil {
+			return err
+		}
 		if counts, err = q.EraseUserMessages(r.Context(), store.EraseUserMessagesParams{UserID: u.ID, ErasedBy: p.User.ID}); err != nil {
+			return err
+		}
+		if err := eraseUserCalls(r.Context(), q, u.ID); err != nil {
 			return err
 		}
 		// Copies on their way to bots and other servers go too.
 		if _, err := q.EraseUserDeliveries(r.Context(), u.ID); err != nil {
 			return err
 		}
+		// Open apps, bots and other servers take the messages away.
+		if _, err := q.EmitErasedMessages(r.Context(), u.ID); err != nil {
+			return err
+		}
 		if err := q.EraseUserTraces(r.Context(), u.ID); err != nil {
+			return err
+		}
+		if _, err := q.EraseUserAuditEvents(r.Context(), store.EraseUserAuditEventsParams{UserID: u.ID, Neutral: auditNeutralDetail}); err != nil {
 			return err
 		}
 		// Daily archive objects with their name, address and messages are written again.
 		if err := q.MarkArchiveStaleForAuthor(r.Context(), u.ID); err != nil {
 			return err
 		}
-		_, err = q.EraseUser(r.Context(), store.EraseUserParams{ID: u.ID, DisplayName: ErasedName})
+		if _, err = q.EraseUser(r.Context(), store.EraseUserParams{ID: u.ID, DisplayName: ErasedName}); err != nil {
+			return err
+		}
+		if avatar.Valid {
+			_, err = q.DeletePictureIfUnused(r.Context(), avatar)
+		}
 		return err
 	})
 	if err != nil {

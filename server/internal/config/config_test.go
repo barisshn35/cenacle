@@ -264,6 +264,28 @@ func TestLoadSessionLimits(t *testing.T) {
 	}
 }
 
+func TestLoadRecordRetention(t *testing.T) {
+	base := map[string]string{
+		"CENACLE_DATABASE_URL":       "postgres://u:p@localhost/chat",
+		"CENACLE_OIDC_CLIENT_SECRET": "secret",
+	}
+	cfg, err := LoadServe(env(base), files(nil))
+	if err != nil || cfg.AuditRetention != 0 || cfg.AIRequestRetention != 0 || cfg.LinkPreviewRetention != 0 {
+		t.Fatalf("default: %v %v %v %v", err, cfg.AuditRetention, cfg.AIRequestRetention, cfg.LinkPreviewRetention)
+	}
+	base["CENACLE_AUDIT_RETENTION"] = "8760h"
+	base["CENACLE_AI_REQUEST_RETENTION"] = "none"
+	base["CENACLE_LINK_PREVIEW_RETENTION"] = "720h"
+	cfg, err = LoadServe(env(base), files(nil))
+	if err != nil || cfg.AuditRetention != 8760*time.Hour || cfg.AIRequestRetention != 0 || cfg.LinkPreviewRetention != 720*time.Hour {
+		t.Fatalf("set: %v %v %v %v", err, cfg.AuditRetention, cfg.AIRequestRetention, cfg.LinkPreviewRetention)
+	}
+	base["CENACLE_AI_REQUEST_RETENTION"] = "a year"
+	if _, err := LoadServe(env(base), files(nil)); err == nil || !strings.Contains(err.Error(), "CENACLE_AI_REQUEST_RETENTION") {
+		t.Fatalf("bad value: %v", err)
+	}
+}
+
 func TestLoadValueWinsOverEmptyFile(t *testing.T) {
 	// prod.yml always mounts secrets/smtp_password; an empty one leaves the
 	// password to CENACLE_SMTP_PASSWORD.

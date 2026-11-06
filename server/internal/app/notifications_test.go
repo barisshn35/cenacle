@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -84,6 +85,96 @@ func TestSearchMessages(t *testing.T) {
 	// Nothing to search for.
 	if status, _ := problemCode(t, s, http.MethodGet, "/api/search/messages?"+q("?? !!"), ayse, nil); status != http.StatusBadRequest {
 		t.Errorf("punctuation only = %d", status)
+	}
+}
+
+// A word with a hyphen or an apostrophe is stored in parts; searching for it
+// finds it, and its beginning still finds it.
+func TestSearchWordsInParts(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-ayse", "Ayşe")
+	general := s.general(ayse)
+	s.send(ayse, general, "Yeni e-mail adresim", "n-parts-1")
+	s.send(ayse, general, "Load message load-5-1", "n-parts-2")
+	s.send(ayse, general, "Load message load-6-1", "n-parts-3")
+	s.send(ayse, general, "Toplantı İstanbul'da", "n-parts-4")
+	s.send(ayse, general, "Yemek İstanbul’da", "n-parts-5")
+
+	for _, c := range []struct {
+		query string
+		want  []string
+	}{
+		{"e-mail", []string{"Yeni e-mail adresim"}},
+		{"e-ma", []string{"Yeni e-mail adresim"}},
+		{"load-5", []string{"Load message load-5-1"}},
+		{"İstanbul'da", []string{"Yemek İstanbul’da", "Toplantı İstanbul'da"}},
+		{"istanbul’da toplanti", []string{"Toplantı İstanbul'da"}},
+		{"istanbul", []string{"Yemek İstanbul’da", "Toplantı İstanbul'da"}},
+		{"load -load-6", []string{"Load message load-5-1"}},
+	} {
+		r := s.search(ayse, "q="+url.QueryEscape(c.query))
+		var got []string
+		for _, m := range r.Results {
+			got = append(got, m.Body)
+		}
+		if !slices.Equal(got, c.want) {
+			t.Errorf("%q = %q, want %q", c.query, got, c.want)
+		}
+	}
+}
+
+// The planner knows how often each word occurs (the search indexes are partial,
+// and their own statistics go unused), and new messages go into the index at once.
+func TestSearchIndexSettings(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ctx := context.Background()
+	var stats []string
+	rows, err := s.pool.Query(ctx, `SELECT stxname FROM pg_statistic_ext
+		WHERE stxnamespace = current_schema()::regnamespace ORDER BY stxname`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			t.Fatal(err)
+		}
+		stats = append(stats, name)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"files_content_search_stats", "messages_search_stats"}; !slices.Equal(stats, want) {
+		t.Errorf("statistics = %q, want %q", stats, want)
+	}
+	var options []string
+	if err := s.pool.QueryRow(ctx, `SELECT coalesce(reloptions, '{}') FROM pg_class
+		WHERE oid = 'messages_search_idx'::regclass`).Scan(&options); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(options, []string{"fastupdate=off"}) {
+		t.Errorf("messages_search_idx options = %q", options)
+	}
+	// The words of a text cost what they do, and the body is not copied into
+	// queries (migration 00061); the words themselves are the same as before.
+	var cost float64
+	var config []string
+	if err := s.pool.QueryRow(ctx, `SELECT procost, coalesce(proconfig, '{}') FROM pg_proc
+		WHERE oid = 'cenacle_search_vector(text)'::regprocedure`).Scan(&cost, &config); err != nil {
+		t.Fatal(err)
+	}
+	if cost != 10000 || !slices.Equal(config, []string{"search_path=pg_catalog, public"}) {
+		t.Errorf("cenacle_search_vector cost = %v, config = %q", cost, config)
+	}
+	for _, text := range []string{"İstanbul'da IŞIK ılık", "e-mail load-5 Çağrı ÖĞLE", "Fatura_2026.pdf  \t çift  boşluk", "", "ﬁ ß ½ 🙂 naïve café"} {
+		var same bool
+		if err := s.pool.QueryRow(ctx, `SELECT cenacle_search_vector($1) = to_tsvector('simple'::regconfig,
+			public.unaccent('public.unaccent'::regdictionary, lower(translate($1, 'İIı', 'iii'))))`, text).Scan(&same); err != nil {
+			t.Fatal(err)
+		}
+		if !same {
+			t.Errorf("cenacle_search_vector(%q) changed", text)
+		}
 	}
 }
 
@@ -444,5 +535,83 @@ func TestPushEndsWithSession(t *testing.T) {
 	// Once its session is gone the endpoint is free again.
 	if res := s.call(http.MethodPost, "/api/me/push-subscriptions", deniz, sub, nil); res.StatusCode != http.StatusNoContent {
 		t.Errorf("subscribe after sign-out = %d", res.StatusCode)
+	}
+}
+
+// A search that runs too long stops with its own error; nothing else is limited,
+// and no pooled connection keeps the limit.
+func TestSearchTimeout(t *testing.T) {
+	limit := 300 * time.Millisecond
+	s := newStack(t, newShared(t), options{searchTimeout: limit})
+	ctx := context.Background()
+	ayse := s.user("sub-ayse", "Ayşe")
+	general := s.general(ayse)
+	s.send(ayse, general, "Zeytin hasadı", "n-timeout-1")
+
+	var before string
+	if err := s.pool.QueryRow(ctx, "SHOW statement_timeout").Scan(&before); err != nil {
+		t.Fatal(err)
+	}
+	// Another session holds the tables, so every query on them waits.
+	lock, err := s.pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lock.Exec(ctx, "LOCK TABLE messages, files, canvases IN ACCESS EXCLUSIVE MODE"); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/api/search/messages?q=zeytin", "/api/search/files?q=zeytin", "/api/search/content?q=zeytin"} {
+		var p struct{ Code, Detail string }
+		begin := time.Now()
+		res := s.call(http.MethodGet, path, ayse, nil, &p)
+		took := time.Since(begin)
+		if res.StatusCode != http.StatusServiceUnavailable || p.Code != "search_timeout" {
+			t.Errorf("%s = %d %q, want 503 search_timeout", path, res.StatusCode, p.Code)
+		}
+		if took < limit || took > limit+2*time.Second {
+			t.Errorf("%s took %v, want about %v", path, took, limit)
+		}
+	}
+	// History waits for the same lock longer than the search limit, and is answered.
+	released := make(chan struct{})
+	time.AfterFunc(3*limit, func() {
+		_ = lock.Rollback(ctx)
+		close(released)
+	})
+	var page struct{ Messages []message }
+	begin := time.Now()
+	if res := s.call(http.MethodGet, "/api/channels/"+general+"/messages", ayse, nil, &page); res.StatusCode != http.StatusOK || len(page.Messages) != 1 {
+		t.Errorf("history = %d %d", res.StatusCode, len(page.Messages))
+	}
+	if took := time.Since(begin); took < 2*limit {
+		t.Errorf("history took %v: the lock was gone too early for the check", took)
+	}
+	<-released
+
+	// Searches answer again; one that succeeds commits its transaction.
+	for _, path := range []string{"/api/search/messages?q=zeytin", "/api/search/files?q=zeytin", "/api/search/content?q=zeytin"} {
+		if res := s.call(http.MethodGet, path, ayse, nil, nil); res.StatusCode != http.StatusOK {
+			t.Errorf("%s after the lock = %d", path, res.StatusCode)
+		}
+	}
+	if r := s.search(ayse, "q=zeytin"); len(r.Results) != 1 {
+		t.Errorf("search after the lock = %d results", len(r.Results))
+	}
+	// Every idle connection of the pool (the searches' are idle again) has the
+	// setting of before.
+	conns := s.pool.AcquireAllIdle(ctx)
+	if len(conns) == 0 {
+		t.Fatal("no idle connections")
+	}
+	for i, c := range conns {
+		var v string
+		err := c.QueryRow(ctx, "SHOW statement_timeout").Scan(&v)
+		c.Release()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v != before {
+			t.Errorf("connection %d: statement_timeout = %q, want %q", i, v, before)
+		}
 	}
 }

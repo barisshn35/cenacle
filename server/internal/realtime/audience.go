@@ -49,6 +49,8 @@ func (a *audience) inChannel(id string) bool {
 
 // channelEvents go to the members of the channel named by channel_id.
 var channelEvents = map[string]bool{
+	events.CallRinging: true, events.CallStarted: true, events.CallJoined: true,
+	events.CallLeft: true, events.CallEnded: true, events.CallParticipants: true,
 	events.MessageCreated: true, events.MessageUpdated: true, events.MessageDeleted: true,
 	events.ReactionAdded: true, events.ReactionRemoved: true,
 	events.ChannelUpdated: true, events.ChannelMembersChanged: true, events.ThreadUpdated: true,

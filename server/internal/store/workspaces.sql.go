@@ -99,7 +99,7 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (Wor
 }
 
 const createWorkspace = `-- name: CreateWorkspace :one
-INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day
+INSERT INTO workspaces (name, is_default) VALUES ($1, $2) RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate
 `
 
 type CreateWorkspaceParams struct {
@@ -132,12 +132,16 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.SpillageReviewers,
 		&i.ArchiveFormat,
 		&i.ArchiveLastDay,
+		&i.CallsEnabled,
+		&i.CallsGuestStart,
+		&i.CallsMaxParticipants,
+		&i.CallsMaxBitrate,
 	)
 	return i, err
 }
 
 const getDefaultWorkspace = `-- name: GetDefaultWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day FROM workspaces WHERE is_default
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate FROM workspaces WHERE is_default
 `
 
 func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
@@ -165,6 +169,10 @@ func (q *Queries) GetDefaultWorkspace(ctx context.Context) (Workspace, error) {
 		&i.SpillageReviewers,
 		&i.ArchiveFormat,
 		&i.ArchiveLastDay,
+		&i.CallsEnabled,
+		&i.CallsGuestStart,
+		&i.CallsMaxParticipants,
+		&i.CallsMaxBitrate,
 	)
 	return i, err
 }
@@ -200,7 +208,7 @@ func (q *Queries) GetInviteByHash(ctx context.Context, tokenHash []byte) (GetInv
 }
 
 const getWorkspace = `-- name: GetWorkspace :one
-SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day FROM workspaces WHERE id = $1
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, error) {
@@ -228,6 +236,10 @@ func (q *Queries) GetWorkspace(ctx context.Context, id pgtype.UUID) (Workspace, 
 		&i.SpillageReviewers,
 		&i.ArchiveFormat,
 		&i.ArchiveLastDay,
+		&i.CallsEnabled,
+		&i.CallsGuestStart,
+		&i.CallsMaxParticipants,
+		&i.CallsMaxBitrate,
 	)
 	return i, err
 }
@@ -339,7 +351,7 @@ func (q *Queries) ListInvites(ctx context.Context, workspaceID pgtype.UUID) ([]W
 }
 
 const listUserWorkspaces = `-- name: ListUserWorkspaces :many
-SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, w.welcome, w.retention_days, w.classification_id, w.ai_enabled, w.group_creation, w.edit_history, w.persistent_notifications, w.persistent_every_minutes, w.persistent_times, w.read_receipts, w.permissions, w.spillage_reviewers, w.archive_format, w.archive_last_day, wm.role, wm.timeout_until, wm.onboarded_at
+SELECT w.id, w.name, w.is_default, w.created_at, w.description, w.icon_id, w.appearance, w.welcome, w.retention_days, w.classification_id, w.ai_enabled, w.group_creation, w.edit_history, w.persistent_notifications, w.persistent_every_minutes, w.persistent_times, w.read_receipts, w.permissions, w.spillage_reviewers, w.archive_format, w.archive_last_day, w.calls_enabled, w.calls_guest_start, w.calls_max_participants, w.calls_max_bitrate, wm.role, wm.timeout_until, wm.onboarded_at
 FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id AND wm.user_id = $1
 ORDER BY w.is_default DESC, lower(w.name), w.id
@@ -385,6 +397,10 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID pgtype.UUID) ([
 			&i.Workspace.SpillageReviewers,
 			&i.Workspace.ArchiveFormat,
 			&i.Workspace.ArchiveLastDay,
+			&i.Workspace.CallsEnabled,
+			&i.Workspace.CallsGuestStart,
+			&i.Workspace.CallsMaxParticipants,
+			&i.Workspace.CallsMaxBitrate,
 			&i.Role,
 			&i.TimeoutUntil,
 			&i.OnboardedAt,
@@ -468,7 +484,7 @@ UPDATE workspaces SET name = coalesce($1, name),
     persistent_every_minutes = coalesce($5, persistent_every_minutes),
     persistent_times = coalesce($6, persistent_times),
     read_receipts = coalesce($7, read_receipts)
-WHERE id = $8 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day
+WHERE id = $8 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate
 `
 
 type RenameWorkspaceParams struct {
@@ -516,6 +532,10 @@ func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams
 		&i.SpillageReviewers,
 		&i.ArchiveFormat,
 		&i.ArchiveLastDay,
+		&i.CallsEnabled,
+		&i.CallsGuestStart,
+		&i.CallsMaxParticipants,
+		&i.CallsMaxBitrate,
 	)
 	return i, err
 }
@@ -539,7 +559,7 @@ func (q *Queries) RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int
 }
 
 const setWorkspacePermissions = `-- name: SetWorkspacePermissions :one
-UPDATE workspaces SET permissions = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day
+UPDATE workspaces SET permissions = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate
 `
 
 type SetWorkspacePermissionsParams struct {
@@ -572,6 +592,10 @@ func (q *Queries) SetWorkspacePermissions(ctx context.Context, arg SetWorkspaceP
 		&i.SpillageReviewers,
 		&i.ArchiveFormat,
 		&i.ArchiveLastDay,
+		&i.CallsEnabled,
+		&i.CallsGuestStart,
+		&i.CallsMaxParticipants,
+		&i.CallsMaxBitrate,
 	)
 	return i, err
 }
