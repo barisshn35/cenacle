@@ -58,39 +58,69 @@ export function registerDirectoryFeed(
     if (!authorized(request.headers.authorization, opts.clients)) {
       return reply.code(401).header('www-authenticate', 'Basic realm="cenacle-id"').send();
     }
-    // Cursor: "<updated_at>|<id>" of the last account seen.
+    // Cursor: "<updated_at>|<id>" of the last account seen. Deleted accounts
+    // (their tombstones) come in the same order, by the time of the deletion.
     const [at, id] = (request.query.after ?? '').split('|');
     const valid = at && id && /^[0-9a-f-]{36}$/i.test(id) && !Number.isNaN(Date.parse(at));
     // Changes of the last two seconds wait for the next call: a transaction
     // still committing could otherwise slip behind the cursor.
     const { rows } = await opts.pool.query(
-      `SELECT u.id, u.updated_at::text AS cursor_at, u.display_name, u.email, u.email_verified, u.username,
-              u.directory_role, (u.disabled_at IS NOT NULL OR u.admin_disabled_at IS NOT NULL) AS disabled,
-              coalesce((SELECT encode(sha256(p.data), 'hex') FROM user_photos p
-                        WHERE p.user_id = u.id AND p.origin = 'directory'), '') AS picture,
+      `WITH page AS (
+         SELECT * FROM (
+           SELECT u.id, u.updated_at AS at, false AS deleted FROM users u
+           WHERE u.updated_at < now() - interval '2 seconds'
+             AND ($1::timestamptz IS NULL OR (u.updated_at, u.id) > ($1::timestamptz, $2::uuid))
+           UNION ALL
+           SELECT d.id, d.deleted_at, true FROM deleted_accounts d
+           WHERE d.deleted_at < now() - interval '2 seconds'
+             AND ($1::timestamptz IS NULL OR (d.deleted_at, d.id) > ($1::timestamptz, $2::uuid))
+         ) changes ORDER BY at, id LIMIT $3)
+       SELECT p.id, p.at::text AS cursor_at, p.deleted, p.at AS deleted_at, u.display_name, u.email,
+              u.email_verified, u.username, u.directory_role,
+              (u.disabled_at IS NOT NULL OR u.admin_disabled_at IS NOT NULL) AS disabled,
+              u.sessions_ended_at,
+              coalesce((SELECT encode(sha256(ph.data), 'hex') FROM user_photos ph
+                        WHERE ph.user_id = u.id AND ph.origin = 'directory'), '') AS picture,
               coalesce((SELECT array_agg(n ORDER BY n) FROM (${APP_GROUPS_SQL.replace('$1', 'u.id')}) ag), '{}') AS groups
-       FROM users u
-       WHERE u.updated_at < now() - interval '2 seconds'
-         AND ($1::timestamptz IS NULL OR (u.updated_at, u.id) > ($1::timestamptz, $2::uuid))
-       ORDER BY u.updated_at, u.id
-       LIMIT $3`,
+       FROM page p LEFT JOIN users u ON u.id = p.id AND NOT p.deleted
+       ORDER BY p.at, p.id`,
       [valid ? at : null, valid ? id : null, PAGE + 1],
     );
     const page = rows.slice(0, PAGE);
     const last = page.at(-1);
     return reply.header('cache-control', 'no-store').send({
-      users: page.map((r) => ({
-        sub: r.id,
-        name: r.display_name,
-        email: r.email ?? '',
-        email_verified: r.email ? r.email_verified : false,
-        preferred_username: r.username ?? '',
-        groups: r.groups,
-        cenacle_role: r.directory_role ?? '',
-        disabled: r.disabled,
-        // The directory's photo (SHA-256), read at /directory/v1/photos/<sub>.
-        picture: r.picture,
-      })),
+      users: page.map((r) =>
+        r.deleted
+          ? // A deleted account: the app deactivates it and ends its sessions.
+            {
+              sub: r.id,
+              name: '',
+              email: '',
+              email_verified: false,
+              preferred_username: '',
+              groups: [],
+              cenacle_role: '',
+              disabled: true,
+              sessions_ended_at: new Date(r.deleted_at).toISOString(),
+              picture: '',
+            }
+          : {
+              sub: r.id,
+              name: r.display_name,
+              email: r.email ?? '',
+              email_verified: r.email ? r.email_verified : false,
+              preferred_username: r.username ?? '',
+              groups: r.groups,
+              cenacle_role: r.directory_role ?? '',
+              disabled: r.disabled,
+              // Sessions the app made before this time end (a two-step reset, for one).
+              sessions_ended_at: r.sessions_ended_at
+                ? new Date(r.sessions_ended_at).toISOString()
+                : '',
+              // The directory's photo (SHA-256), read at /directory/v1/photos/<sub>.
+              picture: r.picture,
+            },
+      ),
       next: last ? `${last.cursor_at}|${last.id}` : (request.query.after ?? ''),
       more: rows.length > PAGE,
     });

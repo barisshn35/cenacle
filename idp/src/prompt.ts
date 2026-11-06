@@ -30,3 +30,14 @@ export async function readSecret(prompt: string): Promise<string> {
     muted = true;
   });
 }
+
+/** Reads a line typed on a terminal, shown as it is typed. */
+export async function readLine(prompt: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stderr, terminal: true });
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}

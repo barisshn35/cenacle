@@ -7,5 +7,7 @@ export default defineConfig({
     environment: 'node',
     // Integration tests share one database; run test files one after another.
     fileParallelism: false,
+    // Empties the shared test database once every file has run.
+    globalSetup: ['test/helpers/teardown.ts'],
   },
 });

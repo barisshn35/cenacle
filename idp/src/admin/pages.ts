@@ -127,34 +127,38 @@ export function accountsPage(opts: {
         </td>
         <td class="px-3 py-2.5">
           <div class="flex flex-wrap gap-2">
+            ${actionForm(`/account/admin/accounts/${a.id}/export`, m.exportData, secondary)}
             ${
               a.id === opts.selfId
-                ? html`<span class="${hint}">—</span>`
+                ? null
                 : html`${
-                    // Enable takes back an administrator's disable; one by a
-                    // directory or SCIM stays theirs (Disable still adds one).
-                    a.adminDisabled || (a.disabled && !a.sourceManaged && !a.sourceOff)
-                      ? actionForm(`/account/admin/accounts/${a.id}/enable`, m.enable, secondary)
-                      : actionForm(
-                          `/account/admin/accounts/${a.id}/disable`,
-                          m.disable,
-                          destructive,
-                        )
-                  }
-                  ${
-                    a.twoStep
-                      ? actionForm(
-                          `/account/admin/accounts/${a.id}/reset-two-step`,
-                          m.resetTwoStep,
-                          secondary,
-                        )
-                      : null
-                  }
-                  ${actionForm(
-                    `/account/admin/accounts/${a.id}/${a.isAdmin ? 'remove-admin' : 'make-admin'}`,
-                    a.isAdmin ? m.removeAdmin : m.makeAdmin,
-                    secondary,
-                  )}`
+                      // Enable takes back an administrator's disable; one by a
+                      // directory or SCIM stays theirs (Disable still adds one).
+                      a.adminDisabled || (a.disabled && !a.sourceManaged && !a.sourceOff)
+                        ? actionForm(`/account/admin/accounts/${a.id}/enable`, m.enable, secondary)
+                        : actionForm(
+                            `/account/admin/accounts/${a.id}/disable`,
+                            m.disable,
+                            destructive,
+                          )
+                    }
+                    ${
+                      a.twoStep
+                        ? actionForm(
+                            `/account/admin/accounts/${a.id}/reset-two-step`,
+                            m.resetTwoStep,
+                            secondary,
+                          )
+                        : null
+                    }
+                    ${actionForm(
+                      `/account/admin/accounts/${a.id}/${a.isAdmin ? 'remove-admin' : 'make-admin'}`,
+                      a.isAdmin ? m.removeAdmin : m.makeAdmin,
+                      secondary,
+                    )}
+                    <a href="/account/admin/accounts/${a.id}/delete" class="${destructive}"
+                      >${m.delete}</a
+                    >`
             }
           </div>
         </td>
@@ -214,6 +218,71 @@ export function accountsPage(opts: {
             >`
           : null
       }`,
+  );
+}
+
+/** Deleting an account: what goes, what comes back, and the typed confirmation. */
+export function deleteAccountPage(opts: {
+  locale: Locale;
+  account: Pick<
+    AdminAccount,
+    'id' | 'displayName' | 'email' | 'username' | 'fromDirectory' | 'fromProvider'
+  >;
+  /** What the administrator types: the address, else the sign-in name or name. */
+  confirmation: string;
+  mismatch?: boolean;
+}): string {
+  const m = ADMIN_MESSAGES[opts.locale].deleteAccount;
+  const a = opts.account;
+  const action = `/account/admin/accounts/${a.id}/delete`;
+  return frame(
+    opts.locale,
+    m.title,
+    'accounts',
+    html`<div class="flex flex-col gap-1">
+        <h1 class="text-2xl leading-8 font-semibold tracking-[-0.015em]">${m.title}</h1>
+        <p class="text-sm text-muted-foreground">
+          ${[a.displayName, a.email, a.username].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+      <section
+        class="flex max-w-2xl flex-col gap-3 rounded-[10px] border border-rule-strong bg-background p-4 text-sm leading-6"
+      >
+        <p class="font-medium">${format(m.lead, { name: a.displayName })}</p>
+        <p>${m.what}</p>
+        ${
+          a.fromDirectory
+            ? html`<p data-testid="delete-returns">${m.directory}</p>`
+            : a.fromProvider
+              ? html`<p data-testid="delete-returns">${m.provider}</p>`
+              : null
+        }
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-muted-foreground">${m.exportFirst}</span>
+          ${actionForm(`/account/admin/accounts/${a.id}/export`, m.export, secondary)}
+        </div>
+      </section>
+      <form method="post" action="${action}" class="flex max-w-md flex-col gap-3">
+        ${opts.mismatch ? alertBox('confirm-error', m.mismatch) : null}
+        <div class="flex flex-col gap-1.5">
+          <label for="confirm" class="${label}"
+            >${format(m.confirmLabel, { value: opts.confirmation })}</label
+          >
+          <input
+            id="confirm"
+            name="confirm"
+            required
+            autocomplete="off"
+            spellcheck="false"
+            class="${input}"
+            ${raw(opts.mismatch ? 'aria-invalid="true" aria-describedby="confirm-error"' : '')}
+          />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="submit" class="${destructive}">${m.submit}</button>
+          <a href="/account/admin" class="${secondary}">${m.cancel}</a>
+        </div>
+      </form>`,
   );
 }
 

@@ -75,6 +75,7 @@ async function main(): Promise<void> {
       formActionOrigins,
       loginRateLimit: config.loginRateLimit,
       signinNotice: config.signinNotice,
+      privacyUrl: config.privacyUrl,
       mfa: new MfaStore(pool, config.keyEncryptionKey),
       audit: new AuditLog(pool, (err) => console.error('audit log write failed', err)),
       cookieKeys: config.cookieKeys,

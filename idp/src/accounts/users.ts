@@ -275,6 +275,15 @@ export class UserStore {
     if (rowCount === 0) throw new UserError('not_found');
   }
 
+  /** The id of the account with this address (the CLI), or null. */
+  async idByEmail(email: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      'SELECT id FROM users WHERE email = $1',
+      [email.trim()],
+    );
+    return rows[0]?.id ?? null;
+  }
+
   /** The groups an account is in, as apps see them (APP_GROUPS_SQL). */
   async groups(id: string): Promise<string[]> {
     const { rows } = await this.pool.query<{ n: string }>(`${APP_GROUPS_SQL} ORDER BY n`, [id]);

@@ -44,8 +44,12 @@ const logo = raw(
 /** The address of this Cenacle ID (from its issuer), named on the sign-in pages. */
 let pageHost = '';
 
+/** The operator's privacy policy, linked at the foot of every page; empty: no link. */
+let privacyUrl = '';
+
 /** Sets what the pages say about this server; called once at start-up. */
-export function configurePages(opts: { issuer: string }): void {
+export function configurePages(opts: { issuer: string; privacyUrl?: string }): void {
+  privacyUrl = opts.privacyUrl ?? '';
   try {
     pageHost = new URL(opts.issuer).host;
   } catch {
@@ -252,7 +256,20 @@ export function layout({
           class="flex flex-wrap justify-between gap-2 border-t px-4 py-4 text-[13px] text-muted-foreground sm:px-10"
         >
           <span>${m.footer.product}</span>
-          <span>${m.footer.help}</span>
+          <span class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>${m.footer.help}</span>
+            ${
+              privacyUrl
+                ? html`<a
+                    href="${privacyUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex min-h-target items-center text-foreground underline underline-offset-2 focus-visible:ring-3 focus-visible:ring-ring/50 outline-none"
+                    >${m.footer.privacy}<span class="sr-only"> ${m.footer.newTab}</span></a
+                  >`
+                : null
+            }
+          </span>
         </footer>
       </div>
     </body>
@@ -716,6 +733,8 @@ export interface AccountView {
   twoStepRequired?: boolean;
   /** The sign-in policy allows passkeys (default: yes). */
   passkeysAllowed?: boolean;
+  /** "Download my data" is offered. */
+  dataExport?: boolean;
 }
 
 /** Passkeys of the account, when the sign-in policy allows them. */
@@ -896,6 +915,20 @@ export function accountPage(opts: { locale: Locale } & AccountView): string {
             </ul>`
       }
     </section>
+    ${
+      opts.dataExport
+        ? html`<section
+            aria-labelledby="your-data"
+            class="flex flex-col gap-3 rounded-[10px] border border-rule-strong bg-background p-4"
+          >
+            <h2 id="your-data" class="font-semibold">${m.yourData}</h2>
+            <p class="text-sm text-muted-foreground">${m.yourDataBody}</p>
+            <form method="post" action="/account/data">
+              <button type="submit" class="${secondary}">${m.downloadData}</button>
+            </form>
+          </section>`
+        : null
+    }
     <div class="flex flex-col gap-3">
       ${opts.returnTo ? html`<a href="${opts.returnTo}" class="${primary}">${m.back}</a>` : null}
       ${opts.isAdmin ? html`<a href="/account/admin" class="${secondary}">${m.administration}</a>` : null}

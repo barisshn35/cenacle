@@ -65,6 +65,8 @@ export async function startHarness(
     host?: string;
     /** The sign-in policy (v0.29); without it, two-step is optional and passkeys allowed. */
     policy?: SignInPolicy;
+    /** The operator's privacy policy (IDP_PRIVACY_URL). */
+    privacyUrl?: string;
   } = {},
 ): Promise<Harness> {
   if (!DATABASE_URL) throw new Error('IDP_TEST_DATABASE_URL is not set');
@@ -157,6 +159,7 @@ export async function startHarness(
         passkeys: new PasskeyStore(pool, issuer),
         federation: opts.directory ? providers : undefined,
         policy,
+        privacyUrl: opts.privacyUrl,
       },
     });
     await app.listen({ host, port });

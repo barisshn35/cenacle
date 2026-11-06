@@ -99,6 +99,8 @@ const serverSchema = keySchema.extend({
   IDP_LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).max(100_000).default(10),
   /** A notice people accept before signing in (DISA STIG notice and consent banner). */
   IDP_SIGNIN_NOTICE: z.string().max(10_000).optional(),
+  /** The operator's privacy policy, linked at the foot of every page (none: no link). */
+  IDP_PRIVACY_URL: z.url({ protocol: /^https?$/ }).optional(),
   IDP_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(100).max(120_000).default(15_000),
   /** Port for Prometheus metrics on IDP_HOST (internal); 0: off. */
   IDP_METRICS_PORT: z.coerce.number().int().min(0).max(65535).default(0),
@@ -132,6 +134,7 @@ export interface Config {
   shutdownTimeoutMs: number;
   loginRateLimit: number;
   signinNotice?: string;
+  privacyUrl?: string;
   metricsPort: number;
 }
 
@@ -227,6 +230,7 @@ export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultR
     shutdownTimeoutMs: c.IDP_SHUTDOWN_TIMEOUT_MS,
     loginRateLimit: c.IDP_LOGIN_RATE_LIMIT,
     signinNotice: c.IDP_SIGNIN_NOTICE,
+    privacyUrl: c.IDP_PRIVACY_URL,
     metricsPort: c.IDP_METRICS_PORT,
   };
 }

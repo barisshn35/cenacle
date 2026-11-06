@@ -8,10 +8,12 @@ import { ConfigError, loadDatabaseConfig, loadKeyConfig } from './config.ts';
 import { createPool } from './db.ts';
 import { migrate } from './db/migrate.ts';
 import { KeyStore } from './keys/store.ts';
+import { AuditLog } from './accounts/audit.ts';
+import { deleteAccount, exportAccount, toNdjson } from './accounts/privacy.ts';
 import { UserError, UserStore } from './accounts/users.ts';
 import { endSessions } from './directory/store.ts';
 import { PASSWORD_MIN_LENGTH } from './accounts/passwords.ts';
-import { readSecret } from './prompt.ts';
+import { readLine, readSecret } from './prompt.ts';
 
 const USAGE = `usage: cenacle-idp <command>
 
@@ -29,7 +31,13 @@ commands:
                         block or allow sign-in for an account
   users admin|no-admin --email <e>
                         give or take the administration of Cenacle ID
-                        (the admin panel at /account/admin)`;
+                        (the admin panel at /account/admin)
+  users export --email <e>
+                        write what Cenacle ID keeps about an account to stdout
+                        (NDJSON, without passwords, codes or keys)
+  users delete --email <e> [--yes]
+                        delete an account and end its sessions everywhere; asks
+                        to type the address again (--yes: without asking)`;
 
 function flag(args: string[], name: string): string | undefined {
   const i = args.indexOf(name);
@@ -122,6 +130,35 @@ async function runUsers(args: string[]): Promise<void> {
             ? `${email} enabled by you; its directory or SCIM provider still keeps it disabled`
             : `${email} ${action}d`,
         );
+        return;
+      }
+      case 'export': {
+        const id = await users.idByEmail(email);
+        const items = id ? await exportAccount(pool, id) : null;
+        if (!id || !items) throw new UserError('not_found');
+        process.stdout.write(toNdjson(items));
+        await new AuditLog(pool).record('admin.account.data_exported', null, '', {
+          account: id,
+          via: 'cli',
+        });
+        return;
+      }
+      case 'delete': {
+        const id = await users.idByEmail(email);
+        if (!id) throw new UserError('not_found');
+        if (!args.includes('--yes')) {
+          if (!process.stdin.isTTY) throw new UsageError('not on a terminal: add --yes to delete');
+          const typed = await readLine(`Type ${email} again to delete the account: `);
+          if (typed.trim().toLowerCase() !== email.trim().toLowerCase()) {
+            throw new UsageError('the address does not match; nothing was deleted');
+          }
+        }
+        if (!(await deleteAccount(pool, id))) throw new UserError('not_found');
+        await new AuditLog(pool).record('admin.account.deleted', null, '', {
+          account: id,
+          via: 'cli',
+        });
+        console.log(`${email} deleted (${id}); Cenacle ends its sessions within a minute`);
         return;
       }
       case 'admin':

@@ -62,6 +62,8 @@ export interface OidcOptions {
   loginRateLimit?: number;
   /** A notice people accept before signing in (none: no notice). */
   signinNotice?: string;
+  /** The operator's privacy policy, linked at the foot of every page (none: no link). */
+  privacyUrl?: string;
   /** Two-step verification and audit log; with cookieKeys they enable /account. */
   mfa?: MfaStore;
   audit?: AuditLog;
@@ -219,7 +221,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
   }
 
   if (opts.oidc) {
-    configurePages({ issuer: opts.oidc.issuer });
+    configurePages({ issuer: opts.oidc.issuer, privacyUrl: opts.oidc.privacyUrl });
     await app.register(formbody, { bodyLimit: 16 * 1024 });
     await app.register(rateLimit, { global: false });
     if (opts.oidc.signinNotice) {
@@ -244,6 +246,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
         passkeys: opts.oidc.passkeys,
         federation: opts.oidc.federation,
         policy: opts.oidc.policy,
+        pool: opts.oidc.directory?.pool,
       });
       if (opts.oidc.federation && opts.oidc.directory) {
         await registerFederation(app, {

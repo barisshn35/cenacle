@@ -51,6 +51,24 @@ const en = {
     more: 'Next page',
     done: 'Saved.',
     selfNotAllowed: 'You cannot change this for your own account.',
+    exportData: 'Export data',
+    delete: 'Delete',
+    deleted: 'The account is deleted.',
+  },
+  deleteAccount: {
+    title: 'Delete account',
+    lead: 'Delete the account of {name}? This cannot be undone.',
+    what: 'Its name, address, photos, groups, passkeys, two-step verification and sign-in history are removed from Cenacle ID, and the person is signed out everywhere. Within a minute Cenacle deactivates them and ends their sessions; their messages stay. The audit log keeps its events, without the account’s addresses.',
+    directory:
+      'This account comes from a directory. While the person is still in it (and passes its filter), the next synchronization or their next sign-in creates a new account for them, with a new id. To keep them out, remove them from the directory first, or disable the account instead of deleting it.',
+    provider:
+      'This account signs in at an identity provider. Their next sign-in there creates a new account for them, with a new id, and a provider with SCIM provisioning may create it again on its own. To keep them out, remove them at the provider first, or disable the account instead of deleting it.',
+    exportFirst: 'The person’s data can be exported first.',
+    export: 'Export data',
+    confirmLabel: 'Type {value} to confirm',
+    mismatch: 'That does not match. Type it exactly as shown.',
+    submit: 'Delete the account',
+    cancel: 'Cancel',
   },
   directories: {
     title: 'Directories',
@@ -226,7 +244,7 @@ const tr: AdminMessages = {
     directories: 'Dizinler',
     providers: 'Kimlik sağlayıcıları',
     signIn: 'Oturum açma',
-    back: 'Hesabına dön',
+    back: 'Hesabınıza dönün',
   },
   signIn: {
     title: 'Oturum açma politikası',
@@ -267,7 +285,25 @@ const tr: AdminMessages = {
     providerOff: 'Kimlik sağlayıcısı kapalı',
     more: 'Sonraki sayfa',
     done: 'Kaydedildi.',
-    selfNotAllowed: 'Bunu kendi hesabın için değiştiremezsin.',
+    selfNotAllowed: 'Bunu kendi hesabınız için değiştiremezsiniz.',
+    exportData: 'Verileri dışa aktar',
+    delete: 'Sil',
+    deleted: 'Hesap silindi.',
+  },
+  deleteAccount: {
+    title: 'Hesabı sil',
+    lead: '{name} adlı kişinin hesabı silinsin mi? Bu geri alınamaz.',
+    what: 'Adı, adresi, fotoğrafları, grupları, geçiş anahtarları, iki adımlı doğrulaması ve oturum açma geçmişi Cenacle ID’den kaldırılır ve kişinin her yerdeki oturumu kapatılır. Bir dakika içinde Cenacle kişiyi devre dışı bırakır ve oturumlarını sonlandırır; mesajları kalır. Denetim kaydı olayları tutar, ancak hesabın adresleri olmadan.',
+    directory:
+      'Bu hesap bir dizinden geliyor. Kişi dizinde kaldıkça (ve filtresinden geçtikçe) bir sonraki eşitleme veya kişinin bir sonraki oturum açışı, yeni bir kimlikle yeni bir hesap oluşturur. Kişiyi dışarıda tutmak için önce dizinden çıkarın ya da hesabı silmek yerine devre dışı bırakın.',
+    provider:
+      'Bu hesap bir kimlik sağlayıcısında oturum açıyor. Kişinin orada bir sonraki oturum açışı, yeni bir kimlikle yeni bir hesap oluşturur; SCIM ile hesap sağlayan bir sağlayıcı da hesabı kendiliğinden yeniden oluşturabilir. Kişiyi dışarıda tutmak için önce sağlayıcıdan çıkarın ya da hesabı silmek yerine devre dışı bırakın.',
+    exportFirst: 'Kişinin verileri önce dışa aktarılabilir.',
+    export: 'Verileri dışa aktar',
+    confirmLabel: 'Onaylamak için {value} yazın',
+    mismatch: 'Eşleşmiyor. Tam olarak gösterildiği gibi yazın.',
+    submit: 'Hesabı sil',
+    cancel: 'Vazgeç',
   },
   directories: {
     title: 'Dizinler',
@@ -297,12 +333,12 @@ const tr: AdminMessages = {
     bindDn: 'Hizmet hesabı (bind DN)',
     bindPassword: 'Hizmet hesabının parolası',
     bindPasswordKeep:
-      'Kayıtlı parolayı korumak için boş bırak. Sunucuları, hizmet hesabını veya TLS ayarını değiştirirsen yeniden gir.',
+      'Kayıtlı parolayı korumak için boş bırakın. Sunucuları, hizmet hesabını veya TLS ayarını değiştirirseniz yeniden girin.',
     people: 'Kişiler',
     baseDn: 'Arama kökü',
     userFilter: 'Kimler giriş yapabilir (filtre)',
     userFilterHint:
-      'Devre dışı hesapları burada dışarıda bırak. Filtrenin artık kabul etmediği kişiler sonraki eşitlemede devre dışı kalır.',
+      'Devre dışı hesapları burada dışarıda bırakın. Filtrenin artık kabul etmediği kişiler sonraki eşitlemede devre dışı kalır.',
     loginAttribute: 'Giriş adı özniteliği',
     loginAttributeHint: 'sAMAccountName, userPrincipalName, mail veya uid.',
     idAttribute: 'Kalıcı kimlik özniteliği',
@@ -355,7 +391,7 @@ const tr: AdminMessages = {
     failed: 'başarısız',
     counts:
       '{seen} kişi · {created} yeni · {updated} değişen · {deactivated} devre dışı · {groups} grup',
-    invalid: 'İşaretli ayarları kontrol et: {fields}.',
+    invalid: 'İşaretli ayarları kontrol edin: {fields}.',
     error: 'Dizin bir hatayla yanıt verdi: {message}',
     roleAdmin: 'Yönetici',
     roleGuest: 'Misafir',
@@ -393,7 +429,7 @@ const tr: AdminMessages = {
     clientId: 'İstemci kimliği',
     clientSecret: 'İstemci sırrı',
     clientSecretKeep:
-      'Kayıtlı sırrı korumak için boş bırak. Yayıncıyı veya istemci kimliğini değiştirirsen yeniden gir.',
+      'Kayıtlı sırrı korumak için boş bırakın. Yayıncıyı veya istemci kimliğini değiştirirseniz yeniden girin.',
     scopes: 'Kapsamlar',
     groupsClaim: 'Gruplar talebi',
     entryPoint: 'Çoklu oturum açma URL’si (HTTP-Redirect)',
@@ -414,7 +450,7 @@ const tr: AdminMessages = {
     enabled: 'Açık (giriş sayfalarında görünür)',
     save: 'Kaydet',
     saved: 'Kaydedildi.',
-    invalid: 'İşaretli ayarları kontrol et: {fields}.',
+    invalid: 'İşaretli ayarları kontrol edin: {fields}.',
     scim: 'Hesap sağlama (SCIM 2.0)',
     scimLead:
       'Sağlayıcı, kişilerini ve gruplarını daha giriş yapmadan burada oluşturur, değiştirir ve devre dışı bırakır. SCIM açıkken gruplar girişlerden değil SCIM’den gelir.',

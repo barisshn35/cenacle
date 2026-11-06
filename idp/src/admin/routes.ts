@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AuditAction, AuditLog } from '../accounts/audit.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
 import type { User, UserStore } from '../accounts/users.ts';
+import { deleteAccount, EXPORT_HEADERS, exportAccount, toNdjson } from '../accounts/privacy.ts';
 import { ACCOUNT_COOKIE, accountUser } from '../account/session.ts';
 import {
   Directory,
@@ -22,6 +23,7 @@ import { pickLocale, type Locale } from '../ui/messages.ts';
 import { ADMIN_MESSAGES } from './messages.ts';
 import {
   accountsPage,
+  deleteAccountPage,
   directoriesPage,
   directoryPage,
   providerPage,
@@ -208,10 +210,78 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
           accounts: found.slice(0, PAGE),
           next: found.length > PAGE ? found[PAGE - 1]!.id : undefined,
           selfId: me.id,
-          notice: request.query.done ? m.done : undefined,
+          notice:
+            request.query.done === 'deleted' ? m.deleted : request.query.done ? m.done : undefined,
           error: request.query.error === 'self' ? m.selfNotAllowed : undefined,
         }),
       );
+    },
+  );
+
+  // A person's data, as they would download it themselves (account pages).
+  app.post<{ Params: { id: string } }>(
+    '/account/admin/accounts/:id/export',
+    async (request, reply) => {
+      const me = await guardPost(request, reply);
+      if (!me) return;
+      const items = await exportAccount(opts.pool, request.params.id);
+      if (!items) return reply.code(404).send();
+      await audit.record('admin.account.data_exported', me.id, request.ip, {
+        account: request.params.id,
+      });
+      return reply.headers(EXPORT_HEADERS).send(toNdjson(items));
+    },
+  );
+
+  /** What the administrator types to confirm a deletion. */
+  const confirmation = (u: User) => u.email ?? u.username ?? u.displayName;
+
+  app.get<{ Params: { id: string } }>(
+    '/account/admin/accounts/:id/delete',
+    async (request, reply) => {
+      const me = await admin(request, reply);
+      if (!me) return;
+      if (request.params.id === me.id) return reply.redirect('/account/admin?error=self', 303);
+      const target = await users.findById(request.params.id);
+      if (!target) return reply.code(404).send();
+      return page(
+        reply,
+        200,
+        deleteAccountPage({
+          locale: locale(request),
+          account: target,
+          confirmation: confirmation(target),
+        }),
+      );
+    },
+  );
+
+  app.post<{ Params: { id: string }; Body: Body }>(
+    '/account/admin/accounts/:id/delete',
+    async (request, reply) => {
+      const me = await guardPost(request, reply);
+      if (!me) return;
+      const { id } = request.params;
+      if (id === me.id) return reply.redirect('/account/admin?error=self', 303);
+      const target = await users.findById(id);
+      if (!target) return reply.code(404).send();
+      const typed = (request.body?.confirm ?? '').trim().toLowerCase();
+      if (typed !== confirmation(target).trim().toLowerCase()) {
+        return page(
+          reply,
+          400,
+          deleteAccountPage({
+            locale: locale(request),
+            account: target,
+            confirmation: confirmation(target),
+            mismatch: true,
+          }),
+        );
+      }
+      if (!(await deleteAccount(opts.pool, id))) return reply.code(404).send();
+      // Only the id: the account and what it said about the person are gone.
+      await audit.record('admin.account.deleted', me.id, request.ip, { account: id });
+      return reply.redirect('/account/admin?done=deleted', 303);
     },
   );
 
@@ -295,6 +365,8 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
           rows.map((r) => r.id),
           // The administrator stays on the page (and is sent to set it up).
           user.id,
+          // The apps' sessions are not ended here.
+          { apps: false },
         );
     }
     await audit.record('admin.sign_in_policy.changed', user.id, request.ip, {

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import QRCode from 'qrcode';
+import type pg from 'pg';
 import type { AuditLog } from '../accounts/audit.ts';
+import { EXPORT_HEADERS, exportAccount, toNdjson } from '../accounts/privacy.ts';
 import type { MfaStore } from '../accounts/mfa.ts';
 import type { PasskeyStore } from '../accounts/passkeys.ts';
 import {
@@ -53,6 +55,8 @@ export interface AccountOptions {
   federation?: ProviderStore;
   /** The sign-in policy (v0.29); without it, two-step is optional and passkeys allowed. */
   policy?: PolicyStore;
+  /** The database, for "Download my data"; without it, it is not offered. */
+  pool?: pg.Pool;
 }
 
 type CodeBody = { code?: string; challenge?: string };
@@ -181,6 +185,7 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
           nameInvalid: request.query.name_error !== undefined,
           twoStepRequired: rules.requireTwoStep,
           passkeysAllowed: rules.passkeys,
+          dataExport: opts.pool !== undefined,
         }),
       );
     },
@@ -262,6 +267,22 @@ export async function registerAccount(app: FastifyInstance, opts: AccountOptions
     await audit.record('account.signed_in', challenge.userId, request.ip, { second_step: factor });
     return signedIn(reply, challenge.userId);
   });
+
+  // A person's data as one file (GDPR, KVKK), a few times an hour at most.
+  app.post(
+    '/account/data',
+    { config: { rateLimit: { max: 5, timeWindow: '1 hour' } } },
+    async (request, reply) => {
+      if (!opts.pool) return reply.code(404).send();
+      if (!isSameOriginPost(request, issuer)) return reply.code(403).send();
+      const user = await current(request);
+      if (!user) return reply.redirect('/account', 303);
+      const items = await exportAccount(opts.pool, user.id);
+      if (!items) return reply.redirect('/account', 303);
+      await audit.record('account.data_exported', user.id, request.ip);
+      return reply.headers(EXPORT_HEADERS).send(toNdjson(items));
+    },
+  );
 
   app.post<{ Body: { name?: string } }>('/account/name', async (request, reply) => {
     if (!isSameOriginPost(request, issuer)) return reply.code(403).send();

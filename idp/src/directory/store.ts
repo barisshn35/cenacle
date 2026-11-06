@@ -443,12 +443,14 @@ export async function deactivateMissing(
 /**
  * Ends every Cenacle ID session and grant of these accounts, and their
  * account pages' sign-ins (account/session.ts), but for `keepAccountPagesOf`
- * (the administrator making the change).
+ * (the administrator making the change). With `apps`, the directory feed also
+ * tells the apps (the chat) to end the sessions they made before now.
  */
 export async function endSessions(
   db: pg.Pool | pg.PoolClient,
   userIds: string[],
   keepAccountPagesOf?: string,
+  { apps = true }: { apps?: boolean } = {},
 ): Promise<void> {
   await db.query(
     `DELETE FROM oidc_payloads WHERE model IN ('Session', 'Grant', 'AccessToken', 'RefreshToken', 'AuthorizationCode')
@@ -460,4 +462,10 @@ export async function endSessions(
      WHERE id::text = ANY($1::text[]) AND id IS DISTINCT FROM $2::uuid`,
     [userIds, keepAccountPagesOf ?? null],
   );
+  if (apps) {
+    await db.query(
+      `UPDATE users SET sessions_ended_at = now(), updated_at = now() WHERE id::text = ANY($1::text[])`,
+      [userIds],
+    );
+  }
 }

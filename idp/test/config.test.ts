@@ -30,6 +30,17 @@ describe('loadConfig', () => {
     );
   });
 
+  it('takes an http(s) privacy policy address, or none', () => {
+    expect(loadConfig(base).privacyUrl).toBeUndefined();
+    expect(loadConfig({ ...base, IDP_PRIVACY_URL: '' }).privacyUrl).toBeUndefined();
+    expect(loadConfig({ ...base, IDP_PRIVACY_URL: 'https://example.com/privacy' }).privacyUrl).toBe(
+      'https://example.com/privacy',
+    );
+    expect(() => loadConfig({ ...base, IDP_PRIVACY_URL: 'javascript:alert(1)' })).toThrow(
+      /IDP_PRIVACY_URL/,
+    );
+  });
+
   it('trusts a number of proxies or their addresses, never every hop', () => {
     const trust = (v: string) => loadConfig({ ...base, IDP_TRUST_PROXY: v }).trustProxy;
     expect(trust('false')).toBe(false);
