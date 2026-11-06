@@ -8,6 +8,32 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Changed
+
+- `backup-daily.sh` also copies the uploaded files: with the bundled Garage it mirrors the
+  bucket into `files/` and keeps what left it under `files-removed/<day>/` for 35 days; with
+  `CENACLE_FILES_BACKEND=dir` each day has `files.tar`. Azure and other S3 services are left
+  to their own versioning, and the script says so.
+- The app no longer asks again after a refusal (403, 404 and other 4xx but 408 and 429), so
+  a page someone may not see says so at once instead of loading for seconds.
+
+### Fixed
+
+- Rolling back: restoring the backup taken before an upgrade now goes into emptied
+  databases (`--clean` over upgraded ones kept the new tables, and the next upgrade failed on
+  them); the guide gives the commands, the one that reverts Cenacle ID's migrations, and
+  takes the previous release's `deploy/compose` files. 0.99.4 runs on the 0.99.5 databases
+  without reverting any migration.
+- Guides: the image registry change of 0.99.5, how to build images before 1.0, the Compose
+  project name for every command, a Garage backup command that works, the steps of a restore
+  into a fresh stack, private permissions for manual backups, the paths `install.sh` uses.
+- `install.sh` says when it could not check `/readyz` (no curl), reports free ports only
+  when they are, and names the right section for the first account.
+- The system console counted only people who had gone offline as active, and showed their
+  last time seen only then: a sign-in counts now.
+- A guest's workspace window showed an empty General section when the workspace has no
+  description.
+
 ## [0.99.5] - 2026-11-06
 
 The release candidate of 1.0: voice and video calls through Cenacle's own media service,
