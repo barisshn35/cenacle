@@ -324,7 +324,10 @@ test('the composer keeps attach, format and send in view, the rest under "+"', a
     await expect(footer.getByRole('button', { name })).toHaveCount(0);
   await footer.getByRole('button', { name: /^More: / }).click();
   const menu = page.getByRole('menu');
-  for (const name of ['Voice message', 'Video clip', 'Poll', 'Priority', 'Send later'])
-    await expect(menu.getByRole('menuitem', { name })).toBeVisible();
+  // Recording is offered only where the browser can record (not WebKit on Linux).
+  const records = await page.evaluate(() => 'MediaRecorder' in window);
+  const items = ['Poll', 'Priority', 'Send later'];
+  if (records) items.unshift('Voice message', 'Video clip');
+  for (const name of items) await expect(menu.getByRole('menuitem', { name })).toBeVisible();
   await expectNoAxeViolations(page);
 });

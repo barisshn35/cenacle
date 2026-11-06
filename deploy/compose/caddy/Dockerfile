@@ -17,7 +17,9 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     go build -trimpath -ldflags "-s -w" -o /out/caddy .
 
 FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
-RUN apk add --no-cache ca-certificates mailcap \
+# Upgrading takes the fixes released after the base image (e.g. zlib, 2026-11-06).
+RUN apk upgrade --no-cache \
+ && apk add --no-cache ca-certificates mailcap \
  && addgroup -g 10001 cenacle && adduser -D -H -u 10001 -G cenacle cenacle \
  && mkdir -p /data /config /etc/caddy \
  && chown cenacle:cenacle /data /config \

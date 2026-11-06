@@ -16,6 +16,13 @@ across chat and Cenacle ID, record retention, install.sh, the GitHub organizatio
 addresses). Read the upgrade notes: migrations 00059 to 00064 and Cenacle ID 0014 and 0015
 run on start; calls stay off until they are turned on.
 
+### Security
+
+- The images built on Alpine (web, proxy, Cenacle ID, and the WAL-G and directory images
+  of Compose) take Alpine's updates when they are built, which brings zlib 1.3.2-r1
+  (CVE-2026-85091). The WAL-G image builds with fixed go-jose, x/net and gRPC, and
+  drops `gosu`, which it never used.
+
 ### Added
 
 - **Voice and video calls**, through Cenacle's own media service (`cenacle-media`, Go

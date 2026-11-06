@@ -49,7 +49,9 @@ RUN tar xzf openssl-3.1.2.tar.gz && cd openssl-3.1.2 \
 # Runtime: plain Alpine plus the node binary only (no npm, pnpm or yarn):
 # smaller image and smaller attack surface.
 FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
-RUN apk add --no-cache libstdc++ libgcc libatomic \
+# Upgrading takes the fixes released after the base image (e.g. zlib, 2026-11-06).
+RUN apk upgrade --no-cache \
+ && apk add --no-cache libstdc++ libgcc libatomic \
  && addgroup -g 1000 node && adduser -u 1000 -G node -s /sbin/nologin -D node \
  && rm -f /var/log/apk.log
 COPY --from=node /usr/local/bin/node /usr/local/bin/node

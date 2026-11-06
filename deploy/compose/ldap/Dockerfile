@@ -5,7 +5,9 @@
 # "ldap" user on port 3389 and seeds itself from LDIF on first start.
 FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
-RUN apk add --no-cache openldap openldap-back-mdb openldap-clients \
+# Upgrading takes the fixes released after the base image (e.g. zlib, 2026-11-06).
+RUN apk upgrade --no-cache \
+ && apk add --no-cache openldap openldap-back-mdb openldap-clients \
  && mkdir -p /var/lib/openldap/data /run/openldap \
  && chown -R ldap:ldap /var/lib/openldap /run/openldap \
  && rm -f /var/log/apk.log
