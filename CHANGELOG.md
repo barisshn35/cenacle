@@ -38,6 +38,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- GitHub's CLA check failed on Dependabot's pull requests (bots do not sign off); it skips
+  pull requests GitHub says Dependabot opened.
 - Upgrade guide: a Helm section. `helm upgrade --reuse-values` stops on a setting a release
   adds (0.99.5: `calls.enabled`); upgrade with your values file or
   `--reset-then-reuse-values` instead.
