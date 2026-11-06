@@ -1135,6 +1135,8 @@ type Querier interface {
 	// UserFileKeys returns a person's uploaded files whose bytes are stored.
 	UserFileKeys(ctx context.Context, userID pgtype.UUID) ([]UserFileKeysRow, error)
 	UserFiles(ctx context.Context, userID pgtype.UUID) ([]UserFilesRow, error)
+	// UserIDsByUsernames finds the people a message names by @username (active ones).
+	UserIDsByUsernames(ctx context.Context, usernames []string) ([]pgtype.UUID, error)
 	// UserMessagesAfter returns the messages a person wrote, oldest first, after a
 	// cursor (their data export).
 	UserMessagesAfter(ctx context.Context, arg UserMessagesAfterParams) ([]UserMessagesAfterRow, error)

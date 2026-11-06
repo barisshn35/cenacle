@@ -18,6 +18,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- `@username` written as plain text (typed without picking the suggestion, pasted, or sent
+  by a bot or a webhook) mentions that member, like a picked name: they are notified and it
+  is in their inbox. `@name` inside code does not mention anyone, and moderation's mention
+  limit counts both forms.
 - `backup-daily.sh` also copies the uploaded files: with the bundled Garage it mirrors the
   bucket into `files/` and keeps what left it under `files-removed/<day>/` for 35 days; with
   `CENACLE_FILES_BACKEND=dir` each day has `files.tar`. Azure and other S3 services are left

@@ -208,7 +208,8 @@ func automodMatch(rule store.AutomodRule, body string) bool {
 			}
 		}
 	case "mentions":
-		return cfg.MaxMentions > 0 && len(mentionedIDs(body)) > cfg.MaxMentions
+		// <@id> and @name alike (an @name may also be a group: counted all the same).
+		return cfg.MaxMentions > 0 && len(mentionedIDs(body))+len(groupHandles(body)) > cfg.MaxMentions
 	case "links":
 		for _, line := range strings.Split(body, "\n") {
 			for _, m := range linkRE.FindAllStringSubmatch(line, -1) {

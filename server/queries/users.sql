@@ -48,3 +48,8 @@ LIMIT @row_limit;
 
 -- name: UserExists :one
 SELECT EXISTS (SELECT 1 FROM users WHERE auth_service = @auth_service AND auth_data = @auth_data);
+
+-- name: UserIDsByUsernames :many
+-- UserIDsByUsernames finds the people a message names by @username (active ones).
+SELECT id FROM users
+WHERE lower(username) = ANY(@usernames::text[]) AND deactivated_at IS NULL;

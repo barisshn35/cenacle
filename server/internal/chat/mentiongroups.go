@@ -32,6 +32,8 @@ var (
 	handleRE = regexp.MustCompile(`^[a-z0-9]([a-z0-9._-]{0,28}[a-z0-9])?$`)
 	// Group mentions in a text: @handle, not inside a word, an address or <@id>.
 	groupMentionRE = regexp.MustCompile(`(?i)(?:^|[^\w@<])@([a-z0-9](?:[a-z0-9._-]{0,28}[a-z0-9])?)`)
+	// Code blocks and code spans, where an @name is text, not a mention.
+	codeRE = regexp.MustCompile("(?s)```.*?```|`[^`\n]*`")
 	// Words that mention many already, so no group can be called so.
 	reservedHandles = map[string]bool{"channel": true, "everyone": true, "here": true, "admins": true, "owners": true, "all": true}
 )
@@ -46,7 +48,7 @@ type GroupsEvent struct {
 func groupHandles(body string) []string {
 	var out []string
 	seen := map[string]bool{}
-	for _, m := range groupMentionRE.FindAllStringSubmatch(body, -1) {
+	for _, m := range groupMentionRE.FindAllStringSubmatch(codeRE.ReplaceAllString(body, " "), -1) {
 		h := strings.ToLower(m[1])
 		if reservedHandles[h] || seen[h] {
 			continue

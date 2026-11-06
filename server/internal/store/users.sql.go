@@ -232,3 +232,29 @@ func (q *Queries) UserExists(ctx context.Context, arg UserExistsParams) (bool, e
 	err := row.Scan(&exists)
 	return exists, err
 }
+
+const userIDsByUsernames = `-- name: UserIDsByUsernames :many
+SELECT id FROM users
+WHERE lower(username) = ANY($1::text[]) AND deactivated_at IS NULL
+`
+
+// UserIDsByUsernames finds the people a message names by @username (active ones).
+func (q *Queries) UserIDsByUsernames(ctx context.Context, usernames []string) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, userIDsByUsernames, usernames)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var id pgtype.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

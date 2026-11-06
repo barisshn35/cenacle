@@ -424,7 +424,11 @@ func (h *Handlers) EditMessage(w http.ResponseWriter, r *http.Request, channelID
 		if err := q.DeleteMentions(r.Context(), m.ID); err != nil {
 			return err
 		}
-		if ids := mentionedIDs(body); len(ids) > 0 {
+		ids, err := mentionTargets(r.Context(), q, body)
+		if err != nil {
+			return err
+		}
+		if len(ids) > 0 {
 			if err := q.AddMentions(r.Context(), store.AddMentionsParams{MessageID: m.ID, ChannelID: c.ID, UserIds: ids}); err != nil {
 				return err
 			}

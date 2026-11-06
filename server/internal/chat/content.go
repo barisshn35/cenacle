@@ -53,6 +53,32 @@ func mentionedIDs(body string) []pgtype.UUID {
 	return out
 }
 
+// mentionTargets returns the people a body mentions, by <@id> as the composer
+// writes them and by @username as people type, paste or bots send them, at most
+// MaxMentions. An @handle that names no one is left to the group mentions.
+func mentionTargets(ctx context.Context, q *store.Queries, body string) ([]pgtype.UUID, error) {
+	ids := mentionedIDs(body)
+	names := groupHandles(body)
+	if len(names) == 0 || len(ids) >= MaxMentions {
+		return ids, nil
+	}
+	found, err := q.UserIDsByUsernames(ctx, names)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[[16]byte]bool{}
+	for _, id := range ids {
+		seen[id.Bytes] = true
+	}
+	for _, id := range found {
+		if !seen[id.Bytes] && len(ids) < MaxMentions {
+			seen[id.Bytes] = true
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
 func cleanText(s string, max int, multiline bool) (string, bool) {
 	s = strings.TrimSpace(s)
 	if !utf8.ValidString(s) || utf8.RuneCountInString(s) > max {

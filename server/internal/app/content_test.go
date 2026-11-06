@@ -3,6 +3,7 @@
 package app_test
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -152,5 +153,72 @@ func TestAttachments(t *testing.T) {
 	if res := s.call(http.MethodPost, "/api/channels/"+general+"/messages", ayse,
 		map[string]any{"body": "  ", "nonce": "attach-none-1"}, nil); res.StatusCode != http.StatusBadRequest {
 		t.Errorf("empty body without attachments = %d", res.StatusCode)
+	}
+}
+
+// TestUsernameMentions: @name as people type, paste or bots send it mentions
+// that person in the channel, like the composer's <@id>.
+func TestUsernameMentions(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	gone := s.user("sub-g", "Gone")
+	general := s.general(ayse)
+	mertID := s.userID(mert)
+	ctx := context.Background()
+	for name, token := range map[string]string{"ayse": ayse, "mert": mert, "gone": gone} {
+		if _, err := s.pool.Exec(ctx, "UPDATE users SET username = $1 WHERE id = $2", name, s.userID(token)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.pool.Exec(ctx, "UPDATE users SET deactivated_at = now() WHERE id = $1", s.userID(gone)); err != nil {
+		t.Fatal(err)
+	}
+	outside := s.newWorkspace(admin, "Dış") // a channel Mert is not in
+	_ = outside
+
+	m, res := s.send(ayse, general, "@Mert bakar mısın? @gone @nobody ayse@example.com", "username-mention-1")
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("send = %d", res.StatusCode)
+	}
+	// Mert once: not a deactivated account, a word that names no one or an address.
+	for _, msg := range s.page(mert, general) {
+		if msg.ID == m.ID && (len(msg.Mentions) != 1 || msg.Mentions[0].ID != mertID) {
+			t.Errorf("mentions = %+v", msg.Mentions)
+		}
+	}
+	var act struct {
+		Items []struct {
+			Kind    string `json:"kind"`
+			Message struct {
+				ID string `json:"id"`
+			} `json:"message"`
+		} `json:"items"`
+	}
+	s.call(http.MethodGet, "/api/me/activity", mert, nil, &act)
+	if len(act.Items) == 0 || act.Items[0].Kind != "mention" || act.Items[0].Message.ID != m.ID {
+		t.Errorf("Mert's inbox = %+v", act.Items)
+	}
+	// In code, @name is text.
+	code, _ := s.send(ayse, general, "`@mert` and\n```\nowner: @mert\n```", "username-mention-2")
+	for _, msg := range s.page(mert, general) {
+		if msg.ID == code.ID && len(msg.Mentions) != 0 {
+			t.Errorf("mentions in code = %+v", msg.Mentions)
+		}
+	}
+	// Editing the name away takes the mention with it.
+	s.call(http.MethodPatch, "/api/channels/"+general+"/messages/"+m.ID, ayse, map[string]string{"body": "boşver"}, nil)
+	edited := false
+	for _, msg := range s.page(mert, general) {
+		if msg.ID == m.ID {
+			edited = true
+			if len(msg.Mentions) != 0 {
+				t.Errorf("mentions after edit = %+v", msg.Mentions)
+			}
+		}
+	}
+	if !edited {
+		t.Error("the edited message is not in the page")
 	}
 }

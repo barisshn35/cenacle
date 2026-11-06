@@ -25,6 +25,8 @@ brings Markdown, mentions, reactions and message cards, and makes event delivery
    "@", inserts "@Name" and turns the picked names into `<@id>` when sending; editing turns
    them back. Mentions of the reader are highlighted (chip, edge and tint, not color
    alone), and channels with unread mentions get a number badge (glossary rule 5).
+   Later (after 0.99.5): `@username` as plain text (typed without the suggestion, pasted or
+   sent by a bot) mentions that member too; neither form counts inside code.
 4. **Reactions**: one emoji per reaction (checked on the server), up to 50 kinds per
    message, `reaction.added`/`removed` events, counts with "me" per reader; edits keep the
    reader's reactions. The emoji picker is Frimousse (MIT) with Emojibase data (MIT)

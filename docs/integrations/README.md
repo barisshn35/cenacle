@@ -21,7 +21,7 @@ curl -X POST https://chat.example.com/api/channels/<channel-id>/messages \
 ```
 
 `nonce` (8–64 characters) makes retries safe: the same nonce never posts twice. Messages
-are Markdown; `<@user-id>` mentions a member. Up to five cards can go with a message:
+are Markdown; `<@user-id>` or `@username` mentions a member (not inside code). Up to five cards can go with a message:
 
 ```json
 {

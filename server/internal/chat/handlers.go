@@ -460,7 +460,10 @@ func postMessageTo(ctx context.Context, q *store.Queries, c store.Channel, autho
 	if err := createPoll(ctx, q, msg.ID, extra.poll); err != nil {
 		return api.Message{}, err
 	}
-	ids := mentionedIDs(body)
+	ids, err := mentionTargets(ctx, q, body)
+	if err != nil {
+		return api.Message{}, err
+	}
 	if len(ids) > 0 {
 		if err := q.AddMentions(ctx, store.AddMentionsParams{MessageID: msg.ID, ChannelID: c.ID, UserIds: ids}); err != nil {
 			return api.Message{}, err
