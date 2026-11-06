@@ -21,7 +21,7 @@ fi
 # all capabilities dropped, no privilege escalation).
 hardened="--rm --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp"
 case "$name" in
-  server | server-fips)
+  server | server-fips | media)
     out=$(docker run $hardened "$image" version)
     echo "version: $out"
     case "$name:$out" in

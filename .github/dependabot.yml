@@ -11,7 +11,8 @@ updates:
     # Matches pnpm's minimum release age (pnpm-workspace.yaml): no brand-new releases.
     cooldown: { default-days: 7 }
     ignore:
-      # Types follow the Node runtime (.nvmrc, Node 24 LTS); upgrade together on purpose.
+      # Types follow the Node runtime (.nvmrc, Node 26 LTS; desktop/: Electron's Node 24);
+      # upgrade together on purpose.
       - dependency-name: '@types/node'
         update-types: [version-update:semver-major]
     groups:

@@ -17,6 +17,7 @@ GOVULNCHECK_VERSION   := v1.9.0
 OAPI_CODEGEN_VERSION  := v2.8.0
 HELM_VERSION          := 4.3.1
 KUBE_LINTER_VERSION   := v0.8.3
+SHELLCHECK_VERSION    := 0.11.0
 
 # License policy for Go modules (see docs/adr/0001-monorepo-and-tooling.md).
 GO_ALLOWED_LICENSES := MIT,ISC,BSD-2-Clause,BSD-3-Clause,Apache-2.0,MPL-2.0,0BSD,Unlicense
@@ -42,6 +43,7 @@ GOVULNCHECK   := $(BIN_DIR)/govulncheck
 OAPI_CODEGEN  := $(BIN_DIR)/oapi-codegen
 HELM          := $(BIN_DIR)/helm
 KUBE_LINTER   := $(BIN_DIR)/kube-linter
+SHELLCHECK    := $(BIN_DIR)/shellcheck
 
 .DEFAULT_GOAL := help
 
@@ -52,7 +54,7 @@ help: ## Show available targets
 # --- Tooling -----------------------------------------------------------------
 
 .PHONY: tools
-tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) $(OAPI_CODEGEN) $(HELM) $(KUBE_LINTER) ## Install pinned dev tools into ./.bin
+tools: $(SQLC) $(GOLANGCI_LINT) $(GO_LICENSES) $(GOVULNCHECK) $(OAPI_CODEGEN) $(HELM) $(KUBE_LINTER) $(SHELLCHECK) ## Install pinned dev tools into ./.bin
 
 $(SQLC):
 	@mkdir -p $(BIN_DIR)
@@ -71,6 +73,12 @@ $(GOVULNCHECK):
 
 $(KUBE_LINTER):
 	GOBIN=$(BIN_DIR) go install golang.stackrox.io/kube-linter/cmd/kube-linter@$(KUBE_LINTER_VERSION)
+
+# A command-line tool (GPL-3.0), run on the scripts only, never linked.
+$(SHELLCHECK):
+	@mkdir -p $(BIN_DIR)
+	curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v$(SHELLCHECK_VERSION)/shellcheck-v$(SHELLCHECK_VERSION).$(UNAME_S).$(UNAME_M).tar.xz \
+	  | tar -xJ -C $(BIN_DIR) --strip-components=1 shellcheck-v$(SHELLCHECK_VERSION)/shellcheck
 
 $(HELM):
 	@mkdir -p $(BIN_DIR)
@@ -136,17 +144,24 @@ gen: $(SQLC) $(OAPI_CODEGEN) node_modules ## Generate code (sqlc, OpenAPI server
 # --- Quality gates -------------------------------------------------------------
 
 .PHONY: lint
-lint: lint-go lint-js lint-helm ## Run all linters
+lint: lint-go lint-js lint-helm lint-sh ## Run all linters
 
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT)
 	cd $(SERVER_DIR) && $(GOLANGCI_LINT) run ./...
 	cd sdk/go && $(GOLANGCI_LINT) run ./...
 
+.PHONY: lint-sh
+lint-sh: $(SHELLCHECK) ## Check the scripts that run on users' hosts (deploy/) with shellcheck
+	git ls-files -co --exclude-standard 'deploy/*.sh' | xargs $(SHELLCHECK) -s sh
+
 .PHONY: lint-helm
 lint-helm: $(HELM) $(KUBE_LINTER) ## Lint the Helm chart, render it with test values and check what it renders
 	$(HELM) lint deploy/helm/cenacle --strict
 	$(HELM) template test deploy/helm/cenacle -f deploy/helm/ci-values.yaml | $(KUBE_LINTER) lint -
+	for exposure in loadBalancer hostNetwork; do \
+	  $(HELM) template test deploy/helm/cenacle -f deploy/helm/ci-values.yaml --set calls.exposure=$$exposure | $(KUBE_LINTER) lint - || exit 1; \
+	done
 
 .PHONY: lint-js
 lint-js: node_modules
@@ -154,7 +169,21 @@ lint-js: node_modules
 	pnpm typecheck
 
 .PHONY: test
-test: test-go test-js ## Run all unit tests
+test: test-go test-js test-ci ## Run all unit tests
+
+.PHONY: test-ci
+test-ci: ## Tests of the CI scripts (the CLA and sign-off check, GitHub Releases, the public publishing lock and mirrors)
+	sh ci/check-cla.test.sh
+	node --test ci/github-release.test.mjs
+	sh ci/mirror.test.sh
+
+.PHONY: test-install-calls
+test-install-calls: ## install.sh with calls on the eight tested distributions, in containers (pulls their images)
+	sh ci/install-calls.test.sh
+
+.PHONY: test-calls-k3d
+test-calls-k3d: ## The chart's media service in k3d, a call through each calls.exposure (needs k3d, kubectl)
+	sh ci/calls-helm-smoke.sh
 
 .PHONY: test-go
 test-go:
@@ -225,3 +254,4 @@ images: ## Build container images for the local architecture
 	docker build -f idp/Dockerfile -t $(IMAGE_PREFIX)idp:dev .
 	docker build -f web/Dockerfile -t $(IMAGE_PREFIX)web:dev .
 	docker build -f deploy/compose/caddy/Dockerfile -t $(IMAGE_PREFIX)proxy:dev .
+	docker build -f server/media.Dockerfile -t $(IMAGE_PREFIX)media:dev .

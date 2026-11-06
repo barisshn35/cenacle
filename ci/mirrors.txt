@@ -1,0 +1,9 @@
+# Folder of this repository, then the read-only repository next to the public
+# one that carries it with its own history (ci/mirror.sh).
+desktop        cenacle-desktop
+mobile         cenacle-mobile
+deploy/compose cenacle-docker
+deploy/helm    cenacle-helm
+sdk/go         cenacle-sdk-go
+sdk/python     cenacle-sdk-python
+docs           cenacle-docs

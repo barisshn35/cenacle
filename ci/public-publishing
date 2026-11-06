@@ -1,0 +1,8 @@
+# Publishing to GitHub (the public repository, its Releases, the read-only
+# mirror repositories) and to ghcr.io: "locked" or "open".
+#
+# Locked until the history has been rewritten (docs/operations/ci.md, "Public
+# publishing"): while locked, CI publishes only to this GitLab project. It is
+# opened by a reviewed commit on the rewritten history, not by a CI/CD
+# variable, so that no setting can open it on the old history.
+locked

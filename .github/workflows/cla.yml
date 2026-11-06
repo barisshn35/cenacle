@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Public contributions come to GitHub: every commit of a pull request must be
+# signed off by its author, who signed the Contributor License Agreement
+# (CLA.md, cla/signatures.txt). The same check as the GitLab pipeline's `cla`
+# job (ci/check-cla.sh). Make it a required status check of the default branch
+# so a pull request cannot be merged without it.
+name: CLA
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  cla:
+    name: CLA and sign-off
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # actions/checkout v7.0.1; the merge request's whole history, so the base is there.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The check as the target branch has it: a pull request cannot change it to pass.
+      - name: The check of the target branch
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git show "$BASE:ci/check-cla.sh" > "$RUNNER_TEMP/check-cla.sh"
+          # The tests come with the check (absent before it is on the target branch).
+          if git cat-file -e "$BASE:ci/check-cla.test.sh" 2>/dev/null; then
+            git show "$BASE:ci/check-cla.test.sh" > "$RUNNER_TEMP/check-cla.test.sh"
+            sh "$RUNNER_TEMP/check-cla.test.sh"
+          fi
+      - name: Every commit signed off by a signer
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: sh "$RUNNER_TEMP/check-cla.sh" "$BASE" "$HEAD"

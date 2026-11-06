@@ -17,7 +17,7 @@ workflow:
       variables:
         # Release pipelines run in a CI image built afresh for them (ci-image);
         # bump with CI_IMAGE below.
-        CI_IMAGE: cenacle-ci:2-release
+        CI_IMAGE: cenacle-ci:3-release
   auto_cancel:
     on_new_commit: interruptible
 
@@ -25,7 +25,7 @@ stages: [prepare, lint, test, licenses, build]
 
 variables:
   # Bump when ci/image/Dockerfile changes; the prepare stage builds it once.
-  CI_IMAGE: cenacle-ci:2
+  CI_IMAGE: cenacle-ci:3
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
   TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
   BINFMT_IMAGE: tonistiigi/binfmt:qemu-v10.0.4@sha256:8f58e6214f4cc9dc83ce8f5acad1ece508eb6b20e696a8c1e9f274481982c541
@@ -36,6 +36,15 @@ variables:
   # The buildx builders' BuildKit, by digest rather than whatever the CI engine has tagged.
   BUILDKIT_IMAGE: moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
   SYFT_IMAGE: anchore/syft:v1.54.1@sha256:3eb5379ba7b409c3f4069b686110527af0c47df993fa5c10d13e7cf34f49b1aa
+  # Where releases are published for everyone (GitHub's registry, the project's
+  # account there), besides the project's own registry: the one place to change
+  # when the account changes (docs/operations/ci.md). Published only when public
+  # publishing is open (ci/public-publishing) and the CI/CD variable GHCR_TOKEN
+  # is set; GHCR_USER is the token's user (default: the account).
+  PUBLIC_IMAGES: ghcr.io/cenacle-tr
+  # The public repository: what the images' provenance names as their source
+  # (instead of the address this pipeline cloned from).
+  PUBLIC_SOURCE: https://github.com/Cenacle-TR/cenacle.git
   # Protected pipelines never read what other pipelines (merge requests) wrote
   # to the caches: /cache/protected-true and /cache/protected-false.
   CACHE_ROOT: /cache/protected-$CI_COMMIT_REF_PROTECTED
@@ -97,6 +106,7 @@ lint-go:
     - make tools
     - make lint-go
     - make lint-helm
+    - make lint-sh
     # Generated code is up to date (sqlc, oapi-codegen).
     - cd server && ../.bin/sqlc generate
     - (cd api && ../../.bin/oapi-codegen -config oapi-codegen.yaml openapi.yaml)
@@ -140,21 +150,18 @@ test-go:
 test-js:
   stage: test
   needs: [lint-js]
-  parallel:
-    # 24 LTS today; 26 becomes LTS on 2026-10-28.
-    matrix:
-      - NODE: ['24', '26']
   variables:
     IDP_TEST_DATABASE_URL: postgres://cenacle_idp:ci-only-password@127.0.0.1:5432/cenacle_idp_test
     IDP_TEST_LDAP_URL: ldap://127.0.0.1:13389
     IDP_TEST_LDAP_PASSWORD: ci-only-password
   before_script:
-    - export PATH="/opt/node$NODE/bin:$PATH" && node --version
+    - node --version
     - ci/services.sh stop
     - ci/services.sh postgres-idp:5432 ldap
   script:
     - *pnpm-install
     - pnpm test
+    - node --test ci/github-release.test.mjs
     - pnpm build
   after_script:
     - ci/services.sh stop
@@ -245,7 +252,10 @@ cla:
   variables:
     GIT_DEPTH: '0'
   script:
-    - ci/check-cla.sh "$CI_MERGE_REQUEST_DIFF_BASE_SHA" HEAD
+    # The check as the target branch has it: a merge request cannot change it to pass.
+    - git show "$CI_MERGE_REQUEST_DIFF_BASE_SHA:ci/check-cla.sh" > /tmp/check-cla.sh
+    - if git cat-file -e "$CI_MERGE_REQUEST_DIFF_BASE_SHA:ci/check-cla.test.sh" 2>/dev/null; then git show "$CI_MERGE_REQUEST_DIFF_BASE_SHA:ci/check-cla.test.sh" > /tmp/check-cla.test.sh && sh /tmp/check-cla.test.sh; fi
+    - sh /tmp/check-cla.sh "$CI_MERGE_REQUEST_DIFF_BASE_SHA" HEAD
 
 # ------------------------------------------------------------ licenses ---
 licenses:
@@ -280,6 +290,9 @@ images:
         DOCKERFILE: web/Dockerfile
       - IMAGE: proxy
         DOCKERFILE: deploy/compose/caddy/Dockerfile
+      # The media service for calls (docs/install/calls.md).
+      - IMAGE: media
+        DOCKERFILE: server/media.Dockerfile
       # FIPS 140-3 variants (docs/security/fips.md).
       - IMAGE: server-fips
         DOCKERFILE: server/Dockerfile
@@ -337,6 +350,9 @@ images:
         archive="$CI_PROJECT_DIR/.image-$IMAGE.tar"
         # Reproducible: file times are the commit's (docs/security/README.md).
         epoch="$(git log -1 --format=%ct)"
+        # The provenance names the public repository as the source (vcs:source),
+        # with this commit (vcs:revision), not the address CI cloned from.
+        git remote set-url origin "$PUBLIC_SOURCE"
         # The layer cache here is the one the amd64 build above just wrote.
         docker buildx build --builder "$BUILDER" -f "$DOCKERFILE" --build-arg VERSION="$version" ${BUILD_ARGS:-} \
           --build-arg SOURCE_DATE_EPOCH="$epoch" \
@@ -347,12 +363,17 @@ images:
           --provenance mode=max --sbom true \
           --cache-from "type=local,src=$BUILDX_CACHE" \
           --output "type=oci,dest=$archive,rewrite-timestamp=true" .
+        # ghcr.io only while public publishing is open (ci/public-gate.sh) and a
+        # token for it is set (CI/CD variable GHCR_TOKEN).
+        public=false
+        if ci/public-gate.sh && [ -n "${GHCR_TOKEN:-}" ]; then public=true; fi
         auth="$CI_PROJECT_DIR/.registry-auth"
         mkdir -p "$auth" && chmod 700 "$auth"
         b64() { printf '%s:%s' "$1" "$2" | base64 | tr -d '\n'; }
         entries="\"$CI_REGISTRY\":{\"auth\":\"$(b64 "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD")\"}"
-        if [ -n "${GHCR_TOKEN:-}" ]; then
-          entries="$entries,\"ghcr.io\":{\"auth\":\"$(b64 "${GHCR_USER:-barisshn35}" "$GHCR_TOKEN")\"}"
+        if $public; then
+          account="${PUBLIC_IMAGES#*/}"
+          entries="$entries,\"${PUBLIC_IMAGES%%/*}\":{\"auth\":\"$(b64 "${GHCR_USER:-${account%%/*}}" "$GHCR_TOKEN")\"}"
         fi
         (umask 077 && printf '{"auths":{%s}}' "$entries" > "$auth/config.json")
         # The signing key where the job's containers can read it.
@@ -361,8 +382,7 @@ images:
           export COSIGN_KEY="$auth/cosign.key"
         fi
         targets="$CI_REGISTRY_IMAGE/cenacle-$IMAGE"
-        # Also to GitHub's registry when a token for it is set (CI/CD variable GHCR_TOKEN).
-        if [ -n "${GHCR_TOKEN:-}" ]; then targets="$targets ghcr.io/${GHCR_USER:-barisshn35}/cenacle-$IMAGE"; fi
+        if $public; then targets="$targets $PUBLIC_IMAGES/cenacle-$IMAGE"; fi
         export SBOM_DIR="$CI_PROJECT_DIR/.sbom"
         status=0
         ci/publish-image.sh "$archive" "$IMAGE" "$version" "$auth" $targets || status=1
@@ -372,6 +392,10 @@ images:
           curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
             "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-sbom/$version/$(basename "$file")" || status=1
         done
+        # And with the release on GitHub (job github-release).
+        if ls "$SBOM_DIR"/*.spdx.json >/dev/null 2>&1; then
+          node ci/github-release.mjs upload "$SBOM_DIR"/*.spdx.json || status=1
+        fi
         rm -rf "$auth" "$archive" "$SBOM_DIR"
         exit $status
       fi
@@ -381,7 +405,8 @@ images:
 # The desktop app (v* tags): Windows (one installer for x64 and arm64, the
 # MSI for organizations, MSIX packages for the Microsoft Store) and Linux
 # (AppImage, deb, rpm; x64 and arm64), unsigned, with the update files,
-# index.json and the Group Policy templates, published to the project's
+# index.json and the Group Policy templates, and the server's install.sh with
+# the compose archive (cenacle-compose-<version>.tar.gz), published to the project's
 # package registry as cenacle-desktop/<version>/ (docs/install/desktop.md,
 # docs/desktop/). makemsix is built once into the cache (scripts/makemsix.sh).
 desktop:
@@ -407,20 +432,27 @@ desktop:
     - (cd policy && python3 -m zipfile -c "../release/Cenacle-$version-policy-templates.zip" Cenacle.admx en-US tr-TR)
     - sh scripts/sign-linux.sh rpm
     - node scripts/release-index.mjs
+    # The server installation with Docker Compose (docs/install/README.md):
+    # install.sh and the compose directory it unpacks.
+    - cp ../deploy/compose/install.sh release/install.sh
+    - tar -C ../deploy -czf "release/cenacle-compose-$version.tar.gz" --owner=0 --group=0 --transform "s,^compose,cenacle-compose-$version," --exclude=compose/secrets --exclude=compose/.env.prod compose
     # Checksums of the installers and packages (signed by the next job, and
     # with GPG for Linux package managers).
-    - (cd release && sha256sum *.exe *.msi *.msix *.zip *.AppImage *.deb *.rpm > SHA256SUMS)
+    - (cd release && sha256sum *.exe *.msi *.msix *.zip *.AppImage *.deb *.rpm install.sh cenacle-compose-*.tar.gz > SHA256SUMS)
     - sh scripts/sign-linux.sh sums
     # desktop-sign signs exactly this file: it gets it as an artifact with its digest,
     # never by name from the package registry, which others with write access could replace.
     - echo "DESKTOP_SUMS_SHA256=$(sha256sum release/SHA256SUMS | cut -d' ' -f1)" > "$CI_PROJECT_DIR/desktop-sums.env"
     - |
-      for file in release/*.exe release/*.msi release/*.msix release/*.zip release/*.AppImage release/*.deb release/*.rpm release/*.yml release/*.yml.sig release/*.blockmap release/index.json release/SHA256SUMS release/*.asc; do
+      for file in release/*.exe release/*.msi release/*.msix release/*.zip release/*.AppImage release/*.deb release/*.rpm release/install.sh release/cenacle-compose-*.tar.gz release/*.yml release/*.yml.sig release/*.blockmap release/index.json release/SHA256SUMS release/*.asc; do
         [ -f "$file" ] || continue
         [ "$(basename "$file")" = builder-debug.yml ] && continue
         curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/cenacle-desktop/$version/$(basename "$file")"
+        set -- "$@" "$file"
       done
+      # The same files to the release on GitHub (job github-release).
+      node ../ci/github-release.mjs upload "$@"
   artifacts:
     expire_in: 1 day
     paths: [desktop/release/SHA256SUMS]
@@ -468,5 +500,64 @@ desktop-sign:
     - |
       curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file \
         "$work/SHA256SUMS.sigstore.json" "$packages/SHA256SUMS.sigstore.json"
+    - node ci/github-release.mjs upload "$work/SHA256SUMS.sigstore.json"
   after_script:
     - rm -rf "$CI_PROJECT_DIR/.sign"
+
+# The release on GitHub Releases of the public repository (v* tags): the jobs
+# above upload their files to a draft (images: the SBOMs; desktop: installers,
+# packages, update files, index.json, SHA256SUMS and its GPG signature;
+# desktop-sign: SHA256SUMS.sigstore.json). This job publishes it once every
+# file SHA256SUMS lists is there and the checksums are signed; until then the
+# release stays a draft nobody else sees. Needs the CI/CD variable
+# GITHUB_RELEASE_TOKEN (protected, masked; docs/operations/ci.md), without it
+# nothing goes to GitHub.
+github-release:
+  stage: build
+  needs:
+    - images
+    - desktop
+    - desktop-sign
+    - sdk-tag
+    - job: ci-image
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    - ci/check-job-image.sh
+    - node ci/github-release.mjs publish
+
+# Every release tag vX.Y.Z has a tag sdk/go/vX.Y.Z on the same commit, so that
+# `go get github.com/Cenacle-TR/cenacle/sdk/go@vX.Y.Z` finds the Go SDK
+# (scripts/release-tag.sh makes both; docs/operations/release.md).
+sdk-tag:
+  stage: lint
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    - git fetch --quiet origin "refs/tags/sdk/go/$CI_COMMIT_TAG:refs/tags/sdk/go/$CI_COMMIT_TAG" || true
+    - |
+      sdk="$(git rev-parse --verify --quiet "refs/tags/sdk/go/$CI_COMMIT_TAG^{commit}" || true)"
+      if [ "$sdk" != "$CI_COMMIT_SHA" ]; then
+        echo "tag sdk/go/$CI_COMMIT_TAG is missing or not on $CI_COMMIT_SHA: run scripts/release-tag.sh $CI_COMMIT_TAG"
+        exit 1
+      fi
+
+# The read-only repositories next to the public one (desktop/, mobile/,
+# deploy/compose, deploy/helm, sdk/go, sdk/python, docs/; ci/mirrors.txt), each
+# folder with its own history: main on every push to the default branch, v*
+# tags as tags. Stops before pushing anything while public publishing is
+# locked (ci/public-publishing). Needs the CI/CD variable GITHUB_MIRROR_TOKEN
+# (protected, masked; docs/operations/ci.md).
+mirror:
+  stage: build
+  needs: [lint-go, lint-js, test-go, test-js, licenses, security]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG =~ /^v/
+  variables:
+    GIT_DEPTH: '0'
+  interruptible: false
+  resource_group: mirror
+  script:
+    - ci/mirror.sh
