@@ -21,12 +21,28 @@ spec:
     - host: {{ .Values.domain | quote }}
       http:
         paths:
+          # The chat server's health checks, as the Compose proxy routes them
+          # (the web container answers them otherwise). Prefix, not Exact:
+          # Traefik ranks routes by the length of their rule, and Path(`/readyz`)
+          # is as long as the web's PathPrefix(`/`): with Exact, Traefik 3.6 sent
+          # /readyz to the web container.
+          - path: /healthz
+            pathType: Prefix
+            backend: { service: { name: {{ $full }}-server, port: { name: http } } }
+          - path: /readyz
+            pathType: Prefix
+            backend: { service: { name: {{ $full }}-server, port: { name: http } } }
           - path: /api
             pathType: Prefix
             backend: { service: { name: {{ $full }}-server, port: { name: http } } }
           - path: /ws
             pathType: Prefix
             backend: { service: { name: {{ $full }}-server, port: { name: http } } }
+          {{- if .Values.calls.enabled }}
+          - path: /media/
+            pathType: Prefix
+            backend: { service: { name: {{ $full }}-media, port: { name: signal } } }
+          {{- end }}
           {{- if and .Values.s3.endpoint .Values.s3.ingressBackend.service (not .Values.s3.uploadURL) }}
           # Browser uploads go to the bucket (signed forms; S3 checks them).
           - path: {{ printf "/%s" .Values.s3.bucket }}

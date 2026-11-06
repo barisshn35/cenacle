@@ -41,10 +41,26 @@ spec:
             {{- include "cenacle.containerSecurity" . | nindent 12 }}
           ports:
             - { name: http, containerPort: 8180 }
+            {{- if .Values.calls.enabled }}
+            - { name: call-control, containerPort: 7883 }
+            {{- end }}
             {{- if .Values.metrics.enabled }}
             - { name: metrics, containerPort: 9090 }
             {{- end }}
           env:
+            {{- if .Values.calls.enabled }}
+            - { name: CENACLE_CALLS, value: 'on' }
+            - { name: CENACLE_CALLS_INTERNAL_ADDR, value: ':7883' }
+            - { name: CENACLE_MEDIA_INTERNAL_CIDRS, value: {{ join "," .Values.calls.callbackCIDRs | quote }} }
+            - { name: CENACLE_MEDIA_NODE_ID, value: {{ .Values.calls.nodeID | quote }} }
+            - { name: CENACLE_CALLS_PRIVATE_KEY_FILE, value: /run/secrets/calls/calls-private }
+            - { name: CENACLE_MEDIA_CONTROL_PUBLIC_KEY_FILE, value: /run/secrets/calls/control-public }
+            {{- if .Values.calls.turn.enabled }}
+            - { name: CENACLE_MEDIA_TURN, value: 'on' }
+            - { name: CENACLE_MEDIA_PUBLIC_IP, value: {{ .Values.calls.publicIP | quote }} }
+            - { name: CENACLE_MEDIA_TURN_SECRET_FILE, value: /run/secrets/calls/turn-secret }
+            {{- end }}
+            {{- end }}
             {{- include "cenacle.serverEnv" . | nindent 12 }}
             - { name: CENACLE_PUBLIC_URL, value: {{ printf "https://%s" .Values.domain | quote }} }
             - { name: CENACLE_TRUST_PROXY, value: 'true' }
@@ -55,6 +71,9 @@ spec:
             - { name: CENACLE_LOG_LEVEL, value: {{ .Values.server.logLevel | quote }} }
             - { name: CENACLE_SESSION_IDLE_TIMEOUT, value: {{ .Values.server.sessionIdleTimeout | quote }} }
             - { name: CENACLE_SESSION_MAX_AGE, value: {{ .Values.server.sessionMaxAge | quote }} }
+            - { name: CENACLE_AUDIT_RETENTION, value: {{ .Values.server.auditRetention | quote }} }
+            - { name: CENACLE_AI_REQUEST_RETENTION, value: {{ .Values.server.aiRequestRetention | quote }} }
+            - { name: CENACLE_LINK_PREVIEW_RETENTION, value: {{ .Values.server.linkPreviewRetention | quote }} }
             - { name: CENACLE_WEB_APP, value: {{ .Values.server.webApp | quote }} }
             - { name: CENACLE_DESKTOP_MIN_VERSION, value: {{ .Values.server.desktopMinVersion | quote }} }
             - { name: CENACLE_PRIVACY_URL, value: {{ .Values.server.privacyUrl | quote }} }
@@ -63,6 +82,7 @@ spec:
             - { name: CENACLE_ANNOUNCEMENT_CHANNEL, value: {{ .Values.admin.announcementChannel | quote }} }
             - { name: CENACLE_DEFAULT_CHANNELS, value: {{ .Values.admin.defaultChannels | quote }} }
             - { name: CENACLE_EGRESS_ALLOW, value: {{ .Values.egressAllow | quote }} }
+            - { name: CENACLE_EGRESS_ALLOW_HTTP, value: {{ .Values.egressAllowHTTP | quote }} }
             - { name: CENACLE_LINK_PREVIEWS, value: {{ .Values.linkPreviews | quote }} }
             - { name: CENACLE_DATABASE_MAX_CONNS, value: {{ .Values.databaseMaxConns | quote }} }
             - { name: CENACLE_AI_URL, value: {{ .Values.ai.url | quote }} }
@@ -130,6 +150,9 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
           volumeMounts:
+            {{- if .Values.calls.enabled }}
+            - { name: call-keys, mountPath: /run/secrets/calls, readOnly: true }
+            {{- end }}
             - { name: secrets, mountPath: /run/secrets/cenacle, readOnly: true }
             # Archive exports and imports are staged here (the root is read-only).
             - { name: tmp, mountPath: /tmp }
@@ -147,6 +170,17 @@ spec:
           resources:
             {{- toYaml .Values.server.resources | nindent 12 }}
       volumes:
+        {{- if .Values.calls.enabled }}
+        - name: call-keys
+          secret:
+            secretName: {{ .Values.calls.existingSecret }}
+            items:
+              - { key: calls-private, path: calls-private }
+              - { key: control-public, path: control-public }
+              {{- if .Values.calls.turn.enabled }}
+              - { key: turn-secret, path: turn-secret }
+              {{- end }}
+        {{- end }}
         {{- include "cenacle.serverSecrets" (dict "root" . "serve" true) | nindent 8 }}
         - name: tmp
           emptyDir: { sizeLimit: {{ .Values.server.tmpSize | quote }} }
@@ -177,6 +211,9 @@ spec:
     {{- include "cenacle.selector" (dict "root" . "component" "server") | nindent 4 }}
   ports:
     - { name: http, port: 8180, targetPort: http }
+    {{- if .Values.calls.enabled }}
+    - { name: call-control, port: 7883, targetPort: call-control }
+    {{- end }}
     {{- if .Values.metrics.enabled }}
     - { name: metrics, port: 9090, targetPort: metrics }
     {{- end }}

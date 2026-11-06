@@ -6,7 +6,15 @@ s3:
 files: { clamavAddr: clamav:3310 }
 otlpEndpoint: http://tempo:4318
 metrics: { serviceMonitor: { enabled: true } }
-networkPolicy: { enabled: true }
+networkPolicy:
+  enabled: true
+  ingressNamespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
 ingress:
-  className: nginx
+  className: traefik
   tls: [{ secretName: cenacle-tls, hosts: [chat.example.com, id.example.com] }]
+calls:
+  enabled: true
+  publicIP: 203.0.113.10
+  nodeSelector: { cenacle.io/media: 'true' }
+  callbackCIDRs: [10.42.0.0/16]
+  turn: { enabled: true, relayMin: 49152, relayMax: 49167, maxAllocations: 16 }

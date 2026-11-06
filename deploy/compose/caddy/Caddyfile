@@ -2,16 +2,18 @@
 # Public entry point. Host names come from the environment (.env.prod), never
 # from code: CENACLE_DOMAIN (chat) and CENACLE_ID_DOMAIN (Cenacle ID).
 {
-	email {$ACME_EMAIL}
 	admin off
 }
 
 # TLS mode, chosen with CENACLE_TLS_MODE in .env.prod:
 #   acme      automatic certificates from Let's Encrypt (default; needs ports 80/443
-#             reachable from the internet)
+#             reachable from the internet), with ACME_EMAIL for certificate notices
 #   files     your own certificate: certs/tls.crt (full chain) and certs/tls.key
 #   internal  Caddy's internal CA (testing or closed networks; clients must trust it)
+# ACME_EMAIL is needed in mode acme only: without it the configuration is
+# invalid (prod.yml checks it first and says so).
 (tls-acme) {
+	tls {$ACME_EMAIL}
 }
 (tls-files) {
 	tls /certs/tls.crt /certs/tls.key
@@ -29,6 +31,25 @@
 	}
 }
 
+(calls-off) {
+ handle /media/* {
+  respond 404
+ }
+}
+(calls-on) {
+ handle /media/* {
+  @signal path /media/ws
+  handle @signal {
+   reverse_proxy media:7880 {
+    stream_close_delay 5m
+   }
+  }
+  handle {
+   respond 404
+  }
+ }
+}
+
 (chat-servers) {
 	dynamic a server 8180 {
 		refresh 5s
@@ -43,15 +64,18 @@
 	import security
 	encode zstd gzip
 
-	# API and WebSocket go to the chat server; everything else is the SPA.
+	# API, WebSocket and the chat server's health checks go to the chat server;
+	# everything else is the SPA.
 	# Every instance of the chat server is found by its Compose service name
 	# (`docker compose up --scale server=N`); a request to an instance that is
 	# stopping is retried on another one.
-	handle /api/* {
+	@chat path /api/* /healthz /readyz
+	handle @chat {
 		reverse_proxy {
 			import chat-servers
 		}
 	}
+	import calls-{$CENACLE_CALLS:off}
 	handle /ws* {
 		# WebSockets have no proxy idle timeout; the server pings every 25 s.
 		# Keep upgraded streams open across config reloads.
@@ -73,6 +97,13 @@
 	handle {
 		reverse_proxy web:8080
 	}
+}
+
+# The proxy's own health check (prod.yml), reachable only inside its container.
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	respond /healthz 200
+	respond 404
 }
 
 {$CENACLE_ID_DOMAIN} {

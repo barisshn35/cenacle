@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Optional third overlay, only with calls.yml. TLS certificate must cover chat host.
+services:
+  server:
+    environment:
+      CENACLE_MEDIA_TURN: 'on'
+      CENACLE_MEDIA_PUBLIC_IP: ${CENACLE_MEDIA_PUBLIC_IP}
+      CENACLE_MEDIA_TURN_SECRET_FILE: /run/secrets/media_turn_secret
+    secrets: [media_turn_secret]
+  media:
+    environment:
+      CENACLE_MEDIA_TURN: 'on'
+      CENACLE_MEDIA_TURN_SECRET_FILE: /run/secrets/media_turn_secret
+      CENACLE_MEDIA_TURN_TLS_CERT_FILE: /run/secrets/media_turn_cert
+      CENACLE_MEDIA_TURN_TLS_KEY_FILE: /run/secrets/media_turn_key
+    secrets: [media_turn_secret, media_turn_cert, media_turn_key]
+    ports: ['3478:3478/udp', '5349:5349/tcp', '49152-49407:49152-49407/udp']
+secrets:
+  media_turn_secret: { file: ./secrets/media_turn_secret }
+  media_turn_cert: { file: ./certs/media-turn.crt }
+  media_turn_key: { file: ./certs/media-turn.key }

@@ -59,3 +59,6 @@ chmod 600 secrets/walg-postgres.env
 keep_or_write grafana_admin_password "$(rand)"
 
 echo "secrets ready in $(pwd)/secrets (back them up together with the database)"
+if [ -f .env.calls ] || [ "${CENACLE_CALLS:-off}" = on ]; then
+  sh ./gen-call-secrets.sh
+fi

@@ -5,8 +5,9 @@ description: Self-hosted team chat (Cenacle) with its identity server (Cenacle I
 type: application
 version: 0.99.4
 appVersion: '0.99.4'
-home: https://github.com/barisshn35/cenacle
-sources: [https://github.com/barisshn35/cenacle]
+kubeVersion: '>=1.30.0-0'
+home: https://github.com/Cenacle-TR/cenacle
+sources: [https://github.com/Cenacle-TR/cenacle]
 keywords: [chat, self-hosted, oidc]
 annotations:
   licenses: AGPL-3.0-only

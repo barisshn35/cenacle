@@ -78,6 +78,9 @@ spec:
             {{- with .Values.idp.signinNotice }}
             - { name: IDP_SIGNIN_NOTICE, value: {{ . | quote }} }
             {{- end }}
+            {{- with .Values.idp.privacyUrl | default .Values.server.privacyUrl }}
+            - { name: IDP_PRIVACY_URL, value: {{ . | quote }} }
+            {{- end }}
             {{- if .Values.metrics.enabled }}
             - { name: IDP_METRICS_PORT, value: '9091' }
             {{- end }}

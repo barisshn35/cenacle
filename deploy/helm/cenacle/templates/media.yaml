@@ -1,0 +1,165 @@
+{{/* SPDX-License-Identifier: AGPL-3.0-only */}}
+{{- if .Values.calls.enabled }}
+{{- if not (has .Values.calls.exposure (list "hostPort" "loadBalancer" "hostNetwork")) }}
+{{- fail "calls.exposure must be hostPort, loadBalancer or hostNetwork" }}
+{{- end }}
+{{- $hostPorts := ne .Values.calls.exposure "loadBalancer" }}
+{{- if or (not .Values.calls.publicIP) (not .Values.calls.callbackCIDRs) }}
+{{- fail "calls.publicIP and calls.callbackCIDRs are required; no IP discovery is performed" }}
+{{- end }}
+{{- if and (ne .Values.calls.exposure "loadBalancer") (not .Values.calls.nodeSelector) }}
+{{- fail "calls.nodeSelector is required with hostPort and hostNetwork: the node reached by calls.publicIP" }}
+{{- end }}
+{{- range .Values.calls.callbackCIDRs }}
+{{- if or (eq . "0.0.0.0/0") (eq . "::/0") }}{{ fail "unrestricted media callback CIDRs are forbidden" }}{{- end }}
+{{- end }}
+{{- $name := printf "%s-media" (include "cenacle.fullname" .) }}
+{{- if .Values.calls.turn.enabled }}
+{{- $minimum := int .Values.calls.turn.relayMin }}
+{{- $maximum := int .Values.calls.turn.relayMax }}
+{{- $count := int .Values.calls.turn.maxAllocations }}
+{{- if or (lt $minimum 1024) (gt $maximum 65534) (lt $maximum $minimum) (lt $count 1) (gt $count 1024) (gt (sub $maximum $minimum) 1023) (lt (add1 (sub $maximum $minimum)) $count) }}
+{{- fail "calls.turn requires 1..1024 allocations and a covering relay range of at most 1024 unprivileged ports" }}
+{{- end }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+  annotations:
+    ignore-check.kube-linter.io/env-var-secret: the *_FILE variables hold paths of mounted secret files
+    {{- if eq .Values.calls.exposure "hostNetwork" }}
+    ignore-check.kube-linter.io/host-network: calls.exposure hostNetwork, chosen by the operator for media without NAT
+    {{- end }}
+spec:
+  replicas: 1
+  # Never overlap node generations/host ports or live-migrate rooms.
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      {{- include "cenacle.selector" (dict "root" . "component" "media") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cenacle.selector" (dict "root" . "component" "media") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- if eq .Values.calls.exposure "hostNetwork" }}
+      # The node's own network: no NAT between users and the media ports. NetworkPolicy
+      # does not apply to such pods with most CNIs; filter on the node (docs/install/calls.md).
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      terminationGracePeriodSeconds: 15
+      securityContext:
+        {{- include "cenacle.podSecurity" 65532 | nindent 8 }}
+      {{- with .Values.calls.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: media
+          image: {{ .Values.calls.image | default (include "cenacle.image" (dict "root" . "component" "media")) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: [serve]
+          securityContext:
+            {{- include "cenacle.containerSecurity" . | nindent 12 }}
+          ports:
+            - { name: signal, containerPort: 7880 }
+            - { name: ice-tcp, containerPort: 7881{{ if $hostPorts }}, hostPort: 7881{{ end }} }
+            - { name: ice-udp, containerPort: 7882{{ if $hostPorts }}, hostPort: 7882{{ end }}, protocol: UDP }
+            {{- if .Values.calls.turn.enabled }}
+            - { name: turn-udp, containerPort: 3478{{ if $hostPorts }}, hostPort: 3478{{ end }}, protocol: UDP }
+            - { name: turn-tls, containerPort: 5349{{ if $hostPorts }}, hostPort: 5349{{ end }} }
+            {{- range $port := untilStep (int .Values.calls.turn.relayMin) (int (add1 .Values.calls.turn.relayMax)) 1 }}
+            - { containerPort: {{ $port }}{{ if $hostPorts }}, hostPort: {{ $port }}{{ end }}, protocol: UDP }
+            {{- end }}
+            {{- end }}
+          env:
+            - { name: CENACLE_PUBLIC_URL, value: {{ printf "https://%s" .Values.domain | quote }} }
+            - { name: CENACLE_MEDIA_PUBLIC_IP, value: {{ .Values.calls.publicIP | quote }} }
+            - { name: CENACLE_MEDIA_NODE_ID, value: {{ .Values.calls.nodeID | quote }} }
+            - { name: CENACLE_MEDIA_CONTROL_URL, value: {{ printf "http://%s-server:7883/control" (include "cenacle.fullname" .) | quote }} }
+            - { name: CENACLE_MEDIA_CONTROL_PRIVATE_KEY_FILE, value: /run/secrets/media/control-private }
+            - { name: CENACLE_CALLS_PUBLIC_KEY_FILE, value: /run/secrets/media/calls-public }
+            - { name: CENACLE_VALKEY_ADDR, value: {{ .Values.valkey.addr | quote }} }
+            - name: CENACLE_VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: {{ .Values.existingSecret }}, key: valkey-password, optional: true }
+            {{- if .Values.calls.turn.enabled }}
+            - { name: CENACLE_MEDIA_TURN, value: 'on' }
+            - { name: CENACLE_MEDIA_TURN_SECRET_FILE, value: /run/secrets/media/turn-secret }
+            - { name: CENACLE_MEDIA_TURN_TLS_CERT_FILE, value: /run/secrets/media/turn-cert }
+            - { name: CENACLE_MEDIA_TURN_TLS_KEY_FILE, value: /run/secrets/media/turn-key }
+            - { name: CENACLE_MEDIA_TURN_RELAY_MIN, value: {{ .Values.calls.turn.relayMin | quote }} }
+            - { name: CENACLE_MEDIA_TURN_RELAY_MAX, value: {{ .Values.calls.turn.relayMax | quote }} }
+            - { name: CENACLE_MEDIA_TURN_MAX_ALLOCATIONS, value: {{ .Values.calls.turn.maxAllocations | quote }} }
+            {{- end }}
+          volumeMounts:
+            - { name: media-keys, mountPath: /run/secrets/media, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+          readinessProbe: { httpGet: { path: /readyz, port: signal }, periodSeconds: 5, failureThreshold: 1 }
+          livenessProbe: { httpGet: { path: /healthz, port: signal }, periodSeconds: 10, failureThreshold: 6 }
+          resources: {{- toYaml .Values.calls.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: { medium: Memory, sizeLimit: 16Mi }
+        - name: media-keys
+          secret:
+            secretName: {{ .Values.calls.existingSecret }}
+            items:
+              - { key: calls-public, path: calls-public }
+              - { key: control-private, path: control-private }
+              {{- if .Values.calls.turn.enabled }}
+              - { key: turn-secret, path: turn-secret }
+              - { key: turn-cert, path: turn-cert }
+              - { key: turn-key, path: turn-key }
+              {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "cenacle.selector" (dict "root" . "component" "media") | nindent 4 }}
+  ports: [{ name: signal, port: 7880, targetPort: signal }]
+{{- if eq .Values.calls.exposure "loadBalancer" }}
+---
+# Media ports through a load balancer that keeps the ports (UDP and TCP on one address).
+# Its address must be calls.publicIP: candidates name that address and these ports.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-rtc
+  labels:
+    {{- include "cenacle.labels" . | nindent 4 }}
+  {{- with .Values.calls.loadBalancer.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  {{- with .Values.calls.loadBalancer.loadBalancerIP }}
+  loadBalancerIP: {{ . | quote }}
+  {{- end }}
+  selector:
+    {{- include "cenacle.selector" (dict "root" . "component" "media") | nindent 4 }}
+  ports:
+    - { name: ice-udp, port: 7882, targetPort: 7882, protocol: UDP }
+    - { name: ice-tcp, port: 7881, targetPort: 7881, protocol: TCP }
+    {{- if .Values.calls.turn.enabled }}
+    - { name: turn-udp, port: 3478, targetPort: 3478, protocol: UDP }
+    - { name: turn-tls, port: 5349, targetPort: 5349, protocol: TCP }
+    {{- range $port := untilStep (int .Values.calls.turn.relayMin) (int (add1 .Values.calls.turn.relayMax)) 1 }}
+    - { name: relay-{{ $port }}, port: {{ $port }}, targetPort: {{ $port }}, protocol: UDP }
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

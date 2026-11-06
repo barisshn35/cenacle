@@ -3,7 +3,7 @@
 # external (operators or managed services); see docs/install/kubernetes.md.
 
 image:
-  registry: git.calaixo.com:5050/calaxio/cenacle
+  registry: ghcr.io/cenacle-tr
   # Images are <registry>/<prefix><component>:<tag>.
   prefix: cenacle-
   # Defaults to the chart's appVersion.
@@ -12,6 +12,37 @@ image:
   fips: false
   pullPolicy: IfNotPresent
 imagePullSecrets: []
+
+# Single media node only. Calls remain disabled in every workspace after install.
+calls:
+  enabled: false
+  # Empty: <image.registry>/<image.prefix>media:<tag>, like the other images.
+  # Any reference works, for example one pinned with @sha256:<digest>.
+  image: ''
+  publicIP: ''
+  # How users reach the media ports (7882/udp, 7881/tcp; TURN's when on):
+  #   hostPort     the node's ports, through the CNI's port mapping (default)
+  #   loadBalancer a LoadBalancer Service with these ports; its address must be publicIP
+  #   hostNetwork  the pod on the node's network (no NAT; filter on the node)
+  exposure: hostPort
+  loadBalancer:
+    loadBalancerIP: ''
+    annotations: {}
+  # Pin to the node reached by publicIP (not needed with exposure: loadBalancer,
+  # but harmless; the pod still runs once).
+  nodeSelector: {}
+  # Actual media-pod source CIDRs; never 0.0.0.0/0 or ::/0.
+  callbackCIDRs: []
+  existingSecret: cenacle-calls
+  nodeID: media-1
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits: { cpu: '2', memory: 2Gi }
+  turn:
+    enabled: false
+    relayMin: 49152
+    relayMax: 49407
+    maxAllocations: 256
 
 # Host names (any domain or subdomain).
 domain: chat.example.com
@@ -70,6 +101,8 @@ files:
 
 # Private networks bots may be reached in (comma-separated).
 egressAllow: ''
+# Plain http:// addresses for bots' servers, too (false: https only).
+egressAllowHTTP: false
 # Previews of links in messages (public addresses only); false for air-gapped installs.
 linkPreviews: true
 # Database connections one chat server keeps (keep replicas × this below max_connections).
@@ -110,6 +143,11 @@ server:
   # maximum age (durations such as 168h and 720h); none: until people sign out.
   sessionIdleTimeout: none
   sessionMaxAge: none
+  # How long the audit log, records of AI requests and link previews are kept
+  # (durations such as 8760h); none: kept. An hourly job deletes older ones.
+  auditRetention: none
+  aiRequestRetention: none
+  linkPreviewRetention: none
   # on or off overrides the administrators' web app setting (recovery); empty
   # leaves it to them.
   webApp: ''
@@ -119,7 +157,7 @@ server:
   privacyUrl: ''
   # The source code of this server, linked from Settings (AGPL-3.0 section 13); change
   # it only if you run a changed Cenacle.
-  sourceUrl: https://github.com/barisshn35/cenacle
+  sourceUrl: https://github.com/Cenacle-TR/cenacle
   # The largest /tmp, where archive exports and imports are staged.
   tmpSize: 1Gi
   resources:
@@ -148,6 +186,9 @@ idp:
   keyRetiredGraceSeconds: 604800
   # A notice people accept before signing in (STIG notice and consent banner).
   signinNotice: ''
+  # The privacy policy linked at the foot of the sign-in and account pages; empty:
+  # server.privacyUrl.
+  privacyUrl: ''
   # Share Cenacle ID cookies across subdomains, e.g. example.com.
   cookieDomain: ''
   # The proxies in front of Cenacle ID whose X-Forwarded-For counts: the number
@@ -199,8 +240,9 @@ podDisruptionBudget:
   enabled: true
 
 networkPolicy:
-  # Only the ingress controller reaches the pods; set its namespace labels.
+  # Only the ingress controller reaches the pods. With enabled, set the labels of its
+  # namespace (required), e.g. Traefik of k3s:
+  #   matchLabels: { kubernetes.io/metadata.name: kube-system }
+  # Traefik's own chart: traefik; ingress-nginx: ingress-nginx.
   enabled: false
-  ingressNamespaceSelector:
-    matchLabels:
-      kubernetes.io/metadata.name: ingress-nginx
+  ingressNamespaceSelector: {}
