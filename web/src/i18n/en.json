@@ -1931,6 +1931,7 @@
     "settingsTitle": "AI",
     "turnOn": "Turn on AI for this workspace",
     "settingsHint": "Summaries, rewriting and questions, with the model this server's operator runs. Messages are sent only to it.",
+    "settingsFailed": "Couldn't change AI for this workspace. Try again.",
     "notice": {
       "title": "Before you use AI",
       "description": "AI here works by sending text to a language model. Read what that means, then choose.",

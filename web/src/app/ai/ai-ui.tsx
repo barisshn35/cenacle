@@ -329,6 +329,11 @@ export function WorkspaceAIForm({ workspace }: { workspace: Workspace }) {
             setBusy(true);
             void setWorkspaceAI(workspace.id, e.target.checked)
               .then(() => reloadWorkspaces(queryClient))
+              .catch((err: unknown) =>
+                toast.error(
+                  (err instanceof ApiError && err.problem.detail) || t('ai.settingsFailed'),
+                ),
+              )
               .finally(() => setBusy(false));
           }}
         />

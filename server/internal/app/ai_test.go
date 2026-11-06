@@ -27,10 +27,13 @@ type fakeModel struct {
 func (f *fakeModel) serve(t *testing.T) *ai.Client {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
-			Model    string `json:"model"`
-			Messages []struct{ Role, Content string }
+			Model     string `json:"model"`
+			MaxTokens int    `json:"max_tokens"`
+			Messages  []struct{ Role, Content string }
 		}
-		if r.URL.Path != "/v1/chat/completions" || json.NewDecoder(r.Body).Decode(&in) != nil || in.Model != "tiny" {
+		// Every request bounds the answer: a model that keeps writing would hold it.
+		if r.URL.Path != "/v1/chat/completions" || json.NewDecoder(r.Body).Decode(&in) != nil || in.Model != "tiny" ||
+			in.MaxTokens <= 0 {
 			http.Error(w, "bad", http.StatusBadRequest)
 			return
 		}

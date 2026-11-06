@@ -47,6 +47,9 @@ func (c *Client) Host() string {
 	return ""
 }
 
+// maxTokens bounds an answer (about 750 words).
+const maxTokens = 1024
+
 // ErrModel is a failure of the model's server.
 var ErrModel = errors.New("ai: the model did not answer")
 
@@ -61,7 +64,10 @@ func (c *Client) Complete(ctx context.Context, system, user string) (string, err
 		"model":       c.Model,
 		"messages":    []message{{Role: "system", Content: system}, {Role: "user", Content: user}},
 		"temperature": 0.2,
-		"stream":      false,
+		// Summaries, rewrites and answers are short; without a limit a model that
+		// keeps writing holds the request until the timeout.
+		"max_tokens": maxTokens,
+		"stream":     false,
 	})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.URL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {

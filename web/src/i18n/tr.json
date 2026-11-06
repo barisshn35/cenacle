@@ -1931,6 +1931,7 @@
     "settingsTitle": "Yapay zekâ",
     "turnOn": "Bu çalışma alanında yapay zekâyı aç",
     "settingsHint": "Özetler, yeniden yazma ve sorular; bu sunucunun yöneticisinin çalıştırdığı modelle. Mesajlar yalnızca ona gönderilir.",
+    "settingsFailed": "Bu çalışma alanının yapay zekâ ayarı değiştirilemedi. Yeniden deneyin.",
     "notice": {
       "title": "Yapay zekâyı kullanmadan önce",
       "description": "Buradaki yapay zekâ, metni bir dil modeline göndererek çalışır. Bunun ne demek olduğunu okuyun, sonra seçin.",

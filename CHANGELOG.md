@@ -27,6 +27,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- AI asks the model for at most 1024 tokens: without a limit, a model that kept writing held
+  the request until the timeout (2 minutes).
+- Turning AI on or off for a workspace said nothing when it failed; it says so now.
 - Rolling back: restoring the backup taken before an upgrade now goes into emptied
   databases (`--clean` over upgraded ones kept the new tables, and the next upgrade failed on
   them); the guide gives the commands, the one that reverts Cenacle ID's migrations, and
