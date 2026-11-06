@@ -8,6 +8,203 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Added
+
+- **Voice and video calls**, through Cenacle's own media service (`cenacle-media`, Go
+  and Pion), on the installation's own servers: no outside STUN, TURN or other service.
+  - Direct messages ring the other person for 30 seconds, following their paused
+    notifications, muted conversations and quiet hours; they accept or decline, and a
+    call to someone already in a call says so. Missed, declined and busy calls, and
+    ended calls with their start time, length and participants, are written in the
+    conversation.
+  - Channel and group calls: a bar shows the call in progress and lets members join.
+    One call per channel and one per person at a time.
+  - Microphone, camera (three simulcast layers), one shared screen at a time (video
+    only, also in the desktop app with its screen and window chooser), device choice
+    and preview, who is speaking (not by colour alone), and keyboard shortcuts
+    (Ctrl+Shift+M, O, E, H). A call goes on while you move between channels and comes
+    back as the same participant after a lost connection.
+  - Off by default: `install.sh --calls` (or `--calls-turn` with the built-in TURN
+    relay), `calls.enabled` in Helm, then each workspace's administrators turn calls on
+    and choose whether guests may start them. install.sh suggests the media address
+    from the host's own addresses, checks the ports and prints the firewall commands;
+    Helm offers host ports, a LoadBalancer Service or the host network.
+  - 8 people per call by default, up to 16 when a workspace allows it: a media host
+    with 4 CPUs and 8 GB was measured to carry one 16-person call or two 8-person
+    calls (docs/operations/performance.md).
+  - Calls in end-to-end encrypted (MLS) channels are off: the media service can read
+    call media. Nothing is recorded. Call records follow export, erasure, retention
+    and legal holds.
+
+### Changed
+
+- On phones and tablets a message shows its actions once it is tapped, instead of a
+  row of buttons under every message; one message at a time, a second tap closes them.
+- Ctrl+K also finds conversations and people by name: picking someone opens your
+  conversation with them.
+- The message box keeps attach, formatting and send in view; voice and video clips,
+  polls, priority and sending later moved into its "+" menu.
+- Red is kept for what cannot be undone: confirming a reversible action (archive,
+  disable, remove) shows a neutral button; permanent deletions stay red and say so.
+- The Turkish interface addresses people as "siz" everywhere (the web app, Cenacle ID,
+  the desktop app and the e-mail digest); docs/ux/glossary.md has the rule.
+- Helm: with `networkPolicy.enabled`, `networkPolicy.ingressNamespaceSelector` must be set
+  (it defaulted to the ingress-nginx namespace); the Kubernetes guide gives Traefik's and
+  ingress-nginx's, and Traefik's request time limit for slow uploads.
+- Erasing a person in the chat server now also blanks the address (IP) of the audit events
+  they did and drops their personal details, as Cenacle ID does; what was done and when
+  stays.
+- Node.js 26 LTS (26.13.0) replaces Node.js 24: Cenacle ID and web images, CI image,
+  `.nvmrc` and `engines`. The desktop app keeps the Node.js of its Electron (24). Node.js
+  no longer ships Corepack: install pnpm with `npm install -g pnpm` (it runs the version
+  `package.json` names); the image builds do the same.
+- The server distributions the project targets and tests (in containers) are Ubuntu 22.04
+  and 24.04, Debian 12 and 13, AlmaLinux 9 and 10 and Rocky Linux 9 and 10; Fedora and
+  openSUSE are no longer listed for servers (the desktop app's packages are unchanged).
+- The Kubernetes guide's example uses `ingress.className=traefik`; the Ingress was tested
+  with Traefik 3.6 and with ingress-nginx 1.15.1, which is retired.
+- **Breaking change (bots):** bots cannot edit or delete messages, their own included,
+  whatever role the bot account holds. The server already answered such calls with
+  `403 bot_not_allowed`; the SDK calls that made them are removed: `EditMessage` and
+  `DeleteMessage` (Go SDK) and `edit_message` and `delete_message` (Python SDK). To change
+  a card a bot posted, answer an interaction with `update`. A test now holds the rule,
+  including for a bot that is a workspace owner or channel manager.
+- `https://<chat-domain>/healthz` and `/readyz` reach the chat server instead of the web
+  container, through the proxy of `prod.yml` and through the Helm chart's Ingress.
+- The mobile app's id is `tr.com.cenacle` (it was not in any store under the earlier id).
+- `ACME_EMAIL` is required only with `CENACLE_TLS_MODE=acme`; without it the proxy says so
+  in its log and does not start.
+
+### Added
+
+- Read-only copies of `desktop/`, `mobile/`, `deploy/compose`, `deploy/helm`, `sdk/go`,
+  `sdk/python` and `docs/`, each with its own history, in repositories next to the public one
+  (CI job `mirror`, docs/operations/ci.md). The main repository stays the one to install
+  from and to send issues and changes to; each folder has a README saying so.
+- CI: nothing is published to GitHub or ghcr.io while `ci/public-publishing` says `locked`
+  (the default until the 1.0 release); every job that writes there checks it first.
+- The Python bot SDK installs from a release of the main repository
+  (`pip install "git+https://github.com/Cenacle-TR/cenacle@v1.0.0#subdirectory=sdk/python"`)
+  and has a README.
+
+- Retention of the chat server's audit log, AI request records and link previews:
+  `CENACLE_AUDIT_RETENTION`, `CENACLE_AI_REQUEST_RETENTION` and
+  `CENACLE_LINK_PREVIEW_RETENTION` (default `none`: kept) and an hourly job that deletes
+  older ones. Audit events a running audit stream has not sent yet stay.
+- Privacy policy links: `IDP_PRIVACY_URL` links the policy at the foot of Cenacle ID's sign-in
+  and account pages (Compose and Helm default to `CENACLE_PRIVACY_URL`), and the desktop app
+  shows a new server's `CENACLE_PRIVACY_URL` on its pairing page before going on. No address,
+  no link.
+- Cenacle ID: people download what it keeps about them on their account page (Your data →
+  Download my data, five times an hour at most), and administrators do it for any account
+  (Administration → Accounts → Export data, or `cenacle-idp users export --email <address>`).
+  One NDJSON file: account, photos, groups, passkeys (without keys), how many recovery codes
+  are left, sign-in attempts, sessions and app grants (without tokens) and the audit events
+  the person did; never a password hash, two-step secret or recovery code. Every export is
+  in the audit log.
+- Cenacle ID: administrators delete an account (Administration → Accounts → Delete, typing
+  its address to confirm, or `cenacle-idp users delete --email <address>`). Its sessions end,
+  the account goes with its photos, groups, passkeys and two-step verification, and the
+  audit events it did lose their IP addresses and personal details. The chat deactivates
+  the person and ends their sessions within a minute through the directory feed. While a
+  directory or identity provider still has the person, their next synchronization or
+  sign-in creates a new account. A database migration (0015) adds the table of deleted
+  accounts.
+- The chat's data download has everything else it keeps about the person: earlier versions
+  of their messages, the bytes of their files, their profile picture, fonts and sounds,
+  saved items, scheduled messages, reminders, votes, form answers, event replies, reports,
+  settings, push subscriptions, encryption devices, what they made and the audit events
+  about them. Secrets (token and password hashes, keys) stay out.
+- `deploy/compose/backup-daily.sh`: a daily dump of both databases with the secrets and
+  settings, keeping 7 days and 4 weeks and copying them off the machine with `rsync`; cron
+  and systemd timer examples in the backup guide.
+- Offline bundles: `bundle.sh --backup` also bundles the WAL-G image of `backup.yml`, and
+  every bundle contains empty files for the secrets the stack reads (`secrets/`), to fill in
+  or complete with `gen-secrets.sh` on the offline host.
+- The proxy of `prod.yml` has a health check (`docker compose ps` shows it healthy).
+- Releases are published on GitHub Releases of `Cenacle-TR/cenacle`: the desktop app's
+  installers and packages, its update files, `SHA256SUMS` with its signatures, and the
+  images' SBOMs. A release page appears once every file is there and the checksums are
+  signed.
+- Every release also has the tag `sdk/go/vX.Y.Z` (`scripts/release-tag.sh` makes both
+  tags), so `go get` finds the Go SDK of that release:
+  `github.com/Cenacle-TR/cenacle/sdk/go@vX.Y.Z`.
+- `CENACLE_EGRESS_ALLOW_HTTP` can be set in `prod.yml` (`.env.prod`) and in the Helm chart
+  (`egressAllowHTTP`); default `false` (https only).
+- The API description of incoming webhooks documents the raw e-mail body (`message/rfc822`)
+  of e-mail webhooks.
+- The contributor check (DCO sign-off and CLA) also runs on GitHub pull requests, from the
+  target branch's copy of `ci/check-cla.sh`, and a Signed-off-by line must carry the commit
+  author's own address.
+
+- `install.sh` installs the Compose stack on one Linux host and is published with each
+  release, beside `cenacle-compose-<version>.tar.gz` (the deployment files) and covered by
+  the signed `SHA256SUMS`. It checks Docker Engine, Compose 2.24+, the processor, memory,
+  disk and ports 80/443 and stops with what to do when something is missing (it never
+  installs Docker or changes firewall rules); with SELinux enforcing it switches SELinux to
+  permissive after a backup of `/etc/selinux/config` and says how to undo it, unless
+  `--keep-selinux` is given; it asks for the host names (or takes them as options), writes
+  the secrets and `.env.prod` without overwriting existing ones, starts the services and
+  waits until they are healthy. Running it again changes nothing.
+- On a narrow screen (600 px or less) notifications appear above the message box, so they
+  no longer cover its buttons.
+
+### Fixed
+
+- Erasing a person removes their profile picture (it used to stay in the database, reachable
+  by its address), their uploaded fonts and sounds; a database migration (00063) removes the
+  pictures nothing shows any more, and one (00062) indexes what points at a picture, without
+  which each deleted picture read those tables whole.
+- Erasing a person tells open apps, bots and the servers a channel is shared with that their
+  messages are gone (`message.deleted`, all at once); other servers used to keep them, and
+  open apps showed them until reloaded. Messages a legal hold keeps are hidden as well and
+  purged once no hold keeps them; they used to stay visible under "Deleted user".
+- Resetting someone's two-step verification, disabling or deleting their account at
+  Cenacle ID ends their chat sessions within a minute too (through the directory feed), so
+  a stolen device is signed out of the chat as well. Starting to require two-step
+  verification still ends only Cenacle ID sessions.
+- `load.sh` names the digest-pinned images after loading them, so `docker compose up` no
+  longer tries to pull them offline. Offline installs need Docker's containerd image store
+  (default for new installs of Docker Engine 29+); `bundle.sh` and `load.sh` stop with a
+  message on the classic store.
+- The search panel says "Searching…" while it waits for typing to stop, instead of "Type to
+  search…" with words in the box.
+- The error for an unknown incoming webhook kind lists every kind: generic, jira, gitlab,
+  alertmanager, github and email.
+- Searching for a word with a hyphen or an apostrophe (`e-mail`, `load-5`, `İstanbul'da`)
+  finds it. Such a word used to be squeezed into one (`email`), which the stored text never
+  contains, so the search found nothing. The word is now split as the text is, and every
+  part has to match. A database migration (00059) replaces the search function only; the
+  indexes and the stored text stay as they are, so it is quick.
+- A message search for a rare word answers on a large server. With two million messages it read
+  every message and took about 40 seconds, longer than the server waits, so nothing came
+  back; now it takes under 30 ms. PostgreSQL had no statistics for the words of the search
+  indexes and took every word for a common one. A database migration (00060) adds those
+  statistics for messages and file texts and makes new messages go into the search index at
+  once instead of waiting for the next vacuum. The indexes and the stored rows stay as they
+  are; on two million messages the migration took 13 seconds and did not hold up new
+  messages.
+- A search that takes longer than 10 seconds stops and says so: "This search took too long",
+  with what to try (more specific words; in messages, a channel or date filter), and the
+  app does not repeat it. A slower search used to run until the server gave up on the
+  response after 30 seconds, and the app showed "Can't reach Cenacle" after trying three
+  times.
+- A file search answers on a large server. With 200,000 files of 80 words, a search for a
+  word in the text of a few files, in none, or only in names (`rapor`) read the files newest
+  first and took 11 to 25 seconds; now 15 to 80 ms. File search looks up names and texts
+  apart, each with its own index, and a database migration (00061) tells PostgreSQL what
+  working out the words of a text costs, so it looks them up in the index. The results,
+  their order and the pages are the same. Some searches that were fast take longer on such a
+  server; every search measured stays under a second: two words in file texts 57 ms →
+  0.77 s, a word with `-word` in messages 18 → 67 ms (see the performance notes).
+- The magnifier of the search box sits in the box, not below it over the hint.
+- The desktop app no longer downloads spell-checking dictionaries from Google: the English
+  and Turkish dictionaries come with every package, and the app contacts only its server.
+  The Turkish one is hunspell-tr of Turkish Data Depository (MPL-2.0); it makes the packages
+  5 to 15 MB larger. The first of the system's preferred languages decides what is checked:
+  English or Turkish (with the other one when it is preferred too); for any other language
+  nothing is checked, where English used to mark every word.
+
 ## [0.99.4] - 2026-11-03
 
 The same application as 0.99.3, released again so that the release checks pass in every
@@ -237,7 +434,8 @@ day-long run ([report](docs/qa/report-0.99.1.md)).
 
 The release candidate of 1.0: what 1.0 needs besides fixes (the AI notice, privacy, Windows
 packages for the Microsoft Store and for organizations, the support policy), then a full QA
-pass ([report](docs/qa/report-0.99.md)). Nothing is added after this; 1.0 brings only fixes.
+pass ([report](docs/qa/report-0.99.md)). From here to 1.0, releases bring fixes, and only the
+additions those fixes need.
 
 ### Added
 
@@ -344,7 +542,8 @@ an accessibility conformance report (ADR 0044).
   account; directories link only when their new setting "link by e-mail" is on.
 - Cenacle ID: an account accepts at most 10 wrong passwords in 15 minutes; administrator
   pages need two-step verification when the policy requires it; resetting someone's
-  two-step verification or starting to require it ends their sessions.
+  two-step verification or starting to require it ends their Cenacle ID sessions (their
+  chat sessions stayed; from 1.0 a reset ends those too).
 - Guests and people who fail a channel's access rules could join it with `/join`.
 - Burn-on-read messages could be read through the threads list and by restoring them;
   they cannot have replies any more.
@@ -751,7 +950,7 @@ Release candidate preparation.
 
 ### Changed
 
-- Images are pulled from the project's registry, `git.calaixo.com:5050/calaxio/cenacle`, by
+- Images are pulled from the project's internal registry by
   default (compose and Helm); the proxy image is pulled too instead of built on the host.
 - An empty setting no longer conflicts with its `_FILE` form.
 - Cenacle ID's metrics use `@prometheus-io/client`, the successor of `prom-client`.
@@ -1443,7 +1642,7 @@ First release with published container images.
 
 ### Added
 
-- Container images on GHCR (`ghcr.io/barisshn35/cenacle-{server,idp,web,proxy}`) for
+- Container images on GHCR (`cenacle-{server,idp,web,proxy}` under the earlier GHCR account) for
   amd64 and arm64, with build provenance and an SBOM, published by CI for version tags
   only after every check has passed.
 - `CENACLE_TLS_MODE` for the production proxy: Let's Encrypt (default), your own
@@ -1500,58 +1699,58 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/barisshn35/cenacle/compare/v0.99.4...HEAD
-[0.99.4]: https://github.com/barisshn35/cenacle/compare/v0.99.3...v0.99.4
-[0.99.3]: https://github.com/barisshn35/cenacle/compare/v0.99.2...v0.99.3
-[0.99.2]: https://github.com/barisshn35/cenacle/compare/v0.99.1...v0.99.2
-[0.99.1]: https://github.com/barisshn35/cenacle/compare/v0.99.0...v0.99.1
-[0.99.0]: https://github.com/barisshn35/cenacle/compare/v0.43.0...v0.99.0
-[0.43.0]: https://github.com/barisshn35/cenacle/compare/v0.42.0...v0.43.0
-[0.42.0]: https://github.com/barisshn35/cenacle/compare/v0.41.0...v0.42.0
-[0.41.0]: https://github.com/barisshn35/cenacle/compare/v0.40.0...v0.41.0
-[0.40.0]: https://github.com/barisshn35/cenacle/compare/v0.39.0...v0.40.0
-[0.39.0]: https://github.com/barisshn35/cenacle/compare/v0.38.0...v0.39.0
-[0.38.0]: https://github.com/barisshn35/cenacle/compare/v0.37.2...v0.38.0
-[0.37.2]: https://github.com/barisshn35/cenacle/compare/v0.37.1...v0.37.2
-[0.37.1]: https://github.com/barisshn35/cenacle/compare/v0.37.0...v0.37.1
-[0.37.0]: https://github.com/barisshn35/cenacle/compare/v0.36.0...v0.37.0
-[0.36.0]: https://github.com/barisshn35/cenacle/compare/v0.35.0...v0.36.0
-[0.35.0]: https://github.com/barisshn35/cenacle/compare/v0.34.0...v0.35.0
-[0.34.0]: https://github.com/barisshn35/cenacle/compare/v0.33.0...v0.34.0
-[0.33.0]: https://github.com/barisshn35/cenacle/compare/v0.32.0...v0.33.0
-[0.32.0]: https://github.com/barisshn35/cenacle/compare/v0.31.0...v0.32.0
-[0.31.0]: https://github.com/barisshn35/cenacle/compare/v0.30.0...v0.31.0
-[0.30.0]: https://github.com/barisshn35/cenacle/compare/v0.29.0...v0.30.0
-[0.29.0]: https://github.com/barisshn35/cenacle/compare/v0.28.0...v0.29.0
-[0.28.0]: https://github.com/barisshn35/cenacle/compare/v0.27.1...v0.28.0
-[0.27.1]: https://github.com/barisshn35/cenacle/compare/v0.27.0...v0.27.1
-[0.27.0]: https://github.com/barisshn35/cenacle/compare/v0.26.0...v0.27.0
-[0.26.0]: https://github.com/barisshn35/cenacle/compare/v0.25.0...v0.26.0
-[0.25.0]: https://github.com/barisshn35/cenacle/compare/v0.24.0...v0.25.0
-[0.24.0]: https://github.com/barisshn35/cenacle/compare/v0.23.0...v0.24.0
-[0.23.0]: https://github.com/barisshn35/cenacle/compare/v0.22.0...v0.23.0
-[0.22.0]: https://github.com/barisshn35/cenacle/compare/v0.21.0...v0.22.0
-[0.21.0]: https://github.com/barisshn35/cenacle/compare/v0.20.1...v0.21.0
-[0.20.1]: https://github.com/barisshn35/cenacle/compare/v0.20.0...v0.20.1
-[0.20.0]: https://github.com/barisshn35/cenacle/compare/v0.19.0...v0.20.0
-[0.19.0]: https://github.com/barisshn35/cenacle/compare/v0.18.0...v0.19.0
-[0.18.0]: https://github.com/barisshn35/cenacle/compare/v0.17.0...v0.18.0
-[0.17.0]: https://github.com/barisshn35/cenacle/compare/v0.16.0...v0.17.0
-[0.16.0]: https://github.com/barisshn35/cenacle/compare/v0.15.0...v0.16.0
-[0.15.0]: https://github.com/barisshn35/cenacle/compare/v0.14.0...v0.15.0
-[0.14.0]: https://github.com/barisshn35/cenacle/compare/v0.13.0...v0.14.0
-[0.13.0]: https://github.com/barisshn35/cenacle/compare/v0.12.0...v0.13.0
-[0.12.0]: https://github.com/barisshn35/cenacle/compare/v0.11.0...v0.12.0
-[0.11.0]: https://github.com/barisshn35/cenacle/compare/v0.10.1...v0.11.0
-[0.10.1]: https://github.com/barisshn35/cenacle/compare/v0.10.0...v0.10.1
-[0.10.0]: https://github.com/barisshn35/cenacle/compare/v0.9.0...v0.10.0
-[0.9.0]: https://github.com/barisshn35/cenacle/compare/v0.8.0...v0.9.0
-[0.8.0]: https://github.com/barisshn35/cenacle/compare/v0.7.0...v0.8.0
-[0.7.0]: https://github.com/barisshn35/cenacle/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/barisshn35/cenacle/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/barisshn35/cenacle/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/barisshn35/cenacle/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/barisshn35/cenacle/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/barisshn35/cenacle/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/barisshn35/cenacle/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/barisshn35/cenacle/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.4...HEAD
+[0.99.4]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.3...v0.99.4
+[0.99.3]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.2...v0.99.3
+[0.99.2]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.1...v0.99.2
+[0.99.1]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.0...v0.99.1
+[0.99.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.43.0...v0.99.0
+[0.43.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.42.0...v0.43.0
+[0.42.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.41.0...v0.42.0
+[0.41.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.40.0...v0.41.0
+[0.40.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.39.0...v0.40.0
+[0.39.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.38.0...v0.39.0
+[0.38.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.37.2...v0.38.0
+[0.37.2]: https://github.com/Cenacle-TR/cenacle/compare/v0.37.1...v0.37.2
+[0.37.1]: https://github.com/Cenacle-TR/cenacle/compare/v0.37.0...v0.37.1
+[0.37.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.36.0...v0.37.0
+[0.36.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.35.0...v0.36.0
+[0.35.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.34.0...v0.35.0
+[0.34.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.33.0...v0.34.0
+[0.33.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.32.0...v0.33.0
+[0.32.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.31.0...v0.32.0
+[0.31.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.30.0...v0.31.0
+[0.30.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.29.0...v0.30.0
+[0.29.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.28.0...v0.29.0
+[0.28.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.27.1...v0.28.0
+[0.27.1]: https://github.com/Cenacle-TR/cenacle/compare/v0.27.0...v0.27.1
+[0.27.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.26.0...v0.27.0
+[0.26.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.25.0...v0.26.0
+[0.25.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.24.0...v0.25.0
+[0.24.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.23.0...v0.24.0
+[0.23.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.22.0...v0.23.0
+[0.22.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.21.0...v0.22.0
+[0.21.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.20.1...v0.21.0
+[0.20.1]: https://github.com/Cenacle-TR/cenacle/compare/v0.20.0...v0.20.1
+[0.20.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.19.0...v0.20.0
+[0.19.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.18.0...v0.19.0
+[0.18.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.17.0...v0.18.0
+[0.17.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.16.0...v0.17.0
+[0.16.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.15.0...v0.16.0
+[0.15.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.14.0...v0.15.0
+[0.14.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.13.0...v0.14.0
+[0.13.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.12.0...v0.13.0
+[0.12.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.11.0...v0.12.0
+[0.11.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.10.1...v0.11.0
+[0.10.1]: https://github.com/Cenacle-TR/cenacle/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/Cenacle-TR/cenacle/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/Cenacle-TR/cenacle/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/Cenacle-TR/cenacle/releases/tag/v0.1.0

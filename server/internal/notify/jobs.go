@@ -516,13 +516,13 @@ func emailSubject(n int) string {
 
 func emailText(name string, lines []string, publicURL string) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Hello %s, while you were away: / Merhaba %s, sen yokken:\n\n", name, name)
+	fmt.Fprintf(&b, "Hello %s, while you were away: / Merhaba %s, siz yokken:\n\n", name, name)
 	for _, l := range lines {
 		b.WriteString(l)
 		b.WriteString("\n")
 	}
-	fmt.Fprintf(&b, "Open Cenacle / Cenacle'ı aç: %s\n\n", strings.TrimSuffix(publicURL, "/")+"/")
+	fmt.Fprintf(&b, "Open Cenacle / Cenacle'ı açın: %s\n\n", strings.TrimSuffix(publicURL, "/")+"/")
 	b.WriteString("You get these e-mails because you turned them on in Settings → Notifications.\n")
-	b.WriteString("Bu e-postaları Ayarlar → Bildirimler'de açtığın için alıyorsun.\n")
+	b.WriteString("Bu e-postaları Ayarlar → Bildirimler'de açtığınız için alıyorsunuz.\n")
 	return b.String()
 }

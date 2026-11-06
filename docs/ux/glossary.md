@@ -98,6 +98,23 @@ managed as i18n keys; English is the default language, Turkish has equal quality
 7. **Color is never the only signal:** destructive actions use color, icon and text;
    presence uses color and shape.
 
+## Turkish register
+
+Turkish interface text addresses the reader formally, as "siz". Sentences, descriptions,
+hints, placeholders, errors, confirmations and empty states use second person plural forms
+(imperatives, possessives, pronouns and verbs). Buttons, menu items, tab names and other short
+command labels stay bare imperatives: "Kaydet", "Gönder", "Sil", "Sonra gönder".
+
+| Informal (do not use)                | Formal                                    |
+| ------------------------------------ | ----------------------------------------- |
+| Bağlantını kontrol edip tekrar dene. | Bağlantınızı kontrol edip tekrar deneyin. |
+| Bu kanalın üyesi değilsin.           | Bu kanalın üyesi değilsiniz.              |
+| Hesabın yok mu? Yöneticinden iste.   | Hesabınız yok mu? Yöneticinizden isteyin. |
+| Bunu yalnızca sen görüyorsun         | Bunu yalnızca siz görüyorsunuz            |
+
+Third-person text that does not address the reader stays as it is ("Herkes bu kanalın
+üyesi."). Do not add "Lütfen" where the English has no "please".
+
 `web/src/i18n/i18n.test.ts` checks that English and Turkish resources have the same keys,
 that glossary terms match this table and that forbidden wording ("reset"/"sıfırla",
 "OK"/"Yes"/"Tamam"/"Evet" as labels) does not appear.
