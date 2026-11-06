@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/realtime"
+	"github.com/Cenacle-TR/cenacle/server/internal/realtime"
 )
 
 // TestSoak runs the server for a long time at a steady, ordinary pace: people

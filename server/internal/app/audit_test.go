@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/realtime"
+	"github.com/Cenacle-TR/cenacle/server/internal/realtime"
 )
 
 type auditEvent struct {

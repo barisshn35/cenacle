@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/config"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/config"
 )
 
 func TestSystemConsole(t *testing.T) {

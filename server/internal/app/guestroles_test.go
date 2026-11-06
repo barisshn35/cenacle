@@ -10,9 +10,9 @@ import (
 	guuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/chat"
-	"github.com/barisshn35/cenacle/server/internal/groups"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/chat"
+	"github.com/Cenacle-TR/cenacle/server/internal/groups"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // wsRole is a person's stored role in a workspace ("" when not a member).

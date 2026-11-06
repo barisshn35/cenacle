@@ -17,10 +17,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/events"
-	"github.com/barisshn35/cenacle/server/internal/preview"
-	"github.com/barisshn35/cenacle/server/internal/profiles"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/preview"
+	"github.com/Cenacle-TR/cenacle/server/internal/profiles"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // AuthService is the auth_service of accounts from Cenacle ID.

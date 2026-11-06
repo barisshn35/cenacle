@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/config"
+	"github.com/Cenacle-TR/cenacle/server/internal/config"
 )
 
 func TestBundleHasNoSecrets(t *testing.T) {

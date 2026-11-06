@@ -13,8 +13,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/httpx"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // The posting rules: what every way of writing a message in a person's name

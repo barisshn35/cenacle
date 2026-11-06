@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
 )
 
 // Hub follows the event log and hands every event to the clients connected

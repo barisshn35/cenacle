@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/health"
-	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/health"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
 )
 
 func newServer(t *testing.T, checkers ...health.Checker) *httptest.Server {

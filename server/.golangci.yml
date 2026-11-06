@@ -30,4 +30,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/barisshn35/cenacle
+        - github.com/Cenacle-TR/cenacle

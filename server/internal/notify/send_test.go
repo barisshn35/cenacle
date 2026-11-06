@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/egress"
+	"github.com/Cenacle-TR/cenacle/server/internal/egress"
 )
 
 func TestPushSend(t *testing.T) {

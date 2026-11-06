@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/events"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
 )
 
 func TestRelayMovesOutboxEventsInOrderWithOneLeader(t *testing.T) {

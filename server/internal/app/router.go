@@ -10,13 +10,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/auth"
-	"github.com/barisshn35/cenacle/server/internal/chat"
-	"github.com/barisshn35/cenacle/server/internal/health"
-	"github.com/barisshn35/cenacle/server/internal/httpx"
-	"github.com/barisshn35/cenacle/server/internal/realtime"
-	"github.com/barisshn35/cenacle/server/internal/telemetry"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/auth"
+	"github.com/Cenacle-TR/cenacle/server/internal/chat"
+	"github.com/Cenacle-TR/cenacle/server/internal/health"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/realtime"
+	"github.com/Cenacle-TR/cenacle/server/internal/telemetry"
 )
 
 // Deps are the dependencies of the HTTP layer.

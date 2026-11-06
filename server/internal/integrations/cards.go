@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
 )
 
 // Field is one field of a card.

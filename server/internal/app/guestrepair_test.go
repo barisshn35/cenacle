@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/chat"
-	"github.com/barisshn35/cenacle/server/internal/groups"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/migrations"
+	"github.com/Cenacle-TR/cenacle/server/internal/chat"
+	"github.com/Cenacle-TR/cenacle/server/internal/groups"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/migrations"
 )
 
 // The 00048 migration repairs the rows the old paths left.

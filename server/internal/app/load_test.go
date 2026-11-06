@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/realtime"
+	"github.com/Cenacle-TR/cenacle/server/internal/realtime"
 )
 
 // The load test runs the real server in this process (HTTP, PostgreSQL,

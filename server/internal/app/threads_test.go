@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
 )
 
 func (s *stack) reply(token, channelID, rootID, body, nonce string, also bool) (api.Message, *http.Response) {

@@ -12,7 +12,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/importer"
+	"github.com/Cenacle-TR/cenacle/server/internal/importer"
 )
 
 func file(s string) *fstest.MapFile { return &fstest.MapFile{Data: []byte(s)} }

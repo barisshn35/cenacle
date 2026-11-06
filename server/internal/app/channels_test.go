@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/chat"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/chat"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 func problemCode(t *testing.T, s *stack, method, path, token string, body any) (int, string) {

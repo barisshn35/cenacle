@@ -16,10 +16,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/egress"
-	"github.com/barisshn35/cenacle/server/internal/integrations/signing"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/internal/telemetry"
+	"github.com/Cenacle-TR/cenacle/server/internal/egress"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/signing"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/telemetry"
 )
 
 // Delivery headers sent with every event.

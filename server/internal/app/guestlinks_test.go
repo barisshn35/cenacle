@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
 )
 
 // joinGuest joins with a guest link and returns the session token the cookie carries.

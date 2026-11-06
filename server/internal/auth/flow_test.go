@@ -19,11 +19,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/barisshn35/cenacle/server/internal/app"
-	"github.com/barisshn35/cenacle/server/internal/auth"
-	"github.com/barisshn35/cenacle/server/internal/cache"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/internal/app"
+	"github.com/Cenacle-TR/cenacle/server/internal/auth"
+	"github.com/Cenacle-TR/cenacle/server/internal/cache"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
 )
 
 // memFlows is an in-memory FlowStore with take-once semantics.

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/integrations/signing"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/signing"
 )
 
 // Outgoing requests carry v1 next to v2, so a server moved back below 0.99.2

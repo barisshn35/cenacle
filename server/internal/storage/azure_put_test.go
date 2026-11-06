@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/storage"
+	"github.com/Cenacle-TR/cenacle/server/internal/storage"
 )
 
 // fakeBlob records the blobs a fake Blob service committed (a whole PUT or a

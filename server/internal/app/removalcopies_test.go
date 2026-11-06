@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/chat"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
-	"github.com/barisshn35/cenacle/server/migrations"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/chat"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/migrations"
 )
 
 // wake makes every sleeping workflow run due now.

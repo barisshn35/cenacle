@@ -7,7 +7,7 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/barisshn35/cenacle/server/internal/telemetry"
+	"github.com/Cenacle-TR/cenacle/server/internal/telemetry"
 )
 
 // New returns a slog.Logger writing to w in the given format ("json" or "text").

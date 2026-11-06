@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
 )
 
 // moderate sets up the rules of moderation the tests below are held to:

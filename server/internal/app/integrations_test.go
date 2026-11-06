@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/integrations/signing"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/signing"
 )
 
 // receiver is a bot's server: it records what it gets and answers as told.

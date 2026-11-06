@@ -31,7 +31,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
 )
 
 // Registry holds Cenacle's metrics (and Go runtime and process metrics).

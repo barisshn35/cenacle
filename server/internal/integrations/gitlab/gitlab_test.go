@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/integrations/gitlab"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/gitlab"
 )
 
 const project = `"project": {"path_with_namespace": "acme/web", "web_url": "https://gitlab.example.com/acme/web"}`

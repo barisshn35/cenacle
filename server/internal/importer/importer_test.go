@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/importer"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/internal/importer"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
 )
 
 const mattermostExport = `{"type":"version","version":1}

@@ -5,7 +5,7 @@ package alertmanager_test
 import (
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/integrations/alertmanager"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/alertmanager"
 )
 
 func TestCards(t *testing.T) {

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/groups"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/groups"
 )
 
 func (s *stack) upload(method, path, token string, data []byte) (*http.Response, []byte) {

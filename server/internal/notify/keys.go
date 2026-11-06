@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // Keys returns the installation's VAPID key pair, made and stored on first use

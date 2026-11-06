@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/e2e"
+	"github.com/Cenacle-TR/cenacle/server/internal/e2e"
 )
 
 // A vector made by web/src/app/e2e/recovery.ts (WebCrypto): the server opens

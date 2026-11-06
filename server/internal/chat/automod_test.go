@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 func automodRule(t *testing.T, kind string, cfg automodConfig) store.AutomodRule {

@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/valkey-io/valkey-go"
 
-	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
 )
 
 // Presence statuses. "offline" is the absence of a connection.

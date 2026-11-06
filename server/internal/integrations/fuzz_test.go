@@ -8,14 +8,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/integrations/alertmanager"
-	"github.com/barisshn35/cenacle/server/internal/integrations/email"
-	"github.com/barisshn35/cenacle/server/internal/integrations/feeds"
-	"github.com/barisshn35/cenacle/server/internal/integrations/github"
-	"github.com/barisshn35/cenacle/server/internal/integrations/gitlab"
-	"github.com/barisshn35/cenacle/server/internal/integrations/jira"
-	"github.com/barisshn35/cenacle/server/internal/integrations/signing"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/alertmanager"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/email"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/feeds"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/github"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/gitlab"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/jira"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/signing"
 )
 
 // What other services send (webhook bodies, mail, feeds) becomes a card. Any

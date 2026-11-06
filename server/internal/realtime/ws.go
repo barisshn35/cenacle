@@ -20,12 +20,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/barisshn35/cenacle/server/internal/auth"
-	"github.com/barisshn35/cenacle/server/internal/events"
-	"github.com/barisshn35/cenacle/server/internal/httpx"
-	"github.com/barisshn35/cenacle/server/internal/policy"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/internal/telemetry"
+	"github.com/Cenacle-TR/cenacle/server/internal/auth"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/policy"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/telemetry"
 )
 
 // Close codes of the protocol (4000-4999 are for applications).

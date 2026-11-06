@@ -8,8 +8,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/storage"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/internal/storage"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
 )
 
 func TestS3Promote(t *testing.T) {

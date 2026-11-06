@@ -1,4 +1,4 @@
-module github.com/barisshn35/cenacle/deploy/caddy
+module github.com/Cenacle-TR/cenacle/deploy/caddy
 
 go 1.26.0
 

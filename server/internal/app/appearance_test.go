@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
 )
 
 func TestAppearance(t *testing.T) {

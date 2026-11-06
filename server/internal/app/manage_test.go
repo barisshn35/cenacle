@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/chat"
+	"github.com/Cenacle-TR/cenacle/server/internal/chat"
 )
 
 func TestEditAndDeleteMessages(t *testing.T) {

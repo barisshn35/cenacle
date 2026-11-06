@@ -11,9 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/events"
-	"github.com/barisshn35/cenacle/server/internal/preview"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/preview"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // UserEvent is the data of user.updated.

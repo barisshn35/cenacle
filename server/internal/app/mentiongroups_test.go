@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/groups"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/groups"
 )
 
 // mentionCount is the user's unread mentions in a channel.

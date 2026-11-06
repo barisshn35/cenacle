@@ -20,13 +20,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/oauth2"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/audit"
-	"github.com/barisshn35/cenacle/server/internal/events"
-	"github.com/barisshn35/cenacle/server/internal/groups"
-	"github.com/barisshn35/cenacle/server/internal/httpx"
-	"github.com/barisshn35/cenacle/server/internal/profiles"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/audit"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/groups"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/profiles"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // AuthService is the value of users.auth_service for Cenacle ID accounts.

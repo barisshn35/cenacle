@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/groups"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/groups"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // The entries of the directory feed are independent: one that cannot be

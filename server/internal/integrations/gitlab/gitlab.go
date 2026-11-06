@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/integrations"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations"
 )
 
 type user struct {

@@ -22,7 +22,7 @@ import (
 
 	webpush "github.com/SherClockHolmes/webpush-go"
 
-	"github.com/barisshn35/cenacle/server/internal/egress"
+	"github.com/Cenacle-TR/cenacle/server/internal/egress"
 )
 
 // --- e-mail ------------------------------------------------------------------

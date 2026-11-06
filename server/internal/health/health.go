@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
 )
 
 // Checker reports whether a dependency is usable.

@@ -1,4 +1,4 @@
-module github.com/barisshn35/cenacle/server
+module github.com/Cenacle-TR/cenacle/server
 
 go 1.26.0
 

@@ -17,13 +17,13 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/auth"
-	"github.com/barisshn35/cenacle/server/internal/events"
-	"github.com/barisshn35/cenacle/server/internal/httpx"
-	"github.com/barisshn35/cenacle/server/internal/preview"
-	"github.com/barisshn35/cenacle/server/internal/profiles"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/auth"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/preview"
+	"github.com/Cenacle-TR/cenacle/server/internal/profiles"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // Problem codes of profiles.

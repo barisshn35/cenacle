@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/clamav"
-	"github.com/barisshn35/cenacle/server/internal/storage"
+	"github.com/Cenacle-TR/cenacle/server/internal/clamav"
+	"github.com/Cenacle-TR/cenacle/server/internal/storage"
 )
 
 type fileInfo struct {

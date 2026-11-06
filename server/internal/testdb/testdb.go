@@ -22,9 +22,9 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 
-	"github.com/barisshn35/cenacle/server/internal/cache"
-	"github.com/barisshn35/cenacle/server/internal/storage"
-	"github.com/barisshn35/cenacle/server/migrations"
+	"github.com/Cenacle-TR/cenacle/server/internal/cache"
+	"github.com/Cenacle-TR/cenacle/server/internal/storage"
+	"github.com/Cenacle-TR/cenacle/server/migrations"
 )
 
 func env(t *testing.T, name string) string {

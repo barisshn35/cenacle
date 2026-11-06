@@ -12,11 +12,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/egress"
-	"github.com/barisshn35/cenacle/server/internal/integrations"
-	"github.com/barisshn35/cenacle/server/internal/integrations/feeds"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/egress"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/feeds"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // Limits of feeds.

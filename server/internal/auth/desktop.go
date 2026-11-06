@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
 )
 
 // DesktopSignedInPath is where a desktop sign-in ends: the app's window stops

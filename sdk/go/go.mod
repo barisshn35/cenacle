@@ -1,3 +1,3 @@
-module github.com/barisshn35/cenacle/sdk/go
+module github.com/Cenacle-TR/cenacle/sdk/go
 
 go 1.26

@@ -14,9 +14,9 @@ import (
 	guuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/events"
-	"github.com/barisshn35/cenacle/server/internal/policy"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/policy"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // Profile is the directory part of a person's claims.

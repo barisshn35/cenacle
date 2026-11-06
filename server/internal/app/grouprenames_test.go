@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/groups"
-	"github.com/barisshn35/cenacle/server/internal/store"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
-	"github.com/barisshn35/cenacle/server/migrations"
+	"github.com/Cenacle-TR/cenacle/server/internal/groups"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/migrations"
 )
 
 // Migration 00054 rolls back and applies again.

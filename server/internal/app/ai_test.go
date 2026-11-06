@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/ai"
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/chat"
+	"github.com/Cenacle-TR/cenacle/server/internal/ai"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/chat"
 )
 
 // fakeModel is an OpenAI-compatible server that answers "ok: <n> lines" and

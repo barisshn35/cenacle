@@ -15,8 +15,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/audit"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/audit"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // A rename is a change of the name Cenacle ID gives a group (ADR 0046): a

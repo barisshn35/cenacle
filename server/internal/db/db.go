@@ -12,7 +12,7 @@ import (
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/barisshn35/cenacle/server/internal/telemetry"
+	"github.com/Cenacle-TR/cenacle/server/internal/telemetry"
 )
 
 // Open creates a connection pool of up to maxConns connections (0: the

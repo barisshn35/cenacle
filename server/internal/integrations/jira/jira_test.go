@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/integrations/jira"
+	"github.com/Cenacle-TR/cenacle/server/internal/integrations/jira"
 )
 
 const issue = `"issue": {"key": "CEN-42", "self": "https://acme.atlassian.net/rest/api/2/issue/10042",

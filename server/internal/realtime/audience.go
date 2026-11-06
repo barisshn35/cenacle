@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/barisshn35/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/events"
 )
 
 // audience decides which events one connection receives: messages of the

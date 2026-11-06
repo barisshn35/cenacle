@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
 )
 
 // Cookies names and writes the auth cookies. Over https the names carry the

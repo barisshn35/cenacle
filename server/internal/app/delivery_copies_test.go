@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
-	"github.com/barisshn35/cenacle/server/migrations"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/migrations"
 )
 
 // Migration 00056 rolls back and applies again.

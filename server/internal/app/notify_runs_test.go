@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/barisshn35/cenacle/server/internal/api"
-	"github.com/barisshn35/cenacle/server/internal/notify"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/api"
+	"github.com/Cenacle-TR/cenacle/server/internal/notify"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // cuttingSender ends the run's context after its first push, like River's

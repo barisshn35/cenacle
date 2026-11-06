@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/jobs"
-	"github.com/barisshn35/cenacle/server/internal/testdb"
+	"github.com/Cenacle-TR/cenacle/server/internal/jobs"
+	"github.com/Cenacle-TR/cenacle/server/internal/testdb"
 )
 
 type counter struct{ n atomic.Int64 }

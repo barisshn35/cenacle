@@ -24,11 +24,11 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/barisshn35/cenacle/server/internal/egress"
+	"github.com/Cenacle-TR/cenacle/server/internal/egress"
 )
 
 // DefaultSourceURL is the source code of Cenacle as released.
-const DefaultSourceURL = "https://github.com/barisshn35/cenacle"
+const DefaultSourceURL = "https://github.com/Cenacle-TR/cenacle"
 
 // Config is the validated server configuration.
 type Config struct {

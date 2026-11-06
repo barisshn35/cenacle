@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/auth"
+	"github.com/Cenacle-TR/cenacle/server/internal/auth"
 )
 
 // renames counts the calls; slow ones wait until they are given up.

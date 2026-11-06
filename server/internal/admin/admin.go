@@ -18,9 +18,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/barisshn35/cenacle/server/internal/config"
-	"github.com/barisshn35/cenacle/server/internal/health"
-	"github.com/barisshn35/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/internal/config"
+	"github.com/Cenacle-TR/cenacle/server/internal/health"
+	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
 // Report describes an installation at one moment.
