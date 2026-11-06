@@ -36,7 +36,7 @@ FROM node:26.13.0-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c7
 
 # OpenSSL's FIPS provider, built from the validated 3.1.2 sources (only the
 # provider is used; node keeps its own OpenSSL library).
-FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS fips-provider
+FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS fips-provider
 RUN apk add --no-cache build-base perl linux-headers
 WORKDIR /build
 ADD --checksum=sha256:a0ce69b8b97ea6a35b96875235aa453b966ba3cba8af2de23657d8b6767d6539 \
@@ -48,7 +48,7 @@ RUN tar xzf openssl-3.1.2.tar.gz && cd openssl-3.1.2 \
 
 # Runtime: plain Alpine plus the node binary only (no npm, pnpm or yarn):
 # smaller image and smaller attack surface.
-FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
+FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS runtime
 # Upgrading takes the fixes released after the base image (e.g. zlib, 2026-11-06).
 RUN apk upgrade --no-cache \
  && apk add --no-cache libstdc++ libgcc libatomic \
