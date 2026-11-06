@@ -210,6 +210,7 @@ export function ChannelTabs({ channel, active }: { channel: Channel; active?: st
         open={deleting !== null}
         onOpenChange={(o) => !o && setDeleting(null)}
         severity="s2"
+        irreversible
         title={t('collab.tabs.deleteTitle', { title: deleting?.title ?? '' })}
         description={t(`collab.tabs.deleteHint.${deleting?.kind ?? 'link'}`)}
         confirmLabel={t('collab.tabs.delete')}

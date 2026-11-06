@@ -7,6 +7,7 @@ import {
   GENERAL,
   mockApi,
   mockMessage,
+  showActions,
 } from './helpers';
 
 test('someone reports spillage and a reviewer removes it everywhere', async ({
@@ -53,6 +54,7 @@ test('someone reports spillage and a reviewer removes it everywhere', async ({
   });
   await page.goto(`/c/${GENERAL.id}`);
   const msg = page.getByTestId('message').filter({ hasText: 'parola: hunter2' });
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Report spillage' }).click();
   const dialog = page.getByRole('dialog', { name: 'Report spillage' });
@@ -129,7 +131,7 @@ test('people download their data and administrators erase a person', async ({ pa
   // Where the server's source code and the licenses of what it ships are (AGPL-3.0 section 13).
   await expect(settings.getByRole('link', { name: /^Source code/ })).toHaveAttribute(
     'href',
-    'https://github.com/barisshn35/cenacle',
+    'https://github.com/Cenacle-TR/cenacle',
   );
   await expect(settings.getByRole('link', { name: /^Open-source licenses/ })).toHaveAttribute(
     'href',

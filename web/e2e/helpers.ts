@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import { type Locator, expect, type Page, type TestInfo } from '@playwright/test';
 
 export const VARIANTS = [
   { theme: 'light', density: 'comfortable' },
@@ -227,7 +227,7 @@ export async function mockSession(page: Page, session: typeof SESSION | null = S
   });
   await page.route('**/api/meta', (route) =>
     route.fulfill({
-      json: { web_app: true, source_url: 'https://github.com/barisshn35/cenacle' },
+      json: { web_app: true, source_url: 'https://github.com/Cenacle-TR/cenacle' },
     }),
   );
   await page.unroute('**/api/session');
@@ -802,6 +802,7 @@ export async function mockApi(
     socket?: import('@playwright/test').WebSocketRoute;
     seq: number;
     pending: string[];
+    closeCode?: number;
   } = {
     sent: [],
     reads: new Map(),
@@ -847,7 +848,9 @@ export async function mockApi(
       else this.pending.push(frame);
     },
     closeSocket(code) {
-      void this.socket?.close({ code, reason: '' });
+      // Like events: a socket that has not connected yet is closed when it does.
+      if (this.socket) void this.socket.close({ code, reason: '' });
+      else this.closeCode = code;
     },
     emitEphemeral(type, data) {
       // Like events: kept until the app has connected (a busy machine connects late).
@@ -1299,6 +1302,21 @@ export async function mockApi(
     push_public_key: null as string | null,
   };
   api.notifications = notifications;
+  await page.route(/\/api\/channels\/[0-9a-f-]{36}\/call$/, (route) =>
+    route.fulfill({ status: 404, json: { status: 404, code: 'not_found' } }),
+  );
+  // Calls are off unless a test turns them on (later routes take precedence).
+  await page.route('**/api/workspaces/*/calls/settings', (route) =>
+    route.fulfill({
+      json: {
+        available: false,
+        enabled: false,
+        guest_start: false,
+        max_participants: 8,
+        max_bitrate: 2500000,
+      },
+    }),
+  );
   await page.route('**/api/me/notifications', (route) => {
     if (route.request().method() === 'PUT') notifications.prefs = route.request().postDataJSON();
     return route.fulfill({ json: notifications });
@@ -1539,6 +1557,24 @@ export async function mockApi(
     api.socket = ws;
     ws.send(JSON.stringify({ op: 'hello', last_event_id: '1-0', heartbeat_ms: 25000 }));
     for (const frame of api.pending.splice(0)) ws.send(frame);
+    if (api.closeCode !== undefined) void ws.close({ code: api.closeCode, reason: '' });
+    api.closeCode = undefined;
   });
   return api;
+}
+
+/**
+ * On touch screens a message's actions show once it is tapped: select it the
+ * way a tap does. Pointers need nothing (hover or focus shows them).
+ */
+export async function showActions(message: Locator): Promise<void> {
+  const coarse = await message.page().evaluate(() => matchMedia('(pointer: coarse)').matches);
+  if (coarse && (await message.getAttribute('data-selected')) === null)
+    await message.evaluate((el) => (el as HTMLElement).click());
+}
+
+/** Picks one of the composer's less frequent tools from its "+" menu. */
+export async function composerTool(page: Page, name: string | RegExp): Promise<void> {
+  await page.getByRole('button', { name: /^(More|Diğer): / }).click();
+  await page.getByRole('menuitem', { name }).click();
 }

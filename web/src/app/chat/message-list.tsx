@@ -55,6 +55,7 @@ import { EditedLabel } from './edit-history';
 import { AckBar, PriorityLabel } from './priority';
 import { SeenBy } from './read-receipts';
 import { AddReactionButton, ReactionBar } from './reactions';
+import { selectOnTap, useSelectedMessage } from './message-select';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
 import { useSendMessage } from './send';
@@ -105,6 +106,7 @@ export function MessageRow({
   const highlighted = useJump((s) => s.highlighted === m.id);
   const hasStatus = !!useProfile(m.author.id)?.status;
   const unread = useMarkUnread(m);
+  const selected = useSelectedMessage((s) => s.id === m.id);
   const time = (
     <time
       dateTime={m.created_at}
@@ -152,7 +154,10 @@ export function MessageRow({
       <article
         aria-labelledby={`m-${m.id}-author`}
         onClick={(e) => {
-          if (!e.altKey || m.author.id === self || editing) return;
+          if (!e.altKey || m.author.id === self || editing) {
+            if (!editing) selectOnTap(e, m.id);
+            return;
+          }
           e.preventDefault();
           unread.mutate();
         }}
@@ -161,12 +166,13 @@ export function MessageRow({
           'group relative rounded-[10px] hover:bg-hover focus-within:bg-hover',
           SPEAKER_GRID(inThread),
           row.first ? 'pt-2 pb-1' : 'py-0.5',
-          editing && 'bg-hover',
+          (editing || selected) && 'bg-hover',
           highlighted && 'bg-accent',
         )}
         data-mentions-me={mentionsMe || undefined}
         data-highlighted={highlighted || undefined}
         data-message-id={m.id}
+        data-selected={selected || undefined}
       >
         {/* The margin holds the who: name and time beside the words (above them
             on phones), the avatar at its inner edge. A mention of the reader is
@@ -270,7 +276,13 @@ export function MessageRow({
           )}
         </div>
         {!editing && (
-          <div className="absolute -top-3 end-3 flex gap-0.5 rounded-lg bg-popover p-0.5 opacity-0 shadow-popover transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:static pointer-coarse:justify-self-end sm:pointer-coarse:col-start-2 pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none">
+          <div
+            className={cn(
+              'absolute -top-3 end-3 flex gap-0.5 rounded-lg bg-popover p-0.5 opacity-0 shadow-popover transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:static pointer-coarse:justify-self-end sm:pointer-coarse:col-start-2 pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none',
+              // On touch screens only the tapped message shows its actions.
+              !selected && 'pointer-coarse:hidden',
+            )}
+          >
             {!channel.archived && channel.can_react !== false && <AddReactionButton message={m} />}
             {!inThread && !channel.archived && <ReplyButton message={m} />}
             <MessageActions message={m} channel={channel} inThread={inThread} />

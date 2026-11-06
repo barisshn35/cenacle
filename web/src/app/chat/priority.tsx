@@ -9,7 +9,7 @@ import {
   InfoIcon,
   XIcon,
 } from 'lucide-react';
-import { useId } from 'react';
+import { useId, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@cenacle/ui/components/button';
@@ -33,9 +33,16 @@ import type { Priority } from './pending';
 export function PriorityMenu({
   value,
   onChange,
+  open,
+  onOpenChange,
+  anchor,
 }: {
   value: Priority;
   onChange: (value: Priority) => void;
+  /** Opened from another control (the composer's "+" menu), next to `anchor`, without its own button. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  anchor?: RefObject<HTMLElement | null>;
 }) {
   const { t } = useTranslation();
   const id = useId();
@@ -53,22 +60,24 @@ export function PriorityMenu({
     { key: 'urgent' as const, label: t('priority.urgent') },
   ];
   return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            aria-label={t('priority.open')}
-            data-active={value.level || value.requestAck ? true : undefined}
-            className="data-[active]:text-primary"
-          />
-        }
-      >
-        <FlagIcon strokeWidth={1.75} />
-      </PopoverTrigger>
-      <PopoverContent side="top" align="end" className="w-72">
+    <Popover open={open} onOpenChange={onOpenChange}>
+      {!anchor && (
+        <PopoverTrigger
+          render={
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label={t('priority.open')}
+              data-active={value.level || value.requestAck ? true : undefined}
+              className="data-[active]:text-primary"
+            />
+          }
+        >
+          <FlagIcon strokeWidth={1.75} />
+        </PopoverTrigger>
+      )}
+      <PopoverContent side="top" align="end" className="w-72" anchor={anchor} finalFocus={anchor}>
         <PopoverTitle className="mb-2 text-sm font-semibold">{t('priority.title')}</PopoverTitle>
         <fieldset className="grid gap-1">
           <legend className="sr-only">{t('priority.title')}</legend>

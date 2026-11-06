@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
-import { apiFetch, type components } from '@cenacle/core/api';
+import { ApiError, apiFetch, type components } from '@cenacle/core/api';
 
 export type SearchMessage = components['schemas']['SearchMessage'];
 export type SearchFile = components['schemas']['SearchFile'];
@@ -17,6 +17,13 @@ export interface MessageFilters {
 }
 
 const PAGE = 20;
+
+/**
+ * Retries a failed search twice, as other queries, but not one the server stopped
+ * for taking too long: it would take as long again.
+ */
+export const retrySearch = (failures: number, error: unknown) =>
+  !(error instanceof ApiError && error.problem.code === 'search_timeout') && failures < 2;
 
 const dayStart = (d: string) => new Date(`${d}T00:00:00`).toISOString();
 const dayEnd = (d: string) => new Date(`${d}T23:59:59.999`).toISOString();
@@ -41,6 +48,7 @@ export const searchMessagesQuery = (q: string, f: MessageFilters) =>
     getNextPageParam: (page) => (page.has_more ? page.results.at(-1)?.id : undefined),
     enabled: q.trim() !== '',
     staleTime: 30_000,
+    retry: retrySearch,
   });
 
 export const searchFilesQuery = (q: string, workspaceId: string | undefined) =>
@@ -58,6 +66,7 @@ export const searchFilesQuery = (q: string, workspaceId: string | undefined) =>
     getNextPageParam: (page) => (page.has_more ? page.results.at(-1)?.id : undefined),
     enabled: q.trim() !== '',
     staleTime: 30_000,
+    retry: retrySearch,
   });
 
 /** Lowercase, without accents: how the server compares words. */
@@ -122,6 +131,7 @@ export const searchContentQuery = (q: string, workspaceId: string | undefined) =
     },
     enabled: q.trim() !== '',
     staleTime: 30_000,
+    retry: retrySearch,
   });
 
 /** An excerpt with its match between « and », as parts to mark. */

@@ -8,6 +8,7 @@ import {
   mockMessage,
   PEOPLE,
   SESSION,
+  showActions,
 } from './helpers';
 
 const [ME, AYSE] = PEOPLE as [(typeof PEOPLE)[number], (typeof PEOPLE)[number]];
@@ -119,6 +120,7 @@ test('reactions: add from the picker, toggle, and see others live', async ({ pag
   await page.goto(`/c/${GENERAL.id}`);
   const message = page.getByTestId('message').first();
   await message.hover();
+  await showActions(message);
   await message.getByRole('button', { name: 'Add reaction' }).click();
   const search = page
     .getByRole('searchbox', { name: 'Search emoji' })

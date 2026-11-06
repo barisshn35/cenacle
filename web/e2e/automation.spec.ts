@@ -165,7 +165,8 @@ test('an approver decides on an approval card', async ({ page }) => {
   });
   await page.goto(`/c/${GENERAL.id}`);
   const task = page.getByTestId('task');
-  await expect(task).toContainText('Approve 3 days off for Ayşe?');
+  // The app boots and loads the history first; on a busy machine this takes a while.
+  await expect(task).toContainText('Approve 3 days off for Ayşe?', { timeout: 15_000 });
   await expect(task).toContainText('Waiting for a decision');
   await expectNoAxeViolations(page, '[data-testid="task"]');
   await task.getByPlaceholder('Comment (optional)').fill('Enjoy');

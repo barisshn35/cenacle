@@ -166,6 +166,7 @@ export function CategoriesDialog({
           open
           onOpenChange={(o) => !o && setRemoving(null)}
           severity="s2"
+          irreversible
           title={t('categories.deleteTitle', { category: removing.name })}
           description={<p>{t('categories.deleteDescription')}</p>}
           confirmLabel={t('categories.deleteConfirm')}

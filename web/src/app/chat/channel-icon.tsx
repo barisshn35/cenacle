@@ -12,7 +12,7 @@ import type { Channel } from './data';
 
 /**
  * The speech bubble of the Cenacle logo, drawn like a lucide icon (24px grid,
- * same stroke): the sign of a public channel, never "#" (docs/design/v0.29).
+ * same stroke): the sign of a public channel, never "#" (ADR 0031).
  */
 export function BubbleIcon({ strokeWidth = 2, className, ...props }: LucideProps) {
   return (

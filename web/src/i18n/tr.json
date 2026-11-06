@@ -74,16 +74,16 @@
       "ligatures": "Bitişik harfleri kullan (=> tek işaret olur)"
     },
     "preview": "Önizleme",
-    "previewText": "Cenacle mesajlarını böyle gösterir: sakin, okunaklı, senin.",
-    "yourFonts": "Senin yazı tiplerin",
-    "fontsHint": "WOFF2, WOFF, TrueType ya da OpenType; en çok 2 MB ve en çok beş tane. Yalnızca sen görürsün; yazı tipinin lisansının buna izin verdiğinden emin ol.",
+    "previewText": "Cenacle mesajlarını böyle gösterir: sakin, okunaklı, sizin.",
+    "yourFonts": "Yazı tipleriniz",
+    "fontsHint": "WOFF2, WOFF, TrueType ya da OpenType; en çok 2 MB ve en çok beş tane. Yalnızca siz görürsünüz; yazı tipinin lisansının buna izin verdiğinden emin olun.",
     "fontRemove": "{{name}} yazı tipini kaldır",
     "fontName": "Ad (isteğe bağlı)",
     "fontUpload": "Yazı tipi yükle",
-    "fontAdded": "Yazı tipi eklendi. Kendi seçimim altından seçebilirsin.",
-    "fontLimit": "Beş yazı tipin var; önce birini kaldır.",
-    "fontInvalid": "En çok 2 MB'lık WOFF2, WOFF, TrueType ya da OpenType yazı tipi kullan.",
-    "saveFailed": "Görünümün kaydedilemedi."
+    "fontAdded": "Yazı tipi eklendi. Kendi seçimim altından seçebilirsiniz.",
+    "fontLimit": "Beş yazı tipiniz var; önce birini kaldırın.",
+    "fontInvalid": "En çok 2 MB'lık WOFF2, WOFF, TrueType ya da OpenType yazı tipi kullanın.",
+    "saveFailed": "Görünümünüz kaydedilemedi."
   },
   "shell": {
     "workspaceNav": "Çalışma alanları",
@@ -102,7 +102,7 @@
     "details": "Ayrıntılar",
     "about": "Hakkında",
     "channelStart": "{{channel}} kanalının başlangıcı.",
-    "composerPlaceholder": "{{channel}} kanalına mesaj yaz",
+    "composerPlaceholder": "{{channel}} kanalına mesaj yazın",
     "settings": "Ayarlar",
     "channels": "Kanallar",
     "noTopic": "Henüz konu yok.",
@@ -114,36 +114,36 @@
   "auth": {
     "loading": "Cenacle yükleniyor…",
     "title": "Cenacle'a giriş yap",
-    "subtitle": "Bu adresteki sunucuya giriş yapıyorsun.",
+    "subtitle": "Bu adresteki sunucuya giriş yapıyorsunuz.",
     "continue": "Cenacle ID ile devam et",
-    "help": "Hesabın yok mu? Yöneticinden bir hesap açmasını iste.",
+    "help": "Hesabınız yok mu? Yöneticinizden bir hesap açmasını isteyin.",
     "signOut": "Çıkış yap",
-    "signOutFailed": "Çıkış yapılamadı. Bağlantını kontrol edip tekrar dene.",
+    "signOutFailed": "Çıkış yapılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
     "errors": {
       "cancelled": {
         "title": "Giriş iptal edildi.",
-        "reason": "Giriş yapmadan Cenacle ID'den ayrıldın.",
-        "action": "Hazır olduğunda devam et."
+        "reason": "Giriş yapmadan Cenacle ID'den ayrıldınız.",
+        "action": "Hazır olduğunuzda devam edin."
       },
       "expired": {
         "title": "Bu girişin süresi doldu.",
         "reason": "Bir giriş bir kez ve 15 dakika boyunca geçerlidir.",
-        "action": "Aşağıdaki düğmeyle yeniden başla."
+        "action": "Aşağıdaki düğmeyle yeniden başlayın."
       },
       "failed": {
         "title": "Giriş tamamlanamadı.",
         "reason": "Cenacle ID'den gelen yanıt doğrulanamadı.",
-        "action": "Tekrar dene. Sorun sürerse hata kodunu yöneticine ilet."
+        "action": "Tekrar deneyin. Sorun sürerse hata kodunu yöneticinize iletin."
       },
       "unavailable": {
         "title": "Cenacle ID'ye şu an ulaşılamıyor.",
         "reason": "Giriş hizmeti başlatılıyor veya erişilemiyor.",
-        "action": "Biraz sonra tekrar dene."
+        "action": "Biraz sonra tekrar deneyin."
       },
       "web_app_off": {
         "title": "Cenacle burada web tarayıcılarında kullanılamıyor.",
-        "reason": "Yöneticin web uygulamasını kapattı.",
-        "action": "Cenacle masaüstü ya da mobil uygulamasını kullan."
+        "reason": "Yöneticiniz web uygulamasını kapattı.",
+        "action": "Cenacle masaüstü ya da mobil uygulamasını kullanın."
       },
       "network": {
         "title": "Bu ağdan giriş yapamazsınız.",
@@ -153,20 +153,20 @@
     },
     "server": "Sunucu adresi",
     "thisAddress": "Bu sayfanın adresi",
-    "next": "Sonra Cenacle ID'de kullanıcı adın ve parolanla giriş yapıp doğrulama uygulamandaki kodu gireceksin.",
+    "next": "Sonra Cenacle ID'de kullanıcı adınız ve parolanızla giriş yapıp doğrulama uygulamanızdaki kodu gireceksiniz.",
     "stepOf": "Adım {{step}} / {{count}}",
     "footer": {
-      "product": "Cenacle, açık kaynak ve kendi sunucunda"
+      "product": "Cenacle, açık kaynak ve kendi sunucunuzda"
     },
     "steps": {
       "title": "Giriş",
       "server": "Sunucu",
       "password": "Kullanıcı adı ve parola",
       "code": "Doğrulama uygulamasındaki kod",
-      "passwordNote": "Parolanı yalnızca Cenacle ID'ye girersin, sohbet uygulamasına asla."
+      "passwordNote": "Parolanızı yalnızca Cenacle ID'ye girersiniz, sohbet uygulamasına asla."
     },
     "desktop": {
-      "lede": "Açılan pencerede giriş yap: kullanıcı adın ve parolan, ardından doğrulama uygulamandaki kod.",
+      "lede": "Açılan pencerede giriş yapın: kullanıcı adınız ve parolanız, ardından doğrulama uygulamanızdaki kod.",
       "open": "Giriş penceresini aç",
       "changeServer": "Sunucuyu değiştir"
     }
@@ -177,12 +177,12 @@
     "loadingOlder": "Eski mesajlar yükleniyor…",
     "send": "Mesajı gönder",
     "sending": "Gönderiliyor…",
-    "notSent": "Gönderilemedi. Bağlantını kontrol et.",
-    "tooFast": "Gönderilemedi: biraz hızlı gidiyorsun. {{seconds}} saniye sonra tekrar dene.",
+    "notSent": "Gönderilemedi. Bağlantınızı kontrol edin.",
+    "tooFast": "Gönderilemedi: biraz hızlı gidiyorsunuz. {{seconds}} saniye sonra tekrar deneyin.",
     "retry": "Tekrar dene",
     "discard": "Sil",
     "reconnecting": "Yeniden bağlanılıyor… Bağlantı gelince yeni mesajlar görünür.",
-    "offline": "Çevrimdışısın. Gönderdiğin mesajlar saklanır ve yeniden gönderilebilir.",
+    "offline": "Çevrimdışısınız. Gönderdiğiniz mesajlar saklanır ve yeniden gönderilebilir.",
     "charactersLeft_one": "{{count}} karakter kaldı",
     "charactersLeft_other": "{{count}} karakter kaldı",
     "noChannels": "Henüz gösterilecek kanal yok.",
@@ -193,11 +193,11 @@
     "save": "Kaydet",
     "edited": "(düzenlendi)",
     "deleted": "Mesaj silindi.",
-    "deleteFailed": "Mesaj silinemedi. Tekrar dene.",
-    "editFailed": "Değişiklik kaydedilemedi. Tekrar dene.",
-    "noChannelsHint": "Listeden bir kanal aç ya da bu çalışma alanının kanallarına göz at.",
+    "deleteFailed": "Mesaj silinemedi. Tekrar deneyin.",
+    "editFailed": "Değişiklik kaydedilemedi. Tekrar deneyin.",
+    "noChannelsHint": "Listeden bir kanal açın ya da bu çalışma alanının kanallarına göz atın.",
     "newMessages": "Yeni mesajlar",
-    "mentionsYou": "Senden bahsediyor",
+    "mentionsYou": "Sizden bahsediyor",
     "announce": "{{name}} yeni mesaj gönderdi: {{text}}",
     "typing": {
       "one": "{{name}} yazıyor…",
@@ -206,7 +206,7 @@
     },
     "markUnread": "Okunmamış olarak işaretle",
     "markedUnread": "Okunmamış olarak işaretlendi. Buradan ayrılana kadar öyle kalır.",
-    "markUnreadFailed": "Okunmamış olarak işaretlenemedi. Tekrar dene."
+    "markUnreadFailed": "Okunmamış olarak işaretlenemedi. Tekrar deneyin."
   },
   "channels": {
     "kinds": {
@@ -227,18 +227,18 @@
     "nameTaken": "Bu adda bir kanal var.",
     "browse": "Kanallara göz at",
     "browseTitle": "Kanallar",
-    "browseDescription": "Üyesi olduğun bir kanalı aç ya da başka birine katıl.",
+    "browseDescription": "Üyesi olduğunuz bir kanalı açın ya da başka birine katılın.",
     "open": "Aç",
     "join": "Katıl",
     "joinNamed": "{{channel}} kanalına katıl",
-    "notMember": "Bu kanalın üyesi değilsin.",
-    "notFound": "Bu kanal yok ya da sana açık değil.",
-    "readOnly": "{{channel}} kanalında yalnızca duyurular paylaşılır. Buradaki her şeyi okuyabilirsin.",
+    "notMember": "Bu kanalın üyesi değilsiniz.",
+    "notFound": "Bu kanal yok ya da size açık değil.",
+    "readOnly": "{{channel}} kanalında yalnızca duyurular paylaşılır. Buradaki her şeyi okuyabilirsiniz.",
     "membership": "Üyelik",
     "mandatory": "Herkes bu kanalın üyesi.",
     "leave": "Kanaldan ayrıl",
-    "left": "{{channel}} kanalından ayrıldın.",
-    "leaveFailed": "Ayrılamadın. Bağlantını kontrol edip tekrar dene.",
+    "left": "{{channel}} kanalından ayrıldınız.",
+    "leaveFailed": "Ayrılamadınız. Bağlantınızı kontrol edip tekrar deneyin.",
     "visibility": {
       "label": "Görünürlük",
       "public": "Herkese açık",
@@ -252,7 +252,7 @@
     "manager": "Yönetici",
     "addPeople": "Kişi ekle",
     "addPeopleTo": "{{channel}} kanalına kişi ekle",
-    "addPeoplePrivate": "Bu özel kanalı yalnızca eklediğin kişiler görür.",
+    "addPeoplePrivate": "Bu özel kanalı yalnızca eklediğiniz kişiler görür.",
     "addPeoplePublic": "Üye olurlar ve kanalı listelerinde görürler.",
     "findPeople": "Ad veya e-posta ile kişi bul",
     "add": "Ekle",
@@ -261,7 +261,7 @@
     "noPeople": "Kimse bulunamadı.",
     "removeNamed": "{{person}} kişisini kanaldan çıkar",
     "removed": "{{person}}, {{channel}} kanalından çıkarıldı.",
-    "changeFailed": "Değişiklik yapılamadı. Bağlantını kontrol edip tekrar dene.",
+    "changeFailed": "Değişiklik yapılamadı. Bağlantınızı kontrol edip tekrar deneyin.",
     "settings": "Kanal ayarları",
     "settingsTitle": "{{channel}} ayarları",
     "settingsDescription": "Ad, konu ve kanalı kimlerin bulabileceği.",
@@ -270,7 +270,7 @@
     "defaultStaysPublic": "Herkes bu kanalın üyesi, bu yüzden herkese açık kalır.",
     "configuredName": "Bu kanalın adı kurulum ayarlarında belirlenir.",
     "archived": "{{channel}} arşivlendi.",
-    "archivedNotice": "Bu kanal arşivlendi. Okuyabilirsin ama kimse mesaj yazamaz.",
+    "archivedNotice": "Bu kanal arşivlendi. Okuyabilirsiniz ama kimse mesaj yazamaz.",
     "archiveTitle": "{{channel}} arşivlensin mi?",
     "archiveDescription": "Üyeler okumaya devam edebilir ama kimse yazamaz ve kanal kenar çubuğundan kalkar.",
     "archiveImpact": "Yöneticileri istediği zaman arşivden çıkarabilir; hiçbir şey silinmez.",
@@ -297,8 +297,8 @@
     "directoryFilter": "Göster",
     "directoryFilters": {
       "all": "Tümü",
-      "joined": "Katıldıkların",
-      "other": "Katılmadıkların"
+      "joined": "Katıldıklarınız",
+      "other": "Katılmadıklarınız"
     },
     "showArchived": "Arşivlenenleri göster",
     "directoryMatches_one": "“{{query}}” ile eşleşen {{count}} kanal",
@@ -306,10 +306,10 @@
     "directoryCount_one": "{{count}} kanal",
     "directoryCount_other": "{{count}} kanal",
     "dirArchived": "Arşivlendi",
-    "dirMember": "Üyesin",
-    "notJoined": "Katılmadın",
+    "dirMember": "Üyesiniz",
+    "notJoined": "Katılmadınız",
     "openChannelNamed": "{{channel}} kanalını aç",
-    "directoryNote": "Özel kanallar yalnızca üyesiysen görünür. Arşivlenmiş kanallar okunabilir ama kimse yazamaz.",
+    "directoryNote": "Özel kanallar yalnızca üyesiyseniz görünür. Arşivlenmiş kanallar okunabilir ama kimse yazamaz.",
     "memberCount_one": "{{count}} üye",
     "memberCount_other": "{{count}} üye"
   },
@@ -330,12 +330,13 @@
     "deleteConfirm": "Kategoriyi sil"
   },
   "switcher": {
-    "title": "Kanala git",
-    "placeholder": "Kanal adı yaz…",
-    "results": "Kanallar",
-    "notJoined": "Üye değilsin",
+    "title": "Kanala veya kişiye git",
+    "placeholder": "Kanal ya da kişi adı yazın…",
+    "results": "Kanallar, konuşmalar ve kişiler",
+    "notJoined": "Üye değilsiniz",
     "archived": "Arşivlendi",
-    "empty": "Eşleşen kanal yok."
+    "empty": "Eşleşen sonuç yok.",
+    "person": "Doğrudan mesaj"
   },
   "workspaces": {
     "menu": "Çalışma alanı menüsü: {{workspace}}",
@@ -344,10 +345,10 @@
     "members": "Üyeler",
     "leave": "Çalışma alanından ayrıl",
     "leaveTitle": "{{workspace}} alanından ayrılınsın mı?",
-    "leaveDescription": "Tüm kanallarından da ayrılırsın.",
-    "leaveImpact": "Ancak yeni bir davetle geri dönebilirsin.",
+    "leaveDescription": "Tüm kanallarından da ayrılırsınız.",
+    "leaveImpact": "Ancak yeni bir davetle geri dönebilirsiniz.",
     "leaveConfirm": "Çalışma alanından ayrıl",
-    "lastOwner": "Bir çalışma alanının en az bir sahibi olmalı. Önce başka birini sahip yap.",
+    "lastOwner": "Bir çalışma alanının en az bir sahibi olmalı. Önce başka birini sahip yapın.",
     "settingsTitle": "{{workspace}}",
     "settingsDescription": "Ad ve üyeler. Sahipler ve yöneticiler alanın kanallarını yönetir.",
     "membersDescription": "Bu çalışma alanındaki kişiler.",
@@ -361,9 +362,9 @@
     },
     "removeNamed": "{{person}} kişisini çalışma alanından çıkar",
     "addTitle": "Çalışma alanı ekle",
-    "addDescription": "Davet bağlantısıyla bir çalışma alanına katıl ya da yenisini oluştur.",
+    "addDescription": "Davet bağlantısıyla bir çalışma alanına katılın ya da yenisini oluşturun.",
     "joinWithLink": "Davet bağlantısı",
-    "linkPlaceholder": "Aldığın bağlantıyı yapıştır",
+    "linkPlaceholder": "Aldığınız bağlantıyı yapıştırın",
     "open": "Aç",
     "newName": "Yeni çalışma alanı",
     "create": "Çalışma alanı oluştur",
@@ -374,7 +375,7 @@
     "description": "Açıklama (isteğe bağlı)",
     "appearance": "Varsayılan görünüm",
     "appearanceHint": "Çalışma alanındaki kişiler kendi seçimlerini yapmadıkça bunu görür.",
-    "you": "(sen)",
+    "you": "(siz)",
     "groups": {
       "workspace": "Çalışma alanı",
       "more": "Uygulamalar ve güvenlik"
@@ -400,13 +401,13 @@
   },
   "invites": {
     "title": "{{workspace}} alanına katıl",
-    "subtitle": "Bu Cenacle çalışma alanına davet edildin.",
+    "subtitle": "Bu Cenacle çalışma alanına davet edildiniz.",
     "join": "{{workspace}} alanına katıl",
     "notFoundTitle": "Bu davet yok.",
     "notFoundReason": "Bağlantı eksik olabilir.",
     "invalidTitle": "Bu davet artık kullanılamaz.",
     "invalidReason": "Süresi dolmuş, kullanım hakkı bitmiş ya da iptal edilmiş.",
-    "askAgain": "Yeni bir davet bağlantısı iste.",
+    "askAgain": "Yeni bir davet bağlantısı isteyin.",
     "dialogTitle": "{{workspace}} alanına kişi davet et",
     "dialogDescription": "Bağlantı geçerli olduğu sürece, Cenacle ID hesabı olan herkes katılabilir.",
     "expiresIn": "Geçerlilik",
@@ -423,8 +424,8 @@
     "link": "Davet bağlantısı",
     "copy": "Kopyala",
     "copied": "Bağlantı kopyalandı.",
-    "copyFailed": "Kopyalanamadı; bağlantıyı seçip kopyala.",
-    "linkHint": "Bağlantı yalnızca şimdi gösterilir. Yalnızca davet ettiğin kişilerle paylaş.",
+    "copyFailed": "Kopyalanamadı; bağlantıyı seçip kopyalayın.",
+    "linkHint": "Bağlantı yalnızca şimdi gösterilir. Yalnızca davet ettiğiniz kişilerle paylaşın.",
     "active": "Geçerli bağlantılar",
     "summary": "{{date}} tarihine kadar · {{uses}} kez kullanıldı",
     "revoke": "İptal et"
@@ -434,30 +435,30 @@
     "none": "Henüz konuşma yok.",
     "newTitle": "Yeni konuşma",
     "compose": "Yeni mesaj",
-    "newDescription": "Birebir konuşma için bir kişi, grup için en fazla 8 kişi seç. Aynı kişiler her zaman aynı konuşmada buluşur.",
+    "newDescription": "Birebir konuşma için bir kişi, grup için en fazla 8 kişi seçin. Aynı kişiler her zaman aynı konuşmada buluşur.",
     "picked": "Konuşmadaki kişiler",
     "pick": "{{person}} ekle",
     "unpick": "{{person}} çıkar",
     "full": "Bir konuşmada en fazla {{count}} kişi daha olabilir.",
     "start": "Konuşmayı başlat",
     "intro": "{{people}} ile konuşmanın başlangıcı.",
-    "onlyYou": "Yalnızca sen",
+    "onlyYou": "Yalnızca siz",
     "unread_one": "{{count}} okunmamış mesaj",
     "unread_other": "{{count}} okunmamış mesaj",
     "about": {
       "direct": "Bu konuşmayı yalnızca ikiniz görürsünüz.",
-      "group": "Bu konuşmayı yalnızca içindeki kişiler görür. Kişileri sabittir; birini eklemek için yeni bir konuşma başlat."
+      "group": "Bu konuşmayı yalnızca içindeki kişiler görür. Kişileri sabittir; birini eklemek için yeni bir konuşma başlatın."
     }
   },
   "presence": {
     "change": "Durum: {{status}}. Durumu değiştir",
-    "failed": "Durumun değiştirilemedi."
+    "failed": "Durumunuz değiştirilemedi."
   },
   "settings": {
     "title": "Ayarlar",
-    "description": "Girişin, cihazların ve güvenliğin.",
+    "description": "Girişiniz, cihazlarınız ve güvenliğiniz.",
     "security": "Güvenlik",
-    "securityHint": "İki adımlı doğrulama ve parolan Cenacle ID'de yönetilir.",
+    "securityHint": "İki adımlı doğrulama ve parolanız Cenacle ID'de yönetilir.",
     "openAccount": "Cenacle ID'yi aç",
     "newTab": "(yeni sekmede açılır)",
     "devices": "Giriş yapılmış cihazlar",
@@ -471,7 +472,7 @@
     "endFailed": "Cihazdan çıkış yapılamadı.",
     "endAll": "Her yerden çıkış yap",
     "endAllTitle": "Her yerden çıkış yapılsın mı?",
-    "endAllDescription": "Cenacle cihazlarındaki oturumları kapatır; açık uygulamaların bağlantısı hemen kesilir. Taslaklar her cihazda kalır. Oralarda Cenacle'ı yeniden kullanmak için tekrar giriş yaparsın.",
+    "endAllDescription": "Cenacle cihazlarındaki oturumları kapatır; açık uygulamaların bağlantısı hemen kesilir. Taslaklar her cihazda kalır. Oralarda Cenacle'ı yeniden kullanmak için tekrar giriş yaparsınız.",
     "endAllImpact_one": "Giriş yapılmış {{count}} başka cihaz var.",
     "endAllImpact_other": "Giriş yapılmış {{count}} başka cihaz var.",
     "keepThisDevice": "Bu cihazda oturumum açık kalsın",
@@ -490,10 +491,10 @@
     "adminGroup": "Çalışma alanı · yönetici",
     "cenacleId": "Cenacle ID hesabı",
     "sections": {
-      "account": "Cenacle ID hesabın ve onunla giriş yapılmış cihazlar.",
-      "appearance": "Cihazlarındaki tema, yoğunluk, yazı ve kod blokları.",
-      "notifications": "Sana neyin ulaşacağı, nasıl sesleneceği ve Cenacle'ın ne zaman sessiz kalacağı.",
-      "language": "Cenacle'ın dili, saatlerin yazılışı ve saat dilimin.",
+      "account": "Cenacle ID hesabınız ve onunla giriş yapılmış cihazlar.",
+      "appearance": "Cihazlarınızdaki tema, yoğunluk, yazı ve kod blokları.",
+      "notifications": "Size neyin ulaşacağı, nasıl sesleneceği ve Cenacle'ın ne zaman sessiz kalacağı.",
+      "language": "Cenacle'ın dili, saatlerin yazılışı ve saat diliminiz.",
       "texts": "Yöneticilerin herkes için değiştirdiği arayüz metinleri.",
       "announcements": "Herkesin gördüğü bir duyuru şeridi ve kabul ettiği koşullar.",
       "signIn": "Cenacle'ın nerede kullanılabileceği.",
@@ -511,13 +512,13 @@
     "thisApp": "Bu uygulama",
     "pairedServer": "Sunucu",
     "appVersion": "Sürüm",
-    "pairedHint": "Uygulama bu sunucuyu açar. Başka birini kullanmak için sunucuyu değiştir; orada yeniden giriş yaparsın.",
+    "pairedHint": "Uygulama bu sunucuyu açar. Başka birini kullanmak için sunucuyu değiştirin; orada yeniden giriş yaparsınız.",
     "changeServer": "Sunucuyu değiştir",
     "checkUpdates": "Güncellemeleri denetle",
     "closeToTray": "Pencere kapatılınca Cenacle tepside çalışmaya devam etsin",
-    "sessionNotKept": "Bu bilgisayarda şifreli anahtar deposu yok: Cenacle kapanana kadar girişli kalırsın.",
+    "sessionNotKept": "Bu bilgisayarda şifreli anahtar deposu yok: Cenacle kapanana kadar girişli kalırsınız.",
     "yourData": "Verileriniz",
-    "yourDataHint": "Cenacle'ın sizinle ilgili tuttuğu her şeyi indirin: profiliniz, mesajlarınız, tepkileriniz, dosyalarınız, cihazlarınız ve yaptıklarınız (her satıra bir öğe, NDJSON).",
+    "yourDataHint": "Tek dosya olarak indirin: profiliniz ve resminiz, çalışma alanlarınız ve kanallarınız, yazdığınız mesajlar ve önceki halleri, tepkileriniz, dosyalarınız, cihazlarınız, kaydettikleriniz, zamanlanmış mesajlarınız, oylarınız, form yanıtlarınız, ayarlarınız, yüklediğiniz yazı tipleri ve sesler, oluşturduklarınız, yapay zekâ bildirimine yanıtınız, yaptıklarınız ve sizinle ilgili kaydedilenler (her satıra bir öğe, NDJSON). Dahil olmayan: Cenacle ID hesabınız; onu hesap sayfasından indirin.",
     "downloadData": "Verilerinizi indirin",
     "privacyPolicy": "Bu sunucunun gizlilik politikası",
     "about": "Cenacle hakkında",
@@ -532,10 +533,10 @@
     "search": "Emoji ara",
     "loading": "Emojiler yükleniyor…",
     "none": "Emoji bulunamadı.",
-    "chip_one": "{{emoji}}: {{count}} kişi. Tepkini ekle",
-    "chip_other": "{{emoji}}: {{count}} kişi. Tepkini ekle",
-    "chipMine_one": "{{emoji}}: {{count}} kişi, sen. Tepkini geri al",
-    "chipMine_other": "{{emoji}}: sen dahil {{count}} kişi. Tepkini geri al",
+    "chip_one": "{{emoji}}: {{count}} kişi. Tepkinizi ekle",
+    "chip_other": "{{emoji}}: {{count}} kişi. Tepkinizi ekle",
+    "chipMine_one": "{{emoji}}: {{count}} kişi, siz. Tepkinizi geri al",
+    "chipMine_other": "{{emoji}}: siz dahil {{count}} kişi. Tepkinizi geri al",
     "failed": "Tepki kaydedilemedi."
   },
   "mentions": {
@@ -556,14 +557,14 @@
     "back": "Botlara dön",
     "disabledLabel": "Devre dışı",
     "disabledNotice": "Bu bot devre dışı: etkinleştirilene kadar token ve webhook'ları çalışmaz.",
-    "addToChannels": "Botu kanallara bir kişi gibi ekle (kanal ayrıntıları → Kişi ekle); webhook'lar onu kendi kanallarına ekler.",
+    "addToChannels": "Botu kanallara bir kişi gibi ekleyin (kanal ayrıntıları → Kişi ekle); webhook'lar onu kendi kanallarına ekler.",
     "disable": "Botu devre dışı bırak",
     "disableTitle": "{{bot}} devre dışı bırakılsın mı?",
     "disableDescription": "Yeniden etkinleştirene kadar token ve webhook'ları çalışmaz. Mesajları kalır.",
     "disabled": "{{bot}} devre dışı bırakıldı.",
     "changeFailed": "Bot değiştirilemedi.",
     "tokens": "Token'lar",
-    "tokensHint": "Bot gibi davranan programlar için: Authorization: Bearer <token> olarak gönder.",
+    "tokensHint": "Bot gibi davranan programlar için: Authorization: Bearer <token> olarak gönderin.",
     "noTokens": "Token yok.",
     "tokenName": "Token adı",
     "scopes": "Kapsamlar",
@@ -580,7 +581,7 @@
     "tokenCreated": "Yeni token:",
     "revokeNamed": "{{token}} token'ını iptal et",
     "revokeTitle": "\"{{token}}\" token'ı iptal edilsin mi?",
-    "revokeDescription": "Onu kullanan programlar artık {{bot}} olarak davranamaz. Çalışmaya devam etmesi gereken bir şey varsa önce yeni bir token oluştur.",
+    "revokeDescription": "Onu kullanan programlar artık {{bot}} olarak davranamaz. Çalışmaya devam etmesi gereken bir şey varsa önce yeni bir token oluşturun.",
     "revoked": "\"{{token}}\" token'ı iptal edildi.",
     "webhooks": "Gelen webhook'lar",
     "webhooksHint": "Bir kanala bot olarak yazan gizli bir adres: {\"text\": \"…\"} gibi JSON ya da Jira olayları.",
@@ -604,8 +605,8 @@
     "deleteWebhookDescription": "Adresi çalışmaz olur; ona gönderen her şey hata alır. Gönderdiği mesajlar kalır.",
     "copy": "Kopyala",
     "copied": "Kopyalandı.",
-    "copyFailed": "Kopyalanamadı; metni seçip kopyala.",
-    "shownOnce": "Yalnızca şimdi gösterilir: güvenli bir yerde sakla. Elinde olan herkes bot olarak yazabilir.",
+    "copyFailed": "Kopyalanamadı; metni seçip kopyalayın.",
+    "shownOnce": "Yalnızca şimdi gösterilir: güvenli bir yerde saklayın. Elinde olan herkes bot olarak yazabilir.",
     "sections": "Bölümler",
     "rotate": "Yenile",
     "rotateNamed": "{{token}} token'ını yenile",
@@ -627,7 +628,7 @@
     "deleteCommandNamed": "{{command}} komutunu sil",
     "deleteCommandTitle": "{{command}} silinsin mi?",
     "deleteCommandDescription": "Artık kullanılamaz. Gönderdiği mesajlar kalır.",
-    "signingSecret": "İmzalama anahtarı: X-Cenacle-Signature başlığını bununla doğrula (entegrasyon rehberine bak).",
+    "signingSecret": "İmzalama anahtarı: X-Cenacle-Signature başlığını bununla doğrulayın (entegrasyon rehberine bakın).",
     "events": "Olaylar",
     "eventsHint": "Botun üye olduğu kanallarda bir şey olunca Cenacle adrese imzalı POST gönderir. Başarısız teslimatlar yeniden denenir.",
     "noSubscriptions": "Abonelik yok.",
@@ -659,11 +660,11 @@
     "resendFailed": "Yeniden gönderilemedi.",
     "resendNotSendable": "Bot kapalı, aboneliği yok ya da artık kanalda değil; bu yüzden bunu yeniden almaz.",
     "webhookCreatedFor": {
-      "jira": "Webhook adresi. Jira'da: System → WebHooks → Create; adresi URL olarak yapıştır, issue created, updated, deleted ve comment created olaylarını seç.",
-      "gitlab": "Webhook adresi. GitLab'da: Settings → Webhooks → Add new webhook; adresi URL olarak yapıştır, push, merge request, pipeline, issue ve comment olaylarını seç.",
-      "alertmanager": "Webhook adresi. Alertmanager'da webhook_configs ile bir receiver ekle: - url: <bu adres>.",
-      "github": "Webhook adresi. GitHub'da: depo → Settings → Webhooks → Add webhook; payload URL olarak yapıştır, content type application/json seç ve push, pull request, inceleme, issue, yorum, workflow run ve release olaylarını seç.",
-      "email": "Webhook adresi. Posta sunucun her e-postayı bu adrese iletsin, ör. curl --data-binary @- <bu adres> (entegrasyon rehberine bak)."
+      "jira": "Webhook adresi. Jira'da: System → WebHooks → Create; adresi URL olarak yapıştırın, issue created, updated, deleted ve comment created olaylarını seçin.",
+      "gitlab": "Webhook adresi. GitLab'da: Settings → Webhooks → Add new webhook; adresi URL olarak yapıştırın, push, merge request, pipeline, issue ve comment olaylarını seçin.",
+      "alertmanager": "Webhook adresi. Alertmanager'da webhook_configs ile bir receiver ekleyin: - url: <bu adres>.",
+      "github": "Webhook adresi. GitHub'da: depo → Settings → Webhooks → Add webhook; payload URL olarak yapıştırın, content type application/json seçin ve push, pull request, inceleme, issue, yorum, workflow run ve release olaylarını seçin.",
+      "email": "Webhook adresi. Posta sunucunuz her e-postayı bu adrese iletsin, ör. curl --data-binary @- <bu adres> (entegrasyon rehberine bakın)."
     },
     "interactions": "Etkileşimler",
     "interactionsHint": "Botun kartlarındaki düğmeler, menüler ve açtığı pencereler bu adrese, komutlar gibi imzalı olarak gönderilir.",
@@ -677,24 +678,24 @@
   "commands": {
     "label": "Komutlar",
     "active": "{{command}}, {{count}} komut",
-    "onlyYou": "Bunu yalnızca sen görüyorsun · {{command}}",
+    "onlyYou": "Bunu yalnızca siz görüyorsunuz · {{command}}",
     "dismiss": "Kapat",
-    "unknown": "Burada {{command}} komutu yok. Eğik çizgiyle başlayan bir metin göndermek için // ile başla.",
-    "failed": "Komut çalışmadı. Bağlantını kontrol edip yeniden dene.",
+    "unknown": "Burada {{command}} komutu yok. Eğik çizgiyle başlayan bir metin göndermek için // ile başlayın.",
+    "failed": "Komut çalışmadı. Bağlantınızı kontrol edip yeniden deneyin.",
     "builtin": {
       "remind": "Cenacle'dan hatırlatma al",
       "join": "Bir kanala katıl",
       "leave": "Bu kanaldan ayrıl",
       "topic": "Kanal konusunu belirle",
-      "me": "Kendinle ilgili bir şey söyle",
+      "me": "Kendinizle ilgili bir şey söyleyin",
       "shrug": "¯\\_(ツ)_/¯ ekle"
     }
   },
   "scheduled": {
     "open": "Sonra gönder",
     "title": "Sonra gönder",
-    "description": "Mesajın ne zaman gideceğini seç. O zamana kadar iptal edebilirsin.",
-    "emptyDescription": "Zamanlamak için önce bir mesaj yaz. Zamanlanmış olanlar burada.",
+    "description": "Mesajın ne zaman gideceğini seçin. O zamana kadar iptal edebilirsiniz.",
+    "emptyDescription": "Zamanlamak için önce bir mesaj yazın. Zamanlanmış olanlar burada.",
     "inHour": "1 saat sonra",
     "tomorrow": "Yarın sabah",
     "monday": "Gelecek pazartesi sabah",
@@ -707,7 +708,7 @@
     "reminder": "Hatırlatma",
     "cancel": "İptal et",
     "cancelNamed": "{{when}} için zamanlanan mesajı iptal et",
-    "cancelFailed": "İptal edilemedi. Yeniden dene."
+    "cancelFailed": "İptal edilemedi. Yeniden deneyin."
   },
   "files": {
     "attach": "Dosya ekle",
@@ -728,14 +729,14 @@
     "progressNamed": "{{name}} yüklemesi",
     "tooMany": "Bir mesaj en fazla 10 dosya taşıyabilir; diğerleri eklenmedi.",
     "error": {
-      "failed": "Yüklenmedi. Yeniden dene.",
+      "failed": "Yüklenmedi. Yeniden deneyin.",
       "file_too_large": "Bu sunucunun izin verdiğinden büyük.",
       "file_blocked": "Virüs tarayıcısı reddetti.",
-      "upload_incomplete": "Yükleme tamamlanmadı. Yeniden dene.",
-      "network_error": "Bağlantı yok. Yeniden dene.",
+      "upload_incomplete": "Yükleme tamamlanmadı. Yeniden deneyin.",
+      "network_error": "Bağlantı yok. Yeniden deneyin.",
       "files_disabled": "Bu sunucuda dosyalar ayarlanmamış.",
-      "rate_limited": "Çok hızlı. Birazdan yeniden dene.",
-      "too_many_uploads": "Gönderilmemiş 50 dosyan var; önce bazılarını gönder ya da kaldır."
+      "rate_limited": "Çok hızlı. Birazdan yeniden deneyin.",
+      "too_many_uploads": "Gönderilmemiş 50 dosyanız var; önce bazılarını gönderin ya da kaldırın."
     },
     "filter": "Dosyaları göster",
     "kinds": {
@@ -778,10 +779,10 @@
     "edit": "Profili düzenle",
     "message": "Mesaj gönder",
     "messageFailed": "Konuşma açılamadı.",
-    "statusFailed": "Durumun değiştirilemedi.",
+    "statusFailed": "Durumunuz değiştirilemedi.",
     "statusTitle": "Özel durum belirle",
-    "statusDescription": "Adının yanında ve profilinde görünür.",
-    "statusText": "Ne yapıyorsun?",
+    "statusDescription": "Adınızın yanında ve profilinizde görünür.",
+    "statusText": "Ne yapıyorsunuz?",
     "emojiChosen": "Emoji: {{emoji}}. Emojiyi değiştir",
     "emojiChoose": "Bir emoji seç",
     "statusPlaceholder": "Toplantıda, tatilde…",
@@ -808,28 +809,28 @@
     "statusChange": "Özel durumu değiştir",
     "statusSet": "Özel durum belirle",
     "statusOf": "Durum: {{status}}",
-    "pictureInvalid": "En çok 5 MB ve olağan boyutta bir PNG, JPEG, GIF ya da WebP görsel kullan (hareketli GIF en çok 2 MB).",
-    "saveFailed": "Profilin kaydedilemedi.",
+    "pictureInvalid": "En çok 5 MB ve olağan boyutta bir PNG, JPEG, GIF ya da WebP görsel kullanın (hareketli GIF en çok 2 MB).",
+    "saveFailed": "Profiliniz kaydedilemedi.",
     "usernameTaken": "Bu kullanıcı adı başkasına ait.",
-    "invalid": "Kullanıcı adını ve saat dilimini kontrol et.",
+    "invalid": "Kullanıcı adınızı ve saat diliminizi kontrol edin.",
     "pictureTooLarge": "Resimler en çok 5 MB olabilir.",
     "editTitle": "Profili düzenle",
-    "editDescription": "Başkaları seni Cenacle'da böyle görür.",
+    "editDescription": "Başkaları sizi Cenacle'da böyle görür.",
     "pictureChange": "Resmi değiştir",
     "pictureUpload": "Resim yükle",
     "pictureRemove": "Resmi kaldır",
     "pictureHint": "Kare resimler en iyi sonucu verir. Hareketli GIF'ler, hareketi azaltanlar için durağan görünür.",
     "name": "Ad",
-    "nameHint": "Adın Cenacle ID'den gelir.",
+    "nameHint": "Adınız Cenacle ID'den gelir.",
     "username": "Kullanıcı adı",
     "usernameHint": "2-30 karakter: a-z harfler, rakamlar, nokta, tire ya da alt çizgi.",
-    "usernameManaged": "Kullanıcı adın, şirket dizinindeki giriş adındır.",
+    "usernameManaged": "Kullanıcı adınız, şirket dizinindeki giriş adınızdır.",
     "timezone": "Saat dilimi",
     "timezoneHere": "Bu cihazınkini kullan ({{zone}})",
     "showLastSeen": "Son çevrimiçi olduğum zamanı başkalarına göster"
   },
   "uiTexts": {
-    "description": "Arayüzün birkaç metnini herkes için değiştir (örneğin kurumunun adını yazmak için). Boş alanlar özgün metni korur.",
+    "description": "Arayüzün birkaç metnini herkes için değiştirin (örneğin kurumunuzun adını yazmak için). Boş alanlar özgün metni korur.",
     "saved": "Metinler kaydedildi.",
     "failed": "Metinler kaydedilemedi.",
     "hint": "Her boş alanda özgün metin görünür. {{channel}} kanalın adının yerini tutar.",
@@ -906,7 +907,7 @@
       "harp": "Arp",
       "knock": "Tıklama"
     },
-    "yourSounds": "Seslerin",
+    "yourSounds": "Sesleriniz",
     "soundName": "Ses adı",
     "soundUpload": "Ses yükle",
     "soundAdded": "Ses eklendi",
@@ -936,14 +937,14 @@
     "saveFailed": "Bildirim ayarlarınız kaydedilemedi. Yeniden deneyin.",
     "exceptions": {
       "title": "İstisnalar",
-      "hint": "kanalın zil menüsünden ayarlanır",
+      "hint": "kanal ayrıntılarında, Bildirimler bölümünden ayarlanır",
       "none": "Bu ayarlardan farklı kanal yok.",
-      "mutedForever": "Sesi sen açana kadar kapalı",
+      "mutedForever": "Sesi siz açana kadar kapalı",
       "mutedUntil": "{{time}} saatine kadar sessiz",
       "ownSound": "Kendi sesi",
       "reset": "Varsayılanı kullan",
       "resetNamed": "Varsayılanı kullan, {{channel}}",
-      "unknownChannel": "Ayrıldığın bir kanal"
+      "unknownChannel": "Ayrıldığınız bir kanal"
     },
     "newActivity": "Yeni etkinlik"
   },
@@ -954,13 +955,14 @@
     "label": "Aranacak",
     "placeholder": "Ara",
     "hint": "Sözcükler başlarından eşleşir; -sözcük onu dışarıda bırakır.",
-    "kind": "Neyi arayacağın",
+    "kind": "Neyi arayacağınız",
     "tabs": {
       "messages": "Mesajlar",
       "files": "Dosyalar",
       "content": "Tuvaller ve listeler"
     },
     "filters": "Süzgeçler",
+    "timeoutAction": "Daha belirli sözcüklerle ya da bir kanal veya tarih süzgeciyle tekrar deneyin.",
     "scope": "Nerede",
     "scopes": {
       "workspace": "Bu çalışma alanı",
@@ -977,7 +979,8 @@
     "hasAny": "Herhangi",
     "hasFile": "Dosyalar",
     "hasLink": "Bağlantılar",
-    "empty": "Kanallarında ve konuşmalarında aramak için yaz.",
+    "empty": "Kanallarınızda ve konuşmalarınızda aramak için yazın.",
+    "waiting": "Aranıyor…",
     "noMessages": "Mesaj bulunamadı. Daha az ya da başka sözcükler deneyin.",
     "noFiles": "Dosya bulunamadı.",
     "found_one": "{{count}} sonuç",
@@ -1055,7 +1058,7 @@
     },
     "markDone": "Tamamlandı olarak işaretle",
     "undoDone": "Devam edenlere geri al",
-    "remindersNote": "Hatırlatmalar Gelen kutuna düşer",
+    "remindersNote": "Hatırlatmalar Gelen kutunuza düşer",
     "inThread": "Dizi",
     "overdueSince": "Gecikti · {{date}}",
     "remindNamed": "Bana hatırlat, {{name}} adlı kişinin mesajı",
@@ -1101,13 +1104,13 @@
     "ask": "Yapay zekâya sor",
     "federation": "Federasyon",
     "subtitles": {
-      "threads": "Başlattığın, yanıtladığın ya da anıldığın diziler. Yeni yanıtlar önce.",
-      "activity": "Seni bekleyenler: anılmalar, yanıtlar ve tepkiler. Yeni satırlar açana ya da işaretleyene kadar vurgulu kalır.",
-      "saved": "Geri dönmek için kaydettiğin mesajlar. Hatırlatma kur ya da tamamlandı say.",
-      "unreads": "Okumadığın mesajları olan her kanal.",
-      "tasks": "Seni bekleyenler: onaylar, formlar ve sana atanmış liste satırları.",
+      "threads": "Başlattığınız, yanıtladığınız ya da anıldığınız diziler. Yeni yanıtlar önce.",
+      "activity": "Sizi bekleyenler: anılmalar, yanıtlar ve tepkiler. Yeni satırlar açana ya da işaretleyene kadar vurgulu kalır.",
+      "saved": "Geri dönmek için kaydettiğiniz mesajlar. Hatırlatma kurun ya da tamamlandı sayın.",
+      "unreads": "Okumadığınız mesajları olan her kanal.",
+      "tasks": "Sizi bekleyenler: onaylar, formlar ve size atanmış liste satırları.",
       "events": "Bu çalışma alanındaki toplantılar ve buluşmalar.",
-      "playbooks": "Ekibinin tekrar tekrar yürüttüğü kontrol listeleri; olay müdahalesi ya da işe başlangıç gibi.",
+      "playbooks": "Ekibinizin tekrar tekrar yürüttüğü kontrol listeleri; olay müdahalesi ya da işe başlangıç gibi.",
       "workflows": "Bir iş akışı bir tetikleyiciyle başlar ve adımlarını sırayla yürütür."
     }
   },
@@ -1303,7 +1306,7 @@
       "save": "Etkinliği kaydet",
       "failed": "Etkinlik kaydedilemedi. Yeniden deneyin.",
       "announcedIn": "{{channel}} kanalında duyuruldu",
-      "answerFor": "{{title}} için yanıtın",
+      "answerFor": "{{title}} için yanıtınız",
       "actionsFor": "{{title}} için diğer",
       "zone": "Saatler {{zone}} saat diliminde",
       "today": "Bugün",
@@ -1313,7 +1316,7 @@
         "event": "Etkinlik",
         "where": "Nerede",
         "who": "Kimler",
-        "answer": "Yanıtın",
+        "answer": "Yanıtınız",
         "actions": "İşlemler"
       }
     },
@@ -1399,7 +1402,7 @@
     "forward": {
       "action": "İlet",
       "title": "Mesajı ilet",
-      "hint": "Seçtiğin kanala ya da konuşmaya, nereden geldiğiyle birlikte bir kopyası gider.",
+      "hint": "Seçtiğiniz kanala ya da konuşmaya, nereden geldiğiyle birlikte bir kopyası gider.",
       "to": "Gönderilecek yer",
       "search": "Kanal ya da kişi bul",
       "none": "Eşleşen yok.",
@@ -1422,7 +1425,7 @@
       "left": "{{time}} sonra silinecek",
       "sent": "Okununca silinir · okuyan başına {{time}}",
       "reveal": "Mesajı göster",
-      "showOwn": "Mesajını göster",
+      "showOwn": "Mesajınızı göster",
       "gone": "Bu mesaj silindi.",
       "failed": "Mesaj gösterilemedi."
     },
@@ -1463,10 +1466,10 @@
       "remove": "{{name}} kaldır",
       "emoji": {
         "title": "Özel emojiler",
-        "hint": "PNG, JPEG, GIF ya da WebP; mesajlarda ve tepkilerde :ad: olarak kullan.",
+        "hint": "PNG, JPEG, GIF ya da WebP; mesajlarda ve tepkilerde :ad: olarak kullanın.",
         "name": "Emoji adı",
         "added": "Emoji eklendi.",
-        "code": "Kullanmak için {{code}} yaz."
+        "code": "Kullanmak için {{code}} yazın."
       },
       "stickers": {
         "title": "Çıkartmalar",
@@ -1479,9 +1482,9 @@
   "automation": {
     "fill": {
       "required": "zorunlu",
-      "choose": "Seç…",
-      "choosePerson": "Bir kişi seç…",
-      "hint": "Alanları doldurup gönder.",
+      "choose": "Seçin…",
+      "choosePerson": "Bir kişi seçin…",
+      "hint": "Alanları doldurup gönderin.",
       "send": "Gönder",
       "failed": "Yanıtlar gönderilemedi."
     },
@@ -1563,7 +1566,7 @@
       "newForm": "Yeni form",
       "editWorkflow": "İş akışını düzenle",
       "editForm": "Formu düzenle",
-      "noWorkflows": "Henüz iş akışı yok. Bir rutini otomatikleştir: yeni gelenleri karşıla, talepleri topla, onay iste.",
+      "noWorkflows": "Henüz iş akışı yok. Bir rutini otomatikleştirin: yeni gelenleri karşılayın, talepleri toplayın, onay isteyin.",
       "noForms": "Henüz form yok.",
       "onlyAdmins": "İş akışlarını yalnızca çalışma alanının sahipleri ve yöneticileri yönetir.",
       "name": "Ad",
@@ -1587,7 +1590,7 @@
       "channel": "Kanal",
       "channelOptional": "Kanal (isteğe bağlı)",
       "anyChannel": "Her kanal",
-      "chooseChannel": "Bir kanal seç",
+      "chooseChannel": "Bir kanal seçin",
       "emoji": "Emoji",
       "keyword": "Anahtar sözcük",
       "every": "Tekrar",
@@ -1603,7 +1606,7 @@
       "sendTo": "Alıcı",
       "starter": "Başlatan kişi",
       "form": "Form",
-      "chooseForm": "Bir form seç",
+      "chooseForm": "Bir form seçin",
       "request": "Onaylanacak şey",
       "approvers": "Onaylayanlar (biri karar verir)",
       "minutes": "Dakika",
@@ -1759,7 +1762,7 @@
       "noDue": "Bitiş tarihi yok",
       "rowsInLists_one": "{{lists}} içinde {{count}} satır",
       "rowsInLists_other": "{{lists}} içinde {{count}} satır",
-      "hint": "Satırlar kanallarının liste sekmesinde açılır. Durumu orada değiştir.",
+      "hint": "Satırlar kanallarının liste sekmesinde açılır. Durumu orada değiştirin.",
       "columns": {
         "title": "Başlık",
         "list": "Liste",
@@ -2053,14 +2056,14 @@
       "actions": "İşlemler"
     },
     "kind": {
-      "mention": "Senden bahsetti",
+      "mention": "Sizden bahsetti",
       "reply": "Dizinde yanıtladı",
       "reaction": "{{emoji}} tepkisi verdi"
     },
     "status": {
       "new": "Yeni",
       "seen": "Görüldü",
-      "you": "@sen"
+      "you": "@siz"
     },
     "open": "Aç",
     "openNamed": "Aç, {{name}} gönderdi",
@@ -2069,18 +2072,18 @@
     "markAllSeen": "Tümünü görüldü say",
     "today": "Bugün",
     "yesterday": "Dün",
-    "empty": "Seni bekleyen bir şey yok. Bahsetmeler, dizilerindeki yanıtlar ve mesajlarına verilen tepkiler buraya gelir.",
+    "empty": "Sizi bekleyen bir şey yok. Bahsetmeler, dizilerinizdeki yanıtlar ve mesajlarınıza verilen tepkiler buraya gelir.",
     "unseen_one": "{{count}} yeni",
     "unseen_other": "{{count}} yeni"
   },
   "webOff": {
     "title": "Cenacle uygulamasını kullan",
-    "lede": "Kuruluşun Cenacle'ı yalnızca masaüstü ve mobil uygulamalarında kullanıyor. <b>{{address}}</b> için web tarayıcılarında Cenacle kapalı.",
-    "getApp": "Cenacle uygulamasını BT ekibinden iste, sonra uygulamaya bu sunucu adresini gir.",
+    "lede": "Kuruluşunuz Cenacle'ı yalnızca masaüstü ve mobil uygulamalarında kullanıyor. <b>{{address}}</b> için web tarayıcılarında Cenacle kapalı.",
+    "getApp": "Cenacle uygulamasını BT ekibinizden isteyin, sonra uygulamaya bu sunucu adresini girin.",
     "server": "Sunucu",
     "address": "Adres",
     "browsers": "Web tarayıcıları",
-    "turnedOff": "Yöneticin kapattı",
+    "turnedOff": "Yöneticiniz kapattı",
     "download": {
       "windows": "Windows için indir ({{kind}})",
       "linux": "Linux için indir ({{kind}})"
@@ -2092,20 +2095,20 @@
       "rpm": ".rpm",
       "msi": "kurumlar için MSI"
     },
-    "version": "Cenacle {{version}}. Uygulamada sunucu adresi olarak {{address}} gir."
+    "version": "Cenacle {{version}}. Uygulamada sunucu adresi olarak {{address}} girin."
   },
   "webApp": {
     "title": "Web tarayıcılarında Cenacle",
-    "hint": "Cenacle'ın {{address}} adresinde tarayıcıyla kullanılmasına izin ver. Kapalıyken açık tarayıcı oturumları biter ve bu adres yalnızca masaüstü ya da mobil uygulamayı kullanmayı söyler; onlar çalışmaya devam eder.",
+    "hint": "Cenacle'ın {{address}} adresinde tarayıcıyla kullanılmasına izin verin. Kapalıyken açık tarayıcı oturumları biter ve bu adres yalnızca masaüstü ya da mobil uygulamayı kullanmayı söyler; onlar çalışmaya devam eder.",
     "label": "Web tarayıcılarına izin ver",
-    "forced": "Sunucuda CENACLE_WEB_APP ile ayarlanmış; oradan değiştir.",
+    "forced": "Sunucuda CENACLE_WEB_APP ile ayarlanmış; oradan değiştirin.",
     "on": "Cenacle web tarayıcılarında kullanılabilir.",
     "off": "Cenacle web tarayıcılarında kapalı.",
     "confirmTitle": "Web tarayıcılarında Cenacle kapatılsın mı?",
-    "confirmDescription": "Tarayıcı kullanan herkesin oturumu hemen kapanır, seninki de. Masaüstü uygulaması Cenacle 0.30 ile geliyor; o zamana kadar yalnızca API kullanan uygulamalar çalışır.",
-    "confirmImpact": "Tarayıcı olmadan yeniden açmak için sunucuda CENACLE_WEB_APP=on ayarlayıp yeniden başlat.",
+    "confirmDescription": "Tarayıcı kullanan herkesin oturumu hemen kapanır, sizinki de. Masaüstü uygulaması Cenacle 0.30 ile geliyor; o zamana kadar yalnızca API kullanan uygulamalar çalışır.",
+    "confirmImpact": "Tarayıcı olmadan yeniden açmak için sunucuda CENACLE_WEB_APP=on ayarlayıp yeniden başlatın.",
     "confirm": "Kapat",
-    "failed": "Ayar kaydedilmedi. Yeniden dene.",
+    "failed": "Ayar kaydedilmedi. Yeniden deneyin.",
     "policy": "İki adımlı doğrulama, geçiş anahtarları ve giriş yöntemleri Cenacle ID yönetiminde ayarlanır.",
     "openPolicy": "Giriş politikasını aç"
   },
@@ -2125,34 +2128,34 @@
     "groupUnreads": "Okunmamışları en üstte topla",
     "sectionMenu": "{{section}} seçenekleri",
     "channelMenu": "{{channel}} seçenekleri",
-    "dropFavorites": "Favorilere eklemek için bir kanalı buraya bırak.",
-    "emptySection": "Henüz boş. Kanalları ya da konuşmaları menülerinden buraya taşı ya da sürükle.",
-    "sectionHint": "Kendi bölümlerin yalnızca senin kenar çubuğunda görünür. Başkaları görmez.",
+    "dropFavorites": "Favorilere eklemek için bir kanalı buraya bırakın.",
+    "emptySection": "Henüz boş. Kanalları ya da konuşmaları menülerinden buraya taşıyın ya da sürükleyin.",
+    "sectionHint": "Kendi bölümleriniz yalnızca sizin kenar çubuğunuzda görünür. Başkaları görmez.",
     "sectionName": "Ad",
-    "sectionTaken": "Bu adda bir bölümün zaten var.",
+    "sectionTaken": "Bu adda bir bölümünüz zaten var.",
     "create": "Oluştur",
-    "saveFailed": "Kenar çubuğundaki değişiklik kaydedilemedi. Tekrar dene.",
-    "markReadFailed": "Okundu olarak işaretlenemedi. Tekrar dene."
+    "saveFailed": "Kenar çubuğundaki değişiklik kaydedilemedi. Tekrar deneyin.",
+    "markReadFailed": "Okundu olarak işaretlenemedi. Tekrar deneyin."
   },
   "userGroups": {
     "title": "Gruplar",
     "adminLabel": "Yönetim",
-    "footer": "Kanaldaki grup üyelerine ulaşmak için grubu @tanıtıcı ile an.",
+    "footer": "Kanaldaki grup üyelerine ulaşmak için grubu @tanıtıcı ile anın.",
     "sectionNames": {
-      "mine": "Grupların",
+      "mine": "Gruplarınız",
       "all": "Tüm gruplar",
       "archived": "Arşiv",
       "settings": "Grupları kim oluşturur"
     },
     "sections": {
-      "mine": "İçinde olduğun gruplar. Bunların anılması seni anmak sayılır.",
+      "mine": "İçinde olduğunuz gruplar. Bunların anılması sizi anmak sayılır.",
       "all": "Bu çalışma alanının tüm grupları.",
       "archived": "Arşivlenen gruplar anılamaz. Yöneticileri onları geri getirebilir.",
-      "settings": "Bu çalışma alanında kimlerin grup oluşturabileceğini seç."
+      "settings": "Bu çalışma alanında kimlerin grup oluşturabileceğini seçin."
     },
     "empty": {
-      "mine": "Henüz hiçbir grupta değilsin.",
-      "all": "Henüz grup yok. Bir ekibi tek seferde anmak için bir grup oluştur.",
+      "mine": "Henüz hiçbir grupta değilsiniz.",
+      "all": "Henüz grup yok. Bir ekibi tek seferde anmak için bir grup oluşturun.",
       "archived": "Arşivlenmiş grup yok."
     },
     "create": "Grup oluştur",
@@ -2163,8 +2166,8 @@
     "handle": "Tanıtıcı",
     "handleHint": "Grup @tanıtıcı olarak anılır.",
     "renameHint": "Önceden gönderilen mesajlarda eski tanıtıcı kalır.",
-    "handleRules": "1–30 küçük harf, rakam, nokta, tire ya da alt çizgi kullan; harf ya da rakamla başlayıp bitsin.",
-    "handleReserved": "Bu sözcük zaten birçok kişiyi anıyor. Başka bir tanıtıcı seç.",
+    "handleRules": "1–30 küçük harf, rakam, nokta, tire ya da alt çizgi kullanın; harf ya da rakamla başlayıp bitsin.",
+    "handleReserved": "Bu sözcük zaten birçok kişiyi anıyor. Başka bir tanıtıcı seçin.",
     "handleTaken": "Bu çalışma alanında bu tanıtıcıyı kullanan başka bir grup var.",
     "description": "Açıklama (isteğe bağlı)",
     "followDirectory": "Bir dizin grubunu izle",
@@ -2173,7 +2176,7 @@
     "directoryTag": "Dizin",
     "follows": "{{group}} dizin grubunu izliyor. Üyeleri dizinde değişir.",
     "members": "Üyeler",
-    "youManage": "Grubu sen yöneteceksin. İçinde olması gerekenleri ekle.",
+    "youManage": "Grubu siz yöneteceksiniz. İçinde olması gerekenleri ekleyin.",
     "picked": "Eklenecek kişiler",
     "people_one": "{{count}} kişi",
     "people_other": "{{count}} kişi",
@@ -2190,8 +2193,8 @@
     "archived": "Grup arşivlendi. Artık anılamaz.",
     "archivedNote": "Arşivde: anılması kimseye ulaşmaz.",
     "loading": "Grup yükleniyor…",
-    "lastManager": "Grubun bir yöneticisi olmalı. Önce başka birini yönetici yap.",
-    "changeFailed": "Grup değiştirilemedi. Tekrar dene.",
+    "lastManager": "Grubun bir yöneticisi olmalı. Önce başka birini yönetici yapın.",
+    "changeFailed": "Grup değiştirilemedi. Tekrar deneyin.",
     "whoCreates": "Kimler grup oluşturabilir",
     "creation": {
       "members": "Çalışma alanındaki herkes",
@@ -2209,7 +2212,7 @@
   "edits": {
     "title": "Düzenleme geçmişi",
     "description": "Bu mesajın önceki halleri, en yenisi önce.",
-    "descriptionOwn": "Mesajının önceki halleri, en yenisi önce. Birini geri getirebilirsin.",
+    "descriptionOwn": "Mesajınızın önceki halleri, en yenisi önce. Birini geri getirebilirsiniz.",
     "open": "{{when}} düzenlendi. Önceki hallerini göster",
     "now": "Şimdi",
     "written": "Yazıldı",
@@ -2219,7 +2222,7 @@
   },
   "shortcuts": {
     "title": "Klavye kısayolları",
-    "description": "Bu listeyi her yerden Ctrl+/ ile açabilirsin.",
+    "description": "Bu listeyi her yerden Ctrl+/ ile açabilirsiniz.",
     "or": "ya da",
     "groups": {
       "navigation": "Gezinme",
@@ -2235,7 +2238,7 @@
     "list": "Bu kısayollar",
     "send": "Gönder",
     "newLine": "Yeni satır",
-    "editLast": "Son mesajını düzenle (mesaj kutusu boşken)",
+    "editLast": "Son mesajınızı düzenle (mesaj kutusu boşken)",
     "replyLast": "Son mesaja yanıt dizisinde yanıt ver (mesaj kutusu boşken)",
     "reactLast": "Son mesaja tepki ver",
     "click": "tıkla",
@@ -2267,8 +2270,8 @@
     "noAcks": "Henüz kimse onaylamadı.",
     "acks_one": "{{names}} onayladı",
     "acks_other": "{{count}} kişi onayladı: {{names}}…",
-    "ackFailed": "Onayın kaydedilemedi. Tekrar dene.",
-    "reminderTitle": "{{name}} kişisinden acil mesaj seni bekliyor",
+    "ackFailed": "Onayınız kaydedilemedi. Tekrar deneyin.",
+    "reminderTitle": "{{name}} kişisinden acil mesaj sizi bekliyor",
     "settingTitle": "Acil mesaj hatırlatmaları",
     "settingHint": "Acil bir mesaj, andığı kişilere onaylayana kadar hatırlatılabilir.",
     "settingOn": "Hatırlatmalara izin ver",
@@ -2279,7 +2282,7 @@
   },
   "receipts": {
     "share": "Okundu bilgimi paylaş",
-    "shareHint": "Okundu bilgisinin açık olduğu çalışma alanlarında, konuşmadaki diğer kişiler mesajlarını okuduğunu görür. Kapalıysa sen de onlarınkini görmezsin.",
+    "shareHint": "Okundu bilgisinin açık olduğu çalışma alanlarında, konuşmadaki diğer kişiler mesajlarını okuduğunuzu görür. Kapalıysa siz de onlarınkini görmezsiniz.",
     "settingTitle": "Okundu bilgisi",
     "settingHint": "Kişiler, birebir ve grup konuşmalarında mesajlarını kimin okuduğunu görür. Herkes kendininkini gizleyebilir.",
     "settingOn": "Konuşmalarda okundu bilgisini göster",
@@ -2304,11 +2307,11 @@
     "nothing": "Henüz önizlenecek bir şey yok."
   },
   "interactions": {
-    "failed": "Uygulama yanıt vermedi. Daha sonra tekrar dene.",
+    "failed": "Uygulama yanıt vermedi. Daha sonra tekrar deneyin.",
     "unavailable": "Bu mesajın arkasındaki uygulama şu an etkileşim almıyor.",
-    "dialogFrom": "Bunu bir uygulama istiyor. Girdiklerin ona gider.",
+    "dialogFrom": "Bunu bir uygulama istiyor. Girdikleriniz ona gider.",
     "optional": "(isteğe bağlı)",
-    "choose": "Seç…"
+    "choose": "Seçin…"
   },
   "console": {
     "title": "Sistem konsolu",
@@ -2346,7 +2349,7 @@
       "bots": "Bot"
     },
     "config": "Ayarlar",
-    "configHint": "Sunucunun ortamından gelir; orada değiştirip yeniden başlat. Sırlar \"set\" olarak görünür.",
+    "configHint": "Sunucunun ortamından gelir; orada değiştirip yeniden başlatın. Sırlar \"set\" olarak görünür.",
     "findPeople": "Ad, e-posta ya da kullanıcı adıyla kişi bul",
     "columns": {
       "person": "Kişi",
@@ -2385,7 +2388,7 @@
     "interactive": "Etkileşimli",
     "enableBot": "{{name}} açılsın",
     "disableBot": "{{name}} kapatılsın",
-    "changeFailed": "Değişiklik kaydedilemedi. Tekrar dene.",
+    "changeFailed": "Değişiklik kaydedilemedi. Tekrar deneyin.",
     "noJobs": "Henüz arka plan işi yok.",
     "failures": "Son hatalar",
     "noFailures": "Son zamanlarda hata yok.",
@@ -2397,7 +2400,7 @@
       "push_contents_sender": "Gönderen ve kanal",
       "push_contents_sender_hint": "Kimin, nereye yazdığı; metin olmadan.",
       "push_contents_none": "Yalnızca bir şey geldiği",
-      "push_contents_none_hint": "Yalnızca \"Yeni etkinlik\": görmek için uygulamayı aç.",
+      "push_contents_none_hint": "Yalnızca \"Yeni etkinlik\": görmek için uygulamayı açın.",
       "email_contents": "Bildirim e-postaları",
       "email_contents_full": "Mesajlar",
       "email_contents_full_hint": "Kimin, nereye, ne zaman yazdığı ve her metnin başı.",
@@ -2477,7 +2480,7 @@
     "exportData": "{{name}} kişisinin verilerini indir",
     "erase": "{{name}} kişisini sil",
     "eraseTitle": "{{name}} silinsin mi?",
-    "eraseDescription": "Adı, adresi, resmi ve durumu kaldırılır, artık giriş yapamaz. Mesajları silinir, yasal saklamanın tuttukları hariç; tepkileri, kaydettikleri, zamanlanmış mesajları ve cihazları kaldırılır. Yeni bir hesapla yeniden giriş yapmaması gerekiyorsa Cenacle ID'de de silin.",
+    "eraseDescription": "Adı, e-posta adresi, durumu ve resmi kaldırılır, artık giriş yapamaz. Bütün mesajları silinir; yasal saklamanın tuttukları saklama süresince gizli kalır, sonra gider. Tepkileri, kaydettikleri, zamanlanmış mesajları, cihazları, yüklediği yazı tipleri ve sesler ve yapay zekâ bildirimine yanıtı da kaldırılır. Yeniden giriş yaparsa yeni bir hesap açılır; bunu önlemek için Cenacle ID'de hesabı silin ya da devre dışı bırakın.",
     "eraseConfirm": "Kişiyi sil",
     "erased": "Silindi: {{erased}} mesaj silindi, {{held}} mesaj yasal saklamada kaldı."
   },
@@ -2648,5 +2651,13 @@
     "newCode": "Yeni kurtarma anahtarı oluştur",
     "newCodeTitle": "Yeni kurtarma anahtarı oluşturulsun mu?",
     "newCodeDescription": "Mevcut yedekleriniz silinir; cihazlar bundan sonra yeni anahtarla yedekler."
+  },
+  "composer": {
+    "more": "Diğer: ses, video, anket, öncelik, zamanlama",
+    "voice": "Sesli mesaj",
+    "clip": "Video klip",
+    "poll": "Anket",
+    "priority": "Öncelik",
+    "later": "Sonra gönder"
   }
 }

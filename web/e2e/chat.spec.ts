@@ -8,6 +8,7 @@ import {
   expectTargetSizes,
   mockApi,
   mockMessage,
+  showActions,
 } from './helpers';
 
 const composer = (page: import('@playwright/test').Page) => page.getByLabel('Message General');
@@ -286,10 +287,44 @@ test('focus stays in the list when the focused message scrolls out of it', async
   await page.goto(`/c/${GENERAL.id}`);
   const log = page.getByRole('log', { name: /Messages in/ });
   await expect(log.getByText('Message 120')).toBeVisible({ timeout: 15_000 });
+  await showActions(log.getByTestId('message').last());
   await log.getByRole('button', { name: 'Add reaction' }).last().focus();
   // To the top: the virtual list drops the focused message.
   await log.locator('[data-virtuoso-scroller]').evaluate((el) => el.scrollTo({ top: 0 }));
   await expect(log.getByText('Message 120')).toHaveCount(0);
   // Not the page (where the next Tab would start over): the list, by name.
   await expect(log).toBeFocused();
+});
+
+test('on touch screens a message shows its actions once tapped', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'touch screens only');
+  await mockApi(page, { messages: [mockMessage(1, 'Dokunulacak mesaj'), mockMessage(2, 'Öbürü')] });
+  await page.goto('/');
+  const first = page.getByTestId('message').filter({ hasText: 'Dokunulacak mesaj' });
+  const second = page.getByTestId('message').filter({ hasText: 'Öbürü' });
+  const actions = (m: typeof first) => m.getByRole('button', { name: 'Message actions' });
+  await expect(actions(first)).toBeHidden();
+  await first.getByText('Dokunulacak mesaj').tap();
+  await expect(actions(first)).toBeVisible();
+  // One message at a time; tapping it again closes its actions.
+  await second.getByText('Öbürü').tap();
+  await expect(actions(first)).toBeHidden();
+  await expect(actions(second)).toBeVisible();
+  await second.getByText('Öbürü').tap();
+  await expect(actions(second)).toBeHidden();
+});
+
+test('the composer keeps attach, format and send in view, the rest under "+"', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/');
+  const footer = page.locator('footer');
+  for (const name of ['Attach files', 'Show formatting', 'Send message'])
+    await expect(footer.getByRole('button', { name, exact: true })).toBeVisible();
+  for (const name of ['Record a voice message', 'Create poll', 'Message priority', 'Send later'])
+    await expect(footer.getByRole('button', { name })).toHaveCount(0);
+  await footer.getByRole('button', { name: /^More: / }).click();
+  const menu = page.getByRole('menu');
+  for (const name of ['Voice message', 'Video clip', 'Poll', 'Priority', 'Send later'])
+    await expect(menu.getByRole('menuitem', { name })).toBeVisible();
+  await expectNoAxeViolations(page);
 });

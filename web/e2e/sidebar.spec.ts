@@ -8,6 +8,7 @@ import {
   mockApi,
   mockMessage,
   PEOPLE,
+  showActions,
 } from './helpers';
 
 const MERT = PEOPLE[2]!;
@@ -124,6 +125,7 @@ test('a message is marked unread and the channel stays unread while open', async
 
   const second = page.getByTestId('message').nth(1);
   await second.hover();
+  await showActions(second);
   await second.getByRole('button', { name: 'Message actions' }).click();
   await page.getByRole('menuitem', { name: 'Mark as unread' }).click();
   await expect.poll(() => api.unreads).toEqual([`${GENERAL.id}:${messages[1]!.id}`]);

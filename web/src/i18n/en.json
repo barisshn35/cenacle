@@ -330,12 +330,13 @@
     "deleteConfirm": "Delete category"
   },
   "switcher": {
-    "title": "Jump to a channel",
-    "placeholder": "Type a channel name…",
-    "results": "Channels",
+    "title": "Jump to a channel or person",
+    "placeholder": "Type a channel or a person's name…",
+    "results": "Channels, conversations and people",
     "notJoined": "Not joined",
     "archived": "Archived",
-    "empty": "No channel matches."
+    "empty": "Nothing matches.",
+    "person": "Direct message"
   },
   "workspaces": {
     "menu": "Workspace menu: {{workspace}}",
@@ -517,7 +518,7 @@
     "closeToTray": "Keep Cenacle running in the tray when its window is closed",
     "sessionNotKept": "This computer has no encrypted key store: you stay signed in only until Cenacle quits.",
     "yourData": "Your data",
-    "yourDataHint": "Download everything Cenacle keeps about you: your profile, messages, reactions, files, devices and what you did (one item per line, NDJSON).",
+    "yourDataHint": "Download, as one file, your profile and picture, workspaces and channels, the messages you wrote and their earlier versions, reactions, your files, devices, saved items, scheduled messages, votes, form answers, settings, uploaded fonts and sounds, what you made, your answer to the AI notice, what you did and what was recorded about you (one item per line, NDJSON). Not included: your Cenacle ID account; download that on its account page.",
     "downloadData": "Download your data",
     "privacyPolicy": "Privacy policy of this server",
     "about": "About Cenacle",
@@ -936,7 +937,7 @@
     "saveFailed": "Couldn't save your notification settings. Try again.",
     "exceptions": {
       "title": "Exceptions",
-      "hint": "set from a channel's bell menu",
+      "hint": "set in a channel's details, under Notifications",
       "none": "No channel differs from these settings.",
       "mutedForever": "Muted until you unmute",
       "mutedUntil": "Muted until {{time}}",
@@ -961,6 +962,7 @@
       "content": "Canvases and lists"
     },
     "filters": "Filters",
+    "timeoutAction": "Try more specific words, or a channel or date filter.",
     "scope": "Where",
     "scopes": {
       "workspace": "This workspace",
@@ -978,6 +980,7 @@
     "hasFile": "Files",
     "hasLink": "Links",
     "empty": "Type to search your channels and conversations.",
+    "waiting": "Searching…",
     "noMessages": "No messages found. Try fewer or other words.",
     "noFiles": "No files found.",
     "found_one": "{{count}} result",
@@ -2477,7 +2480,7 @@
     "exportData": "Download the data of {{name}}",
     "erase": "Erase {{name}}",
     "eraseTitle": "Erase {{name}}?",
-    "eraseDescription": "Their name, address, picture and status are removed and they can no longer sign in. Their messages are deleted, except those a legal hold keeps; their reactions, saved items, scheduled messages and devices go. Also delete them in Cenacle ID if they should not sign in again with a new account.",
+    "eraseDescription": "Their name, e-mail address, status and picture are removed and they can no longer sign in. All their messages are deleted; those a legal hold keeps stay hidden for the hold, then go. Their reactions, saved items, scheduled messages, devices, uploaded fonts and sounds and answer to the AI notice go too. Signing in again would make a new account: delete or disable them in Cenacle ID to prevent that.",
     "eraseConfirm": "Erase person",
     "erased": "Erased: {{erased}} messages deleted, {{held}} kept by legal holds."
   },
@@ -2648,5 +2651,13 @@
     "newCode": "Make a new recovery key",
     "newCodeTitle": "Make a new recovery key?",
     "newCodeDescription": "Your current backups are deleted; devices back up again from now on with the new key."
+  },
+  "composer": {
+    "more": "More: voice, video, poll, priority, later",
+    "voice": "Voice message",
+    "clip": "Video clip",
+    "poll": "Poll",
+    "priority": "Priority",
+    "later": "Send later"
   }
 }

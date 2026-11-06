@@ -373,7 +373,7 @@ export function NotificationsPanel() {
   );
 }
 
-/** Channels whose notifications differ from the defaults, set from their bell menu. */
+/** Channels whose notifications differ from the defaults, set in the channel details panel. */
 function ChannelExceptions() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();

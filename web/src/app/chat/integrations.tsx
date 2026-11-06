@@ -579,6 +579,7 @@ function Commands({ bot }: { bot: Bot }) {
         open={!!removing}
         onOpenChange={(open) => !open && setRemoving(undefined)}
         severity="s2"
+        irreversible
         title={t('bots.deleteCommandTitle', { command: `/${removing?.trigger ?? ''}` })}
         description={<p>{t('bots.deleteCommandDescription')}</p>}
         confirmLabel={t('bots.deleteCommand')}
@@ -776,6 +777,7 @@ function Events({ bot }: { bot: Bot }) {
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(undefined)}
         severity="s2"
+        irreversible
         title={t('bots.deleteSubscriptionTitle')}
         description={<p>{t('bots.deleteSubscriptionDescription', { url: removing?.url ?? '' })}</p>}
         confirmLabel={t('bots.deleteSubscription')}

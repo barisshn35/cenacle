@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test, type Page } from '@playwright/test';
-import { GENERAL, expectNoAxeViolations, expectTargetSizes, mockApi, mockMessage } from './helpers';
+import {
+  GENERAL,
+  expectNoAxeViolations,
+  expectTargetSizes,
+  mockApi,
+  mockMessage,
+  showActions,
+} from './helpers';
 
 const composer = (page: Page) => page.getByLabel('Message General');
 
@@ -17,6 +24,7 @@ test('authors edit their messages in place', async ({ page }) => {
   await page.goto('/');
   const msg = await sendOwn(page, 'yazım hatsı');
   await msg.hover();
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   const editor = page.getByLabel('Edit message');
@@ -30,6 +38,7 @@ test('authors edit their messages in place', async ({ page }) => {
   // Escape cancels.
   const edited = page.getByTestId('message').filter({ hasText: 'yazım hatası' });
   await edited.hover();
+  await showActions(edited);
   await edited.getByRole('button', { name: 'Message actions' }).click();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByLabel('Edit message').fill('vazgeçilen');
@@ -48,6 +57,7 @@ test('deleting shows Undo, which brings the message back', async ({ page }) => {
   await mockApi(page);
   await page.goto('/');
   const msg = await sendOwn(page, 'silinecek');
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Delete' }).click();
   await expect(page.getByTestId('message').filter({ hasText: 'silinecek' })).toHaveCount(0);
@@ -60,6 +70,7 @@ test('others’ messages cannot be edited or deleted by members', async ({ page 
   await page.goto('/');
   const msg = page.getByTestId('message').filter({ hasText: 'başkasının mesajı' });
   await expect(msg).toBeVisible();
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
   const menu = page.getByRole('menu');
   await expect(menu.getByRole('menuitem', { name: 'Save for later' })).toBeVisible();
@@ -123,7 +134,7 @@ test('Ctrl+K jumps to a channel by typing part of its name', async ({ page }) =>
   await page.goto('/');
   await composer(page).waitFor();
   await page.keyboard.press('Control+k');
-  const box = page.getByRole('combobox', { name: 'Jump to a channel' });
+  const box = page.getByRole('combobox', { name: 'Jump to a channel or person' });
   await expect(box).toBeFocused();
   await box.fill('cent');
   await expect(page.getByRole('option')).toHaveCount(1);

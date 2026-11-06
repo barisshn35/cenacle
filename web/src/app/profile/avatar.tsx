@@ -5,7 +5,7 @@ import { initials } from '../auth/sign-out';
 import { usePictureUrl } from './format';
 import { useProfile, type Profile } from './profiles';
 
-// Never below 24px, initials never below 11px (docs/design/v0.29).
+// Never below 24px, initials never below 11px.
 const SIZES = {
   xs: 'size-6 text-[11px]',
   sm: 'size-7 text-[11px]',

@@ -7,6 +7,7 @@ import {
   expectTargetSizes,
   mockApi,
   mockMessage,
+  composerTool,
 } from './helpers';
 
 const composer = (page: Page) => page.getByLabel('Message General');
@@ -123,7 +124,7 @@ test('a message can be sent later and cancelled', async ({ page }, testInfo) => 
   await mockCommands(page);
   await page.goto('/');
   await composer(page).fill('Haftalık özet');
-  await page.getByRole('button', { name: 'Send later' }).click();
+  await composerTool(page, 'Send later');
   const dialog = page.getByRole('dialog', { name: 'Send later' });
   await expect(dialog.getByText('Nothing scheduled.')).toBeVisible();
   await expectTargetSizes(page, testInfo, '[role="dialog"]');
@@ -132,9 +133,72 @@ test('a message can be sent later and cancelled', async ({ page }, testInfo) => 
   await expect(page.getByText(/^Scheduled for /)).toBeVisible();
   await expect(composer(page)).toHaveValue('');
 
-  await page.getByRole('button', { name: 'Send later' }).click();
+  await composerTool(page, 'Send later');
   await expect(dialog.getByTestId('scheduled')).toContainText('Haftalık özet');
   await expect(dialog.getByTestId('scheduled')).toContainText('#General');
   await dialog.getByRole('button', { name: /Cancel the message for/ }).click();
   await expect(dialog.getByText('Nothing scheduled.')).toBeVisible();
 });
+
+// On a narrow screen a toast spans the width; it must sit above the composer
+// and leave every control on screen uncovered.
+for (const [lang, locale, sendLater, tomorrow, scheduled] of [
+  ['EN', 'en-US', 'Send later', /Tomorrow morning/, /^Scheduled for /],
+  ['TR', 'tr-TR', 'Sonra gönder', /Yarın sabah/, / için zamanlandı\.$/],
+] as const) {
+  for (const viewport of [
+    { width: 412, height: 839 },
+    { width: 360, height: 640 },
+    { width: 320, height: 568 },
+  ]) {
+    test.describe(`toast on a ${viewport.width}×${viewport.height} screen (${lang})`, () => {
+      test.use({ viewport, locale, hasTouch: true });
+
+      test('sits above the composer and covers no control', async ({ page }, testInfo) => {
+        // The viewport and touch are set here; one project is enough.
+        test.skip(testInfo.project.name !== 'coarse');
+        await mockApi(page);
+        await mockCommands(page);
+        await page.goto('/');
+        const input = page.locator('footer textarea');
+        await input.fill('Haftalık özet');
+        await composerTool(page, sendLater);
+        await page.getByRole('dialog').getByRole('button', { name: tomorrow }).click();
+        const toast = page.locator('[data-sonner-toast]').filter({ hasText: scheduled });
+        await expect(toast).toBeVisible();
+        await expect(page.getByRole('dialog')).toHaveCount(0);
+        // Wait for the toast to finish sliding in: two equal readings in a row.
+        let last = -1;
+        await expect
+          .poll(async () => {
+            const y = (await toast.boundingBox())?.y ?? -1;
+            const settled = y === last;
+            last = y;
+            return settled;
+          })
+          .toBe(true);
+        const box = (await toast.boundingBox())!;
+        const footer = (await page.locator('footer').last().boundingBox())!;
+        expect(box.y + box.height).toBeLessThanOrEqual(footer.y);
+        const covered = await page.evaluate((t) => {
+          const hits: string[] = [];
+          const controls = document.querySelectorAll<HTMLElement>(
+            'button, a[href], input, textarea, select, [role="button"], [role="link"], [role="tab"], [role="switch"], [role="checkbox"]',
+          );
+          for (const el of controls) {
+            if (el.closest('[data-sonner-toaster]')) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) continue;
+            if (r.bottom <= 0 || r.top >= window.innerHeight) continue;
+            const overlaps =
+              r.left < t.x + t.width && r.right > t.x && r.top < t.y + t.height && r.bottom > t.y;
+            if (overlaps)
+              hits.push(el.getAttribute('aria-label') ?? el.textContent?.trim() ?? el.tagName);
+          }
+          return hits;
+        }, box);
+        expect(covered).toEqual([]);
+      });
+    });
+  }
+}

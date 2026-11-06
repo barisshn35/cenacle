@@ -31,6 +31,22 @@ test.describe('direct messages, unread, presence and typing', () => {
     ).toBeVisible();
   });
 
+  test('Ctrl K finds people and conversations by name', async ({ page }) => {
+    await mockApi(page, { channels: [directWith(AYSE)] });
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'General', exact: true })).toBeVisible();
+    await page.keyboard.press('Control+k');
+    const box = page.getByRole('combobox', { name: 'Jump to a channel or person' });
+    // An existing conversation is found by the other person's name.
+    await box.fill('ayşe');
+    await expect(page.getByRole('option', { name: /Ayşe Yılmaz/ })).toHaveCount(1);
+    // Someone without a conversation yet: picking them opens one.
+    await box.fill('mert');
+    await page.getByRole('option', { name: /Mert Kaya.*Direct message/ }).click();
+    await expect(page).toHaveURL(/\/c\/01a15e50-dddd-/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mert Kaya');
+  });
+
   test('shows unread counts and marks a conversation read when it is opened', async ({
     page,
     isMobile,

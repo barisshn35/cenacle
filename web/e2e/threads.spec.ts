@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
-import { expectNoAxeViolations, expectTargetSizes, GENERAL, mockApi, mockMessage } from './helpers';
+import {
+  expectNoAxeViolations,
+  expectTargetSizes,
+  GENERAL,
+  mockApi,
+  mockMessage,
+  showActions,
+} from './helpers';
 
 const ROOT = mockMessage(1, 'Release plan for Friday?');
 
 async function openActions(page: import('@playwright/test').Page, text: string) {
   const msg = page.getByTestId('message').filter({ hasText: text }).first();
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
   return page.getByRole('menu');
 }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
-import { expectNoAxeViolations, GENERAL, mockApi, mockMessage } from './helpers';
+import { composerTool, expectNoAxeViolations, GENERAL, mockApi, mockMessage } from './helpers';
 
 test('an urgent message asks to be acknowledged', async ({ page }) => {
   const api = await mockApi(page);
   await page.goto(`/c/${GENERAL.id}`);
-  await page.getByRole('button', { name: 'Message priority' }).click();
+  await composerTool(page, 'Priority');
   const popover = page.getByRole('dialog', { name: 'Priority' });
   await popover.getByLabel('Urgent').check();
   await popover.getByLabel('Ask to acknowledge').check();

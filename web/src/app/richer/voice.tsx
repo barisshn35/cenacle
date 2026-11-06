@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { CheckIcon, MicIcon, PauseIcon, PlayIcon, VideoIcon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -17,14 +17,31 @@ const formatTime = (ms: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
-type Kind = 'voice' | 'clip';
+export type Kind = 'voice' | 'clip';
 
 /**
  * Records a voice message or a short video clip in the browser. The result
  * becomes a file of the message (uploaded like any other) with its length
  * and, for voice, its waveform.
  */
-export function Recorder({ onRecorded }: { onRecorded: (file: File) => void }) {
+export interface RecorderHandle {
+  start: (kind: Kind) => void;
+}
+
+/**
+ * Records a voice message or a video clip. With `buttons={false}` it shows
+ * nothing until `start` (its handle) is called from another control, such as
+ * the composer's "+" menu.
+ */
+export function Recorder({
+  onRecorded,
+  buttons = true,
+  ref,
+}: {
+  onRecorded: (file: File) => void;
+  buttons?: boolean;
+  ref?: Ref<RecorderHandle>;
+}) {
   const { t } = useTranslation();
   const [kind, setKind] = useState<Kind | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -132,7 +149,10 @@ export function Recorder({ onRecorded }: { onRecorded: (file: File) => void }) {
     };
   }, []);
 
+  useImperativeHandle(ref, () => ({ start: (k: Kind) => void start(k) }));
+
   if (!supported) return null;
+  if (!kind && !buttons) return <video ref={preview} hidden muted playsInline />;
   if (!kind) {
     return (
       <>

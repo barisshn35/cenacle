@@ -10,6 +10,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // A cold start of the app on a loaded runner can take more than the default
+  // 5 s before the first assertion holds.
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: 'retain-on-failure',

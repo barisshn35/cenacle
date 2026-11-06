@@ -54,7 +54,12 @@ test('search finds canvases, list rows and files by their text', async ({ page }
   await page.goto(`/c/${GENERAL.id}`);
   await page.getByRole('button', { name: 'Search messages and files' }).click();
   const panel = page.getByTestId('search-panel');
-  await panel.getByRole('searchbox', { name: 'Search for' }).fill('masaüstü');
+  const box = panel.getByRole('searchbox', { name: 'Search for' });
+  await box.fill('masaüstü');
+  // The magnifier sits in the box, centred on it, not lower over the hint below.
+  const icon = await panel.locator('svg.lucide-search').boundingBox();
+  const field = await box.boundingBox();
+  expect(Math.abs(icon!.y + icon!.height / 2 - (field!.y + field!.height / 2))).toBeLessThan(1.5);
   await panel.getByRole('tab', { name: 'Files' }).click();
   await expect(panel.getByTestId('search-file-excerpt').locator('mark')).toHaveText('masaüstü');
   await panel.getByRole('tab', { name: 'Canvases and lists' }).click();
@@ -64,4 +69,29 @@ test('search finds canvases, list rows and files by their text', async ({ page }
   await expectTargetSizes(page, testInfo, '[data-testid="search-panel"]');
   await panel.getByTestId('search-canvases').getByRole('button').click();
   await expect(page).toHaveURL(/tab=01a16600-0000-7000-8000-0000000000a1/);
+});
+
+test('the search panel says it is searching until the search starts', async ({ page }) => {
+  await mockApi(page);
+  let asked = 0;
+  await page.route('**/api/search/messages?**', (route) => {
+    asked++;
+    return route.fulfill({ json: { results: [], has_more: false } });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  await page.getByRole('button', { name: 'Search messages and files' }).click();
+  const panel = page.getByTestId('search-panel');
+  await expect(panel.getByText('Type to search your channels and conversations.')).toBeVisible();
+  // The search waits for typing to stop; meanwhile the panel does not ask to type.
+  // The clock is paused: an installed clock keeps running, and on a loaded
+  // runner the wait ran out before the checks below.
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1_000));
+  await panel.getByRole('searchbox', { name: 'Search for' }).fill('masaüstü');
+  await expect(panel.getByText('Searching…')).toBeVisible();
+  await expect(panel.getByText('Type to search your channels and conversations.')).toHaveCount(0);
+  expect(asked).toBe(0);
+  // Once typing has stopped for the wait, the search runs.
+  await page.clock.runFor(400);
+  await expect.poll(() => asked).toBe(1);
 });

@@ -9,6 +9,7 @@ import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import { ErrorState } from '@cenacle/ui/components/error-state';
+import type { ProblemLike } from '@cenacle/ui/lib/errors';
 import { ApiError } from '@cenacle/core/api';
 import { useSidebar } from '@cenacle/ui/components/sidebar';
 import { useLayout } from '../../stores/layout';
@@ -115,26 +116,28 @@ export function SearchPanel() {
         </Button>
       </header>
       <div className="flex flex-col gap-3 p-3">
-        <div className="relative">
+        <div>
           <Label htmlFor={ids.q} className="sr-only">
             {t('search.label')}
           </Label>
-          <SearchIcon
-            aria-hidden
-            strokeWidth={1.75}
-            className="pointer-events-none absolute top-1/2 start-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            ref={input}
-            id={ids.q}
-            type="search"
-            value={text}
-            maxLength={200}
-            placeholder={t('search.placeholder')}
-            aria-describedby={`${ids.q}-hint`}
-            className="ps-8"
-            onChange={(e) => setText(e.target.value)}
-          />
+          <div className="relative">
+            <SearchIcon
+              aria-hidden
+              strokeWidth={1.75}
+              className="pointer-events-none absolute top-1/2 start-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              ref={input}
+              id={ids.q}
+              type="search"
+              value={text}
+              maxLength={200}
+              placeholder={t('search.placeholder')}
+              aria-describedby={`${ids.q}-hint`}
+              className="ps-8"
+              onChange={(e) => setText(e.target.value)}
+            />
+          </div>
           <p id={`${ids.q}-hint`} className="mt-1 text-xs text-muted-foreground">
             {t('search.hint')}
           </p>
@@ -221,7 +224,9 @@ export function SearchPanel() {
       </div>
       <div id={`${ids.q}-${tab}`} role="tabpanel" className="flex flex-col px-3 pb-4">
         {q === '' ? (
-          <p className="px-1 text-sm text-muted-foreground">{t('search.empty')}</p>
+          <p className="px-1 text-sm text-muted-foreground">
+            {text.trim() === '' ? t('search.empty') : t('search.waiting')}
+          </p>
         ) : tab === 'messages' ? (
           <MessageResults q={q} filters={filters} />
         ) : tab === 'files' ? (
@@ -305,11 +310,22 @@ function useChannelName() {
   return (c: SearchMessage['channel']) => channels.data?.find((x) => x.id === c.id)?.name ?? c.name;
 }
 
-function Problem({ error, retry }: { error: unknown; retry: () => void }) {
+function Problem({
+  error,
+  retry,
+  timeoutAction,
+}: {
+  error: unknown;
+  retry: () => void;
+  /** What to do when the search took too long, where filters can narrow it. */
+  timeoutAction?: string;
+}) {
   const { t } = useTranslation();
+  const problem: ProblemLike = error instanceof ApiError ? error.problem : { status: 500 };
   return (
     <ErrorState
-      problem={error instanceof ApiError ? error.problem : { status: 500 }}
+      problem={problem}
+      action={problem.code === 'search_timeout' ? timeoutAction : undefined}
       actions={<Button onClick={retry}>{t('ui:errors.retry')}</Button>}
     />
   );
@@ -330,7 +346,13 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
   });
   if (results.isPending) return <Skeleton className="h-16" />;
   if (results.isError)
-    return <Problem error={results.error} retry={() => void results.refetch()} />;
+    return (
+      <Problem
+        error={results.error}
+        retry={() => void results.refetch()}
+        timeoutAction={t('search.timeoutAction')}
+      />
+    );
   const list = results.data.pages.flatMap((p) => p.results);
   if (list.length === 0) {
     return (

@@ -9,6 +9,8 @@ import {
   mockApi,
   mockMessage,
   SESSION,
+  showActions,
+  composerTool,
 } from './helpers';
 
 test('the terms of service come first; the banner shows above the app', async ({ page }) => {
@@ -43,7 +45,7 @@ test('the terms of service come first; the banner shows above the app', async ({
 test('a poll is created from the composer and voted in', async ({ page }, testInfo) => {
   const api = await mockApi(page, { messages: [] });
   await page.goto(`/c/${GENERAL.id}`);
-  await page.getByRole('button', { name: 'Create poll' }).click();
+  await composerTool(page, 'Poll');
   const dialog = page.getByRole('dialog', { name: 'Create poll' });
   await dialog.getByLabel('Question').fill('Lunch?');
   await dialog.getByLabel('Option 1').fill('Pizza');
@@ -63,6 +65,7 @@ test('a message is reported to the moderators', async ({ page }) => {
   const api = await mockApi(page, { messages: [mockMessage(1, 'Something rude')] });
   await page.goto(`/c/${GENERAL.id}`);
   const msg = page.getByTestId('message').filter({ hasText: 'Something rude' });
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Report', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Report message' });

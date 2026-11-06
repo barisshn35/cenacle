@@ -6,19 +6,29 @@ import {
   BarChart3Icon,
   BellRingIcon,
   ClockIcon,
+  FlagIcon,
+  MicIcon,
   PaperclipIcon,
+  PlusIcon,
+  VideoIcon,
   SendHorizontalIcon,
   TypeIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@cenacle/ui/components/dropdown-menu';
 import { DraftStore } from '@cenacle/core/drafts';
 import { Button } from '@cenacle/ui/components/button';
 import { BroadcastConfirm } from '../richer/broadcast';
 import { BurnChoice } from '../richer/burn';
 import { StickerPicker } from '../richer/stickers';
-import { Recorder } from '../richer/voice';
+import { Recorder, type RecorderHandle } from '../richer/voice';
 import { Shortcuts } from '../automation/shortcuts';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useActiveWorkspace } from './active-workspace';
@@ -27,6 +37,7 @@ import { useCommandNotes } from './command-notes-state';
 import { useCommandPicker } from './command-picker';
 import { parseCommand, runCommand } from './commands';
 import { useConnection } from './connection';
+import { useToastClearance } from './toast-clearance';
 import {
   addMessage,
   channelsQuery,
@@ -114,6 +125,9 @@ export function Composer({
   const draftId = thread ? `${channelId}:${thread.rootId}` : channelId;
   const [also, setAlso] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const recorder = useRef<RecorderHandle>(null);
+  const more = useRef<HTMLButtonElement>(null);
   const [burn, setBurn] = useState<number | null>(null);
   const [priority, setPriority] = useState<Priority>({});
   // The formatting bar stays as the person left it (on this device).
@@ -361,11 +375,14 @@ export function Composer({
     }
   };
 
+  const footer = useRef<HTMLElement>(null);
+  useToastClearance(footer);
   const label = thread
     ? t('threads.replyPlaceholder')
     : t('shell.composerPlaceholder', { channel: channelName });
   return (
     <footer
+      ref={footer}
       className={cn(
         'shrink-0',
         // In a channel the composer starts at the text column of the speaker grid.
@@ -494,7 +511,9 @@ export function Composer({
               )}
               {!thread && <Shortcuts channelId={channelId} />}
               {!channel?.encrypted && <RewriteMenu text={body} onUse={change} />}
-              {permissions.upload_files && <Recorder onRecorded={(f) => addFiles([f])} />}
+              {permissions.upload_files && (
+                <Recorder ref={recorder} buttons={false} onRecorded={(f) => addFiles([f])} />
+              )}
               {!burn && (
                 <StickerPicker
                   onPick={(s) =>
@@ -511,17 +530,6 @@ export function Composer({
                   }
                 />
               )}
-              {!thread && (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t('community.poll.create')}
-                  onClick={() => setPollOpen(true)}
-                >
-                  <BarChart3Icon strokeWidth={1.75} />
-                </Button>
-              )}
               <Button
                 type="button"
                 size="icon"
@@ -532,17 +540,66 @@ export function Composer({
               >
                 <TypeIcon strokeWidth={1.75} />
               </Button>
-              {!thread && <PriorityMenu value={priority} onChange={setPriority} />}
-              {!thread && !channel?.encrypted && (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  aria-label={t('scheduled.open')}
-                  onClick={() => setLater(true)}
-                >
-                  <ClockIcon strokeWidth={1.75} />
-                </Button>
+              {/* The less frequent tools in one menu: attach, format and send stay in view. */}
+              {(permissions.upload_files || !thread) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        ref={more}
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={t('composer.more')}
+                        data-active={priority.level || priority.requestAck ? true : undefined}
+                        className="data-[active]:text-primary"
+                      />
+                    }
+                  >
+                    <PlusIcon strokeWidth={1.75} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" align="end">
+                    {permissions.upload_files && typeof MediaRecorder !== 'undefined' && (
+                      <>
+                        <DropdownMenuItem onClick={() => recorder.current?.start('voice')}>
+                          <MicIcon strokeWidth={1.75} />
+                          {t('composer.voice')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => recorder.current?.start('clip')}>
+                          <VideoIcon strokeWidth={1.75} />
+                          {t('composer.clip')}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {!thread && (
+                      <DropdownMenuItem onClick={() => setPollOpen(true)}>
+                        <BarChart3Icon strokeWidth={1.75} />
+                        {t('composer.poll')}
+                      </DropdownMenuItem>
+                    )}
+                    {!thread && (
+                      <DropdownMenuItem onClick={() => setPriorityOpen(true)}>
+                        <FlagIcon strokeWidth={1.75} />
+                        {t('composer.priority')}
+                      </DropdownMenuItem>
+                    )}
+                    {!thread && !channel?.encrypted && (
+                      <DropdownMenuItem onClick={() => setLater(true)}>
+                        <ClockIcon strokeWidth={1.75} />
+                        {t('composer.later')}
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              {!thread && (
+                <PriorityMenu
+                  value={priority}
+                  onChange={setPriority}
+                  open={priorityOpen}
+                  onOpenChange={setPriorityOpen}
+                  anchor={more}
+                />
               )}
               <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!canSend}>
                 <SendHorizontalIcon strokeWidth={1.75} />

@@ -12,6 +12,7 @@ import {
   RANDOM,
   SESSION,
   STICKERS,
+  showActions,
 } from './helpers';
 
 const MERT = PEOPLE.find((p) => p.display_name === 'Mert Kaya')!;
@@ -82,6 +83,7 @@ test('a message is forwarded with a comment; the copy shows where it came from',
 
   const msg = page.getByTestId('message').filter({ hasText: 'Worth sharing' });
   await msg.hover();
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
   await page.getByRole('menuitem', { name: 'Forward' }).click();
   const dialog = page.getByRole('dialog', { name: 'Forward message' });
@@ -108,6 +110,7 @@ test('custom emoji show in text and reactions; stickers are sent from the compos
   await expect(msg.getByRole('img', { name: ':party:' })).toBeVisible();
 
   await msg.hover();
+  await showActions(msg);
   await msg.getByRole('button', { name: 'Add reaction' }).click({ force: true });
   await page.getByTestId('custom-emoji').getByRole('button', { name: ':party:' }).click();
   await expect(msg.getByRole('button', { name: /:party:/ })).toHaveAttribute(

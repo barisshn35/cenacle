@@ -4,12 +4,20 @@ import { createHmac } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { IDP_URL, WEB_URL, idpEnv } from '../playwright.stack.config';
 
+/** Picks one of the composer's less frequent tools from its "+" menu. */
+async function composerTool(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: /^(More|Diğer): / }).click();
+  await page.getByRole('menuitem', { name }).click();
+}
+
 const EMAIL = 'deniz@example.com';
 const PASSWORD = 'e2e stack password 2026';
 const SECOND = { email: 'mert@example.com', name: 'Mert Demir' };
 const THIRD = { email: 'zeynep@example.com', name: 'Zeynep Ak' };
 // Signs in only in the "sign out everywhere" test, so it has exactly two devices.
 const FOURTH = { email: 'leyla@example.com', name: 'Leyla Kaya' };
+// Has a stolen phone in the two-step reset test.
+const FIFTH = { email: 'cem@example.com', name: 'Cem Arslan' };
 
 /** RFC 6238 code (SHA-1, 6 digits, 30 s) of a base32 secret, for the time step `step`. */
 function totp(secret: string, step = Math.floor(Date.now() / 30_000)): string {
@@ -46,6 +54,7 @@ test.beforeAll(() => {
   ensureAccount(SECOND.email, SECOND.name);
   ensureAccount(THIRD.email, THIRD.name);
   ensureAccount(FOURTH.email, FOURTH.name);
+  ensureAccount(FIFTH.email, FIFTH.name);
 });
 
 async function signInAtIdP(page: Page, email = EMAIL) {
@@ -399,6 +408,60 @@ test('with two-step verification, signing in asks for a code', async ({ page }) 
   await expect(page.getByTestId('current-user')).toHaveText(THIRD.name);
 });
 
+test('a two-step reset at Cenacle ID signs a stolen phone out of the chat', async ({ browser }) => {
+  test.setTimeout(240_000);
+  const idp = await (await browser.newContext()).newPage();
+  await idp.goto(`${IDP_URL}/account`);
+  await idp.getByLabel('E-mail address').fill(FIFTH.email);
+  await idp.getByLabel('Password').fill(PASSWORD);
+  await idp.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await idp.getByRole('link', { name: 'Set up two-step verification' }).click();
+  const secret = ((await idp.getByTestId('totp-secret').textContent()) ?? '').replace(/\s/g, '');
+  let step = Math.floor(Date.now() / 30_000);
+  await idp.getByLabel('Verification code').fill(totp(secret, step));
+  await idp.getByRole('button', { name: 'Turn on two-step verification' }).click();
+  await expect(idp.getByTestId('recovery-codes').locator('li')).toHaveCount(10);
+
+  // The laptop and the phone sign in to the chat; each code works once.
+  const device = async () => {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
+    await signInAtIdP(page, FIFTH.email);
+    while (Math.floor(Date.now() / 30_000) <= step) await page.waitForTimeout(500);
+    step = Math.floor(Date.now() / 30_000);
+    await page.getByLabel('Verification code').fill(totp(secret, step));
+    await page.getByRole('button', { name: 'Verify' }).click();
+    await expect(page.getByLabel('Message General')).toBeVisible();
+    return page;
+  };
+  const laptop = await device();
+  const phone = await device();
+
+  // The phone is stolen: an administrator turns off the person's two-step
+  // verification at Cenacle ID, which ends their sessions there.
+  execFileSync('pnpm', ['exec', 'tsx', 'src/cli.ts', 'users', 'admin', '--email', EMAIL], {
+    cwd: '../idp',
+    env: { ...process.env, ...idpEnv },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  const admin = await (await browser.newContext()).newPage();
+  await admin.goto(`${IDP_URL}/account/admin`);
+  await admin.getByLabel('E-mail address').fill(EMAIL);
+  await admin.getByLabel('Password').fill(PASSWORD);
+  await admin.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await admin.goto(`${IDP_URL}/account/admin?q=${encodeURIComponent(FIFTH.email)}`);
+  await admin
+    .getByRole('row', { name: new RegExp(FIFTH.email) })
+    .getByRole('button', { name: 'Turn off two-step verification' })
+    .click();
+
+  // The chat reads Cenacle ID's directory feed every minute: both devices are
+  // signed out, the phone too.
+  await expect(phone).toHaveURL(/\/signin\?error=session_expired/, { timeout: 120_000 });
+  await expect(laptop).toHaveURL(/\/signin\?error=session_expired/, { timeout: 10_000 });
+});
+
 test('Markdown, a mention and a reaction travel live', async ({ browser }) => {
   const open = async (email: string) => {
     const page = await (await browser.newContext()).newPage();
@@ -502,10 +565,10 @@ test('slash commands, a reminder from Cenacle and a message sent later', async (
   await expect(page.getByTestId('command-note')).toContainText(`check ${stamp}`);
 
   await composer.fill(`Haftalık özet ${stamp}`);
-  await page.getByRole('button', { name: 'Send later' }).click();
+  await composerTool(page, 'Send later');
   const dialog = page.getByRole('dialog', { name: 'Send later' });
   await dialog.getByRole('button', { name: /Tomorrow morning/ }).click();
-  await page.getByRole('button', { name: 'Send later' }).click();
+  await composerTool(page, 'Send later');
   const items = dialog.getByTestId('scheduled');
   await expect(items.filter({ hasText: `⏰ check ${stamp}` })).toContainText('Reminder');
   await expect(items.filter({ hasText: `Haftalık özet ${stamp}` })).toContainText('#General');
