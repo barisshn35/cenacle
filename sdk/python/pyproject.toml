@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cenacle-bot"
-version = "0.99.4"
+version = "0.99.5"
 description = "SDK for Cenacle bots: API client and signed command, interaction and event handlers"
 readme = "README.md"
 license = "Apache-2.0"

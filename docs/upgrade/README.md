@@ -1,16 +1,5 @@
 # Upgrading Cenacle
 
-## Calls (0.99.5)
-
-Migration 00064 adds the call tables and workspace call settings. Existing
-installations and every workspace stay without calls until they are turned on
-(`install.sh --calls`, `calls.enabled` in Helm, then Call settings in each
-workspace). The media service is one more image, `cenacle-media`, of the same
-version. Its two key pairs (admission and callbacks) are separate and are not
-rotated automatically. Before a rollback, turn calls off and let active calls end;
-do not run migration 00064 down, which deletes call records and settings. See
-[calls](../install/calls.md).
-
 Cenacle follows [Semantic Versioning](https://semver.org/). Every release is a git tag
 (`vX.Y.Z`) with notes in [CHANGELOG.md](../../CHANGELOG.md). Until 1.0, minor releases may
 contain breaking changes; they are always listed under "Upgrade notes".
@@ -81,8 +70,15 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ## Version notes
 
-### Unreleased
+### 0.99.5
 
+- Calls: migration 00064 adds the call tables and workspace call settings. Existing
+  installations and every workspace stay without calls until they are turned on
+  (`install.sh --calls`, `calls.enabled` in Helm, then Call settings in each workspace).
+  The media service is one more image, `cenacle-media`, of the same version. Its two key
+  pairs (admission and callbacks) are separate and are not rotated automatically. Before a
+  rollback, turn calls off and let active calls end; do not run migration 00064 down,
+  which deletes call records and settings. See [calls](../install/calls.md).
 - Helm: `networkPolicy.ingressNamespaceSelector` has no default any more (it named the
   ingress-nginx namespace). With `networkPolicy.enabled`, set it to your controller's
   namespace, or the chart stops with a message (see

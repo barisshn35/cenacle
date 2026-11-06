@@ -8,6 +8,14 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+## [0.99.5] - 2026-11-06
+
+The release candidate of 1.0: voice and video calls through Cenacle's own media service,
+the interface changes of the last review, and the work since 0.99.4 (faster search, erasure
+across chat and Cenacle ID, record retention, install.sh, the GitHub organization's
+addresses). Read the upgrade notes: migrations 00059 to 00064 and Cenacle ID 0014 and 0015
+run on start; calls stay off until they are turned on.
+
 ### Added
 
 - **Voice and video calls**, through Cenacle's own media service (`cenacle-media`, Go
@@ -1699,7 +1707,8 @@ First skeleton release. Nothing user-facing beyond a shell with placeholder data
 
 - Baseline release; the database migration history starts here.
 
-[Unreleased]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.4...HEAD
+[Unreleased]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.5...HEAD
+[0.99.5]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.4...v0.99.5
 [0.99.4]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.3...v0.99.4
 [0.99.3]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.2...v0.99.3
 [0.99.2]: https://github.com/Cenacle-TR/cenacle/compare/v0.99.1...v0.99.2

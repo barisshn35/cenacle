@@ -3,8 +3,8 @@ apiVersion: v2
 name: cenacle
 description: Self-hosted team chat (Cenacle) with its identity server (Cenacle ID).
 type: application
-version: 0.99.4
-appVersion: '0.99.4'
+version: 0.99.5
+appVersion: '0.99.5'
 kubeVersion: '>=1.30.0-0'
 home: https://github.com/Cenacle-TR/cenacle
 sources: [https://github.com/Cenacle-TR/cenacle]
