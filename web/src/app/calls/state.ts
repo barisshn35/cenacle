@@ -51,10 +51,18 @@ export const useCall = create<State>()(() => ({
   ringTone: null,
   devices: {},
 }));
+// The last live event per channel: a fetch that started before it must not
+// overwrite it when it answers later.
+const lastEvent = new Map<string, { at: number; call: Call }>();
 export const channelCallQuery = (channelID: string) =>
   queryOptions({
     queryKey: ['calls', 'channel', channelID],
-    queryFn: ({ signal }) => calls.current(channelID, signal),
+    queryFn: async ({ signal }) => {
+      const started = performance.now();
+      const current = await calls.current(channelID, signal);
+      const event = lastEvent.get(channelID);
+      return event && event.at > started ? event.call : current;
+    },
     enabled: !!channelID,
     staleTime: 10000,
     refetchInterval: 15000,
@@ -208,6 +216,7 @@ export function applyCallEvent(
   )
     return true;
   client.setQueryData(key, call);
+  lastEvent.set(call.channel_id, { at: performance.now(), call });
   const active = useCall.getState();
   if (active.call?.id === call.id) {
     if (call.state === 'ended') finish(call);

@@ -44,47 +44,6 @@ run on start; calls stay off until they are turned on.
     call media. Nothing is recorded. Call records follow export, erasure, retention
     and legal holds.
 
-### Changed
-
-- On phones and tablets a message shows its actions once it is tapped, instead of a
-  row of buttons under every message; one message at a time, a second tap closes them.
-- Ctrl+K also finds conversations and people by name: picking someone opens your
-  conversation with them.
-- The message box keeps attach, formatting and send in view; voice and video clips,
-  polls, priority and sending later moved into its "+" menu.
-- Red is kept for what cannot be undone: confirming a reversible action (archive,
-  disable, remove) shows a neutral button; permanent deletions stay red and say so.
-- The Turkish interface addresses people as "siz" everywhere (the web app, Cenacle ID,
-  the desktop app and the e-mail digest); docs/ux/glossary.md has the rule.
-- Helm: with `networkPolicy.enabled`, `networkPolicy.ingressNamespaceSelector` must be set
-  (it defaulted to the ingress-nginx namespace); the Kubernetes guide gives Traefik's and
-  ingress-nginx's, and Traefik's request time limit for slow uploads.
-- Erasing a person in the chat server now also blanks the address (IP) of the audit events
-  they did and drops their personal details, as Cenacle ID does; what was done and when
-  stays.
-- Node.js 26 LTS (26.13.0) replaces Node.js 24: Cenacle ID and web images, CI image,
-  `.nvmrc` and `engines`. The desktop app keeps the Node.js of its Electron (24). Node.js
-  no longer ships Corepack: install pnpm with `npm install -g pnpm` (it runs the version
-  `package.json` names); the image builds do the same.
-- The server distributions the project targets and tests (in containers) are Ubuntu 22.04
-  and 24.04, Debian 12 and 13, AlmaLinux 9 and 10 and Rocky Linux 9 and 10; Fedora and
-  openSUSE are no longer listed for servers (the desktop app's packages are unchanged).
-- The Kubernetes guide's example uses `ingress.className=traefik`; the Ingress was tested
-  with Traefik 3.6 and with ingress-nginx 1.15.1, which is retired.
-- **Breaking change (bots):** bots cannot edit or delete messages, their own included,
-  whatever role the bot account holds. The server already answered such calls with
-  `403 bot_not_allowed`; the SDK calls that made them are removed: `EditMessage` and
-  `DeleteMessage` (Go SDK) and `edit_message` and `delete_message` (Python SDK). To change
-  a card a bot posted, answer an interaction with `update`. A test now holds the rule,
-  including for a bot that is a workspace owner or channel manager.
-- `https://<chat-domain>/healthz` and `/readyz` reach the chat server instead of the web
-  container, through the proxy of `prod.yml` and through the Helm chart's Ingress.
-- The mobile app's id is `tr.com.cenacle` (it was not in any store under the earlier id).
-- `ACME_EMAIL` is required only with `CENACLE_TLS_MODE=acme`; without it the proxy says so
-  in its log and does not start.
-
-### Added
-
 - Read-only copies of `desktop/`, `mobile/`, `deploy/compose`, `deploy/helm`, `sdk/go`,
   `sdk/python` and `docs/`, each with its own history, in repositories next to the public one
   (CI job `mirror`, docs/operations/ci.md). The main repository stays the one to install
@@ -157,8 +116,49 @@ run on start; calls stay off until they are turned on.
 - On a narrow screen (600 px or less) notifications appear above the message box, so they
   no longer cover its buttons.
 
+### Changed
+
+- On phones and tablets a message shows its actions once it is tapped, instead of a
+  row of buttons under every message; one message at a time, a second tap closes them.
+- Ctrl+K also finds conversations and people by name: picking someone opens your
+  conversation with them.
+- The message box keeps attach, formatting and send in view; voice and video clips,
+  polls, priority and sending later moved into its "+" menu.
+- Red is kept for what cannot be undone: confirming a reversible action (archive,
+  disable, remove) shows a neutral button; permanent deletions stay red and say so.
+- The Turkish interface addresses people as "siz" everywhere (the web app, Cenacle ID,
+  the desktop app and the e-mail digest); docs/ux/glossary.md has the rule.
+- Helm: with `networkPolicy.enabled`, `networkPolicy.ingressNamespaceSelector` must be set
+  (it defaulted to the ingress-nginx namespace); the Kubernetes guide gives Traefik's and
+  ingress-nginx's, and Traefik's request time limit for slow uploads.
+- Erasing a person in the chat server now also blanks the address (IP) of the audit events
+  they did and drops their personal details, as Cenacle ID does; what was done and when
+  stays.
+- Node.js 26 LTS (26.13.0) replaces Node.js 24: Cenacle ID and web images, CI image,
+  `.nvmrc` and `engines`. The desktop app keeps the Node.js of its Electron (24). Node.js
+  no longer ships Corepack: install pnpm with `npm install -g pnpm` (it runs the version
+  `package.json` names); the image builds do the same.
+- The server distributions the project targets and tests (in containers) are Ubuntu 22.04
+  and 24.04, Debian 12 and 13, AlmaLinux 9 and 10 and Rocky Linux 9 and 10; Fedora and
+  openSUSE are no longer listed for servers (the desktop app's packages are unchanged).
+- The Kubernetes guide's example uses `ingress.className=traefik`; the Ingress was tested
+  with Traefik 3.6 and with ingress-nginx 1.15.1, which is retired.
+- **Breaking change (bots):** bots cannot edit or delete messages, their own included,
+  whatever role the bot account holds. The server already answered such calls with
+  `403 bot_not_allowed`; the SDK calls that made them are removed: `EditMessage` and
+  `DeleteMessage` (Go SDK) and `edit_message` and `delete_message` (Python SDK). To change
+  a card a bot posted, answer an interaction with `update`. A test now holds the rule,
+  including for a bot that is a workspace owner or channel manager.
+- `https://<chat-domain>/healthz` and `/readyz` reach the chat server instead of the web
+  container, through the proxy of `prod.yml` and through the Helm chart's Ingress.
+- The mobile app's id is `tr.com.cenacle` (it was not in any store under the earlier id).
+- `ACME_EMAIL` is required only with `CENACLE_TLS_MODE=acme`; without it the proxy says so
+  in its log and does not start.
+
 ### Fixed
 
+- A call that started while the page was still asking the server for it no longer
+  disappears until the next check (up to 15 seconds) when the older answer arrives.
 - Erasing a person removes their profile picture (it used to stay in the database, reachable
   by its address), their uploaded fonts and sounds; a database migration (00063) removes the
   pictures nothing shows any more, and one (00062) indexes what points at a picture, without
