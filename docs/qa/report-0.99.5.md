@@ -9,8 +9,10 @@ with the documentation only (install, upgrade with data, backup, restore and rol
 ## Result
 
 No blocker is open. One blocker, eight major and eleven minor findings were fixed: 1–3 and
-20 before the release was tagged, the others on `main` for 1.0. What was not
-tested here is listed at the end.
+20 before the release was tagged, the others on `main` for 1.0. The access and supply chain
+review (21–25) and what was tried the next day (26–31) added one major and ten minor
+findings; four of the minor ones are open for 1.0 with their reasons. What was not tested
+here is listed at the end.
 
 ## Findings
 
@@ -133,14 +135,52 @@ What held:
 Not reviewable with the access here: the organization's web hooks and the account's SSH,
 signing and GPG keys on GitHub (the CLI's token lacks those scopes).
 
+## Tried after the round
+
+What the round had left untested, tried the next day (2026-11-07) on this host.
+
+| #   | Where    | What was found                                                                                                                                                  | Severity | Fixed in |
+| --- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| 26  | Upgrades | No guide for upgrading with Helm; the usual `helm upgrade --reuse-values` from 0.99.4 stopped on `calls.enabled`, which 0.99.5 added (nothing was changed).     | major    | 20f73c8  |
+| 27  | AI       | Requests set no token limit: a model that kept writing held the request until the timeout.                                                                      | minor    | 3c57f89  |
+| 28  | AI       | Turning AI on or off for a workspace said nothing when it failed.                                                                                               | minor    | 3c57f89  |
+| 29  | Offline  | The offline guide did not say to turn link previews off, which try to reach the internet.                                                                       | minor    | 20f73c8  |
+| 30  | Mentions | `@name` typed without picking the suggestion, pasted, or sent by a bot is plain text: nobody is notified. Changing it changes how messages are stored; for 1.0. | minor    | open     |
+| 31  | TLS      | Only Let's Encrypt can issue certificates in `acme` mode; an organization's own ACME service cannot be named. A suggestion for after 1.0.                       | minor    | open     |
+
+What held:
+
+- **AI with a model:** a local Ollama with a small model (qwen2.5 0.5B): the workspace's
+  setting, the notice (which model, where, what is kept), a summary, a rewrite used in the
+  draft and an answer with its source, each in 1 to 6 seconds; no error in the console.
+  On a busy host the model slowed to two minutes and the app said so with its request ID.
+- **Kubernetes:** the whole chart on k3s 1.35 with Traefik, by the guide: PostgreSQL,
+  Valkey and Garage in the cluster, the Secret and `helm install` as written, the first
+  administrator, sign-in in a browser through the ingress with two-step verification set up
+  on the way, a message and a file through the bucket. Then 0.99.4 installed with its own
+  chart and images, filled, upgraded (migrations 00059–00064 as hooks, pods replaced one by
+  one) and rolled back with `helm rollback`: the same browser session stayed signed in and
+  saw its messages and file each time.
+- **Offline:** a bundle made with `bundle.sh` (7 images, 259 MB) against a registry on this
+  host, loaded with `load.sh` in a Docker engine on a network with no way out; secrets from
+  `gen-secrets.sh`, every service healthy, `/readyz`, the web app and Cenacle ID's discovery
+  through the proxy, the first administrator; no connection attempt in any log.
+- **WAL-G:** archiving to a Garage bucket of its own (5 segments, none failed), a base
+  backup, rows written after it, then the guide's restore without `gosu` into a new volume:
+  the replay brought the later rows back.
+- **ACME:** the proxy in `acme` mode against Pebble (Let's Encrypt's test server), with the
+  shipped Caddyfile plus Pebble's address: both names got certificates over TLS-ALPN, and
+  the proxy served them.
+- **A team's day:** three people on the real stack: a public and a private channel, joining
+  from the directory, a mention, a thread reply, a reaction, a pin, saved items, an edit,
+  a delete undone, a file shared and downloaded, search, a poll with two votes, a message
+  sent later, a direct conversation, a custom status. All held, with no console or request
+  error, except the mention written as plain text (30).
+
 ## Not tested here
 
-- Helm in this round (the chart's media service was run in k3d for this release with every
-  `calls.exposure`); a real Kubernetes cluster.
 - Real certificates from Let's Encrypt and ports 80 and 443 on this host (another service
-  uses them).
+  uses them); the same configuration was tried against Pebble.
 - `docker pull` and `git clone` without credentials: nothing is published before 1.0.
-- An air-gapped installation from a bundle, and the WAL-G drill end to end after the
-  image change (its restore steps were run without `gosu`).
-- AI with a model, the desktop app's Windows installers, and an hour of use by a person new
-  to Cenacle.
+- The desktop app's Windows installers (no Windows here), and an hour of use by a person new
+  to Cenacle (a scripted team's day stood in for it).
