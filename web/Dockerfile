@@ -15,13 +15,13 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     go build -trimpath -ldflags "-s -w" -o /out/caddy . \
  && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go-notices . "Caddy, the web server of the Cenacle web image" > /out/THIRD_PARTY_NOTICES-caddy.txt
 
-FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS build
-RUN corepack enable
+FROM --platform=$BUILDPLATFORM node:26.13.0-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS build
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-# Corepack fetches pnpm (the version in package.json) from the npm registry; a
-# slow registry should not fail the build: try a few times.
-RUN for i in 1 2 3 4; do pnpm --version && exit 0; echo "pnpm download failed ($i), retrying"; sleep $((i * 10)); done; exit 1
+# pnpm, the version package.json's packageManager names, from the npm registry
+# (Node.js ships no Corepack since 25); a slow registry should not fail the
+# build: try a few times.
+RUN for i in 1 2 3 4; do npm install -g "$(node -p 'require("./package.json").packageManager')" && pnpm --version && exit 0; echo "pnpm install failed ($i), retrying"; sleep $((i * 10)); done; exit 1
 COPY web/package.json web/
 COPY packages/ui/package.json packages/ui/
 COPY packages/core/package.json packages/core/

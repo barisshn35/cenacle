@@ -5,10 +5,10 @@
   "description": "Cenacle desktop app (Electron) for Windows and Linux.",
   "license": "AGPL-3.0-only",
   "author": "Cenacle contributors",
-  "homepage": "https://git.calaixo.com/calaxio/cenacle",
+  "homepage": "https://github.com/Cenacle-TR/cenacle",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-pages.mjs && node ../scripts/third-party-notices.mjs pnpm @cenacle/desktop @fontsource-variable/geist @fontsource-variable/geist-mono > dist/THIRD_PARTY_NOTICES.txt",
+    "build": "tsc -p tsconfig.json && node scripts/copy-pages.mjs && node ../scripts/third-party-notices.mjs pnpm @cenacle/desktop @fontsource-variable/geist @fontsource-variable/geist-mono > dist/THIRD_PARTY_NOTICES.txt && node -e \"process.stdout.write(require('node:fs').readFileSync('dictionaries/NOTICE.txt'))\" >> dist/THIRD_PARTY_NOTICES.txt",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "pnpm build && electron .",
     "test": "vitest run --passWithNoTests",

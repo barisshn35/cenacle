@@ -6,13 +6,13 @@
 
 # Dependencies are pure JavaScript, so the build runs on the native build
 # platform (no emulation for arm64); only the node binary is target-specific.
-FROM --platform=$BUILDPLATFORM node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS build
-RUN corepack enable
+FROM --platform=$BUILDPLATFORM node:26.13.0-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS build
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-# Corepack fetches pnpm (the version in package.json) from the npm registry; a
-# slow registry should not fail the build: try a few times.
-RUN for i in 1 2 3 4; do pnpm --version && exit 0; echo "pnpm download failed ($i), retrying"; sleep $((i * 10)); done; exit 1
+# pnpm, the version package.json's packageManager names, from the npm registry
+# (Node.js ships no Corepack since 25); a slow registry should not fail the
+# build: try a few times.
+RUN for i in 1 2 3 4; do npm install -g "$(node -p 'require("./package.json").packageManager')" && pnpm --version && exit 0; echo "pnpm install failed ($i), retrying"; sleep $((i * 10)); done; exit 1
 COPY idp/package.json idp/
 COPY packages/ui/package.json packages/ui/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
@@ -32,7 +32,7 @@ RUN pnpm --filter @cenacle/idp build \
       /out/node_modules/.modules.yaml /out/node_modules/.pnpm-workspace-state-v1.json
 
 # The node binary for the target platform.
-FROM node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS node
+FROM node:26.13.0-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS node
 
 # OpenSSL's FIPS provider, built from the validated 3.1.2 sources (only the
 # provider is used; node keeps its own OpenSSL library).
@@ -46,10 +46,10 @@ RUN tar xzf openssl-3.1.2.tar.gz && cd openssl-3.1.2 \
  && make -j"$(nproc)" >/dev/null \
  && make install_fips DESTDIR=/out >/dev/null
 
-# Runtime: plain Alpine plus the node binary only (no npm/corepack/yarn):
+# Runtime: plain Alpine plus the node binary only (no npm, pnpm or yarn):
 # smaller image and smaller attack surface.
 FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
-RUN apk add --no-cache libstdc++ libgcc \
+RUN apk add --no-cache libstdc++ libgcc libatomic \
  && addgroup -g 1000 node && adduser -u 1000 -G node -s /sbin/nologin -D node \
  && rm -f /var/log/apk.log
 COPY --from=node /usr/local/bin/node /usr/local/bin/node

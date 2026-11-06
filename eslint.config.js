@@ -24,7 +24,6 @@ export default tseslint.config(
       'mobile/android/**',
       'mobile/ios/**',
       'server/**',
-      'docs/design/**',
     ],
   },
   js.configs.recommended,
