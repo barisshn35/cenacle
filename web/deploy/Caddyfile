@@ -21,7 +21,7 @@
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 		# Voice messages and video clips record here; nothing else may.
-		Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=()"
+		Permissions-Policy "camera=(self), microphone=(self), display-capture=(self), speaker-selection=(self), geolocation=(), payment=()"
 		Cross-Origin-Opener-Policy same-origin
 		Cross-Origin-Resource-Policy same-origin
 		-Server

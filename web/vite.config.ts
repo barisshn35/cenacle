@@ -15,6 +15,9 @@ const s3 = process.env.CENACLE_DEV_S3 ?? 'http://127.0.0.1:13900';
 const proxy = {
   '/api': { target: api },
   '/ws': { target: api, ws: true },
+  ...(process.env.CENACLE_DEV_MEDIA
+    ? { '/media': { target: process.env.CENACLE_DEV_MEDIA, ws: true } }
+    : {}),
   '/cenacle-files': { target: s3 },
 };
 

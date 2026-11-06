@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { applyCollabEvent } from '../collab/collab';
+import { applyCallEvent, clearCalls, resyncCalls } from '../calls/state';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '../auth/session';
@@ -74,7 +75,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     const live = useLive.getState();
     const client = new RealtimeClient({
       onEvent(ev) {
-        if (applyCollabEvent(queryClient, ev.type, ev.data)) {
+        if (applyCallEvent(queryClient, ev.type, ev.data, selfId)) {
+          // Call snapshots never contain admission or signaling credentials.
+        } else if (applyCollabEvent(queryClient, ev.type, ev.data)) {
           // tabs, canvases and lists
         } else if (ev.type === 'message.created') {
           const message = ev.data as Message;
@@ -211,6 +214,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         }
       },
       onResync() {
+        void resyncCalls(queryClient);
         void reloadMessages(queryClient);
         void reloadChannels(queryClient);
         void queryClient.invalidateQueries({ queryKey: ['presence'] });
@@ -219,6 +223,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         useConnection.setState({ status });
       },
       onUnauthenticated() {
+        clearCalls();
         void queryClient.invalidateQueries({ queryKey: ['session'] });
       },
     });
@@ -226,6 +231,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     const expire = setInterval(() => live.expireTyping(), 1000);
     return () => {
       client.stop();
+      clearCalls();
       clearInterval(expire);
     };
   }, [queryClient, selfId]);

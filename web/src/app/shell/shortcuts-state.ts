@@ -63,6 +63,15 @@ export function useShortcutGroups(): { title: string; items: Shortcut[] }[] {
         { keys: ['Ctrl', 'E'], label: t('shortcuts.code') },
       ],
     },
+    {
+      title: t('calls:shortcutsGroup'),
+      items: [
+        { keys: ['Ctrl', 'Shift', 'M'], label: t('calls:shortcutMic') },
+        { keys: ['Ctrl', 'Shift', 'O'], label: t('calls:shortcutCamera') },
+        { keys: ['Ctrl', 'Shift', 'E'], label: t('calls:shortcutScreen') },
+        { keys: ['Ctrl', 'Shift', 'H'], label: t('calls:shortcutLeave') },
+      ],
+    },
   ];
   if (desktop) {
     groups.push({

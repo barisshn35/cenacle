@@ -9,6 +9,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+import { generateKeyPairSync } from 'node:crypto';
 
 const WEB_PORT = 5273;
 const SERVER_PORT = 8280;
@@ -26,6 +27,24 @@ function required(name: string): string {
 // The chat server's client registration at Cenacle ID, for this test run only.
 const dir = join(tmpdir(), 'cenacle-e2e-stack');
 mkdirSync(dir, { recursive: true });
+const callsOn = process.env.STACK_CALLS === '1';
+const mediaPort = 8380;
+const controlPort = 8383;
+if (callsOn) {
+  for (const name of ['calls', 'control']) {
+    const pair = generateKeyPairSync('ed25519');
+    writeFileSync(
+      join(dir, `${name}-private.pem`),
+      pair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+      { mode: 0o600 },
+    );
+    writeFileSync(
+      join(dir, `${name}-public.pem`),
+      pair.publicKey.export({ type: 'spki', format: 'pem' }),
+      { mode: 0o600 },
+    );
+  }
+}
 const secretFile = join(dir, 'chat-client-secret.txt');
 const clientsFile = join(dir, 'clients.json');
 writeFileSync(secretFile, 'e2e-stack-only-chat-client-secret-0123456789\n');
@@ -87,6 +106,14 @@ const serverEnv = {
   CENACLE_ADMIN_EMAIL: 'deniz@example.com',
   CENACLE_ANNOUNCEMENT_CHANNEL: 'Central',
   CENACLE_DEFAULT_CHANNELS: 'General',
+  ...(callsOn
+    ? {
+        CENACLE_CALLS: 'on',
+        CENACLE_CALLS_INTERNAL_ADDR: `127.0.0.1:${controlPort}`,
+        CENACLE_CALLS_PRIVATE_KEY_FILE: join(dir, 'calls-private.pem'),
+        CENACLE_MEDIA_CONTROL_PUBLIC_KEY_FILE: join(dir, 'control-public.pem'),
+      }
+    : {}),
   // Files go to the development (or CI) Garage.
   CENACLE_S3_ENDPOINT: process.env.CENACLE_S3_ENDPOINT ?? 'http://127.0.0.1:13900',
   CENACLE_S3_ACCESS_KEY: required('CENACLE_S3_ACCESS_KEY'),
@@ -102,7 +129,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL: WEB_URL, trace: 'retain-on-failure' },
+  use: {
+    baseURL: WEB_URL,
+    trace: 'retain-on-failure',
+    ...(callsOn
+      ? {
+          launchOptions: {
+            args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+          },
+        }
+      : {}),
+  },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
@@ -131,10 +168,35 @@ export default defineConfig({
       command: process.env.STACK_WEB_BUILD
         ? `pnpm exec vite build && pnpm exec vite preview --port ${WEB_PORT} --strictPort`
         : `pnpm exec vite --port ${WEB_PORT} --strictPort`,
-      env: { CENACLE_DEV_API: `http://127.0.0.1:${SERVER_PORT}` },
+      env: {
+        CENACLE_DEV_API: `http://127.0.0.1:${SERVER_PORT}`,
+        ...(callsOn ? { CENACLE_DEV_MEDIA: `http://127.0.0.1:${mediaPort}` } : {}),
+      },
       url: `http://127.0.0.1:${WEB_PORT}`,
       reuseExistingServer: false,
       timeout: 180_000,
     },
+    ...(callsOn
+      ? [
+          {
+            name: 'media',
+            cwd: '../server',
+            command: `go build -o ${join(dir, 'cenacle-media')} ./cmd/media/main.go && ${join(dir, 'cenacle-media')} serve`,
+            env: {
+              CENACLE_PUBLIC_URL: WEB_URL,
+              CENACLE_MEDIA_HTTP_ADDR: `127.0.0.1:${mediaPort}`,
+              CENACLE_MEDIA_PUBLIC_IP: required('STACK_CALLS_PUBLIC_IP'),
+              CENACLE_MEDIA_CONTROL_URL: `http://127.0.0.1:${controlPort}/control`,
+              CENACLE_CALLS_PUBLIC_KEY_FILE: join(dir, 'calls-public.pem'),
+              CENACLE_MEDIA_CONTROL_PRIVATE_KEY_FILE: join(dir, 'control-private.pem'),
+              CENACLE_VALKEY_ADDR: serverEnv.CENACLE_VALKEY_ADDR,
+              CENACLE_VALKEY_PASSWORD: process.env.CENACLE_VALKEY_PASSWORD ?? '',
+            },
+            url: `http://127.0.0.1:${mediaPort}/readyz`,
+            reuseExistingServer: false,
+            timeout: 180000,
+          },
+        ]
+      : []),
   ],
 });

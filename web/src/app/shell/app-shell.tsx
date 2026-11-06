@@ -18,6 +18,7 @@ import { DetailsPanel } from './details-panel';
 import { SearchPanel } from '../search/search-panel';
 import { ThreadPanel } from '../threads/thread-panel';
 import { OnboardingDialog } from '../community/onboarding';
+import { CallHost } from '../calls/call-host';
 import { HomeViewPage, type HomeView } from '../threads/views';
 import { useLocation } from '@tanstack/react-router';
 import type { RightView } from '../../stores/layout';
@@ -59,6 +60,7 @@ export function AppShell() {
         <SkipLink />
         {isMobile ? <MobileShell /> : <DesktopShell />}
         <OnboardingDialog />
+        <CallHost />
       </SidebarProvider>
     </MessageEnvProvider>
   );

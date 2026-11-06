@@ -5,6 +5,7 @@ import { uiResources } from '@cenacle/ui/i18n';
 import { safeStorage } from '@cenacle/ui/lib/storage';
 import en from './en.json';
 import tr from './tr.json';
+import { callMessages } from '../app/calls/messages';
 
 export const LANGUAGES = ['en', 'tr'] as const;
 export type Language = (typeof LANGUAGES)[number];
@@ -24,8 +25,8 @@ export const directionOf = (lng: string): 'rtl' | 'ltr' => (RTL.has(lng) ? 'rtl'
 const STORAGE_KEY = 'cenacle.language';
 
 export const resources = {
-  en: { app: en, ...uiResources.en },
-  tr: { app: tr, ...uiResources.tr },
+  en: { app: en, calls: callMessages.en, ...uiResources.en },
+  tr: { app: tr, calls: callMessages.tr, ...uiResources.tr },
 } as const;
 
 function isLanguage(v: unknown): v is Language {
@@ -58,7 +59,7 @@ export function initI18n(lng: Language = detectLanguage()) {
     fallbackLng: 'en',
     supportedLngs: LANGUAGES,
     resources,
-    ns: ['app', 'ui'],
+    ns: ['app', 'ui', 'calls'],
     defaultNS: 'app',
     interpolation: { escapeValue: false },
     returnNull: false,

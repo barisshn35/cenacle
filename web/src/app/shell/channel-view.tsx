@@ -30,6 +30,7 @@ import { useCanWrite } from '../compliance/e2e';
 import { useMLSChannel } from '../e2e/use-mls-channel';
 import { dateLocale } from '../../i18n/time-format';
 import { usePageTitle } from './use-page-title';
+import { CallAction, ChannelCallBar } from '../calls/channel-call';
 
 /** Header buttons that open a panel: Brass while their panel is open. */
 const HEADER_TOGGLE =
@@ -96,6 +97,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           </div>
         )}
         {id && channel && !channel.encrypted && <SummarizeButton channelId={id} />}
+        {channel && <CallAction channel={channel} />}
         <Button
           variant="ghost"
           size="icon"
@@ -119,6 +121,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
         </Button>
       </header>
       {id && channel && <ChannelTabs channel={channel} active={tab?.id} />}
+      {channel && <ChannelCallBar channel={channel} />}
 
       {tab?.canvas_id ? (
         <CanvasView key={tab.canvas_id} canvasId={tab.canvas_id} />
