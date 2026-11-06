@@ -90,6 +90,49 @@ built from the release tags.
   (chat six times, Cenacle ID twice), then upgrading again: data intact. Restoring the backup
   over the upgraded databases failed as described (4).
 
+## Access and supply chain review
+
+After the round, the same day: who can change the code and its releases, what CI holds,
+the dependencies, and whether the published images are the released source.
+
+| #   | Where        | What was found                                                                                                                                                       | Severity | Fixed in |
+| --- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| 21  | Images       | Rebuilt from the tag hours later, the web and Cenacle ID images differed from the published ones: the build's package update (1) took zlib 1.4, released in between. | major    | e7aaaf8  |
+| 22  | GitLab       | 27 one-day access tokens made during the release, some with the `api` scope, were still active.                                                                      | minor    | revoked  |
+| 23  | Dependencies | `klauspost/compress` 1.20.1 (GO-2026-6865); Cenacle's code does not reach it.                                                                                        | minor    | e7aaaf8  |
+| 24  | GitHub       | The CLA check fails on Dependabot's pull requests of the mirror (bots do not sign off). Not a risk; to settle with the repositories at 1.0.                          | minor    | open     |
+| 25  | GitLab       | Job logs are visible to anyone who can see the project; harmless while it is private, to turn off before it is public.                                               | minor    | open     |
+
+What held:
+
+- **Images:** the server image rebuilt from `v0.99.5` matches the published one bit for bit;
+  in the web and Cenacle ID images only the package layer differed (21), every layer of the
+  application matched. After the fix two builds of web, Cenacle ID and the proxy came out
+  identical, and trivy found nothing.
+- **Dependencies:** OSV-Scanner over every lock file: no package known to be malicious
+  (OpenSSF's `MAL-` records), two advisories, neither reached (govulncheck); `go mod verify`
+  passes. npm packages must be a day old, keep their provenance and come from the registry;
+  only electron and esbuild run install scripts. Packages were not read line by line.
+- **GitLab:** one member (the owner); no project or deploy tokens, deploy keys or web hooks;
+  `main`, `release-*` and `v*` protected, no force pushes; the six CI variables protected,
+  secrets masked, signing keys as files. The runner takes only `cenacle` jobs, unprivileged,
+  in a Docker engine of its own on its own network (8 CPUs, 14 GB); from there only ports 22,
+  80 and 443 of the host are reachable.
+- **GitHub:** the organization requires two-step verification, has one member and no outside
+  collaborators, apps or invitations, and members cannot create or fork repositories; the
+  nine repositories are private, with no deploy keys, hooks or secrets. The one workflow (the
+  CLA check) runs on `pull_request` with read access, takes the check from the target branch
+  and pins `actions/checkout` to the commit of its v7.0.1 tag.
+- **Code:** no route outside the API description but health, WebSocket, metrics, the media
+  service's signed callbacks and uploads with a single-use ticket; sessions and bot tokens found by hash
+  only; the instance administrator only by an address Cenacle ID verified; every Cenacle ID
+  administration page behind its administrator check; desktop updates only with the release
+  key's signature; no command execution, `eval`, downloaded scripts, encoded blobs, date
+  triggers or written-in credentials.
+
+Not reviewable with the access here: the organization's web hooks and the account's SSH,
+signing and GPG keys on GitHub (the CLI's token lacks those scopes).
+
 ## Not tested here
 
 - Helm in this round (the chart's media service was run in k3d for this release with every
