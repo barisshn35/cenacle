@@ -8,6 +8,14 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ## [Unreleased]
 
+### Security
+
+- The images built on Alpine use Alpine 3.24.3 (zlib 1.3.2-r1, CVE-2026-85091) instead of
+  updating packages while they are built, so a rebuild from the tag gives the same image
+  again; 0.99.5's update step had made them depend on the day of the build.
+- `github.com/klauspost/compress` 1.20.3 (GO-2026-6865; Cenacle does not call the affected
+  code).
+
 ### Changed
 
 - `backup-daily.sh` also copies the uploaded files: with the bundled Garage it mirrors the

@@ -16,10 +16,8 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     GOFIPS140="$([ "$FIPS" = true ] && echo v1.0.0 || echo off)" \
     go build -trimpath -ldflags "-s -w" -o /out/caddy .
 
-FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
-# Upgrading takes the fixes released after the base image (e.g. zlib, 2026-11-06).
-RUN apk upgrade --no-cache \
- && apk add --no-cache ca-certificates mailcap \
+FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+RUN apk add --no-cache ca-certificates mailcap \
  && addgroup -g 10001 cenacle && adduser -D -H -u 10001 -G cenacle cenacle \
  && mkdir -p /data /config /etc/caddy \
  && chown cenacle:cenacle /data /config \
