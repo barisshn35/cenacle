@@ -97,12 +97,6 @@ class Client:
             body["root_id"] = root_id
         return self._do("POST", "/api/channels/" + self._path(channel_id) + "/messages", body)
 
-    def edit_message(self, channel_id: str, message_id: str, text: str) -> dict:
-        return self._do("PATCH", "/api/channels/" + self._path(channel_id, "messages", message_id), {"body": text})
-
-    def delete_message(self, channel_id: str, message_id: str) -> None:
-        self._do("DELETE", "/api/channels/" + self._path(channel_id, "messages", message_id))
-
     def react(self, channel_id: str, message_id: str, emoji: str) -> None:
         self._do("PUT", "/api/channels/" + self._path(channel_id, "messages", message_id, "reactions", emoji))
 

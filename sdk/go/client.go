@@ -110,19 +110,6 @@ func (c *Client) PostMessage(ctx context.Context, channelID string, p Post) (Mes
 	return out, err
 }
 
-// EditMessage changes the text of one of the bot's messages.
-func (c *Client) EditMessage(ctx context.Context, channelID, messageID, text string) (Message, error) {
-	var out Message
-	err := c.do(ctx, http.MethodPatch, "/api/channels/"+url.PathEscape(channelID)+"/messages/"+url.PathEscape(messageID),
-		map[string]string{"body": text}, &out)
-	return out, err
-}
-
-// DeleteMessage deletes one of the bot's messages.
-func (c *Client) DeleteMessage(ctx context.Context, channelID, messageID string) error {
-	return c.do(ctx, http.MethodDelete, "/api/channels/"+url.PathEscape(channelID)+"/messages/"+url.PathEscape(messageID), nil, nil)
-}
-
 // React adds an emoji reaction to a message.
 func (c *Client) React(ctx context.Context, channelID, messageID, emoji string) error {
 	return c.do(ctx, http.MethodPut, "/api/channels/"+url.PathEscape(channelID)+"/messages/"+url.PathEscape(messageID)+

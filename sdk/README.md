@@ -12,11 +12,14 @@ so bots of any license can use them.
 ## Go
 
 ```sh
-go get github.com/barisshn35/cenacle/sdk/go
+go get github.com/Cenacle-TR/cenacle/sdk/go@v1.0.0
 ```
 
+Each Cenacle release `vX.Y.Z` has the Go SDK as `sdk/go/vX.Y.Z` (from 1.0.0 on), so pick the
+version of your server; `@latest` takes the newest.
+
 ```go
-import cenacle "github.com/barisshn35/cenacle/sdk/go"
+import cenacle "github.com/Cenacle-TR/cenacle/sdk/go"
 
 client := &cenacle.Client{BaseURL: "https://chat.example.com", Token: os.Getenv("CENACLE_TOKEN")}
 
@@ -43,7 +46,7 @@ make signatures.
 ## Python
 
 ```sh
-pip install ./sdk/python
+pip install "git+https://github.com/Cenacle-TR/cenacle@v1.0.0#subdirectory=sdk/python"
 ```
 
 ```python
