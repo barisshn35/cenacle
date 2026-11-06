@@ -17,7 +17,24 @@ working air-gapped; a search engine or a notification SaaS is not an option.
    IMMUTABLE functions `cenacle_search_vector(text)` and `cenacle_search_query(text)` and
    indexed with **GIN expression indexes** on messages and file names, not stored columns
    (no column every `SELECT m.*` would carry). Every word of a query matches the beginning
-   of a word (`:*`); `-word` leaves messages with it out. Results are only from channels the
+   of a word (`:*`); `-word` leaves messages with it out. A word with a hyphen or an
+   apostrophe is split by the same parser as the text (`e-mail`: `e-mail`, `e`, `mail`;
+   `load-5`: `load`, `-5`; `İstanbul'da`: `istanbul`, `da`) and every part must match
+   (migration 00059; before it such a word found nothing). The indexes of messages and of
+   file texts are partial (not deleted, has text), and PostgreSQL does not use the
+   statistics of a partial index's expression: extended statistics on the same expression
+   (`CREATE STATISTICS`, migration 00060) give the planner the frequency of each word, so a
+   rare word is looked up in the index instead of reading messages newest first. The message
+   index takes new entries at once (`fastupdate = off`): a long pending list made the index
+   look expensive until the next vacuum. File search looks up names and texts in two parts,
+   each with every filter and its own index, joined without duplicates. `cenacle_search_vector`
+   declares its cost (`COST 10000`, migration 00061) and has a `SET search_path`, so
+   PostgreSQL does not copy its body into queries and drop that cost: without it, working out
+   the words of a long text looked free, and a file search for a rare word read files newest
+   first instead of using the index. A search runs at most
+   10 seconds (`SET LOCAL statement_timeout` in its own transaction, so no pooled connection
+   keeps it) and then answers 503 `search_timeout`, which the web app shows with its own text
+   and does not retry. Results are only from channels the
    person is a member of, newest first, with cursor pages. Filters: workspace, channel,
    author, date range, with files, with links. A dedicated search engine stays an option for
    v0.27 load tests.

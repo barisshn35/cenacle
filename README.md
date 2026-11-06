@@ -142,35 +142,36 @@ no telemetry, no CDN, no license key and no edition with the good parts removed.
       <h4>Run</h4>
       Several instances behind one address · OpenTelemetry, Prometheus, Loki, Tempo and
       Grafana · WAL-G backups · locked, documented migrations · SCIM provisioning ·
-      permission schemes · importers for Mattermost, Slack, Rocket.Chat, Zulip, Discord and
-      Teams exports · workspace moves between servers
+      permission schemes · importers for other chat products' export files · workspace moves
+      between servers
     </td>
   </tr>
 </table>
 
 **Desktop:** a native app for Windows (packaged for the Microsoft Store too) and Linux that
 signs in inside its own window, keeps its session in the system keychain and updates from
-your server ([guide](docs/install/desktop.md)). Voice and video and the mobile apps follow
-1.0.
+your server ([guide](docs/install/desktop.md)). Next: voice and video calls come with 1.0,
+the mobile apps with 1.1; a macOS app later.
 
 ## Measured, not promised
 
-Numbers from the project's own tests on one 12-core machine with PostgreSQL, Valkey and the
-test on the same host ([details](docs/operations/performance.md)):
+Numbers from the project's own tests (the 1.0 code, medians of three runs on 2026-11-05) on one
+12-core machine with PostgreSQL, Valkey and the test on the same host
+([details](docs/operations/performance.md)):
 
 | With 2,000,000 messages in 200 channels | Median | 95th percentile |
 | --------------------------------------- | -----: | --------------: |
-| Open the channel list with counts       |  27 ms |           41 ms |
-| Load the newest page of a channel       |   6 ms |           10 ms |
-| Page far back into history              |   6 ms |           10 ms |
-| Search for a common word                |   7 ms |           11 ms |
+| Open the channel list with counts       |  36 ms |           63 ms |
+| Load the newest page of a channel       |   7 ms |           11 ms |
+| Page far back into history              |   8 ms |           11 ms |
+| Search for a common word                |  45 ms |           61 ms |
 
-- **346 messages per second** from 100 people sending without pause, each delivered live to
+- **366 messages per second** from 100 people sending without pause, each delivered live to
   200 connections, with no failed request.
 - **About 400 million fuzzed inputs** across 22 parsers (images, link previews, feeds,
   webhook signatures, cards from other services) before 1.0.
 - **WCAG 2.2 AA and EN 301 549**, with a published
-  [conformance report](docs/accessibility/conformance-report.md); target sizes and axe
+  [conformance report](docs/accessibility/conformance-report.md) (for 0.41.0); target sizes and axe
   checks run on every change.
 - **Every release** is signed with cosign, carries signed SPDX SBOMs and can be rebuilt bit
   for bit from its tag ([how to verify](docs/security/README.md)).
@@ -181,11 +182,17 @@ You need a Linux host (amd64 or arm64) with Docker Compose, and two DNS names, o
 the chat and one for Cenacle ID.
 
 ```sh
-git clone https://github.com/barisshn35/cenacle.git && cd cenacle/deploy/compose
+git clone https://github.com/Cenacle-TR/cenacle.git && cd cenacle/deploy/compose
 ./gen-secrets.sh                                   # random secrets into ./secrets
 cp .env.prod.example .env.prod                     # your domains, e-mail and administrator
 docker compose -f prod.yml --env-file .env.prod up -d
 ```
+
+Or let `install.sh` do it: it checks the host (Docker, Compose, memory, disk, ports), asks
+for the two host names, writes the secrets and settings and waits until every service is
+healthy. Each release carries it with its signed checksums ([how to verify and run
+it](docs/install/README.md#installing-with-installsh)); in a checkout it is
+`deploy/compose/install.sh`.
 
 Caddy fetches the TLS certificates and the databases migrate themselves. The
 installation guide continues with the first account and the firewall: [installation guide](docs/install/README.md) ·
@@ -242,12 +249,12 @@ flowchart LR
 
 <br />
 
-Requirements: Go 1.26, Node.js 24 (`.nvmrc`), pnpm via Corepack, Docker with Compose v2.
+Requirements: Go 1.26, Node.js 26 LTS (`.nvmrc`), pnpm (`npm install -g pnpm`; it runs the version `package.json` names), Docker with Compose v2.
 
 ```sh
-corepack enable
+npm install -g pnpm
 pnpm install
-make tools                  # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck, helm
+make tools                  # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck, helm, kube-linter, shellcheck
 cp .env.example .env
 make up                     # postgres, valkey, openldap, mailpit
 make migrate-up             # chat database migrations
@@ -295,7 +302,8 @@ desktop/         desktop app (Electron, Windows and Linux)
 packages/core/   API and WebSocket client, shared types, local storage
 packages/ui/     design system: tokens, theme, primitives
 sdk/             bot SDKs
-deploy/          Compose stacks, Caddy build, Helm chart
+deploy/          Compose stacks, Caddy build, Helm chart, install.sh
+mobile/          mobile app (Capacitor; comes with 1.1)
 docs/            installation, operations, security, decisions (ADRs)
 ```
 

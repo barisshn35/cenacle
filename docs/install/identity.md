@@ -13,6 +13,46 @@ People of a directory's admin filter, or of an identity provider's administrator
 are administrators of the chat (they create workspaces); Cenacle ID administration stays
 with the accounts given it above.
 
+## Accounts
+
+**Administration → Accounts** lists every account. Per account: **Disable** / **Enable**,
+**Turn off two-step verification**, **Make administrator** / **Remove administrator**,
+**Export data** and **Delete** (not for your own account). The same from the command line,
+in the `idp` container:
+
+```sh
+node dist/cli.js users disable|enable --email <address>
+node dist/cli.js users admin|no-admin --email <address>
+node dist/cli.js users export --email <address> > data.ndjson
+node dist/cli.js users delete --email <address>          # asks to type the address again
+node dist/cli.js users delete --email <address> --yes    # for scripts
+```
+
+- **Export data** downloads what Cenacle ID keeps about the person as NDJSON, one
+  `{"kind": …, "data": …}` per line: `account` (address, name, username, title, language,
+  source, role, state; whether a password and two-step verification are set, never the
+  hash or secret), `photo` (base64 with its type), `group`, `passkey` (name, kind, created,
+  last used; no keys), `recovery_codes` (how many unused and used), `signin_attempt`,
+  `session` and `app_grant` (no tokens) and `audit` (time, action, IP, detail of the events
+  the person did). People download the same file themselves on their account page
+  (**Your data → Download my data**, five times an hour at most). Every export is in the
+  audit log (`account.data_exported`, `admin.account.data_exported`).
+- **Delete** asks to type the account's address (its sign-in name if it has none). It ends
+  the person's sessions, removes the account with its photos, groups, passkeys, two-step
+  verification, recovery codes and sign-in attempts, and every oidc-provider record of it;
+  the audit events they did stay, without the account, its IP addresses and its personal
+  details. The directory feed reports the account as disabled, so the chat deactivates the
+  person and ends their sessions within a minute (their messages stay; erase them in the
+  chat's System console if needed). The audit log records `admin.account.deleted` with the
+  account id only.
+- **A deleted person comes back while their source still has them.** A directory's next
+  synchronization, or their next directory sign-in, creates a new account (with a new id)
+  for anyone it still lists and its filter admits; an identity provider's next sign-in does
+  the same; a SCIM provider gets "not found" for the old account and may create it again.
+  The chat sees a new person. To keep someone out, remove them at the source first, or
+  **Disable** the account instead: an administrator's disable holds against
+  synchronizations, sign-ins and SCIM.
+
 ## Active Directory and LDAP
 
 **Administration → Directories → Connect a directory**, choose _Active Directory_ or
@@ -37,7 +77,12 @@ _OpenLDAP_. The presets fill in the usual attributes; check them against your di
 - Use `ldaps://` or StartTLS. Paste your CA certificate (PEM) if the directory's certificate
   is not issued by a public CA.
 - **Test the connection** and **Preview a person** before turning the directory on.
-- People sign in with their sign-in name or e-mail address and their directory password.
+- People of a directory sign in with the value of the **sign-in name attribute** (for
+  example their `sAMAccountName`) and their directory password. Their e-mail address does
+  not work, unless the attribute is one that holds it (such as `userPrincipalName` or
+  `mail`): the sign-in form tries what is typed as the e-mail address of a Cenacle ID
+  account with its own password first, and then as a sign-in name in each directory that is
+  turned on.
 - **Synchronization** runs at the interval you set (and after **Synchronize now**): people
   and groups are refreshed; people the filter no longer admits are deactivated in Cenacle ID
   and in the chat within a minute, and all their sessions end. If a synchronization finds
@@ -45,7 +90,13 @@ _OpenLDAP_. The presets fill in the usual attributes; check them against your di
 - Someone whose sign-in name another account already has (a former colleague's reused login,
   the same login in two directories) is skipped and named in the synchronization history; the
   rest of the synchronization, deactivations included, goes on.
-- A local account with the same e-mail address becomes the directory's account.
+- A local Cenacle ID account with the same e-mail address is not linked by default: the
+  directory's person gets an account of their own, without the address, which stays with
+  the local account. With _An existing local account with the same e-mail address becomes
+  the directory's account_ turned on (off by default), the local account becomes the
+  directory's at the next synchronization or sign-in and loses its own password; a
+  disabled account is never linked. Turn it on only when the directory's addresses are
+  trustworthy: whoever controls an address in the directory takes over that account.
 - Disabling a directory account in **Accounts** (or with `cenacle-idp users disable`) blocks it
   in Cenacle ID whatever the directory says: synchronizations and directory sign-ins keep it
   disabled until an administrator enables it again.
@@ -117,15 +168,29 @@ before they sign in; deactivating someone there ends their sessions within a min
   second step are never linked this way: their address makes the push a conflict (409).
 - With SCIM on, **groups come from SCIM**, not from sign-ins. The administrator and guest
   groups of the provider still decide roles.
-- Deleting a person over SCIM deactivates the account (their messages keep their author).
+- Deleting a person over SCIM deactivates the account (their messages keep their author);
+  it is not deleted from Cenacle ID (see [Accounts](#accounts) for that).
 - A new token replaces the old one; **Turn off** stops provisioning and keeps the accounts.
+
+## Sign-in policy
+
+**Administration → Sign-in** (`https://<id-domain>/account/admin/sign-in`) decides how
+everyone signs in ([ADR 0032](../adr/0032-sign-in-policy.md)). The defaults:
+
+| Setting                                   | Default | Meaning                                                                                                                                                       |
+| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _Require two-step verification_           | on      | Everyone signing in with a password (local or directory) also types a code from an authenticator app; people without one set it up during their next sign-in. |
+| _Allow passkeys_                          | off     | People may add passkeys on their account page and sign in with them instead of a password and code.                                                           |
+| Identity providers (OpenID Connect, SAML) | none    | Single sign-on is off until a provider is added and turned on under **Identity providers**.                                                                   |
+
+A change applies to the next sign-in and is recorded in Cenacle ID's audit log.
 
 ## Passkeys
 
-People add passkeys at `https://<id-domain>/account` and then sign in with their
-fingerprint, face or device PIN instead of a password. A passkey counts as two factors (no
-code is asked). Passkeys are bound to Cenacle ID's host name: changing it later makes
-existing passkeys stop working.
+Passkeys are off until an administrator turns on _Allow passkeys_ (above). Then people add
+passkeys at `https://<id-domain>/account` and sign in with their fingerprint, face or device
+PIN instead of a password. A passkey counts as two factors (no code is asked). Passkeys are
+bound to Cenacle ID's host name: changing it later makes existing passkeys stop working.
 
 ## Groups in the chat
 

@@ -55,6 +55,10 @@ bot.
 ## 3. Operations
 
 - Install with Compose and with Helm, following the documentation only.
+- From 1.0, on a host with no stored credentials (no `docker login`, no Git credential
+  helper): `git clone` of the public repository and `docker pull` of every image of the
+  release (`server`, `idp`, `web`, `proxy` and their `CENACLE_IMAGE_VARIANT` builds, with the
+  release tag) succeed without asking for a sign-in.
 - Upgrade from the previous release with data; roll back; restore from backup.
 - Air-gapped: images loaded from files, no outbound connections (link previews off).
 - Backup and restore of PostgreSQL, the object store and Cenacle ID's signing keys.

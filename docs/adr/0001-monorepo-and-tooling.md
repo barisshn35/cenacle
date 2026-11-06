@@ -19,7 +19,8 @@ record covers the tooling and the decisions made while implementing v0.1.
    (`web`, `idp`, `packages/*`); the chat server is a separate Go module (`/server`).
    A `Makefile` is the single entry point. The project name is defined once
    (`PROJECT := cenacle` in the Makefile, compose project `cenacle`, npm scope `@cenacle`).
-2. **pnpm 12 via Corepack** (`packageManager` field). Its supply-chain policy (minimum
+2. **pnpm 12** (`packageManager` field; Corepack until Node 24, which ships it; since Node 26
+   pnpm is installed with npm and runs the version that field names). Its supply-chain policy (minimum
    release age) is kept on: when a dependency was too new, the previous release was pinned
    instead of relaxing the policy. Install scripts are allowed only for `esbuild`
    (`allowBuilds`). All versions are pinned exactly (`saveExact`).
@@ -34,8 +35,8 @@ record covers the tooling and the decisions made while implementing v0.1.
 6. **Go tools are pinned binaries** in `./.bin` (`make tools`): sqlc (needs cgo, so not a
    `go tool` dependency), golangci-lint v2, go-licenses, govulncheck.
 7. **GitHub instead of GitLab (deliberate; superseded for CI by ADR 0022).** The kickoff mentioned GitLab CI and a
-   `git.calaixo.com` module path; the project deliberately lives on GitHub, so CI is GitHub Actions
-   and the Go module path is `github.com/barisshn35/cenacle/server`. Third-party actions
+   module path on a self-hosted GitLab; the project deliberately lives on GitHub, so CI is GitHub Actions
+   and the Go module path is on GitHub (since 1.0 `github.com/Cenacle-TR/cenacle/server`). Third-party actions
    are pinned to commit SHAs; gitleaks and trivy run from version-pinned images.
 
 ### License policy
@@ -113,8 +114,8 @@ record covers the tooling and the decisions made while implementing v0.1.
 24. **Test LDAP is a small image built from Alpine's `openldap` packages** (non-root, LDIF
     seed). The usual images are unmaintained (osixia) or frozen (bitnami legacy).
 25. **Images are minimal and non-root:** server on distroless static (uid 65532) with a
-    built-in `healthcheck` command; Cenacle ID as the `node` binary on plain Alpine (no npm,
-    Corepack or Yarn at runtime); web and proxy on Alpine with Caddy.
+    built-in `healthcheck` command; Cenacle ID as the `node` binary on plain Alpine (no
+    npm, pnpm or Yarn at runtime); web and proxy on Alpine with Caddy.
 26. **Caddy is compiled from source** (same release, standard modules) with our Go toolchain
     and current `golang.org/x/net`, because the official image carried HIGH advisories
     fixed only in newer Go/x/net. This also avoids Caddy's file capability, which breaks
@@ -129,9 +130,9 @@ record covers the tooling and the decisions made while implementing v0.1.
 
 ## Consequences
 
-- Contributors need Go, Node 24 and Docker; `make tools` and Corepack install the rest.
+- Contributors need Go, Node 26 (LTS; Node 24 until 1.0) and Docker; `make tools` and pnpm install the rest.
 - Every dependency and image is pinned; Dependabot proposes updates (npm with a cool-down,
   matching pnpm's release-age policy).
 - Revisit: project license (before the first public release), TypeScript 7 / ESLint 10
   support, upstream Caddy releases (switch
-  back to the official image when it is current), Node 26 LTS after 2026-10-28.
+  back to the official image when it is current). Node 26 LTS: adopted for 1.0.

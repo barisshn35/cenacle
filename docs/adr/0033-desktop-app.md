@@ -72,7 +72,17 @@ window's bar and its buttons look like the app.
 
 - The CI image carries GTK and Xvfb; the desktop app's tests run against a stand-in server
   and against the whole stack (with a soak run). Packaging runs on `v*` tags in
-  electron-builder's image and publishes to the package registry.
+  electron-builder's image and publishes to the package registry and, since 1.0, to the
+  release on GitHub Releases (`docs/operations/ci.md`).
 - Unsigned packages warn on Windows (SmartScreen) until a certificate is set up.
 - A server that turns the web app off still serves the web app's files: the desktop app
   shows them.
+- Spell checking (after 0.99.4): Electron downloaded each language's dictionary from Google
+  the first time it checked a word, against "nothing contacts anyone but the organisation's
+  server". The dictionaries now come with the app (`desktop/dictionaries`: English, SCOWL's
+  permissive notice; Turkish, hunspell-tr under MPL-2.0 with its source in
+  `desktop/dictionaries/source/`; both notices in the third-party notices) and the download
+  address is a closed local port (`desktop/src/spellcheck.ts`). Chromium's own Turkish
+  dictionary (tr-spell) was not taken: its project page says Apache-2.0, Chromium's README
+  lists GPL, LGPL and MPL 1.1. The first preferred language decides what is checked; a
+  language without a dictionary is not checked rather than checked as English.

@@ -20,14 +20,21 @@ something could only be deleted like any other, which a legal hold then kept.
    deliveries; syslog is RFC 5424 with octet counting over TCP, optionally TLS, through the
    egress policy's own dialer (the same SSRF rules as HTTP). Streaming starts at the moment
    it is turned on; history is downloaded instead.
-2. **Data subject requests:** access is a streamed NDJSON of everything stored about a
-   person, for themselves (rate limited) or by an administrator; both are audited.
+2. **Data subject requests:** access is a streamed NDJSON of what the chat stores about a
+   person, for themselves (rate limited) or by an administrator; both are audited. It has
+   their messages and earlier versions of them, files with their bytes, reactions, votes,
+   answers, reports, what they made, settings, uploaded fonts, sounds and picture, sessions
+   and the audit entries by and about them; secrets (token and password hashes, keys)
+   stay out. Cenacle ID keeps the account itself and has its own export (since 1.0).
    **Erasure anonymizes rather than deletes the account row**, because messages that legal
    holds keep still need an author, and other people's threads stay coherent. The account
    is unlinked from its identity (`auth_service = 'erased'`), so signing in again creates a
-   new account. Messages without a hold are soft-deleted at once and purged by the existing
-   purge; held ones remain until the hold is released. The audit entry records counts, not
-   who the person was.
+   new account. Every message of the person is marked deleted at once, and open apps, bots
+   and the servers a channel is shared with are told (`message.deleted`, all in the same
+   transaction); messages without a hold are purged by the existing purge, held ones keep
+   their text and edits for eDiscovery and are purged once no hold keeps them. Their
+   profile picture, fonts and sounds go. The audit entry records counts, not who the person
+   was.
 3. **Archive exports** are written by the server in CSV, Actiance XML and EML (one message
    per file, in a ZIP) on demand, and daily per workspace into the object store, catching up
    missed days. Delivery to a vendor (SFTP, SMTP journaling) is left to the operator's

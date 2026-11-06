@@ -1,6 +1,6 @@
 # Trademark policy
 
-"Cenacle", "Cenacle ID" and the Cenacle logo are trademarks of the project's maintainer.
+"Cenacle", "Cenacle ID" and the Cenacle logo are used as trademarks by Yusuf Barış Şahin.
 The code is open source (see [LICENSE](LICENSE)); the names and the logo are not part of
 that license. This policy says how you may use them, so that people can tell the
 original project from other software.

@@ -22,7 +22,7 @@ per minute.
    `ci/services.sh` answer on `127.0.0.1`, as on a developer's machine and as the GitHub
    workflow had them. No job runs privileged; a job reaches the CI engine through its
    socket.
-4. **The CI image** (`ci/image`) carries Go, Node.js 24 and 26, pnpm, the Docker CLI with
+4. **The CI image** (`ci/image`) carries Go, Node.js 26 (24 and 26 until 1.0), pnpm, the Docker CLI with
    buildx and Playwright's system libraries; the pipeline builds it once per version.
    Caches (Go modules and builds, pnpm store, Playwright browsers, image layers, trivy's
    database) persist in `/cache`.

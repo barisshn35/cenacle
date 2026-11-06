@@ -1,6 +1,7 @@
 # Publishing to the Microsoft Store
 
-The Windows app is published in the Microsoft Store as MSIX packages. The Store signs them
+The Windows app is meant for the Microsoft Store as MSIX packages; it is not published there
+yet (the steps below have not been done). The Store signs them
 with Microsoft's certificate when it publishes them, so people get the app without a
 SmartScreen warning and the project needs no code-signing certificate. The Store updates the
 app; Store installations do not use the server's update files.
@@ -24,7 +25,8 @@ app; Store installations do not use the server's update files.
 ## Each release
 
 1. The release's CI job builds `Cenacle-<version>-x64.msix` and `Cenacle-<version>-arm64.msix`
-   into `cenacle-desktop/<version>/` of the package registry. Download both.
+   into `cenacle-desktop/<version>/` of the package registry and the release's page on
+   GitHub Releases. Download both.
 2. In Partner Center, start a submission and upload both packages under **Packages**.
 3. **Store listings** (English and Turkish): the description, at least one screenshot per
    language, and the privacy policy address (the website's privacy page).
@@ -33,8 +35,8 @@ app; Store installations do not use the server's update files.
    MSIX do). Explain it in **Submission options → Restricted capabilities**:
 
    > Cenacle is a desktop app built with Electron and packaged as MSIX. runFullTrust lets it run
-   > as a regular desktop process; it connects only to the chat server the person or their
-   > organization chooses.
+   > as a regular desktop process; it connects to the chat server the person or their
+   > organization chooses, and to nothing else.
 
 6. **Age ratings:** fill in the questionnaire (a communication app where people exchange
    messages).

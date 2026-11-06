@@ -65,6 +65,25 @@ Set-ItemProperty -Path $key -Name LockServer -Value 1 -Type DWord
 { "server": "chat.example.com", "lockServer": true, "disableUpdates": true }
 ```
 
+## Unsigned packages on managed computers
+
+What Microsoft documents ([SmartScreen reputation](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation),
+[testing with Smart App Control](https://learn.microsoft.com/windows/apps/develop/smart-app-control/test-your-app-with-smart-app-control)):
+
+- An unsigned file a person downloads and runs gets the "Windows protected your PC"
+  warning; an organization's policy can take away **Run anyway**. Files an organization
+  distributes from locations its Trusted Intranet settings cover are not reviewed by
+  SmartScreen, and administrators can submit a file to Microsoft's Security Intelligence
+  portal for review.
+- On Windows 11, Smart App Control, where it is on, blocks unsigned programs without a
+  good reputation, also ones not downloaded from the internet. `citool.exe -lp` shows
+  whether it is on.
+- Packages from the Microsoft Store are signed by Microsoft and get no warning.
+
+Whether a silent MSI deployment by Intune or Configuration Manager shows the SmartScreen
+warning is not stated there; try it on one computer before rolling out, or sign the app
+(below) or use the Store package.
+
 ## Signing with your own certificate
 
 Cenacle's own Windows packages are not signed with a code-signing certificate (the Microsoft
@@ -79,8 +98,8 @@ Build the release from its source, with your certificate given to electron-build
 it signs with `osslsigncode`, on Windows with `signtool`):
 
 ```sh
-git clone --branch v0.99.0 https://git.calaixo.com/calaxio/cenacle && cd cenacle
-corepack enable && pnpm install --frozen-lockfile
+git clone --branch v0.99.0 https://github.com/Cenacle-TR/cenacle && cd cenacle
+npm install -g pnpm && pnpm install --frozen-lockfile
 pnpm --filter @cenacle/desktop build
 cd desktop
 export CSC_LINK=/secure/codesign.pfx CSC_KEY_PASSWORD='…'

@@ -11,8 +11,8 @@ Cenacle one considered look that fits technical and office teams, with enterpris
 and daily speed weighted equally, and that does not read as playful or as a template.
 
 The direction was worked out from a review of the old interface and several prototypes,
-and approved on 2026-10-23. The approved design, its tokens and the HTML prototypes are in
-[`docs/design/v0.29`](../design/v0.29/README.md).
+and approved on 2026-10-23. The HTML prototypes were removed from the repository before
+1.0; the tokens live in `packages/ui/src/styles/tokens.css` and the rules below.
 
 ## Decisions
 

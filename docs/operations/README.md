@@ -36,10 +36,29 @@ previous release keeps working against the new schema while instances are replac
 
 | Signal  | Where                                                                                                                                 |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Health  | `/healthz` (alive) and `/readyz` (database, Valkey, object store) on every service                                                    |
+| Health  | `/healthz` (alive) on every service; `/readyz` (ready) on the chat server and Cenacle ID, see below                                   |
 | Metrics | Prometheus format on an internal port: chat server `CENACLE_METRICS_ADDR` (e.g. `:9090`), Cenacle ID `IDP_METRICS_PORT` (e.g. `9091`) |
 | Traces  | OpenTelemetry (OTLP/HTTP) when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; sampling with `OTEL_TRACES_SAMPLER`                              |
 | Logs    | JSON on stdout with `request_id` and, when tracing, `trace_id`                                                                        |
+
+`/readyz` answers `200` when every check passes, otherwise `503` naming the failing ones:
+
+- **Chat server:** `postgres`, `valkey`, `storage` (the object store, Azure container or
+  files directory; only when files are on) and `drain` (fails while the server stops, for
+  the drain delay).
+- **Cenacle ID:** `postgres` only.
+- **Web container:** no `/readyz`; `/healthz` answers `200` while Caddy serves the app
+  (inside the stack only).
+- **Proxy:** Compose checks a listener inside its container (`127.0.0.1:8081/healthz`),
+  which answers while Caddy runs with its configuration; it says nothing about
+  certificates or the services behind it.
+
+Through the proxy, the chat domain sends `/api/`, `/ws`, `/healthz` and `/readyz` to the
+chat server, so `https://<chat-domain>/readyz` answers with the server's checks (JSON, or
+a problem with `503`). With several chat servers (`--scale server=N`) it reaches one of
+them; check a given one from inside the stack, e.g.
+`docker compose -f prod.yml --env-file .env.prod exec proxy wget -qO- http://server:8180/readyz`.
+Cenacle ID's `https://<id-domain>/readyz` reaches Cenacle ID.
 
 Nothing is sent anywhere unless you configure it; there is no telemetry to the project.
 Traces and the access log record request paths with the tokens of webhook, workflow-hook,
@@ -61,9 +80,32 @@ Settings in `.env.prod`: `CENACLE_TRACE_SAMPLE_RATIO` (share of requests traced,
 Every component's usage reporting and update checks are off. Alloy reads the Docker API
 through the read-only socket to collect logs of this Compose project only.
 
-Main metrics: `cenacle_http_request_duration_seconds` (by route), `cenacle_websocket_connections`,
-`cenacle_messages_sent_total`, `cenacle_file_uploads_total`, `cenacle_event_deliveries_total`,
-`cenacle_db_pool_*`, `cenacle_idp_oidc_events_total`, and the Go and Node.js runtime metrics.
+Metrics of the chat server (`/metrics` on `CENACLE_METRICS_ADDR`):
+
+| Metric                                  | Type      | Labels                    | Meaning                                                            |
+| --------------------------------------- | --------- | ------------------------- | ------------------------------------------------------------------ |
+| `cenacle_http_request_duration_seconds` | histogram | `method`, `route`, `code` | duration of HTTP requests, by route pattern (never the raw path)   |
+| `cenacle_websocket_connections`         | gauge     |                           | open WebSocket connections on this instance                        |
+| `cenacle_messages_sent_total`           | counter   |                           | messages stored (people, bots, webhooks, scheduled)                |
+| `cenacle_file_uploads_total`            | counter   | `result`                  | completed uploads: `ready` or `blocked` (by the virus scanner)     |
+| `cenacle_file_upload_bytes_total`       | counter   |                           | bytes of uploads that became ready                                 |
+| `cenacle_event_deliveries_total`        | counter   | `result`                  | attempts to deliver events to bots: `succeeded`, `retry`, `failed` |
+| `cenacle_db_pool_acquired_connections`  | gauge     |                           | database connections in use                                        |
+| `cenacle_db_pool_idle_connections`      | gauge     |                           | idle database connections                                          |
+| `cenacle_db_pool_max_connections`       | gauge     |                           | largest pool size                                                  |
+| `cenacle_db_pool_empty_acquire_total`   | counter   |                           | connection requests that had to wait for a free connection         |
+| `go_*`, `process_*`                     |           |                           | Go runtime and process (CPU, memory, open files)                   |
+
+Metrics of Cenacle ID (`/metrics` on `IDP_METRICS_PORT`):
+
+| Metric                                          | Type      | Labels                    | Meaning                                                                          |
+| ----------------------------------------------- | --------- | ------------------------- | -------------------------------------------------------------------------------- |
+| `cenacle_idp_http_request_duration_seconds`     | histogram | `method`, `route`, `code` | duration of HTTP requests, by route pattern                                      |
+| `cenacle_idp_oidc_events_total`                 | counter   | `event`, `result`         | OIDC steps: `event` is `authorization` or `grant`, `result` `success` or `error` |
+| `cenacle_idp_db_pool_connections`               | gauge     | `state`                   | database connections: `total`, `idle`, `waiting` (requests waiting for one)      |
+| `cenacle_idp_process_*`, `cenacle_idp_nodejs_*` |           |                           | Node.js runtime and process                                                      |
+
+Federation deliveries, background jobs and Valkey have no metrics in either server.
 
 ## Status and support bundles
 
@@ -79,16 +121,48 @@ Read it before sharing it.
 
 ## Offline (air-gapped) installs
 
+Both machines need Docker's **containerd image store**, the default of new installations
+of Docker Engine 29 and later (`docker info` shows `driver-type
+io.containerd.snapshotter.v1`). Only it keeps the digests that `prod.yml` pins the
+third-party images to when they are saved and loaded; with the classic store, Compose
+cannot find `name:tag@sha256:…` without a registry. On an older or upgraded engine, turn it
+on in `/etc/docker/daemon.json` with `{"features": {"containerd-snapshotter": true}}` and
+restart Docker. Images and containers made with the classic store are not visible while
+it is on (they stay on disk), so switch before anything else runs on the host.
+`bundle.sh` and `load.sh` stop with a message on the classic store.
+
 On a machine with internet access:
 
 ```sh
-deploy/airgap/bundle.sh [--observability] [--clamav] cenacle-airgap
+deploy/airgap/bundle.sh [--observability] [--clamav] [--backup] cenacle-airgap
 ```
 
 It pulls and builds every image of the stack and writes `images.tar.gz`, the list of
-images, checksums and `load.sh`. Copy the directory and the repository (or at least
-`deploy/compose`) to the offline host, run `./load.sh`, then install as usual. ClamAV still
-needs virus signatures: point it at a local mirror.
+images (`images.txt`), `load.sh`, a `secrets/` directory and checksums. `--backup` adds
+the WAL-G image of `backup.yml` (`cenacle-postgres-walg:<version>`), which is built from
+sources on the internet and so cannot be built offline. `secrets/` holds an empty file for
+every secret and env file the chosen compose files read (never this machine's secrets).
+The bundle needs access to the image registry where it is made (`ghcr.io/cenacle-tr`,
+public, no sign-in).
+
+Copy the directory and the repository (or at least `deploy/compose`) to the offline host:
+
+1. Run `./load.sh` in the bundle. It checks the checksums, loads the images and gives the
+   digest-pinned ones (PostgreSQL, Valkey, Garage, ClamAV, the observability stack) the
+   names Compose looks for, then stops with an error if any image of `images.txt` is still
+   missing.
+2. Copy the empty secret files next to the compose files without replacing existing ones:
+   `cp -rn cenacle-airgap/secrets deploy/compose/`. Run `./gen-secrets.sh` there to fill
+   the passwords and keys (it fills empty files and keeps those with content), or write
+   them in yourself. `smtp_password`, `ai_api_key` and `azure_key` stay empty unless used;
+   with `--backup`, fill `secrets/walg.env` from `walg.env.example` (the backup bucket must
+   be reachable from the host).
+3. Install as usual. With `backup.yml`, start without `--build`: the WAL-G image is
+   already loaded.
+
+Without `--backup`, WAL-G backups cannot be set up offline; use the logical dumps of the
+[backup guide](../backup/README.md) there. ClamAV signatures: see the
+[installation guide](../install/README.md#files) (copy them in or use a local mirror).
 
 ## Performance
 

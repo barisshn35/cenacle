@@ -12,7 +12,7 @@ release is supported.
 **Please do not open public issues for security problems.**
 
 Report vulnerabilities privately through GitHub's
-[private vulnerability reporting](https://github.com/barisshn35/cenacle/security/advisories/new).
+[private vulnerability reporting](https://github.com/Cenacle-TR/cenacle/security/advisories/new).
 Include:
 
 - affected component (`server`, `idp`, `web`, deployment files) and version or commit,

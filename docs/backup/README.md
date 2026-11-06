@@ -61,6 +61,58 @@ docker compose -f prod.yml --env-file .env.prod exec -T postgres \
   pg_restore -U postgres --clean --if-exists -d cenacle_idp < backup-idp-<ts>.dump
 ```
 
+### Every day, kept, and off this machine
+
+`deploy/compose/backup-daily.sh` makes the dumps above every day, with the secrets and
+settings, into one folder per day under `CENACLE_BACKUP_DIR` (default
+`/var/backups/cenacle`, readable by root only). It keeps the last **7 days** and, of the
+Sundays, the last **4 weeks** (`daily/` and `weekly/`), checks each folder with a
+`SHA256SUMS` file, and copies the whole set off the machine with `rsync` to
+`CENACLE_BACKUP_REMOTE` (for example `backup@vault:/srv/cenacle/`; without it the script
+says the backups stay on this machine). A failure ends the script with an error, so cron
+mails it and systemd marks the run failed. The copy is as secret as the original: send it
+to a host that encrypts at rest, or over an encrypted target such as an rclone `crypt`
+remote mounted at that path.
+
+With cron (as root, every day at 02:30):
+
+```cron
+30 2 * * * CENACLE_BACKUP_REMOTE=backup@vault:/srv/cenacle/ /opt/cenacle/deploy/compose/backup-daily.sh
+```
+
+Or with a systemd timer, `/etc/systemd/system/cenacle-backup.service`:
+
+```ini
+[Unit]
+Description=Cenacle daily backup
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+Environment=CENACLE_BACKUP_REMOTE=backup@vault:/srv/cenacle/
+ExecStart=/opt/cenacle/deploy/compose/backup-daily.sh
+```
+
+and `/etc/systemd/system/cenacle-backup.timer`:
+
+```ini
+[Unit]
+Description=Cenacle daily backup
+
+[Timer]
+OnCalendar=*-*-* 02:30
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target
+```
+
+then `systemctl daemon-reload && systemctl enable --now cenacle-backup.timer`, and
+`systemctl list-timers cenacle-backup.timer` shows the next run. Restore a day's folder
+as above (`cenacle_chat.dump`, `cenacle_idp.dump`, `settings.tgz`); try it now and then.
+
 ## Larger installations: continuous archiving (WAL-G)
 
 `deploy/compose/backup.yml` adds point-in-time recovery with WAL-G (Apache-2.0): PostgreSQL
@@ -75,6 +127,10 @@ cp walg.env.example secrets/walg.env && chmod 600 secrets/walg.env   # bucket an
 docker compose -f prod.yml -f backup.yml --env-file .env.prod up -d --build
 docker compose -f prod.yml -f backup.yml --env-file .env.prod logs walg-backup
 ```
+
+`--build` fetches WAL-G from the internet. On an offline host, load the image from a bundle
+made with `bundle.sh --backup` and start without `--build`
+([offline installs](../operations/README.md#offline-air-gapped-installs)).
 
 With the STIG profile as well, add `stig-backup.yml` last:
 `-f prod.yml -f backup.yml -f stig.yml -f stig-backup.yml`. `stig.yml` and `backup.yml`

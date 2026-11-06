@@ -1,5 +1,16 @@
 # Upgrading Cenacle
 
+## Calls (0.99.5)
+
+Migration 00064 adds the call tables and workspace call settings. Existing
+installations and every workspace stay without calls until they are turned on
+(`install.sh --calls`, `calls.enabled` in Helm, then Call settings in each
+workspace). The media service is one more image, `cenacle-media`, of the same
+version. Its two key pairs (admission and callbacks) are separate and are not
+rotated automatically. Before a rollback, turn calls off and let active calls end;
+do not run migration 00064 down, which deletes call records and settings. See
+[calls](../install/calls.md).
+
 Cenacle follows [Semantic Versioning](https://semver.org/). Every release is a git tag
 (`vX.Y.Z`) with notes in [CHANGELOG.md](../../CHANGELOG.md). Until 1.0, minor releases may
 contain breaking changes; they are always listed under "Upgrade notes".
@@ -28,10 +39,15 @@ checkout v<version>` in your clone). Keep your own `.env.prod`, `secrets/` and `
 6. `docker compose -f prod.yml --env-file .env.prod pull`
 7. `docker compose -f prod.yml --env-file .env.prod up -d --remove-orphans` (migrations run
    first; see the release notes for long ones)
-8. Check `docker compose ps` (all healthy) and `https://<chat-domain>/readyz` from the host.
+8. Check `docker compose ps`: all services, the proxy too, are healthy.
+   `https://<chat-domain>/readyz` answers from the chat server (with several servers, from
+   one of them; check a given one with
+   `docker compose -f prod.yml --env-file .env.prod exec proxy wget -qO- http://server:8180/readyz`).
 
-Air-gapped hosts: `docker save` the images on a connected machine, copy them over and
-`docker load` before step 5.
+Air-gapped hosts: make a bundle with `deploy/airgap/bundle.sh` (add `--backup` with
+`backup.yml`) on a connected machine, copy it over and run its `load.sh` before step 5. Both
+machines need Docker's containerd image store (see offline installs in
+[operations](../operations/README.md)).
 
 ## Rolling back
 
@@ -64,6 +80,95 @@ database with three million messages and a million mentions upgraded in 67 secon
 them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ## Version notes
+
+### Unreleased
+
+- Helm: `networkPolicy.ingressNamespaceSelector` has no default any more (it named the
+  ingress-nginx namespace). With `networkPolicy.enabled`, set it to your controller's
+  namespace, or the chart stops with a message (see
+  [Kubernetes](../install/kubernetes.md)).
+- New, optional: `CENACLE_AUDIT_RETENTION`, `CENACLE_AI_REQUEST_RETENTION` and
+  `CENACLE_LINK_PREVIEW_RETENTION` (Helm: `server.auditRetention`, `aiRequestRetention`,
+  `linkPreviewRetention`). Unset or `none` keeps everything, as before; no migration.
+- Cenacle ID links your privacy policy at the foot of its pages: Compose and Helm pass
+  `CENACLE_PRIVACY_URL` as `IDP_PRIVACY_URL` unless you set that apart. The desktop app
+  shows the policy on its pairing page for a server it has not used before.
+- Cenacle ID runs on Node.js 26 LTS. Nothing to do with the published images. If you
+  build from source, use Node.js 26 (`.nvmrc`); `pnpm install` warns on Node.js 24.
+- Helm: the Ingress sends `/healthz` and `/readyz` (and paths below them) of the chat domain
+  to the chat server, no longer to the web container. A monitor that read the web
+  container's `/readyz` now gets the server's answer: JSON, and 503 when a check fails. When
+  no server pod is ready, the ingress controller answers instead (Traefik: 503 "no available
+  server"; ingress-nginx: its own 503 page).
+- The desktop app's files are on the release's page on GitHub Releases
+  (`docs/install/desktop.md`, Offering it from your server).
+- `install.sh` (new) is for new installations; an existing one upgrades as before
+  ([Standard upgrade](#standard-upgrade-compose)). Run on an existing installation, it
+  keeps `.env.prod` and the secrets and only starts what is not running.
+- Chat migration `00059` (quick, with a Down migration): it replaces the search function
+  `cenacle_search_query` so that a word with a hyphen or an apostrophe is found. The search
+  indexes and the stored messages do not change, so nothing is rebuilt.
+- Chat migration `00060` (with a Down migration) gives PostgreSQL statistics on the words of
+  messages and file texts (`CREATE STATISTICS`, then `ANALYZE` of both tables) and turns off
+  the pending list of the message search index (`fastupdate = off`). Nothing is rebuilt; the
+  time is the two `ANALYZE`s. It runs outside a transaction, and every step can run again.
+  Measured on 2026-11-03 (PostgreSQL 18.6, 2,000,000 messages and 200,000 files with text,
+  50 new messages a second during the migration):
+  - 12.4–13.3 seconds; no message waited longer than 4 ms.
+  - Changing the index has to wait for the queries that use it. While a slow search of the
+    old version was running (40 s), the migration waited until it ended (38 s in all), but
+    it waits at most 200 ms at a time and then lets new messages through: none waited longer
+    than 201 ms. (Without that, they waited 27 seconds.) After five minutes of waiting it
+    stops with an error; run it again.
+  - The Down migration took 10 ms.
+  - Afterwards writing a message takes a little longer, as new messages go into the search
+    index at once (1.72 ms instead of 1.55 ms on that database).
+- Chat migration `00061` (quick, with a Down migration) replaces the function
+  `cenacle_search_vector` with the same one plus its cost (`COST 10000`) and a
+  `SET search_path`, which keeps PostgreSQL from copying it into queries. Nothing is
+  rebuilt. Measured on 2026-11-04 (PostgreSQL 18.6, 2,000,000 messages and 200,000 files of
+  80 words): 7.8 ms; it takes no lock on a table (only a share lock on the schema), did not
+  wait for a search using the function that was still running, and messages written during
+  it took 9–14 ms. The Down migration puts the old function back.
+- Searches stop after 10 seconds with the code `search_timeout` (HTTP 503). Clients of the
+  API that retry every 503 should not retry this one.
+- Chat migration `00062` (quick, with a Down migration) indexes the columns that point at a
+  picture (profile pictures, workspace icons, link previews, emoji, stickers) and adds the
+  uploaded fonts and sounds to what erasing a person removes. Chat migration `00063` then
+  deletes the pictures nothing shows any more (older than an hour), such as those erased
+  people left; its Down does nothing (the pictures are gone). Measured on 2026-11-04
+  (PostgreSQL 18.6, 433,000 pictures, 200,000 people, 400,000 link previews, 20,000 pictures
+  without a use): `00062` 0.28 s, `00063` 6.0 s (about 0.3 ms for each picture it deletes);
+  people's profile changes and new link previews written during them waited at most
+  245 ms. Without the indexes the clean-up had not finished after 5 minutes.
+- Erasing a person now also hides the messages a legal hold keeps (they stay for
+  eDiscovery and are purged once no hold keeps them) and sends `message.deleted` for every
+  message to open apps, subscribed bots and shared servers. Bots subscribed to
+  `message.deleted` get one delivery per message.
+- Cenacle ID migration `0014` (quick: a new column) records when a person's sessions were
+  ended, which the directory feed carries so the chat ends its own sessions made before
+  then. Cenacle ID migration `0015_deleted_accounts` (quick; a new, empty table) keeps the
+  id and time of accounts an administrator deletes, so the directory feed reports them to
+  the chat. Rolling back runs their Down, which drops the column and the table: accounts
+  deleted since then are no longer reported, so deactivate those people in the chat by hand
+  if the chat had not read the feed yet.
+- **Bots:** the SDKs no longer have `EditMessage`/`DeleteMessage` (Go) or
+  `edit_message`/`delete_message` (Python). These calls never worked with a bot token (the
+  server answers `403 bot_not_allowed`), so no running bot loses a working feature, but bots
+  that reference them no longer build (Go) or fail with `AttributeError` (Python). Remove
+  the calls; to change a card the bot posted, answer an interaction with `update` instead.
+- `prod.yml` and the proxy image go together: use the `prod.yml` of the release (it sets the
+  proxy's command and health check). `ACME_EMAIL` may now be empty with
+  `CENACLE_TLS_MODE=internal` or `files`. Monitors that probed `https://<chat-domain>/healthz`
+  or `/readyz` now get the chat server's answer (JSON; `/readyz` is `503` with a problem when
+  a check fails) instead of the web container's.
+- Offline (air-gapped) installs: make the bundle with `deploy/airgap/bundle.sh` (add
+  `--backup` with `backup.yml`) and run its `load.sh` before starting; both machines need
+  Docker's containerd image store ([offline installs](../operations/README.md)).
+- Desktop app: nothing to do. It now comes with a Turkish dictionary; at the first start it
+  replaces the Turkish one an older version downloaded from Google (`tr-TR-4-0.bdic` in its
+  `Dictionaries` folder). It downloads nothing. On a system whose first language is not
+  English or Turkish it no longer checks spelling.
 
 ### 0.99.4
 
@@ -449,9 +554,8 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   `up`: it keeps every secret and adds the empty `secrets/smtp_password` and
   `secrets/ai_api_key` that `prod.yml` now mounts (compose stops with "secret file not
   found" otherwise).
-- Images now come from `git.calaixo.com:5050/calaxio/cenacle`: set
-  `CENACLE_IMAGE_PREFIX=git.calaixo.com:5050/calaxio/cenacle/cenacle-` in `.env.prod` (or
-  remove the line). The proxy image is pulled as well; `up --build` still builds it.
+- Images now come from the project's internal registry: set `CENACLE_IMAGE_PREFIX` to its
+  `cenacle-` prefix in `.env.prod` (or remove the line). The proxy image is pulled as well; `up --build` still builds it.
 - `CENACLE_S3_ENDPOINT` set but empty in `.env.prod` now turns files off; remove the line to
   keep the bundled Garage.
 

@@ -42,6 +42,20 @@ are Markdown; `<@user-id>` mentions a member. Up to five cards can go with a mes
 Colors are `neutral`, `info`, `success`, `warning` and `danger`; say the meaning in the text
 too.
 
+A bot token reaches only these operations; anything else answers `403` with the code
+`bot_not_allowed`:
+
+- `messages:read`: list its channels (`GET /api/channels`), read a channel's messages and
+  files, download a file or its thumbnail;
+- `messages:write`: send messages, add and remove reactions, upload files (announce,
+  complete) and delete an upload not yet sent.
+
+Bots cannot edit or delete messages, their own included, whatever role the bot account
+holds in the workspace or channel: `PATCH` and `DELETE /api/channels/<id>/messages/<id>`
+answer `bot_not_allowed`, and the SDKs have no call for them. To change a card the bot
+posted, answer an interaction with `update` (see
+[Interactive messages](#interactive-messages)).
+
 Bots, webhooks, commands and workflows cannot write in channels encrypted end to end
 (`encrypted_channel`): only their members' apps hold the key.
 
@@ -241,14 +255,15 @@ command or subscription address from being used to reach internal services.
 
 People type `/` in the composer to see the commands of the workspace. Built in:
 
-| Command   | What it does                                                                            |
-| --------- | --------------------------------------------------------------------------------------- |
-| `/remind` | `/remind me in 10m stand up`, `at 15:30 …`, `tomorrow …`, `10 dk sonra …`, `yarın 9:00` |
-| `/join`   | `/join ops`: join a public channel                                                      |
-| `/leave`  | leave the current channel                                                               |
-| `/topic`  | set the channel topic (its managers)                                                    |
-| `/me`     | `/me is deploying` posts _is deploying_                                                 |
-| `/shrug`  | adds ¯\\\_(ツ)\_/¯                                                                      |
+| Command   | What it does                                                                                             |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| `/remind` | `/remind me in 10m stand up`, `at 15:30 …`, `tomorrow …`, `10 dk sonra …`, `yarın 9:00`                  |
+| `/join`   | `/join ops`: join a public channel                                                                       |
+| `/leave`  | leave the current channel                                                                                |
+| `/topic`  | set the channel topic (its managers)                                                                     |
+| `/me`     | `/me is deploying` posts _is deploying_                                                                  |
+| `/shrug`  | adds ¯\\\_(ツ)\_/¯                                                                                       |
+| `/feed`   | `/feed subscribe <address>`, `/feed unsubscribe <address>` or `/feed list`: see [Feeds](#feeds-rss-atom) |
 
 Reminders come from the **Cenacle** bot in a direct conversation at the time asked, in
 the time zone of the person's browser. Scheduled messages and reminders are listed (and

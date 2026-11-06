@@ -15,11 +15,13 @@ Cenacle is licensed under the GNU Affero General Public License v3.0 (`AGPL-3.0-
 applications and bots can embed it freely. New files carry the same SPDX header as the
 files around them.
 
-Before your first merge request is accepted, sign the [CLA](CLA.md): add a line with
+Before your first pull request is accepted, sign the [CLA](CLA.md): add a line with
 your commit e-mail to [`cla/signatures.txt`](cla/signatures.txt) in a signed-off commit.
 You keep the copyright in your work; the CLA lets the project distribute it under its
-open-source licenses and other terms. CI checks every commit of a merge request
-(`ci/check-cla.sh`). The names and logo are covered by the [trademark policy](TRADEMARKS.md).
+open-source licenses and other terms. CI checks every commit of a pull request
+(`ci/check-cla.sh`): it is signed off with the commit author's own e-mail address, and
+that address is in the list. The names and logo are covered by the
+[trademark policy](TRADEMARKS.md).
 
 ## Developer Certificate of Origin (DCO)
 
@@ -43,10 +45,10 @@ Every commit must build and pass the tests.
 
 ## Getting started
 
-Requirements: Go 1.26, Node.js 24 (see `.nvmrc`), pnpm via Corepack, Docker with Compose v2.
+Requirements: Go 1.26, Node.js 26 LTS (see `.nvmrc`), pnpm (`npm install -g pnpm`; it runs the version `package.json` names), Docker with Compose v2.
 
 ```sh
-corepack enable
+npm install -g pnpm
 pnpm install
 make tools          # pinned sqlc, oapi-codegen, golangci-lint, go-licenses, govulncheck, helm
 cp .env.example .env

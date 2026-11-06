@@ -1,6 +1,6 @@
 # Continuous integration
 
-The pipeline is `.gitlab-ci.yml` (ADR 0022): lint, tests (Go, Node.js 24 and 26,
+The pipeline is `.gitlab-ci.yml` (ADR 0022): lint, tests (Go, Node.js 26,
 Playwright end-to-end suites), security scans, license checks and images. It needs a
 GitLab runner with the tag `cenacle` set up as below.
 
@@ -113,7 +113,7 @@ runner's, so:
 - Otherwise, let no one below Maintainer run pipelines in this project: only maintainers are
   members who can push branches or open merge requests here, and contributors' merge
   requests come from forks, whose pipelines run in the fork.
-- Keep `COSIGN_KEY`, `COSIGN_PASSWORD`, `GHCR_TOKEN` and the GPG variables **protected**
+- Keep `COSIGN_KEY`, `COSIGN_PASSWORD`, `GHCR_TOKEN`, `GITHUB_RELEASE_TOKEN`, `GITHUB_MIRROR_TOKEN` and the GPG variables **protected**
   (and masked), so no other pipeline reads them.
 
 ## Housekeeping
@@ -130,12 +130,54 @@ The caches of 0.99.1 and earlier (`/var/lib/cenacle-ci/cache/{go,golangci,ms-pla
 are no longer used and can be removed, as can the old shared builder
 (`docker exec cenacle-ci-docker-1 docker -H unix:///run/ci-docker/docker.sock buildx rm cenacle`).
 
+## Public publishing lock
+
+Nothing goes to GitHub or ghcr.io while `ci/public-publishing` says `locked`; the pipeline
+then publishes only to this GitLab project (its container and package registries). It stays
+locked until the history has been rewritten and pushed to GitHub for 1.0, so that no commit
+of the old history reaches a public repository. Every step that writes there asks
+`ci/public-gate.sh` first:
+
+| Job              | On                            | Writes, when open                                                                                        |
+| ---------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `images`         | `v*` tags                     | the images (and their signatures, SBOM attestations) to `PUBLIC_IMAGES`; the SBOMs to the GitHub release |
+| `desktop`        | `v*` tags                     | the release files to the GitHub release (draft)                                                          |
+| `desktop-sign`   | `v*` tags                     | `SHA256SUMS.sigstore.json` to the GitHub release (draft)                                                 |
+| `github-release` | `v*` tags                     | publishes the GitHub release                                                                             |
+| `mirror`         | the default branch, `v*` tags | the seven read-only repositories (below)                                                                 |
+
+Pushes to the default branch write nothing else outside GitLab. While locked each of them
+logs `public publishing is locked` and passes, with the tokens set or not; the lock is a
+file in the repository, not a CI/CD variable, so no setting opens it on the old history.
+It is opened by a reviewed commit that changes the word to `open`, made on the rewritten
+history after it is on GitHub (`ci/mirror.test.sh` and `ci/github-release.test.mjs` test
+both states; `make test-ci`).
+
+## Mirror repositories
+
+The job `mirror` (`ci/mirror.sh`) copies each folder in `ci/mirrors.txt` (`desktop/`,
+`mobile/`, `deploy/compose`, `deploy/helm`, `sdk/go`, `sdk/python`, `docs/`) with its own
+history (`git subtree split`) to its read-only repository next to the public one
+(`cenacle-desktop`, `cenacle-mobile`, `cenacle-docker`, `cenacle-helm`, `cenacle-sdk-go`,
+`cenacle-sdk-python`, `cenacle-docs`): the default branch to `main`, `v*` tags as tags. It
+pushes only fast-forward, never with force, and needs the whole history (`GIT_DEPTH` 0).
+The main repository stays the source: installing, issues, pull requests and the CLA check
+are there, and the Go SDK's module path stays `github.com/Cenacle-TR/cenacle/sdk/go`.
+`ci/mirror.sh --dry-run` shows what would be pushed.
+
+It needs the protected, masked CI/CD variable `GITHUB_MIRROR_TOKEN`: a fine-grained GitHub
+token for the seven repositories only, with "Contents: Read and write".
+
 ## Publishing images
 
 A `v*` tag publishes `cenacle-{server,idp,web,proxy}` (amd64 and arm64) to the project's
-container registry. Set the masked CI/CD variable `GHCR_TOKEN` (a GitHub token with
-`write:packages`, and `GHCR_USER` if not the default) to publish them to GitHub's
-registry as well, which `deploy/compose/prod.yml` uses by default.
+container registry. With public publishing open (above), set the masked CI/CD variable
+`GHCR_TOKEN` (a GitHub token with `write:packages`; `GHCR_USER` when the token is not the
+account's own) to publish them for everyone as well, to `PUBLIC_IMAGES` in `.gitlab-ci.yml` (`ghcr.io/cenacle-tr`), which the
+installation files use by default (`CENACLE_IMAGE_PREFIX` in `deploy/compose/prod.yml`,
+`image.registry` in the Helm chart). The images' build provenance names `PUBLIC_SOURCE`
+(the public repository) as their source, with the release's commit; the release job sets
+the clone's remote to it before building.
 
 The images are built once into an OCI archive and copied to each registry with skopeo,
 which uploads every platform manifest itself. Pushing straight from buildkit failed on
@@ -159,11 +201,38 @@ A release bumps the version in every one of these files, in one commit
 - `CHANGELOG.md` (the `[Unreleased]` section becomes the release) and, when operators must
   act, `docs/upgrade/README.md`
 
+Then tag the release commit with `scripts/release-tag.sh vX.Y.Z`. It makes two annotated tags
+on it: `vX.Y.Z` and `sdk/go/vX.Y.Z`. The Go SDK is a module of its own (`sdk/go`), and Go
+finds a version of a module in a subdirectory only by a tag with the directory as prefix:
+without it `go get github.com/Cenacle-TR/cenacle/sdk/go@vX.Y.Z` fails and `@latest` gets a
+pseudo-version. Push both tags at once to each remote:
+`git push --atomic <remote> vX.Y.Z sdk/go/vX.Y.Z`. The release pipeline fails at its first
+stage (job `sdk-tag`) when `sdk/go/vX.Y.Z` is missing or on another commit. Tags starting with
+`sdk/` start no pipeline.
+
+## GitHub Releases
+
+Each `v*` tag also publishes a release on the public repository's
+[GitHub Releases](https://github.com/Cenacle-TR/cenacle/releases) (`PUBLIC_SOURCE`), with
+`ci/github-release.mjs`: `images` uploads the SBOMs; `desktop` the installers and packages,
+the update files with their signatures (`latest*.yml`, `.sig`, `.blockmap`), `index.json`,
+the Group Policy templates, the server's `install.sh` with `cenacle-compose-<version>.tar.gz`
+(docs/install/README.md), `SHA256SUMS` and `SHA256SUMS.asc`; `desktop-sign`
+`SHA256SUMS.sigstore.json`. They upload to a draft, which nobody but the repository's
+maintainers sees. The job `github-release` publishes it only when the checksums are signed,
+the update files and SBOMs are there and every file `SHA256SUMS` lists is uploaded unchanged
+(GitHub's SHA-256 of each file); a published release is never changed again.
+
+It needs public publishing open (above) and the protected, masked CI/CD variable
+`GITHUB_RELEASE_TOKEN`: a fine-grained GitHub token for the one repository with the
+permission "Contents: Read and write". Without either the jobs say so and publish nothing on
+GitHub; the package registry still gets every file.
+
 ## Signing releases
 
 `ci/publish-image.sh` signs every published image with cosign and attaches a signed SPDX
 SBOM (syft) to each platform's image; the SBOMs also go to the package registry as
-`cenacle-sbom/<version>/`. The job `desktop-sign` signs the desktop app's `SHA256SUMS`:
+`cenacle-sbom/<version>/` and to the release on GitHub Releases. The job `desktop-sign` signs the desktop app's `SHA256SUMS`:
 the file the `desktop` job made, passed on as a job artifact with its digest, never one
 fetched by name from the package registry (anyone who can write packages can replace
 those); it refuses to sign when the registry serves a different file.
@@ -171,7 +240,7 @@ They need the protected CI/CD variables `COSIGN_KEY` (a file) and `COSIGN_PASSWO
 `v*` tags protected so their pipelines can read them. Set all of it up once with:
 
 ```sh
-GITLAB_URL=https://git.calaixo.com GITLAB_PROJECT=calaxio/cenacle \
+GITLAB_URL=https://<your GitLab> GITLAB_PROJECT=<group>/<project> \
 GITLAB_TOKEN=<a token with the api scope> ci/setup-signing.sh
 ```
 
@@ -198,6 +267,17 @@ openssl pkey -in desktop-update-key.pem -pubout
 ```
 
 Put the public key in `desktop/src/update-keys.ts` and the private key in
-`DESKTOP_UPDATE_KEY`, and keep it nowhere else. To replace a key, ship a release that has
-both the old and the new public key, sign the next ones with the new key, and drop the old
-key a release later. Losing the key means installed apps have to be updated by hand once.
+`DESKTOP_UPDATE_KEY`. Keep one encrypted backup of the private key offline and no other copy.
+To replace a key, ship a release that has both the old and the new public key, sign the next
+ones with the new key, and drop the old key a release later. Losing the key means installed
+apps have to be updated by hand once.
+
+To check that a backup belongs to the key built into the app, compare SHA-256 fingerprints
+of the public key (DER form). The first command reads the app's key, the second the backup
+(it asks for the backup's passphrase):
+
+```sh
+sed -n '/BEGIN PUBLIC KEY/,/END PUBLIC KEY/p' desktop/src/update-keys.ts | sed 's/^ *`//; s/`,$//' \
+  | openssl pkey -pubin -outform DER | openssl dgst -sha256
+openssl pkey -in desktop-update-key.pem -pubout -outform DER | openssl dgst -sha256
+```

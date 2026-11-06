@@ -5,19 +5,19 @@ To report a vulnerability, see [SECURITY.md](../../SECURITY.md).
 
 ## Threat model
 
-| Asset                               | Threat                                                                      | Protection                                                                                                                                                                                                                                     |
-| ----------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Accounts                            | Stolen passwords, phishing, session theft                                   | Cenacle ID: Argon2id, two-step verification, passkeys, sign-in rate limits; OIDC with PKCE (RFC 9700); opaque sessions stored hashed, `HttpOnly; Secure; SameSite=Lax` cookies, idle and absolute expiry, back-channel logout                  |
-| Conversations                       | People reading channels they are not in                                     | Every request checks workspace and channel membership on the server; private channels answer 404 to outsiders; tested for every API operation (below)                                                                                          |
-| Requests made with someone's cookie | Cross-site request forgery                                                  | `SameSite=Lax` and an origin check on every state-changing request with a session cookie                                                                                                                                                       |
-| The server's network                | Server-side request forgery through bots, workflows, previews, federation   | One egress client: public `https` only, private networks only when listed in `CENACLE_EGRESS_ALLOW`, no redirects, bounded answers                                                                                                             |
-| Uploaded files                      | Malware, scripts served from the app's origin, images that exhaust memory   | Optional ClamAV scan, size limits, files served with `Content-Disposition`, `nosniff` and a sandboxing CSP; images decoded within a memory budget (small files claiming huge images are refused)                                               |
-| The web app                         | Script injection                                                            | Markdown rendered without raw HTML and sanitized; strict CSP (`script-src 'self'`, no third-party origins); `frame-ancestors 'none'`                                                                                                           |
-| Integrations                        | Forged requests to bots, leaked tokens                                      | Requests to bots and other servers signed with HMAC-SHA256 and a timestamp; bot tokens, webhook addresses and invitation tokens stored hashed and shown once                                                                                   |
-| Encrypted channels                  | The server or its operators reading them                                    | Device keys (MLS, RFC 9420): every device has its own key, the server orders commits and stores envelopes it cannot read; devices are verified by fingerprint; channels from before 0.39 keep their shared passphrase (ADRs 0028, 0042)        |
-| Compliance data                     | Deletion of evidence, quiet exports                                         | Legal holds stop every kind of deletion; exports and holds are audited                                                                                                                                                                         |
-| The desktop app                     | Token theft by scripts, phishing for the password, code run through the app | Session token encrypted by the OS and added by the app, never given to a page; sign-in at Cenacle ID's page in an isolated window showing its address; sandboxed, context-isolated renderers; Electron fuses; no device permissions (ADR 0033) |
-| AI                                  | Conversations leaving the organization                                      | Off unless the operator runs a model and a workspace turns it on; only what the asker can read is sent (ADR 0029)                                                                                                                              |
+| Asset                               | Threat                                                                      | Protection                                                                                                                                                                                                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accounts                            | Stolen passwords, phishing, session theft                                   | Cenacle ID: Argon2id, two-step verification, passkeys, sign-in rate limits; OIDC with PKCE (RFC 9700); opaque sessions stored hashed, `HttpOnly; Secure; SameSite=Lax` cookies, optional idle and absolute expiry (off by default, below), back-channel logout |
+| Conversations                       | People reading channels they are not in                                     | Every request checks workspace and channel membership on the server; private channels answer 404 to outsiders; tested for every API operation (below)                                                                                                          |
+| Requests made with someone's cookie | Cross-site request forgery                                                  | `SameSite=Lax` and an origin check on every state-changing request with a session cookie                                                                                                                                                                       |
+| The server's network                | Server-side request forgery through bots, workflows, previews, federation   | One egress client: public `https` only, private networks only when listed in `CENACLE_EGRESS_ALLOW`, no redirects, bounded answers                                                                                                                             |
+| Uploaded files                      | Malware, scripts served from the app's origin, images that exhaust memory   | Optional ClamAV scan, size limits, files served with `Content-Disposition`, `nosniff` and a sandboxing CSP; images decoded within a memory budget (small files claiming huge images are refused)                                                               |
+| The web app                         | Script injection                                                            | Markdown rendered without raw HTML and sanitized; strict CSP (`script-src 'self'`, no third-party origins); `frame-ancestors 'none'`                                                                                                                           |
+| Integrations                        | Forged requests to bots, leaked tokens                                      | Requests to bots and other servers signed with HMAC-SHA256 and a timestamp; bot tokens, webhook addresses and invitation tokens stored hashed and shown once                                                                                                   |
+| Encrypted channels                  | The server or its operators reading them                                    | Device keys (MLS, RFC 9420): every device has its own key, the server orders commits and stores envelopes it cannot read; devices are verified by fingerprint; channels from before 0.39 keep their shared passphrase (ADRs 0028, 0042)                        |
+| Compliance data                     | Deletion of evidence, quiet exports                                         | Legal holds keep held messages and their files from every deletion except removing spillage ([compliance](../operations/compliance.md#legal-holds)); exports and holds are audited                                                                             |
+| The desktop app                     | Token theft by scripts, phishing for the password, code run through the app | Session token encrypted by the OS and added by the app, never given to a page; sign-in at Cenacle ID's page in an isolated window showing its address; sandboxed, context-isolated renderers; Electron fuses; no device permissions (ADR 0033)                 |
+| AI                                  | Conversations leaving the organization                                      | Off unless the operator runs a model and a workspace turns it on; only what the asker can read is sent (ADR 0029)                                                                                                                                              |
 
 ## Tested on every change (CI)
 
@@ -50,6 +50,11 @@ source and the build). Its notes are deliberate:
 - `OPEN_EXTERNAL_JS_CHECK`: only `mailto:` addresses leave the app.
 - `AUXCLICK_JS_CHECK`, `REMOTE_MODULE_JS_CHECK`: new windows go through the window-open
   handler; the remote module no longer exists in Electron.
+
+The app connects to the paired server only. Spell checking uses the dictionaries in the
+package; the address Electron fetches a missing dictionary from is a closed port on the
+computer (`desktop/src/spellcheck.ts`), so nothing goes to Google, also when a language has
+no dictionary.
 
 Fuses of the packaged app: `RunAsNode`, `EnableNodeOptionsEnvironmentVariable`,
 `EnableNodeCliInspectArguments` and `GrantFileProtocolExtraPrivileges` off;
@@ -121,7 +126,7 @@ so verifying needs only the public key and the registry — also without Interne
 
   ```sh
   cosign verify --key deploy/cosign.pub --insecure-ignore-tlog \
-    git.calaixo.com:5050/calaxio/cenacle/cenacle-server:0.31.0
+    ghcr.io/cenacle-tr/cenacle-server:1.0.0
   ```
 
   (`--insecure-ignore-tlog` only says there is no transparency log to check.)
@@ -131,16 +136,17 @@ so verifying needs only the public key and the registry — also without Interne
 
   ```sh
   cosign verify-attestation --key deploy/cosign.pub --insecure-ignore-tlog --type spdxjson \
-    git.calaixo.com:5050/calaxio/cenacle/cenacle-server@sha256:<digest of linux/amd64>
+    ghcr.io/cenacle-tr/cenacle-server@sha256:<digest of linux/amd64>
   ```
 
-  The same SBOMs are published with each release in the package registry as
-  `cenacle-sbom/<version>/cenacle-<image>-<version>-linux-<arch>.spdx.json`. The images
+  From 1.0.0 on, the same SBOMs are published with each release on
+  [GitHub Releases](https://github.com/Cenacle-TR/cenacle/releases) as
+  `cenacle-<image>-<version>-linux-<arch>.spdx.json`. The images
   also carry BuildKit's own SBOM and provenance attestations
   (`docker buildx imagetools inspect <image> --format '{{ json .SBOM }}'`).
 
 - **Desktop app:** `SHA256SUMS` lists the installers and packages of a release, and
-  `SHA256SUMS.sigstore.json` signs it:
+  `SHA256SUMS.sigstore.json` signs it (both on the release's GitHub Releases page):
 
   ```sh
   cosign verify-blob --key deploy/cosign.pub --insecure-ignore-tlog \
@@ -223,5 +229,19 @@ For FIPS 140-3 images see [fips.md](fips.md); for a deployment in line with DISA
   and then list only their networks.
 - Back up the databases, the object store and Cenacle ID's signing keys
   ([backup guide](../backup/README.md)).
-- Turn on two-step verification or passkeys for owners and admins.
+- Keep two-step verification required (the default in Cenacle ID's administration,
+  Sign-in); passkeys are off unless you allow them there.
+- Resetting someone's two-step verification in Cenacle ID ends their sessions there and,
+  within about a minute, their chat sessions on the web and desktop too (the chat reads it
+  from Cenacle ID's directory feed), so a lost or stolen device is signed out. Disabling or
+  deleting an account does the same. Starting to require two-step verification ends only
+  Cenacle ID sessions; to sign everyone out of the chat as well, use System console →
+  People, each person's sign-out button (_Sign … out everywhere_).
+- Decide how long sessions last. By default they last until people sign out:
+  `CENACLE_SESSION_IDLE_TIMEOUT` and `CENACLE_SESSION_MAX_AGE` are `none`. Set durations
+  such as `168h` and `720h` to end sessions after a time unused and at the latest after a
+  maximum age (the idle time may not be longer than the maximum). Instance administrators
+  can also set limits in System console → Security, Sessions (_End unused sessions after_,
+  _End sessions after_, and both again for guests; `0` is no limit). Where both are set, the
+  shorter limit applies.
 - Upgrade to every release: only the latest minor version gets security fixes.

@@ -15,7 +15,7 @@ encrypted files, with MLS (RFC 9420) for key exchange.
 1. **MLS in the browser with ts-mls** (MIT, TypeScript, one dependency `@hpke/core`; its
    noble provider needs `@noble/hashes`, `@noble/ciphers`, `@noble/curves`, all MIT).
    Cipher suite 1 (`MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519`, the one every MLS
-   implementation has). The desktop app runs the same code; mobile follows in v1.2.
+   implementation has). The desktop app runs the same code; mobile follows in 1.1.
 2. **A device is a browser profile or a desktop app install.** It makes an Ed25519 key,
    registers the public key, and uses the credential `<user id>:<device id>`. A credential
    is valid when the server lists that key for that device of that person; removed

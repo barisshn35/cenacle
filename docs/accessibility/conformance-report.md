@@ -1,5 +1,17 @@
 # Accessibility Conformance Report
 
+## Calls extension — source review only
+
+The new call interface has not undergone runtime accessibility evaluation in this
+editing environment. The earlier product assessment below must not be interpreted
+as verification of calls. Keyboard/focus, screen readers, device dialogs, reflow,
+contrast and touch targets require the operator's browser/device checks.
+
+**WCAG 1.2.4 Captions (Live): Does not support.** Calls have no live captions or
+transcription. This is an explicit product limitation. Speaking is also indicated
+by text, and device controls expose names/pressed states. Native desktop consent
+and source-menu accessibility still require platform verification.
+
 Cenacle 0.41.0, based on the VPAT® 2.5 Rev INT template (WCAG 2.2 and EN 301 549).
 
 |             |                                                                                                |
@@ -9,7 +21,7 @@ Cenacle 0.41.0, based on the VPAT® 2.5 Rev INT template (WCAG 2.2 and EN 301 54
 | Report date | 2026-10-25                                                                                     |
 | Contact     | The project's issue tracker (label `accessibility`); see [the statement](statement.md)         |
 | Standards   | WCAG 2.2 levels A and AA; EN 301 549 V3.2.1 (2021-03), chapters 4, 5, 9, 11, 12                |
-| Not covered | The mobile app (a preview until 1.2) and the project website                                   |
+| Not covered | The mobile app (a preview until 1.1) and the project website                                   |
 
 ## How it was evaluated
 
@@ -72,7 +84,7 @@ Terms: **Supports**, **Partially supports** (some parts do not meet the criterio
 
 | Criterion                                       | Level              | Remarks                                                                                                                                                                                  |
 | ----------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.2.4 Captions (live)                           | Not applicable     | No live media until voice and video in 1.1.                                                                                                                                              |
+| 1.2.4 Captions (live)                           | Not applicable     | No live media yet; voice and video calls come with 1.0.                                                                                                                                  |
 | 1.2.5 Audio description (prerecorded)           | Not applicable     | No prerecorded media in the product itself.                                                                                                                                              |
 | 1.3.4 Orientation                               | Supports           | Works in portrait and landscape.                                                                                                                                                         |
 | 1.3.5 Identify input purpose                    | Supports           | Sign-in fields carry `autocomplete` (username, current-password, one-time-code, name).                                                                                                   |

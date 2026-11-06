@@ -34,7 +34,7 @@ not be tested here, and why, is listed at the end.
   with `pg_restore --clean` as the backup guide says: everything back. Upgraded to 0.99 again
   and verified.
 - **Desktop packages:** the deb installed and the app started on Ubuntu 24.04 and Debian 12,
-  the rpm on Fedora 42; the Linux policy file paired the app with the organization's server.
+  the rpm on Fedora 42, each in a container on the test host (not on machines); the Linux policy file paired the app with the organization's server.
   The MSI (built with msitools) and the MSIX packages (checked by unpacking with Microsoft's
   validating parser) were built and inspected.
 
