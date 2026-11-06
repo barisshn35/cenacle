@@ -359,7 +359,16 @@ function WorkspaceSettingsDialog({
           {
             label: t('workspaces.groups.workspace'),
             items: [
-              { key: 'general', label: t('workspaces.sectionNames.general'), icon: SettingsIcon },
+              // A guest has nothing here but the description, when there is one.
+              ...(workspace.role !== 'guest' || workspace.description
+                ? [
+                    {
+                      key: 'general' as const,
+                      label: t('workspaces.sectionNames.general'),
+                      icon: SettingsIcon,
+                    },
+                  ]
+                : []),
               {
                 key: 'members',
                 label: t('workspaces.sectionNames.members'),
