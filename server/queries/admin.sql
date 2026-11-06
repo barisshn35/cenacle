@@ -21,15 +21,18 @@ SELECT push_contents, email_contents FROM instance_settings;
 UPDATE instance_settings SET push_contents = @push_contents, email_contents = @email_contents, updated_at = now();
 
 -- name: ActiveUserCount :one
--- ActiveUserCount counts the people seen in the last 30 days.
+-- ActiveUserCount counts the people seen in the last 30 days. last_seen_at is
+-- written when someone goes offline, so a sign-in counts too (online since).
 SELECT count(*)::bigint FROM users
-WHERE NOT is_bot AND deactivated_at IS NULL AND last_seen_at > now() - interval '30 days';
+WHERE NOT is_bot AND deactivated_at IS NULL
+  AND (last_seen_at > now() - interval '30 days' OR last_login_at > now() - interval '30 days');
 
 -- name: AdminListUsers :many
 -- AdminListUsers lists the installation's people by name, after a cursor,
 -- with what the system console shows about them.
 SELECT u.id, u.display_name, u.email, coalesce(u.username, '')::text AS username, u.is_admin,
-       coalesce(u.directory_role, '')::text AS directory_role, u.deactivated_at, u.last_seen_at, u.created_at,
+       coalesce(u.directory_role, '')::text AS directory_role, u.deactivated_at,
+       u.last_seen_at, u.last_login_at, u.created_at,
        (u.auth_service = 'erased') AS erased,
        (SELECT count(*) FROM workspace_members wm WHERE wm.user_id = u.id)::int AS workspaces,
        (SELECT count(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now())::int AS sessions

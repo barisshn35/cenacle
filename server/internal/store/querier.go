@@ -26,7 +26,8 @@ type Querier interface {
 	// connections that are active or paused (a paused connection's events wait, in
 	// order, until it resumes, so an edit or deletion made meanwhile is not lost).
 	ActiveSharesOfChannel(ctx context.Context, channelID pgtype.UUID) ([]ActiveSharesOfChannelRow, error)
-	// ActiveUserCount counts the people seen in the last 30 days.
+	// ActiveUserCount counts the people seen in the last 30 days. last_seen_at is
+	// written when someone goes offline, so a sign-in counts too (online since).
 	ActiveUserCount(ctx context.Context) (int64, error)
 	// AddAllUsers makes every member of the channel's workspace a member of it
 	// (guests are added where they work, like bots).

@@ -14,10 +14,12 @@ import (
 
 const activeUserCount = `-- name: ActiveUserCount :one
 SELECT count(*)::bigint FROM users
-WHERE NOT is_bot AND deactivated_at IS NULL AND last_seen_at > now() - interval '30 days'
+WHERE NOT is_bot AND deactivated_at IS NULL
+  AND (last_seen_at > now() - interval '30 days' OR last_login_at > now() - interval '30 days')
 `
 
-// ActiveUserCount counts the people seen in the last 30 days.
+// ActiveUserCount counts the people seen in the last 30 days. last_seen_at is
+// written when someone goes offline, so a sign-in counts too (online since).
 func (q *Queries) ActiveUserCount(ctx context.Context) (int64, error) {
 	row := q.db.QueryRow(ctx, activeUserCount)
 	var column_1 int64
@@ -73,7 +75,8 @@ func (q *Queries) AdminListBots(ctx context.Context) ([]AdminListBotsRow, error)
 
 const adminListUsers = `-- name: AdminListUsers :many
 SELECT u.id, u.display_name, u.email, coalesce(u.username, '')::text AS username, u.is_admin,
-       coalesce(u.directory_role, '')::text AS directory_role, u.deactivated_at, u.last_seen_at, u.created_at,
+       coalesce(u.directory_role, '')::text AS directory_role, u.deactivated_at,
+       u.last_seen_at, u.last_login_at, u.created_at,
        (u.auth_service = 'erased') AS erased,
        (SELECT count(*) FROM workspace_members wm WHERE wm.user_id = u.id)::int AS workspaces,
        (SELECT count(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now())::int AS sessions
@@ -102,6 +105,7 @@ type AdminListUsersRow struct {
 	DirectoryRole string             `json:"directory_role"`
 	DeactivatedAt pgtype.Timestamptz `json:"deactivated_at"`
 	LastSeenAt    pgtype.Timestamptz `json:"last_seen_at"`
+	LastLoginAt   pgtype.Timestamptz `json:"last_login_at"`
 	CreatedAt     time.Time          `json:"created_at"`
 	Erased        bool               `json:"erased"`
 	Workspaces    int32              `json:"workspaces"`
@@ -128,6 +132,7 @@ func (q *Queries) AdminListUsers(ctx context.Context, arg AdminListUsersParams) 
 			&i.DirectoryRole,
 			&i.DeactivatedAt,
 			&i.LastSeenAt,
+			&i.LastLoginAt,
 			&i.CreatedAt,
 			&i.Erased,
 			&i.Workspaces,

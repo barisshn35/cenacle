@@ -30,6 +30,10 @@ func TestSystemConsole(t *testing.T) {
 	if overview.Counts.Users < 53 || overview.Counts.Workspaces < 1 {
 		t.Errorf("overview = %+v", overview.Counts)
 	}
+	// Signed in just now and never offline yet: active all the same.
+	if overview.Counts.ActiveUsers < 53 {
+		t.Errorf("active in 30 days = %d, want everyone who signed in", overview.Counts.ActiveUsers)
+	}
 	for _, c := range overview.Config {
 		if c.Name == "oidc_client_secret" && c.Value != "set" && c.Value != "" {
 			t.Errorf("a secret shows: %s", c.Value)
@@ -47,6 +51,9 @@ func TestSystemConsole(t *testing.T) {
 	s.call(http.MethodGet, "/api/admin/users", admin, nil, &page)
 	if len(page.Users) != 50 || page.Next == nil {
 		t.Fatalf("first page = %d %v", len(page.Users), page.Next)
+	}
+	if page.Users[0].LastSeenAt == nil {
+		t.Errorf("last seen of someone who signed in is empty: %+v", page.Users[0])
 	}
 	var rest struct{ Users []api.AdminUser }
 	s.call(http.MethodGet, "/api/admin/users?after_name="+url.QueryEscape(page.Next.AfterName)+"&after_id="+page.Next.AfterID, admin, nil, &rest)

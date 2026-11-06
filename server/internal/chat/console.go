@@ -198,9 +198,14 @@ func (h *Handlers) AdminListUsers(w http.ResponseWriter, r *http.Request, params
 		} `json:"next,omitempty"`
 	}{Users: make([]api.AdminUser, 0, len(rows))}
 	for _, u := range rows {
+		// last_seen_at is written on going offline; a later sign-in is newer.
+		seen := u.LastSeenAt
+		if u.LastLoginAt.Valid && (!seen.Valid || u.LastLoginAt.Time.After(seen.Time)) {
+			seen = u.LastLoginAt
+		}
 		out.Users = append(out.Users, api.AdminUser{
 			Id: uuid(u.ID), DisplayName: u.DisplayName, Email: u.Email, Username: u.Username, IsAdmin: u.IsAdmin,
-			Guest: u.DirectoryRole == "guest", Deactivated: u.DeactivatedAt.Valid, LastSeenAt: timeOf(u.LastSeenAt),
+			Guest: u.DirectoryRole == "guest", Deactivated: u.DeactivatedAt.Valid, LastSeenAt: timeOf(seen),
 			Erased:    ptr(u.Erased),
 			CreatedAt: u.CreatedAt, Workspaces: int(u.Workspaces), Sessions: int(u.Sessions),
 		})
