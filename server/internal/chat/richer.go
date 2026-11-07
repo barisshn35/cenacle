@@ -40,7 +40,7 @@ type PresenceReader interface {
 var (
 	firstLinkRE = regexp.MustCompile(`(?i)\bhttps?://[^\s<>()\[\]"']+`)
 	// Mentions of many: @channel, @everyone, @here, @admins, @owners.
-	broadcastRE = regexp.MustCompile(`(?i)(?:^|[^\w@])@(channel|everyone|here|admins|owners)\b`)
+	broadcastRE = regexp.MustCompile(`(?i)(?:^|[^\w@])@(channel|everyone|all|kanal|herkes|here|burada|admins|owners)\b`)
 )
 
 // firstLink returns the first web address of a text, without trailing
@@ -72,9 +72,11 @@ func broadcasts(body string) []string {
 	}
 	for _, m := range broadcastRE.FindAllStringSubmatch(body, -1) {
 		switch strings.ToLower(m[1]) {
-		case "channel", "everyone":
+		// Everyone in the channel, in English and Turkish (@all is what many type).
+		case "channel", "everyone", "all", "kanal", "herkes":
 			add("channel")
-		case "here":
+		// The people online now.
+		case "here", "burada":
 			add("here")
 		case "admins":
 			add("role:admin")

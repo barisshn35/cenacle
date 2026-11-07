@@ -44,6 +44,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- `@all` notified no one although the help said it reaches everyone in a channel. It does
+  now, and so do the Turkish `@herkes` and `@kanal` (`@burada` for the people online); the
+  `@` suggestions offer them to those allowed to mention everyone.
 - Desktop notifications appeared only while the window was minimised in a browser, and
   never in the desktop app on Windows: a window behind others now counts as away, and the
   desktop app shows the system's own notification (a click opens the channel).

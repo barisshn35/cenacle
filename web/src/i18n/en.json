@@ -548,7 +548,9 @@
     "label": "People to mention",
     "active": "{{name}}, {{n}} of {{count}}",
     "unread_one": "{{count}} mention",
-    "unread_other": "{{count}} mentions"
+    "unread_other": "{{count}} mentions",
+    "everyone": "Everyone in this channel",
+    "here": "Everyone online now"
   },
   "bots": {
     "badge": "Bot",
@@ -2510,7 +2512,7 @@
       "invite_people": "Create, see and revoke invitation links.",
       "manage_categories": "Create categories and move channels between them.",
       "custom_emoji": "Upload emoji everyone here can use.",
-      "broadcast_mentions": "@channel, @here and @all notify everyone in a channel.",
+      "broadcast_mentions": "@all, @channel and @herkes notify everyone in a channel; @here and @burada those online.",
       "group_mentions": "Mentioning a group notifies its people.",
       "guest_links": "Channel managers let someone from outside join one channel for a while, with a password."
     }

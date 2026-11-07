@@ -217,6 +217,13 @@ func TestForwardAndBroadcastMentions(t *testing.T) {
 	if sent.Broadcast == nil || len(*sent.Broadcast) != 1 || (*sent.Broadcast)[0] != "channel" {
 		t.Errorf("broadcast = %v", sent.Broadcast)
 	}
+	// @all, and the Turkish words, mean the same.
+	for i, body := range []string{"@all deploy", "@herkes toplantı", "@kanal duyuru"} {
+		m, _ := s.send(ayse, general, body, fmt.Sprintf("nonce-many-all-%d", i))
+		if n := count(m.ID, "channel"); n != 2 {
+			t.Errorf("%q reached %d", body, n)
+		}
+	}
 	admins, _ := s.send(mert, general, "help @admins", "nonce-many-2")
 	if n := count(admins.ID, "role"); n != 1 {
 		t.Errorf("@admins reached %d", n)

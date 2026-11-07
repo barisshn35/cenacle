@@ -16,11 +16,27 @@ import { membersQuery } from './data';
 import { textToMentions } from './markdown/mentions';
 import { useActiveWorkspace } from './active-workspace';
 import { useMentionableGroups, type MentionGroup } from '../groups/groups';
-import { UsersRoundIcon } from 'lucide-react';
+import { MegaphoneIcon, UsersRoundIcon } from 'lucide-react';
 
 export type Mentioned = { id: string; display_name: string };
 type Candidate =
-  { kind: 'person'; user: Mentioned & { email: string } } | { kind: 'group'; group: MentionGroup };
+  | { kind: 'person'; user: Mentioned & { email: string } }
+  | { kind: 'group'; group: MentionGroup }
+  | { kind: 'broadcast'; word: string; reach: 'channel' | 'here' };
+
+/** The words that mention many (the server reads them all), the language's first. */
+const BROADCASTS: Record<string, { word: string; reach: 'channel' | 'here' }[]> = {
+  en: [
+    { word: 'all', reach: 'channel' },
+    { word: 'here', reach: 'here' },
+    { word: 'channel', reach: 'channel' },
+  ],
+  tr: [
+    { word: 'herkes', reach: 'channel' },
+    { word: 'burada', reach: 'here' },
+    { word: 'kanal', reach: 'channel' },
+  ],
+};
 
 /** "@" and what follows it up to the caret, when the caret is in a mention. */
 function mentionQuery(text: string, caret: number): { start: number; query: string } | null {
@@ -42,14 +58,17 @@ export function useMentionPicker({
   value,
   onChange,
   initial = [],
+  broadcast = false,
 }: {
   channelId: string;
   input: RefObject<HTMLTextAreaElement | null>;
   value: string;
   onChange: (value: string) => void;
   initial?: Mentioned[];
+  /** The person may mention everyone here (@all, @here). */
+  broadcast?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const self = useSession().user.id;
   const listId = useId();
   const [state, setState] = useState<{ start: number; query: string } | null>(null);
@@ -77,6 +96,15 @@ export function useMentionPicker({
           })
           .slice(0, 4)
           .map((group) => ({ kind: 'group' as const, group })),
+        ...(broadcast
+          ? (i18n.language.startsWith('tr')
+              ? [...BROADCASTS.tr!, ...BROADCASTS.en!]
+              : [...BROADCASTS.en!, ...BROADCASTS.tr!]
+            )
+              .filter((b) => b.word.startsWith(fold(state.query)))
+              .slice(0, state.query ? 3 : 2)
+              .map((b) => ({ kind: 'broadcast' as const, ...b }))
+          : []),
       ]
     : [];
   const open = state !== null && candidates.length > 0;
@@ -104,7 +132,12 @@ export function useMentionPicker({
     if (!state) return;
     const end = input.current?.selectionStart ?? value.length;
     // A group is mentioned by its handle as typed; a person becomes <@id> on sending.
-    const inserted = c.kind === 'group' ? `@${c.group.handle} ` : `@${c.user.display_name} `;
+    const inserted =
+      c.kind === 'group'
+        ? `@${c.group.handle} `
+        : c.kind === 'broadcast'
+          ? `@${c.word} `
+          : `@${c.user.display_name} `;
     const next = value.slice(0, state.start) + inserted + value.slice(end);
     if (c.kind === 'person' && !picked.current.some((p) => p.id === c.user.id)) {
       picked.current.push(c.user);
@@ -142,7 +175,13 @@ export function useMentionPicker({
       <ul id={listId} role="listbox" aria-label={t('mentions.label')}>
         {candidates.map((c, i) => (
           <li
-            key={c.kind === 'group' ? `g-${c.group.id}` : c.user.id}
+            key={
+              c.kind === 'group'
+                ? `g-${c.group.id}`
+                : c.kind === 'broadcast'
+                  ? `b-${c.word}`
+                  : c.user.id
+            }
             role="option"
             aria-selected={i === active}
             // The text box keeps the focus; the pointer picks without taking it.
@@ -156,7 +195,20 @@ export function useMentionPicker({
               i === active && 'bg-accent text-accent-foreground',
             )}
           >
-            {c.kind === 'group' ? (
+            {c.kind === 'broadcast' ? (
+              <>
+                <span
+                  aria-hidden
+                  className="flex size-6 shrink-0 items-center justify-center rounded bg-muted"
+                >
+                  <MegaphoneIcon className="size-3.5" strokeWidth={1.75} />
+                </span>
+                <span className="truncate font-medium">@{c.word}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {t(c.reach === 'here' ? 'mentions.here' : 'mentions.everyone')}
+                </span>
+              </>
+            ) : c.kind === 'group' ? (
               <>
                 <span
                   aria-hidden
@@ -187,7 +239,12 @@ export function useMentionPicker({
       <p className="sr-only" role="status">
         {current &&
           t('mentions.active', {
-            name: current.kind === 'group' ? `@${current.group.handle}` : current.user.display_name,
+            name:
+              current.kind === 'group'
+                ? `@${current.group.handle}`
+                : current.kind === 'broadcast'
+                  ? `@${current.word}`
+                  : current.user.display_name,
             n: active + 1,
             count: candidates.length,
           })}

@@ -42,7 +42,9 @@ and Teams offer these; Cenacle does, self-hosted and without outside services.
    reached (`message_mentions.kind`), so unread counts, notifications and e-mail treat
    them as mentions without new paths; a message lists them in `broadcast`. The composer
    asks before `@channel`/`@here` in channels of more than five other members. Bots and
-   scheduled messages have no presence: their `@here` reaches no one.
+   scheduled messages have no presence: their `@here` reaches no one. `@all`, and the
+   Turkish `@herkes` and `@kanal`, mean `@channel`; `@burada` means `@here` (1.0). None of
+   them can be a group's handle, and the `@` suggestions offer them to those who may use them.
 6. **Burn-on-read** is for direct and group conversations (10 s to 24 h). Recipients get
    the message without its text (also in live events, notifications and e-mail) and
    reveal it once; the reveal time is recorded per person and the text is withheld after

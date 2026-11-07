@@ -548,7 +548,9 @@
     "label": "Bahsedilecek kişiler",
     "active": "{{name}}, {{n}}/{{count}}",
     "unread_one": "{{count}} bahsetme",
-    "unread_other": "{{count}} bahsetme"
+    "unread_other": "{{count}} bahsetme",
+    "everyone": "Bu kanaldaki herkes",
+    "here": "Şu an çevrimiçi olan herkes"
   },
   "bots": {
     "badge": "Bot",
@@ -2510,7 +2512,7 @@
       "invite_people": "Davet bağlantıları oluşturma, görme ve iptal etme.",
       "manage_categories": "Kategori oluşturma ve kanalları kategoriler arasında taşıma.",
       "custom_emoji": "Buradaki herkesin kullanabileceği emoji yükleme.",
-      "broadcast_mentions": "@channel, @here ve @all kanaldaki herkese bildirim gönderir.",
+      "broadcast_mentions": "@herkes, @all ve @channel kanaldaki herkese; @burada ve @here çevrimiçi olanlara bildirim gönderir.",
       "group_mentions": "Bir grubu anmak grubun kişilerine bildirim gönderir.",
       "guest_links": "Kanal yöneticileri, dışarıdan birinin parolayla ve bir süreliğine tek bir kanala katılmasına izin verir."
     }

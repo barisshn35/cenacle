@@ -143,3 +143,42 @@ test('reactions: add from the picker, toggle, and see others live', async ({ pag
   await expect(message.getByRole('button', { name: /🚀: 1 person\. Add/ })).toBeVisible();
   expect(api.reacted.at(-1)).toBe(`-🚀 ${mockMessage(1, '').id}`);
 });
+
+test('@all and @herkes: suggested to those who may, and shown as mentions of everyone', async ({
+  page,
+}) => {
+  const api = await mockApi(page, {
+    general: { can_broadcast: true },
+    messages: [{ ...mockMessage(1, '@herkes yarın toplantı var'), broadcast: ['channel'] }],
+  });
+  await page.route('**/api/channels/*/members', (route) =>
+    route.fulfill({ json: { members: PEOPLE.map((p) => ({ user: p, role: 'member' })) } }),
+  );
+  await page.goto(`/c/${GENERAL.id}`);
+  // The Turkish word is the same mention as @channel.
+  await expect(page.getByTestId('message').first().getByTestId('mention')).toHaveText('@herkes');
+  const box = page.getByRole('textbox', { name: 'Message General' });
+  await box.pressSequentially('@al');
+  const list = page.getByRole('listbox', { name: 'People to mention' });
+  await expect(list.getByRole('option', { name: /@all/ })).toContainText(
+    'Everyone in this channel',
+  );
+  await box.press('Enter');
+  await expect(box).toHaveValue('@all ');
+  await box.pressSequentially('deploy');
+  await box.press('Enter');
+  await expect.poll(() => api.sent.at(-1)?.body).toBe('@all deploy');
+});
+
+test('no @all among the suggestions without the right to mention everyone', async ({ page }) => {
+  await mockApi(page, { general: { can_broadcast: false } });
+  await page.route('**/api/channels/*/members', (route) =>
+    route.fulfill({ json: { members: PEOPLE.map((p) => ({ user: p, role: 'member' })) } }),
+  );
+  await page.goto(`/c/${GENERAL.id}`);
+  const box = page.getByRole('textbox', { name: 'Message General' });
+  await box.pressSequentially('@a');
+  const list = page.getByRole('listbox', { name: 'People to mention' });
+  await expect(list.getByRole('option').first()).toBeVisible();
+  await expect(list.getByRole('option', { name: /@all/ })).toHaveCount(0);
+});

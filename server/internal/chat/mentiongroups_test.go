@@ -12,6 +12,7 @@ func TestGroupHandles(t *testing.T) {
 		"@Backend please, and @design.":     {"backend", "design"},
 		"a@b.com and <@0199a7a0-0000-7000>": nil,
 		"@here @channel @backend @backend":  {"backend"},
+		"@all @herkes @burada @kanal @ops":  {"ops"},
 		"(@ops-team) ok":                    {"ops-team"},
 		"@@x":                               nil,
 	} {

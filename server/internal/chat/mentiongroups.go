@@ -35,7 +35,8 @@ var (
 	// Code blocks and code spans, where an @name is text, not a mention.
 	codeRE = regexp.MustCompile("(?s)```.*?```|`[^`\n]*`")
 	// Words that mention many already, so no group can be called so.
-	reservedHandles = map[string]bool{"channel": true, "everyone": true, "here": true, "admins": true, "owners": true, "all": true}
+	reservedHandles = map[string]bool{"channel": true, "everyone": true, "here": true, "admins": true, "owners": true, "all": true,
+		"kanal": true, "herkes": true, "burada": true}
 )
 
 // GroupsEvent is the data of groups.changed: a workspace's groups or their

@@ -7,20 +7,22 @@ import { MENTION_SECRET } from './mentions';
  * load makes, like person mentions: a typed look-alike stays text.
  */
 const EMOJI = /:([a-z0-9_+-]{2,32}):/g;
-const BROADCAST = /(^|[^\w@])@(channel|everyone|here|admins|owners)\b/gi;
+const BROADCAST = /(^|[^\w@])@(channel|everyone|all|kanal|herkes|here|burada|admins|owners)\b/gi;
 // Code (fenced or inline) is left as it is.
 const CODE = /(```[\s\S]*?(?:```|$)|`[^`\n]*`)/;
 
 /** The kind of a broadcast word as the server names it. */
 export const broadcastKind = (word: string) => {
   const w = word.toLowerCase();
-  return w === 'everyone'
+  return w === 'everyone' || w === 'all' || w === 'kanal' || w === 'herkes'
     ? 'channel'
-    : w === 'admins'
-      ? 'role:admin'
-      : w === 'owners'
-        ? 'role:owner'
-        : w;
+    : w === 'burada'
+      ? 'here'
+      : w === 'admins'
+        ? 'role:admin'
+        : w === 'owners'
+          ? 'role:owner'
+          : w;
 };
 
 // A group mention: @handle, not inside a word, an address or <@id>.

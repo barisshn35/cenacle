@@ -76,7 +76,7 @@ const WORKSPACE = 'default';
 const drafts = new DraftStore();
 
 /** Mentions of many people; above this many members they are confirmed first. */
-const BROADCAST = /(^|[^\w@])@(channel|everyone|here)\b/i;
+const BROADCAST = /(^|[^\w@])@(channel|everyone|all|kanal|herkes|here|burada)\b/i;
 /** Where the composer remembers whether its formatting bar is shown. */
 const FORMATTING_KEY = 'cenacle.formatting';
 const CONFIRM_ABOVE = 5;
@@ -181,7 +181,13 @@ export function Composer({
   const { send } = useSendMessage();
   const queryClient = useQueryClient();
   const key = { workspaceId: WORKSPACE, channelId: draftId };
-  const mentions = useMentionPicker({ channelId, input, value: body, onChange: change });
+  const mentions = useMentionPicker({
+    channelId,
+    input,
+    value: body,
+    onChange: change,
+    broadcast: !conversation && !!channel?.can_broadcast,
+  });
   const workspaceId = useActiveWorkspace().id;
   const commands = useCommandPicker({ workspaceId, input, onChange: change });
   const addNote = useCommandNotes((s) => s.add);
