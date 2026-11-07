@@ -6,8 +6,10 @@
 import {
   BrowserWindow,
   nativeTheme,
+  screen,
   WebContentsView,
   type BrowserWindowConstructorOptions,
+  type Rectangle,
   type Session,
   type WebContents,
 } from 'electron';
@@ -64,6 +66,25 @@ export function bindShortcuts(contents: WebContents, win: BrowserWindow): void {
 }
 
 /**
+ * The place of a window of the given size over the middle of another, kept
+ * on the screen that window is on.
+ */
+export function centredOver(
+  over: Rectangle,
+  width: number,
+  height: number,
+  area: Rectangle = screen.getDisplayMatching(over).workArea,
+): { x: number; y: number } {
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, max));
+  return {
+    x: Math.round(clamp(over.x + (over.width - width) / 2, area.x, area.x + area.width - width)),
+    y: Math.round(
+      clamp(over.y + (over.height - height) / 2, area.y, area.y + area.height - height),
+    ),
+  };
+}
+
+/**
  * A window for pages that are not the app's own (Cenacle ID, the sign-in,
  * other sites): the app's bar on top, with a lock and the address of the
  * page, and the page below it in a view of its own (no bridge to the app).
@@ -80,12 +101,18 @@ export function framedWindow(opts: {
   browse: boolean;
 }): { win: BrowserWindow; view: WebContentsView } {
   const colors = localBarColors();
+  const parent = opts.parent && !opts.parent.isDestroyed() ? opts.parent : undefined;
   const win = new BrowserWindow({
     width: opts.width,
     height: opts.height,
     minWidth: 400,
     minHeight: 480,
-    parent: opts.parent,
+    parent,
+    // Over the middle of the app's window (Windows would put it at its own
+    // place), or of the screen when that window is not shown.
+    ...(parent?.isVisible() && !parent.isMinimized()
+      ? centredOver(parent.getBounds(), opts.width, opts.height)
+      : { center: true }),
     show: false,
     icon: opts.icon,
     backgroundColor: colors.color,

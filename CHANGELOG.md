@@ -41,6 +41,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   its own ("Open in its own window"): the same call, which keeps going while you move
   between channels; closing that window brings it back. The desktop app opens it as one of
   its windows, with nothing of its own to run.
+- The desktop app's sign-in window opens over the middle of the app's window (or of the
+  screen), not wherever the system put it.
 - A channel's settings are one window opened from its name in the header: General (name,
   topic, category, who may post, archiving) for those who manage it, Members and roles,
   and Notifications. A member's role is chosen in words (Member, Channel manager) instead
