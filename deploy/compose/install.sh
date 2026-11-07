@@ -435,7 +435,7 @@ if [ -f .env.calls ]; then
   sh ./gen-call-secrets.sh >> "$log_file" 2>&1 || fail "the call keys could not be created (see $log_file; no key is written there)"
   call_ports='7882/udp 7881/tcp'
   if grep -q '^CENACLE_CALLS_TURN=on' .env.calls; then call_ports="$call_ports 3478/udp 5349/tcp 49152-49407/udp"; fi
-  say "calls are on for this installation. Workspace administrators still turn them on per workspace."
+  say "calls are on for this installation, and in every workspace unless its administrators turn them off."
   say "install.sh does not change the firewall. Allow these ports from your users ($call_ports), for example:"
   case "$firewall" in *ufw*) show_ufw=1 ;; *) show_ufw='' ;; esac
   case "$firewall" in *firewalld*) show_fwd=1 ;; *) show_fwd='' ;; esac

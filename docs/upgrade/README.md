@@ -118,6 +118,15 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ## Version notes
 
+### Next release (after 0.99.5)
+
+- Migration 00065: calls are on in every workspace unless its administrators turn them
+  off. Workspaces whose call settings nobody changed are turned on; those turned off on
+  purpose stay off. Calls still need the installation's media service: `install.sh --calls`,
+  or `calls.enabled` in Helm.
+- Notifications are on for every message by default, with a message sound. People who
+  saved their notification settings keep them.
+
 ### 0.99.5
 
 - Calls: migration 00064 adds the call tables and workspace call settings. Existing

@@ -6,7 +6,8 @@ process forwards Opus/VP8 and never receives database, IdP or admission-private
 credentials. All browser signaling stays at the chat origin under `/media/ws`.
 No public STUN or IP-discovery service is configured.
 
-Calls are off by default at installation and workspace levels. A call holds 8
+Calls are off by default at installation level (they need the media service and its
+ports) and on in every workspace, whose administrators can turn them off. A call holds 8
 people by default; a workspace administrator can allow up to 16. One media host
 with 4 CPUs and 8 GB carries one 16-person call or two 8-person calls
 ([measurements](../operations/performance.md)); give it more CPUs for more large

@@ -130,10 +130,15 @@ func TestCallsSettingsCeiling(t *testing.T) {
 	admin := s.admin()
 	path := "/api/workspaces/" + s.defaultWS + "/calls/settings"
 	var settings struct {
-		MaxParticipants int `json:"max_participants"`
+		Enabled         bool `json:"enabled"`
+		MaxParticipants int  `json:"max_participants"`
 	}
 	if response := s.call(http.MethodGet, path, admin, nil, &settings); response.StatusCode != http.StatusOK || settings.MaxParticipants != 8 {
 		t.Fatalf("default ceiling %d (status %d)", settings.MaxParticipants, response.StatusCode)
+	}
+	// On unless the workspace's administrators turn them off.
+	if !settings.Enabled {
+		t.Error("calls are off in a new workspace")
 	}
 	for limit, want := range map[int]int{16: http.StatusOK, 17: http.StatusBadRequest, 1: http.StatusBadRequest} {
 		body := map[string]any{"enabled": true, "guest_start": false, "max_participants": limit, "max_bitrate": 2500000}

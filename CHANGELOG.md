@@ -25,6 +25,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- Calls are on in every workspace unless its administrators turn them off (migration
+  00065; a workspace turned off on purpose stays off). The installation still turns the
+  media service on with `install.sh --calls` or `calls.enabled`.
 - Interface text is set in the interface face: times, addresses, counts and versions no
   longer use the code face, which stays for code and for values people copy or type
   letter by letter (keys, recovery codes, tokens). The search button no longer spells out
