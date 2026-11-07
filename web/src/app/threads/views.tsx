@@ -325,9 +325,14 @@ function ThreadsList() {
               </header>
               <div className="py-2.5 pe-4 ps-2 max-sm:px-0">
                 <div className={cn(SPEAKER_GRID(), 'py-1')}>
-                  <div className="flex min-w-0 items-start justify-end gap-2 text-end max-sm:justify-start max-sm:text-start">
-                    <div className="flex min-w-0 flex-col items-end max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2">
-                      <span className="max-w-full truncate text-[13px] leading-[18px] font-semibold">
+                  <UserAvatar
+                    userId={root.author.id}
+                    name={root.author.display_name}
+                    className="mt-0.5 max-sm:hidden"
+                  />
+                  <div className="min-w-0 text-[15px] leading-[22px] break-words">
+                    <p className="flex min-w-0 items-baseline gap-2">
+                      <span className="truncate leading-5 font-semibold">
                         {root.author.display_name}
                       </span>
                       <time
@@ -336,10 +341,7 @@ function ThreadsList() {
                       >
                         {when(root.created_at)}
                       </time>
-                    </div>
-                    <UserAvatar userId={root.author.id} name={root.author.display_name} size="xs" />
-                  </div>
-                  <div className="min-w-0 text-[15px] leading-[22px] break-words">
+                    </p>
                     <MessageBody body={root.body} mentions={root.mentions ?? []} selfId={self} />
                   </div>
                 </div>

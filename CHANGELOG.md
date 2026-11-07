@@ -33,6 +33,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- Messages read like a conversation: the speaker's round picture on the left, the name
+  and time on one line above the words, later messages of the same turn without them (their
+  time shows on hover or focus). Direct messages in the sidebar show the other person's
+  picture with their presence on its corner, group conversations two pictures.
 - A channel's settings are one window opened from its name in the header: General (name,
   topic, category, who may post, archiving) for those who manage it, Members and roles,
   and Notifications. A member's role is chosen in words (Member, Channel manager) instead

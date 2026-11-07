@@ -35,6 +35,7 @@ import { useSession } from '../auth/session';
 import {
   flatten,
   isConversation,
+  lineOf,
   markRead,
   messagesQuery,
   setReadLocally,
@@ -42,6 +43,7 @@ import {
   type Message,
 } from './data';
 import { Attachments } from './attachments';
+import { ChannelLineRow } from './channel-line';
 import { MessageFiles } from './message-files';
 import { UserAvatar } from '../profile/avatar';
 import { useProfile } from '../profile/profiles';
@@ -107,13 +109,14 @@ export function MessageRow({
   const hasStatus = !!useProfile(m.author.id)?.status;
   const unread = useMarkUnread(m);
   const selected = useSelectedMessage((s) => s.id === m.id);
-  const time = (
+  const time = (className?: string) => (
     <time
       dateTime={m.created_at}
       title={fmt.full.format(at)}
       className={cn(
         'text-xs leading-4 tabular-nums',
         mentionsMe ? 'font-semibold text-mention' : 'text-muted-foreground',
+        className,
       )}
     >
       {fmt.time.format(at)}
@@ -143,10 +146,11 @@ export function MessageRow({
           data-testid="new-messages"
           className={cn(SPEAKER_GRID(inThread), 'items-center pt-3')}
         >
-          <span className="text-end text-xs font-semibold text-foreground max-sm:hidden">
-            {t('chat.newMessages')}
+          <span aria-hidden className="max-sm:hidden" />
+          <span className="flex items-center gap-2">
+            <span aria-hidden className="h-px flex-1 bg-foreground" />
+            <span className="text-xs font-semibold text-foreground">{t('chat.newMessages')}</span>
           </span>
-          <span aria-hidden className="h-px bg-foreground" />
         </div>
       )}
       {/* Alt+click marks the message unread; its menu offers the same. */}
@@ -174,52 +178,64 @@ export function MessageRow({
         data-message-id={m.id}
         data-selected={selected || undefined}
       >
-        {/* The margin holds the who: name and time beside the words (above them
-            on phones), the avatar at its inner edge. A mention of the reader is
-            marked here, with "@" and the time in red, never by a stripe. */}
+        {/* The margin holds the speaker's picture on the first message of a
+            turn and, on the others, the time when the row is hovered or
+            focused. A mention of the reader is marked with "@" and the time in
+            red, never by a stripe. */}
         {row.first ? (
-          <header className="flex min-w-0 items-start justify-end gap-2 text-end max-sm:justify-start max-sm:text-start">
-            <div className="flex min-w-0 flex-col items-end max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2">
-              <span className="flex max-w-full items-baseline gap-1">
-                {mentionsMe && (
-                  <span className="text-[13px] font-semibold text-mention">
-                    <span aria-hidden>@</span>
-                    <span className="sr-only">{t('chat.mentionsYou')}</span>
-                  </span>
-                )}
-                <ProfileCard userId={m.author.id} name={m.author.display_name}>
-                  <button
-                    type="button"
-                    id={`m-${m.id}-author`}
-                    className="hit-target flex min-w-0 rounded-sm text-[13px] leading-[18px] font-semibold outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <span className="truncate">{m.author.display_name}</span>
-                  </button>
-                </ProfileCard>
-              </span>
-              {time}
-            </div>
-            <ProfileCard userId={m.author.id} name={m.author.display_name}>
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-hidden
-                className="mt-0.5 shrink-0 rounded-full outline-none max-sm:order-1"
-              >
-                <UserAvatar userId={m.author.id} name={m.author.display_name} size="xs" />
-              </button>
-            </ProfileCard>
-          </header>
+          <ProfileCard userId={m.author.id} name={m.author.display_name}>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden
+              className="mt-0.5 self-start justify-self-start rounded-full outline-none max-sm:hidden"
+            >
+              <UserAvatar
+                userId={m.author.id}
+                name={m.author.display_name}
+                size={inThread ? 'sm' : 'md'}
+              />
+            </button>
+          </ProfileCard>
         ) : (
-          <div className="flex justify-end pt-1 pe-8 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden">
-            {time}
+          <div className="flex justify-center pt-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden">
+            {time('text-[11px] whitespace-nowrap')}
           </div>
         )}
         <div className="min-w-0">
-          <PinnedLine message={m} />
-          {!inThread && <RepliedToThread message={m} />}
-          {!row.first && (
-            // Who wrote it, for screen readers: the margin shows it on the first turn only.
+          {row.first ? (
+            <header className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <ProfileCard userId={m.author.id} name={m.author.display_name}>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-hidden
+                  className="shrink-0 self-center rounded-full outline-none sm:hidden"
+                >
+                  <UserAvatar userId={m.author.id} name={m.author.display_name} size="xs" />
+                </button>
+              </ProfileCard>
+              {mentionsMe && (
+                <span className="text-[13px] font-semibold text-mention">
+                  <span aria-hidden>@</span>
+                  <span className="sr-only">{t('chat.mentionsYou')}</span>
+                </span>
+              )}
+              <ProfileCard userId={m.author.id} name={m.author.display_name}>
+                <button
+                  type="button"
+                  id={`m-${m.id}-author`}
+                  className="hit-target flex min-w-0 max-w-full rounded-sm text-[15px] leading-5 font-semibold outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <span className="truncate">{m.author.display_name}</span>
+                </button>
+              </ProfileCard>
+              {m.author.is_bot && <BotBadge />}
+              {hasStatus && <PersonStatus userId={m.author.id} className="ms-0 text-xs" />}
+              {time()}
+            </header>
+          ) : (
+            // Who wrote it, for screen readers: the first message of a turn shows it.
             <header className="sr-only">
               <ProfileCard userId={m.author.id} name={m.author.display_name}>
                 <button type="button" id={`m-${m.id}-author`} className="min-h-target">
@@ -230,12 +246,8 @@ export function MessageRow({
               {mentionsMe && <span>{t('chat.mentionsYou')}</span>}
             </header>
           )}
-          {row.first && (m.author.is_bot || hasStatus) && (
-            <p className="flex items-center gap-1.5 pb-0.5">
-              {m.author.is_bot && <BotBadge />}
-              <PersonStatus userId={m.author.id} className="ms-0 text-xs" />
-            </p>
-          )}
+          <PinnedLine message={m} />
+          {!inThread && <RepliedToThread message={m} />}
           {editing ? (
             <MessageEditor message={m} />
           ) : (
@@ -317,12 +329,12 @@ export function PendingRow({ p }: { p: PendingMessage }) {
       data-testid="pending-message"
       aria-busy={!failed}
       aria-label={name}
-      className="flex gap-3 px-4 pt-3 pb-0.5"
+      className={cn(SPEAKER_GRID(), 'pt-2 pb-0.5')}
     >
-      <UserAvatar userId={user.id} name={name} />
-      <div className="min-w-0 flex-1">
+      <UserAvatar userId={user.id} name={name} className="mt-0.5 max-sm:hidden" />
+      <div className="min-w-0">
         <header className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold">{name}</span>
+          <span className="text-[15px] leading-5 font-semibold">{name}</span>
           {!failed && <span className="text-xs text-muted-foreground">{t('chat.sending')}</span>}
         </header>
         <div className={cn(!failed && 'text-muted-foreground')}>
@@ -608,7 +620,7 @@ export function MessageList({ channel }: { channel: Channel }) {
       ? 0
       : messages
           .slice(messages.findIndex((m) => m.id === away) + 1)
-          .filter((m) => m.author.id !== self).length;
+          .filter((m) => m.author.id !== self && !lineOf(m)).length;
 
   // Prepending older messages lowers the index of the first row by exactly the
   // rows added before the oldest message of the newest page (its anchor): day
@@ -720,7 +732,9 @@ export function MessageList({ channel }: { channel: Channel }) {
           Footer: () => <div className="h-3" />,
         }}
         itemContent={(_, row) =>
-          row.kind === 'message' ? (
+          row.kind === 'message' && lineOf(row.message) ? (
+            <ChannelLineRow row={row} line={lineOf(row.message)!} fmt={fmt} grid={SPEAKER_GRID()} />
+          ) : row.kind === 'message' ? (
             <MessageRow
               row={row}
               fmt={fmt}

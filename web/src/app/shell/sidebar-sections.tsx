@@ -85,6 +85,7 @@ import { NewConversationDialog } from '../chat/new-conversation-dialog';
 import { usePresence, useWorkspacePresence } from '../chat/presence-state';
 import { useMutedChannels } from '../notifications/muted';
 import { PresenceIndicator } from './presence';
+import { UserAvatar } from '../profile/avatar';
 import {
   addSection,
   arrange,
@@ -111,14 +112,33 @@ type Dragged =
 const CHANNEL_DATA = 'text/x-cenacle-channel';
 const SECTION_DATA = 'text/x-cenacle-section';
 
-/** The icon of a conversation: the other person's presence, or a group icon. */
+/**
+ * The face of a conversation: the other person's round picture (or initials)
+ * with their presence on its corner, or two of a group's people overlapping.
+ */
 function ConversationIcon({ channel }: { channel: Channel }) {
-  const other = channel.kind === 'direct' ? channel.participants[0]?.id : undefined;
-  const presence = usePresence(other);
-  return channel.kind === 'direct' ? (
-    <PresenceIndicator presence={presence} className="bg-transparent" />
-  ) : (
-    <UsersIcon aria-hidden strokeWidth={1.75} />
+  const [first, second] = channel.participants;
+  const presence = usePresence(channel.kind === 'direct' ? first?.id : undefined);
+  if (!first) return <UsersIcon aria-hidden strokeWidth={1.75} />;
+  if (channel.kind === 'direct')
+    return (
+      <span className="relative inline-flex shrink-0">
+        <UserAvatar userId={first.id} name={first.display_name} size="xs" />
+        <PresenceIndicator presence={presence} className="absolute -end-1 -bottom-1" />
+      </span>
+    );
+  return (
+    <span aria-hidden className="relative inline-flex w-8.5 shrink-0">
+      <UserAvatar userId={first.id} name={first.display_name} size="xs" />
+      {second && (
+        <UserAvatar
+          userId={second.id}
+          name={second.display_name}
+          size="xs"
+          className="absolute start-2.5 top-0 ring-2 ring-sidebar"
+        />
+      )}
+    </span>
   );
 }
 

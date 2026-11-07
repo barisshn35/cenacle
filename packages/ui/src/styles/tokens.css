@@ -142,11 +142,12 @@
 
   --radius: 0.625rem;
 
-  /* --- The record (v0.29) ----------------------------------------- */
-  --speaker-margin: 152px;
-  --speaker-margin-panel: 96px;
-  --margin-gap: 20px;
-  --margin-gap-panel: 14px;
+  /* --- The record ---------------------------------------------------- */
+  /* The speaker's picture beside the words (name and time above them). */
+  --speaker-margin: 36px;
+  --speaker-margin-panel: 28px;
+  --margin-gap: 12px;
+  --margin-gap-panel: 10px;
 
   /* --- Brand (Forest & Brass) -------------------------------------- */
   /* Fixed brand colors; never used for status (online, warning, destructive). */
