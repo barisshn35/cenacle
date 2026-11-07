@@ -2,20 +2,13 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { ArchiveIcon } from 'lucide-react';
+import { ArchiveIcon, BellIcon, SettingsIcon, UsersIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
 import { Button } from '@cenacle/ui/components/button';
 import { ConfirmDialog } from '@cenacle/ui/components/confirm-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@cenacle/ui/components/dialog';
+import { Dialog, DialogFooter } from '@cenacle/ui/components/dialog';
 import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
@@ -31,6 +24,9 @@ import {
 } from './data';
 import { ChannelGroupsSection } from './directory-groups';
 import { GuestLinksSection } from './guest-links';
+import { MembersSection } from './channel-members';
+import { ChannelNotificationsSection } from '../notifications/channel-notifications';
+import { SideNavDialog } from '../shell/side-nav-dialog';
 import { may, workspacesQuery } from './workspaces';
 
 const selectClass =
@@ -43,14 +39,23 @@ const SLOW_MODES = [0, 10, 30, 60, 300, 900, 3600] as const;
 const MODERATED = ['post', 'reply', 'react', 'broadcast'] as const;
 type ChannelModeration = NonNullable<Channel['moderation']>;
 
+export type ChannelSettingsSection = 'general' | 'members' | 'notifications';
+
+/**
+ * The channel's settings in one window, opened from the channel's name: its
+ * details for those who manage it, its members and their roles, and one's own
+ * notifications for it.
+ */
 export function ChannelSettingsDialog({
   channel,
   open,
   onOpenChange,
+  initialSection,
 }: {
   channel: Channel;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialSection?: ChannelSettingsSection;
 }) {
   const { t } = useTranslation();
   const workspaces = useQuery(workspacesQuery);
@@ -82,6 +87,11 @@ export function ChannelSettingsDialog({
   const [visibility, setVisibility] = useState(channel.visibility);
   const [category, setCategory] = useState(channel.category_id ?? '');
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [section, setSection] = useState<ChannelSettingsSection>(
+    initialSection ?? (channel.can_manage ? 'general' : 'members'),
+  );
+  // Those who do not manage the channel see its members and their notifications.
+  const current = section === 'general' && !channel.can_manage ? 'members' : section;
   const categoriesOptions = categoriesQuery(channel.workspace_id);
   const categories = useQuery({ ...categoriesOptions, enabled: open && wsAdmin });
   const queryClient = useQueryClient();
@@ -144,155 +154,197 @@ export function ChannelSettingsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-md">
-          <form onSubmit={submit} className="grid gap-4">
-            <DialogHeader>
-              <DialogTitle>{t('channels.settingsTitle', { channel: channel.name })}</DialogTitle>
-              <DialogDescription>{t('channels.settingsDescription')}</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-2">
-              <Label htmlFor={ids.name}>{t('channels.name')}</Label>
-              <Input
-                id={ids.name}
-                value={name}
-                maxLength={80}
-                required
-                autoComplete="off"
-                aria-describedby={save.isError ? ids.error : undefined}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={ids.topic}>{t('channels.topicOptional')}</Label>
-              <Input
-                id={ids.topic}
-                value={topic}
-                maxLength={250}
-                autoComplete="off"
-                onChange={(e) => setTopic(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={ids.visibility}>{t('channels.visibility.label')}</Label>
-              <select
-                id={ids.visibility}
-                className={selectClass}
-                value={visibility}
-                disabled={channel.is_default}
-                onChange={(e) => setVisibility(e.target.value as Channel['visibility'])}
-              >
-                <option value="public">{t('channels.visibility.public')}</option>
-                <option value="private">{t('channels.visibility.private')}</option>
-              </select>
-              <p className="text-xs text-muted-foreground">
-                {channel.is_default
-                  ? t('channels.defaultStaysPublic')
-                  : t(`channels.visibility.${visibility}Hint`)}
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={ids.slow}>{t('community.moderation.slowMode')}</Label>
-              <select
-                id={ids.slow}
-                className={selectClass}
-                value={slow}
-                onChange={(e) => setSlow(Number(e.target.value))}
-              >
-                {SLOW_MODES.map((s) => (
-                  <option key={s} value={s}>
-                    {t(`community.moderation.slowModes.${s}`)}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                {t('community.moderation.slowModeExplained')}
-              </p>
-            </div>
-            <fieldset className="grid gap-2" data-testid="channel-moderation">
-              <legend className="text-sm font-medium">{t('moderation.title')}</legend>
-              <p className="text-xs text-muted-foreground">{t('moderation.hint')}</p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {MODERATED.map((action) => (
-                  <label key={action} className="grid gap-1 text-xs">
-                    <span className="text-muted-foreground">
-                      {t(`moderation.actions.${action}`)}
-                    </span>
+        <SideNavDialog
+          id="channel-settings"
+          title={t('channels.settingsWindow')}
+          subtitle={channel.name}
+          value={current}
+          onChange={setSection}
+          description={t(`channels.settingsSections.${current}`)}
+          groups={[
+            {
+              items: [
+                ...(channel.can_manage
+                  ? [
+                      {
+                        key: 'general' as const,
+                        label: t('channels.settingsNames.general'),
+                        icon: SettingsIcon,
+                      },
+                    ]
+                  : []),
+                {
+                  key: 'members' as const,
+                  label: t('channels.settingsNames.members'),
+                  icon: UsersIcon,
+                },
+                {
+                  key: 'notifications' as const,
+                  label: t('channels.settingsNames.notifications'),
+                  icon: BellIcon,
+                },
+              ],
+            },
+          ]}
+        >
+          <div className="flex flex-col gap-6 pt-4">
+            {current === 'general' && (
+              <form onSubmit={submit} className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor={ids.name}>{t('channels.name')}</Label>
+                  <Input
+                    id={ids.name}
+                    value={name}
+                    maxLength={80}
+                    required
+                    autoComplete="off"
+                    aria-describedby={save.isError ? ids.error : undefined}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor={ids.topic}>{t('channels.topicOptional')}</Label>
+                  <Input
+                    id={ids.topic}
+                    value={topic}
+                    maxLength={250}
+                    autoComplete="off"
+                    onChange={(e) => setTopic(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor={ids.visibility}>{t('channels.visibility.label')}</Label>
+                  <select
+                    id={ids.visibility}
+                    className={selectClass}
+                    value={visibility}
+                    disabled={channel.is_default}
+                    onChange={(e) => setVisibility(e.target.value as Channel['visibility'])}
+                  >
+                    <option value="public">{t('channels.visibility.public')}</option>
+                    <option value="private">{t('channels.visibility.private')}</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    {channel.is_default
+                      ? t('channels.defaultStaysPublic')
+                      : t(`channels.visibility.${visibility}Hint`)}
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor={ids.slow}>{t('community.moderation.slowMode')}</Label>
+                  <select
+                    id={ids.slow}
+                    className={selectClass}
+                    value={slow}
+                    onChange={(e) => setSlow(Number(e.target.value))}
+                  >
+                    {SLOW_MODES.map((s) => (
+                      <option key={s} value={s}>
+                        {t(`community.moderation.slowModes.${s}`)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    {t('community.moderation.slowModeExplained')}
+                  </p>
+                </div>
+                <fieldset className="grid gap-2" data-testid="channel-moderation">
+                  <legend className="text-sm font-medium">{t('moderation.title')}</legend>
+                  <p className="text-xs text-muted-foreground">{t('moderation.hint')}</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {MODERATED.map((action) => (
+                      <label key={action} className="grid gap-1 text-xs">
+                        <span className="text-muted-foreground">
+                          {t(`moderation.actions.${action}`)}
+                        </span>
+                        <select
+                          className={selectClass}
+                          value={moderation[action]}
+                          onChange={(e) =>
+                            setModeration((m) => ({
+                              ...m,
+                              [action]: e.target.value as ChannelModeration['post'],
+                            }))
+                          }
+                        >
+                          <option value="everyone">{t('moderation.everyone')}</option>
+                          <option value="managers">{t('moderation.managers')}</option>
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                {channel.kind === 'forum' && (
+                  <div className="grid gap-2">
+                    <Label htmlFor={ids.tags}>{t('community.forum.tags')}</Label>
+                    <Input
+                      id={ids.tags}
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      aria-describedby={`${ids.tags}-hint`}
+                    />
+                    <p id={`${ids.tags}-hint`} className="text-xs text-muted-foreground">
+                      {t('community.forum.tagsHint')}
+                    </p>
+                  </div>
+                )}
+                {wsAdmin && (
+                  <div className="grid gap-2">
+                    <Label htmlFor={ids.category}>{t('channels.category')}</Label>
                     <select
+                      id={ids.category}
                       className={selectClass}
-                      value={moderation[action]}
-                      onChange={(e) =>
-                        setModeration((m) => ({
-                          ...m,
-                          [action]: e.target.value as ChannelModeration['post'],
-                        }))
-                      }
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
                     >
-                      <option value="everyone">{t('moderation.everyone')}</option>
-                      <option value="managers">{t('moderation.managers')}</option>
+                      <option value="">{t('channels.noCategory')}</option>
+                      {categories.data?.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
                     </select>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            {channel.kind === 'forum' && (
-              <div className="grid gap-2">
-                <Label htmlFor={ids.tags}>{t('community.forum.tags')}</Label>
-                <Input
-                  id={ids.tags}
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  aria-describedby={`${ids.tags}-hint`}
-                />
-                <p id={`${ids.tags}-hint`} className="text-xs text-muted-foreground">
-                  {t('community.forum.tagsHint')}
-                </p>
-              </div>
+                  </div>
+                )}
+                {save.isError && (
+                  <InlineError
+                    id={ids.error}
+                    title={errorTitle}
+                    problem={problem ?? { status: 0 }}
+                  />
+                )}
+                <DialogFooter className="sm:justify-between">
+                  {!channel.is_mandatory ? (
+                    <Button type="button" variant="outline" onClick={() => setConfirmArchive(true)}>
+                      <ArchiveIcon aria-hidden strokeWidth={1.75} />
+                      {t('glossary.archive')}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                      {t('glossary.cancel')}
+                    </Button>
+                    <Button type="submit" disabled={save.isPending || name.trim() === ''}>
+                      {t('chat.save')}
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </form>
             )}
-            {wsAdmin && (
-              <div className="grid gap-2">
-                <Label htmlFor={ids.category}>{t('channels.category')}</Label>
-                <select
-                  id={ids.category}
-                  className={selectClass}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  <option value="">{t('channels.noCategory')}</option>
-                  {categories.data?.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {current === 'members' && (
+              <>
+                <MembersSection channel={channel} />
+                {channel.visibility === 'private' && !channel.is_default && (
+                  <ChannelGroupsSection channel={channel} />
+                )}
+                {guestLinks && <GuestLinksSection channel={channel} />}
+              </>
             )}
-            {save.isError && (
-              <InlineError id={ids.error} title={errorTitle} problem={problem ?? { status: 0 }} />
-            )}
-            <DialogFooter className="sm:justify-between">
-              {!channel.is_mandatory ? (
-                <Button type="button" variant="outline" onClick={() => setConfirmArchive(true)}>
-                  <ArchiveIcon aria-hidden strokeWidth={1.75} />
-                  {t('glossary.archive')}
-                </Button>
-              ) : (
-                <span />
-              )}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  {t('glossary.cancel')}
-                </Button>
-                <Button type="submit" disabled={save.isPending || name.trim() === ''}>
-                  {t('chat.save')}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-          {channel.visibility === 'private' && !channel.is_default && (
-            <ChannelGroupsSection channel={channel} />
-          )}
-          {guestLinks && <GuestLinksSection channel={channel} />}
-        </DialogContent>
+            {current === 'notifications' && <ChannelNotificationsSection channel={channel} />}
+          </div>
+        </SideNavDialog>
       </Dialog>
       <ConfirmDialog
         open={confirmArchive}

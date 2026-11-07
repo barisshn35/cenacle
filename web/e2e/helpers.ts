@@ -958,6 +958,15 @@ export async function mockApi(
       );
       return route.fulfill({ status: 204 });
     }
+    if (req.method() === 'PATCH') {
+      const id = req.url().split('/').pop()!;
+      const { role } = req.postDataJSON() as { role: 'member' | 'manager' };
+      members.set(
+        c.id,
+        list.map((m) => (m.id === id ? { ...m, role } : m)),
+      );
+      return route.fulfill({ json: { user: PEOPLE.find((p) => p.id === id), role } });
+    }
     return route.fulfill({
       json: {
         members: members

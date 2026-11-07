@@ -239,6 +239,7 @@ test.describe('private channels', () => {
     await expect(details.getByRole('button', { name: 'Add people' })).toHaveCount(0);
 
     await details.getByRole('button', { name: 'Channel settings' }).click();
+    await page.getByRole('dialog').getByRole('tab', { name: 'Members and roles' }).click();
     const groups = page.getByRole('dialog').getByTestId('channel-groups');
     await groups.getByLabel('Groups (separated by commas)').fill('engineering, design');
     await groups.getByRole('button', { name: 'Save groups' }).click();

@@ -31,9 +31,9 @@ test('a channel manager creates a guest link and ends it', async ({ page, isMobi
   });
   await page.goto(`/c/${GENERAL.id}`);
   await page.getByRole('button', { name: 'Channel settings' }).click();
-  const section = page
-    .getByRole('dialog', { name: 'Settings of General' })
-    .getByTestId('guest-links');
+  const dialog = page.getByRole('dialog', { name: 'Channel settings' });
+  await dialog.getByRole('tab', { name: 'Members and roles' }).click();
+  const section = dialog.getByTestId('guest-links');
   await section.getByLabel('For whom (optional)').fill('Müşteri');
   await section.getByLabel('Password', { exact: true }).fill('dogru-parola');
   await section.getByLabel('Ends after').selectOption({ label: '1 week' });

@@ -7,6 +7,7 @@ import {
   mockApi,
   mockMessage,
   showActions,
+  PEOPLE,
 } from './helpers';
 
 const composer = (page: Page) => page.getByLabel('Message General');
@@ -92,12 +93,90 @@ test('live edits and deletions from others are applied', async ({ page }) => {
 test.describe('managing channels', () => {
   test.skip(({ isMobile }) => isMobile, 'sidebar actions are in the drawer on phones');
 
+  test("the channel's name opens its settings: details, members and roles, notifications", async ({
+    page,
+  }, testInfo) => {
+    await mockApi(page, { admin: true });
+    // A second member, whose role the manager changes.
+    await page.route(`**/api/channels/${GENERAL.id}/members`, (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            json: {
+              members: [
+                { user: PEOPLE[0], role: 'manager' },
+                { user: PEOPLE[1], role: 'member' },
+              ],
+            },
+          })
+        : route.fallback(),
+    );
+    await page.goto(`/c/${GENERAL.id}`);
+    await page.getByRole('heading', { level: 1 }).getByRole('button', { name: 'General' }).click();
+    const settings = page.getByRole('dialog', { name: 'Channel settings' });
+    await expect(settings.getByRole('tab')).toHaveText([
+      'General',
+      'Members and roles',
+      'Notifications',
+    ]);
+    await expect(settings.getByLabel('Name')).toHaveValue('General');
+    await settings.getByRole('tab', { name: 'Members and roles' }).click();
+    const role = settings.getByLabel(`Role of ${PEOPLE[1]!.display_name} in this channel`);
+    await expect(role).toHaveValue('member');
+    const sent = page.waitForRequest(
+      (r) => r.url().includes(`/api/channels/${GENERAL.id}/members/`) && r.method() === 'PATCH',
+    );
+    await role.selectOption('manager');
+    expect((await sent).postDataJSON()).toEqual({ role: 'manager' });
+    await settings.getByRole('tab', { name: 'Notifications' }).click();
+    await expect(settings.getByRole('tabpanel')).toBeVisible();
+    await expectTargetSizes(page, testInfo, '[role="dialog"]');
+    await expectNoAxeViolations(page, '[role="dialog"]');
+  });
+
+  test('someone who does not manage the channel sees its members and their notifications', async ({
+    page,
+  }) => {
+    await mockApi(page);
+    await page.goto(`/c/${GENERAL.id}`);
+    await page.getByRole('heading', { level: 1 }).getByRole('button', { name: 'General' }).click();
+    const settings = page.getByRole('dialog', { name: 'Channel settings' });
+    await expect(settings.getByRole('tab')).toHaveText(['Members and roles', 'Notifications']);
+    await expect(settings.getByRole('combobox', { name: /^Role of / })).toHaveCount(0);
+  });
+
+  test('call settings are in the workspace settings, not in the channel header', async ({
+    page,
+  }) => {
+    await mockApi(page, { admin: true });
+    await page.route('**/api/workspaces/*/calls/settings', (route) =>
+      route.fulfill({
+        json: {
+          available: true,
+          enabled: true,
+          guest_start: false,
+          max_participants: 8,
+          max_bitrate: 2500000,
+        },
+      }),
+    );
+    await page.goto(`/c/${GENERAL.id}`);
+    await expect(page.getByRole('button', { name: 'Call settings', exact: true })).toHaveCount(0);
+    await page
+      .getByRole('button', { name: /^Workspace menu: / })
+      .first()
+      .click();
+    await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Workspace settings' });
+    await dialog.getByRole('tab', { name: 'Calls', exact: true }).click();
+    await expect(dialog.getByLabel('Allow calls in this workspace')).toBeChecked();
+  });
+
   test('a manager archives a channel with confirmation and Undo', async ({ page }, testInfo) => {
     await mockApi(page, { admin: true });
     await page.goto(`/c/${GENERAL.id}`);
     // General is a channel for everyone but not mandatory.
     await page.getByRole('button', { name: 'Channel settings' }).click();
-    const settings = page.getByRole('dialog', { name: 'Settings of General' });
+    const settings = page.getByRole('dialog', { name: 'Channel settings' });
     await expect(settings.getByLabel('Visibility')).toBeDisabled();
     await expectTargetSizes(page, testInfo, '[role="dialog"]');
     await expectNoAxeViolations(page, '[role="dialog"]');
@@ -121,7 +200,7 @@ test.describe('managing channels', () => {
     await page.keyboard.press('Escape');
 
     await page.getByRole('button', { name: 'Channel settings' }).click();
-    const settings = page.getByRole('dialog', { name: 'Settings of General' });
+    const settings = page.getByRole('dialog', { name: 'Channel settings' });
     await settings.getByLabel('Category').selectOption({ label: 'Mühendislik' });
     await settings.getByRole('button', { name: 'Save' }).click();
     const group = page.getByRole('navigation', { name: 'Channels' }).getByText('Mühendislik');

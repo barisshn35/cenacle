@@ -13,6 +13,7 @@ import {
   HandIcon,
   KeyRoundIcon,
   LogOutIcon,
+  PhoneIcon,
   ScaleIcon,
   SettingsIcon,
   ShieldAlertIcon,
@@ -82,6 +83,8 @@ import {
 } from './workspaces';
 import { ModerationDialog, TimeoutSelect } from '../community/moderation';
 import { WelcomeForm } from '../community/admin-panels';
+import { WorkspaceCallsSettings } from '../calls/channel-call';
+import { callSettingsQuery } from '../calls/state';
 import { PermissionsSetting } from './permissions-setting';
 import { SpillageDialog } from '../compliance/spillage';
 import { EmojiAndStickers } from '../richer/manage';
@@ -244,6 +247,7 @@ function WorkspaceSettingsDialog({
   const admin = isWorkspaceAdmin(workspace);
   const owner = workspace.role === 'owner';
   const members = useQuery(workspaceMembersQuery(workspace.id));
+  const callSettings = useQuery({ ...callSettingsQuery(workspace.id), enabled: admin });
   const queryClient = useQueryClient();
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ['workspace-members', workspace.id] });
@@ -266,7 +270,7 @@ function WorkspaceSettingsDialog({
     onError: failed,
   });
 
-  type Section = 'general' | 'members' | 'permissions' | 'welcome' | 'ai';
+  type Section = 'general' | 'members' | 'permissions' | 'welcome' | 'ai' | 'calls';
   // Members open the member list; administrators start at the general settings.
   const [section, setSection] = useState<Section>(admin ? 'general' : 'members');
   const go = (to: '/compliance' | '/federation') => {
@@ -392,6 +396,16 @@ function WorkspaceSettingsDialog({
                       label: t('workspaces.sectionNames.ai'),
                       icon: SparklesIcon,
                     },
+                    // Only where the installation runs the media service.
+                    ...(callSettings.data?.available
+                      ? [
+                          {
+                            key: 'calls' as const,
+                            label: t('workspaces.sectionNames.calls'),
+                            icon: PhoneIcon,
+                          },
+                        ]
+                      : []),
                   ]
                 : []),
             ],
@@ -472,6 +486,7 @@ function WorkspaceSettingsDialog({
           {section === 'permissions' && <PermissionsSetting workspace={workspace} />}
           {section === 'welcome' && <WelcomeForm workspace={workspace} />}
           {section === 'ai' && <WorkspaceAIForm workspace={workspace} />}
+          {section === 'calls' && <WorkspaceCallsSettings workspaceId={workspace.id} />}
         </div>
       </SideNavDialog>
     </Dialog>

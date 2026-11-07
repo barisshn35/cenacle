@@ -58,9 +58,7 @@ test('real chat/media stack forwards camera/audio, reconnects without duplicate 
           ),
         );
     await login(a, 'deniz@example.com');
-    await a.getByRole('button', { name: 'Call settings', exact: true }).click();
-    await a.getByLabel('Allow calls in this workspace', { exact: true }).check();
-    await a.getByRole('button', { name: 'Save call settings' }).click();
+    await enableCalls(a);
     await a.getByRole('button', { name: 'Start call', exact: true }).click();
     await expect(a.getByRole('dialog').getByText('Connected', { exact: true })).toBeVisible({
       timeout: 30000,
@@ -117,11 +115,19 @@ test('real chat/media stack forwards camera/audio, reconnects without duplicate 
   }
 });
 
+// Calls are on in a new workspace; this makes sure through the workspace settings.
 async function enableCalls(page: Page) {
-  await page.getByRole('button', { name: 'Call settings', exact: true }).click();
-  const allow = page.getByLabel('Allow calls in this workspace', { exact: true });
-  if (!(await allow.isChecked())) await allow.check();
-  await page.getByRole('button', { name: 'Save call settings' }).click();
+  await page.getByRole('button', { name: /^Workspace menu: / }).first().click();
+  await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Workspace settings' });
+  await dialog.getByRole('tab', { name: 'Calls', exact: true }).click();
+  const allow = dialog.getByLabel('Allow calls in this workspace', { exact: true });
+  if (!(await allow.isChecked())) {
+    await allow.check();
+    await dialog.getByRole('button', { name: 'Save call settings' }).click();
+  }
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
 }
 const connected = (page: Page) =>
   expect(page.getByRole('dialog').getByText('Connected', { exact: true })).toBeVisible({

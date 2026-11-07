@@ -36,7 +36,7 @@ test.describe('permission schemes', () => {
     await mockApi(page, { admin: true });
     await page.goto(`/c/${GENERAL.id}`);
     await page.getByRole('button', { name: 'Channel settings' }).click();
-    const settings = page.getByRole('dialog', { name: 'Settings of General' });
+    const settings = page.getByRole('dialog', { name: 'Channel settings' });
     const moderation = settings.getByTestId('channel-moderation');
     await moderation.getByLabel('React').selectOption('managers');
     await expectTargetSizes(page, testInfo, '[role="dialog"]');

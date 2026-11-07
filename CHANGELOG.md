@@ -25,6 +25,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- A channel's settings are one window opened from its name in the header: General (name,
+  topic, category, who may post, archiving) for those who manage it, Members and roles,
+  and Notifications. A member's role is chosen in words (Member, Channel manager) instead
+  of a shield button. The call settings moved from the channel header to the workspace
+  settings (Calls), where they belong: they are the workspace's.
 - Calls are on in every workspace unless its administrators turn them off (migration
   00065; a workspace turned off on purpose stays off). The installation still turns the
   media service on with `install.sh --calls` or `calls.enabled`.

@@ -317,7 +317,23 @@
     "openChannelNamed": "Open {{channel}}",
     "directoryNote": "Private channels appear only when you are a member. Archived channels can be read, but no one can post.",
     "memberCount_one": "{{count}} member",
-    "memberCount_other": "{{count}} members"
+    "memberCount_other": "{{count}} members",
+    "settingsWindow": "Channel settings",
+    "settingsNames": {
+      "general": "General",
+      "members": "Members and roles",
+      "notifications": "Notifications"
+    },
+    "settingsSections": {
+      "general": "The channel's name, topic, category, who may post and archiving.",
+      "members": "Who is in the channel and who manages it.",
+      "notifications": "How this channel tells you about new messages."
+    },
+    "roleFor": "Role of {{person}} in this channel",
+    "roles": {
+      "member": "Member",
+      "manager": "Channel manager"
+    }
   },
   "categories": {
     "manage": "Edit categories",
@@ -391,7 +407,8 @@
       "members": "Members",
       "welcome": "Welcome",
       "ai": "AI",
-      "permissions": "Permissions"
+      "permissions": "Permissions",
+      "calls": "Calls"
     },
     "sections": {
       "general": "Its name, description, look, emoji and stickers.",

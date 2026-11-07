@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useDeferredValue, useId, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ShieldIcon, UserMinusIcon, UserPlusIcon } from 'lucide-react';
+import { UserMinusIcon, UserPlusIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
@@ -156,23 +156,24 @@ export function MembersSection({ channel }: { channel: Channel }) {
                 card
               />
               {channel.can_manage && m.user.id !== user.id && (
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  aria-pressed={m.role === 'manager'}
-                  aria-label={t('channels.managerToggle', {
+                // The role said and chosen in words (a shield icon toggled it).
+                <select
+                  aria-label={t('channels.roleFor', {
                     person: m.user.display_name || m.user.email,
                   })}
+                  className="min-h-target h-8 shrink-0 rounded-lg border border-input bg-background px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
+                  value={m.role}
                   disabled={appoint.isPending}
-                  onClick={() =>
+                  onChange={(e) =>
                     appoint.mutate({
                       userId: m.user.id,
-                      role: m.role === 'manager' ? 'member' : 'manager',
+                      role: e.target.value as 'member' | 'manager',
                     })
                   }
                 >
-                  <ShieldIcon strokeWidth={1.75} />
-                </Button>
+                  <option value="member">{t('channels.roles.member')}</option>
+                  <option value="manager">{t('channels.roles.manager')}</option>
+                </select>
               )}
               {canEdit && m.user.id !== user.id && (
                 <Button

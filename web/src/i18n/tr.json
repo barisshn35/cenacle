@@ -317,7 +317,23 @@
     "openChannelNamed": "{{channel}} kanalını aç",
     "directoryNote": "Özel kanallar yalnızca üyesiyseniz görünür. Arşivlenmiş kanallar okunabilir ama kimse yazamaz.",
     "memberCount_one": "{{count}} üye",
-    "memberCount_other": "{{count}} üye"
+    "memberCount_other": "{{count}} üye",
+    "settingsWindow": "Kanal ayarları",
+    "settingsNames": {
+      "general": "Genel",
+      "members": "Üyeler ve roller",
+      "notifications": "Bildirimler"
+    },
+    "settingsSections": {
+      "general": "Kanalın adı, konusu, kategorisi, kimlerin yazabileceği ve arşivleme.",
+      "members": "Kanalda kimlerin olduğu ve kanalı kimlerin yönettiği.",
+      "notifications": "Bu kanalın yeni mesajları size nasıl bildireceği."
+    },
+    "roleFor": "Bu kanaldaki rolü: {{person}}",
+    "roles": {
+      "member": "Üye",
+      "manager": "Kanal yöneticisi"
+    }
   },
   "categories": {
     "manage": "Kategorileri düzenle",
@@ -391,7 +407,8 @@
       "members": "Üyeler",
       "welcome": "Karşılama",
       "ai": "Yapay zekâ",
-      "permissions": "İzinler"
+      "permissions": "İzinler",
+      "calls": "Görüşmeler"
     },
     "sections": {
       "general": "Adı, açıklaması, görünümü, emojileri ve çıkartmaları.",

@@ -2,20 +2,14 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { PhoneIcon, SettingsIcon } from 'lucide-react';
+import { PhoneIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { calls, type CallSettings } from '@cenacle/core';
 import { Button } from '@cenacle/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@cenacle/ui/components/dialog';
 import { Input } from '@cenacle/ui/components/input';
 import type { Channel } from '../chat/data';
 import { useSession } from '../auth/session';
 import { useActiveWorkspace } from '../chat/active-workspace';
-import { isWorkspaceAdmin } from '../chat/workspaces';
 import { callSettingsQuery, channelCallQuery, errorCode, joinCall, useCall } from './state';
 
 /** Added to the channel header last; no composer or navigation behavior changes. */
@@ -23,7 +17,6 @@ export function CallAction({ channel }: { channel: Channel }) {
   const { t } = useTranslation('calls');
   const settings = useQuery(callSettingsQuery(channel.workspace_id));
   const { workspace } = useActiveWorkspace();
-  const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const nonce = useRef<string | null>(null);
   const selfID = useSession().user.id;
@@ -74,30 +67,6 @@ export function CallAction({ channel }: { channel: Channel }) {
           <PhoneIcon />
         </Button>
       )}
-      {isWorkspaceAdmin(workspace) && (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t('settings')}
-          onClick={() => setOpen(true)}
-        >
-          <SettingsIcon />
-        </Button>
-      )}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogTitle>{t('settings')}</DialogTitle>
-          <DialogDescription>{t('noRecording')}</DialogDescription>
-          {settings.data && (
-            <SettingsForm
-              key={open ? 'open' : 'closed'}
-              workspaceID={channel.workspace_id}
-              initial={settings.data}
-              onSaved={() => setOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
@@ -146,6 +115,28 @@ export function ChannelCallBar({ channel }: { channel: Channel }) {
     </div>
   );
 }
+/** The workspace's call settings (its administrators), in the workspace settings. */
+export function WorkspaceCallsSettings({ workspaceId }: { workspaceId: string }) {
+  const { t } = useTranslation('calls');
+  const settings = useQuery(callSettingsQuery(workspaceId));
+  const [saved, setSaved] = useState(0);
+  if (!settings.data) return null;
+  return (
+    <section className="grid gap-3" data-testid="workspace-calls">
+      <p className="text-sm text-muted-foreground">{t('noRecording')}</p>
+      <SettingsForm
+        key={saved}
+        workspaceID={workspaceId}
+        initial={settings.data}
+        onSaved={() => {
+          setSaved((n) => n + 1);
+          toast.success(t('saved'));
+        }}
+      />
+    </section>
+  );
+}
+
 function SettingsForm({
   workspaceID,
   initial,

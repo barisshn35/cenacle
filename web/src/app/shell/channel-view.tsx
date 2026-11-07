@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { SummarizeButton } from '../ai/ai-ui';
-import { PanelRightIcon, SearchIcon } from 'lucide-react';
+import { ChevronDownIcon, PanelRightIcon, SearchIcon } from 'lucide-react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -10,9 +11,9 @@ import { Logo } from '@cenacle/ui/brand';
 import { useLayout } from '../../stores/layout';
 import { useActiveChannel } from '../chat/active-channel';
 import { ChannelIcon } from '../chat/channel-icon';
-import { ArchivedNotice } from '../chat/channel-settings';
+import { ArchivedNotice, ChannelSettingsDialog } from '../chat/channel-settings';
 import { Composer } from '../chat/composer';
-import { channelsQuery } from '../chat/data';
+import { channelsQuery, isConversation } from '../chat/data';
 import { NotMember } from '../chat/not-member';
 import { usePermalink } from '../chat/permalink';
 import { useActiveWorkspace } from '../chat/active-workspace';
@@ -46,6 +47,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const showing = (view: typeof rightView) => detailsOpen && rightView === view;
   const toggle = (view: typeof rightView) => (showing(view) ? setDetailsOpen(false) : show(view));
   const name = channel?.name ?? '';
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const channelsLoaded = useQuery(channelsQuery).isSuccess;
   const { workspace } = useActiveWorkspace();
   usePageTitle(name, workspace?.name);
@@ -83,7 +85,26 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
             id="channel-title"
             className="max-w-[60%] shrink-0 truncate text-[17px] leading-5 font-semibold tracking-[-0.01em]"
           >
-            {name}
+            {channel && !isConversation(channel) ? (
+              // The channel's name opens its settings: details, members and roles,
+              // notifications (they were only in the details panel).
+              <button
+                type="button"
+                className="flex max-w-full min-h-target items-center gap-1 rounded-md px-1 -mx-1 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                aria-haspopup="dialog"
+                title={t('channels.settingsWindow')}
+                onClick={() => setSettingsOpen(true)}
+              >
+                <span className="truncate">{name}</span>
+                <ChevronDownIcon
+                  aria-hidden
+                  className="size-4 shrink-0 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+              </button>
+            ) : (
+              name
+            )}
           </h1>
           {channel?.topic && (
             <p className="min-w-0 truncate text-[13.5px] text-muted-foreground max-sm:hidden">
@@ -120,6 +141,13 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           <PanelRightIcon strokeWidth={1.75} />
         </Button>
       </header>
+      {channel && settingsOpen && (
+        <ChannelSettingsDialog
+          channel={channel}
+          open
+          onOpenChange={(open) => !open && setSettingsOpen(false)}
+        />
+      )}
       {id && channel && <ChannelTabs channel={channel} active={tab?.id} />}
       {channel && <ChannelCallBar channel={channel} />}
 
