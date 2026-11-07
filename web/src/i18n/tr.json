@@ -197,6 +197,11 @@
     "editFailed": "Değişiklik kaydedilemedi. Tekrar deneyin.",
     "noChannelsHint": "Listeden bir kanal açın ya da bu çalışma alanının kanallarına göz atın.",
     "newMessages": "Yeni mesajlar",
+    "jumpLatest": "En yeniye git",
+    "jumpLatestNew_one": "En yeniye git, {{count}} yeni mesaj",
+    "jumpLatestNew_other": "En yeniye git, {{count}} yeni mesaj",
+    "newBelow_one": "{{count}} yeni mesaj",
+    "newBelow_other": "{{count}} yeni mesaj",
     "mentionsYou": "Sizden bahsediyor",
     "announce": "{{name}} yeni mesaj gönderdi: {{text}}",
     "typing": {

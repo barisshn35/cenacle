@@ -197,6 +197,11 @@
     "editFailed": "The change could not be saved. Try again.",
     "noChannelsHint": "Open a channel from the list, or browse the channels of this workspace.",
     "newMessages": "New messages",
+    "jumpLatest": "Jump to the latest",
+    "jumpLatestNew_one": "Jump to the latest, {{count}} new message",
+    "jumpLatestNew_other": "Jump to the latest, {{count}} new messages",
+    "newBelow_one": "{{count}} new message",
+    "newBelow_other": "{{count}} new messages",
     "mentionsYou": "Mentions you",
     "announce": "New message from {{name}}: {{text}}",
     "typing": {

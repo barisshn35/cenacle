@@ -289,7 +289,9 @@ test('focus stays in the list when the focused message scrolls out of it', async
   await expect(log.getByText('Message 120')).toBeVisible({ timeout: 15_000 });
   await showActions(log.getByTestId('message').last());
   await log.getByRole('button', { name: 'Add reaction' }).last().focus();
-  // To the top: the virtual list drops the focused message.
+  // The reader scrolls to the top with the wheel: the virtual list drops the focused message.
+  await log.hover();
+  await page.mouse.wheel(0, -2000);
   await log.locator('[data-virtuoso-scroller]').evaluate((el) => el.scrollTo({ top: 0 }));
   await expect(log.getByText('Message 120')).toHaveCount(0);
   // Not the page (where the next Tab would start over): the list, by name.
@@ -330,4 +332,26 @@ test('the composer keeps attach, format and send in view, the rest under "+"', a
   if (records) items.unshift('Voice message', 'Video clip');
   for (const name of items) await expect(menu.getByRole('menuitem', { name })).toBeVisible();
   await expectNoAxeViolations(page);
+});
+
+test('a reader scrolled up sees new messages arrive and jumps to them', async ({ page }) => {
+  const many = Array.from({ length: 60 }, (_, i) =>
+    mockMessage(i + 1, `Satır ${i + 1}: biraz uzunca bir mesaj`),
+  );
+  const api = await mockApi(page, { messages: many });
+  await page.goto(`/c/${GENERAL.id}`);
+  const log = page.getByRole('log', { name: 'Messages in General' });
+  await expect(log.getByText('Satır 60:')).toBeVisible();
+  // At the end, nothing to jump to.
+  await expect(page.getByTestId('jump-latest')).toHaveCount(0);
+  await log.hover();
+  await page.mouse.wheel(0, -3000);
+  const jump = page.getByTestId('jump-latest');
+  await expect(jump).toHaveText('Jump to the latest');
+  api.emit('message.created', mockMessage(61, 'Yeni gelen', 'Mert Kaya'));
+  await expect(jump).toHaveText('1 new message');
+  await expect(jump).toHaveAccessibleName('Jump to the latest, 1 new message');
+  await jump.click();
+  await expect(page.getByTestId('message').filter({ hasText: 'Yeni gelen' })).toBeInViewport();
+  await expect(jump).toHaveCount(0);
 });

@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { CircleAlertIcon } from 'lucide-react';
+import { ArrowDownIcon, CircleAlertIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { toast } from 'sonner';
@@ -502,6 +502,10 @@ function useJumpTo(
   }, [target, rows, loading, hasNextPage, pages, fetchNextPage, list, done, t, onFound]);
 }
 
+/** How long after the reader's own scrolling the list counts as moved by them (a busy device
+ * delivers scroll events late). */
+const USER_SCROLL_MS = 4000;
+
 /** One's newest message in a conversation, and who wrote after it. */
 function newestOwnIn(channel: Channel, messages: Message[], self: string) {
   if (!isConversation(channel)) return undefined;
@@ -543,27 +547,68 @@ export function MessageList({ channel }: { channel: Channel }) {
   // One's newest message in a conversation shows who has seen it.
   const lastOwn = newestOwnIn(channel, messages, self);
   const list = useRef<VirtuosoHandle>(null);
-  // Whether the reader is at the end. Virtuoso's own following lets go when
-  // rows change height as they arrive (the reader's own messages from another
-  // device do): the list then keeps to the end itself while the reader is there.
+  // Whether the reader keeps to the end. Only the reader leaves it (wheel, touch,
+  // keys, the scroll bar), or the app jumping to an older message: rows that grow
+  // once drawn (pictures, previews, the reader's own messages from another device)
+  // keep the list at the end, where Virtuoso's own following would let go.
   const atEnd = useRef(true);
+  const userScroll = useRef(0);
+  // Until when a jump to an older message is under way: the list mounted at the
+  // message may say it is at the end before it has scrolled there.
+  const jumping = useRef(0);
+  // The newest message when the reader left the end ("" for none): they see a way back.
+  const [away, setAway] = useState<string | null>(null);
+  const toEnd = useCallback(
+    (behavior: 'auto' | 'smooth' = 'auto') =>
+      list.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior }),
+    [],
+  );
   const setAtBottom = useCallback(
     (bottom: boolean) => {
-      atEnd.current = bottom;
       markAtBottom(bottom);
+      if (bottom) {
+        if (Date.now() < jumping.current) return;
+        atEnd.current = true;
+        setAway(null);
+      } else if (Date.now() - userScroll.current < USER_SCROLL_MS || !atEnd.current) {
+        atEnd.current = false;
+        setAway(messages.at(-1)?.id ?? '');
+      } else {
+        // A row grew under the reader: back to the end.
+        toEnd();
+      }
     },
-    [markAtBottom],
+    [markAtBottom, toEnd, messages],
   );
+  useEffect(() => {
+    if (!logEl) return;
+    const moved = () => (userScroll.current = Date.now());
+    const keys = (e: KeyboardEvent) => {
+      if (/^(PageUp|PageDown|ArrowUp|ArrowDown|Home|End| )$/.test(e.key)) moved();
+    };
+    const events = ['wheel', 'touchmove', 'pointerdown'] as const;
+    for (const e of events) logEl.addEventListener(e, moved, { passive: true });
+    logEl.addEventListener('keydown', keys);
+    return () => {
+      for (const e of events) logEl.removeEventListener(e, moved);
+      logEl.removeEventListener('keydown', keys);
+    };
+  }, [logEl]);
   const rowCount = rows.length;
   useLayoutEffect(() => {
     if (!atEnd.current || rowCount === 0) return;
-    const toEnd = () =>
-      list.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'auto' });
     toEnd();
     // Again once the new row is measured (its height is known only after paint).
-    const frame = requestAnimationFrame(toEnd);
+    const frame = requestAnimationFrame(() => toEnd());
     return () => cancelAnimationFrame(frame);
-  }, [rowCount]);
+  }, [rowCount, toEnd]);
+  // Messages of others that came while the reader was away from the end.
+  const fresh =
+    away === null
+      ? 0
+      : messages
+          .slice(messages.findIndex((m) => m.id === away) + 1)
+          .filter((m) => m.author.id !== self).length;
 
   // Prepending older messages lowers the index of the first row by exactly the
   // rows added before the oldest message of the newest page (its anchor): day
@@ -583,8 +628,14 @@ export function MessageList({ channel }: { channel: Channel }) {
   // A jump starts the list again at the message (a new key mounts it there).
   const [startAt, setStartAt] = useState<{ index: number; seq: number } | null>(null);
   const onFound = useCallback(
-    (index: number) => setStartAt((s) => ({ index, seq: (s?.seq ?? 0) + 1 })),
-    [],
+    (index: number) => {
+      // The reader goes to an older message: the list no longer keeps to the end.
+      atEnd.current = false;
+      jumping.current = Date.now() + 3000;
+      setAway(messages.at(-1)?.id ?? '');
+      setStartAt((s) => ({ index, seq: (s?.seq ?? 0) + 1 }));
+    },
+    [messages],
   );
   useJumpTo(
     channelId,
@@ -629,7 +680,7 @@ export function MessageList({ channel }: { channel: Channel }) {
       aria-live="off"
       aria-label={t('chat.messagesIn', { channel: channelName })}
       tabIndex={-1}
-      className="min-h-0 flex-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+      className="relative min-h-0 flex-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
     >
       <MessageAnnouncer messages={messages} selfId={self} />
       <Virtuoso
@@ -647,6 +698,10 @@ export function MessageList({ channel }: { channel: Channel }) {
         // Stay at the bottom when new messages arrive, if the reader is there.
         followOutput={(atBottom) => (atBottom ? 'auto' : false)}
         atBottomStateChange={setAtBottom}
+        totalListHeightChanged={() => {
+          // Rows measured while the reader scrolls change the height too: not a reason to pull back.
+          if (atEnd.current && Date.now() - userScroll.current > USER_SCROLL_MS) toEnd();
+        }}
         // "At the end" with a little slack, so a row still growing does not let go.
         atBottomThreshold={48}
         alignToBottom
@@ -677,6 +732,32 @@ export function MessageList({ channel }: { channel: Channel }) {
           )
         }
       />
+      {away !== null && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="pointer-events-auto rounded-full shadow-md"
+            data-testid="jump-latest"
+            aria-label={
+              fresh > 0 ? t('chat.jumpLatestNew', { count: fresh }) : t('chat.jumpLatest')
+            }
+            onClick={() => {
+              atEnd.current = true;
+              userScroll.current = 0;
+              jumping.current = 0;
+              setAway(null);
+              const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              toEnd(reduce ? 'auto' : 'smooth');
+              // Rows measured on the way change the height: land exactly at the end.
+              if (!reduce) window.setTimeout(() => atEnd.current && toEnd(), 450);
+            }}
+          >
+            <ArrowDownIcon aria-hidden className="size-4" strokeWidth={1.75} />
+            {fresh > 0 ? t('chat.newBelow', { count: fresh }) : t('chat.jumpLatest')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
