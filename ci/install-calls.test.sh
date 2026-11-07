@@ -27,6 +27,8 @@ cat > "$work/docker" <<'EOF'
 echo "$*" >> /tmp/docker.log
 case "$1" in
   info) case "$*" in *DockerRootDir*) echo /var/lib ;; esac ;;
+  # Another stack of the same project name, from another directory (CLASH_DIR).
+  ps) if [ -n "${CLASH_DIR:-}" ]; then echo "$CLASH_DIR"; fi ;;
   version) echo 29.0.0 ;;
   compose)
     case "$*" in
@@ -131,6 +133,10 @@ for image in $images; do
   check "address behind NAT, kept on a second run" "$out" 'EXIT=0' \
     'WARNING: 203\.0\.113\.9 is not an address of this host' 'keeping \.env\.calls|are ignored because \.env\.calls exists' \
     '!CENACLE_MEDIA_PUBLIC_IP=198\.51\.100\.4'
+
+  run -e CLASH_DIR=/root/other/deploy/compose "$tag" sh /case.sh
+  check "another stack named cenacle" "$out" 'EXIT=1' "another Compose project named 'cenacle' runs from /root/other/deploy/compose" \
+    'COMPOSE_PROJECT_NAME=<name>' '!FILE \.env\.prod' '!UP '
 
   run -e CENACLE_CALLS=on "$tag" sh /case.sh --media-public-ip 203.0.113.9
   check "CENACLE_CALLS=on" "$out" 'EXIT=0' 'FILE \.env\.calls' 'UP .*-f calls\.yml'

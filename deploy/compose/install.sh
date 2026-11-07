@@ -214,6 +214,17 @@ dc() {
     docker compose -f prod.yml --env-file .env.prod "$@"
   fi
 }
+# prod.yml names the project "cenacle": another stack of that name on this host
+# (a second installation, a development stack) would be taken over.
+project=${COMPOSE_PROJECT_NAME:-cenacle}
+if docker info >/dev/null 2>&1; then
+  other=$(docker ps -a --filter "label=com.docker.compose.project=$project" \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null |
+    grep -v -x -F "$compose_dir" | sort -u | head -n 1) || other=''
+  if [ -n "$other" ]; then
+    fail "another Compose project named '$project' runs from $other: give this installation its own name, COMPOSE_PROJECT_NAME=<name> sh install.sh, and use it for every later command (docs/install/README.md)"
+  fi
+fi
 running_proxy=''
 if [ -f .env.prod ] && docker info >/dev/null 2>&1; then
   running_proxy=$(dc ps -q --status running proxy 2>/dev/null || true)

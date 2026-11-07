@@ -40,6 +40,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- `install.sh` took over another stack of the same Compose project name on the host (a
+  second installation or a development stack); it now stops and asks for
+  `COMPOSE_PROJECT_NAME`.
 - Calls with Compose did not start: `calls.yml` gave the media service's `/tmp` as three
   entries (Docker refused `noexec`), and another container could take the media service's
   fixed address on its network. A test now checks the Compose files for both.
