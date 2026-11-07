@@ -6,6 +6,7 @@ import {
   GENERAL,
   mockApi,
   mockMessage,
+  PEOPLE,
   RANDOM,
 } from './helpers';
 
@@ -123,5 +124,136 @@ test.describe('search', () => {
     const panel = page.getByTestId('search-panel');
     await panel.getByRole('searchbox', { name: 'Search for' }).fill('nothing');
     await expect(panel.getByText('No messages found. Try fewer or other words.')).toBeVisible();
+  });
+});
+
+test.describe('incoming messages', () => {
+  // What the page shows and plays: notifications and oscillators are recorded,
+  // and the test decides whether the window is in front.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as {
+        notes: string[];
+        tones: number;
+        away: boolean;
+        AudioContext: typeof AudioContext;
+        Notification: unknown;
+      };
+      w.notes = [];
+      w.tones = 0;
+      w.away = false;
+      class Recorded {
+        static permission = 'granted';
+        static requestPermission = () => Promise.resolve('granted');
+        onclick: (() => void) | null = null;
+        constructor(title: string, options?: { body?: string }) {
+          w.notes.push(`${title} | ${options?.body ?? ''}`);
+        }
+        close() {}
+      }
+      w.Notification = Recorded;
+      const Base = w.AudioContext;
+      w.AudioContext = class extends Base {
+        createOscillator() {
+          w.tones++;
+          return super.createOscillator();
+        }
+      };
+      Object.defineProperty(document, 'visibilityState', { get: () => 'visible' });
+      document.hasFocus = () => !w.away;
+    });
+  });
+  const state = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => {
+      const w = window as unknown as { notes: string[]; tones: number };
+      return { notes: w.notes, tones: w.tones };
+    });
+  const away = (page: import('@playwright/test').Page, on: boolean) =>
+    page.evaluate((v) => ((window as unknown as { away: boolean }).away = v), on);
+  // A second channel the person is in, open while messages arrive in General.
+  const OPS = {
+    ...RANDOM,
+    id: '01a15e50-5555-7d7d-bbee-8e7809fd8ad2',
+    name: 'Ops',
+    is_member: true,
+  };
+  // The server's defaults: every message, with a sound of its own.
+  const defaults = {
+    desktop: true,
+    default_level: 'all',
+    sounds: { message: 'drop', mention: 'chime', direct: 'pop' },
+  };
+
+  test('a channel message notifies and sounds while the window is behind others', async ({
+    page,
+  }) => {
+    const api = await mockApi(page, { channels: [OPS] });
+    Object.assign(api.notifications!.prefs, defaults);
+    await page.goto(`/c/${OPS.id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ops');
+    // Visible but not focused: another window is in front.
+    await away(page, true);
+    api.emit('message.created', { ...mockMessage(90, 'Toplantı 15:00') });
+    await expect
+      .poll(async () => (await state(page)).notes)
+      .toEqual(['Ayşe Yılmaz · General | Toplantı 15:00']);
+    expect((await state(page)).tones).toBeGreaterThan(0);
+  });
+
+  test('nothing while the channel is open in front', async ({ page }) => {
+    const api = await mockApi(page, { channels: [OPS] });
+    Object.assign(api.notifications!.prefs, defaults);
+    await page.goto(`/c/${GENERAL.id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('General');
+    api.emit('message.created', { ...mockMessage(91, 'Buradayım') });
+    await expect(page.getByTestId('message').filter({ hasText: 'Buradayım' })).toBeVisible();
+    expect(await state(page)).toEqual({ notes: [], tones: 0 });
+  });
+
+  test('mentions only: a plain channel message stays quiet', async ({ page }) => {
+    const api = await mockApi(page, { channels: [OPS] });
+    Object.assign(api.notifications!.prefs, defaults, { default_level: 'mentions' });
+    await page.goto(`/c/${OPS.id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ops');
+    await away(page, true);
+    api.emit('message.created', { ...mockMessage(92, 'Sessiz') });
+    // A mention after it does notify: the plain message was handled and stayed quiet.
+    api.emit('message.created', {
+      ...mockMessage(93, 'Bakar mısın'),
+      mentions: [{ id: PEOPLE[0]!.id, display_name: PEOPLE[0]!.display_name }],
+    });
+    await expect
+      .poll(async () => (await state(page)).notes)
+      .toEqual(['Ayşe Yılmaz · General | Bakar mısın']);
+  });
+
+  test('the desktop app shows the notification itself', async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { sent: unknown[]; cenacleDesktop: unknown };
+      w.sent = [];
+      w.cenacleDesktop = {
+        version: '1.0.0',
+        platform: 'win32',
+        titleBarHeight: 36,
+        prefs: () => Promise.resolve(null),
+        setBadge: () => Promise.resolve(),
+        setTitleBar: () => Promise.resolve(),
+        notify: (note: unknown) => {
+          w.sent.push(note);
+          return Promise.resolve();
+        },
+        onNotificationClick: () => () => {},
+      };
+    });
+    const api = await mockApi(page, { channels: [OPS] });
+    Object.assign(api.notifications!.prefs, defaults);
+    await page.goto(`/c/${OPS.id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ops');
+    await away(page, true);
+    api.emit('message.created', { ...mockMessage(93, 'Masaüstünden') });
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { sent: unknown[] }).sent))
+      .toEqual([{ title: 'Ayşe Yılmaz · General', body: 'Masaüstünden', channelId: GENERAL.id }]);
+    expect((await state(page)).notes).toEqual([]);
   });
 });

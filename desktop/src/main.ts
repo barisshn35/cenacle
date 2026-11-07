@@ -9,6 +9,7 @@ import {
   nativeImage,
   nativeTheme,
   net,
+  Notification,
   session,
   shell,
   Tray,
@@ -571,6 +572,27 @@ function registerIpc() {
   ipcMain.handle('desktop:badge', (e, count: unknown) => {
     if (!fromServer(e) || typeof count !== 'number' || !Number.isFinite(count)) return;
     setBadge(Math.max(0, Math.min(9999, Math.floor(count))));
+  });
+  // A message for the person: the system's notification, shown by the app (the
+  // page's own Notification does not reach Windows' notification centre from a
+  // minimised window). A click brings the window back and opens the place.
+  ipcMain.handle('desktop:notify', (e, note: unknown) => {
+    if (!fromServer(e) || !note || typeof note !== 'object' || !Notification.isSupported()) return;
+    const { title, body, channelId } = note as Record<string, unknown>;
+    if (typeof title !== 'string' || typeof body !== 'string') return;
+    if (channelId !== undefined && (typeof channelId !== 'string' || !/^[0-9a-f-]{36}$/.test(channelId)))
+      return;
+    const n = new Notification({
+      title: title.slice(0, 120),
+      body: body.slice(0, 400),
+      icon: join(assets, 'icon.png'),
+      silent: true,
+    });
+    n.on('click', () => {
+      showMain();
+      if (channelId) main?.webContents.send('desktop:notification-click', channelId);
+    });
+    n.show();
   });
   ipcMain.handle('desktop:server', (e) => (fromServer(e) || fromLocal(e) ? config.server : null));
   // The page gives the colors of its bar; the window's buttons take them.

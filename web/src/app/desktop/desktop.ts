@@ -13,6 +13,10 @@ export interface DesktopBridge {
   prefs: () => Promise<DesktopPrefs | null>;
   setCloseToTray: (on: boolean) => Promise<void>;
   checkUpdates: () => Promise<void>;
+  /** Shows a system notification (absent before 1.0's desktop app). */
+  notify?: (note: { title: string; body: string; channelId?: string }) => Promise<void>;
+  /** Calls `listener` with the channel of a clicked notification; returns the unsubscribe. */
+  onNotificationClick?: (listener: (channelId: string) => void) => () => void;
   /** The height of the window's bar in pixels. */
   titleBarHeight: number;
 }

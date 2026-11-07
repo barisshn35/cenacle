@@ -15,6 +15,17 @@ contextBridge.exposeInMainWorld('cenacleDesktop', {
   changeServer: () => ipcRenderer.invoke('desktop:change-server'),
   /** The count on the taskbar or dock (0 clears it). */
   setBadge: (count: number) => ipcRenderer.invoke('desktop:badge', count),
+  /** Shows a system notification; a click brings the app back to `channelId`. */
+  notify: (note: { title: string; body: string; channelId?: string }) =>
+    ipcRenderer.invoke('desktop:notify', note),
+  /** Called with the channel of a notification the person clicked. */
+  onNotificationClick: (listener: (channelId: string) => void) => {
+    const handler = (_: unknown, channelId: unknown) => {
+      if (typeof channelId === 'string') listener(channelId);
+    };
+    ipcRenderer.on('desktop:notification-click', handler);
+    return () => ipcRenderer.removeListener('desktop:notification-click', handler);
+  },
   /** The colors of the page's bar; the window's buttons take them. */
   setTitleBar: (colors: { color: string; symbolColor: string }) =>
     ipcRenderer.invoke('desktop:title-bar', colors),

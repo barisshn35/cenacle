@@ -54,6 +54,7 @@ import {
   type ThreadSummary,
 } from '../threads/threads';
 import { notifyIncoming, notifyReminder, type Reminder } from '../notifications/notifier';
+import { desktop } from '../desktop/desktop';
 
 /**
  * Keeps the live connection open while signed in and applies its events to
@@ -68,6 +69,15 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     navigateRef.current = navigate;
   }, [navigate]);
+
+  // A clicked notification of the desktop app opens its channel.
+  useEffect(
+    () =>
+      desktop?.onNotificationClick?.((channelId) => {
+        void navigateRef.current({ to: '/c/$channelId', params: { channelId } });
+      }),
+    [],
+  );
 
   useEffect(() => startE2E(selfId), [selfId]);
 

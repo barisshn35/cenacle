@@ -98,7 +98,7 @@ func TestPushStopsWithSessionPolicy(t *testing.T) {
 	admin := s.admin()
 	mert := s.user("sub-m", "Mert")
 	general := s.general(admin)
-	s.pushOn(mert, "", "https://push.example/mert")
+	s.pushOn(mert, "mentions", "https://push.example/mert")
 	ctx := context.Background()
 	sender := &fakeSender{}
 	p := s.pusher(sender, admin)
@@ -165,7 +165,7 @@ func TestPushStalledEndpointsHoldBackOnlyTheirOwner(t *testing.T) {
 		slow = append(slow, fmt.Sprintf("https://slow.example/%02d", i))
 	}
 	s.pushOn(mallory, "all", slow...)
-	s.pushOn(mert, "", "https://push.example/mert")
+	s.pushOn(mert, "mentions", "https://push.example/mert")
 	ctx := context.Background()
 	sender := &stallingSender{stall: "https://slow.example/"}
 	p := s.pusher(sender, admin)
@@ -248,7 +248,7 @@ func TestPushDrainsPagesInOneRun(t *testing.T) {
 	admin := s.admin()
 	mert := s.user("sub-m", "Mert")
 	general := s.general(admin)
-	s.pushOn(mert, "", "https://push.example/mert")
+	s.pushOn(mert, "mentions", "https://push.example/mert")
 	s.pushCrowd(1500)
 	sender := &fakeSender{}
 	p := s.pusher(sender, admin)

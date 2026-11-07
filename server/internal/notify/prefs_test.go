@@ -19,11 +19,12 @@ func TestNotifies(t *testing.T) {
 		want bool
 	}{
 		{"mention by default", nil, Channel{}, Mention, true},
-		{"plain message by default (mentions only)", nil, Channel{}, Message, false},
+		{"plain message by default (all)", nil, Channel{}, Message, true},
 		{"conversation by default", nil, Channel{}, Direct, true},
 		{"channel set to all", nil, Channel{Level: "all"}, Message, true},
 		{"channel set to none", nil, Channel{Level: "none"}, Mention, false},
-		{"default all", func(p *Prefs) { p.DefaultLevel = "all" }, Channel{}, Message, true},
+		{"default mentions only", func(p *Prefs) { p.DefaultLevel = "mentions" }, Channel{}, Message, false},
+		{"default mentions only, a mention", func(p *Prefs) { p.DefaultLevel = "mentions" }, Channel{}, Mention, true},
 		{"channel muted", nil, Channel{MutedUntil: ptr(noon.Add(time.Hour))}, Mention, false},
 		{"mute over", nil, Channel{MutedUntil: ptr(noon.Add(-time.Hour))}, Mention, true},
 		{"workspace muted", nil, Channel{WorkspaceMutedUntil: ptr(noon.Add(time.Hour))}, Direct, false},
@@ -64,7 +65,7 @@ func TestRead(t *testing.T) {
 	if p := Read([]byte(`{"volume": 400}`)); p.Volume != 70 {
 		t.Errorf("invalid settings read as %+v", p)
 	}
-	if p := Read([]byte(`not json`)); p.DefaultLevel != "mentions" {
+	if p := Read([]byte(`not json`)); p.DefaultLevel != "all" || p.Sounds.Message != "drop" {
 		t.Errorf("garbage read as %+v", p)
 	}
 	d := Defaults()

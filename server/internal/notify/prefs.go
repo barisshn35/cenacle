@@ -45,9 +45,9 @@ var BuiltinSounds = []string{"chime", "bell", "pop", "ding", "marimba", "glass",
 func Defaults() Prefs {
 	var p Prefs
 	p.Desktop = true
-	p.Sounds.Mention, p.Sounds.Direct, p.Sounds.Message = "chime", "pop", "none"
+	p.Sounds.Mention, p.Sounds.Direct, p.Sounds.Message = "chime", "pop", "drop"
 	p.Volume = 70
-	p.DefaultLevel = "mentions"
+	p.DefaultLevel = "all"
 	p.Email.DelayMinutes = 15
 	p.QuietHours.Start, p.QuietHours.End = "22:00", "08:00"
 	p.QuietHours.Days = []int{0, 1, 2, 3, 4, 5, 6}

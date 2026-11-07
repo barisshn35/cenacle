@@ -25,6 +25,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- Notifications are on for every message by default: a channel message makes a sound
+  ("drop") and a desktop notification, as mentions and direct messages did. People who
+  changed their notification settings keep theirs; anyone can still choose mentions only,
+  per channel or for all.
 - `@username` written as plain text (typed without picking the suggestion, pasted, or sent
   by a bot or a webhook) mentions that member, like a picked name: they are notified and it
   is in their inbox. `@name` inside code does not mention anyone, and moderation's mention
@@ -40,6 +44,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Desktop notifications appeared only while the window was minimised in a browser, and
+  never in the desktop app on Windows: a window behind others now counts as away, and the
+  desktop app shows the system's own notification (a click opens the channel).
 - `install.sh` took over another stack of the same Compose project name on the host (a
   second installation or a development stack); it now stops and asks for
   `COMPOSE_PROJECT_NAME`.

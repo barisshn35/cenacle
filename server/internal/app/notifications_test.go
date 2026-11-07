@@ -185,7 +185,7 @@ func TestNotificationSettings(t *testing.T) {
 
 	var set api.NotificationSettings
 	s.call(http.MethodGet, "/api/me/notifications", ayse, nil, &set)
-	if !set.Prefs.Desktop || set.Prefs.Sounds.Mention != "chime" || set.Prefs.DefaultLevel != "mentions" || set.PushPublicKey != nil || set.EmailAvailable {
+	if !set.Prefs.Desktop || set.Prefs.Sounds.Mention != "chime" || set.Prefs.Sounds.Message != "drop" || set.Prefs.DefaultLevel != "all" || set.PushPublicKey != nil || set.EmailAvailable {
 		t.Fatalf("defaults = %+v", set)
 	}
 	prefs := set.Prefs
@@ -294,7 +294,7 @@ func TestWebPush(t *testing.T) {
 		t.Fatalf("public key = %v", set.PushPublicKey)
 	}
 	for _, who := range []string{mert, deniz} {
-		set.Prefs.Push = true
+		set.Prefs.Push, set.Prefs.DefaultLevel = true, "mentions"
 		s.call(http.MethodPut, "/api/me/notifications", who, set.Prefs, nil)
 	}
 	sub := func(token, endpoint string) {

@@ -17,6 +17,7 @@ import i18next from 'i18next';
 import { toast } from 'sonner';
 import { plainOf } from '../compliance/e2e';
 import { useLayout } from '../../stores/layout';
+import { desktop } from '../desktop/desktop';
 
 /** The channel in view, from the address (/c/<id>). */
 function viewedChannel(): string | undefined {
@@ -57,6 +58,38 @@ export function canNotify(): boolean {
   return typeof Notification !== 'undefined' && Notification.permission === 'granted';
 }
 
+/** The page is in front: visible and focused (a window behind others is not). */
+function inFront(): boolean {
+  return document.visibilityState === 'visible' && document.hasFocus();
+}
+
+/**
+ * A notification outside the page: the desktop app shows it as the system's
+ * own (a page's Notification does not reach the notification centre from a
+ * minimised window); browsers use the Notification API when allowed.
+ */
+function systemNotification(
+  note: { title: string; body: string; tag: string; channelId: string; sticky?: boolean },
+  openChannel: (channelId: string) => void,
+): void {
+  if (desktop?.notify) {
+    void desktop.notify({ title: note.title, body: note.body, channelId: note.channelId });
+    return;
+  }
+  if (!canNotify()) return;
+  const n = new Notification(note.title, {
+    body: note.body,
+    tag: note.tag,
+    silent: !note.sticky,
+    requireInteraction: !!note.sticky,
+  });
+  n.onclick = () => {
+    window.focus();
+    openChannel(note.channelId);
+    n.close();
+  };
+}
+
 /**
  * Tells the person about a message that arrived (a sound, a desktop
  * notification), following their settings — the same rules the server uses
@@ -74,7 +107,7 @@ export function notifyIncoming(
   const channels = queryClient.getQueryData<Channel[]>(['channels']);
   const channel = channels?.find((c) => c.id === message.channel_id);
   if (!settings || !channel) return;
-  const front = document.visibilityState === 'visible' && document.hasFocus();
+  const front = inFront();
   const layout = useLayout.getState();
   const threadOpen =
     layout.detailsOpen &&
@@ -94,7 +127,7 @@ export function notifyIncoming(
   if (!notifies(settings, channel, kind, me?.timezone ?? '')) return;
 
   playSound(soundFor(settings, channel.id, kind), settings.prefs.volume);
-  if (settings.prefs.desktop && canNotify() && document.visibilityState !== 'visible') {
+  if (settings.prefs.desktop && !front) {
     const conversation = channel.kind === 'direct' || channel.kind === 'group';
     const shown = byPolicy(
       queryClient,
@@ -103,16 +136,10 @@ export function notifyIncoming(
         : `${message.author.display_name} · ${channel.name}`,
       excerpt(message.body),
     );
-    const n = new Notification(shown.title, {
-      body: shown.body,
-      tag: `c-${channel.id}`,
-      silent: true,
-    });
-    n.onclick = () => {
-      window.focus();
-      openChannel(channel.id);
-      n.close();
-    };
+    systemNotification(
+      { title: shown.title, body: shown.body, tag: `c-${channel.id}`, channelId: channel.id },
+      openChannel,
+    );
   }
 }
 
@@ -145,21 +172,21 @@ export function notifyReminder(
     duration: 15_000,
     action: { label: i18next.t('priority.open'), onClick: () => openChannel(r.channel_id) },
   });
-  if (canNotify() && document.visibilityState !== 'visible') {
+  if (!inFront()) {
     const shown = byPolicy(
       queryClient,
       conversation ? title : `${title} · ${r.channel_name}`,
       r.body,
     );
-    const n = new Notification(shown.title, {
-      body: shown.body,
-      tag: `reminder-${r.message_id}`,
-      requireInteraction: true,
-    });
-    n.onclick = () => {
-      window.focus();
-      openChannel(r.channel_id);
-      n.close();
-    };
+    systemNotification(
+      {
+        title: shown.title,
+        body: shown.body,
+        tag: `reminder-${r.message_id}`,
+        channelId: r.channel_id,
+        sticky: true,
+      },
+      openChannel,
+    );
   }
 }
