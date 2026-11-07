@@ -262,12 +262,19 @@ function createMainWindow(server: string): BrowserWindow {
   return win;
 }
 
+/** The name the web app gives the call's own window. */
+const CALL_WINDOW = 'cenacle-call';
+
 /**
  * Keeps the server's window on the server. Its own pages stay; files are
  * saved; Cenacle ID's pages and other web sites open in windows of their
  * own inside the app; e-mail addresses go to the mail program.
  */
 function guardNavigation(contents: WebContents, server: string) {
+  contents.on('did-create-window', (child) => {
+    child.webContents.on('will-navigate', (event) => event.preventDefault());
+    child.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  });
   contents.on('will-navigate', (event, url) => {
     if (originOf(url) === server) return;
     event.preventDefault();
@@ -280,7 +287,28 @@ function guardNavigation(contents: WebContents, server: string) {
     event.preventDefault();
     openLink(event.url);
   });
-  contents.setWindowOpenHandler(({ url }) => {
+  contents.setWindowOpenHandler(({ url, frameName }) => {
+    // The call's own window: a blank page the app draws the call into
+    // itself. It shares the window's session, runs nothing of its own and
+    // goes nowhere.
+    if (url === 'about:blank' && frameName === CALL_WINDOW) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 1100,
+          height: 720,
+          minWidth: 480,
+          minHeight: 360,
+          autoHideMenuBar: true,
+          webPreferences: {
+            sandbox: true,
+            contextIsolation: true,
+            nodeIntegration: false,
+            webSecurity: true,
+          },
+        },
+      };
+    }
     if (originOf(url) === server) {
       const path = new URL(url).pathname;
       if (path.startsWith('/api/')) contents.downloadURL(url);
@@ -580,7 +608,10 @@ function registerIpc() {
     if (!fromServer(e) || !note || typeof note !== 'object' || !Notification.isSupported()) return;
     const { title, body, channelId } = note as Record<string, unknown>;
     if (typeof title !== 'string' || typeof body !== 'string') return;
-    if (channelId !== undefined && (typeof channelId !== 'string' || !/^[0-9a-f-]{36}$/.test(channelId)))
+    if (
+      channelId !== undefined &&
+      (typeof channelId !== 'string' || !/^[0-9a-f-]{36}$/.test(channelId))
+    )
       return;
     const n = new Notification({
       title: title.slice(0, 120),

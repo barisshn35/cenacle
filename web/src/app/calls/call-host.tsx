@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { calls, type PublicationKind, type RemotePublication } from '@cenacle/core';
@@ -20,6 +21,8 @@ import {
   PhoneOffIcon,
   Minimize2Icon,
   PhoneIcon,
+  ExternalLinkIcon,
+  PictureInPicture2Icon,
 } from 'lucide-react';
 import { cn } from '@cenacle/ui/lib/utils';
 import { toast } from 'sonner';
@@ -31,6 +34,50 @@ import { errorCode, joinCall, leaveCall, startRinging, useCall } from './state';
 
 /** Call shortcuts: Ctrl/Cmd+Shift with these keys (listed in the shortcuts dialog). */
 const callShortcuts = { KeyM: 'audio', KeyO: 'camera', KeyE: 'screen', KeyH: 'leave' } as const;
+
+/** The call's keyboard shortcuts, in the app's window and the call's own. */
+function shortcut(event: KeyboardEvent) {
+  if (event.repeat || event.altKey || !event.shiftKey || !(event.ctrlKey || event.metaKey)) return;
+  const current = useCall.getState();
+  const action = callShortcuts[event.code as keyof typeof callShortcuts];
+  if (!current.session || !action) return;
+  event.preventDefault();
+  if (action === 'leave') {
+    void leaveCall();
+    return;
+  }
+  if (current.connection !== 'connected') return;
+  void toggle(action)?.catch((error) => useCall.setState({ error: errorCode(error) }));
+}
+
+/** The name of the call's own window (the desktop app recognises it). */
+const CALL_WINDOW = 'cenacle-call';
+
+/**
+ * Opens a blank window of the same site and moves the page's styles and
+ * theme into it, so the call can be drawn there by this page (one session,
+ * the same media). Null when the browser refused to open it.
+ */
+function openCallWindow(title: string): { win: Window; root: HTMLElement } | null {
+  const width = Math.min(1280, Math.round(screen.availWidth * 0.8));
+  const height = Math.min(820, Math.round(screen.availHeight * 0.8));
+  const win = window.open('', CALL_WINDOW, `popup,width=${width},height=${height}`);
+  if (!win) return null;
+  const doc = win.document;
+  doc.title = title;
+  doc.head.replaceChildren(
+    ...[
+      ...document.head.querySelectorAll('style, link[rel="stylesheet"], meta[name="viewport"]'),
+    ].map((node) => node.cloneNode(true)),
+  );
+  for (const { name, value } of document.documentElement.attributes)
+    doc.documentElement.setAttribute(name, value);
+  doc.body.className = document.body.className;
+  const root = doc.createElement('div');
+  root.className = 'flex h-dvh flex-col bg-background p-4 text-sm text-foreground';
+  doc.body.replaceChildren(root);
+  return { win, root };
+}
 
 /** Turns a device on with the chosen input, or off. */
 function toggle(kind: PublicationKind): Promise<void> | undefined {
@@ -61,24 +108,39 @@ export function CallHost() {
     return () => window.removeEventListener('pagehide', leave);
   }, []);
   useEffect(() => {
-    const shortcut = (event: KeyboardEvent) => {
-      if (event.repeat || event.altKey || !event.shiftKey || !(event.ctrlKey || event.metaKey))
-        return;
-      const current = useCall.getState();
-      const action = callShortcuts[event.code as keyof typeof callShortcuts];
-      if (!current.session || !action) return;
-      event.preventDefault();
-      if (action === 'leave') {
-        void leaveCall();
-        return;
-      }
-      if (current.connection !== 'connected') return;
-      void toggle(action)?.catch((error) => useCall.setState({ error: errorCode(error) }));
-    };
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
   }, []);
   const report = (error: unknown) => useCall.setState({ error: errorCode(error) });
+  // The call in a window of its own (drawn by this page into it).
+  const [popout, setPopout] = useState<{ win: Window; root: HTMLElement } | null>(null);
+  const closePopout = useCallback((back: boolean) => {
+    setPopout((current) => {
+      current?.win.close();
+      return null;
+    });
+    if (back && useCall.getState().call) useCall.setState({ expanded: true });
+  }, []);
+  const popOut = () => {
+    const opened = openCallWindow(channelName);
+    if (!opened) {
+      toast.error(t('popupBlocked'));
+      return;
+    }
+    opened.win.addEventListener('keydown', shortcut);
+    // A call that ends closes its window.
+    const unsubscribe = useCall.subscribe((current) => {
+      if (!current.call) opened.win.close();
+    });
+    // Closing the window brings the call back here; it does not end it.
+    opened.win.addEventListener('pagehide', () => {
+      unsubscribe();
+      setPopout(null);
+      if (useCall.getState().call) useCall.setState({ expanded: true });
+    });
+    setPopout(opened);
+    useCall.setState({ expanded: false });
+  };
   // The caller of a direct call waits for an answer while it rings.
   const status =
     state.call?.state === 'ringing' && state.connection === 'connected'
@@ -138,111 +200,187 @@ export function CallHost() {
           </div>
         </DialogContent>
       </Dialog>
-      {state.call && !state.expanded && (
+      {state.call && (!state.expanded || popout) && (
         <div className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border bg-popover p-3 text-popover-foreground">
-          <Button variant="ghost" onClick={() => useCall.setState({ expanded: true })}>
+          <Button
+            variant="ghost"
+            onClick={() => (popout ? popout.win.focus() : useCall.setState({ expanded: true }))}
+          >
             <PhoneIcon data-icon="inline-start" />
             {channelName} · {t(status)}
+            {popout && ` · ${t('inOwnWindow')}`}
           </Button>
           <Button variant="destructive" onClick={() => void leaveCall()} aria-label={t('leave')}>
             <PhoneOffIcon />
           </Button>
         </div>
       )}
+      {popout &&
+        state.call &&
+        createPortal(
+          <CallPanel
+            heading={
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="truncate text-base font-medium">{channelName}</h1>
+                <p aria-live="polite" className="text-muted-foreground">
+                  {t(status)}
+                </p>
+              </div>
+            }
+            windowAction={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t('popIn')}
+                title={t('popIn')}
+                onClick={() => closePopout(true)}
+              >
+                <PictureInPicture2Icon />
+              </Button>
+            }
+            selfID={selfID}
+          />,
+          popout.root,
+        )}
       <Dialog
-        open={!!state.call && state.expanded}
+        open={!!state.call && state.expanded && !popout}
         onOpenChange={(expanded) => useCall.setState({ expanded })}
       >
         <DialogContent
-          className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-4xl"
+          className="flex h-[calc(100dvh-2rem)] max-h-none flex-col overflow-y-auto sm:max-w-[min(calc(100vw-2rem),1600px)]"
           showCloseButton={false}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-col gap-1">
-              <DialogTitle className="truncate">{channelName}</DialogTitle>
-              <DialogDescription aria-live="polite">{t(status)}</DialogDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={t('minimize')}
-              onClick={() => useCall.setState({ expanded: false })}
-            >
-              <Minimize2Icon />
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground">{t('noRecording')}</p>
-          <div
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-            aria-label={t('participants', {
-              count: state.call?.participants.filter((p) => p.state !== 'left').length ?? 0,
-            })}
-          >
-            {state.call?.participants
-              .filter((p) => p.state !== 'left')
-              .map((person) => {
-                const tracks = state.tracks.filter((track) => track.participant_id === person.id);
-                const own = person.user_id === selfID;
-                return (
-                  <Participant
-                    key={person.id}
-                    userID={person.user_id ?? ''}
-                    own={own}
-                    speaking={state.speakers.includes(person.user_id ?? '')}
-                    tracks={tracks}
-                    local={own ? state.local : undefined}
-                  />
-                );
-              })}
-          </div>
-          {state.error && (
-            <p role="alert" className="text-sm text-destructive">
-              {t(state.error, { defaultValue: t('error') })}
-            </p>
-          )}
-          <div className="flex flex-wrap justify-center gap-2">
-            {(['audio', 'camera', 'screen'] as const).map((kind) => {
-              const active = state.local.has(kind);
-              const Icon =
-                kind === 'audio'
-                  ? active
-                    ? MicIcon
-                    : MicOffIcon
-                  : kind === 'camera'
-                    ? active
-                      ? VideoIcon
-                      : VideoOffIcon
-                    : active
-                      ? ScreenShareOffIcon
-                      : ScreenShareIcon;
-              return (
+          <CallPanel
+            heading={
+              <div className="flex min-w-0 flex-col gap-1">
+                <DialogTitle className="truncate">{channelName}</DialogTitle>
+                <DialogDescription aria-live="polite">{t(status)}</DialogDescription>
+              </div>
+            }
+            windowAction={
+              <>
                 <Button
-                  key={kind}
-                  variant="outline"
-                  aria-pressed={active}
-                  disabled={!state.session || state.connection !== 'connected'}
-                  onClick={() => {
-                    useCall.setState({ error: '' });
-                    void toggle(kind)?.catch(report);
-                  }}
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('popOut')}
+                  title={t('popOut')}
+                  onClick={popOut}
                 >
-                  <Icon data-icon="inline-start" />
-                  {t(kind === 'screen' && active ? 'stopScreen' : kind)}
+                  <ExternalLinkIcon />
                 </Button>
-              );
-            })}
-            <Button variant="destructive" onClick={() => void leaveCall()}>
-              <PhoneOffIcon data-icon="inline-start" />
-              {t('leave')}
-            </Button>
-          </div>
-          {!state.local.size && state.session && (
-            <p className="text-center text-sm text-muted-foreground">{t('listenOnly')}</p>
-          )}
-          {state.session && <Devices />}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('minimize')}
+                  onClick={() => useCall.setState({ expanded: false })}
+                >
+                  <Minimize2Icon />
+                </Button>
+              </>
+            }
+            selfID={selfID}
+          />
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** The call's room: who is in it, their pictures or video, and the controls. */
+function CallPanel({
+  heading,
+  windowAction,
+  selfID,
+}: {
+  heading: ReactNode;
+  windowAction: ReactNode;
+  selfID: string;
+}) {
+  const { t } = useTranslation('calls');
+  const state = useCall();
+  const report = (error: unknown) => useCall.setState({ error: errorCode(error) });
+  const people = state.call?.participants.filter((p) => p.state !== 'left') ?? [];
+  // Tiles share the room: one per row for one or two on narrow screens, up to four across.
+  const columns =
+    people.length <= 1
+      ? 'sm:grid-cols-1'
+      : people.length <= 4
+        ? 'sm:grid-cols-2'
+        : people.length <= 9
+          ? 'sm:grid-cols-3'
+          : 'sm:grid-cols-4';
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex items-start justify-between gap-3">
+        {heading}
+        <div className="flex shrink-0 gap-1">{windowAction}</div>
+      </div>
+      <p className="text-sm text-muted-foreground">{t('noRecording')}</p>
+      <div
+        className={cn('grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3', columns)}
+        aria-label={t('participants', { count: people.length })}
+      >
+        {people.map((person) => {
+          const tracks = state.tracks.filter((track) => track.participant_id === person.id);
+          const own = person.user_id === selfID;
+          return (
+            <Participant
+              key={person.id}
+              userID={person.user_id ?? ''}
+              own={own}
+              speaking={state.speakers.includes(person.user_id ?? '')}
+              tracks={tracks}
+              local={own ? state.local : undefined}
+            />
+          );
+        })}
+      </div>
+      {state.error && (
+        <p role="alert" className="text-sm text-destructive">
+          {t(state.error, { defaultValue: t('error') })}
+        </p>
+      )}
+      <div className="flex flex-wrap justify-center gap-2">
+        {(['audio', 'camera', 'screen'] as const).map((kind) => {
+          const active = state.local.has(kind);
+          const Icon =
+            kind === 'audio'
+              ? active
+                ? MicIcon
+                : MicOffIcon
+              : kind === 'camera'
+                ? active
+                  ? VideoIcon
+                  : VideoOffIcon
+                : active
+                  ? ScreenShareOffIcon
+                  : ScreenShareIcon;
+          return (
+            <Button
+              key={kind}
+              variant="outline"
+              aria-pressed={active}
+              disabled={!state.session || state.connection !== 'connected'}
+              onClick={() => {
+                useCall.setState({ error: '' });
+                void toggle(kind)?.catch(report);
+              }}
+            >
+              <Icon data-icon="inline-start" />
+              {t(kind === 'screen' && active ? 'stopScreen' : kind)}
+            </Button>
+          );
+        })}
+        <Button variant="destructive" onClick={() => void leaveCall()}>
+          <PhoneOffIcon data-icon="inline-start" />
+          {t('leave')}
+        </Button>
+      </div>
+      {!state.local.size && state.session && (
+        <p className="text-center text-sm text-muted-foreground">{t('listenOnly')}</p>
+      )}
+      {state.session && <Devices />}
+    </div>
   );
 }
 
@@ -273,7 +411,7 @@ function Participant({
   return (
     <section
       className={cn(
-        'flex min-w-0 flex-col gap-2 rounded-xl border bg-muted p-3',
+        'flex min-h-48 min-w-0 flex-col gap-2 rounded-xl border bg-muted p-3',
         speaking && 'border-accent-brand',
       )}
       aria-label={name}
@@ -290,7 +428,7 @@ function Participant({
         ))
       ) : (
         <div
-          className="flex aspect-video items-center justify-center overflow-hidden bg-background"
+          className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg bg-background"
           aria-hidden="true"
         >
           <Avatar name={realName || name} profile={profile} size="lg" />
@@ -345,6 +483,8 @@ function MediaTile({
   useEffect(() => {
     const element = ref.current;
     if (!element || audio || muted) return;
+    // The tile may be in the call's own window: watch that window's page.
+    const doc = element.ownerDocument;
     const update = () => {
       const rect = element.getBoundingClientRect();
       useCall
@@ -353,17 +493,17 @@ function MediaTile({
           trackID,
           rect.width,
           rect.height,
-          document.visibilityState === 'visible' && rect.width > 0 && rect.height > 0,
+          doc.visibilityState === 'visible' && rect.width > 0 && rect.height > 0,
         );
     };
-    const resize = new ResizeObserver(update);
+    const resize = new (doc.defaultView?.ResizeObserver ?? ResizeObserver)(update);
     resize.observe(element);
-    document.addEventListener('visibilitychange', update);
+    doc.addEventListener('visibilitychange', update);
     update();
     return () => {
       resize.disconnect();
       useCall.getState().session?.tile(trackID, 0, 0, false);
-      document.removeEventListener('visibilitychange', update);
+      doc.removeEventListener('visibilitychange', update);
     };
   }, [trackID, audio, muted]);
   return (
@@ -375,7 +515,9 @@ function MediaTile({
         autoPlay
         playsInline
         aria-label={label}
-        className={audio ? 'hidden' : 'aspect-video w-full rounded-lg bg-background object-contain'}
+        className={
+          audio ? 'hidden' : 'min-h-0 w-full flex-1 rounded-lg bg-background object-contain'
+        }
       />
       {blocked && (
         <Button

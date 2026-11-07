@@ -37,6 +37,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   and time on one line above the words, later messages of the same turn without them (their
   time shows on hover or focus). Direct messages in the sidebar show the other person's
   picture with their presence on its corner, group conversations two pictures.
+- The call takes the whole window, its tiles growing with it, and can open in a window of
+  its own ("Open in its own window"): the same call, which keeps going while you move
+  between channels; closing that window brings it back. The desktop app opens it as one of
+  its windows, with nothing of its own to run.
 - A channel's settings are one window opened from its name in the header: General (name,
   topic, category, who may post, archiving) for those who manage it, Members and roles,
   and Notifications. A member's role is chosen in words (Member, Channel manager) instead

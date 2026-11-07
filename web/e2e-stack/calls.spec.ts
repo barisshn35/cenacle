@@ -89,6 +89,24 @@ test('real chat/media stack forwards camera/audio, reconnects without duplicate 
           ),
       )
       .toBe(true);
+    // The call moves into a window of its own and comes back when it closes.
+    const [own] = await Promise.all([
+      a.waitForEvent('popup'),
+      a.getByRole('button', { name: 'Open in its own window' }).click(),
+    ]);
+    await expect(own.getByRole('button', { name: 'Leave call', exact: true })).toBeVisible();
+    await expect
+      .poll(() =>
+        own
+          .locator('video')
+          .evaluateAll((elements) =>
+            elements.some((video) => video instanceof HTMLVideoElement && video.videoWidth > 0),
+          ),
+      )
+      .toBe(true);
+    await expect(a.getByText(/In its own window/)).toBeVisible();
+    await own.close();
+    await expect(a.getByRole('dialog').getByText('Connected', { exact: true })).toBeVisible();
     await a.getByRole('button', { name: 'Minimize call' }).click();
     // Lose the connection to the media server: A comes back as the same participant
     // and publishes again. (Browser offline emulation does not stop WebRTC traffic.)
@@ -117,7 +135,10 @@ test('real chat/media stack forwards camera/audio, reconnects without duplicate 
 
 // Calls are on in a new workspace; this makes sure through the workspace settings.
 async function enableCalls(page: Page) {
-  await page.getByRole('button', { name: /^Workspace menu: / }).first().click();
+  await page
+    .getByRole('button', { name: /^Workspace menu: / })
+    .first()
+    .click();
   await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
   const dialog = page.getByRole('dialog', { name: 'Workspace settings' });
   await dialog.getByRole('tab', { name: 'Calls', exact: true }).click();
