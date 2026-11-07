@@ -208,8 +208,7 @@ export function layout({
                   class="flex items-center gap-2 text-[12.5px] text-muted-foreground lg:hidden"
                 >
                   ${shieldIcon}<span
-                    >${m.record.mini}
-                    <b class="font-medium text-foreground">${pageHost}</b></span
+                    >${m.record.mini} <b class="font-medium text-foreground">${pageHost}</b></span
                   >
                 </p>`
               : null
