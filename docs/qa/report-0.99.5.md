@@ -10,9 +10,8 @@ with the documentation only (install, upgrade with data, backup, restore and rol
 
 No blocker is open. One blocker, eight major and eleven minor findings were fixed: 1–3 and
 20 before the release was tagged, the others on `main` for 1.0. The access and supply chain
-review (21–25) and what was tried the next day (26–31) added one major and ten minor
-findings, all fixed. What was not tested
-here is listed at the end.
+review (21–25) and what was tried the next day (26–31) added two major and nine minor
+findings, all fixed. What was not tested here is listed at the end.
 
 ## Findings
 
