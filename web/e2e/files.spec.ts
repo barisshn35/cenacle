@@ -128,6 +128,32 @@ test('images open in the viewer; other files download', async ({ page }, testInf
   await expect(viewer).toBeHidden();
 });
 
+test('a small image keeps its size; a large one fits the preview', async ({ page }) => {
+  const icon = {
+    ...IMAGE,
+    id: '01a15e50-f11e-7000-8000-000000000003',
+    name: 'ikon.png',
+    width: 64,
+    height: 64,
+  };
+  await mockApi(page, {
+    messages: [
+      { ...mockMessage(5, 'Küçük ikon'), files: [icon] },
+      { ...mockMessage(6, 'Büyük ekran'), files: [IMAGE] },
+    ],
+  });
+  await mockFiles(page);
+  await page.goto('/');
+  const size = async (text: string) =>
+    (await page
+      .getByTestId('message')
+      .filter({ hasText: text })
+      .getByTestId('image')
+      .boundingBox())!;
+  expect(await size('Küçük ikon')).toMatchObject({ width: 64, height: 64 });
+  expect(await size('Büyük ekran')).toMatchObject({ width: 320, height: 160 });
+});
+
 test('files are attached, uploaded with progress and sent with the message', async ({ page }) => {
   await mockApi(page);
   const { sent } = await mockFiles(page);

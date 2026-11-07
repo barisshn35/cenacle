@@ -86,9 +86,10 @@ export function MessageFiles({ files }: { files: FileInfo[] | undefined }) {
       {images.length === 1 && (
         <ul className="flex" aria-label={t('files.images')}>
           {images.map((f) => {
-            // A single preview keeps the image's shape within 320×240.
+            // A single preview keeps the image's shape within 320×240, never larger than
+            // the image itself (a small icon is not blown up), and large enough to tap.
             const ratio = f.width && f.height ? f.width / f.height : 4 / 3;
-            const h = Math.min(240, 320 / ratio);
+            const h = Math.max(48, Math.min(240, 320 / ratio, f.height || 240));
             return (
               <li key={f.id}>
                 <ImageTile
