@@ -5441,7 +5441,12 @@ export interface components {
       created_by: components['schemas']['Author'] | null;
       canceled: boolean;
       going: components['schemas']['Author'][];
+      /** @description How many answered maybe (maybe_people lists those the reader may see). */
       maybe: number;
+      /** @description Who answered maybe. */
+      maybe_people: components['schemas']['Author'][];
+      /** @description Who answered that they are not going. */
+      declined_people: components['schemas']['Author'][];
       /** @enum {string|null} */
       me: 'going' | 'maybe' | 'declined' | null;
       can_edit: boolean;

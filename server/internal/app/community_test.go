@@ -372,6 +372,15 @@ func TestEventsWelcomeBannerTerms(t *testing.T) {
 	if len(e.Going) != 1 || e.Me == nil || *e.Me != "going" || !e.CanEdit {
 		t.Errorf("rsvp = %+v", e)
 	}
+	// Who answered what is listed, maybe and not going too.
+	mert := s.user("sub-mert", "Mert")
+	s.general(mert)
+	s.call(http.MethodPut, "/api/events/"+e.Id.String()+"/rsvp", ayse, map[string]any{"status": "maybe"}, &e)
+	s.call(http.MethodPut, "/api/events/"+e.Id.String()+"/rsvp", mert, map[string]any{"status": "declined"}, &e)
+	if len(e.Going) != 1 || e.Maybe != 1 || len(e.MaybePeople) != 1 || e.MaybePeople[0].DisplayName != "Ayşe" ||
+		len(e.DeclinedPeople) != 1 || e.DeclinedPeople[0].DisplayName != "Mert" {
+		t.Errorf("answers = going %v, maybe %d %v, declined %v", e.Going, e.Maybe, e.MaybePeople, e.DeclinedPeople)
+	}
 	if list := s.scheduled(admin); len(list) != 1 || !strings.Contains(list[0].Body, "Sprint review") {
 		t.Errorf("reminder = %+v", list)
 	}

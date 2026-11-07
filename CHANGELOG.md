@@ -44,6 +44,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Events: an end after midnight read like a minus ("–00:05"); it says "until 00:05 next
+  day". The answer buttons ran over the next cell in Turkish. Who answered is listed in
+  three groups — going, maybe, can't go — from the event's row (the API adds
+  `maybe_people` and `declined_people`).
 - A call tile without a camera showed the first two letters of the label ("Si" for "Siz",
   "De" for "Deneme Kişi"); it shows the person's round picture, or their initials.
 - In Turkish, the message box of a direct or group conversation called it a channel

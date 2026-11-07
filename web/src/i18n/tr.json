@@ -1326,6 +1326,16 @@
         "who": "Kimler",
         "answer": "Yanıtınız",
         "actions": "İşlemler"
+      },
+      "until": "bitiş {{end}}",
+      "endsNextDay": "ertesi gün {{time}}",
+      "declinedCount": "{{count}} katılmıyor",
+      "whoAnswered": "{{title}} yanıtları: {{summary}}",
+      "nobody": "Henüz kimse yok",
+      "answers": {
+        "going": "Katılıyor ({{count}})",
+        "maybe": "Belki ({{count}})",
+        "declined": "Katılmıyor ({{count}})"
       }
     },
     "playbooks": {

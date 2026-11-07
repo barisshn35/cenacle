@@ -1497,6 +1497,8 @@ export async function mockApi(
         canceled: false,
         going: [],
         maybe: 0,
+        maybe_people: [],
+        declined_people: [],
         me: null,
         can_edit: true,
       };
@@ -1510,8 +1512,11 @@ export async function mockApi(
     const e = api.events.find((x) => x.id === id)!;
     const status = (route.request().postDataJSON() as { status: string | null }).status;
     e.me = status;
-    e.going =
-      status === 'going' ? [{ id: SESSION.user.id, display_name: SESSION.user.display_name }] : [];
+    const me = [{ id: SESSION.user.id, display_name: SESSION.user.display_name }];
+    e.going = status === 'going' ? me : [];
+    e.maybe_people = status === 'maybe' ? me : [];
+    e.maybe = e.maybe_people.length;
+    e.declined_people = status === 'declined' ? me : [];
     return route.fulfill({ json: e });
   });
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/playbooks$/, (route) => {

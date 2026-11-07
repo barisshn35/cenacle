@@ -379,7 +379,8 @@ func (h *Handlers) eventsAPI(ctx context.Context, list []store.Event, user store
 		ev := api.Event{
 			Id: uuid(e.ID), WorkspaceId: uuid(e.WorkspaceID), Title: e.Title, Description: e.Description,
 			Location: e.Location, StartsAt: e.StartsAt, EndsAt: e.EndsAt, Canceled: e.CanceledAt.Valid,
-			Going: []api.Author{}, CanEdit: e.CreatedBy == user.ID || isWorkspaceAdmin(role),
+			Going: []api.Author{}, MaybePeople: []api.Author{}, DeclinedPeople: []api.Author{},
+			CanEdit: e.CreatedBy == user.ID || isWorkspaceAdmin(role),
 		}
 		if e.ChannelID.Valid {
 			ev.ChannelId = ptr(uuid(e.ChannelID))
@@ -391,13 +392,22 @@ func (h *Handlers) eventsAPI(ctx context.Context, list []store.Event, user store
 			if r.EventID != e.ID {
 				continue
 			}
+			person := api.Author{Id: uuid(r.UserID), DisplayName: r.DisplayName}
+			seen := sees(e.WorkspaceID, r.UserID)
 			switch r.Status {
 			case "going":
-				if sees(e.WorkspaceID, r.UserID) {
-					ev.Going = append(ev.Going, api.Author{Id: uuid(r.UserID), DisplayName: r.DisplayName})
+				if seen {
+					ev.Going = append(ev.Going, person)
 				}
 			case "maybe":
 				ev.Maybe++
+				if seen {
+					ev.MaybePeople = append(ev.MaybePeople, person)
+				}
+			case "declined":
+				if seen {
+					ev.DeclinedPeople = append(ev.DeclinedPeople, person)
+				}
 			}
 			if r.UserID == user.ID {
 				ev.Me = ptr(api.EventMe(r.Status))

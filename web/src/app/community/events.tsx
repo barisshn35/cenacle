@@ -16,6 +16,12 @@ import {
 } from '@cenacle/ui/components/dialog';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@cenacle/ui/components/popover';
 import { Skeleton } from '@cenacle/ui/components/skeleton';
 import {
   DropdownMenu,
@@ -103,13 +109,25 @@ export function EventsList() {
   }
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+  // The end on the same line's day; a later day says which (an end after
+  // midnight read as a minus sign before: "–00:05").
+  const endsOn = (e: CommunityEvent) => {
+    const start = new Date(e.starts_at);
+    const end = new Date(e.ends_at);
+    const next = new Date(start);
+    next.setDate(start.getDate() + 1);
+    if (end.toDateString() === start.toDateString()) return time.format(end);
+    if (end.toDateString() === next.toDateString())
+      return t('community.events.endsNextDay', { time: time.format(end) });
+    return `${day.format(end)} ${time.format(end)}`;
+  };
   const timeCell = (e: CommunityEvent) => (
-    <span className="flex flex-col font-mono">
+    <span className="flex flex-col tabular-nums">
       <time dateTime={e.starts_at} className="text-[14px] font-medium">
         {time.format(new Date(e.starts_at))}
       </time>
       <time dateTime={e.ends_at} className="text-xs text-muted-foreground">
-        –{time.format(new Date(e.ends_at))}
+        {t('community.events.until', { end: endsOn(e) })}
       </time>
     </span>
   );
@@ -143,21 +161,67 @@ export function EventsList() {
       </span>
     );
   };
-  const whoCell = (e: CommunityEvent) => (
-    <span className="flex flex-col gap-1">
-      {e.going.length > 0 && (
-        <span className="flex gap-0.5">
-          {e.going.slice(0, 4).map((g) => (
-            <UserAvatar key={g.id} userId={g.id} name={g.display_name} size="xs" />
+  const answered = (e: CommunityEvent) =>
+    [
+      ['going', e.going],
+      ['maybe', e.maybe_people],
+      ['declined', e.declined_people],
+    ] as const;
+  const whoCell = (e: CommunityEvent) => {
+    const summary = [
+      t('community.events.going', { count: e.going.length }),
+      e.maybe > 0 ? t('community.events.maybeCount', { count: e.maybe }) : '',
+      e.declined_people.length > 0
+        ? t('community.events.declinedCount', { count: e.declined_people.length })
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    return (
+      <Popover>
+        <PopoverTrigger
+          render={
+            <button
+              type="button"
+              aria-label={t('community.events.whoAnswered', { title: e.title, summary })}
+              className="flex min-h-target flex-col items-start gap-1 rounded-md text-start outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+          }
+        >
+          {e.going.length > 0 && (
+            <span className="flex gap-0.5">
+              {e.going.slice(0, 4).map((g) => (
+                <UserAvatar key={g.id} userId={g.id} name={g.display_name} size="xs" />
+              ))}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">{summary}</span>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-72" data-testid="event-answers">
+          <PopoverTitle>{e.title}</PopoverTitle>
+          {answered(e).map(([status, people]) => (
+            <section key={status} className="mt-3 first-of-type:mt-2">
+              <h3 className="text-xs font-semibold">
+                {t(`community.events.answers.${status}`, { count: people.length })}
+              </h3>
+              {people.length === 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">{t('community.events.nobody')}</p>
+              ) : (
+                <ul className="mt-1 flex flex-col gap-1">
+                  {people.map((p) => (
+                    <li key={p.id} className="flex items-center gap-2 text-sm">
+                      <UserAvatar userId={p.id} name={p.display_name} size="xs" />
+                      <span className="truncate">{p.display_name}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           ))}
-        </span>
-      )}
-      <span className="text-xs text-muted-foreground">
-        {t('community.events.going', { count: e.going.length })}
-        {e.maybe > 0 && ` · ${t('community.events.maybeCount', { count: e.maybe })}`}
-      </span>
-    </span>
-  );
+        </PopoverContent>
+      </Popover>
+    );
+  };
   const answerCell = (e: CommunityEvent) => (
     <span
       role="group"
@@ -262,9 +326,11 @@ export function EventsList() {
           columns={[
             { label: t('community.events.columns.time'), width: 'w-[96px]' },
             { label: t('community.events.columns.event') },
-            { label: t('community.events.columns.where'), width: 'w-[200px]' },
-            { label: t('community.events.columns.who'), width: 'w-[160px]' },
-            { label: t('community.events.columns.answer'), width: 'w-[248px]' },
+            { label: t('community.events.columns.where'), width: 'w-[18%]' },
+            { label: t('community.events.columns.who'), width: 'w-[20%]' },
+            // Fits the three answers in either language, the longest one chosen
+            // (Turkish "Katılamıyorum" with its check).
+            { label: t('community.events.columns.answer'), width: 'w-[304px]' },
             {
               label: <span className="sr-only">{t('community.events.columns.actions')}</span>,
               width: 'w-[52px]',

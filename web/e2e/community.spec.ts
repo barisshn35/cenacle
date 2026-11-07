@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
   expectNoAxeViolations,
   expectTargetSizes,
@@ -103,12 +103,81 @@ test('events are planned and answered', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Save event' }).click();
   const event = page.getByTestId('event');
   await expect(event).toContainText('Sprint review');
-  await event.getByRole('button', { name: 'Going' }).click();
-  await expect(event.getByRole('button', { name: 'Going' })).toHaveAttribute(
+  await event.getByRole('button', { name: 'Going', exact: true }).click();
+  await expect(event.getByRole('button', { name: 'Going', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
+  // Who answered what, in groups.
+  await event.getByRole('button', { name: /Who answered for Sprint review/ }).click();
+  const answers = page.getByTestId('event-answers');
+  await expect(answers.getByRole('heading', { name: 'Going (1)' })).toBeVisible();
+  await expect(answers).toContainText(SESSION.user.display_name);
+  await expect(answers.getByRole('heading', { name: 'Maybe (0)' })).toBeVisible();
+  await expect(answers.getByRole('heading', { name: "Can't go (0)" })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await event.getByRole('button', { name: "Can't go", exact: true }).click();
+  await expect(event).toContainText("0 going · 1 can't go");
   await expectNoAxeViolations(page, 'main');
+});
+
+const lateEvent = (status: 'going' | 'maybe' | 'declined') => {
+  const start = new Date();
+  start.setHours(23, 50, 0, 0);
+  return {
+    id: '01a15e50-eeee-7000-8000-000000000099',
+    workspace_id: GENERAL.workspace_id,
+    channel_id: null,
+    title: 'Gece bakımı',
+    description: '',
+    location: 'Sunucu odası',
+    starts_at: start.toISOString(),
+    ends_at: new Date(start.getTime() + 15 * 60_000).toISOString(),
+    created_by: null,
+    canceled: false,
+    going: [],
+    maybe: 0,
+    maybe_people: [],
+    declined_people: [],
+    me: status,
+    can_edit: true,
+  };
+};
+// Each answer button lies inside its cell (one ran over the next cell).
+async function answersFit(page: Page, names: string[]) {
+  const event = page.getByTestId('event');
+  const group = (await event.getByRole('group').boundingBox())!;
+  // The event's own menu, next to the answers (its creator or an admin sees it).
+  const more = event.getByRole('button', { name: /^More for | için diğer$/ });
+  const menu = (await more.count()) ? await more.boundingBox() : null;
+  for (const name of names) {
+    const box = (await event.getByRole('button', { name, exact: true }).boundingBox())!;
+    expect(box.x + box.width).toBeLessThanOrEqual(group.x + group.width + 0.5);
+    if (menu) expect(box.x + box.width).toBeLessThanOrEqual(menu.x);
+  }
+}
+
+test('an event past midnight says its end is the next day; the answers fit', async ({ page }) => {
+  const api = await mockApi(page, { messages: [] });
+  api.events.push(lateEvent('declined'));
+  await page.goto('/events');
+  const event = page.getByTestId('event');
+  await expect(event).toContainText('until 12:05 AM next day');
+  await expect(event).not.toContainText('–12:05');
+  await answersFit(page, ['Going', 'Maybe', "Can't go"]);
+});
+
+test.describe('in Turkish', () => {
+  test.use({ locale: 'tr-TR' });
+
+  test('the end past midnight and the answers fit', async ({ page }) => {
+    const api = await mockApi(page, { messages: [] });
+    api.events.push(lateEvent('declined'));
+    await page.goto('/events');
+    const event = page.getByTestId('event');
+    await expect(event).toContainText('bitiş ertesi gün 00:05');
+    await answersFit(page, ['Katılıyorum', 'Belki', 'Katılamıyorum']);
+  });
 });
 
 test.describe('administration', () => {

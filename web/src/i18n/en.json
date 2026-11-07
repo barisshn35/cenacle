@@ -1326,6 +1326,16 @@
         "who": "Who",
         "answer": "Your answer",
         "actions": "Actions"
+      },
+      "until": "until {{end}}",
+      "endsNextDay": "{{time}} next day",
+      "declinedCount": "{{count}} can't go",
+      "whoAnswered": "Who answered for {{title}}: {{summary}}",
+      "nobody": "Nobody yet",
+      "answers": {
+        "going": "Going ({{count}})",
+        "maybe": "Maybe ({{count}})",
+        "declined": "Can't go ({{count}})"
       }
     },
     "playbooks": {

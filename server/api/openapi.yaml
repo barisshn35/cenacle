@@ -8110,7 +8110,7 @@ components:
         channel_id: { type: string, format: uuid, nullable: true }
     Event:
       type: object
-      required: [id, workspace_id, channel_id, title, description, location, starts_at, ends_at, created_by, canceled, going, maybe, me, can_edit]
+      required: [id, workspace_id, channel_id, title, description, location, starts_at, ends_at, created_by, canceled, going, maybe, maybe_people, declined_people, me, can_edit]
       properties:
         id: { type: string, format: uuid }
         workspace_id: { type: string, format: uuid }
@@ -8127,7 +8127,15 @@ components:
         going:
           type: array
           items: { $ref: '#/components/schemas/Author' }
-        maybe: { type: integer }
+        maybe: { type: integer, description: How many answered maybe (maybe_people lists those the reader may see). }
+        maybe_people:
+          type: array
+          description: Who answered maybe.
+          items: { $ref: '#/components/schemas/Author' }
+        declined_people:
+          type: array
+          description: Who answered that they are not going.
+          items: { $ref: '#/components/schemas/Author' }
         me: { type: string, enum: [going, maybe, declined], nullable: true }
         can_edit: { type: boolean }
     Welcome:

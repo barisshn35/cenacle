@@ -3125,20 +3125,28 @@ type E2ERecovery struct {
 
 // Event defines model for Event.
 type Event struct {
-	CanEdit     bool                `json:"can_edit"`
-	Canceled    bool                `json:"canceled"`
-	ChannelId   *openapi_types.UUID `json:"channel_id"`
-	CreatedBy   *Author             `json:"created_by"`
-	Description string              `json:"description"`
-	EndsAt      time.Time           `json:"ends_at"`
-	Going       []Author            `json:"going"`
-	Id          openapi_types.UUID  `json:"id"`
-	Location    string              `json:"location"`
-	Maybe       int                 `json:"maybe"`
-	Me          *EventMe            `json:"me"`
-	StartsAt    time.Time           `json:"starts_at"`
-	Title       string              `json:"title"`
-	WorkspaceId openapi_types.UUID  `json:"workspace_id"`
+	CanEdit   bool                `json:"can_edit"`
+	Canceled  bool                `json:"canceled"`
+	ChannelId *openapi_types.UUID `json:"channel_id"`
+	CreatedBy *Author             `json:"created_by"`
+
+	// DeclinedPeople Who answered that they are not going.
+	DeclinedPeople []Author           `json:"declined_people"`
+	Description    string             `json:"description"`
+	EndsAt         time.Time          `json:"ends_at"`
+	Going          []Author           `json:"going"`
+	Id             openapi_types.UUID `json:"id"`
+	Location       string             `json:"location"`
+
+	// Maybe How many answered maybe (maybe_people lists those the reader may see).
+	Maybe int `json:"maybe"`
+
+	// MaybePeople Who answered maybe.
+	MaybePeople []Author           `json:"maybe_people"`
+	Me          *EventMe           `json:"me"`
+	StartsAt    time.Time          `json:"starts_at"`
+	Title       string             `json:"title"`
+	WorkspaceId openapi_types.UUID `json:"workspace_id"`
 }
 
 // EventMe defines model for Event.Me.
