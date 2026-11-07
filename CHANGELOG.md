@@ -25,6 +25,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- Interface text is set in the interface face: times, addresses, counts and versions no
+  longer use the code face, which stays for code and for values people copy or type
+  letter by letter (keys, recovery codes, tokens). The search button no longer spells out
+  Ctrl K; screen readers announce it and the shortcuts window lists it.
 - Notifications are on for every message by default: a channel message makes a sound
   ("drop") and a desktop notification, as mentions and direct messages did. People who
   changed their notification settings keep theirs; anyone can still choose mentions only,

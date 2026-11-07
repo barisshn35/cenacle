@@ -241,7 +241,7 @@ export function SettingsDialog({
               )}
             </>
           }
-          footer={<span className="font-mono">{window.location.host}</span>}
+          footer={<span>{window.location.host}</span>}
         >
           {tab === 'appearance' && <AppearancePanel />}
           {tab === 'language' && <LanguagePanel />}
@@ -333,11 +333,11 @@ export function SettingsDialog({
                   </h3>
                   <dl className="grid gap-0.5 rounded-[10px] border border-rule-strong bg-background px-3 py-2.5">
                     <dt className="text-xs text-muted-foreground">{t('settings.pairedServer')}</dt>
-                    <dd className="font-mono text-sm">{window.location.host}</dd>
+                    <dd className="text-sm">{window.location.host}</dd>
                     <dt className="mt-1.5 text-xs text-muted-foreground">
                       {t('settings.appVersion')}
                     </dt>
-                    <dd className="font-mono text-sm">{desktop.version}</dd>
+                    <dd className="text-sm tabular-nums">{desktop.version}</dd>
                   </dl>
                   <p className="text-sm text-muted-foreground">{t('settings.pairedHint')}</p>
                   <DesktopPrefsPanel />
@@ -520,14 +520,14 @@ function LanguagePanel() {
               }}
             />
             {t(`settings.timeFormat.${f}`)}
-            <span className="font-mono text-xs text-muted-foreground">{sample(f)}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{sample(f)}</span>
           </label>
         ))}
         <p className="text-xs text-muted-foreground">{t('settings.timeFormat.hint')}</p>
       </fieldset>
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">{t('settings.timeZone')}</p>
-        <p className="font-mono text-sm">{zone}</p>
+        <p className="text-sm">{zone}</p>
         <p className="text-xs text-muted-foreground">{t('settings.timeZoneHint')}</p>
       </div>
     </div>

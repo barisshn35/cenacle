@@ -278,7 +278,7 @@ function ThreadsList() {
                 {summary && (
                   <span className="text-[12.5px] text-muted-foreground">
                     {t('threads.lastReplyLabel')}{' '}
-                    <time dateTime={summary.last_reply_at} className="font-mono">
+                    <time dateTime={summary.last_reply_at} className="tabular-nums">
                       {when(summary.last_reply_at)}
                     </time>
                   </span>
@@ -332,7 +332,7 @@ function ThreadsList() {
                       </span>
                       <time
                         dateTime={root.created_at}
-                        className="font-mono text-xs leading-4 text-muted-foreground"
+                        className="text-xs leading-4 text-muted-foreground tabular-nums"
                       >
                         {when(root.created_at)}
                       </time>
@@ -461,7 +461,7 @@ function SavedList() {
     const group = savedGroup(s);
     return (
       <span className="flex flex-col">
-        <span className="flex items-center gap-1.5 font-mono text-[14px] font-medium">
+        <span className="flex items-center gap-1.5 text-[14px] font-medium tabular-nums">
           {group === 'overdue' && (
             <AlarmClockIcon aria-hidden className="size-4" strokeWidth={1.75} />
           )}
@@ -523,7 +523,7 @@ function SavedList() {
                 >
                   <ClockIcon strokeWidth={1.75} />
                   {t(`saved.reminders.${r}`)}
-                  <span className="ms-auto font-mono text-xs text-muted-foreground">
+                  <span className="ms-auto text-xs text-muted-foreground tabular-nums">
                     {r === 'tomorrow' || r === 'week'
                       ? date.format(new Date(at))
                       : clock.format(new Date(at))}

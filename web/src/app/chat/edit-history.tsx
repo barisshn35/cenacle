@@ -87,7 +87,7 @@ function EditHistoryDialog({
     onError: () => toast.error(t('chat.editFailed')),
   });
   const time = (iso: string) => (
-    <time dateTime={iso} className="font-mono tabular-nums">
+    <time dateTime={iso} className="tabular-nums">
       {fmt.full.format(new Date(iso))}
     </time>
   );

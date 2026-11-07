@@ -75,7 +75,7 @@ export function ChannelFiles({ channelId }: { channelId: string }) {
                   )}
                 >
                   {t(`files.kinds.${k}`)}
-                  <span className="font-mono font-normal">
+                  <span className="font-normal tabular-nums">
                     {k === 'all' ? all.length : all.filter((f) => kindOf(f) === k).length}
                   </span>
                 </button>

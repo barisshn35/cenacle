@@ -355,3 +355,25 @@ test('a reader scrolled up sees new messages arrive and jumps to them', async ({
   await expect(page.getByTestId('message').filter({ hasText: 'Yeni gelen' })).toBeInViewport();
   await expect(jump).toHaveCount(0);
 });
+
+test('interface text uses the interface face; only code is monospaced', async ({ page }) => {
+  await mockApi(page, {
+    messages: [mockMessage(1, 'Saat 14:30, `make test` çalıştır'), mockMessage(2, 'Tamam')],
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  await expect(page.getByTestId('message').first()).toBeVisible();
+  const mono = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('body *')]
+      .filter((el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()))
+      .filter((el) => !el.closest('code, pre, kbd, [data-code]'))
+      .filter((el) => /mono/i.test(getComputedStyle(el).fontFamily))
+      .map((el) => `${el.tagName.toLowerCase()}: ${el.textContent!.trim().slice(0, 40)}`),
+  );
+  expect(mono).toEqual([]);
+  // The search button does not spell out its shortcut (it is announced instead).
+  const jump = page.getByRole('button', { name: /Jump to/ });
+  if (await jump.isVisible()) {
+    await expect(jump).not.toContainText('Ctrl');
+    await expect(jump).toHaveAttribute('aria-keyshortcuts', 'Control+K');
+  }
+});

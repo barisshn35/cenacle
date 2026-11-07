@@ -103,7 +103,7 @@ export function TitleBlock({ channel }: { channel: Channel }) {
           </span>
         </Cell>
         <Cell label={t('channels.titleBlock.members')}>
-          <span className="font-mono tabular-nums">{members ? members.length : '…'}</span>
+          <span className="tabular-nums">{members ? members.length : '…'}</span>
         </Cell>
         <Cell
           label={t('channels.titleBlock.classification')}
@@ -126,7 +126,7 @@ export function TitleBlock({ channel }: { channel: Channel }) {
             : t('channels.titleBlock.workspaceRetention')}
         </Cell>
         <Cell label={t('channels.titleBlock.created')}>
-          <span className="font-mono text-[13px] tabular-nums">
+          <span className="text-[13px] tabular-nums">
             {created
               ? new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'medium' }).format(
                   created,
@@ -135,7 +135,7 @@ export function TitleBlock({ channel }: { channel: Channel }) {
           </span>
         </Cell>
         <Cell label={t('channels.titleBlock.pinned')}>
-          <span className="font-mono tabular-nums">{pins ? pins.length : '…'}</span>
+          <span className="tabular-nums">{pins ? pins.length : '…'}</span>
         </Cell>
         {channel.retention_days ? (
           <div className="col-span-2 px-3 py-2.5 text-[12.5px] leading-[18px] text-muted-foreground">

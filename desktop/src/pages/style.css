@@ -139,7 +139,7 @@ input {
   background: var(--sheet);
   color: var(--ink);
   padding: 0 14px;
-  font: 15px var(--mono);
+  font: 15px var(--font);
   outline: none;
 }
 input:focus-visible {
@@ -223,7 +223,7 @@ form[hidden],
   background: none;
   color: var(--ink);
   text-align: left;
-  font: 13.5px var(--mono);
+  font: 13.5px var(--font);
   cursor: pointer;
 }
 .recent .use:hover {
@@ -286,7 +286,7 @@ body.frame {
   gap: 4px;
   padding-left: 8px;
   border-bottom: 1px solid var(--rule);
-  font: 500 13px var(--mono);
+  font: 500 13px var(--font);
 }
 .address .icon {
   width: 28px;

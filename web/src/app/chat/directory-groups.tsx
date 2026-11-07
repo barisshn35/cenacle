@@ -54,7 +54,7 @@ function GroupReviewNotice({
     >
       <p id={`${id}-title`} className="flex items-center gap-1.5 font-medium">
         <AlertCircleIcon aria-hidden className="size-3.5 text-warning" strokeWidth={1.75} />
-        {t('groups.review')}: <span className="font-mono">{group}</span>
+        {t('groups.review')}: <span className="font-medium">{group}</span>
       </p>
       <p id={`${id}-hint`} className="text-xs text-muted-foreground">
         {t('groups.reviewHint')}
@@ -129,7 +129,7 @@ export function WorkspaceGroupsSection({ workspace }: { workspace: Workspace }) 
           {groups.data.mappings.map((m) => (
             <li key={m.group} className="grid gap-1">
               <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-sm">{m.group}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{m.group}</span>
                 <label htmlFor={`${id}-${m.group}`} className="sr-only">
                   {t('groups.roleOf', { group: m.group })}
                 </label>

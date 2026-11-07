@@ -62,7 +62,7 @@ function Steps() {
             <span
               aria-hidden
               className={cn(
-                'grid size-6 place-items-center rounded-full border font-mono text-xs',
+                'grid size-6 place-items-center rounded-full border text-xs tabular-nums',
                 i === 0 ? 'border-foreground text-foreground' : 'border-rule-strong',
               )}
             >
@@ -152,7 +152,7 @@ export function SigninPage() {
           aria-labelledby="signin-server"
           className="flex min-h-11 flex-wrap items-center gap-x-2.5 gap-y-1 rounded-[10px] border border-rule-strong bg-well px-3.5 py-2"
         >
-          <span className="font-mono text-[15px] break-all" data-testid="signin-server">
+          <span className="text-[15px] break-all" data-testid="signin-server">
             {serverAddress()}
           </span>
           <span className="ms-auto flex items-center gap-1 text-[12.5px] text-muted-foreground">

@@ -108,7 +108,7 @@ export function SideNavDialog<K extends string>({
                   />
                   {label}
                   {count !== undefined && (
-                    <span className="ms-auto ps-2 font-mono text-xs font-normal text-muted-foreground">
+                    <span className="ms-auto ps-2 text-xs tabular-nums font-normal text-muted-foreground">
                       {format(count)}
                     </span>
                   )}

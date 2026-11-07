@@ -80,7 +80,7 @@ export function BoardGroup({
           >
             {label}
             {count !== undefined && (
-              <span className="ms-2 font-mono font-normal text-muted-foreground">
+              <span className="ms-2 font-normal tabular-nums text-muted-foreground">
                 {format(count)}
               </span>
             )}
@@ -136,7 +136,7 @@ export function BoardTabs<K extends string>({
           >
             {tab.label}
             {tab.count !== undefined && (
-              <span className="font-mono text-[13px] font-normal text-muted-foreground">
+              <span className="text-[13px] font-normal text-muted-foreground tabular-nums">
                 {format(tab.count)}
               </span>
             )}

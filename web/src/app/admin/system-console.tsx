@@ -125,7 +125,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 rounded-[10px] border px-4 py-3">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="font-mono text-xl font-semibold tabular-nums">{value}</span>
+      <span className="text-xl font-semibold tabular-nums">{value}</span>
     </div>
   );
 }
@@ -238,12 +238,12 @@ function PeoplePanel() {
                       ? t('console.role.guest')
                       : t('console.role.member')}
               </td>
-              <td className={`${boardCell} font-mono text-xs`}>
+              <td className={`${boardCell} text-xs tabular-nums`}>
                 {u.last_seen_at ? when.format(new Date(u.last_seen_at)) : '—'}
               </td>
-              <td className={`${boardCell} text-end font-mono text-xs`}>{u.workspaces}</td>
+              <td className={`${boardCell} text-end text-xs tabular-nums`}>{u.workspaces}</td>
               <td className={`${boardCell} text-end`}>
-                <span className="me-2 font-mono text-xs">{u.sessions}</span>
+                <span className="me-2 text-xs tabular-nums">{u.sessions}</span>
                 {u.sessions > 0 && (
                   <Button
                     size="icon-sm"
@@ -352,9 +352,9 @@ function WorkspacesPanel() {
                 <span className="ms-2 text-xs text-muted-foreground">{t('console.default')}</span>
               )}
             </td>
-            <td className={`${boardCell} text-end font-mono text-xs`}>{w.members}</td>
-            <td className={`${boardCell} text-end font-mono text-xs`}>{w.channels}</td>
-            <td className={`${boardCell} font-mono text-xs`}>
+            <td className={`${boardCell} text-end text-xs tabular-nums`}>{w.members}</td>
+            <td className={`${boardCell} text-end text-xs tabular-nums`}>{w.channels}</td>
+            <td className={`${boardCell} text-xs tabular-nums`}>
               {when.format(new Date(w.created_at))}
             </td>
           </tr>
@@ -452,7 +452,7 @@ function JobsPanel({ overview }: { overview?: Overview }) {
               <tr key={j.kind} className={boardRow(j.discarded > 0 || j.retryable > 0)}>
                 <td className={`${boardCell} font-mono text-xs`}>{j.kind}</td>
                 {[j.available, j.running, j.retryable, j.discarded, j.completed].map((v, i) => (
-                  <td key={i} className={`${boardCell} text-end font-mono text-xs`}>
+                  <td key={i} className={`${boardCell} text-end text-xs tabular-nums`}>
                     {v}
                   </td>
                 ))}
@@ -471,7 +471,7 @@ function JobsPanel({ overview }: { overview?: Overview }) {
           <ul className="divide-y rounded-[10px] border text-sm">
             {overview.failures.map((f, i) => (
               <li key={i} className="flex flex-col gap-0.5 px-3 py-2">
-                <span className="font-mono text-xs">
+                <span className="text-xs tabular-nums">
                   {f.kind} · {f.state} · {t('console.attempt', { n: f.attempt })} ·{' '}
                   {when.format(new Date(f.at))}
                 </span>

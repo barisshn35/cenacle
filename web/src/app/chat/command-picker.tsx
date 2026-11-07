@@ -113,7 +113,7 @@ export function useCommandPicker({
             )}
           >
             <span className="truncate">
-              <span className="font-mono font-medium">/{c.trigger}</span>
+              <span className="font-medium">/{c.trigger}</span>
               {c.hint && <span className="ms-2 text-xs text-muted-foreground">{c.hint}</span>}
             </span>
             <span className="truncate text-xs text-muted-foreground">

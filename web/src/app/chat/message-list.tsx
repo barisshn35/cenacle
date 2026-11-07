@@ -112,7 +112,7 @@ export function MessageRow({
       dateTime={m.created_at}
       title={fmt.full.format(at)}
       className={cn(
-        'font-mono text-xs leading-4 tabular-nums',
+        'text-xs leading-4 tabular-nums',
         mentionsMe ? 'font-semibold text-mention' : 'text-muted-foreground',
       )}
     >

@@ -156,10 +156,7 @@ function Board({ ws }: { ws: string }) {
                         onClick={() => open(a)}
                       >
                         <span className="flex items-baseline gap-2 text-[13px]">
-                          <time
-                            dateTime={a.at}
-                            className="font-mono text-[14px] font-medium tabular-nums"
-                          >
+                          <time dateTime={a.at} className="text-[14px] font-medium tabular-nums">
                             {time.format(new Date(a.at))}
                           </time>
                           <span className="truncate text-muted-foreground">{a.channel.name}</span>
@@ -225,7 +222,7 @@ function Board({ ws }: { ws: string }) {
                       <td className="px-3">
                         <time
                           dateTime={a.at}
-                          className="font-mono text-[15px] font-medium whitespace-nowrap tabular-nums"
+                          className="text-[15px] font-medium whitespace-nowrap tabular-nums"
                         >
                           {time.format(new Date(a.at))}
                         </time>

@@ -81,7 +81,7 @@ function signinRecord(locale: Locale, p: SigninProgress): SafeHtml {
     >
       <span
         aria-hidden="true"
-        class="grid size-6 place-items-center rounded-full border font-mono text-xs ${
+        class="grid size-6 place-items-center rounded-full border text-xs tabular-nums ${
           state === 'done'
             ? 'border-well bg-well text-success'
             : state === 'current'
@@ -114,7 +114,7 @@ function signinRecord(locale: Locale, p: SigninProgress): SafeHtml {
         pageHost
           ? html`<div class="grid gap-0.5 border-t px-4 pt-2.5 pb-3">
               <dt class="text-[11.5px] text-muted-foreground">${m.thisPage}</dt>
-              <dd class="font-mono text-[13.5px]" data-testid="page-host">${pageHost}</dd>
+              <dd class="text-[13.5px]" data-testid="page-host">${pageHost}</dd>
             </div>`
           : null
       }
@@ -209,7 +209,7 @@ export function layout({
                 >
                   ${shieldIcon}<span
                     >${m.record.mini}
-                    <b class="font-mono font-medium text-foreground">${pageHost}</b></span
+                    <b class="font-medium text-foreground">${pageHost}</b></span
                   >
                 </p>`
               : null

@@ -1141,7 +1141,7 @@ export function WorkflowsPage() {
                       {triggerText(w)}
                     </span>
                   </td>
-                  <td className={cn(boardCell, 'font-mono')}>{w.steps.length}</td>
+                  <td className={cn(boardCell, 'tabular-nums')}>{w.steps.length}</td>
                   <td className={boardCell}>{state(w)}</td>
                   <td className={boardCell}>{wfActions(w)}</td>
                 </tr>

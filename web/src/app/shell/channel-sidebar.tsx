@@ -2,7 +2,6 @@
 import { LogOutIcon, SearchIcon, SettingsIcon, SquarePenIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Kbd } from '@cenacle/ui/components/kbd';
 import {
   Sidebar,
   SidebarContent,
@@ -53,10 +52,12 @@ export function ChannelSidebar({ mobile = false }: { mobile?: boolean }) {
           type="button"
           className="flex min-h-9 w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-hover px-2.5 text-start text-[13.5px] text-sidebar-muted-foreground transition-colors outline-none hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
           onClick={() => openSwitcher(true)}
+          // The shortcut is not written on the button (it kept the eye); screen
+          // readers announce it, and the shortcuts window lists it.
+          aria-keyshortcuts="Control+K"
         >
           <SearchIcon aria-hidden className="size-4" strokeWidth={1.75} />
           <span className="flex-1">{t('shell.jumpTo')}</span>
-          <Kbd className="bg-transparent font-mono text-sidebar-muted-foreground">Ctrl K</Kbd>
         </button>
       </SidebarHeader>
 

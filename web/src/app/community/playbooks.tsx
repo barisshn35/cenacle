@@ -216,7 +216,7 @@ export function PlaybooksList() {
                         )}
                       </td>
                       <td className={boardCell}>
-                        <span className="block font-mono">
+                        <span className="block tabular-nums">
                           {t('community.playbooks.progressShort', p)}
                         </span>
                         <span className="block text-xs text-muted-foreground">

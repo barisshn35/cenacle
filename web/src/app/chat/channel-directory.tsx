@@ -114,7 +114,7 @@ export function ChannelDirectory({
                 )}
               >
                 {t(`channels.directoryFilters.${k}`)}
-                <span className="font-mono text-xs font-normal">{counts[k]}</span>
+                <span className="text-xs font-normal tabular-nums">{counts[k]}</span>
               </button>
             ))}
           </div>
@@ -167,7 +167,7 @@ export function ChannelDirectory({
                     <p className="col-span-2 line-clamp-2 text-[13px] text-muted-foreground max-sm:order-last sm:col-span-1">
                       {c.topic || '—'}
                     </p>
-                    <span className="text-end font-mono text-[13px] text-muted-foreground max-sm:hidden">
+                    <span className="text-end text-[13px] text-muted-foreground tabular-nums max-sm:hidden">
                       {c.member_count !== undefined ? (
                         <>
                           <span aria-hidden>{c.member_count}</span>

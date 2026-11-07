@@ -25,7 +25,7 @@ export function WebOffPage() {
           <dl>
             <div className="grid gap-0.5 px-4 pt-2.5 pb-3">
               <dt className="text-[11.5px] text-muted-foreground">{t('webOff.address')}</dt>
-              <dd className="font-mono text-[13.5px]">{address}</dd>
+              <dd className="text-[13.5px]">{address}</dd>
             </div>
             <div className="grid gap-0.5 border-t px-4 pt-2.5 pb-3">
               <dt className="text-[11.5px] text-muted-foreground">{t('webOff.browsers')}</dt>
@@ -43,7 +43,7 @@ export function WebOffPage() {
           <Trans
             i18nKey="webOff.lede"
             values={{ address }}
-            components={{ b: <b className="font-mono font-medium text-foreground" /> }}
+            components={{ b: <b className="font-medium text-foreground" /> }}
           />
         </p>
         {downloads.data && downloads.data.files.length > 0 ? (
@@ -61,7 +61,7 @@ export function WebOffPage() {
                   strokeWidth={1.75}
                 />
                 {t(`webOff.download.${f.platform}`, { kind: t(`webOff.kinds.${f.kind}`) })}
-                <span className="ms-auto font-mono text-xs font-normal text-muted-foreground">
+                <span className="ms-auto text-xs font-normal text-muted-foreground">
                   {f.arch} · {formatSize(f.size, i18n.language)}
                 </span>
               </a>

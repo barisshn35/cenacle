@@ -211,7 +211,7 @@ function GroupRows({
                       : t('userGroups.member')}
                   </span>
                 )}
-                <span className="w-20 text-end font-mono text-xs text-muted-foreground">
+                <span className="w-20 text-end text-xs tabular-nums text-muted-foreground">
                   {t('userGroups.people', { count: g.member_count })}
                 </span>
               </button>

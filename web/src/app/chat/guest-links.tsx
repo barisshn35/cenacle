@@ -101,7 +101,7 @@ export function GuestLinksSection({ channel }: { channel: Channel }) {
         <div className="grid gap-1.5" data-testid="guest-link-created">
           <Label htmlFor={`${id}-created`}>{t('guestLinks.created')}</Label>
           <div className="flex gap-2">
-            <Input id={`${id}-created`} readOnly value={created} className="font-mono text-xs" />
+            <Input id={`${id}-created`} readOnly value={created} className="text-xs" />
             <Button
               type="button"
               variant="outline"
