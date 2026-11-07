@@ -202,6 +202,10 @@ test('three people in a channel call; one screen is shared at a time, video only
       await connected(page);
     }
     await expect(a!.getByRole('dialog').getByRole('region', { name: /./ })).toHaveCount(3);
+    // Without a camera, a tile shows the person's picture or initials, one's own too.
+    const tiles = a!.getByRole('dialog');
+    await expect(tiles.getByRole('region', { name: 'You' })).toContainText('DK');
+    await expect(tiles.getByRole('region', { name: 'Call Peer' })).toContainText('CP');
 
     await a!.getByRole('button', { name: 'Share screen', exact: true }).click();
     await expect(a!.getByRole('button', { name: 'Stop sharing', exact: true })).toBeVisible();

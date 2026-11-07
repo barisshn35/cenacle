@@ -44,6 +44,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- A call tile without a camera showed the first two letters of the label ("Si" for "Siz",
+  "De" for "Deneme Kişi"); it shows the person's round picture, or their initials.
 - In Turkish, the message box of a direct or group conversation called it a channel
   ("… kanalına mesaj yazın"); it says "… ile konuşmanıza yazın".
 - `@all` notified no one although the help said it reaches everyone in a channel. It does

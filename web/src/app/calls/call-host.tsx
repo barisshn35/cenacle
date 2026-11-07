@@ -24,6 +24,7 @@ import {
 import { cn } from '@cenacle/ui/lib/utils';
 import { toast } from 'sonner';
 import { useSession } from '../auth/session';
+import { Avatar } from '../profile/avatar';
 import { useProfile } from '../profile/profiles';
 import { channelsQuery } from '../chat/data';
 import { errorCode, joinCall, leaveCall, startRinging, useCall } from './state';
@@ -261,6 +262,9 @@ function Participant({
   const { t } = useTranslation('calls');
   const profile = useProfile(userID || undefined);
   const name = own ? t('you') : (profile?.display_name ?? t('participant'));
+  // The picture (or initials) is of the person, also on one's own tile ("You").
+  const self = useSession().user;
+  const realName = profile?.display_name ?? (own ? self.display_name : '');
   const videos = own
     ? [...(local ?? [])]
         .filter(([kind]) => kind !== 'audio')
@@ -286,10 +290,10 @@ function Participant({
         ))
       ) : (
         <div
-          className="flex aspect-video items-center justify-center overflow-hidden bg-background text-2xl font-medium"
+          className="flex aspect-video items-center justify-center overflow-hidden bg-background"
           aria-hidden="true"
         >
-          {name.slice(0, 2)}
+          <Avatar name={realName || name} profile={profile} size="lg" />
         </div>
       )}
       <div className="flex min-w-0 items-center justify-between gap-2 text-sm">
