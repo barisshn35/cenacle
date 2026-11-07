@@ -40,8 +40,10 @@ export function ChannelIndex() {
   }
   if (!channels.data || !workspaces.data) return null;
   const list = channels.data.filter((c) => c.workspace_id === workspaceId);
-  // The first channel to talk in, not an announcement channel.
+  // The workspace's default channel, else the first channel to talk in (not an announcement
+  // channel): where one lands does not move as channels are added.
   const target =
+    list.find((c) => c.is_default && c.kind === 'standard' && c.can_post) ??
     list.find((c) => c.kind === 'standard' && c.can_post) ??
     list.find((c) => c.can_post) ??
     list[0];
