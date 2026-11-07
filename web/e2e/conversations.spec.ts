@@ -147,3 +147,20 @@ test.describe('direct messages, unread, presence and typing', () => {
     await expect(page.getByRole('button', { name: /Status: Do not disturb/ })).toBeVisible();
   });
 });
+
+test.describe('in Turkish', () => {
+  test.use({ locale: 'tr-TR' });
+
+  test('the composer of a conversation does not call it a channel', async ({ page }) => {
+    const dm = directWith(PEOPLE[1]!);
+    await mockApi(page, { channels: [dm] });
+    await page.goto(`/c/${dm.id}`);
+    const name = PEOPLE[1]!.display_name;
+    await expect(
+      page.getByRole('textbox', { name: `${name} ile konuşmanıza yazın` }),
+    ).toBeVisible();
+    await expect(page.getByText(/kanalına mesaj yazın/)).toHaveCount(0);
+    await page.goto(`/c/${GENERAL.id}`);
+    await expect(page.getByRole('textbox', { name: 'General kanalına mesaj yazın' })).toBeVisible();
+  });
+});

@@ -44,6 +44,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- In Turkish, the message box of a direct or group conversation called it a channel
+  ("… kanalına mesaj yazın"); it says "… ile konuşmanıza yazın".
 - `@all` notified no one although the help said it reaches everyone in a channel. It does
   now, and so do the Turkish `@herkes` and `@kanal` (`@burada` for the people online); the
   `@` suggestions offer them to those allowed to mention everyone.

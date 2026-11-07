@@ -103,6 +103,7 @@
     "about": "Hakkında",
     "channelStart": "{{channel}} kanalının başlangıcı.",
     "composerPlaceholder": "{{channel}} kanalına mesaj yazın",
+    "composerPlaceholderConversation": "{{name}} ile konuşmanıza yazın",
     "settings": "Ayarlar",
     "channels": "Kanallar",
     "noTopic": "Henüz konu yok.",

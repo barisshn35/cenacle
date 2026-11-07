@@ -385,7 +385,9 @@ export function Composer({
   useToastClearance(footer);
   const label = thread
     ? t('threads.replyPlaceholder')
-    : t('shell.composerPlaceholder', { channel: channelName });
+    : conversation
+      ? t('shell.composerPlaceholderConversation', { name: channelName })
+      : t('shell.composerPlaceholder', { channel: channelName });
   return (
     <footer
       ref={footer}
