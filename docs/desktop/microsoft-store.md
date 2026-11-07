@@ -20,7 +20,8 @@ app; Store installations do not use the server's update files.
    | `MSIX_PUBLISHER`              | Package/Identity/Publisher              | `CN=1A2B3C4D-…`        |
    | `MSIX_PUBLISHER_DISPLAY_NAME` | Package/Properties/PublisherDisplayName | `Example Ltd`          |
 
-   Without them the packages carry placeholder values, which the Store refuses.
+   A release's CI job stops without them; a local build uses placeholder values, which the
+   Store refuses.
 
 ## Each release
 

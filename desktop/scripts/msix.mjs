@@ -6,8 +6,9 @@
 // msix-packaging (scripts/makemsix.sh builds it); MAKEMSIX names it.
 //
 // The package identity comes from Partner Center: MSIX_IDENTITY_NAME,
-// MSIX_PUBLISHER (CN=…) and MSIX_PUBLISHER_DISPLAY_NAME. Without them the
-// packages carry placeholder values that the Store refuses.
+// MSIX_PUBLISHER (CN=…) and MSIX_PUBLISHER_DISPLAY_NAME. A release (a CI tag
+// job) stops without them; a local build uses placeholder values that the
+// Store refuses.
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -24,6 +25,20 @@ const xml = (s) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c],
   );
 
+const identityVars = ['MSIX_IDENTITY_NAME', 'MSIX_PUBLISHER', 'MSIX_PUBLISHER_DISPLAY_NAME'];
+if (process.env.CI_COMMIT_TAG) {
+  const missing = identityVars.filter((name) => !process.env[name]?.trim());
+  if (missing.length > 0) {
+    console.error(
+      `Missing ${missing.join(', ')}: a release's MSIX packages need the identity from Partner Center (docs/desktop/microsoft-store.md).`,
+    );
+    process.exit(1);
+  }
+  if (process.env.MSIX_ALLOW_UNSIGNED) {
+    console.error('MSIX_ALLOW_UNSIGNED is for test packages, never for a release.');
+    process.exit(1);
+  }
+}
 const identity = {
   name: process.env.MSIX_IDENTITY_NAME || 'Cenacle.Desktop',
   publisher: process.env.MSIX_PUBLISHER || 'CN=Cenacle',

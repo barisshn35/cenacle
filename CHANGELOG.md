@@ -49,6 +49,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 - Signing in opens the workspace's default channel (General); it opened the first channel in
   the list, so a new channel whose name sorts before it moved where everyone landed.
 - A small image (an icon) is shown at its own size instead of being blown up to the preview's.
+- A release's MSIX packages could be built with placeholder identity values when the Partner
+  Center variables were missing; the tag job now stops without `MSIX_IDENTITY_NAME`,
+  `MSIX_PUBLISHER` and `MSIX_PUBLISHER_DISPLAY_NAME`, and refuses the unsigned test marker.
 - GitHub's CLA check failed on Dependabot's pull requests (bots do not sign off); it skips
   pull requests GitHub says Dependabot opened.
 - Upgrade guide: a Helm section. `helm upgrade --reuse-values` stops on a setting a release
