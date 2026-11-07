@@ -212,7 +212,16 @@
     },
     "markUnread": "Mark as unread",
     "markedUnread": "Marked as unread. It stays unread until you leave.",
-    "markUnreadFailed": "Couldn't mark it unread. Try again."
+    "markUnreadFailed": "Couldn't mark it unread. Try again.",
+    "lines": {
+      "joined": "<b>{{user}}</b> joined the channel",
+      "left": "<b>{{user}}</b> left the channel",
+      "added": "<b>{{user}}</b> was added to the channel",
+      "addedBy": "<b>{{user}}</b> was added by <b>{{actor}}</b>",
+      "removed": "<b>{{user}}</b> was removed from the channel",
+      "removedBy": "<b>{{user}}</b> was removed by <b>{{actor}}</b>",
+      "someone": "A former member"
+    }
   },
   "channels": {
     "kinds": {
@@ -1810,6 +1819,12 @@
       },
       "lists_one": "{{count}} list",
       "lists_other": "{{count}} lists"
+    },
+    "origin": {
+      "added": "Added by {{name}}",
+      "changed": "Changed by {{name}}",
+      "someone": "a former member",
+      "column": "Added"
     }
   },
   "compliance": {

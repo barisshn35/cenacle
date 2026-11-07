@@ -14,6 +14,14 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   own, with `CENACLE_ACME_CA` (its directory URL) and, for a root that is not publicly
   trusted, `CENACLE_ACME_CA_ROOT=file` with `certs/acme-ca.pem`. The proxy stops with a
   message when either is missing. `acme` stays as it was.
+- Channel lines: a channel's timeline says when someone joined, left, was added or was
+  removed, and by whom ("Deniz Kaya was added by Ayşe Yılmaz"). The lines never count as
+  unread and never notify; they name people by id, so an erased person shows as a former
+  member (migration 00066). Conversations and end-to-end encrypted channels have none.
+- Who added what in a channel's tabs: list rows and board cards say who added them and
+  who changed them last, and when (a new column in the table, a line on each card, and the
+  row's menu on phones); a tab's menu says who added it. Lists keep who changed a row
+  (migration 00067); canvases already showed who edited them last.
 
 ### Security
 

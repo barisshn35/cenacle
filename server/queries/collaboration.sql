@@ -97,7 +97,8 @@ RETURNING *;
 
 -- name: UpdateListItem :one
 UPDATE list_items SET title = @title, "values" = @values, position = @position, assignees = @assignees,
-    done = @done, due = sqlc.narg(due), updated_at = now()
+    done = @done, due = sqlc.narg(due), updated_at = now(),
+    updated_by = coalesce(sqlc.narg(updated_by), updated_by)
 WHERE id = @id
 RETURNING *;
 

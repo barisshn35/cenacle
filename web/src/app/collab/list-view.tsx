@@ -28,7 +28,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@cenacle/ui/components/dropdown-menu';
@@ -52,6 +54,7 @@ import {
   type ListColumn,
   type ListItem,
 } from './collab';
+import { RowOrigin } from './origin';
 
 const control =
   'min-h-target w-full rounded-md border border-transparent bg-transparent px-2 py-1 text-sm outline-none hover:border-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:hover:border-transparent';
@@ -199,6 +202,12 @@ function RowMenu({
         <MoreHorizontalIcon strokeWidth={1.75} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <RowOrigin item={item} />
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
         {moveTo?.map((m) => (
           <DropdownMenuItem key={m.label} onClick={m.onSelect}>
             <MoveRightIcon strokeWidth={1.75} />
@@ -378,6 +387,12 @@ function Table({ list }: { list: ItemList }) {
                 {c.name}
               </th>
             ))}
+            <th
+              scope="col"
+              className="sticky top-0 border-b bg-background px-2 py-2 font-medium max-md:hidden"
+            >
+              {t('collab.origin.column')}
+            </th>
             <th scope="col" className="sticky top-0 w-10 border-b bg-background">
               <span className="sr-only">{t('collab.list.actions')}</span>
             </th>
@@ -407,6 +422,9 @@ function Table({ list }: { list: ItemList }) {
                   />
                 </td>
               ))}
+              <td className="min-w-44 border-b px-2 py-1 text-xs text-muted-foreground max-md:hidden">
+                <RowOrigin item={item} />
+              </td>
               <td className="border-b px-1">
                 {list.can_edit && <RowMenu list={list} item={item} index={i} />}
               </td>
@@ -516,6 +534,7 @@ function Board({ list, column }: { list: ItemList; column: ListColumn }) {
                           ),
                       )}
                     </span>
+                    <RowOrigin item={item} className="text-xs text-muted-foreground" />
                   </div>
                   {list.can_edit && (
                     <RowMenu

@@ -150,6 +150,60 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 	return i, err
 }
 
+const createChannelLine = `-- name: CreateChannelLine :one
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments)
+VALUES ($1, $2, '', $3, $4)
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
+`
+
+type CreateChannelLineParams struct {
+	ChannelID   pgtype.UUID `json:"channel_id"`
+	AuthorID    pgtype.UUID `json:"author_id"`
+	Nonce       string      `json:"nonce"`
+	Attachments []byte      `json:"attachments"`
+}
+
+// Empty body keeps this local under the federation text-only rule.
+func (q *Queries) CreateChannelLine(ctx context.Context, arg CreateChannelLineParams) (Message, error) {
+	row := q.db.QueryRow(ctx, createChannelLine,
+		arg.ChannelID,
+		arg.AuthorID,
+		arg.Nonce,
+		arg.Attachments,
+	)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.AuthorID,
+		&i.Body,
+		&i.Nonce,
+		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
+		&i.Attachments,
+		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
+		&i.Title,
+		&i.Tags,
+		&i.LinkUrl,
+		&i.LinkState,
+		&i.Forward,
+		&i.StickerID,
+		&i.BurnSeconds,
+		&i.TaskID,
+		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
+	)
+	return i, err
+}
+
 const createConversation = `-- name: CreateConversation :one
 INSERT INTO channels (workspace_id, name, kind, visibility, created_by)
 VALUES ($1, $2, $3, 'private', $4)
@@ -954,7 +1008,7 @@ SELECT c.id, c.name, c.topic, c.created_at, c.kind, c.is_default, c.is_mandatory
             WHERE x.channel_id = c.id
               AND x.id > coalesce(m.last_read_id, '00000000-0000-0000-0000-000000000000'::uuid)
               AND x.deleted_at IS NULL AND x.author_id <> $1
-              AND (x.root_id IS NULL OR x.also_in_channel)
+              AND (x.root_id IS NULL OR x.also_in_channel) AND NOT channel_line(x.attachments)
             LIMIT 100) unread)::int AS unread_count,
        -- Unread messages that mention the user, also up to 100.
        (SELECT count(*) FROM (

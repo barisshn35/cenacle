@@ -155,6 +155,8 @@ const LIST = {
       values: { status: 'todo', owner: PEOPLE[1]!.id, due: '2026-10-30' },
       created_at: '2026-10-22T10:00:00Z',
       updated_at: '2026-10-22T10:00:00Z',
+      created_by: PEOPLE[2]!.id as string | undefined,
+      updated_by: undefined as string | undefined,
     },
   ],
 };
@@ -169,6 +171,8 @@ test('a task list opens as a board; cards move without dragging', async ({ page 
     change = route.request().postDataJSON();
     const item = list.items[0]!;
     item.values = { ...item.values, ...(change as { values: Record<string, string> }).values };
+    item.updated_by = SESSION.user.id;
+    item.updated_at = '2026-10-23T10:00:00Z';
     return route.fulfill({ json: item });
   });
   await page.goto(`/c/${GENERAL.id}?tab=${LIST_TAB.id}`);
@@ -177,6 +181,10 @@ test('a task list opens as a board; cards move without dragging', async ({ page 
   const todo = page.getByRole('region', { name: 'To do' });
   await expect(todo.getByTestId('card')).toContainText('Book the room');
   await expect(todo.getByTestId('card')).toContainText(PEOPLE[1]!.display_name);
+  // Who added the card, on the card itself.
+  await expect(todo.getByTestId('card')).toContainText(
+    `Added by ${PEOPLE[2]!.display_name}, Oct 22, 2026`,
+  );
   await expectTargetSizes(page, testInfo, '[data-testid="list"]');
   await expectNoAxeViolations(page, '[data-testid="list"]');
 
@@ -193,6 +201,11 @@ test('a task list opens as a board; cards move without dragging', async ({ page 
   await expect(row.getByLabel('Status, Book the room')).toHaveValue('doing');
   await row.getByLabel('Status, Book the room').selectOption('done');
   await expect.poll(() => change).toEqual({ values: { status: 'done' } });
+  // The table says who added the row and who changed it last.
+  await expect(row.getByTestId('origin-added')).toHaveText(
+    `Added by ${PEOPLE[2]!.display_name}, Oct 22, 2026`,
+  );
+  await expect(row.getByTestId('origin-changed')).toContainText('Changed by');
   await expectNoAxeViolations(page, '[data-testid="list"]');
 });
 

@@ -176,6 +176,8 @@ type Querier interface {
 	CreateCanvas(ctx context.Context, arg CreateCanvasParams) (Canvase, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (ChannelCategory, error)
 	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
+	// Empty body keeps this local under the federation text-only rule.
+	CreateChannelLine(ctx context.Context, arg CreateChannelLineParams) (Message, error)
 	CreateChannelTab(ctx context.Context, arg CreateChannelTabParams) (ChannelTab, error)
 	// CreateConversation creates a direct or group conversation, or returns the
 	// existing one with the same key (name).

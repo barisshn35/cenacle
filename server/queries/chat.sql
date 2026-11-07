@@ -10,7 +10,7 @@ SELECT sqlc.embed(c), m.role, wm.role AS workspace_role, m.last_read_id,
             WHERE x.channel_id = c.id
               AND x.id > coalesce(m.last_read_id, '00000000-0000-0000-0000-000000000000'::uuid)
               AND x.deleted_at IS NULL AND x.author_id <> @user_id
-              AND (x.root_id IS NULL OR x.also_in_channel)
+              AND (x.root_id IS NULL OR x.also_in_channel) AND NOT channel_line(x.attachments)
             LIMIT 100) unread)::int AS unread_count,
        -- Unread messages that mention the user, also up to 100.
        (SELECT count(*) FROM (
@@ -274,3 +274,9 @@ WHERE message_id = @message_id ORDER BY id DESC LIMIT 200;
 -- ListEditsOfMessages returns the earlier versions of messages, oldest first.
 SELECT message_id, body, written_at, replaced_at FROM message_edits
 WHERE message_id = ANY(@message_ids::uuid[]) ORDER BY message_id, id;
+
+-- name: CreateChannelLine :one
+-- Empty body keeps this local under the federation text-only rule.
+INSERT INTO messages (channel_id, author_id, body, nonce, attachments)
+VALUES (@channel_id, @author_id, '', @nonce, @attachments)
+RETURNING *;

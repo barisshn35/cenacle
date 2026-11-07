@@ -180,6 +180,10 @@ func TestEventsFollowMembership(t *testing.T) {
 	if ev := read(t, conn); ev.Type != "channel.members_changed" {
 		t.Fatalf("event = %s, want channel.members_changed", ev.Type)
 	}
+	// The channel's line about the join comes too.
+	if ev := read(t, conn); ev.Type != "message.created" {
+		t.Fatalf("event = %s, want the channel line", ev.Type)
+	}
 	s.send(admin, private.ID, "artık görürsün", "ops-nonce-2")
 	_ = json.Unmarshal(read(t, conn).Data, &m)
 	if m.Body != "artık görürsün" {

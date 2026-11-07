@@ -545,22 +545,22 @@ func (e CallState) Valid() bool {
 
 // Defines values for CallParticipantState.
 const (
-	Connected    CallParticipantState = "connected"
-	Left         CallParticipantState = "left"
-	Reconnecting CallParticipantState = "reconnecting"
-	Reserved     CallParticipantState = "reserved"
+	CallParticipantStateConnected    CallParticipantState = "connected"
+	CallParticipantStateLeft         CallParticipantState = "left"
+	CallParticipantStateReconnecting CallParticipantState = "reconnecting"
+	CallParticipantStateReserved     CallParticipantState = "reserved"
 )
 
 // Valid indicates whether the value is a known member of the CallParticipantState enum.
 func (e CallParticipantState) Valid() bool {
 	switch e {
-	case Connected:
+	case CallParticipantStateConnected:
 		return true
-	case Left:
+	case CallParticipantStateLeft:
 		return true
-	case Reconnecting:
+	case CallParticipantStateReconnecting:
 		return true
-	case Reserved:
+	case CallParticipantStateReserved:
 		return true
 	default:
 		return false
@@ -651,6 +651,30 @@ func (e ChannelFileMediaKind) Valid() bool {
 	case ChannelFileMediaKindClip:
 		return true
 	case ChannelFileMediaKindVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChannelLineKind.
+const (
+	ChannelLineKindAdded   ChannelLineKind = "added"
+	ChannelLineKindJoined  ChannelLineKind = "joined"
+	ChannelLineKindLeft    ChannelLineKind = "left"
+	ChannelLineKindRemoved ChannelLineKind = "removed"
+)
+
+// Valid indicates whether the value is a known member of the ChannelLineKind enum.
+func (e ChannelLineKind) Valid() bool {
+	switch e {
+	case ChannelLineKindAdded:
+		return true
+	case ChannelLineKindJoined:
+		return true
+	case ChannelLineKindLeft:
+		return true
+	case ChannelLineKindRemoved:
 		return true
 	default:
 		return false
@@ -2440,6 +2464,11 @@ type Attachment struct {
 	// CallSummary Server-authored, local-only call outcome. Never contains media, device or session data.
 	CallSummary *CallSummary `json:"call_summary,omitempty"`
 
+	// ChannelEvent Server-authored line in a channel's timeline about its membership. It
+	// never counts as unread and never notifies. Names are not stored: the
+	// people are given by id and shown with their current profile.
+	ChannelEvent *ChannelLine `json:"channel_event,omitempty"`
+
 	// Color The stripe on the card's edge (meaning is never the color alone).
 	Color  *AttachmentColor `json:"color,omitempty"`
 	Fields *[]struct {
@@ -2871,6 +2900,19 @@ type ChannelGroups struct {
 	// Reviews Groups of the channel that need review, with the new names they may mean (see GroupMapping.candidates). A group still listed keeps its review unless named in `reviewed`.
 	Reviews *[]GroupReview `json:"reviews,omitempty"`
 }
+
+// ChannelLine Server-authored line in a channel's timeline about its membership. It
+// never counts as unread and never notifies. Names are not stored: the
+// people are given by id and shown with their current profile.
+type ChannelLine struct {
+	// ActorId Who added or removed the person.
+	ActorId *openapi_types.UUID `json:"actor_id,omitempty"`
+	Kind    ChannelLineKind     `json:"kind"`
+	UserId  openapi_types.UUID  `json:"user_id"`
+}
+
+// ChannelLineKind defines model for ChannelLine.Kind.
+type ChannelLineKind string
 
 // ChannelList defines model for ChannelList.
 type ChannelList struct {
@@ -3444,11 +3486,17 @@ type ListInput struct {
 
 // ListItem defines model for ListItem.
 type ListItem struct {
-	CreatedAt time.Time          `json:"created_at"`
-	Id        openapi_types.UUID `json:"id"`
-	ListId    openapi_types.UUID `json:"list_id"`
-	Title     string             `json:"title"`
-	UpdatedAt time.Time          `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// CreatedBy Who added the row (absent once that account is gone).
+	CreatedBy *openapi_types.UUID `json:"created_by,omitempty"`
+	Id        openapi_types.UUID  `json:"id"`
+	ListId    openapi_types.UUID  `json:"list_id"`
+	Title     string              `json:"title"`
+	UpdatedAt time.Time           `json:"updated_at"`
+
+	// UpdatedBy Who last changed its title or values.
+	UpdatedBy *openapi_types.UUID `json:"updated_by,omitempty"`
 
 	// Values Values by column id: text, a number as text, an option, todo/doing/done, a user id, YYYY-MM-DD or "true"/"false". An empty string clears a value.
 	Values ListValues `json:"values"`
@@ -4224,6 +4272,10 @@ type Tab struct {
 	CanDelete bool                `json:"can_delete"`
 	CanvasId  *openapi_types.UUID `json:"canvas_id,omitempty"`
 	ChannelId openapi_types.UUID  `json:"channel_id"`
+	CreatedAt *time.Time          `json:"created_at,omitempty"`
+
+	// CreatedBy Who added the tab (absent once that account is gone).
+	CreatedBy *openapi_types.UUID `json:"created_by,omitempty"`
 	Id        openapi_types.UUID  `json:"id"`
 	Kind      TabKind             `json:"kind"`
 	ListId    *openapi_types.UUID `json:"list_id,omitempty"`

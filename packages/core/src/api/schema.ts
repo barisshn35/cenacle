@@ -5078,6 +5078,13 @@ export interface components {
       list_id?: string;
       position: number;
       can_delete: boolean;
+      /**
+       * Format: uuid
+       * @description Who added the tab (absent once that account is gone).
+       */
+      created_by?: string;
+      /** Format: date-time */
+      created_at?: string;
     };
     Canvas: {
       /** Format: uuid */
@@ -5125,6 +5132,16 @@ export interface components {
       created_at: string;
       /** Format: date-time */
       updated_at: string;
+      /**
+       * Format: uuid
+       * @description Who added the row (absent once that account is gone).
+       */
+      created_by?: string;
+      /**
+       * Format: uuid
+       * @description Who last changed its title or values.
+       */
+      updated_by?: string;
     };
     ItemList: {
       /** Format: uuid */
@@ -6759,6 +6776,7 @@ export interface components {
     /** @description A card under a message, e.g. from a bot (an issue, an alert). */
     Attachment: {
       call_summary?: components['schemas']['CallSummary'];
+      channel_event?: components['schemas']['ChannelLine'];
       title?: string;
       /** @description An http(s) URL the title links to. */
       title_link?: string;
@@ -6789,6 +6807,22 @@ export interface components {
       duration_seconds: number;
       /** Format: int64 */
       participants: number;
+    };
+    /**
+     * @description Server-authored line in a channel's timeline about its membership. It
+     *     never counts as unread and never notifies. Names are not stored: the
+     *     people are given by id and shown with their current profile.
+     */
+    ChannelLine: {
+      /** @enum {string} */
+      kind: 'joined' | 'left' | 'added' | 'removed';
+      /** Format: uuid */
+      user_id: string;
+      /**
+       * Format: uuid
+       * @description Who added or removed the person.
+       */
+      actor_id?: string;
     };
     MessagePage: {
       messages: components['schemas']['Message'][];

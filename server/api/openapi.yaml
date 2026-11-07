@@ -7724,6 +7724,8 @@ components:
         list_id: { type: string, format: uuid }
         position: { type: integer }
         can_delete: { type: boolean }
+        created_by: { type: string, format: uuid, description: Who added the tab (absent once that account is gone). }
+        created_at: { type: string, format: date-time }
     Canvas:
       type: object
       required: [id, channel_id, title, body, version, updated_at, can_edit]
@@ -7777,6 +7779,8 @@ components:
         values: { $ref: '#/components/schemas/ListValues' }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+        created_by: { type: string, format: uuid, description: Who added the row (absent once that account is gone). }
+        updated_by: { type: string, format: uuid, description: Who last changed its title or values. }
     ItemList:
       type: object
       required: [id, channel_id, title, columns, items, can_edit]
@@ -9639,6 +9643,8 @@ components:
       properties:
         call_summary:
           $ref: '#/components/schemas/CallSummary'
+        channel_event:
+          $ref: '#/components/schemas/ChannelLine'
         title: { type: string, maxLength: 200 }
         title_link:
           type: string
@@ -9674,6 +9680,17 @@ components:
         outcome: { type: string, enum: [ended, missed, declined, busy, failed] }
         duration_seconds: { type: integer, format: int64, minimum: 0 }
         participants: { type: integer, format: int64, minimum: 0 }
+    ChannelLine:
+      type: object
+      description: |
+        Server-authored line in a channel's timeline about its membership. It
+        never counts as unread and never notifies. Names are not stored: the
+        people are given by id and shown with their current profile.
+      required: [kind, user_id]
+      properties:
+        kind: { type: string, enum: [joined, left, added, removed] }
+        user_id: { type: string, format: uuid }
+        actor_id: { type: string, format: uuid, description: Who added or removed the person. }
     MessagePage:
       type: object
       required: [messages, has_more]

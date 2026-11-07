@@ -8,6 +8,7 @@ import {
   expectTargetSizes,
   mockApi,
   mockMessage,
+  PEOPLE,
   showActions,
 } from './helpers';
 
@@ -377,4 +378,41 @@ test('interface text uses the interface face; only code is monospaced', async ({
     await expect(jump).not.toContainText('Ctrl');
     await expect(jump).toHaveAttribute('aria-keyshortcuts', 'Control+K');
   }
+});
+
+test('membership shows as quiet lines that are never unread', async ({ page, isMobile }) => {
+  const [deniz, ayse, mert] = PEOPLE;
+  const line = (n: number, event: Record<string, string>) => ({
+    ...mockMessage(n, ''),
+    author: { id: '01a15e50-bbbb-7000-8000-000000000001', display_name: 'Cenacle', is_bot: true },
+    attachments: [{ channel_event: event }],
+  });
+  const api = await mockApi(page, {
+    messages: [
+      mockMessage(1, 'Günaydın!'),
+      line(2, { kind: 'joined', user_id: mert!.id }),
+      line(3, { kind: 'added', user_id: ayse!.id, actor_id: deniz!.id }),
+      line(4, { kind: 'left', user_id: '01a15e50-ffff-7000-8000-00000000dead' }),
+    ],
+  });
+  await page.goto('/');
+  const log = page.getByRole('log', { name: 'Messages in General' });
+  const lines = log.getByTestId('channel-line');
+  await expect(lines).toHaveText([
+    /Mert Kaya joined the channel/,
+    /Ayşe Yılmaz was added by Deniz Kaya/,
+    // An erased person has no name any more.
+    /A former member left the channel/,
+  ]);
+  await expect(log.getByTestId('message')).toHaveCount(1);
+
+  // Elsewhere, a line in General does not make it unread; a message does.
+  await page.goto(`/c/${CENTRAL.id}`);
+  if (isMobile) return;
+  const general = page.getByRole('link', { name: /^Channel General/ });
+  api.emit('message.created', line(5, { kind: 'joined', user_id: deniz!.id }));
+  await page.waitForTimeout(300);
+  await expect(general).not.toHaveAccessibleName(/unread/);
+  api.emit('message.created', mockMessage(6, 'Yeni', 'Mert Kaya'));
+  await expect(general).toHaveAccessibleName(/1 unread message/);
 });

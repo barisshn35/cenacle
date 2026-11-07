@@ -118,6 +118,7 @@ func (h *Handlers) RunCommand(w http.ResponseWriter, r *http.Request, channelID 
 			return
 		}
 		h.membersChanged(r.Context(), c, p.User.ID, events.ChannelLeft, toAPI(c, access{}))
+		h.channelLine(r.Context(), c, LineLeft, p.User.ID, p.User.ID)
 		httpx.WriteJSON(w, http.StatusOK, api.CommandResult{ResponseType: api.CommandResultResponseTypeNone})
 	case "feed":
 		h.commandFeed(w, r, p.User, c, role, text)
@@ -222,6 +223,7 @@ func (h *Handlers) commandJoin(w http.ResponseWriter, r *http.Request, user stor
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, user.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember}))
+		h.channelLine(r.Context(), c, LineJoined, user.ID, user.ID)
 		h.memberJoined(r.Context(), c, user)
 	}
 	ephemeral(w, fmt.Sprintf("You are in %s.", c.Name))

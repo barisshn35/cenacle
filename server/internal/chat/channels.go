@@ -438,6 +438,7 @@ func (h *Handlers) JoinChannel(w http.ResponseWriter, r *http.Request, channelID
 	}
 	out := toAPI(c, access{ch: RoleMember, ws: role.ws})
 	h.membersChanged(r.Context(), c, p.User.ID, events.ChannelJoined, out)
+	h.channelLine(r.Context(), c, LineJoined, p.User.ID, p.User.ID)
 	h.memberJoined(r.Context(), c, p.User)
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
@@ -467,6 +468,7 @@ func (h *Handlers) LeaveChannel(w http.ResponseWriter, r *http.Request, channelI
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, p.User.ID, events.ChannelLeft, toAPI(c, access{}))
+		h.channelLine(r.Context(), c, LineLeft, p.User.ID, p.User.ID)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -668,6 +670,7 @@ func (h *Handlers) AddChannelMember(w http.ResponseWriter, r *http.Request, chan
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, u.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember, ws: targetWs}))
+		h.channelLine(r.Context(), c, LineAdded, u.ID, p.User.ID)
 		h.memberJoined(r.Context(), c, u)
 		h.record(r, c.WorkspaceID, audit.ChannelMemberAdded, "channel", uuid(c.ID).String(),
 			map[string]any{"channel": c.Name, "user_id": uuid(u.ID).String(), "user": u.DisplayName})
@@ -706,6 +709,7 @@ func (h *Handlers) RemoveChannelMember(w http.ResponseWriter, r *http.Request, c
 	}
 	if n > 0 {
 		h.membersChanged(r.Context(), c, pgUUID(userID), events.ChannelLeft, toAPI(c, access{}))
+		h.channelLine(r.Context(), c, LineRemoved, pgUUID(userID), p.User.ID)
 		h.record(r, c.WorkspaceID, audit.ChannelMemberRemoved, "channel", uuid(c.ID).String(),
 			map[string]any{"channel": c.Name, "user_id": userID.String()})
 	}

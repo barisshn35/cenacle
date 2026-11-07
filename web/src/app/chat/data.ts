@@ -147,6 +147,17 @@ export function setUnreadLocally(
   void queryClient.invalidateQueries({ queryKey: ['channels'] });
 }
 
+export type ChannelLine = components['schemas']['ChannelLine'];
+
+const KINDS = ['joined', 'left', 'added', 'removed'] as const;
+
+/** The membership line a message of the Cenacle bot carries, if it is one. */
+export function lineOf(m: Pick<Message, 'attachments' | 'author'>): ChannelLine | null {
+  const line = m.author.is_bot ? m.attachments?.[0]?.channel_event : undefined;
+  if (!line || !KINDS.includes(line.kind) || typeof line.user_id !== 'string') return null;
+  return line;
+}
+
 /** The message shows in its channel's timeline (not a reply kept in its thread). */
 export const inChannel = (m: Pick<Message, 'root_id' | 'also_in_channel'>) =>
   !m.root_id || !!m.also_in_channel;
@@ -154,7 +165,7 @@ export const inChannel = (m: Pick<Message, 'root_id' | 'also_in_channel'>) =>
 /** A message arrived: someone else's counts as unread (up to 100). */
 export function countIncoming(queryClient: QueryClient, message: Message, selfId: string) {
   // Replies kept in their thread count in the thread (followed threads).
-  if (!inChannel(message)) return;
+  if (!inChannel(message) || lineOf(message)) return;
   if (message.author.id === selfId) {
     setReadLocally(queryClient, message.channel_id, message.id);
     return;

@@ -942,6 +942,7 @@ func (h *Handlers) FinishOnboarding(w http.ResponseWriter, r *http.Request, work
 		}
 		if n > 0 {
 			h.membersChanged(r.Context(), c, p.User.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember, ws: role}))
+			h.channelLine(r.Context(), c, LineJoined, p.User.ID, p.User.ID)
 		}
 	}
 	if _, err := h.Queries.SetOnboarded(r.Context(), store.SetOnboardedParams{WorkspaceID: pgUUID(workspaceID), UserID: p.User.ID}); err != nil {

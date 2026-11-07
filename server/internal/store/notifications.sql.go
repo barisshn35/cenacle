@@ -516,7 +516,7 @@ LEFT JOIN thread_follows tf ON tf.root_id = m.root_id AND tf.user_id = cm.user_i
 LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.channel_id = m.channel_id
 LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
 WHERE m.id >= $1 AND (m.id, cm.user_id) > ($1::uuid, $2::uuid)
-  AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day'
+  AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day' AND NOT channel_line(m.attachments)
   AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.user_id = cm.user_id)
   AND (CASE WHEN m.root_id IS NULL OR m.also_in_channel
             THEN cm.last_read_id IS NULL OR cm.last_read_id < m.id

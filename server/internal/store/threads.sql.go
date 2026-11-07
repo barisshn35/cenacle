@@ -758,7 +758,7 @@ JOIN channels c ON c.id = cm.channel_id AND c.archived_at IS NULL AND c.workspac
 CROSS JOIN LATERAL (
     SELECT m.id, m.channel_id, m.author_id, m.body, m.nonce, m.created_at, m.edited_at, m.deleted_at, m.deleted_by, m.attachments, m.has_files, m.root_id, m.also_in_channel, m.pinned_at, m.pinned_by, m.title, m.tags, m.link_url, m.link_state, m.forward, m.sticker_id, m.burn_seconds, m.task_id, m.submission_id, m.priority, m.ack_requested, m.persistent FROM messages m
     WHERE m.channel_id = c.id AND m.deleted_at IS NULL AND m.author_id <> $2
-      AND (m.root_id IS NULL OR m.also_in_channel)
+      AND (m.root_id IS NULL OR m.also_in_channel) AND NOT channel_line(m.attachments)
       AND (cm.last_read_id IS NULL OR m.id > cm.last_read_id)
     ORDER BY m.id DESC LIMIT 20) x
 JOIN users u ON u.id = x.author_id

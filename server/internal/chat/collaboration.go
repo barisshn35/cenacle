@@ -65,6 +65,7 @@ func tabAPI(t store.ChannelTab, c store.Channel, a access, user pgtype.UUID) api
 		Id: uuid(t.ID), ChannelId: uuid(t.ChannelID), Kind: api.TabKind(t.Kind), Title: t.Title,
 		Position:  int(t.Position),
 		CanDelete: canPost(c, a) && (t.CreatedBy == user || canManage(c, a)),
+		CreatedBy: uuidPtr(t.CreatedBy), CreatedAt: &t.CreatedAt,
 	}
 	if t.Url.Valid {
 		out.Url = &t.Url.String
@@ -658,7 +659,7 @@ func listItemAPI(i store.ListItem) api.ListItem {
 	values := api.ListValues{}
 	_ = json.Unmarshal(i.Values, &values)
 	return api.ListItem{Id: uuid(i.ID), ListId: uuid(i.ListID), Title: i.Title, Values: values,
-		CreatedAt: i.CreatedAt, UpdatedAt: i.UpdatedAt}
+		CreatedAt: i.CreatedAt, UpdatedAt: i.UpdatedAt, CreatedBy: uuidPtr(i.CreatedBy), UpdatedBy: uuidPtr(i.UpdatedBy)}
 }
 
 func (h *Handlers) listChanged(ctx context.Context, q store.Querier, l listRef) error {
@@ -755,7 +756,8 @@ func (h *Handlers) UpdateList(w http.ResponseWriter, r *http.Request, listID ope
 					}
 				}
 			}
-			if err := h.saveItem(r.Context(), q, l, it, it.Title, values, it.Position); err != nil {
+			// A change of the columns is not an edit of the row: who changed it stays.
+			if err := h.saveItem(r.Context(), q, l, it, it.Title, values, it.Position, pgtype.UUID{}); err != nil {
 				return err
 			}
 		}
@@ -768,14 +770,14 @@ func (h *Handlers) UpdateList(w http.ResponseWriter, r *http.Request, listID ope
 	h.writeList(w, r, l)
 }
 
-func (h *Handlers) saveItem(ctx context.Context, q store.Querier, l listRef, it store.ListItem, title string, values map[string]string, position float64) error {
+func (h *Handlers) saveItem(ctx context.Context, q store.Querier, l listRef, it store.ListItem, title string, values map[string]string, position float64, by pgtype.UUID) error {
 	raw, err := json.Marshal(values)
 	if err != nil {
 		return err
 	}
 	assignees, done, due := derived(l.columns, values)
 	_, err = q.UpdateListItem(ctx, store.UpdateListItemParams{ID: it.ID, Title: title, Values: raw, Position: position,
-		Assignees: assignees, Done: done, Due: due})
+		Assignees: assignees, Done: done, Due: due, UpdatedBy: by})
 	return err
 }
 
@@ -926,7 +928,7 @@ func (h *Handlers) UpdateListItem(w http.ResponseWriter, r *http.Request, itemID
 				return err
 			}
 		}
-		if err := h.saveItem(r.Context(), q, l, it, title, values, position); err != nil {
+		if err := h.saveItem(r.Context(), q, l, it, title, values, position, p.User.ID); err != nil {
 			return err
 		}
 		return h.listChanged(r.Context(), q, l)
@@ -1036,4 +1038,13 @@ func (h *Handlers) ListAssignedItems(w http.ResponseWriter, r *http.Request, wor
 		}
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string][]api.AssignedItem{"items": out})
+}
+
+// uuidPtr is an optional reference to a person: nil when there is none.
+func uuidPtr(id pgtype.UUID) *openapi_types.UUID {
+	if !id.Valid {
+		return nil
+	}
+	out := uuid(id)
+	return &out
 }

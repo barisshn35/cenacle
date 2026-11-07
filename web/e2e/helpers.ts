@@ -836,7 +836,10 @@ export async function mockApi(
         // And counted, so the channel list the app reloads on connecting
         // agrees with the event (whichever of the two arrives first).
         const c = all.find((x) => x.id === m.channel_id);
-        if (c && !m.root_id && m.author.id !== SESSION.user.id) {
+        // Channel lines (joined, added…) never count, as on the server.
+        const line = (m.attachments as { channel_event?: unknown }[] | undefined)?.[0]
+          ?.channel_event;
+        if (c && !m.root_id && m.author.id !== SESSION.user.id && !line) {
           if (!c.last_read_id || c.last_read_id < m.id) {
             c.unread_count = Math.min(c.unread_count + 1, 100);
           }

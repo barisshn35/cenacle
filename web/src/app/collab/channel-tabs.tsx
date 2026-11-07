@@ -31,7 +31,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@cenacle/ui/components/dropdown-menu';
@@ -40,6 +42,7 @@ import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import type { Channel } from '../chat/data';
 import { createTab, deleteTab, tabsQuery, updateTab, type Tab, type TabInput } from './collab';
+import { Origin } from './origin';
 
 type NewTab = 'canvas' | 'list' | 'tasks' | 'link';
 
@@ -93,6 +96,7 @@ export function ChannelTabs({ channel, active }: { channel: Channel; active?: st
                 {tab.title}
                 <ExternalLinkIcon aria-hidden className="size-3" strokeWidth={1.75} />
                 <span className="sr-only">{t('collab.tabs.opensElsewhere')}</span>
+                <Origin by={tab.created_by} at={tab.created_at} verb="added" className="sr-only" />
               </a>
             ) : (
               <Link
@@ -120,6 +124,16 @@ export function ChannelTabs({ channel, active }: { channel: Channel; active?: st
                   <MoreHorizontalIcon strokeWidth={1.75} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
+                  {tab.created_at && (
+                    <>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className="font-normal">
+                          <Origin by={tab.created_by} at={tab.created_at} verb="added" />
+                        </DropdownMenuLabel>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onClick={() => setEditing(tab)}>
                     <PencilIcon strokeWidth={1.75} />
                     {t('collab.tabs.rename')}

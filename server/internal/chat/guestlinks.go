@@ -409,6 +409,7 @@ func (h *Handlers) JoinGuestLink(w http.ResponseWriter, r *http.Request, token s
 		Action: audit.GuestLinkJoined, TargetType: "channel", TargetID: uuid(c.ID).String(), IP: ip,
 		Detail: map[string]any{"channel": c.Name, "name": name, "link": uuid(l.ID).String()}})
 	h.membersChanged(r.Context(), c, guest.ID, events.ChannelJoined, toAPI(c, access{ch: RoleMember, ws: WorkspaceGuest}))
+	h.channelLine(r.Context(), c, LineJoined, guest.ID, guest.ID)
 	httpx.WriteJSON(w, http.StatusCreated, struct {
 		ChannelID openapi_types.UUID `json:"channel_id"`
 	}{uuid(c.ID)})

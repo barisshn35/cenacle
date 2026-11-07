@@ -27,6 +27,9 @@ func TestChannelTabs(t *testing.T) {
 	if ev := read(t, conn); ev.Type != "tabs.changed" {
 		t.Fatalf("event = %s, want tabs.changed", ev.Type)
 	}
+	if link.CreatedBy == nil || link.CreatedBy.String() != s.userID(ayse) || link.CreatedAt == nil {
+		t.Errorf("link added by %v at %v", link.CreatedBy, link.CreatedAt)
+	}
 	if status, _ := problemCode(t, s, http.MethodPost, path, ayse, map[string]any{"kind": "link", "title": "X", "url": "javascript:alert(1)"}); status != http.StatusBadRequest {
 		t.Errorf("javascript link = %d", status)
 	}
@@ -177,6 +180,14 @@ func TestListsAndAssignedItems(t *testing.T) {
 	s.call(http.MethodPatch, "/api/list-items/"+b.Id.String(), ayse, map[string]any{"values": map[string]string{"status": "done"}}, &done)
 	if done.Values["size"] != "M" || done.Values["status"] != "done" {
 		t.Errorf("values kept = %v", done.Values)
+	}
+	// Who added the row and who changed it last.
+	adminID := s.userID(admin)
+	if b.CreatedBy == nil || b.CreatedBy.String() != adminID || b.UpdatedBy != nil {
+		t.Errorf("new row by = %v, %v", b.CreatedBy, b.UpdatedBy)
+	}
+	if done.CreatedBy == nil || done.CreatedBy.String() != adminID || done.UpdatedBy == nil || done.UpdatedBy.String() != ayseID {
+		t.Errorf("changed row by = %v, %v", done.CreatedBy, done.UpdatedBy)
 	}
 	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/assigned-items", ayse, nil, &mine)
 	if len(mine.Items) != 1 || mine.Items[0].Item.Id != a.Id {

@@ -212,7 +212,16 @@
     },
     "markUnread": "Okunmamış olarak işaretle",
     "markedUnread": "Okunmamış olarak işaretlendi. Buradan ayrılana kadar öyle kalır.",
-    "markUnreadFailed": "Okunmamış olarak işaretlenemedi. Tekrar deneyin."
+    "markUnreadFailed": "Okunmamış olarak işaretlenemedi. Tekrar deneyin.",
+    "lines": {
+      "joined": "<b>{{user}}</b> kanala katıldı",
+      "left": "<b>{{user}}</b> kanaldan ayrıldı",
+      "added": "<b>{{user}}</b> kanala eklendi",
+      "addedBy": "<b>{{user}}</b>, <b>{{actor}}</b> tarafından eklendi",
+      "removed": "<b>{{user}}</b> kanaldan çıkarıldı",
+      "removedBy": "<b>{{user}}</b>, <b>{{actor}}</b> tarafından çıkarıldı",
+      "someone": "Eski bir üye"
+    }
   },
   "channels": {
     "kinds": {
@@ -1810,6 +1819,12 @@
       },
       "lists_one": "{{count}} liste",
       "lists_other": "{{count}} liste"
+    },
+    "origin": {
+      "added": "Ekleyen: {{name}}",
+      "changed": "Değiştiren: {{name}}",
+      "someone": "eski bir üye",
+      "column": "Eklenme"
     }
   },
   "compliance": {

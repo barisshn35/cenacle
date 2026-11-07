@@ -569,6 +569,7 @@ type ListItem struct {
 	CreatedBy pgtype.UUID   `json:"created_by"`
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
+	UpdatedBy pgtype.UUID   `json:"updated_by"`
 }
 
 type MentionGroup struct {

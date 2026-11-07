@@ -133,7 +133,7 @@ const createListItem = `-- name: CreateListItem :one
 INSERT INTO list_items (list_id, title, "values", position, assignees, done, due, created_by)
 VALUES ($1, $2, $3, (SELECT coalesce(max(position), 0) + 1 FROM list_items WHERE list_id = $1),
         $4, $5, $6, $7)
-RETURNING id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at
+RETURNING id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at, updated_by
 `
 
 type CreateListItemParams struct {
@@ -169,6 +169,7 @@ func (q *Queries) CreateListItem(ctx context.Context, arg CreateListItemParams) 
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UpdatedBy,
 	)
 	return i, err
 }
@@ -306,7 +307,7 @@ func (q *Queries) GetList(ctx context.Context, id pgtype.UUID) (List, error) {
 }
 
 const getListItem = `-- name: GetListItem :one
-SELECT id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at FROM list_items WHERE id = $1
+SELECT id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at, updated_by FROM list_items WHERE id = $1
 `
 
 func (q *Queries) GetListItem(ctx context.Context, id pgtype.UUID) (ListItem, error) {
@@ -324,6 +325,7 @@ func (q *Queries) GetListItem(ctx context.Context, id pgtype.UUID) (ListItem, er
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UpdatedBy,
 	)
 	return i, err
 }
@@ -373,7 +375,7 @@ func (q *Queries) GetTabByList(ctx context.Context, listID pgtype.UUID) (Channel
 }
 
 const listAssignedItems = `-- name: ListAssignedItems :many
-SELECT i.id, i.list_id, i.title, i.values, i.position, i.assignees, i.done, i.due, i.created_by, i.created_at, i.updated_at, t.id AS tab_id, t.title AS list_title, ch.id AS channel_id, ch.name AS channel_name
+SELECT i.id, i.list_id, i.title, i.values, i.position, i.assignees, i.done, i.due, i.created_by, i.created_at, i.updated_at, i.updated_by, t.id AS tab_id, t.title AS list_title, ch.id AS channel_id, ch.name AS channel_name
 FROM list_items i
 JOIN channel_tabs t ON t.list_id = i.list_id
 JOIN channels ch ON ch.id = t.channel_id
@@ -401,6 +403,7 @@ type ListAssignedItemsRow struct {
 	CreatedBy   pgtype.UUID   `json:"created_by"`
 	CreatedAt   time.Time     `json:"created_at"`
 	UpdatedAt   time.Time     `json:"updated_at"`
+	UpdatedBy   pgtype.UUID   `json:"updated_by"`
 	TabID       pgtype.UUID   `json:"tab_id"`
 	ListTitle   string        `json:"list_title"`
 	ChannelID   pgtype.UUID   `json:"channel_id"`
@@ -430,6 +433,7 @@ func (q *Queries) ListAssignedItems(ctx context.Context, arg ListAssignedItemsPa
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UpdatedBy,
 			&i.TabID,
 			&i.ListTitle,
 			&i.ChannelID,
@@ -481,7 +485,7 @@ func (q *Queries) ListChannelTabs(ctx context.Context, channelID pgtype.UUID) ([
 }
 
 const listListItems = `-- name: ListListItems :many
-SELECT id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at FROM list_items WHERE list_id = $1 ORDER BY position, id
+SELECT id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at, updated_by FROM list_items WHERE list_id = $1 ORDER BY position, id
 `
 
 func (q *Queries) ListListItems(ctx context.Context, listID pgtype.UUID) ([]ListItem, error) {
@@ -505,6 +509,7 @@ func (q *Queries) ListListItems(ctx context.Context, listID pgtype.UUID) ([]List
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UpdatedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -650,9 +655,10 @@ func (q *Queries) UpdateList(ctx context.Context, arg UpdateListParams) (List, e
 
 const updateListItem = `-- name: UpdateListItem :one
 UPDATE list_items SET title = $1, "values" = $2, position = $3, assignees = $4,
-    done = $5, due = $6, updated_at = now()
-WHERE id = $7
-RETURNING id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at
+    done = $5, due = $6, updated_at = now(),
+    updated_by = coalesce($7, updated_by)
+WHERE id = $8
+RETURNING id, list_id, title, values, position, assignees, done, due, created_by, created_at, updated_at, updated_by
 `
 
 type UpdateListItemParams struct {
@@ -662,6 +668,7 @@ type UpdateListItemParams struct {
 	Assignees []pgtype.UUID `json:"assignees"`
 	Done      bool          `json:"done"`
 	Due       pgtype.Date   `json:"due"`
+	UpdatedBy pgtype.UUID   `json:"updated_by"`
 	ID        pgtype.UUID   `json:"id"`
 }
 
@@ -673,6 +680,7 @@ func (q *Queries) UpdateListItem(ctx context.Context, arg UpdateListItemParams) 
 		arg.Assignees,
 		arg.Done,
 		arg.Due,
+		arg.UpdatedBy,
 		arg.ID,
 	)
 	var i ListItem
@@ -688,6 +696,7 @@ func (q *Queries) UpdateListItem(ctx context.Context, arg UpdateListItemParams) 
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UpdatedBy,
 	)
 	return i, err
 }

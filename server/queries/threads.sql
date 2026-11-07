@@ -213,7 +213,7 @@ JOIN channels c ON c.id = cm.channel_id AND c.archived_at IS NULL AND c.workspac
 CROSS JOIN LATERAL (
     SELECT m.* FROM messages m
     WHERE m.channel_id = c.id AND m.deleted_at IS NULL AND m.author_id <> @user_id
-      AND (m.root_id IS NULL OR m.also_in_channel)
+      AND (m.root_id IS NULL OR m.also_in_channel) AND NOT channel_line(m.attachments)
       AND (cm.last_read_id IS NULL OR m.id > cm.last_read_id)
     ORDER BY m.id DESC LIMIT 20) x
 JOIN users u ON u.id = x.author_id

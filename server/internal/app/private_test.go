@@ -177,6 +177,10 @@ func TestMembershipEventsReachTheAddedUser(t *testing.T) {
 	if ev := read(t, conn); ev.Type != "channel.members_changed" {
 		t.Fatalf("event = %s, want channel.members_changed", ev.Type)
 	}
+	// The channel's line "Ayşe was added by …" reaches the added person too.
+	if ev := read(t, conn); ev.Type != "message.created" {
+		t.Fatalf("event = %s, want the channel line", ev.Type)
+	}
 	s.send(admin, private.ID, "hoş geldin", "gizli-nonce-1")
 	ev := read(t, conn)
 	var m message

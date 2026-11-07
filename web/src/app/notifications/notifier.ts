@@ -2,7 +2,7 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { groupsQuery, mentionable, mentionsMyGroup, type GroupList } from '../groups/groups';
 import { myProfileQuery, type MyProfile } from '../profile/profiles';
-import { inChannel, type Channel, type Message } from '../chat/data';
+import { inChannel, lineOf, type Channel, type Message } from '../chat/data';
 import type { FollowedThread } from '../threads/threads';
 import {
   kindOf,
@@ -102,7 +102,7 @@ export function notifyIncoming(
   selfId: string,
   openChannel: (channelId: string) => void,
 ): void {
-  if (message.author.id === selfId) return;
+  if (message.author.id === selfId || lineOf(message)) return;
   const settings = queryClient.getQueryData<NotificationSettings>(notificationsQuery.queryKey);
   const channels = queryClient.getQueryData<Channel[]>(['channels']);
   const channel = channels?.find((c) => c.id === message.channel_id);

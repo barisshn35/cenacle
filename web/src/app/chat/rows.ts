@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Message } from './data';
+import { lineOf, type Message } from './data';
 import type { PendingMessage } from './pending';
 import { dateLocale } from '../../i18n/time-format';
 
@@ -58,6 +58,7 @@ export function toRows(
     const firstUnread =
       !marked &&
       m.author.id !== mark!.self &&
+      !lineOf(m) &&
       (mark!.from ? m.id >= mark!.from : mark!.after === null || m.id > mark!.after);
     if (firstUnread) marked = true;
     const at = new Date(m.created_at);
