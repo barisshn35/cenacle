@@ -67,7 +67,9 @@ USER 1000:1000
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.IDP_PORT||8190)+'/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
 # Maintenance commands: docker compose run --rm idp node dist/cli.js <migrate|keys|users> ...
-CMD ["node", "--enable-source-maps", "dist/server.js"]
+# The V8 of Node.js 26 aborts the process on a lazy deoptimization after a fast API
+# call (Buffer.byteLength in res.end; nodejs/node#66870): those calls stay off.
+CMD ["node", "--no-turbo-fast-api-calls", "--enable-source-maps", "dist/server.js"]
 
 # The FIPS variant: node loads the FIPS provider and allows FIPS-approved
 # algorithms only (default property fips=yes); passwords use PBKDF2.
@@ -78,7 +80,7 @@ COPY idp/fips/openssl.cnf /etc/ssl/cenacle-fips.cnf
 ENV OPENSSL_CONF=/etc/ssl/cenacle-fips.cnf \
     OPENSSL_MODULES=/usr/local/lib/ossl-modules
 USER 1000:1000
-CMD ["node", "--enable-fips", "--enable-source-maps", "dist/server.js"]
+CMD ["node", "--no-turbo-fast-api-calls", "--enable-fips", "--enable-source-maps", "dist/server.js"]
 
 # The default image (the last stage).
 FROM runtime

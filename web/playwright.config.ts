@@ -39,7 +39,9 @@ export default defineConfig({
   ],
   webServer: {
     // The component gallery only exists in the dev server.
-    command: `pnpm exec vite --port ${port} --strictPort`,
+    // Node 26's V8 aborts on a lazy deopt after a fast API call (nodejs/node#66870); the flag
+    // is refused in NODE_OPTIONS, so Vite starts through node.
+    command: `node --no-turbo-fast-api-calls node_modules/vite/bin/vite.js --port ${port} --strictPort`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

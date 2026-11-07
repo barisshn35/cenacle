@@ -90,7 +90,8 @@ const idpCommand = fipsImage
     )
       .map((k) => `-e ${k}`)
       .join(' ')} ${fipsImage}`
-  : 'pnpm exec tsx src/server.ts';
+  : // Without V8's fast API calls, as the image runs it (nodejs/node#66870).
+    'node --no-turbo-fast-api-calls --import tsx src/server.ts';
 
 const serverBin = join(dir, 'cenacle-server');
 const serverEnv = {
@@ -166,8 +167,8 @@ export default defineConfig({
       name: 'web',
       // STACK_WEB_BUILD=1 serves the production build (soak runs measure that).
       command: process.env.STACK_WEB_BUILD
-        ? `pnpm exec vite build && pnpm exec vite preview --port ${WEB_PORT} --strictPort`
-        : `pnpm exec vite --port ${WEB_PORT} --strictPort`,
+        ? `pnpm exec vite build && node --no-turbo-fast-api-calls node_modules/vite/bin/vite.js preview --port ${WEB_PORT} --strictPort`
+        : `node --no-turbo-fast-api-calls node_modules/vite/bin/vite.js --port ${WEB_PORT} --strictPort`,
       env: {
         CENACLE_DEV_API: `http://127.0.0.1:${SERVER_PORT}`,
         ...(callsOn ? { CENACLE_DEV_MEDIA: `http://127.0.0.1:${mediaPort}` } : {}),
