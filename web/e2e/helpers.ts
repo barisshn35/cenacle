@@ -377,6 +377,7 @@ export interface MockMessage {
   also_in_channel?: boolean;
   pinned_at?: string | null;
   pinned_by?: string | null;
+  broadcast?: string[];
 }
 
 export function mockMessage(n: number, body: string, author = 'Ayşe Yılmaz'): MockMessage {
@@ -490,7 +491,7 @@ export async function mockApi(
     admin?: boolean;
     /** More channels the user is in (conversations), with changes to the defaults. */
     channels?: MockChannel[];
-    general?: Partial<MockChannel>;
+    general?: Partial<MockChannel> & Record<string, unknown>;
     presence?: { user_id: string; status: string }[];
     /** Whether the server stores files (default: yes). */
     files?: boolean;

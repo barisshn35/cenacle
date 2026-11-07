@@ -154,7 +154,7 @@ test.describe('incoming messages', () => {
       w.Notification = Recorded;
       const Base = w.AudioContext;
       w.AudioContext = class extends Base {
-        createOscillator() {
+        override createOscillator() {
           w.tones++;
           return super.createOscillator();
         }

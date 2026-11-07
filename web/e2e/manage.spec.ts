@@ -226,17 +226,17 @@ test.describe('managing channels', () => {
     await page.getByRole('button', { name: 'Edit categories' }).click();
     await dialog.getByLabel('Add a channel to Destek').selectOption({ label: 'General' });
     await expect
-      .poll(() => api.channels.find((c) => c.id === GENERAL.id)?.category_id)
+      .poll(() => api.channels!.find((c) => c.id === GENERAL.id)?.category_id)
       .toBeTruthy();
     await dialog.getByRole('button', { name: 'Take General out of Destek' }).click();
-    await expect.poll(() => api.channels.find((c) => c.id === GENERAL.id)?.category_id).toBe(null);
+    await expect.poll(() => api.channels!.find((c) => c.id === GENERAL.id)?.category_id).toBe(null);
     await page.keyboard.press('Escape');
     // From the channel's menu in the sidebar, without dragging.
     await nav.getByRole('button', { name: 'General options' }).click();
     await page.getByRole('menuitem', { name: 'Category (everyone)' }).click();
     await page.getByRole('menuitem', { name: 'Destek' }).click();
     await expect
-      .poll(() => api.channels.find((c) => c.id === GENERAL.id)?.category_id)
+      .poll(() => api.channels!.find((c) => c.id === GENERAL.id)?.category_id)
       .toBeTruthy();
   });
 });
