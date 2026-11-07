@@ -2,7 +2,7 @@
 
 How a release candidate is tested before its release: what is checked, how, and what must
 hold before the version is tagged. The results of each run are in a report next to this page
-(latest: [report-0.99.5.md](report-0.99.5.md)).
+(latest: [report-full-1.0.md](report-full-1.0.md)).
 
 ## What must hold for the release
 

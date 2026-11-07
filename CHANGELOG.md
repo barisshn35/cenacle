@@ -33,11 +33,22 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   bucket into `files/` and keeps what left it under `files-removed/<day>/` for 35 days; with
   `CENACLE_FILES_BACKEND=dir` each day has `files.tar`. Azure and other S3 services are left
   to their own versioning, and the script says so.
+- `GET /api/channels/{id}/call` answers 204 when there is no call in the channel (404 now
+  means no such channel), so opening a channel no longer logs a failed request.
 - The app no longer asks again after a refusal (403, 404 and other 4xx but 408 and 429), so
   a page someone may not see says so at once instead of loading for seconds.
 
 ### Fixed
 
+- Cenacle ID runs Node.js with `--no-turbo-fast-api-calls`: the V8 of Node.js 26 can abort the
+  whole process when it deoptimizes after a fast API call, as `Buffer.byteLength` in a
+  response is (nodejs/node#66870; seen in the web app's test server during QA).
+- A channel read at its end stays at its end when a picture or a preview above loads late;
+  new messages had stopped following. Someone who scrolled up gets a "Jump to the latest"
+  button that counts the new messages from others.
+- Signing in opens the workspace's default channel (General); it opened the first channel in
+  the list, so a new channel whose name sorts before it moved where everyone landed.
+- A small image (an icon) is shown at its own size instead of being blown up to the preview's.
 - GitHub's CLA check failed on Dependabot's pull requests (bots do not sign off); it skips
   pull requests GitHub says Dependabot opened.
 - Upgrade guide: a Helm section. `helm upgrade --reuse-values` stops on a setting a release
