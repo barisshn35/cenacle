@@ -43,6 +43,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   its windows, with nothing of its own to run.
 - The desktop app's sign-in window opens over the middle of the app's window (or of the
   screen), not wherever the system put it.
+- The Windows installer has the brand's pictures: the logo fades in and out as it starts
+  (NSIS's own AdvSplash), and the welcome and finish pages carry the side picture, the other
+  pages the header (`desktop/scripts/installer-art.mjs`, `desktop/build/installer.nsh`).
 - A channel's settings are one window opened from its name in the header: General (name,
   topic, category, who may post, archiving) for those who manage it, Members and roles,
   and Notifications. A member's role is chosen in words (Member, Channel manager) instead

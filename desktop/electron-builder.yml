@@ -45,6 +45,11 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   installerLanguages: [en_US, tr_TR]
+  # Pictures from scripts/installer-art.mjs; additions in build/installer.nsh.
+  installerSidebar: build/installerSidebar.bmp
+  uninstallerSidebar: build/uninstallerSidebar.bmp
+  installerHeader: build/installerHeader.bmp
+  include: build/installer.nsh
 linux:
   executableName: cenacle
   target:
