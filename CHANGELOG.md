@@ -40,6 +40,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Calls with Compose did not start: `calls.yml` gave the media service's `/tmp` as three
+  entries (Docker refused `noexec`), and another container could take the media service's
+  fixed address on its network. A test now checks the Compose files for both.
 - Cenacle ID runs Node.js with `--no-turbo-fast-api-calls`: the V8 of Node.js 26 can abort the
   whole process when it deoptimizes after a fast API call, as `Buffer.byteLength` in a
   response is (nodejs/node#66870; seen in the web app's test server during QA).

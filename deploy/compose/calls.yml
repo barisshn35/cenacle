@@ -36,7 +36,7 @@ services:
     pids_limit: 128
     mem_limit: 2g
     cpus: 2
-    tmpfs: [/tmp:size=16m, noexec, nosuid]
+    tmpfs: ['/tmp:size=16m,noexec,nosuid']
     environment:
       CENACLE_PUBLIC_URL: https://${CENACLE_DOMAIN}
       CENACLE_MEDIA_PUBLIC_IP: ${CENACLE_MEDIA_PUBLIC_IP:?set the media node public IP explicitly}
@@ -61,8 +61,10 @@ services:
 networks:
   calls-control:
     internal: true
+    # The media service keeps .2 (the address the chat server admits); the other
+    # containers take theirs from the upper half, so none can take it first.
     ipam:
-      config: [{ subnet: 172.29.88.0/28 }]
+      config: [{ subnet: 172.29.88.0/28, ip_range: 172.29.88.8/29 }]
 secrets:
   calls_private_key: { file: ./secrets/calls_private.pem }
   calls_public_key: { file: ./secrets/calls_public.pem }
