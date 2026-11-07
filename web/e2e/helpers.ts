@@ -1302,8 +1302,9 @@ export async function mockApi(
     push_public_key: null as string | null,
   };
   api.notifications = notifications;
+  // No call in the channel: 204, as the server answers.
   await page.route(/\/api\/channels\/[0-9a-f-]{36}\/call$/, (route) =>
-    route.fulfill({ status: 404, json: { status: 404, code: 'not_found' } }),
+    route.fulfill({ status: 204 }),
   );
   // Calls are off unless a test turns them on (later routes take precedence).
   await page.route('**/api/workspaces/*/calls/settings', (route) =>

@@ -130,7 +130,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Call' }
-        '404': { description: No accessible current call. }
+        '204': { description: No call in the channel now. }
+        '404': { description: No such channel among the caller's. }
   /api/calls/{id}:
     get:
       tags: [chat]

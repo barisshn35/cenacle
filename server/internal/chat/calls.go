@@ -302,7 +302,8 @@ func (h *Handlers) GetChannelCall(w http.ResponseWriter, r *http.Request, channe
 	}
 	c, err := h.Queries.GetChannelCall(r.Context(), pgUUID(channelID))
 	if isNoRows(err) {
-		channelNotFound(w, r)
+		// No call is the usual answer, not an error (browsers log every 4xx).
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if err != nil {

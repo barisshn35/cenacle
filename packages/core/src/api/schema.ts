@@ -6957,7 +6957,14 @@ export interface operations {
           'application/json': components['schemas']['Call'];
         };
       };
-      /** @description No accessible current call. */
+      /** @description No call in the channel now. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No such channel among the caller's. */
       404: {
         headers: {
           [name: string]: unknown;

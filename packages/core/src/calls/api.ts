@@ -46,7 +46,12 @@ export const calls = {
     apiFetch(`/api/channels/${id(channelID)}/calls`, json({ nonce })),
   current: async (channelID: string, signal?: AbortSignal): Promise<Call | null> => {
     try {
-      return await apiFetch(`/api/channels/${id(channelID)}/call`, { signal, cache: 'no-store' });
+      // 204 when there is no call (404 from servers before 1.0).
+      const call = await apiFetch<Call | undefined>(`/api/channels/${id(channelID)}/call`, {
+        signal,
+        cache: 'no-store',
+      });
+      return call ?? null;
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;

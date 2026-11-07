@@ -42,6 +42,10 @@ func TestCallsAdmissionRaceReplayAndEncryption(t *testing.T) {
 	if _, err = s.pool.Exec(ctx, "UPDATE workspaces SET calls_enabled = true WHERE id = $1", s.defaultWS); err != nil {
 		t.Fatal(err)
 	}
+	// No call yet: 204, not an error the browser logs.
+	if response := s.call(http.MethodGet, "/api/channels/"+channel+"/call", starter, nil, nil); response.StatusCode != http.StatusNoContent {
+		t.Fatalf("no call = %d, want 204", response.StatusCode)
+	}
 	nonce := uuid.NewString()
 	var call struct {
 		ID string `json:"id"`
@@ -49,6 +53,9 @@ func TestCallsAdmissionRaceReplayAndEncryption(t *testing.T) {
 	response := s.call(http.MethodPost, "/api/channels/"+channel+"/calls", starter, map[string]any{"nonce": nonce}, &call)
 	if response.StatusCode != http.StatusCreated || call.ID == "" {
 		t.Fatalf("start status %d", response.StatusCode)
+	}
+	if response := s.call(http.MethodGet, "/api/channels/"+channel+"/call", starter, nil, nil); response.StatusCode != http.StatusOK {
+		t.Fatalf("current call = %d", response.StatusCode)
 	}
 	var retried struct {
 		ID string `json:"id"`
