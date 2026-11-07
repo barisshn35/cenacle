@@ -26,7 +26,11 @@ type Media struct {
 	ControlPrivate  ed25519.PrivateKey
 	ControlURL      string
 	PublicIP        string
-	TURN            *MediaTURN
+	// Where the media node takes ICE traffic: one UDP port for all calls and
+	// a TCP fallback. Users reach these ports (docs/install/calls.md).
+	ICEUDPAddr string
+	ICETCPAddr string
+	TURN       *MediaTURN
 }
 
 func LoadMedia(lookup LookupFunc, readFile ReadFileFunc) (Media, error) {
@@ -35,6 +39,8 @@ func LoadMedia(lookup LookupFunc, readFile ReadFileFunc) (Media, error) {
 	c.ControlPrivate = privateKey(&l, "CENACLE_MEDIA_CONTROL_PRIVATE_KEY")
 	c.ControlURL = l.str("CENACLE_MEDIA_CONTROL_URL", "http://127.0.0.1:7883/control")
 	c.PublicIP = l.str("CENACLE_MEDIA_PUBLIC_IP", "")
+	c.ICEUDPAddr = l.str("CENACLE_MEDIA_ICE_UDP_ADDR", ":7882")
+	c.ICETCPAddr = l.str("CENACLE_MEDIA_ICE_TCP_ADDR", ":7881")
 	c.TURN = loadMediaTURN(&l)
 	publicIP, ipErr := netip.ParseAddr(c.PublicIP)
 	publicIP = publicIP.Unmap()
@@ -49,6 +55,11 @@ func LoadMedia(lookup LookupFunc, readFile ReadFileFunc) (Media, error) {
 	}
 	if _, _, err := net.SplitHostPort(c.HTTPAddr); err != nil {
 		l.fail("CENACLE_MEDIA_HTTP_ADDR: expected host:port")
+	}
+	for name, addr := range map[string]string{"CENACLE_MEDIA_ICE_UDP_ADDR": c.ICEUDPAddr, "CENACLE_MEDIA_ICE_TCP_ADDR": c.ICETCPAddr} {
+		if _, port, err := net.SplitHostPort(addr); err != nil || port == "" || port == "0" {
+			l.fail("%s: expected host:port with a fixed port", name)
+		}
 	}
 	if _, _, err := net.SplitHostPort(c.ValkeyAddr); err != nil {
 		l.fail("CENACLE_VALKEY_ADDR: expected host:port")

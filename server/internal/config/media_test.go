@@ -38,6 +38,22 @@ func TestMediaKeySeparation(t *testing.T) {
 	if len(result.AdmissionPublic) != ed25519.PublicKeySize || len(result.ControlPrivate) != ed25519.PrivateKeySize {
 		t.Fatal("keys not loaded")
 	}
+	if result.ICEUDPAddr != ":7882" || result.ICETCPAddr != ":7881" {
+		t.Errorf("ICE ports = %s, %s", result.ICEUDPAddr, result.ICETCPAddr)
+	}
+	// Other ports (a second media node on one host), but always fixed ones.
+	values["CENACLE_MEDIA_ICE_UDP_ADDR"], values["CENACLE_MEDIA_ICE_TCP_ADDR"] = ":17882", "10.0.0.5:17881"
+	if result, err = LoadMedia(env(values), files(material)); err != nil || result.ICEUDPAddr != ":17882" || result.ICETCPAddr != "10.0.0.5:17881" {
+		t.Errorf("ICE ports = %+v, %v", result, err)
+	}
+	for _, bad := range []string{"7882", ":0", "media:"} {
+		values["CENACLE_MEDIA_ICE_UDP_ADDR"] = bad
+		if _, err := LoadMedia(env(values), files(material)); err == nil {
+			t.Errorf("ICE UDP address %q accepted", bad)
+		}
+	}
+	delete(values, "CENACLE_MEDIA_ICE_UDP_ADDR")
+	delete(values, "CENACLE_MEDIA_ICE_TCP_ADDR")
 	values["CENACLE_CALLS_PUBLIC_KEY"] = material["control"]
 	if _, err = LoadMedia(env(values), files(material)); err == nil {
 		t.Fatal("private key or duplicate source accepted as public key")

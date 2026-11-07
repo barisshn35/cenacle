@@ -94,6 +94,11 @@ CIDR together. Port 7883 is never published or routed by the proxy.
 | 5349/TCP        | Optional TURN only         | TURN over TLS                   |
 | 49152–49407/UDP | Optional TURN only         | Bounded relay allocations       |
 
+The media node listens for ICE on `:7882` (UDP) and `:7881` (TCP). A setup that
+needs other ports, such as a second installation on the same host, sets
+`CENACLE_MEDIA_ICE_UDP_ADDR` and `CENACLE_MEDIA_ICE_TCP_ADDR` (`host:port`, a
+fixed port) on the media service and publishes and forwards those ports instead.
+
 One media replica/node is supported. Never scale it or overlap generations to
 "move" calls. A lost node lease ends its transports; users rejoin new calls.
 Ordinary transport interruptions allow 30 seconds with the same participant.

@@ -187,6 +187,10 @@ export default defineConfig({
               CENACLE_PUBLIC_URL: WEB_URL,
               CENACLE_MEDIA_HTTP_ADDR: `127.0.0.1:${mediaPort}`,
               CENACLE_MEDIA_PUBLIC_IP: required('STACK_CALLS_PUBLIC_IP'),
+              // Not the usual ports, so a media node already running on the
+              // host (a trial installation, another job) does not stop the run.
+              CENACLE_MEDIA_ICE_UDP_ADDR: `:${process.env.STACK_CALLS_ICE_UDP_PORT ?? '17882'}`,
+              CENACLE_MEDIA_ICE_TCP_ADDR: `:${process.env.STACK_CALLS_ICE_TCP_PORT ?? '17881'}`,
               CENACLE_MEDIA_CONTROL_URL: `http://127.0.0.1:${controlPort}/control`,
               CENACLE_CALLS_PUBLIC_KEY_FILE: join(dir, 'calls-public.pem'),
               CENACLE_MEDIA_CONTROL_PRIVATE_KEY_FILE: join(dir, 'control-private.pem'),

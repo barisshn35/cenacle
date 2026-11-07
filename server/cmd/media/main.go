@@ -79,7 +79,7 @@ func run(args []string) error {
 	if cfg.TURN != nil {
 		turnConfig = &media.TURNConfig{Secret: cfg.TURN.Secret, Certificate: cfg.TURN.Certificate, PrivateKey: cfg.TURN.PrivateKey, MinPort: cfg.TURN.MinPort, MaxPort: cfg.TURN.MaxPort, MaxAllocations: cfg.TURN.MaxAllocations}
 	}
-	engine, err := media.NewSFU(media.SFUConfig{PublicIP: cfg.PublicIP, Authority: &media.ControlClient{URL: cfg.ControlURL, Private: cfg.ControlPrivate}, TURN: turnConfig})
+	engine, err := media.NewSFU(media.SFUConfig{PublicIP: cfg.PublicIP, UDPAddr: cfg.ICEUDPAddr, TCPAddr: cfg.ICETCPAddr, Authority: &media.ControlClient{URL: cfg.ControlURL, Private: cfg.ControlPrivate}, TURN: turnConfig})
 	if err != nil {
 		return err
 	}

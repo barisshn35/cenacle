@@ -10,6 +10,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- `CENACLE_MEDIA_ICE_UDP_ADDR` and `CENACLE_MEDIA_ICE_TCP_ADDR` move the media node's ICE
+  ports from 7882/udp and 7881/tcp, for example for a second installation on one host.
 - TLS mode `acme-ca`: certificates from another ACME service, such as your organization's
   own, with `CENACLE_ACME_CA` (its directory URL) and, for a root that is not publicly
   trusted, `CENACLE_ACME_CA_ROOT=file` with `certs/acme-ca.pem`. The proxy stops with a
