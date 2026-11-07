@@ -349,7 +349,11 @@
     "nameTaken": "A category with this name exists.",
     "deleteTitle": "Delete the category {{category}}?",
     "deleteDescription": "Its channels stay and move under Channels.",
-    "deleteConfirm": "Delete category"
+    "deleteConfirm": "Delete category",
+    "takeOut": "Take {{channel}} out of {{category}}",
+    "noChannels": "No channels yet.",
+    "addChannel": "Add a channel to {{category}}",
+    "addChannelPrompt": "Add a channel…"
   },
   "switcher": {
     "title": "Jump to a channel or person",
@@ -2171,7 +2175,9 @@
     "sectionTaken": "You already have a section with this name.",
     "create": "Create",
     "saveFailed": "Your sidebar change couldn't be saved. Try again.",
-    "markReadFailed": "Couldn't mark it read. Try again."
+    "markReadFailed": "Couldn't mark it read. Try again.",
+    "emptyCategory": "No channels yet. Drag one here, or choose this category in a channel’s ⋯ menu.",
+    "sharedCategory": "Category (everyone)"
   },
   "userGroups": {
     "title": "Groups",

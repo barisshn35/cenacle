@@ -349,7 +349,11 @@
     "nameTaken": "Bu adda bir kategori var.",
     "deleteTitle": "{{category}} kategorisi silinsin mi?",
     "deleteDescription": "Kanalları kalır ve Kanallar altına geçer.",
-    "deleteConfirm": "Kategoriyi sil"
+    "deleteConfirm": "Kategoriyi sil",
+    "takeOut": "{{channel}} kanalını {{category}} kategorisinden çıkar",
+    "noChannels": "Henüz kanal yok.",
+    "addChannel": "{{category}} kategorisine kanal ekle",
+    "addChannelPrompt": "Kanal ekleyin…"
   },
   "switcher": {
     "title": "Kanala veya kişiye git",
@@ -2171,7 +2175,9 @@
     "sectionTaken": "Bu adda bir bölümünüz zaten var.",
     "create": "Oluştur",
     "saveFailed": "Kenar çubuğundaki değişiklik kaydedilemedi. Tekrar deneyin.",
-    "markReadFailed": "Okundu olarak işaretlenemedi. Tekrar deneyin."
+    "markReadFailed": "Okundu olarak işaretlenemedi. Tekrar deneyin.",
+    "emptyCategory": "Henüz kanal yok. Buraya bir kanal sürükleyin ya da kanalın ⋯ menüsünden bu kategoriyi seçin.",
+    "sharedCategory": "Kategori (herkes için)"
   },
   "userGroups": {
     "title": "Gruplar",

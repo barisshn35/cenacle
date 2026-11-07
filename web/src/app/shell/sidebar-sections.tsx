@@ -5,6 +5,7 @@ import {
   BellOffIcon,
   ChevronDownIcon,
   CompassIcon,
+  FolderIcon,
   FolderInputIcon,
   FolderPlusIcon,
   FoldersIcon,
@@ -75,6 +76,9 @@ import {
   markRead,
   markUnread,
   clearCountsLocally,
+  reloadChannels,
+  setChannelCategory,
+  type Category,
   type Channel,
 } from '../chat/data';
 import { NewConversationDialog } from '../chat/new-conversation-dialog';
@@ -140,13 +144,14 @@ export function SidebarSections() {
     null,
   );
   const [dragged, setDragged] = useState<Dragged | null>(null);
+  const queryClient = useQueryClient();
   useWorkspacePresence(workspaceId);
   if (!workspaceId) return null;
 
   const list = (channels.data ?? []).filter((c) => c.workspace_id === workspaceId);
   const cats = categories.data ?? [];
   const categoryIds = new Set(cats.map((c) => c.id));
-  const sections = arrange(layout, list, cats, muted);
+  const sections = arrange(layout, list, cats, muted, organize);
   const order = fullOrder(sections);
   const ownSections = layout.sections;
 
@@ -161,6 +166,16 @@ export function SidebarSections() {
             ? t('dm.title')
             : s.name!;
 
+  // The workspace's categories are everyone's: their organizers place channels in them.
+  const shared = organize
+    ? {
+        categories: cats,
+        set: (channel: Channel, categoryId: string | null) =>
+          void setChannelCategory(channel.id, categoryId)
+            .then(() => reloadChannels(queryClient))
+            .catch(() => toast.error(t('channels.changeFailed'))),
+      }
+    : undefined;
   const moveTo = (channel: Channel, key: string | null) => {
     const home = homeOf(channel, categoryIds);
     update((l) => place(l, channel.id, key === home ? null : key));
@@ -168,6 +183,10 @@ export function SidebarSections() {
   const accepts = (s: Section) => {
     if (!dragged) return false;
     if (dragged.type === 'section') return s.kind !== 'unreads' && s.key !== dragged.key;
+    // Into a category, or out of it into Channels, for those who organize them.
+    const shareable = !!shared && !isConversation(dragged.channel);
+    if (shareable && s.kind === 'category') return s.key !== dragged.channel.category_id;
+    if (shareable && s.kind === 'channels' && dragged.channel.category_id) return true;
     return s.kind === 'favorites' || s.kind === 'own' || s.key === dragged.home;
   };
   const drop = (s: Section) => {
@@ -175,6 +194,10 @@ export function SidebarSections() {
     if (dragged.type === 'section') {
       const key = dragged.key;
       update((l) => ({ ...l, order: moveSection(order, key, order.indexOf(s.key)) }));
+    } else if (shared && s.kind === 'category') {
+      shared.set(dragged.channel, s.key);
+    } else if (shared && s.kind === 'channels' && dragged.channel.category_id) {
+      shared.set(dragged.channel, null);
     } else {
       moveTo(dragged.channel, s.key);
     }
@@ -276,6 +299,7 @@ export function SidebarSections() {
                         : (cats.find((x) => x.id === home)?.name ?? '');
                   }}
                   onMove={moveTo}
+                  shared={shared}
                   onNewSection={(c) => setNaming({ name: '', channelId: c.id })}
                   onDragStart={(c) =>
                     setDragged({ type: 'channel', channel: c, home: homeOf(c, categoryIds) })
@@ -290,7 +314,9 @@ export function SidebarSections() {
                       ? t('sidebar.dropFavorites')
                       : s.kind === 'own'
                         ? t('sidebar.emptySection')
-                        : null}
+                        : s.kind === 'category'
+                          ? t('sidebar.emptyCategory')
+                          : null}
                 </p>
               )}
               {s.kind === 'channels' && (
@@ -454,6 +480,7 @@ function ChannelList({
   homeOf,
   homeName,
   onMove,
+  shared,
   onNewSection,
   onDragStart,
   onDragEnd,
@@ -465,6 +492,7 @@ function ChannelList({
   homeOf: (c: Channel) => string;
   homeName: (c: Channel) => string;
   onMove: (c: Channel, key: string | null) => void;
+  shared?: SharedCategories;
   onNewSection: (c: Channel) => void;
   onDragStart: (c: Channel) => void;
   onDragEnd: () => void;
@@ -560,6 +588,7 @@ function ChannelList({
               home={homeOf(ch)}
               homeName={homeName(ch)}
               onMove={(key) => onMove(ch, key)}
+              shared={shared}
               onNewSection={() => onNewSection(ch)}
             />
           </SidebarMenuItem>
@@ -578,6 +607,7 @@ function ChannelMenu({
   home,
   homeName,
   onMove,
+  shared,
   onNewSection,
 }: {
   channel: Channel;
@@ -587,6 +617,7 @@ function ChannelMenu({
   home: string;
   homeName: string;
   onMove: (key: string | null) => void;
+  shared?: SharedCategories;
   onNewSection: () => void;
 }) {
   const { t } = useTranslation();
@@ -651,9 +682,41 @@ function ChannelMenu({
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        {shared && !isConversation(channel) && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FolderIcon strokeWidth={1.75} />
+              {t('sidebar.sharedCategory')}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {shared.categories.map((c) => (
+                <DropdownMenuItem
+                  key={c.id}
+                  disabled={channel.category_id === c.id}
+                  onClick={() => shared.set(channel, c.id)}
+                >
+                  {c.name}
+                </DropdownMenuItem>
+              ))}
+              {shared.categories.length > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuItem
+                disabled={!channel.category_id}
+                onClick={() => shared.set(channel, null)}
+              >
+                {t('channels.noCategory')}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+/** The workspace's categories and how to put a channel in one (their organizers). */
+interface SharedCategories {
+  categories: Category[];
+  set: (channel: Channel, categoryId: string | null) => void;
 }
 
 function ChannelListSkeleton() {

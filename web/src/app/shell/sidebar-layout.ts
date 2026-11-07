@@ -58,6 +58,8 @@ export function arrange(
   channels: Channel[],
   categories: Category[],
   muted: Set<string>,
+  /** Show categories with no channel yet (to those who organize them). */
+  emptyCategories = false,
 ): Section[] {
   const categoryIds = new Set(categories.map((c) => c.id));
   const own = new Set(layout.sections.map((s) => s.id));
@@ -93,7 +95,12 @@ export function arrange(
   ];
   const shown = order
     .map((k) => sections.get(k)!)
-    .filter((s) => (s.kind !== 'favorites' && s.kind !== 'category') || s.channels.length > 0);
+    .filter(
+      (s) =>
+        (s.kind !== 'favorites' && s.kind !== 'category') ||
+        s.channels.length > 0 ||
+        (s.kind === 'category' && emptyCategories),
+    );
   return unreads.channels.length > 0 ? [unreads, ...shown] : shown;
 }
 

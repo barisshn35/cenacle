@@ -206,6 +206,39 @@ test.describe('managing channels', () => {
     const group = page.getByRole('navigation', { name: 'Channels' }).getByText('Mühendislik');
     await expect(group).toBeVisible();
   });
+
+  test('a new category shows while empty; channels go in from its window or a menu', async ({
+    page,
+  }) => {
+    const api = await mockApi(page, { admin: true });
+    await page.goto(`/c/${GENERAL.id}`);
+    const nav = page.getByRole('navigation', { name: 'Channels' });
+    await page.getByRole('button', { name: 'Edit categories' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Categories' });
+    await dialog.getByLabel('New category').fill('Destek');
+    await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(dialog.getByText('No channels yet.')).toBeVisible();
+    await page.keyboard.press('Escape');
+    // Empty, it is in the sidebar with a hint (it was hidden until it had a channel).
+    await expect(nav.getByText('Destek')).toBeVisible();
+    await expect(nav.getByText(/No channels yet\. Drag one here/)).toBeVisible();
+    // From the window: add General, then take it out.
+    await page.getByRole('button', { name: 'Edit categories' }).click();
+    await dialog.getByLabel('Add a channel to Destek').selectOption({ label: 'General' });
+    await expect
+      .poll(() => api.channels.find((c) => c.id === GENERAL.id)?.category_id)
+      .toBeTruthy();
+    await dialog.getByRole('button', { name: 'Take General out of Destek' }).click();
+    await expect.poll(() => api.channels.find((c) => c.id === GENERAL.id)?.category_id).toBe(null);
+    await page.keyboard.press('Escape');
+    // From the channel's menu in the sidebar, without dragging.
+    await nav.getByRole('button', { name: 'General options' }).click();
+    await page.getByRole('menuitem', { name: 'Category (everyone)' }).click();
+    await page.getByRole('menuitem', { name: 'Destek' }).click();
+    await expect
+      .poll(() => api.channels.find((c) => c.id === GENERAL.id)?.category_id)
+      .toBeTruthy();
+  });
 });
 
 test('Ctrl+K jumps to a channel by typing part of its name', async ({ page }) => {

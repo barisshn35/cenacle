@@ -56,6 +56,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Categories looked broken: a new one stayed hidden until it had a channel, and a channel
+  went into one only from its settings. Their organizers now see empty categories with a
+  hint, drag channels into and out of them, choose one from a channel's ⋯ menu in the
+  sidebar, and add or take out channels in the Categories window.
 - Events: an end after midnight read like a minus ("–00:05"); it says "until 00:05 next
   day". The answer buttons ran over the next cell in Turkish. Who answered is listed in
   three groups — going, maybe, can't go — from the event's row (the API adds
