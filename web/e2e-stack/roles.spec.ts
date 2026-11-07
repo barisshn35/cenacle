@@ -107,9 +107,9 @@ test('a guest sees only the channel of their link, and leaves when it ends', asy
   const channel = admin.url().match(/\/c\/([0-9a-f-]{36})/)![1]!;
 
   await admin.getByRole('button', { name: 'Channel settings' }).click();
-  const section = admin
-    .getByRole('dialog', { name: `Settings of ${name}` })
-    .getByTestId('guest-links');
+  const settings = admin.getByRole('dialog', { name: 'Channel settings' });
+  await settings.getByRole('tab', { name: 'Members and roles' }).click();
+  const section = settings.getByTestId('guest-links');
   await section.getByLabel('For whom (optional)').fill('Tedarikçi');
   await section.getByLabel('Password', { exact: true }).fill('misafir-parola-1');
   await section.getByRole('button', { name: 'Create guest link' }).click();
@@ -142,11 +142,9 @@ test('a guest sees only the channel of their link, and leaves when it ends', asy
 
   // Ending the link ends the guest's access.
   await admin.getByRole('button', { name: 'Channel settings' }).click();
-  await admin
-    .getByRole('dialog', { name: `Settings of ${name}` })
-    .getByTestId('guest-links')
-    .getByRole('button', { name: 'End link' })
-    .click();
+  const again = admin.getByRole('dialog', { name: 'Channel settings' });
+  await again.getByRole('tab', { name: 'Members and roles' }).click();
+  await again.getByTestId('guest-links').getByRole('button', { name: 'End link' }).click();
   await expect
     .poll(async () => (await guest.request.get(`/api/channels/${channel}/messages`)).status())
     .toBeGreaterThanOrEqual(400);
