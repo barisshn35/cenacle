@@ -226,7 +226,8 @@ export function EventsList() {
     <span
       role="group"
       aria-label={t('community.events.answerFor', { title: e.title })}
-      className="inline-flex overflow-hidden rounded-[7px] border border-rule-strong"
+      // On phones the answers have a row of their own, which they share equally.
+      className="inline-flex overflow-hidden rounded-[7px] border border-rule-strong max-sm:flex max-sm:w-full"
     >
       {(['going', 'maybe', 'declined'] as const).map((s) => (
         <button
@@ -236,7 +237,7 @@ export function EventsList() {
           disabled={answer.isPending}
           onClick={() => answer.mutate({ e, status: e.me === s ? null : s })}
           className={cn(
-            'flex h-8 min-h-target items-center gap-1 border-l border-rule-strong px-2.5 text-[13px] font-medium whitespace-nowrap outline-none first:border-l-0 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset disabled:opacity-60',
+            'flex h-8 min-h-target items-center gap-1 max-sm:flex-1 max-sm:justify-center border-l border-rule-strong px-2.5 text-[13px] font-medium whitespace-nowrap outline-none first:border-l-0 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset disabled:opacity-60',
             e.me === s
               ? 'bg-accent font-semibold shadow-[inset_0_0_0_1px_var(--color-primary)]'
               : 'bg-background hover:bg-muted',

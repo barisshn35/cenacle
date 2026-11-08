@@ -153,7 +153,10 @@ async function answersFit(page: Page, names: string[]) {
   for (const name of names) {
     const box = (await event.getByRole('button', { name, exact: true }).boundingBox())!;
     expect(box.x + box.width).toBeLessThanOrEqual(group.x + group.width + 0.5);
-    if (menu) expect(box.x + box.width).toBeLessThanOrEqual(menu.x);
+    // Beside the menu (wide screens), the answers end before it; on phones they
+    // have a row of their own.
+    const sameRow = menu && box.y < menu.y + menu.height && menu.y < box.y + box.height;
+    if (sameRow) expect(box.x + box.width).toBeLessThanOrEqual(menu.x);
   }
 }
 
