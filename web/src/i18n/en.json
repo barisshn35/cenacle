@@ -2569,6 +2569,19 @@
       "applyHint": "People who chose their own sounds or volume get these too. Their other notification settings, and sounds they chose for single channels, stay.",
       "applied_one": "Settings of {{count}} person changed.",
       "applied_other": "Settings of {{count}} people changed."
+    },
+    "desktop": {
+      "title": "Desktop app",
+      "hint": "Devices signed in with the desktop app, by its version: after an update, the new version shows here once the app has signed in again or reloaded.",
+      "none": "No device is signed in with the desktop app.",
+      "unknown": "Unknown version",
+      "devices_one": "{{count}} device",
+      "devices_other": "{{count}} devices",
+      "platform": {
+        "windows": "Windows",
+        "linux": "Linux",
+        "other": "Other system"
+      }
     }
   },
   "permissions": {

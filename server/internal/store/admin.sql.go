@@ -222,6 +222,46 @@ func (q *Queries) ApplySoundDefaults(ctx context.Context, arg ApplySoundDefaults
 	return result.RowsAffected(), nil
 }
 
+const desktopAppVersions = `-- name: DesktopAppVersions :many
+SELECT coalesce(substring(user_agent from 'CenacleDesktop/([0-9A-Za-z.+-]{1,40})'), '')::text AS version,
+       (CASE WHEN user_agent LIKE '%Windows%' THEN 'windows'
+             WHEN user_agent LIKE '%Linux%' THEN 'linux'
+             ELSE 'other' END)::text AS platform,
+       count(*)::bigint AS devices
+FROM sessions
+WHERE expires_at > now() AND user_agent LIKE '%CenacleDesktop/%'
+GROUP BY 1, 2
+ORDER BY 1 DESC, 2
+`
+
+type DesktopAppVersionsRow struct {
+	Version  string `json:"version"`
+	Platform string `json:"platform"`
+	Devices  int64  `json:"devices"`
+}
+
+// DesktopAppVersions counts the devices signed in with the desktop app, by its
+// version (from its user agent, "CenacleDesktop/<version>") and system.
+func (q *Queries) DesktopAppVersions(ctx context.Context) ([]DesktopAppVersionsRow, error) {
+	rows, err := q.db.Query(ctx, desktopAppVersions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DesktopAppVersionsRow
+	for rows.Next() {
+		var i DesktopAppVersionsRow
+		if err := rows.Scan(&i.Version, &i.Platform, &i.Devices); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFederationPolicy = `-- name: GetFederationPolicy :one
 SELECT federation_mode, federation_servers FROM instance_settings
 `

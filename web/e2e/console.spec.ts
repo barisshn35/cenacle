@@ -12,6 +12,7 @@ test('the system console shows the installation and sets the notification policy
     route.fulfill({
       json: {
         version: '0.34.0',
+        desktop_apps: [{ version: '0.99.6', platform: 'windows', devices: 3 }],
         counts: {
           users: 120,
           active_users: 88,
@@ -90,6 +91,9 @@ test('the system console shows the installation and sets the notification policy
   const console = page.getByRole('dialog', { name: 'System console' });
   await expect(console.getByText('12,345')).toBeVisible();
   await expect(console.getByText('https://chat.example.com')).toBeVisible();
+  await expect(console.getByTestId('console-desktop')).toContainText('0.99.6');
+  await expect(console.getByTestId('console-desktop')).toContainText('Windows');
+  await expect(console.getByTestId('console-desktop')).toContainText('3 devices');
   await expectTargetSizes(page, test.info(), '[role="dialog"]');
   await expectNoAxeViolations(page, '[role="dialog"]');
 
@@ -125,6 +129,7 @@ test('the system console sets the session and network policy', async ({ page, is
     route.fulfill({
       json: {
         version: '0.35.0',
+        desktop_apps: [],
         counts: {
           users: 1,
           active_users: 1,
@@ -191,6 +196,7 @@ test('the system console shows the audit log and streams it to a SIEM', async ({
     route.fulfill({
       json: {
         version: '0.36.0',
+        desktop_apps: [],
         counts: {
           users: 1,
           active_users: 1,

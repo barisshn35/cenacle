@@ -83,6 +83,7 @@ test('people download their data and administrators erase a person', async ({ pa
     route.fulfill({
       json: {
         version: '0.36.0',
+        desktop_apps: [],
         counts: {
           users: 2,
           active_users: 1,

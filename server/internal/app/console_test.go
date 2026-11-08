@@ -3,6 +3,7 @@
 package app_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -20,12 +21,22 @@ func TestSystemConsole(t *testing.T) {
 		s.user(fmt.Sprintf("sub-p%02d", i), fmt.Sprintf("Kişi %02d", i))
 	}
 
+	// Ayşe signs in with the desktop app on Windows (its user agent names it).
+	if _, err := s.pool.Exec(context.Background(), `UPDATE sessions SET user_agent = $1
+		WHERE user_id = (SELECT id FROM users WHERE auth_data = 'sub-a')`,
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/146.0.0.0 Electron/41.0.0 Safari/537.36 CenacleDesktop/0.99.6"); err != nil {
+		t.Fatal(err)
+	}
 	if status, _ := problemCode(t, s, http.MethodGet, "/api/admin/overview", ayse, nil); status != http.StatusForbidden {
 		t.Errorf("member sees the console = %d", status)
 	}
 	var overview api.AdminOverview
 	if res := s.call(http.MethodGet, "/api/admin/overview", admin, nil, &overview); res.StatusCode != http.StatusOK {
 		t.Fatalf("overview = %d", res.StatusCode)
+	}
+	if len(overview.DesktopApps) != 1 || overview.DesktopApps[0].Version != "0.99.6" ||
+		overview.DesktopApps[0].Platform != api.Windows || overview.DesktopApps[0].Devices < 1 {
+		t.Errorf("desktop apps = %+v", overview.DesktopApps)
 	}
 	if overview.Counts.Users < 53 || overview.Counts.Workspaces < 1 {
 		t.Errorf("overview = %+v", overview.Counts)

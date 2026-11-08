@@ -291,6 +291,9 @@ type Querier interface {
 	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
 	DeleteWorkspaceAttributes(ctx context.Context, workspaceID pgtype.UUID) error
 	DeleteWorkspaceGroupMapping(ctx context.Context, arg DeleteWorkspaceGroupMappingParams) (int64, error)
+	// DesktopAppVersions counts the devices signed in with the desktop app, by its
+	// version (from its user agent, "CenacleDesktop/<version>") and system.
+	DesktopAppVersions(ctx context.Context) ([]DesktopAppVersionsRow, error)
 	DetachMessageFiles(ctx context.Context, messageID pgtype.UUID) ([]DetachMessageFilesRow, error)
 	// DropRenamedChannelGroupMappings is DropRenamedWorkspaceGroupMappings for channels.
 	DropRenamedChannelGroupMappings(ctx context.Context, arg DropRenamedChannelGroupMappingsParams) ([]DropRenamedChannelGroupMappingsRow, error)

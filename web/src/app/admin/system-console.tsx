@@ -151,6 +151,34 @@ function OverviewPanel({ overview }: { overview?: Overview }) {
         />
         <Stat label={t('console.counts.bots')} value={n.format(Number(c.bots))} />
       </div>
+      <section aria-labelledby="console-desktop" className="flex flex-col gap-2">
+        <h3 id="console-desktop" className="text-sm font-semibold">
+          {t('console.desktop.title')}
+        </h3>
+        <p className="text-xs text-muted-foreground">{t('console.desktop.hint')}</p>
+        {overview.desktop_apps.length > 0 ? (
+          <ul className="divide-y rounded-[10px] border text-sm" data-testid="console-desktop">
+            {overview.desktop_apps.map((a) => (
+              <li
+                key={`${a.version}-${a.platform}`}
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 px-3 py-1.5"
+              >
+                <span className="truncate font-medium tabular-nums">
+                  {a.version || t('console.desktop.unknown')}
+                </span>
+                <span className="text-muted-foreground">
+                  {t(`console.desktop.platform.${a.platform}`)}
+                </span>
+                <span className="tabular-nums">
+                  {t('console.desktop.devices', { count: Number(a.devices) })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('console.desktop.none')}</p>
+        )}
+      </section>
       <section aria-labelledby="console-config" className="flex flex-col gap-2">
         <h3 id="console-config" className="text-sm font-semibold">
           {t('console.config')}

@@ -24,8 +24,9 @@ export const endAllDevices = (keepCurrent: boolean) =>
 export function describeDevice(userAgent: string): { browser?: string; os?: string } {
   const ua = userAgent;
   // The desktop app names itself before its Chrome engine would.
-  const browser = /CenacleDesktop\//.test(ua)
-    ? 'Cenacle desktop app'
+  const app = /CenacleDesktop\/([0-9A-Za-z.+-]{1,40})/.exec(ua)?.[1];
+  const browser = app
+    ? `Cenacle desktop app ${app}`
     : /Edg\//.test(ua)
       ? 'Edge'
       : /OPR\/|Opera/.test(ua)

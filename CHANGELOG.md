@@ -40,6 +40,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   "Apply to everyone" gives them to those who have too (their other settings and per-channel
   sounds stay). Migration 00070, `/api/admin/sound-defaults`, audit events
   `instance.sound_defaults_changed` and `instance.sound_defaults_applied`.
+- The System console's overview lists the desktop app's versions in use: how many signed-in
+  devices run which version, on Windows or Linux (`desktop_apps` in `/api/admin/overview`),
+  so an update can be followed there. The signed-in devices list names the app's version.
 
 ### Security
 
@@ -96,6 +99,12 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- The desktop app is named Cenacle everywhere: its dialogs said "@cenacle/desktop", and so
+  did its data folder, now `%APPDATA%\Cenacle` (`~/.config/Cenacle` on Linux). The app moves
+  the old folder once; on Linux people sign in once more. Uninstalling with the setup
+  removes that folder, so a reinstalled app asks to sign in again (updates keep it).
+- Checking for updates on a server that hosts none said it "did not work"; it says the
+  server offers no app updates and where to get new versions.
 - Removing a sticker someone had sent failed: the message would have been left empty. A
   sticker a message shows now only leaves the picker and the message keeps it; one no
   message shows is removed with its picture.

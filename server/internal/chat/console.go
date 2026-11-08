@@ -82,6 +82,15 @@ func (h *Handlers) AdminOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out.Jobs, out.Failures = jobs, failures
+	apps, err := h.Queries.DesktopAppVersions(ctx)
+	if err != nil {
+		h.unavailable(w, r, "desktop apps", err)
+		return
+	}
+	out.DesktopApps = make([]desktopApp, len(apps))
+	for i, a := range apps {
+		out.DesktopApps[i] = desktopApp{Version: a.Version, Platform: platformOf(a.Platform), Devices: a.Devices}
+	}
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
@@ -425,4 +434,18 @@ func (h *Handlers) SetNotificationPolicy(w http.ResponseWriter, r *http.Request)
 		"push_contents": in.PushContents, "email_contents": in.EmailContents,
 	})
 	httpx.WriteJSON(w, http.StatusOK, in)
+}
+
+type desktopApp = struct {
+	Devices  int64                                `json:"devices"`
+	Platform api.AdminOverviewDesktopAppsPlatform `json:"platform"`
+	Version  string                               `json:"version"`
+}
+
+func platformOf(s string) api.AdminOverviewDesktopAppsPlatform {
+	p := api.AdminOverviewDesktopAppsPlatform(s)
+	if !p.Valid() {
+		return api.Other
+	}
+	return p
 }

@@ -2569,6 +2569,19 @@
       "applyHint": "Kendi seslerini ya da ses düzeyini seçmiş kişiler de bu sesleri alır. Diğer bildirim ayarları ve tek kanallar için seçtikleri sesler değişmez.",
       "applied_one": "{{count}} kişinin ayarı değişti.",
       "applied_other": "{{count}} kişinin ayarı değişti."
+    },
+    "desktop": {
+      "title": "Masaüstü uygulaması",
+      "hint": "Masaüstü uygulamasıyla oturum açmış cihazlar, sürümlerine göre: bir güncellemeden sonra yeni sürüm, uygulama sunucuya yeniden bağlandığında burada görünür.",
+      "none": "Masaüstü uygulamasıyla oturum açmış cihaz yok.",
+      "unknown": "Bilinmeyen sürüm",
+      "devices_one": "{{count}} cihaz",
+      "devices_other": "{{count}} cihaz",
+      "platform": {
+        "windows": "Windows",
+        "linux": "Linux",
+        "other": "Diğer sistem"
+      }
     }
   },
   "permissions": {

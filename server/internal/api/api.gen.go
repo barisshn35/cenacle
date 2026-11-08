@@ -57,6 +57,27 @@ func (e ActivityItemKind) Valid() bool {
 	}
 }
 
+// Defines values for AdminOverviewDesktopAppsPlatform.
+const (
+	Linux   AdminOverviewDesktopAppsPlatform = "linux"
+	Other   AdminOverviewDesktopAppsPlatform = "other"
+	Windows AdminOverviewDesktopAppsPlatform = "windows"
+)
+
+// Valid indicates whether the value is a known member of the AdminOverviewDesktopAppsPlatform enum.
+func (e AdminOverviewDesktopAppsPlatform) Valid() bool {
+	switch e {
+	case Linux:
+		return true
+	case Other:
+		return true
+	case Windows:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AppearanceCodeTheme.
 const (
 	AppearanceCodeThemeCatppuccin AppearanceCodeTheme = "catppuccin"
@@ -2330,6 +2351,13 @@ type AdminOverview struct {
 		Workspaces  int64 `json:"workspaces"`
 	} `json:"counts"`
 
+	// DesktopApps Devices signed in with the desktop app, by its version and system (newest first).
+	DesktopApps []struct {
+		Devices  int64                            `json:"devices"`
+		Platform AdminOverviewDesktopAppsPlatform `json:"platform"`
+		Version  string                           `json:"version"`
+	} `json:"desktop_apps"`
+
 	// Failures The latest failed attempts of background jobs.
 	Failures []struct {
 		At      time.Time `json:"at"`
@@ -2350,6 +2378,9 @@ type AdminOverview struct {
 	} `json:"jobs"`
 	Version string `json:"version"`
 }
+
+// AdminOverviewDesktopAppsPlatform defines model for AdminOverview.DesktopApps.Platform.
+type AdminOverviewDesktopAppsPlatform string
 
 // AdminUser defines model for AdminUser.
 type AdminUser struct {

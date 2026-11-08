@@ -9153,9 +9153,19 @@ components:
         your_address: { type: string, readOnly: true, description: The address this request came from. }
     AdminOverview:
       type: object
-      required: [version, counts, config, jobs, failures]
+      required: [version, counts, config, jobs, failures, desktop_apps]
       properties:
         version: { type: string }
+        desktop_apps:
+          type: array
+          description: Devices signed in with the desktop app, by its version and system (newest first).
+          items:
+            type: object
+            required: [version, platform, devices]
+            properties:
+              version: { type: string }
+              platform: { type: string, enum: [windows, linux, other] }
+              devices: { type: integer, format: int64 }
         counts:
           type: object
           required: [users, active_users, bots, workspaces, channels, messages, files, file_bytes]

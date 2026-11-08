@@ -91,3 +91,16 @@ SET prefs = jsonb_set(jsonb_set(prefs, '{sounds}', jsonb_build_object(
         'mention', @sound_mention::text, 'direct', @sound_direct::text, 'message', @sound_message::text)),
       '{volume}', to_jsonb(@sound_volume::int)),
     updated_at = now();
+
+-- name: DesktopAppVersions :many
+-- DesktopAppVersions counts the devices signed in with the desktop app, by its
+-- version (from its user agent, "CenacleDesktop/<version>") and system.
+SELECT coalesce(substring(user_agent from 'CenacleDesktop/([0-9A-Za-z.+-]{1,40})'), '')::text AS version,
+       (CASE WHEN user_agent LIKE '%Windows%' THEN 'windows'
+             WHEN user_agent LIKE '%Linux%' THEN 'linux'
+             ELSE 'other' END)::text AS platform,
+       count(*)::bigint AS devices
+FROM sessions
+WHERE expires_at > now() AND user_agent LIKE '%CenacleDesktop/%'
+GROUP BY 1, 2
+ORDER BY 1 DESC, 2;

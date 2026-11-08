@@ -6372,6 +6372,14 @@ export interface components {
     };
     AdminOverview: {
       version: string;
+      /** @description Devices signed in with the desktop app, by its version and system (newest first). */
+      desktop_apps: {
+        version: string;
+        /** @enum {string} */
+        platform: 'windows' | 'linux' | 'other';
+        /** Format: int64 */
+        devices: number;
+      }[];
       counts: {
         /** Format: int64 */
         users: number;
