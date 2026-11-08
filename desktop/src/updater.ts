@@ -101,5 +101,7 @@ async function ready(version: string) {
     cancelId: 1,
   };
   const response = await showDialog(win, opts);
-  if (response === 0) autoUpdater.quitAndInstall();
+  // The installer runs without its pages (silent) and opens the app again:
+  // an update is a restart, not a setup to click through.
+  if (response === 0) autoUpdater.quitAndInstall(true, true);
 }

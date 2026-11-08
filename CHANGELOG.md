@@ -101,6 +101,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 - A channel's name in the header was cut short ("Gene…" for General) even when it fit:
   the button reached past the title by its padding but was limited to the title's width.
+- Installing a desktop update opened the setup's pages; it now installs silently and opens
+  the app again.
 - The desktop app is named Cenacle everywhere: its dialogs said "@cenacle/desktop", and so
   did its data folder, now `%APPDATA%\Cenacle` (`~/.config/Cenacle` on Linux). The app moves
   the old folder once; on Linux people sign in once more. Uninstalling with the setup
