@@ -67,6 +67,9 @@ type Querier interface {
 	// AdvanceMLSGroup moves a group to the next epoch when it is still at the
 	// epoch the commit was made in (else another commit came first).
 	AdvanceMLSGroup(ctx context.Context, arg AdvanceMLSGroupParams) (int64, error)
+	// ApplySoundDefaults gives everyone who saved their own settings the
+	// installation's sounds and volume; their other settings stay.
+	ApplySoundDefaults(ctx context.Context, arg ApplySoundDefaultsParams) (int64, error)
 	ArchiveForm(ctx context.Context, id pgtype.UUID) error
 	// ArchiveMessages returns a page of a workspace's messages written in a
 	// period, oldest first, with what archive formats need.
@@ -481,6 +484,7 @@ type Querier interface {
 	GetSessionPolicy(ctx context.Context) (GetSessionPolicyRow, error)
 	GetSharedChannel(ctx context.Context, arg GetSharedChannelParams) (SharedChannel, error)
 	GetSidebarLayout(ctx context.Context, arg GetSidebarLayoutParams) ([]byte, error)
+	GetSoundDefaults(ctx context.Context) (GetSoundDefaultsRow, error)
 	GetSpillageReport(ctx context.Context, id pgtype.UUID) (SpillageReport, error)
 	GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, error)
 	GetStickerPack(ctx context.Context, id pgtype.UUID) (StickerPack, error)
@@ -1057,6 +1061,7 @@ type Querier interface {
 	// milliseconds); it ends with the transaction.
 	SetSearchTimeout(ctx context.Context, timeout string) error
 	SetSessionPolicy(ctx context.Context, arg SetSessionPolicyParams) error
+	SetSoundDefaults(ctx context.Context, arg SetSoundDefaultsParams) error
 	SetSpillageReviewers(ctx context.Context, arg SetSpillageReviewersParams) error
 	// SetThreadFollowing records a choice to follow (from the latest reply on: older
 	// ones count as read) or to stop following a thread.

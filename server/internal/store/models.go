@@ -522,6 +522,10 @@ type InstanceSetting struct {
 	AuditStreamCursor    pgtype.UUID        `json:"audit_stream_cursor"`
 	AuditStreamError     string             `json:"audit_stream_error"`
 	AuditStreamSentAt    pgtype.Timestamptz `json:"audit_stream_sent_at"`
+	SoundMention         string             `json:"sound_mention"`
+	SoundDirect          string             `json:"sound_direct"`
+	SoundMessage         string             `json:"sound_message"`
+	SoundVolume          int32              `json:"sound_volume"`
 }
 
 type LegalHold struct {

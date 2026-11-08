@@ -451,7 +451,7 @@ function ChannelExceptions() {
   );
 }
 
-function SoundChoice({
+export function SoundChoice({
   label,
   value,
   volume,

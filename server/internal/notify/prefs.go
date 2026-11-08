@@ -102,8 +102,10 @@ func (p Prefs) Valid() bool {
 }
 
 // Read takes stored settings over the defaults (invalid ones read as defaults).
-func Read(raw []byte) Prefs {
-	p := Defaults()
+func Read(raw []byte) Prefs { return ReadOver(raw, Defaults()) }
+
+// ReadOver takes stored settings over the given defaults (the installation's).
+func ReadOver(raw []byte, p Prefs) Prefs {
 	stored := p
 	if json.Unmarshal(raw, &stored) == nil && stored.Valid() {
 		return stored

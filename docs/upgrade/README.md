@@ -128,6 +128,8 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   saved their notification settings keep them, except the sound of other messages: saved
   as "none" (the old default), migration 00069 sets it to "drop". People who want it
   silent choose "No sound" again in Settings → Notifications → Sounds.
+- Migration 00070 adds the installation's default notification sounds (System console →
+  Notifications), set to what they were (chime, pop, drop, volume 70).
 - Migration 00068 adds sticker packs and an index of the messages that are stickers
   (`messages_sticker_idx`, partial). Building it reads the messages table once and holds
   back writes to it meanwhile: on a large installation, plan the upgrade for a quiet time.

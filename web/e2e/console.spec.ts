@@ -72,6 +72,17 @@ test('the system console shows the installation and sets the notification policy
       policy = route.request().postDataJSON() as typeof policy;
     return route.fulfill({ json: policy });
   });
+  let sounds = { sounds: { mention: 'chime', direct: 'pop', message: 'drop' }, volume: 70 };
+  let applied = false;
+  await page.route('**/api/admin/sound-defaults', (route) => {
+    if (route.request().method() === 'PUT')
+      sounds = route.request().postDataJSON() as typeof sounds;
+    return route.fulfill({ json: sounds });
+  });
+  await page.route('**/api/admin/sound-defaults/apply', (route) => {
+    applied = true;
+    return route.fulfill({ json: { changed: 12 } });
+  });
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
@@ -93,6 +104,17 @@ test('the system console shows the installation and sets the notification policy
   await console.getByRole('tab', { name: /Notifications/ }).click();
   await console.getByLabel('Nothing but that something came').check();
   await expect.poll(() => policy.push_contents).toBe('none');
+
+  // The installation's default sounds, and giving them to everyone.
+  const defaults = console.getByTestId('sound-defaults');
+  await defaults.getByLabel('Other messages', { exact: true }).selectOption('bell');
+  await expect.poll(() => sounds.sounds.message).toBe('bell');
+  await defaults.getByRole('button', { name: 'Apply to everyone' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Apply to everyone' }).click();
+  await expect(page.getByText('Settings of 12 people changed.')).toBeVisible();
+  expect(applied).toBe(true);
+  await expectTargetSizes(page, test.info(), '[role="dialog"]');
+  await expectNoAxeViolations(page, '[role="dialog"]');
 });
 
 test('the system console sets the session and network policy', async ({ page, isMobile }) => {

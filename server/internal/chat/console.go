@@ -20,6 +20,7 @@ import (
 	"github.com/Cenacle-TR/cenacle/server/internal/auth"
 	"github.com/Cenacle-TR/cenacle/server/internal/events"
 	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/notify"
 	"github.com/Cenacle-TR/cenacle/server/internal/store"
 )
 
@@ -324,6 +325,80 @@ func (h *Handlers) GetNotificationPolicy(w http.ResponseWriter, r *http.Request)
 	httpx.WriteJSON(w, http.StatusOK, api.NotificationPolicy{
 		PushContents: api.NotificationPolicyPushContents(pol.PushContents), EmailContents: api.NotificationPolicyEmailContents(pol.EmailContents),
 	})
+}
+
+// GetSoundDefaults implements api.ServerInterface.
+func (h *Handlers) GetSoundDefaults(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok || !requireInstanceAdmin(w, r, p) {
+		return
+	}
+	d, err := h.Queries.GetSoundDefaults(r.Context())
+	if err != nil {
+		h.unavailable(w, r, "sound defaults", err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, soundDefaultsAPI(d))
+}
+
+func soundDefaultsAPI(d store.GetSoundDefaultsRow) api.SoundDefaults {
+	var out api.SoundDefaults
+	out.Sounds.Mention, out.Sounds.Direct, out.Sounds.Message = d.SoundMention, d.SoundDirect, d.SoundMessage
+	out.Volume = int(d.SoundVolume)
+	return out
+}
+
+// builtinOrNone: the installation's defaults are sounds everyone has (not one
+// person's own).
+func builtinOrNone(s string) bool {
+	return notify.ValidSound(s) && !strings.HasPrefix(s, "user:")
+}
+
+// SetSoundDefaults implements api.ServerInterface.
+func (h *Handlers) SetSoundDefaults(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok || !requireInstanceAdmin(w, r, p) {
+		return
+	}
+	var in api.SoundDefaults
+	if !decode(w, r, &in) {
+		return
+	}
+	if !builtinOrNone(in.Sounds.Mention) || !builtinOrNone(in.Sounds.Direct) || !builtinOrNone(in.Sounds.Message) ||
+		in.Volume < 0 || in.Volume > 100 {
+		badRequest(w, r, "Each sound is a built-in sound or none; the volume is 0 to 100.")
+		return
+	}
+	if err := h.Queries.SetSoundDefaults(r.Context(), store.SetSoundDefaultsParams{
+		SoundMention: in.Sounds.Mention, SoundDirect: in.Sounds.Direct, SoundMessage: in.Sounds.Message, SoundVolume: int32(in.Volume),
+	}); err != nil {
+		h.unavailable(w, r, "sound defaults", err)
+		return
+	}
+	h.record(r, pgtype.UUID{}, audit.SoundDefaultsChanged, "instance", "notifications", map[string]any{
+		"sounds": in.Sounds, "volume": in.Volume,
+	})
+	httpx.WriteJSON(w, http.StatusOK, in)
+}
+
+// ApplySoundDefaults implements api.ServerInterface.
+func (h *Handlers) ApplySoundDefaults(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok || !requireInstanceAdmin(w, r, p) {
+		return
+	}
+	d, err := h.Queries.GetSoundDefaults(r.Context())
+	if err != nil {
+		h.unavailable(w, r, "sound defaults", err)
+		return
+	}
+	n, err := h.Queries.ApplySoundDefaults(r.Context(), store.ApplySoundDefaultsParams(d))
+	if err != nil {
+		h.unavailable(w, r, "apply sound defaults", err)
+		return
+	}
+	h.record(r, pgtype.UUID{}, audit.SoundDefaultsApplied, "instance", "notifications", map[string]any{"changed": n})
+	httpx.WriteJSON(w, http.StatusOK, map[string]int64{"changed": n})
 }
 
 // SetNotificationPolicy implements api.ServerInterface.

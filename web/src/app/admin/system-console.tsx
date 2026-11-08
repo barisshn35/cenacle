@@ -30,6 +30,7 @@ import { boardCell, boardRow } from '../shell/board-styles';
 import { SideNavDialog } from '../shell/side-nav-dialog';
 import { formatSize } from '../chat/files';
 import { AuditPanel } from './audit-panel';
+import { SoundDefaultsSection } from './sound-defaults';
 import { useSystemConsole } from './console-state';
 
 type Overview = components['schemas']['AdminOverview'];
@@ -521,6 +522,8 @@ function NotificationsPanel() {
             type="radio"
             name={key}
             className="mt-1 size-4"
+            // Its label, beside it, is the larger target.
+            data-target-exempt
             checked={value?.[key] === o}
             aria-describedby={`${key}-${o}-hint`}
             onChange={() => choose({ ...value, [key]: o })}
@@ -541,6 +544,7 @@ function NotificationsPanel() {
     <div className="flex max-w-xl flex-col gap-6">
       {group('push_contents', ['full', 'sender', 'none'])}
       {group('email_contents', ['full', 'sender'])}
+      <SoundDefaultsSection />
     </div>
   );
 }

@@ -649,3 +649,56 @@ func TestMessageSoundOnMigration(t *testing.T) {
 		}
 	}
 }
+
+// The installation's default sounds: heard by those who kept the defaults,
+// given to everyone on request.
+func TestSoundDefaults(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	admin := s.admin()
+	ayse := s.user("sub-ayse", "Ayşe")
+	mert := s.user("sub-mert", "Mert")
+	var set api.NotificationSettings
+	s.call(http.MethodGet, "/api/me/notifications", mert, nil, &set)
+	set.Prefs.Sounds.Message, set.Prefs.Volume = "marimba", 20
+	s.call(http.MethodPut, "/api/me/notifications", mert, set.Prefs, nil)
+
+	var d api.SoundDefaults
+	if res := s.call(http.MethodGet, "/api/admin/sound-defaults", admin, nil, &d); res.StatusCode != http.StatusOK ||
+		d.Sounds.Message != "drop" || d.Volume != 70 {
+		t.Fatalf("defaults = %d %+v", res.StatusCode, d)
+	}
+	if res := s.call(http.MethodGet, "/api/admin/sound-defaults", ayse, nil, nil); res.StatusCode != http.StatusForbidden {
+		t.Errorf("member reads = %d", res.StatusCode)
+	}
+	d.Sounds.Mention, d.Sounds.Direct, d.Sounds.Message, d.Volume = "bell", "ding", "none", 40
+	if res := s.call(http.MethodPut, "/api/admin/sound-defaults", admin, d, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("set = %d", res.StatusCode)
+	}
+	bad := d
+	bad.Sounds.Direct = "user:01a1b762-b954-785c-84ad-2f26ab150675"
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/admin/sound-defaults", admin, bad); status != http.StatusBadRequest {
+		t.Errorf("own sound as default = %d", status)
+	}
+
+	// Those who kept the defaults hear the new ones; a saved choice stays.
+	sounds := func(token string) api.NotificationPrefs {
+		var set api.NotificationSettings
+		s.call(http.MethodGet, "/api/me/notifications", token, nil, &set)
+		return set.Prefs
+	}
+	if p := sounds(ayse); p.Sounds.Mention != "bell" || p.Sounds.Direct != "ding" || p.Sounds.Message != "none" || p.Volume != 40 {
+		t.Errorf("default prefs = %+v", p)
+	}
+	if p := sounds(mert); p.Sounds.Message != "marimba" || p.Volume != 20 {
+		t.Errorf("saved prefs = %+v", p)
+	}
+
+	// Applied to everyone: saved sounds and volume take the defaults.
+	var applied struct{ Changed int }
+	if res := s.call(http.MethodPost, "/api/admin/sound-defaults/apply", admin, nil, &applied); res.StatusCode != http.StatusOK || applied.Changed < 1 {
+		t.Fatalf("apply = %d %+v", res.StatusCode, applied)
+	}
+	if p := sounds(mert); p.Sounds.Message != "none" || p.Sounds.Mention != "bell" || p.Volume != 40 || !p.Desktop {
+		t.Errorf("applied prefs = %+v", p)
+	}
+}

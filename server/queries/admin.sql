@@ -74,3 +74,20 @@ SELECT federation_mode, federation_servers FROM instance_settings;
 
 -- name: SetFederationPolicy :exec
 UPDATE instance_settings SET federation_mode = @federation_mode, federation_servers = @federation_servers, updated_at = now();
+
+-- name: GetSoundDefaults :one
+SELECT sound_mention, sound_direct, sound_message, sound_volume FROM instance_settings;
+
+-- name: SetSoundDefaults :exec
+UPDATE instance_settings
+SET sound_mention = @sound_mention, sound_direct = @sound_direct, sound_message = @sound_message,
+    sound_volume = @sound_volume, updated_at = now();
+
+-- name: ApplySoundDefaults :execrows
+-- ApplySoundDefaults gives everyone who saved their own settings the
+-- installation's sounds and volume; their other settings stay.
+UPDATE notification_prefs
+SET prefs = jsonb_set(jsonb_set(prefs, '{sounds}', jsonb_build_object(
+        'mention', @sound_mention::text, 'direct', @sound_direct::text, 'message', @sound_message::text)),
+      '{volume}', to_jsonb(@sound_volume::int)),
+    updated_at = now();

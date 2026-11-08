@@ -649,6 +649,48 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/sound-defaults': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The installation's default notification sounds (instance administrators) */
+    get: operations['getSoundDefaults'];
+    /**
+     * Choose the installation's default notification sounds
+     * @description People who never saved their notification settings hear them at once.
+     */
+    put: operations['setSoundDefaults'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/sound-defaults/apply': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Give everyone the default notification sounds and volume
+     * @description People who saved their own settings get the installation's sounds and volume;
+     *     their other settings and the sounds they chose for single channels stay.
+     */
+    post: operations['applySoundDefaults'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/session-policy': {
     parameters: {
       query?: never;
@@ -6286,6 +6328,15 @@ export interface components {
        */
       source_url?: string;
     };
+    SoundDefaults: {
+      /** @description A built-in sound or `none` for each kind. */
+      sounds: {
+        mention: string;
+        direct: string;
+        message: string;
+      };
+      volume: number;
+    };
     NotificationPolicy: {
       /**
        * @description Web push and the apps' own notifications: the text, the sender and channel
@@ -8152,6 +8203,80 @@ export interface operations {
         };
       };
       400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  getSoundDefaults: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The sounds and volume people hear until they choose their own. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SoundDefaults'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setSoundDefaults: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SoundDefaults'];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SoundDefaults'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  applySoundDefaults: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Applied. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @description People whose saved settings changed. */
+            changed: number;
+          };
+        };
+      };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
     };

@@ -43,9 +43,16 @@ func (h *Handlers) notificationSettings(r *http.Request, user pgtype.UUID) (api.
 	if err != nil {
 		return api.NotificationSettings{}, err
 	}
+	sounds, err := h.Queries.GetSoundDefaults(ctx)
+	if err != nil {
+		return api.NotificationSettings{}, err
+	}
+	defaults := notify.Defaults()
+	defaults.Sounds.Mention, defaults.Sounds.Direct, defaults.Sounds.Message = sounds.SoundMention, sounds.SoundDirect, sounds.SoundMessage
+	defaults.Volume = int(sounds.SoundVolume)
 	var prefs api.NotificationPrefs
-	// Same JSON shape: the defaults filled in by package notify.
-	b, _ := json.Marshal(notify.Read(raw))
+	// Same JSON shape: the installation's defaults filled in by package notify.
+	b, _ := json.Marshal(notify.ReadOver(raw, defaults))
 	_ = json.Unmarshal(b, &prefs)
 	chans, err := h.Queries.ListChannelNotificationPrefs(ctx, user)
 	if err != nil {

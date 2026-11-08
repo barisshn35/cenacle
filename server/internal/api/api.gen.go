@@ -4215,6 +4215,17 @@ type SlashCommand struct {
 	Url         string             `json:"url"`
 }
 
+// SoundDefaults defines model for SoundDefaults.
+type SoundDefaults struct {
+	// Sounds A built-in sound or `none` for each kind.
+	Sounds struct {
+		Direct  string `json:"direct"`
+		Mention string `json:"mention"`
+		Message string `json:"message"`
+	} `json:"sounds"`
+	Volume int `json:"volume"`
+}
+
 // SpillageReport defines model for SpillageReport.
 type SpillageReport struct {
 	// AuthorName Who wrote the message (while the report is open).
@@ -5520,6 +5531,9 @@ type SetNotificationPolicyJSONRequestBody = NotificationPolicy
 // SetSessionPolicyJSONRequestBody defines body for SetSessionPolicy for application/json ContentType.
 type SetSessionPolicyJSONRequestBody = SessionPolicy
 
+// SetSoundDefaultsJSONRequestBody defines body for SetSoundDefaults for application/json ContentType.
+type SetSoundDefaultsJSONRequestBody = SoundDefaults
+
 // EraseUserJSONRequestBody defines body for EraseUser for application/json ContentType.
 type EraseUserJSONRequestBody EraseUserJSONBody
 
@@ -5998,6 +6012,15 @@ type ServerInterface interface {
 	// SetSessionPolicy Set how long sessions last and which networks may sign in
 	// (PUT /api/admin/session-policy)
 	SetSessionPolicy(w http.ResponseWriter, r *http.Request)
+	// GetSoundDefaults The installation's default notification sounds (instance administrators)
+	// (GET /api/admin/sound-defaults)
+	GetSoundDefaults(w http.ResponseWriter, r *http.Request)
+	// SetSoundDefaults Choose the installation's default notification sounds
+	// (PUT /api/admin/sound-defaults)
+	SetSoundDefaults(w http.ResponseWriter, r *http.Request)
+	// ApplySoundDefaults Give everyone the default notification sounds and volume
+	// (POST /api/admin/sound-defaults/apply)
+	ApplySoundDefaults(w http.ResponseWriter, r *http.Request)
 	// AdminListUsers Everyone of the installation, by name (instance administrators)
 	// (GET /api/admin/users)
 	AdminListUsers(w http.ResponseWriter, r *http.Request, params AdminListUsersParams)
@@ -7012,6 +7035,24 @@ func (_ Unimplemented) GetSessionPolicy(w http.ResponseWriter, r *http.Request) 
 // SetSessionPolicy Set how long sessions last and which networks may sign in
 // (PUT /api/admin/session-policy)
 func (_ Unimplemented) SetSessionPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSoundDefaults The installation's default notification sounds (instance administrators)
+// (GET /api/admin/sound-defaults)
+func (_ Unimplemented) GetSoundDefaults(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetSoundDefaults Choose the installation's default notification sounds
+// (PUT /api/admin/sound-defaults)
+func (_ Unimplemented) SetSoundDefaults(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ApplySoundDefaults Give everyone the default notification sounds and volume
+// (POST /api/admin/sound-defaults/apply)
+func (_ Unimplemented) ApplySoundDefaults(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9260,6 +9301,48 @@ func (siw *ServerInterfaceWrapper) SetSessionPolicy(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetSessionPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSoundDefaults operation middleware
+func (siw *ServerInterfaceWrapper) GetSoundDefaults(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSoundDefaults(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetSoundDefaults operation middleware
+func (siw *ServerInterfaceWrapper) SetSoundDefaults(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSoundDefaults(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ApplySoundDefaults operation middleware
+func (siw *ServerInterfaceWrapper) ApplySoundDefaults(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ApplySoundDefaults(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18089,6 +18172,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/admin/notification-policy", wrapper.SetNotificationPolicy)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/sound-defaults", wrapper.GetSoundDefaults)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/sound-defaults", wrapper.SetSoundDefaults)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/admin/sound-defaults/apply", wrapper.ApplySoundDefaults)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/admin/session-policy", wrapper.GetSessionPolicy)

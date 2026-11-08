@@ -34,6 +34,12 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 - Emotes in messages: the composer has an emoji button (the workspace's own emoji first,
   then the standard ones) and suggests the workspace's emoji while you type `:` and a name.
   A message of emoji alone (up to ten) shows them large.
+- Default notification sounds for the installation: in the System console's
+  Notifications, administrators choose the sound of mentions, direct messages and other
+  messages, and the volume. Everyone who has not chosen their own hears them at once;
+  "Apply to everyone" gives them to those who have too (their other settings and per-channel
+  sounds stay). Migration 00070, `/api/admin/sound-defaults`, audit events
+  `instance.sound_defaults_changed` and `instance.sound_defaults_applied`.
 
 ### Security
 

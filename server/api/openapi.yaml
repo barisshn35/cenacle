@@ -1025,6 +1025,58 @@ paths:
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/sound-defaults:
+    get:
+      tags: [admin]
+      operationId: getSoundDefaults
+      summary: The installation's default notification sounds (instance administrators)
+      responses:
+        '200':
+          description: The sounds and volume people hear until they choose their own.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SoundDefaults' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [admin]
+      operationId: setSoundDefaults
+      summary: Choose the installation's default notification sounds
+      description: People who never saved their notification settings hear them at once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SoundDefaults' }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SoundDefaults' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/admin/sound-defaults/apply:
+    post:
+      tags: [admin]
+      operationId: applySoundDefaults
+      summary: Give everyone the default notification sounds and volume
+      description: |
+        People who saved their own settings get the installation's sounds and volume;
+        their other settings and the sounds they chose for single channels stay.
+      responses:
+        '200':
+          description: Applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [changed]
+                properties:
+                  changed: { type: integer, description: People whose saved settings changed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/admin/session-policy:
     get:
       tags: [admin]
@@ -9050,6 +9102,19 @@ components:
           description: |
             The source code of this server (CENACLE_SOURCE_URL, AGPL-3.0 section 13); Cenacle's
             own repository unless the operator changed it.
+    SoundDefaults:
+      type: object
+      required: [sounds, volume]
+      properties:
+        sounds:
+          type: object
+          required: [mention, direct, message]
+          description: A built-in sound or `none` for each kind.
+          properties:
+            mention: { type: string }
+            direct: { type: string }
+            message: { type: string }
+        volume: { type: integer, minimum: 0, maximum: 100 }
     NotificationPolicy:
       type: object
       required: [push_contents, email_contents]

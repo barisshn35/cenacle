@@ -89,6 +89,8 @@ const (
 	SessionsEndedByAdmin           = "admin.sessions_ended"
 	BotDisabledByAdmin             = "admin.bot_disabled"
 	NotificationPolicyChanged      = "instance.notification_policy_changed"
+	SoundDefaultsChanged           = "instance.sound_defaults_changed"
+	SoundDefaultsApplied           = "instance.sound_defaults_applied"
 	PermissionsChanged             = "workspace.permissions_changed"
 	ChannelModerationChanged       = "channel.moderation_changed"
 	SessionPolicyChanged           = "instance.session_policy_changed"

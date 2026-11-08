@@ -2560,7 +2560,16 @@
     "eraseTitle": "Erase {{name}}?",
     "eraseDescription": "Their name, e-mail address, status and picture are removed and they can no longer sign in. All their messages are deleted; those a legal hold keeps stay hidden for the hold, then go. Their reactions, saved items, scheduled messages, devices, uploaded fonts and sounds and answer to the AI notice go too. Signing in again would make a new account: delete or disable them in Cenacle ID to prevent that.",
     "eraseConfirm": "Erase person",
-    "erased": "Erased: {{erased}} messages deleted, {{held}} kept by legal holds."
+    "erased": "Erased: {{erased}} messages deleted, {{held}} kept by legal holds.",
+    "soundDefaults": {
+      "title": "Default notification sounds",
+      "hint": "Everyone who has not chosen their own sounds hears these. People can still change theirs in Settings → Notifications.",
+      "apply": "Apply to everyone",
+      "applyTitle": "Give everyone these sounds?",
+      "applyHint": "People who chose their own sounds or volume get these too. Their other notification settings, and sounds they chose for single channels, stay.",
+      "applied_one": "Settings of {{count}} person changed.",
+      "applied_other": "Settings of {{count}} people changed."
+    }
   },
   "permissions": {
     "title": "Permission scheme",

@@ -192,6 +192,36 @@ func (q *Queries) AdminListWorkspaces(ctx context.Context) ([]AdminListWorkspace
 	return items, nil
 }
 
+const applySoundDefaults = `-- name: ApplySoundDefaults :execrows
+UPDATE notification_prefs
+SET prefs = jsonb_set(jsonb_set(prefs, '{sounds}', jsonb_build_object(
+        'mention', $1::text, 'direct', $2::text, 'message', $3::text)),
+      '{volume}', to_jsonb($4::int)),
+    updated_at = now()
+`
+
+type ApplySoundDefaultsParams struct {
+	SoundMention string `json:"sound_mention"`
+	SoundDirect  string `json:"sound_direct"`
+	SoundMessage string `json:"sound_message"`
+	SoundVolume  int32  `json:"sound_volume"`
+}
+
+// ApplySoundDefaults gives everyone who saved their own settings the
+// installation's sounds and volume; their other settings stay.
+func (q *Queries) ApplySoundDefaults(ctx context.Context, arg ApplySoundDefaultsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, applySoundDefaults,
+		arg.SoundMention,
+		arg.SoundDirect,
+		arg.SoundMessage,
+		arg.SoundVolume,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getFederationPolicy = `-- name: GetFederationPolicy :one
 SELECT federation_mode, federation_servers FROM instance_settings
 `
@@ -249,6 +279,29 @@ func (q *Queries) GetSessionPolicy(ctx context.Context) (GetSessionPolicyRow, er
 		&i.GuestIdleMinutes,
 		&i.AdminNetworks,
 		&i.SigninNetworks,
+	)
+	return i, err
+}
+
+const getSoundDefaults = `-- name: GetSoundDefaults :one
+SELECT sound_mention, sound_direct, sound_message, sound_volume FROM instance_settings
+`
+
+type GetSoundDefaultsRow struct {
+	SoundMention string `json:"sound_mention"`
+	SoundDirect  string `json:"sound_direct"`
+	SoundMessage string `json:"sound_message"`
+	SoundVolume  int32  `json:"sound_volume"`
+}
+
+func (q *Queries) GetSoundDefaults(ctx context.Context) (GetSoundDefaultsRow, error) {
+	row := q.db.QueryRow(ctx, getSoundDefaults)
+	var i GetSoundDefaultsRow
+	err := row.Scan(
+		&i.SoundMention,
+		&i.SoundDirect,
+		&i.SoundMessage,
+		&i.SoundVolume,
 	)
 	return i, err
 }
@@ -356,6 +409,29 @@ func (q *Queries) SetSessionPolicy(ctx context.Context, arg SetSessionPolicyPara
 		arg.GuestIdleMinutes,
 		arg.AdminNetworks,
 		arg.SigninNetworks,
+	)
+	return err
+}
+
+const setSoundDefaults = `-- name: SetSoundDefaults :exec
+UPDATE instance_settings
+SET sound_mention = $1, sound_direct = $2, sound_message = $3,
+    sound_volume = $4, updated_at = now()
+`
+
+type SetSoundDefaultsParams struct {
+	SoundMention string `json:"sound_mention"`
+	SoundDirect  string `json:"sound_direct"`
+	SoundMessage string `json:"sound_message"`
+	SoundVolume  int32  `json:"sound_volume"`
+}
+
+func (q *Queries) SetSoundDefaults(ctx context.Context, arg SetSoundDefaultsParams) error {
+	_, err := q.db.Exec(ctx, setSoundDefaults,
+		arg.SoundMention,
+		arg.SoundDirect,
+		arg.SoundMessage,
+		arg.SoundVolume,
 	)
 	return err
 }

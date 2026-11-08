@@ -2560,7 +2560,16 @@
     "eraseTitle": "{{name}} silinsin mi?",
     "eraseDescription": "Adı, e-posta adresi, durumu ve resmi kaldırılır, artık giriş yapamaz. Bütün mesajları silinir; yasal saklamanın tuttukları saklama süresince gizli kalır, sonra gider. Tepkileri, kaydettikleri, zamanlanmış mesajları, cihazları, yüklediği yazı tipleri ve sesler ve yapay zekâ bildirimine yanıtı da kaldırılır. Yeniden giriş yaparsa yeni bir hesap açılır; bunu önlemek için Cenacle ID'de hesabı silin ya da devre dışı bırakın.",
     "eraseConfirm": "Kişiyi sil",
-    "erased": "Silindi: {{erased}} mesaj silindi, {{held}} mesaj yasal saklamada kaldı."
+    "erased": "Silindi: {{erased}} mesaj silindi, {{held}} mesaj yasal saklamada kaldı.",
+    "soundDefaults": {
+      "title": "Varsayılan bildirim sesleri",
+      "hint": "Kendi seslerini seçmemiş herkes bu sesleri duyar. Herkes yine de Ayarlar → Bildirimler bölümünden kendininkini değiştirebilir.",
+      "apply": "Herkese uygula",
+      "applyTitle": "Bu sesler herkese uygulansın mı?",
+      "applyHint": "Kendi seslerini ya da ses düzeyini seçmiş kişiler de bu sesleri alır. Diğer bildirim ayarları ve tek kanallar için seçtikleri sesler değişmez.",
+      "applied_one": "{{count}} kişinin ayarı değişti.",
+      "applied_other": "{{count}} kişinin ayarı değişti."
+    }
   },
   "permissions": {
     "title": "İzin şeması",
