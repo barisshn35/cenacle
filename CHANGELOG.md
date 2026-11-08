@@ -31,6 +31,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   `/api/workspaces/{id}/sticker-packs`, `/api/sticker-packs/{id}`, `pack_id` on stickers).
   A workspace holds up to 1000 stickers (was 200) in up to 50 packs. Custom emoji are added
   many at once the same way, named after their files.
+- A click on a message opens its thread beside the channel (a reply opens the thread it is
+  in). Clicks on its links, buttons and reactions, selecting its text and Alt+click
+  (mark unread) do what they did; on touch screens a tap still shows the message's actions.
 - Emotes in messages: the composer has an emoji button (the workspace's own emoji first,
   then the standard ones) and suggests the workspace's emoji while you type `:` and a name.
   A message of emoji alone (up to ten) shows them large.

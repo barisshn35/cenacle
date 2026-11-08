@@ -10,15 +10,17 @@ export const useSelectedMessage = create<{ id: string | null }>()(() => ({ id: n
 const coarse = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true;
 
+/** Whether a click landed on one of a message's own controls (a link, a button, a player…). */
+export function onControl(target: EventTarget | null): boolean {
+  return !!(target as Element | null)?.closest?.(
+    'a, button, input, textarea, select, summary, video, audio, [role="button"], [contenteditable="true"]',
+  );
+}
+
 /** Tapping a message (not one of its links or buttons) selects it. */
-export function selectOnTap(event: { target: EventTarget | null }, id: string): void {
-  if (!coarse()) return;
-  const target = event.target as Element | null;
-  if (
-    target?.closest(
-      'a, button, input, textarea, select, summary, video, audio, [role="button"], [contenteditable="true"]',
-    )
-  )
-    return;
+export function selectOnTap(event: { target: EventTarget | null }, id: string): boolean {
+  if (!coarse()) return false;
+  if (onControl(event.target)) return true;
   useSelectedMessage.setState((s) => ({ id: s.id === id ? null : id }));
+  return true;
 }

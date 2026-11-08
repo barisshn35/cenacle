@@ -57,7 +57,8 @@ import { EditedLabel } from './edit-history';
 import { AckBar, PriorityLabel } from './priority';
 import { SeenBy } from './read-receipts';
 import { AddReactionButton, ReactionBar } from './reactions';
-import { selectOnTap, useSelectedMessage } from './message-select';
+import { onControl, selectOnTap, useSelectedMessage } from './message-select';
+import { useLayout } from '../../stores/layout';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
 import { useSendMessage } from './send';
@@ -109,6 +110,7 @@ export function MessageRow({
   const hasStatus = !!useProfile(m.author.id)?.status;
   const unread = useMarkUnread(m);
   const selected = useSelectedMessage((s) => s.id === m.id);
+  const openThread = useLayout((s) => s.openThread);
   const time = (className?: string) => (
     <time
       dateTime={m.created_at}
@@ -153,17 +155,26 @@ export function MessageRow({
           </span>
         </div>
       )}
-      {/* Alt+click marks the message unread; its menu offers the same. */}
+      {/* A click opens the message's thread (its menu's "Reply in thread" does
+          too, for the keyboard); Alt+click marks it unread, as its menu does. */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <article
         aria-labelledby={`m-${m.id}-author`}
         onClick={(e) => {
-          if (!e.altKey || m.author.id === self || editing) {
-            if (!editing) selectOnTap(e, m.id);
+          // Clicks in its menus and pickers (rendered elsewhere) reach it too: not its own.
+          if (editing || !e.currentTarget.contains(e.target as Node)) return;
+          if (e.altKey && m.author.id !== self) {
+            e.preventDefault();
+            unread.mutate();
             return;
           }
-          e.preventDefault();
-          unread.mutate();
+          // On touch screens a tap shows the message's actions instead.
+          if (selectOnTap(e, m.id)) return;
+          // A click on the message (not on its links or buttons, nor the end
+          // of selecting its text) opens its thread beside the channel.
+          if (inThread || channel.archived || onControl(e.target)) return;
+          if (window.getSelection()?.toString()) return;
+          openThread({ channelId: m.channel_id, rootId: m.root_id ?? m.id });
         }}
         data-testid="message"
         className={cn(

@@ -101,3 +101,41 @@ test('saved for later, with a reminder, then done', async ({ page }) => {
   await page.getByRole('tab', { name: 'Done' }).click();
   await expect(page.getByTestId('saved-item')).toContainText('Release plan');
 });
+
+test('clicking a message opens its thread beside the channel; links and selecting text do not', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'on touch screens a tap shows the message’s actions');
+  await mockApi(page, {
+    messages: [ROOT, mockMessage(2, 'Notes at https://example.org/notes')],
+  });
+  await page.route('https://example.org/**', (route) => route.fulfill({ body: 'notes' }));
+  await page.goto(`/c/${GENERAL.id}`);
+  const panel = page.getByTestId('thread-panel');
+
+  // A link in a message is followed, not taken for opening the thread.
+  const notes = page.getByTestId('message').filter({ hasText: 'Notes at' });
+  const popup = page.waitForEvent('popup');
+  await notes.getByRole('link').click();
+  await (await popup).close();
+  await expect(panel).toHaveCount(0);
+
+  // Selecting a message's text leaves the thread closed.
+  const text = page
+    .getByTestId('message')
+    .filter({ hasText: 'Release plan' })
+    .getByText('Release plan for Friday?');
+  const box = (await text.boundingBox())!;
+  await page.mouse.move(box.x + 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect(panel).toHaveCount(0);
+
+  // A click on the message opens its thread.
+  await page.mouse.click(1, 1);
+  await text.click();
+  await expect(panel.getByTestId('message').filter({ hasText: 'Release plan' })).toBeVisible();
+  await expect(panel.getByLabel('Reply…')).toBeVisible();
+});
