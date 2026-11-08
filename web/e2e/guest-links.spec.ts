@@ -78,7 +78,7 @@ test('someone from outside joins a channel with a guest link', async ({ page }, 
     });
   });
   await page.goto('/guest/guest-token-1');
-  await expect(page.getByRole('heading', { name: 'Join #General' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Join General' })).toBeVisible();
   await page.getByLabel('Your name').fill('Ziyaretçi');
   await page.getByLabel('Password').fill('yanlis');
   await page.getByRole('button', { name: 'Join as a guest' }).click();

@@ -224,9 +224,9 @@ func (e *emlWriter) write(m store.ArchiveMessagesRow) error {
 	w := bufio.NewWriter(f)
 	header := func(k, v string) { _, _ = fmt.Fprintf(w, "%s: %s\r\n", k, v) }
 	header("From", mime.QEncoding.Encode("utf-8", m.AuthorName)+" <"+from+">")
-	header("To", mime.QEncoding.Encode("utf-8", "#"+m.ChannelName)+" <"+uuid(m.ChannelID).String()+"@"+e.host+">")
+	header("To", mime.QEncoding.Encode("utf-8", m.ChannelName)+" <"+uuid(m.ChannelID).String()+"@"+e.host+">")
 	header("Date", m.CreatedAt.UTC().Format(time.RFC1123Z))
-	header("Subject", mime.QEncoding.Encode("utf-8", "#"+m.ChannelName))
+	header("Subject", mime.QEncoding.Encode("utf-8", m.ChannelName))
 	header("Message-ID", "<"+uuid(m.ID).String()+"@"+e.host+">")
 	if m.RootID.Valid {
 		header("In-Reply-To", "<"+uuid(m.RootID).String()+"@"+e.host+">")

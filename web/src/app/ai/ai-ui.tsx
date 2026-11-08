@@ -75,7 +75,7 @@ function Answer({ answer }: { answer: AIAnswer }) {
                   className="underline-offset-2 hover:underline"
                 >
                   {s.author_name}
-                  {s.channel_name && ` (#${s.channel_name})`}
+                  {s.channel_name && ` (${s.channel_name})`}
                 </Link>
               </li>
             ))}

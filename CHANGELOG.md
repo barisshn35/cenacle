@@ -99,6 +99,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Channel names carry no "#" anywhere: the thread panel, search results, Send later,
+  onboarding, federation, compliance and the AI's sources showed one, as did three texts
+  ("Join #General"), the message archive's e-mail (its subject and recipient) and the
+  `{{trigger.channel}}` of workflows. A channel's kind is shown by its icon.
 - A thread's header broke its title over two lines and hid the channel's name in the narrow
   panel; the title stays on one line, the name takes the rest, and Follow shows as its bell.
 - A channel's name in the header was cut short ("Gene…" for General) even when it fit:

@@ -571,7 +571,7 @@ test('slash commands, a reminder from Cenacle and a message sent later', async (
   await composerTool(page, 'Send later');
   const items = dialog.getByTestId('scheduled');
   await expect(items.filter({ hasText: `⏰ check ${stamp}` })).toContainText('Reminder');
-  await expect(items.filter({ hasText: `Haftalık özet ${stamp}` })).toContainText('#General');
+  await expect(items.filter({ hasText: `Haftalık özet ${stamp}` })).toContainText('General');
   await items
     .filter({ hasText: `Haftalık özet ${stamp}` })
     .getByRole('button', { name: /Cancel the message/ })

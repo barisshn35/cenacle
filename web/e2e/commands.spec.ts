@@ -135,7 +135,7 @@ test('a message can be sent later and cancelled', async ({ page }, testInfo) => 
 
   await composerTool(page, 'Send later');
   await expect(dialog.getByTestId('scheduled')).toContainText('Haftalık özet');
-  await expect(dialog.getByTestId('scheduled')).toContainText('#General');
+  await expect(dialog.getByTestId('scheduled')).toContainText('General');
   await dialog.getByRole('button', { name: /Cancel the message for/ }).click();
   await expect(dialog.getByText('Nothing scheduled.')).toBeVisible();
 });

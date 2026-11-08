@@ -17,7 +17,7 @@ import { InlineError } from '@cenacle/ui/components/error-state';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
 import { cancelScheduled, scheduledQuery, scheduleMessage } from './commands';
-import { channelsQuery, isConversation } from './data';
+import { channelsQuery } from './data';
 import { dateLocale } from '../../i18n/time-format';
 
 /** Today or later at a time of day (local). */
@@ -60,9 +60,7 @@ function ScheduledList() {
   const list = useQuery(scheduledQuery);
   const channels = useQuery(channelsQuery);
   const name = (id: string, fallback: string) => {
-    const c = channels.data?.find((x) => x.id === id);
-    if (!c) return fallback;
-    return isConversation(c) ? c.name : `#${c.name}`;
+    return channels.data?.find((x) => x.id === id)?.name ?? fallback;
   };
   const cancel = useMutation({
     mutationFn: cancelScheduled,

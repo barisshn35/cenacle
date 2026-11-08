@@ -353,7 +353,7 @@ func (h *Handlers) AskAI(w http.ResponseWriter, r *http.Request, workspaceID ope
 		}
 		sources = append(sources, api.AISource{MessageId: uuid(m.ID), ChannelId: uuid(m.ChannelID), ChannelName: name,
 			AuthorName: m.AuthorName, CreatedAt: m.CreatedAt})
-		line := fmt.Sprintf("[%d] %s in #%s at %s: %s\n", i+1, m.AuthorName, m.ChannelName,
+		line := fmt.Sprintf("[%d] %s in %s at %s: %s\n", i+1, m.AuthorName, m.ChannelName,
 			m.CreatedAt.UTC().Format("2006-01-02 15:04"), mentionRE.ReplaceAllString(m.Body, "@someone"))
 		if b.Len()+len(line) > aiMaxInput {
 			break

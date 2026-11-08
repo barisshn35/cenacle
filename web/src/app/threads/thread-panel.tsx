@@ -38,11 +38,7 @@ export function ThreadPanel() {
             {t('threads.title')}
           </h2>
           {channel && (
-            <span className="min-w-0 truncate text-xs text-muted-foreground">
-              {channel.kind === 'direct' || channel.kind === 'group'
-                ? channel.name
-                : `#${channel.name}`}
-            </span>
+            <span className="min-w-0 truncate text-xs text-muted-foreground">{channel.name}</span>
           )}
         </div>
         {target && channel && !channel.encrypted && (

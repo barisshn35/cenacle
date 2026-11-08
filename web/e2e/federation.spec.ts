@@ -48,7 +48,7 @@ test('admins invite a server, see its connection and accept an offered channel',
   const root = page.getByTestId('federation');
   await expect(root.getByTestId('connection')).toContainText('Partner Inc');
   await expect(root.getByTestId('connection')).toContainText('Connected');
-  await expect(root.getByTestId('offer')).toContainText('#launch');
+  await expect(root.getByTestId('offer')).toContainText('launch');
   await page.mouse.move(0, 0);
   await expectTargetSizes(page, testInfo, '[data-testid="federation"]');
   await expectNoAxeViolations(page, '[data-testid="federation"]');

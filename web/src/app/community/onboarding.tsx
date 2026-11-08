@@ -96,7 +96,7 @@ function Onboarding({ workspaceId, name }: { workspaceId: string; name: string }
                     setChosen(next);
                   }}
                 />
-                <span className="font-medium">#{c.name}</span>
+                <span className="font-medium">{c.name}</span>
                 {c.topic && <span className="truncate text-muted-foreground">{c.topic}</span>}
               </label>
             ))}

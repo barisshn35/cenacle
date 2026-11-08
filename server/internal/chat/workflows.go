@@ -596,7 +596,7 @@ func newRun(ctx context.Context, q *store.Queries, wf store.Workflow, user pgtyp
 	}
 	if channel.Valid {
 		if c, err := q.GetChannel(ctx, channel); err == nil {
-			vars["trigger.channel"] = "#" + c.Name
+			vars["trigger.channel"] = c.Name
 		}
 	}
 	raw, _ := json.Marshal(vars)

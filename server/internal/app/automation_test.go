@@ -283,7 +283,7 @@ func TestWorkflowTriggers(t *testing.T) {
 	{
 		s.call(http.MethodPost, "/api/channels/"+random+"/join", ayse, nil, nil)
 		s.runWorkflows()
-		if n := s.botMessages("Welcome <@" + s.userID(ayse) + "> to #Random"); n != 1 {
+		if n := s.botMessages("Welcome <@" + s.userID(ayse) + "> to Random"); n != 1 {
 			t.Errorf("member joined = %d", n)
 		}
 	}

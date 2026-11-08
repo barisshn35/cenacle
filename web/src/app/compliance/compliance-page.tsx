@@ -539,7 +539,7 @@ function usePeopleAndChannels(ws: string) {
     people: members
       .filter((m) => !m.user.is_bot)
       .map((m) => ({ id: m.user.id, name: m.user.display_name })),
-    channels: channels.map((c) => ({ id: c.id, name: `#${c.name}` })),
+    channels: channels.map((c) => ({ id: c.id, name: c.name })),
   };
 }
 

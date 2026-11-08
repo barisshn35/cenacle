@@ -391,11 +391,7 @@ function MessageResults({ q, filters }: { q: string; filters: MessageFilters }) 
                 <span className="truncate font-medium text-foreground">
                   {m.author.display_name}
                 </span>
-                <span className="truncate">
-                  {m.channel.kind === 'direct' || m.channel.kind === 'group'
-                    ? nameOf(m.channel)
-                    : `#${nameOf(m.channel)}`}
-                </span>
+                <span className="truncate">{nameOf(m.channel)}</span>
                 <time dateTime={m.created_at} className="ms-auto shrink-0">
                   {date.format(new Date(m.created_at))}
                 </time>
