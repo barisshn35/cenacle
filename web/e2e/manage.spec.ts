@@ -253,3 +253,12 @@ test('Ctrl+K jumps to a channel by typing part of its name', async ({ page }) =>
   await box.press('Enter');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Central');
 });
+
+test('a channel name that fits is shown whole in the header', async ({ page }) => {
+  await mockApi(page);
+  await page.goto(`/c/${GENERAL.id}`);
+  const name = page.locator('#channel-title button span');
+  await expect(name).toHaveText('General');
+  // Not cut to "Gene…": the text fits in its box.
+  expect(await name.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});

@@ -87,10 +87,11 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           >
             {channel && !isConversation(channel) ? (
               // The channel's name opens its settings: details, members and roles,
-              // notifications (they were only in the details panel).
+              // notifications (they were only in the details panel). It reaches
+              // past the title by its padding (-mx-1), so its limit does too.
               <button
                 type="button"
-                className="flex max-w-full min-h-target items-center gap-1 rounded-md px-1 -mx-1 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="-mx-1 flex max-w-[calc(100%+0.5rem)] min-h-target items-center gap-1 rounded-md px-1 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
                 aria-haspopup="dialog"
                 title={t('channels.settingsWindow')}
                 onClick={() => setSettingsOpen(true)}
