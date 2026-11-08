@@ -99,6 +99,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- A thread's header broke its title over two lines and hid the channel's name in the narrow
+  panel; the title stays on one line, the name takes the rest, and Follow shows as its bell.
 - A channel's name in the header was cut short ("Gene…" for General) even when it fit:
   the button reached past the title by its padding but was limited to the title's width.
 - Installing a desktop update opened the setup's pages; it now installs silently and opens

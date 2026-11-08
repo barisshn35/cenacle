@@ -28,16 +28,17 @@ export function ThreadPanel() {
   return (
     <aside
       aria-labelledby="thread-title"
-      className="flex h-full flex-col border-s bg-background"
+      // A container: the header fits its tools to the panel's own width.
+      className="@container flex h-full flex-col border-s bg-background"
       data-testid="thread-panel"
     >
       <header className="flex min-h-12 shrink-0 items-center gap-2 border-b px-3">
         <div className="flex min-w-0 flex-1 items-baseline gap-2">
-          <h2 id="thread-title" className="text-sm font-semibold">
+          <h2 id="thread-title" className="shrink-0 text-sm font-semibold whitespace-nowrap">
             {t('threads.title')}
           </h2>
           {channel && (
-            <span className="truncate text-xs text-muted-foreground">
+            <span className="min-w-0 truncate text-xs text-muted-foreground">
               {channel.kind === 'direct' || channel.kind === 'group'
                 ? channel.name
                 : `#${channel.name}`}
@@ -89,10 +90,15 @@ function FollowButton({ rootId }: { rootId: string }) {
       size="sm"
       variant="ghost"
       aria-pressed={following}
+      title={following ? t('threads.unfollow') : t('threads.follow')}
+      className="shrink-0"
       onClick={() => change.mutate(!following)}
     >
       {following ? <BellOffIcon strokeWidth={1.75} /> : <BellIcon strokeWidth={1.75} />}
-      {following ? t('threads.unfollow') : t('threads.follow')}
+      {/* In a narrow panel only the bell shows; the words stay for screen readers. */}
+      <span className="@max-sm:sr-only">
+        {following ? t('threads.unfollow') : t('threads.follow')}
+      </span>
     </Button>
   );
 }
