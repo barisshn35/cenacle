@@ -20,6 +20,7 @@ import (
 	"github.com/Cenacle-TR/cenacle/server/internal/api"
 	"github.com/Cenacle-TR/cenacle/server/internal/notify"
 	"github.com/Cenacle-TR/cenacle/server/internal/store"
+	"github.com/Cenacle-TR/cenacle/server/migrations"
 )
 
 type searchPage struct {
@@ -612,6 +613,39 @@ func TestSearchTimeout(t *testing.T) {
 		}
 		if v != before {
 			t.Errorf("connection %d: statement_timeout = %q, want %q", i, v, before)
+		}
+	}
+}
+
+// Migration 00069: settings saved while other messages had no sound by
+// default take the message sound; other choices stay.
+func TestMessageSoundOnMigration(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-ayse", "Ayşe")
+	mert := s.user("sub-mert", "Mert")
+	save := func(token, message string) {
+		var set api.NotificationSettings
+		s.call(http.MethodGet, "/api/me/notifications", token, nil, &set)
+		set.Prefs.Sounds.Message = message
+		if res := s.call(http.MethodPut, "/api/me/notifications", token, set.Prefs, nil); res.StatusCode != http.StatusOK {
+			t.Fatalf("save = %d", res.StatusCode)
+		}
+	}
+	save(ayse, "none")
+	save(mert, "marimba")
+	raw, err := migrations.FS.ReadFile("00069_message_sound_on.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	up, _, _ := strings.Cut(string(raw), "-- +goose Down")
+	if _, err := s.pool.Exec(context.Background(), up); err != nil {
+		t.Fatal(err)
+	}
+	for token, want := range map[string]string{ayse: "drop", mert: "marimba"} {
+		var set api.NotificationSettings
+		s.call(http.MethodGet, "/api/me/notifications", token, nil, &set)
+		if set.Prefs.Sounds.Message != want {
+			t.Errorf("message sound = %q, want %q", set.Prefs.Sounds.Message, want)
 		}
 	}
 }

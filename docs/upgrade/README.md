@@ -125,7 +125,9 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   purpose stay off. Calls still need the installation's media service: `install.sh --calls`,
   or `calls.enabled` in Helm.
 - Notifications are on for every message by default, with a message sound. People who
-  saved their notification settings keep them.
+  saved their notification settings keep them, except the sound of other messages: saved
+  as "none" (the old default), migration 00069 sets it to "drop". People who want it
+  silent choose "No sound" again in Settings → Notifications → Sounds.
 - Migration 00068 adds sticker packs and an index of the messages that are stickers
   (`messages_sticker_idx`, partial). Building it reads the messages table once and holds
   back writes to it meanwhile: on a large installation, plan the upgrade for a quiet time.

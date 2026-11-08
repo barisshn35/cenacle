@@ -71,9 +71,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   letter by letter (keys, recovery codes, tokens). The search button no longer spells out
   Ctrl K; screen readers announce it and the shortcuts window lists it.
 - Notifications are on for every message by default: a channel message makes a sound
-  ("drop") and a desktop notification, as mentions and direct messages did. People who
-  changed their notification settings keep theirs; anyone can still choose mentions only,
-  per channel or for all.
+  ("drop") and a desktop notification, as mentions and direct messages did. Anyone can
+  still choose mentions only, per channel or for all. Settings saved while other messages
+  had no sound by default stored that "none" too; migration 00069 gives them the sound
+  ("drop"), since it cannot be told from a choice. Other sounds people chose stay.
 - `@username` written as plain text (typed without picking the suggestion, pasted, or sent
   by a bot or a webhook) mentions that member, like a picked name: they are notified and it
   is in their inbox. `@name` inside code does not mention anyone, and moderation's mention
