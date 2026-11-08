@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { cn } from '@cenacle/ui/lib/utils';
 import { CodeBlock } from './code-block';
 import { mentionId, toMarkdownMentions } from './mentions';
-import { broadcastLink, emojiLink, groupLink, toMarkdownExtras } from './extras';
+import { broadcastLink, emojiLink, groupLink, onlyEmoji, toMarkdownExtras } from './extras';
 import { useMentionableGroups, type MentionGroup } from '../../groups/groups';
 import { useActiveWorkspace } from '../active-workspace';
 import { CustomEmojiImage } from '../../richer/emoji';
@@ -167,8 +167,16 @@ export const MessageBody = memo(function MessageBody({
   const names = useMemo(() => new Set(emoji.keys()), [emoji]);
   const groups = useMentionableGroups(useActiveWorkspace().id);
   const handles = useMemo(() => new Set(groups.keys()), [groups]);
+  // Emoji on their own (an emote) are shown large.
+  const jumbo = !document && onlyEmoji(body, names);
   return (
-    <div className="text-[0.9375rem] leading-(--line-height-base,1.625) break-words [&_li>p]:my-0">
+    <div
+      className={cn(
+        'text-[0.9375rem] leading-(--line-height-base,1.625) break-words [&_li>p]:my-0',
+        jumbo && 'text-[2rem] leading-tight',
+      )}
+      data-jumbo={jumbo || undefined}
+    >
       <Markdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize]}

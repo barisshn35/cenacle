@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { EmojiPicker } from 'frimousse';
-import { SmilePlusIcon } from 'lucide-react';
+import { SmileIcon, SmilePlusIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@cenacle/ui/components/button';
@@ -122,6 +122,41 @@ export function AddReactionButton({
             onPick={(emoji) => {
               setOpen(false);
               if (!message.reactions.some((r) => r.emoji === emoji && r.me)) toggle(emoji);
+            }}
+          />
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** The composer's emoji button: the workspace's emoji and the standard ones, put into the text. */
+export function InsertEmojiButton({
+  onPick,
+  returnTo,
+}: {
+  onPick: (emoji: string) => void;
+  /** Where the focus goes back to (the text box). */
+  returnTo: RefObject<HTMLTextAreaElement | null>;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button type="button" size="icon" variant="ghost" aria-label={t('richer.emoji.insert')} />
+        }
+      >
+        <SmileIcon strokeWidth={1.75} />
+      </PopoverTrigger>
+      <PopoverContent side="top" align="end" finalFocus={returnTo}>
+        <PopoverTitle className="sr-only">{t('richer.emoji.insert')}</PopoverTitle>
+        {open && (
+          <EmojiPickerPanel
+            onPick={(emoji) => {
+              setOpen(false);
+              onPick(emoji);
             }}
           />
         )}

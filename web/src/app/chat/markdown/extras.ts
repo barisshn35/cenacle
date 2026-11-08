@@ -81,3 +81,27 @@ export function broadcastLink(href: string | undefined): string | undefined {
   const m = /^#(?:user-content-)?broadcast-([a-z]+)-([0-9a-f]{32})$/.exec(href ?? '');
   return m && m[2] === MENTION_SECRET ? m[1] : undefined;
 }
+
+/** At most this many emoji make a message shown large. */
+export const JUMBO_MAX = 10;
+const PICTOGRAPH = /\p{Extended_Pictographic}|\p{Regional_Indicator}/u;
+const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+
+/**
+ * Whether a message is only emoji (the workspace's and standard ones, at most
+ * JUMBO_MAX), so it is shown large, as people send emotes.
+ */
+export function onlyEmoji(body: string, emoji: ReadonlySet<string>): boolean {
+  let count = 0;
+  const rest = body.replace(EMOJI, (match, name: string) => {
+    if (!emoji.has(name)) return match;
+    count++;
+    return ' ';
+  });
+  for (const { segment } of graphemes.segment(rest)) {
+    if (/^\s+$/.test(segment)) continue;
+    if (!PICTOGRAPH.test(segment)) return false;
+    count++;
+  }
+  return count > 0 && count <= JUMBO_MAX;
+}

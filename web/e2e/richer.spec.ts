@@ -204,3 +204,133 @@ test('a voice message plays from its own player', async ({ page }) => {
   await expect(player.getByRole('button', { name: 'Play voice message' })).toBeVisible();
   await expectNoAxeViolations(page, '[data-testid="voice"]');
 });
+
+test('emotes: typed with ":", picked from the emoji button, shown large on their own', async ({
+  page,
+}) => {
+  const api = await mockApi(page, {
+    messages: [mockMessage(1, ':party: :party:'), mockMessage(2, 'Shipped :party: today')],
+    emoji: EMOJI,
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  const composer = page.getByLabel('Message General');
+
+  // An emote alone is large; one within text stays the size of the text.
+  await expect(page.getByTestId('message').first().locator('[data-jumbo]')).toHaveCount(1);
+  await expect(
+    page.getByTestId('message').filter({ hasText: 'Shipped' }).locator('[data-jumbo]'),
+  ).toHaveCount(0);
+
+  // ":pa" suggests the workspace's emoji; Enter puts it in.
+  await composer.fill('Nice :pa');
+  await composer.press('End');
+  const list = page.getByTestId('emoji-suggest');
+  await expect(list.getByRole('option', { name: ':party:' })).toBeVisible();
+  await composer.press('Enter');
+  await expect(composer).toHaveValue('Nice :party: ');
+  // Times are not taken for emoji.
+  await composer.fill('at 10:30');
+  await expect(list).toHaveCount(0);
+
+  // The emoji button puts the workspace's emoji where the caret is.
+  await composer.fill('');
+  await page.getByRole('button', { name: 'Add emoji' }).click();
+  await page.getByTestId('custom-emoji').getByRole('button', { name: ':party:' }).click();
+  await expect(composer).toHaveValue(':party: ');
+  await expect(composer).toBeFocused();
+  await composer.press('Enter');
+  await expect.poll(() => api.sent.at(-1)).toMatchObject({ body: ':party:' });
+});
+
+test('the sticker picker shows packs as sections', async ({ page }) => {
+  const pack = {
+    id: '01a15e50-5a00-7000-8000-000000000001',
+    name: 'Cats',
+    created_by: null,
+    created_at: '2026-11-08T10:00:00Z',
+  };
+  await mockApi(page, {
+    stickers: [
+      ...STICKERS,
+      {
+        id: '01a15e50-5000-7000-8000-000000000002',
+        name: 'Purr',
+        url: '/api/pictures/01a15e50-5000-7000-8000-0000000000e2',
+        created_by: null,
+        pack_id: pack.id,
+      },
+    ],
+    stickerPacks: [pack],
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  await page.getByRole('button', { name: 'Stickers' }).click();
+  const list = page.getByTestId('sticker-list');
+  await expect(list.getByRole('region', { name: 'Cats' }).getByRole('button')).toHaveAccessibleName(
+    'Purr',
+  );
+  await expect(
+    list.getByRole('region', { name: 'Other' }).getByRole('button'),
+  ).toHaveAccessibleName('Wave');
+});
+
+test('a .zip of GIFs becomes a sticker pack, named after the archive', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'workspace settings open from the sidebar on wide screens');
+  const { zipSync } = await import('fflate');
+  await mockApi(page, { admin: true });
+  const made: string[] = [];
+  const added: string[] = [];
+  await page.route(/\/sticker-packs$/, (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    made.push((route.request().postDataJSON() as { name: string }).name);
+    return route.fulfill({
+      status: 201,
+      json: {
+        id: '01a15e50-5a00-7000-8000-000000000009',
+        name: 'Party Cats',
+        created_by: SESSION.user.id,
+        created_at: '2026-11-08T10:00:00Z',
+      },
+    });
+  });
+  await page.route(/\/stickers\?/, (route) => {
+    added.push(new URL(route.request().url()).search);
+    return route.fulfill({
+      status: 201,
+      json: {
+        id: crypto.randomUUID(),
+        name: 'x',
+        url: '/x',
+        created_by: SESSION.user.id,
+        pack_id: null,
+      },
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Workspace menu: Cenacle' }).click();
+  await page.getByRole('menuitem', { name: 'Workspace settings' }).click();
+  const section = page
+    .getByRole('dialog', { name: 'Workspace settings' })
+    .getByTestId('manage-stickers');
+  const zip = zipSync({
+    'cats/2-nap.gif': new Uint8Array(8),
+    'cats/1-purr.gif': new Uint8Array(8),
+    'cats/read me.txt': new Uint8Array(8),
+  });
+  await section
+    .locator('input[type=file]')
+    .first()
+    .setInputFiles({
+      name: 'party-cats.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from(zip),
+    });
+  await expect(page.getByText('2 stickers added.')).toBeVisible();
+  expect(made).toEqual(['party cats']);
+  expect(added).toEqual([
+    '?name=1%20purr&pack_id=01a15e50-5a00-7000-8000-000000000009',
+    '?name=2%20nap&pack_id=01a15e50-5a00-7000-8000-000000000009',
+  ]);
+});

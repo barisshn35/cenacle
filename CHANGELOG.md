@@ -24,6 +24,16 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   who changed them last, and when (a new column in the table, a line on each card, and the
   row's menu on phones); a tab's menu says who added it. Lists keep who changed a row
   (migration 00067); canvases already showed who edited them last.
+- Sticker packs: a workspace's members add many GIFs or other pictures at once, chosen
+  together or as a .zip (opened in the browser), into a named pack; each file becomes a
+  sticker named after it. The composer's sticker picker shows the packs as sections; who made
+  a pack, or an administrator, adds to it and removes it (migration 00068,
+  `/api/workspaces/{id}/sticker-packs`, `/api/sticker-packs/{id}`, `pack_id` on stickers).
+  A workspace holds up to 1000 stickers (was 200) in up to 50 packs. Custom emoji are added
+  many at once the same way, named after their files.
+- Emotes in messages: the composer has an emoji button (the workspace's own emoji first,
+  then the standard ones) and suggests the workspace's emoji while you type `:` and a name.
+  A message of emoji alone (up to ten) shows them large.
 
 ### Security
 
@@ -79,6 +89,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Removing a sticker someone had sent failed: the message would have been left empty. A
+  sticker a message shows now only leaves the picker and the message keeps it; one no
+  message shows is removed with its picture.
 - Categories looked broken: a new one stayed hidden until it had a channel, and a channel
   went into one only from its settings. Their organizers now see empty categories with a
   hint, drag channels into and out of them, choose one from a channel's ⋯ menu in the

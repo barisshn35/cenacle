@@ -57,6 +57,8 @@ import { MessageBody } from './markdown/message-body';
 import type { Priority } from './pending';
 import { useLayout } from '../../stores/layout';
 import { useMentionPicker } from './mention-picker';
+import { useEmojiSuggest } from './emoji-suggest';
+import { InsertEmojiButton } from './reactions';
 import { useSession } from '../auth/session';
 import { PollDialog } from '../community/poll';
 import { SendLaterDialog } from './send-later';
@@ -188,6 +190,7 @@ export function Composer({
     onChange: change,
     broadcast: !conversation && !!channel?.can_broadcast,
   });
+  const emoji = useEmojiSuggest({ input, value: body, onChange: change });
   const workspaceId = useActiveWorkspace().id;
   const commands = useCommandPicker({ workspaceId, input, onChange: change });
   const addNote = useCommandNotes((s) => s.add);
@@ -333,6 +336,19 @@ export function Composer({
     clear();
   };
 
+  /** Puts an emoji into the text where the caret is (a workspace one as ":name: "). */
+  const insert = (picked: string) => {
+    const el = input.current;
+    const start = el?.selectionStart ?? body.length;
+    const end = el?.selectionEnd ?? start;
+    const piece = picked.startsWith(':') ? `${picked} ` : picked;
+    typed(body.slice(0, start) + piece + body.slice(end));
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + piece.length, start + piece.length);
+    });
+  };
+
   const editLast = useEditing((s) => s.set);
   const openThread = useLayout((s) => s.openThread);
   /** The messages the composer writes after: the thread's replies or the channel's. */
@@ -345,6 +361,7 @@ export function Composer({
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (commands.onKeyDown(e)) return;
     if (mentions.onKeyDown(e)) return;
+    if (emoji.onKeyDown(e)) return;
     const mod = e.ctrlKey || e.metaKey;
     const format =
       mod && !e.altKey
@@ -431,6 +448,7 @@ export function Composer({
           }}
         >
           {mentions.popup}
+          {emoji.popup}
           {!thread && commands.popup}
           {formatting && (
             <FormattingBar
@@ -467,15 +485,23 @@ export function Composer({
               onChange={(e) => {
                 typed(e.target.value);
                 mentions.update();
+                emoji.update();
                 if (!thread) commands.update();
               }}
               onSelect={() => {
                 mentions.update();
+                emoji.update();
                 if (!thread) commands.update();
               }}
               aria-autocomplete="list"
               aria-controls={
-                commands.open ? commands.listId : mentions.open ? mentions.listId : undefined
+                commands.open
+                  ? commands.listId
+                  : mentions.open
+                    ? mentions.listId
+                    : emoji.open
+                      ? emoji.listId
+                      : undefined
               }
               onKeyDown={onKeyDown}
               onPaste={(e) => {
@@ -522,6 +548,7 @@ export function Composer({
               {permissions.upload_files && (
                 <Recorder ref={recorder} buttons={false} onRecorded={(f) => addFiles([f])} />
               )}
+              <InsertEmojiButton onPick={insert} returnTo={input} />
               {!burn && (
                 <StickerPicker
                   onPick={(s) =>

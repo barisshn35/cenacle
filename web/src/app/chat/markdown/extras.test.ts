@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import { broadcastKind, broadcastLink, emojiLink, groupLink, toMarkdownExtras } from './extras';
+import {
+  broadcastKind,
+  broadcastLink,
+  emojiLink,
+  groupLink,
+  onlyEmoji,
+  toMarkdownExtras,
+} from './extras';
 import { MENTION_SECRET } from './mentions';
 
 const emoji = new Set(['party', 'ship_it']);
@@ -46,5 +53,22 @@ describe('toMarkdownExtras', () => {
     expect(broadcastKind('admins')).toBe('role:admin');
     expect(broadcastKind('owners')).toBe('role:owner');
     expect(broadcastKind('here')).toBe('here');
+  });
+});
+
+describe('onlyEmoji', () => {
+  const names = new Set(['party', 'cat']);
+  it('takes messages of emoji alone', () => {
+    expect(onlyEmoji(':party:', names)).toBe(true);
+    expect(onlyEmoji(' :party: :cat: 🎉 ', names)).toBe(true);
+    expect(onlyEmoji('👍🏽', names)).toBe(true);
+    expect(onlyEmoji('👨‍👩‍👧 🇹🇷', names)).toBe(true);
+  });
+  it('leaves text, unknown names and long rows as they are', () => {
+    expect(onlyEmoji('', names)).toBe(false);
+    expect(onlyEmoji('nice :party:', names)).toBe(false);
+    expect(onlyEmoji(':nope:', names)).toBe(false);
+    expect(onlyEmoji('123', names)).toBe(false);
+    expect(onlyEmoji('🎉'.repeat(11), names)).toBe(false);
   });
 });
