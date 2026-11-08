@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'"
+    />
+    <title>Cenacle</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="dialog.js" defer></script>
+  </head>
+  <body class="dialog">
+    <div
+      class="box"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="message"
+      aria-describedby="detail"
+    >
+      <header class="bar">
+        <svg aria-hidden="true" viewBox="0 0 48 48">
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="6.5"
+            stroke-linecap="round"
+            d="M10 41V22A14 14 0 0 1 38 22V41"
+          />
+          <path
+            fill="#C9A24B"
+            d="M17.5 33V25.5A5.5 5.5 0 0 1 23 20H25A5.5 5.5 0 0 1 30.5 25.5V27.5A5.5 5.5 0 0 1 25 33Z"
+          /></svg
+        ><span>Cenacle</span>
+      </header>
+      <div class="content">
+        <p class="message" id="message"></p>
+        <p class="detail" id="detail"></p>
+      </div>
+      <div class="buttons" id="buttons"></div>
+    </div>
+  </body>
+</html>

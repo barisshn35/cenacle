@@ -333,3 +333,54 @@ body.frame {
 .address .lock[hidden] {
   display: none;
 }
+
+/* The app's dialogs: a small window of their own, its edge drawn by the page. */
+body.dialog {
+  background: var(--sheet);
+  overflow: hidden;
+}
+.dialog .box {
+  display: grid;
+  border: 1px solid var(--rule-strong);
+  background: var(--sheet);
+}
+.dialog .bar {
+  height: 34px;
+  padding-right: 14px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--rule);
+}
+.dialog .content {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px 4px;
+}
+.dialog .message {
+  font: 600 15.5px/1.35 var(--font);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.dialog .detail {
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.dialog[data-type='warning'] .message {
+  color: var(--danger);
+}
+.dialog .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px 18px;
+}
+.dialog .buttons button {
+  width: auto;
+  min-width: 88px;
+  height: 34px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}

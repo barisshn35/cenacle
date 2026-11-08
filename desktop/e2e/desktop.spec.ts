@@ -85,7 +85,7 @@ test('pairs with a server and signs in inside the app, while the web app is off'
   expect(fake.authorizations).toContain(`Bearer ${TOKEN}`);
   expect(fake.cookies.filter(Boolean)).toEqual([]);
   expect(await main.locator('body').getAttribute('data-bridge-keys')).toBe(
-    'changeServer,checkUpdates,platform,prefs,setBadge,setCloseToTray,setTitleBar,signIn,signOut,titleBarHeight,version',
+    'changeServer,checkUpdates,notify,onNotificationClick,platform,prefs,setBadge,setCloseToTray,setTitleBar,signIn,signOut,titleBarHeight,version',
   );
   // No menu bar anywhere: the windows draw their own bar.
   expect(await app.evaluate(({ Menu }) => Menu.getApplicationMenu())).toBeNull();
@@ -255,13 +255,7 @@ test('voice recording prompts only in the signed-in paired main frame and releas
     await signIn(app);
     const main = await windowAt(app, fake.chat);
     await expect(main.locator('#who')).toHaveText('Signed in as Ayşe Yılmaz');
-    await app.evaluate(({ dialog }) => {
-      dialog.showMessageBox = (async (_window: unknown, options: { detail?: string }) => {
-        if (options.detail !== 'Microphone') throw new Error('unexpected permission prompt');
-        return { response: 1, checkboxChecked: false };
-      }) as typeof dialog.showMessageBox;
-    });
-    const result = await main.evaluate(async () => {
+    const recording = main.evaluate(async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       const recorder = new MediaRecorder(stream);
       const data = new Promise<number>((resolve) => {
@@ -274,6 +268,11 @@ test('voice recording prompts only in the signed-in paired main frame and releas
       stream.getTracks().forEach((track) => track.stop());
       return { size, ended: stream.getTracks().every((track) => track.readyState === 'ended') };
     });
+    // The app asks in a dialog of its own (its page, not the server's).
+    const ask = await app.waitForEvent('window', (w) => w.url().includes('/pages/dialog.html'));
+    await expect(ask.locator('#detail')).toHaveText('Microphone');
+    await ask.getByRole('button', { name: 'Allow' }).click();
+    const result = await recording;
     expect(result.size).toBeGreaterThan(0);
     expect(result.ended).toBe(true);
     // The web page does not gain a desktopCapturer/permission bypass bridge.

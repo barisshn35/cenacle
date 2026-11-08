@@ -105,6 +105,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   removes that folder, so a reinstalled app asks to sign in again (updates keep it).
 - Checking for updates on a server that hosts none said it "did not work"; it says the
   server offers no app updates and where to get new versions.
+- The desktop app's dialogs (updates, sign-in, device permissions) are its own, in
+  Cenacle's look (its colors, Geist, light or dark), instead of the system's message boxes.
+  They are a page of the app, which the server's pages cannot reach.
 - Removing a sticker someone had sent failed: the message would have been left empty. A
   sticker a message shows now only leaves the picker and the message keeps it; one no
   message shows is removed with its picture.

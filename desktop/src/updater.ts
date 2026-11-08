@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { dialog, type BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron';
+import { showDialog } from './dialog.js';
 import { autoUpdater } from 'electron-updater';
 import { fill, t } from './i18n.js';
 import { SignedProvider } from './update-provider.js';
@@ -65,12 +66,11 @@ async function show(message: string, detail?: string) {
   const win = windowOf();
   const opts = {
     type: 'info' as const,
-    title: 'Cenacle',
     message,
     detail,
     buttons: [t().update.ok],
   };
-  await (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts));
+  await showDialog(win, opts);
 }
 
 async function offer(version: string) {
@@ -78,14 +78,13 @@ async function offer(version: string) {
   const win = windowOf();
   const opts = {
     type: 'info' as const,
-    title: 'Cenacle',
     message: fill(u.availableTitle, { version }),
     detail: u.available,
     buttons: [u.download, u.later],
     defaultId: 0,
     cancelId: 1,
   };
-  const { response } = await (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts));
+  const response = await showDialog(win, opts);
   if (response === 0) await autoUpdater.downloadUpdate();
   else if (asked) asked = false;
 }
@@ -95,13 +94,12 @@ async function ready(version: string) {
   const win = windowOf();
   const opts = {
     type: 'info' as const,
-    title: 'Cenacle',
     message: fill(u.readyTitle, { version }),
     detail: u.ready,
     buttons: [u.restart, u.later],
     defaultId: 0,
     cancelId: 1,
   };
-  const { response } = await (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts));
+  const response = await showDialog(win, opts);
   if (response === 0) autoUpdater.quitAndInstall();
 }

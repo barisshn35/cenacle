@@ -3,7 +3,6 @@ import {
   app,
   BrowserWindow,
   protocol,
-  dialog,
   ipcMain,
   Menu,
   nativeImage,
@@ -44,6 +43,7 @@ import {
   type Config,
 } from './store.js';
 import { NO_POLICY, readPolicy, type Policy } from './policy.js';
+import { setupDialogs, showDialog } from './dialog.js';
 import { moveLegacyData } from './legacy-data.js';
 import { checkForUpdates, setupUpdates } from './updater.js';
 import { mediaPermissions } from './media.js';
@@ -130,6 +130,11 @@ async function start() {
   setUpSpellChecking();
   setupLanguage();
   serveLocalPages();
+  setupDialogs({
+    origin: LOCAL_ORIGIN,
+    preload: join(__dirname, 'dialog-preload.js'),
+    lang: language,
+  });
   config = loadConfig();
   applyPolicy();
   createTray();
@@ -428,7 +433,11 @@ async function startSignIn(returnTo: string) {
       saveToken(result.token);
       if (!canKeepSession() && main && !toldNotKept) {
         toldNotKept = true;
-        void dialog.showMessageBox(main, { type: 'info', message: t().signIn.notKept });
+        void showDialog(main, {
+          type: 'info',
+          message: t().signIn.notKept,
+          buttons: [t().update.ok],
+        });
       }
       void main?.loadURL(new URL(returnTo, server).toString());
       return;
@@ -442,9 +451,7 @@ async function startSignIn(returnTo: string) {
       defaultId: 0,
       cancelId: 1,
     };
-    const { response } = await (main
-      ? dialog.showMessageBox(main, opts)
-      : dialog.showMessageBox(opts));
+    const response = await showDialog(main, opts);
     signingIn = false;
     if (response === 0) void startSignIn(returnTo);
   } finally {

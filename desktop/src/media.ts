@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { BrowserWindow, desktopCapturer, dialog, Menu, type WebContents } from 'electron';
+import { BrowserWindow, desktopCapturer, Menu, type WebContents } from 'electron';
+import { showDialog } from './dialog.js';
 import { t } from './i18n.js';
 import { trustedMediaOrigin, type MediaPermissions } from './security.js';
 
@@ -36,18 +37,16 @@ export function mediaPermissions(scope: {
         const names = types
           .map((type) => (type === 'audio' ? text.microphone : text.camera))
           .join(', ');
-        const result = await dialog.showMessageBox(window, {
+        const response = await showDialog(window, {
           type: 'question',
-          title: text.permissionTitle,
           message: text.permissionMessage.replace('{{host}}', new URL(scope.server()).host),
           detail: names,
           buttons: [text.deny, text.allow],
           cancelId: 0,
           defaultId: 0,
-          noLink: true,
         });
         return (
-          result.response === 1 &&
+          response === 1 &&
           contents.mainFrame === frame &&
           frame.url === url &&
           trusted(contents, url, true)

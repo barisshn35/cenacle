@@ -5,7 +5,6 @@ import { app } from 'electron';
 // pages); everything else is the web app, in the language chosen there.
 const en = {
   calls: {
-    permissionTitle: 'Allow device access?',
     permissionMessage: '{{host}} wants to use your devices.',
     microphone: 'Microphone',
     camera: 'Camera',
@@ -111,7 +110,6 @@ export type Texts = typeof en;
 
 const tr: Texts = {
   calls: {
-    permissionTitle: 'Cihaz erişimine izin verilsin mi?',
     permissionMessage: '{{host}} cihazlarınızı kullanmak istiyor.',
     microphone: 'Mikrofon',
     camera: 'Kamera',
