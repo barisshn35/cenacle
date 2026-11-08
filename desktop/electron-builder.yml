@@ -44,6 +44,9 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
+  # Uninstalling removes the app's data (%APPDATA%\Cenacle: server, settings,
+  # session), so a reinstall asks to sign in again; updates keep it.
+  deleteAppDataOnUninstall: true
   installerLanguages: [en_US, tr_TR]
   # Pictures from scripts/installer-art.mjs; additions in build/installer.nsh.
   installerSidebar: build/installerSidebar.bmp

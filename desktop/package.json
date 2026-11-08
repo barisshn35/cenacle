@@ -1,5 +1,6 @@
 {
   "name": "@cenacle/desktop",
+  "productName": "Cenacle",
   "version": "0.99.5",
   "private": true,
   "description": "Cenacle desktop app (Electron) for Windows and Linux.",

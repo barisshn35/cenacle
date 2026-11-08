@@ -51,14 +51,25 @@ export async function checkForUpdates(manual: boolean): Promise<void> {
   try {
     const result = await autoUpdater.checkForUpdates();
     if (manual && (!result || !result.isUpdateAvailable)) await show(t().update.none);
-  } catch {
-    if (manual) await show(t().update.failed);
+  } catch (err) {
+    if (!manual) return;
+    // A server that hosts no updates has no update file: say so, it is not a fault.
+    const missing =
+      (err as { code?: unknown } | null)?.code === 'ERR_UPDATER_CHANNEL_FILE_NOT_FOUND';
+    if (missing) await show(t().update.notHosted, t().update.notHostedHint);
+    else await show(t().update.failed);
   }
 }
 
 async function show(message: string, detail?: string) {
   const win = windowOf();
-  const opts = { type: 'info' as const, message, detail, buttons: [t().update.ok] };
+  const opts = {
+    type: 'info' as const,
+    title: 'Cenacle',
+    message,
+    detail,
+    buttons: [t().update.ok],
+  };
   await (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts));
 }
 
@@ -67,6 +78,7 @@ async function offer(version: string) {
   const win = windowOf();
   const opts = {
     type: 'info' as const,
+    title: 'Cenacle',
     message: fill(u.availableTitle, { version }),
     detail: u.available,
     buttons: [u.download, u.later],
@@ -83,6 +95,7 @@ async function ready(version: string) {
   const win = windowOf();
   const opts = {
     type: 'info' as const,
+    title: 'Cenacle',
     message: fill(u.readyTitle, { version }),
     detail: u.ready,
     buttons: [u.restart, u.later],

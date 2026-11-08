@@ -127,10 +127,13 @@ in the tray when its window is closed.
 - The web app's own data (drafts, settings) in the app's profile.
 
 Signing out removes the session; **Change server** removes everything of the server.
-The app's data folder (named after the app's package name, `@cenacle/desktop`) is
-`%APPDATA%\@cenacle\desktop` on Windows (setup and MSI) and `~/.config/@cenacle/desktop` on
-Linux. Windows keeps the MSIX package's data apart, in
-`%LOCALAPPDATA%\Packages\Cenacle.Desktop_<publisher ID>\LocalCache\Roaming\@cenacle\desktop`;
+The app's data folder is `%APPDATA%\Cenacle` on Windows (setup and MSI) and
+`~/.config/Cenacle` on Linux; uninstalling with the setup removes it (an update does not),
+so a reinstalled app asks to sign in again. Versions before 0.99.6 kept it in
+`@cenacle\desktop` (`@cenacle/desktop` on Linux): the app moves it once when it starts. On
+Linux the keyring entry of the session follows the app's name, so after that move people
+sign in once more. Windows keeps the MSIX package's data apart, in
+`%LOCALAPPDATA%\Packages\Cenacle.Desktop_<publisher ID>\LocalCache\Roaming\Cenacle`;
 the publisher ID follows from the package's publisher (`nqp2b3c5ery4j` for `CN=Cenacle`, the
 publisher of the packages built without `MSIX_PUBLISHER`; a Store package has the one of its
 Store account).

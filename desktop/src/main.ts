@@ -44,6 +44,7 @@ import {
   type Config,
 } from './store.js';
 import { NO_POLICY, readPolicy, type Policy } from './policy.js';
+import { moveLegacyData } from './legacy-data.js';
 import { checkForUpdates, setupUpdates } from './updater.js';
 import { mediaPermissions } from './media.js';
 
@@ -79,6 +80,7 @@ let toldNotKept = !!process.env.CENACLE_DESKTOP_DATA;
 
 // Tests (and people with several profiles) keep the app's data elsewhere.
 if (process.env.CENACLE_DESKTOP_DATA) app.setPath('userData', process.env.CENACLE_DESKTOP_DATA);
+else moveLegacyData(app.getPath('appData'), app.getPath('userData'));
 
 // The server sees which app it talks to (the devices list names it).
 app.userAgentFallback = `${app.userAgentFallback} CenacleDesktop/${app.getVersion()}`;

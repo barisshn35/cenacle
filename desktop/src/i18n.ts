@@ -89,6 +89,9 @@ const en = {
     restart: 'Restart now',
     none: 'You have the newest Cenacle.',
     failed: 'Checking for updates did not work.',
+    notHosted: 'This server offers no app updates.',
+    notHostedHint:
+      'Updates come from your server once its administrator puts them in its downloads. Until then, install new versions from the download page.',
     package:
       'Cenacle {{version}} is available. Install it with your package manager or from your server’s download page.',
     ok: 'OK',
@@ -195,6 +198,9 @@ const tr: Texts = {
     restart: 'Şimdi yeniden başlat',
     none: 'Cenacle’ın en yeni sürümü sizde.',
     failed: 'Güncellemeler denetlenemedi.',
+    notHosted: 'Bu sunucu uygulama güncellemesi sunmuyor.',
+    notHostedHint:
+      'Güncellemeler, yöneticiniz onları sunucunun indirme klasörüne koyduğunda sunucunuzdan gelir. O zamana kadar yeni sürümleri indirme sayfasından kurun.',
     package:
       'Cenacle {{version}} çıktı. Paket yöneticinizle ya da sunucunun indirme sayfasından kurun.',
     ok: 'Tamam',
