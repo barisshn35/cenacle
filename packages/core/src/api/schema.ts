@@ -3886,7 +3886,7 @@ export interface paths {
     /** The workspace's stickers */
     get: operations['listStickers'];
     put?: never;
-    /** Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace) */
+    /** Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 1000 per workspace) */
     post: operations['addSticker'];
     delete?: never;
     options?: never;
@@ -3906,8 +3906,53 @@ export interface paths {
     get?: never;
     put?: never;
     post?: never;
-    /** Remove a sticker (who added it, or a workspace admin) */
+    /**
+     * Remove a sticker (who added it, or a workspace admin)
+     * @description Messages that show it keep showing it; it leaves the picker.
+     */
     delete: operations['deleteSticker'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspace_id}/sticker-packs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    /** The workspace's sticker packs */
+    get: operations['listStickerPacks'];
+    put?: never;
+    /** Make a sticker pack (members; up to 50 per workspace) */
+    post: operations['createStickerPack'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/sticker-packs/{pack_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        pack_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Remove a sticker pack and its stickers (who made it, or a workspace admin)
+     * @description Messages that show one of its stickers keep showing it.
+     */
+    delete: operations['deleteStickerPack'];
     options?: never;
     head?: never;
     patch?: never;
@@ -5359,6 +5404,20 @@ export interface components {
       url: string;
       /** Format: uuid */
       created_by: string | null;
+      /**
+       * Format: uuid
+       * @description The pack it belongs to
+       */
+      pack_id: string | null;
+    };
+    StickerPack: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** Format: uuid */
+      created_by: string | null;
+      /** Format: date-time */
+      created_at: string;
     };
     Poll: {
       options: components['schemas']['PollOption'][];
@@ -14146,6 +14205,8 @@ export interface operations {
     parameters: {
       query: {
         name: string;
+        /** @description Into this pack (its maker or a workspace admin). */
+        pack_id?: string;
       };
       header?: never;
       path: {
@@ -14181,6 +14242,87 @@ export interface operations {
       header?: never;
       path: {
         sticker_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listStickerPacks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Packs, oldest first; their stickers carry `pack_id`. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            packs: components['schemas']['StickerPack'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  createStickerPack: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The pack, empty; stickers are added into it. Members see `emoji.changed`. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StickerPack'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  deleteStickerPack: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        pack_id: string;
       };
       cookie?: never;
     };

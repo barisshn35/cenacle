@@ -6095,9 +6095,10 @@ paths:
     post:
       tags: [chat]
       operationId: addSticker
-      summary: Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace)
+      summary: Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 1000 per workspace)
       parameters:
         - { name: name, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 40 } }
+        - { name: pack_id, in: query, required: false, description: Into this pack (its maker or a workspace admin)., schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
@@ -6121,6 +6122,64 @@ paths:
       tags: [chat]
       operationId: deleteSticker
       summary: Remove a sticker (who added it, or a workspace admin)
+      description: Messages that show it keep showing it; it leaves the picker.
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/workspaces/{workspace_id}/sticker-packs:
+    parameters:
+      - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: listStickerPacks
+      summary: The workspace's sticker packs
+      responses:
+        '200':
+          description: Packs, oldest first; their stickers carry `pack_id`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [packs]
+                properties:
+                  packs:
+                    type: array
+                    items: { $ref: '#/components/schemas/StickerPack' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: createStickerPack
+      summary: Make a sticker pack (members; up to 50 per workspace)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 40 }
+      responses:
+        '201':
+          description: The pack, empty; stickers are added into it. Members see `emoji.changed`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StickerPack' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /api/sticker-packs/{pack_id}:
+    parameters:
+      - { name: pack_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: deleteStickerPack
+      summary: Remove a sticker pack and its stickers (who made it, or a workspace admin)
+      description: Messages that show one of its stickers keep showing it.
       responses:
         '204': { description: Removed. }
         '401': { $ref: '#/components/responses/Problem' }
@@ -8010,12 +8069,21 @@ components:
         created_by: { type: string, format: uuid, nullable: true }
     Sticker:
       type: object
-      required: [id, name, url, created_by]
+      required: [id, name, url, created_by, pack_id]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
         url: { type: string }
         created_by: { type: string, format: uuid, nullable: true }
+        pack_id: { type: string, format: uuid, nullable: true, description: The pack it belongs to, if any. }
+    StickerPack:
+      type: object
+      required: [id, name, created_by, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        created_by: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
     Poll:
       type: object
       required: [options, multiple, anonymous, closes_at, closed, voters]

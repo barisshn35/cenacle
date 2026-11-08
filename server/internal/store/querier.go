@@ -154,6 +154,7 @@ type Querier interface {
 	CountRecentAIRequests(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountRecentWorkflowRuns(ctx context.Context, workflowID pgtype.UUID) (int32, error)
 	CountSaved(ctx context.Context, userID pgtype.UUID) (int32, error)
+	CountStickerPacks(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountStickers(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	// CountUnreadThreads counts followed threads with unread replies (up to 100)
 	// and those among them that mention the user.
@@ -217,6 +218,7 @@ type Querier interface {
 	CreateSlashCommand(ctx context.Context, arg CreateSlashCommandParams) (SlashCommand, error)
 	CreateSpillageReport(ctx context.Context, arg CreateSpillageReportParams) (SpillageReport, error)
 	CreateSticker(ctx context.Context, arg CreateStickerParams) (Sticker, error)
+	CreateStickerPack(ctx context.Context, arg CreateStickerPackParams) (StickerPack, error)
 	CreateSubmission(ctx context.Context, arg CreateSubmissionParams) (FormSubmission, error)
 	CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (EventSubscription, error)
 	CreateSystemBot(ctx context.Context, arg CreateSystemBotParams) (Bot, error)
@@ -276,6 +278,7 @@ type Querier interface {
 	DeleteSlashCommand(ctx context.Context, arg DeleteSlashCommandParams) (int64, error)
 	DeleteStaleArchiveExport(ctx context.Context, arg DeleteStaleArchiveExportParams) (int64, error)
 	DeleteSticker(ctx context.Context, id pgtype.UUID) error
+	DeleteStickerPack(ctx context.Context, id pgtype.UUID) error
 	DeleteSubscription(ctx context.Context, arg DeleteSubscriptionParams) (int64, error)
 	DeleteUITexts(ctx context.Context, locale string) error
 	DeleteUnattachedFile(ctx context.Context, arg DeleteUnattachedFileParams) (File, error)
@@ -480,6 +483,7 @@ type Querier interface {
 	GetSidebarLayout(ctx context.Context, arg GetSidebarLayoutParams) ([]byte, error)
 	GetSpillageReport(ctx context.Context, id pgtype.UUID) (SpillageReport, error)
 	GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, error)
+	GetStickerPack(ctx context.Context, id pgtype.UUID) (StickerPack, error)
 	GetSystemBot(ctx context.Context, workspaceID pgtype.UUID) (GetSystemBotRow, error)
 	GetTabByCanvas(ctx context.Context, canvasID pgtype.UUID) (ChannelTab, error)
 	GetTabByList(ctx context.Context, listID pgtype.UUID) (ChannelTab, error)
@@ -500,6 +504,9 @@ type Querier interface {
 	GetWorkspaceMemberName(ctx context.Context, arg GetWorkspaceMemberNameParams) (string, error)
 	// GetWorkspaceRole returns the user's role in a workspace ('' when not a member).
 	GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRoleParams) (string, error)
+	// HideUsedSticker takes a sticker some message shows out of the picker; the
+	// message keeps it.
+	HideUsedSticker(ctx context.Context, id pgtype.UUID) (int64, error)
 	// ImportFile records a file of an imported message; its bytes are stored and
 	// checked next (status uploading until then).
 	ImportFile(ctx context.Context, arg ImportFileParams) (File, error)
@@ -662,6 +669,7 @@ type Querier interface {
 	// ListOpenWorkflowTasks returns the open tasks of a person in a workspace, newest first.
 	ListOpenWorkflowTasks(ctx context.Context, arg ListOpenWorkflowTasksParams) ([]ListOpenWorkflowTasksRow, error)
 	ListOutboxEvents(ctx context.Context, rowLimit int32) ([]EventOutbox, error)
+	ListPackStickers(ctx context.Context, packID pgtype.UUID) ([]Sticker, error)
 	ListPendingLinks(ctx context.Context, rowLimit int32) ([]ListPendingLinksRow, error)
 	ListPins(ctx context.Context, channelID pgtype.UUID) ([]ListPinsRow, error)
 	// -------------------------------------------------------------- playbooks ---
@@ -698,6 +706,7 @@ type Querier interface {
 	// ListStaleFiles finds files to remove: uploads never sent with a message
 	// within a day, and files whose message was purged.
 	ListStaleFiles(ctx context.Context, rowLimit int32) ([]File, error)
+	ListStickerPacks(ctx context.Context, workspaceID pgtype.UUID) ([]StickerPack, error)
 	ListStickers(ctx context.Context, workspaceID pgtype.UUID) ([]Sticker, error)
 	ListStickersByID(ctx context.Context, ids []pgtype.UUID) ([]Sticker, error)
 	ListSubmissionsByID(ctx context.Context, ids []pgtype.UUID) ([]ListSubmissionsByIDRow, error)

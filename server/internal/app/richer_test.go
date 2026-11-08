@@ -167,6 +167,66 @@ func TestCustomEmojiAndStickers(t *testing.T) {
 		map[string]any{"body": "x", "nonce": "nonce-sticker-2", "sticker_id": "00000000-0000-7000-8000-000000000000"}); status != http.StatusBadRequest {
 		t.Errorf("unknown sticker = %d", status)
 	}
+
+	// A removed sticker leaves the picker; messages that show it keep it.
+	if res := s.call(http.MethodDelete, "/api/stickers/"+sticker.Id.String(), ayse, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove used sticker = %d", res.StatusCode)
+	}
+	if got := find(t, s.timeline(ayse, general), sent.Id.String()); got.Sticker == nil || got.Sticker.Name != "Wave" {
+		t.Errorf("sticker after removal = %+v", got.Sticker)
+	}
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/stickers", mert, nil, &stickers)
+	if len(stickers.Stickers) != 0 {
+		t.Errorf("stickers after removal = %+v", stickers.Stickers)
+	}
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/channels/"+general+"/messages", mert,
+		map[string]any{"body": "", "nonce": "nonce-sticker-3", "sticker_id": sticker.Id}); status != http.StatusBadRequest {
+		t.Errorf("removed sticker sent = %d", status)
+	}
+
+	// Packs: stickers added at once into a named set.
+	packsPath := "/api/workspaces/" + s.defaultWS + "/sticker-packs"
+	var pack api.StickerPack
+	if res := s.call(http.MethodPost, packsPath, ayse, map[string]any{"name": "Cats"}, &pack); res.StatusCode != http.StatusCreated {
+		t.Fatalf("create pack = %d", res.StatusCode)
+	}
+	into := "/api/workspaces/" + s.defaultWS + "/stickers?pack_id=" + pack.Id.String() + "&name="
+	for _, name := range []string{"Purr", "Nap"} {
+		if res, body := s.upload(http.MethodPost, into+name, ayse, pngImage(t, 128, 128)); res.StatusCode != http.StatusCreated {
+			t.Fatalf("add %s = %d %s", name, res.StatusCode, body)
+		}
+	}
+	if res, _ := s.upload(http.MethodPost, into+"Mine", mert, pngImage(t, 128, 128)); res.StatusCode != http.StatusForbidden {
+		t.Errorf("adding to another's pack = %d", res.StatusCode)
+	}
+	var packs struct{ Packs []api.StickerPack }
+	s.call(http.MethodGet, packsPath, mert, nil, &packs)
+	if len(packs.Packs) != 1 || packs.Packs[0].Name != "Cats" {
+		t.Fatalf("packs = %+v", packs.Packs)
+	}
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/stickers", mert, nil, &stickers)
+	if len(stickers.Stickers) != 2 || stickers.Stickers[0].PackId == nil || *stickers.Stickers[0].PackId != pack.Id {
+		t.Fatalf("pack stickers = %+v", stickers.Stickers)
+	}
+	var inPack api.Message
+	if res := s.call(http.MethodPost, "/api/channels/"+general+"/messages", mert,
+		map[string]any{"body": "", "nonce": "nonce-sticker-4", "sticker_id": stickers.Stickers[0].Id}, &inPack); res.StatusCode != http.StatusCreated {
+		t.Fatalf("send pack sticker = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodDelete, "/api/sticker-packs/"+pack.Id.String(), mert, nil, nil); res.StatusCode != http.StatusForbidden {
+		t.Errorf("other's pack removal = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodDelete, "/api/sticker-packs/"+pack.Id.String(), ayse, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove pack = %d", res.StatusCode)
+	}
+	s.call(http.MethodGet, packsPath, mert, nil, &packs)
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/stickers", mert, nil, &stickers)
+	if len(packs.Packs) != 0 || len(stickers.Stickers) != 0 {
+		t.Errorf("after pack removal: packs %+v stickers %+v", packs.Packs, stickers.Stickers)
+	}
+	if got := find(t, s.timeline(ayse, general), inPack.Id.String()); got.Sticker == nil || got.Sticker.Name != "Purr" {
+		t.Errorf("pack sticker after removal = %+v", got.Sticker)
+	}
 }
 
 func TestForwardAndBroadcastMentions(t *testing.T) {

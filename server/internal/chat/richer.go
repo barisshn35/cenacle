@@ -25,7 +25,8 @@ import (
 // Limits and codes of richer messages.
 const (
 	MaxCustomEmoji   = 500
-	MaxStickers      = 200
+	MaxStickers      = 1000
+	MaxStickerPacks  = 50
 	CodeNameTakenEmj = "emoji_name_taken"
 	CodeEmojiLimit   = "emoji_limit"
 	CodeBurned       = "burned"
@@ -135,7 +136,7 @@ func addBroadcastMentions(ctx context.Context, q *store.Queries, presence Presen
 func (h *Handlers) richExtras(r *http.Request, c store.Channel, in api.NewMessage, body string, out *postExtras) string {
 	if in.StickerId != nil {
 		s, err := h.Queries.GetSticker(r.Context(), pgUUID(*in.StickerId))
-		if err != nil || s.WorkspaceID != c.WorkspaceID {
+		if err != nil || s.WorkspaceID != c.WorkspaceID || s.RemovedAt.Valid {
 			return "No such sticker in this workspace."
 		}
 		out.sticker = s.ID
@@ -238,11 +239,15 @@ func hideBurn(m *api.Message) {
 }
 
 func stickerAPI(s store.Sticker) api.Sticker {
-	out := api.Sticker{Id: uuid(s.ID), Name: s.Name, Url: *pictureURL(s.PictureID, false)}
+	out := api.Sticker{Id: uuid(s.ID), Name: s.Name, Url: *pictureURL(s.PictureID, false), PackId: uuidPtr(s.PackID)}
 	if s.CreatedBy.Valid {
 		out.CreatedBy = ptr(uuid(s.CreatedBy))
 	}
 	return out
+}
+
+func stickerPackAPI(k store.StickerPack) api.StickerPack {
+	return api.StickerPack{Id: uuid(k.ID), Name: k.Name, CreatedBy: uuidPtr(k.CreatedBy), CreatedAt: k.CreatedAt}
 }
 
 func emojiAPI(e store.CustomEmoji) api.CustomEmoji {
@@ -583,13 +588,30 @@ func (h *Handlers) AddSticker(w http.ResponseWriter, r *http.Request, workspaceI
 		badRequest(w, r, "A name has 1 to 40 characters.")
 		return
 	}
+	var pack pgtype.UUID
+	if params.PackId != nil {
+		k, err := h.Queries.GetStickerPack(r.Context(), pgUUID(*params.PackId))
+		if isNoRows(err) || (err == nil && k.WorkspaceID != pgUUID(workspaceID)) {
+			badRequest(w, r, "No such sticker pack in this workspace.")
+			return
+		}
+		if err != nil {
+			h.unavailable(w, r, "get sticker pack", err)
+			return
+		}
+		if k.CreatedBy != p.User.ID && !isWorkspaceAdmin(role) {
+			forbidden(w, r, httpx.CodeForbidden, "Only who made a pack or a workspace admin adds to it.")
+			return
+		}
+		pack = k.ID
+	}
 	n, err := h.Queries.CountStickers(r.Context(), pgUUID(workspaceID))
 	if err != nil {
 		h.unavailable(w, r, "count stickers", err)
 		return
 	}
 	if n >= MaxStickers {
-		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeEmojiLimit, Detail: "A workspace has up to 200 stickers."})
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeEmojiLimit, Detail: "A workspace has up to 1000 stickers."})
 		return
 	}
 	pic, ok := readPicture(w, r)
@@ -603,7 +625,7 @@ func (h *Handlers) AddSticker(w http.ResponseWriter, r *http.Request, workspaceI
 			return err
 		}
 		if s, err = q.CreateSticker(r.Context(), store.CreateStickerParams{
-			WorkspaceID: pgUUID(workspaceID), Name: name, PictureID: id, CreatedBy: p.User.ID,
+			WorkspaceID: pgUUID(workspaceID), Name: name, PictureID: id, CreatedBy: p.User.ID, PackID: pack,
 		}); err != nil {
 			return err
 		}
@@ -623,7 +645,7 @@ func (h *Handlers) DeleteSticker(w http.ResponseWriter, r *http.Request, sticker
 		return
 	}
 	s, err := h.Queries.GetSticker(r.Context(), pgUUID(stickerID))
-	if isNoRows(err) {
+	if isNoRows(err) || (err == nil && s.RemovedAt.Valid) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such sticker."})
 		return
 	}
@@ -640,13 +662,141 @@ func (h *Handlers) DeleteSticker(w http.ResponseWriter, r *http.Request, sticker
 		return
 	}
 	err = h.inTx(r.Context(), func(q *store.Queries) error {
-		if err := q.DeleteSticker(r.Context(), s.ID); err != nil {
+		if err := removeSticker(r.Context(), q, s); err != nil {
 			return err
 		}
 		return emit(r.Context(), q, events.EmojiChanged, EmojiEvent{WorkspaceID: uuid(s.WorkspaceID).String()})
 	})
 	if err != nil {
 		h.unavailable(w, r, "delete sticker", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// removeSticker takes a sticker out of the picker: one some message shows is
+// only hidden (the message keeps showing it), any other goes with its picture.
+func removeSticker(ctx context.Context, q *store.Queries, s store.Sticker) error {
+	n, err := q.HideUsedSticker(ctx, s.ID)
+	if err != nil || n > 0 {
+		return err
+	}
+	if err := q.DeleteSticker(ctx, s.ID); err != nil {
+		return err
+	}
+	_, err = q.DeletePictureIfUnused(ctx, s.PictureID)
+	return err
+}
+
+// ListStickerPacks implements api.ServerInterface.
+func (h *Handlers) ListStickerPacks(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	if _, ok := h.workspaceRole(w, r, workspaceID, p.User); !ok {
+		return
+	}
+	list, err := h.Queries.ListStickerPacks(r.Context(), pgUUID(workspaceID))
+	if err != nil {
+		h.unavailable(w, r, "list sticker packs", err)
+		return
+	}
+	out := make([]api.StickerPack, len(list))
+	for i, k := range list {
+		out[i] = stickerPackAPI(k)
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string][]api.StickerPack{"packs": out})
+}
+
+// CreateStickerPack implements api.ServerInterface.
+func (h *Handlers) CreateStickerPack(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	var in api.CreateStickerPackJSONBody
+	if !decode(w, r, &in) {
+		return
+	}
+	role, ok := h.workspaceRole(w, r, workspaceID, p.User)
+	if !ok {
+		return
+	}
+	if role == WorkspaceGuest {
+		forbidden(w, r, httpx.CodeForbidden, "Guests do not add stickers.")
+		return
+	}
+	name := strings.TrimSpace(in.Name)
+	if name == "" || utf8.RuneCountInString(name) > 40 {
+		badRequest(w, r, "A name has 1 to 40 characters.")
+		return
+	}
+	n, err := h.Queries.CountStickerPacks(r.Context(), pgUUID(workspaceID))
+	if err != nil {
+		h.unavailable(w, r, "count sticker packs", err)
+		return
+	}
+	if n >= MaxStickerPacks {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeEmojiLimit, Detail: "A workspace has up to 50 sticker packs."})
+		return
+	}
+	var k store.StickerPack
+	err = h.inTx(r.Context(), func(q *store.Queries) error {
+		if k, err = q.CreateStickerPack(r.Context(), store.CreateStickerPackParams{
+			WorkspaceID: pgUUID(workspaceID), Name: name, CreatedBy: p.User.ID,
+		}); err != nil {
+			return err
+		}
+		return emit(r.Context(), q, events.EmojiChanged, EmojiEvent{WorkspaceID: workspaceID.String()})
+	})
+	if err != nil {
+		h.unavailable(w, r, "create sticker pack", err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, stickerPackAPI(k))
+}
+
+// DeleteStickerPack implements api.ServerInterface.
+func (h *Handlers) DeleteStickerPack(w http.ResponseWriter, r *http.Request, packID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	k, err := h.Queries.GetStickerPack(r.Context(), pgUUID(packID))
+	if isNoRows(err) {
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound, Detail: "No such sticker pack."})
+		return
+	}
+	if err != nil {
+		h.unavailable(w, r, "get sticker pack", err)
+		return
+	}
+	role, ok := h.workspaceRole(w, r, uuid(k.WorkspaceID), p.User)
+	if !ok {
+		return
+	}
+	if k.CreatedBy != p.User.ID && !isWorkspaceAdmin(role) {
+		forbidden(w, r, httpx.CodeForbidden, "Only who made it or a workspace admin removes a sticker pack.")
+		return
+	}
+	err = h.inTx(r.Context(), func(q *store.Queries) error {
+		stickers, err := q.ListPackStickers(r.Context(), k.ID)
+		if err != nil {
+			return err
+		}
+		for _, s := range stickers {
+			if err := removeSticker(r.Context(), q, s); err != nil {
+				return err
+			}
+		}
+		if err := q.DeleteStickerPack(r.Context(), k.ID); err != nil {
+			return err
+		}
+		return emit(r.Context(), q, events.EmojiChanged, EmojiEvent{WorkspaceID: uuid(k.WorkspaceID).String()})
+	})
+	if err != nil {
+		h.unavailable(w, r, "delete sticker pack", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

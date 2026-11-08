@@ -415,8 +415,16 @@ export const STICKERS = [
     name: 'Wave',
     url: '/api/pictures/01a15e50-5000-7000-8000-0000000000e1',
     created_by: null as string | null,
+    pack_id: null as string | null,
   },
 ];
+
+export type MockStickerPack = {
+  id: string;
+  name: string;
+  created_by: string | null;
+  created_at: string;
+};
 
 /** Handle to the fake chat server of a test. */
 export interface MockApi {
@@ -497,6 +505,7 @@ export async function mockApi(
     files?: boolean;
     emoji?: typeof EMOJI;
     stickers?: typeof STICKERS;
+    stickerPacks?: MockStickerPack[];
     /** The operator configured a model and the workspace turned AI on. */
     ai?: boolean;
     /** The person's answer to the AI notice (default: not asked yet). */
@@ -601,6 +610,11 @@ export async function mockApi(
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/stickers$/, (route) =>
     route.request().method() === 'GET'
       ? route.fulfill({ json: { stickers: opts.stickers ?? [] } })
+      : route.fallback(),
+  );
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/sticker-packs$/, (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { packs: opts.stickerPacks ?? [] } })
       : route.fallback(),
   );
   // The details panel lists the channel's files.

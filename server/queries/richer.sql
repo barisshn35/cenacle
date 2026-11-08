@@ -53,14 +53,14 @@ SELECT EXISTS (SELECT 1 FROM custom_emoji WHERE workspace_id = @workspace_id AND
 DELETE FROM custom_emoji WHERE id = @id;
 
 -- name: ListStickers :many
-SELECT * FROM stickers WHERE workspace_id = @workspace_id ORDER BY created_at;
+SELECT * FROM stickers WHERE workspace_id = @workspace_id AND removed_at IS NULL ORDER BY created_at;
 
 -- name: CountStickers :one
-SELECT count(*)::int FROM stickers WHERE workspace_id = @workspace_id;
+SELECT count(*)::int FROM stickers WHERE workspace_id = @workspace_id AND removed_at IS NULL;
 
 -- name: CreateSticker :one
-INSERT INTO stickers (workspace_id, name, picture_id, created_by)
-VALUES (@workspace_id, @name, @picture_id, @created_by)
+INSERT INTO stickers (workspace_id, name, picture_id, created_by, pack_id)
+VALUES (@workspace_id, @name, @picture_id, @created_by, sqlc.narg(pack_id))
 RETURNING *;
 
 -- name: GetSticker :one
@@ -69,8 +69,34 @@ SELECT * FROM stickers WHERE id = @id;
 -- name: ListStickersByID :many
 SELECT * FROM stickers WHERE id = ANY(@ids::uuid[]);
 
+-- name: HideUsedSticker :execrows
+-- HideUsedSticker takes a sticker some message shows out of the picker; the
+-- message keeps it.
+UPDATE stickers s SET removed_at = now()
+WHERE s.id = @id AND EXISTS (SELECT 1 FROM messages m WHERE m.sticker_id = s.id);
+
 -- name: DeleteSticker :exec
 DELETE FROM stickers WHERE id = @id;
+
+-- name: ListPackStickers :many
+SELECT * FROM stickers WHERE pack_id = @pack_id AND removed_at IS NULL;
+
+-- name: ListStickerPacks :many
+SELECT * FROM sticker_packs WHERE workspace_id = @workspace_id ORDER BY created_at;
+
+-- name: CountStickerPacks :one
+SELECT count(*)::int FROM sticker_packs WHERE workspace_id = @workspace_id;
+
+-- name: CreateStickerPack :one
+INSERT INTO sticker_packs (workspace_id, name, created_by)
+VALUES (@workspace_id, @name, @created_by)
+RETURNING *;
+
+-- name: GetStickerPack :one
+SELECT * FROM sticker_packs WHERE id = @id;
+
+-- name: DeleteStickerPack :exec
+DELETE FROM sticker_packs WHERE id = @id;
 
 -- name: RevealBurn :one
 -- RevealBurn records when a reader first saw a burn-on-read message.

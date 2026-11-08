@@ -196,6 +196,7 @@ UNION ALL SELECT 'created_channel_tab', to_jsonb(t) FROM channel_tabs t WHERE t.
 UNION ALL SELECT 'created_channel_feed', to_jsonb(f) FROM channel_feeds f WHERE f.created_by = @user_id
 UNION ALL SELECT 'created_emoji', to_jsonb(e) FROM custom_emoji e WHERE e.created_by = @user_id
 UNION ALL SELECT 'created_sticker', to_jsonb(s) FROM stickers s WHERE s.created_by = @user_id
+UNION ALL SELECT 'created_sticker_pack', to_jsonb(k) FROM sticker_packs k WHERE k.created_by = @user_id
 UNION ALL SELECT 'created_mention_group', to_jsonb(g) FROM mention_groups g WHERE g.created_by = @user_id
 UNION ALL SELECT 'created_playbook', to_jsonb(p) FROM playbooks p WHERE p.created_by = @user_id
 UNION ALL SELECT 'created_workflow', to_jsonb(w) - ARRAY['webhook_hash', 'secret'] FROM workflows w WHERE w.created_by = @user_id

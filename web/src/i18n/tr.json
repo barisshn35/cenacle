@@ -1478,11 +1478,14 @@
       "failed": "Mesaj gösterilemedi."
     },
     "emoji": {
-      "workspace": "Bu çalışma alanı"
+      "workspace": "Bu çalışma alanı",
+      "insert": "Emoji ekle",
+      "suggest": "Emojiler"
     },
     "stickers": {
       "open": "Çıkartmalar",
-      "title": "Çıkartmalar"
+      "title": "Çıkartmalar",
+      "other": "Diğer"
     },
     "record": {
       "voice": "Sesli mesaj kaydet",
@@ -1514,16 +1517,34 @@
       "remove": "{{name}} kaldır",
       "emoji": {
         "title": "Özel emojiler",
-        "hint": "PNG, JPEG, GIF ya da WebP; mesajlarda ve tepkilerde :ad: olarak kullanın.",
+        "hint": "PNG, JPEG, GIF ya da WebP; mesajlarda ve tepkilerde :ad: olarak kullanın. Bir set eklemek için birden çok resim ya da bir .zip seçin: dosya adları emoji adı olur.",
         "name": "Emoji adı",
-        "added": "Emoji eklendi.",
-        "code": "Kullanmak için {{code}} yazın."
+        "code": "Kullanmak için {{code}} yazın.",
+        "added_one": "Emoji eklendi.",
+        "added_other": "{{count}} emoji eklendi."
       },
-      "stickers": {
-        "title": "Çıkartmalar",
-        "hint": "Kendi başına mesaj olarak gönderilen resimler.",
-        "name": "Çıkartma adı",
-        "added": "Çıkartma eklendi."
+      "uploading": "{{total}} dosyadan {{done}} yüklendi…",
+      "partial": "{{ok}} eklendi; {{failed}} eklenemedi.",
+      "noPictures": "PNG, JPEG, GIF ya da WebP resim bulunamadı.",
+      "packs": {
+        "title": "Çıkartma paketleri",
+        "hint": "GIF ya da başka resimleri veya bunların .zip dosyasını seçin: her biri, kendi başına mesaj olarak gönderilen bir çıkartma olur.",
+        "name": "Paket adı",
+        "upload": "Paket yükle",
+        "untitled": "Yeni paket",
+        "added_one": "{{count}} çıkartma eklendi.",
+        "added_other": "{{count}} çıkartma eklendi.",
+        "loose": "Paketsiz çıkartmalar",
+        "count_one": "{{count}} çıkartma",
+        "count_other": "{{count}} çıkartma",
+        "addTo": "Pakete resim ekle: {{name}}",
+        "edit": "Düzenle: {{name}}",
+        "remove": "{{name}} paketini kaldır",
+        "empty": "Henüz çıkartma yok: + ile resim ekleyin.",
+        "removeTitle": "“{{name}}” paketi kaldırılsın mı?",
+        "removeHint_one": "Paketteki {{count}} çıkartma seçiciden kalkar; gönderilmiş mesajlarda görünmeye devam eder.",
+        "removeHint_other": "Paketteki {{count}} çıkartma seçiciden kalkar; gönderilmiş mesajlarda görünmeye devam eder.",
+        "removeConfirm": "Paketi kaldır"
       }
     }
   },

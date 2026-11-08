@@ -864,10 +864,20 @@ type SpillageReport struct {
 }
 
 type Sticker struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	Name        string             `json:"name"`
+	PictureID   pgtype.UUID        `json:"picture_id"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   time.Time          `json:"created_at"`
+	PackID      pgtype.UUID        `json:"pack_id"`
+	RemovedAt   pgtype.Timestamptz `json:"removed_at"`
+}
+
+type StickerPack struct {
 	ID          pgtype.UUID `json:"id"`
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
 	Name        string      `json:"name"`
-	PictureID   pgtype.UUID `json:"picture_id"`
 	CreatedBy   pgtype.UUID `json:"created_by"`
 	CreatedAt   time.Time   `json:"created_at"`
 }

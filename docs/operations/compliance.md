@@ -57,7 +57,7 @@ chat's host). Receivers inside your network need `CENACLE_EGRESS_ALLOW` (and
     form answers, event replies, reports, AI usage records, notification, appearance and
     sidebar settings, push subscriptions (without their keys), encryption devices and
     backups (without key material), what they made (events, forms, list items, canvases,
-    tabs, feeds, emoji, stickers, mention groups, playbooks, workflows, bots, tokens,
+    tabs, feeds, emoji, stickers, sticker packs, mention groups, playbooks, workflows, bots, tokens,
     commands, webhooks, subscriptions, guest links; without their secrets) and
     `audit_about`: the audit events others did about them (without who and from where).
 

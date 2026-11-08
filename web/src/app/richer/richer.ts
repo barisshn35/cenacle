@@ -7,6 +7,7 @@ export type LinkPreview = components['schemas']['LinkPreview'];
 export type ForwardInfo = components['schemas']['ForwardInfo'];
 export type CustomEmoji = components['schemas']['CustomEmoji'];
 export type Sticker = components['schemas']['Sticker'];
+export type StickerPack = components['schemas']['StickerPack'];
 
 const messageUrl = (m: Pick<Message, 'id' | 'channel_id'>) =>
   `/api/channels/${m.channel_id}/messages/${m.id}`;
@@ -102,11 +103,34 @@ export const addCustomEmoji = (workspaceId: string, name: string, file: File) =>
 export const deleteCustomEmoji = (id: string) =>
   apiFetch<void>(`/api/emoji/${id}`, { method: 'DELETE' });
 
-export const addSticker = (workspaceId: string, name: string, file: File) =>
+export const addSticker = (workspaceId: string, name: string, file: File, packId?: string) =>
   apiFetch<Sticker>(
-    `/api/workspaces/${workspaceId}/stickers?name=${encodeURIComponent(name)}`,
+    `/api/workspaces/${workspaceId}/stickers?name=${encodeURIComponent(name)}` +
+      (packId ? `&pack_id=${packId}` : ''),
     picture(file),
   );
+
+/** Sticker packs; under the stickers' key, so emoji.changed refreshes both. */
+export const stickerPacksQuery = (workspaceId: string | undefined) =>
+  queryOptions({
+    queryKey: ['stickers', workspaceId, 'packs'],
+    queryFn: () =>
+      apiFetch<{ packs: StickerPack[] }>(`/api/workspaces/${workspaceId}/sticker-packs`).then(
+        (r) => r.packs,
+      ),
+    enabled: !!workspaceId,
+    staleTime: 5 * 60_000,
+  });
+
+export const createStickerPack = (workspaceId: string, name: string) =>
+  apiFetch<StickerPack>(`/api/workspaces/${workspaceId}/sticker-packs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+
+export const deleteStickerPack = (id: string) =>
+  apiFetch<void>(`/api/sticker-packs/${id}`, { method: 'DELETE' });
 
 export const deleteSticker = (id: string) =>
   apiFetch<void>(`/api/stickers/${id}`, { method: 'DELETE' });

@@ -4245,7 +4245,18 @@ type Sticker struct {
 	CreatedBy *openapi_types.UUID `json:"created_by"`
 	Id        openapi_types.UUID  `json:"id"`
 	Name      string              `json:"name"`
-	Url       string              `json:"url"`
+
+	// PackId The pack it belongs to
+	PackId *openapi_types.UUID `json:"pack_id"`
+	Url    string              `json:"url"`
+}
+
+// StickerPack defines model for StickerPack.
+type StickerPack struct {
+	CreatedAt time.Time           `json:"created_at"`
+	CreatedBy *openapi_types.UUID `json:"created_by"`
+	Id        openapi_types.UUID  `json:"id"`
+	Name      string              `json:"name"`
 }
 
 // Submission defines model for Submission.
@@ -5478,9 +5489,17 @@ type SetSpillageReviewersJSONBody struct {
 	UserIds []openapi_types.UUID `json:"user_ids"`
 }
 
+// CreateStickerPackJSONBody defines parameters for CreateStickerPack.
+type CreateStickerPackJSONBody struct {
+	Name string `json:"name"`
+}
+
 // AddStickerParams defines parameters for AddSticker.
 type AddStickerParams struct {
 	Name string `form:"name" json:"name"`
+
+	// PackId Into this pack (its maker or a workspace admin).
+	PackId *openapi_types.UUID `form:"pack_id,omitempty" json:"pack_id,omitempty"`
 }
 
 // SetAuditStreamJSONRequestBody defines body for SetAuditStream for application/json ContentType.
@@ -5860,6 +5879,9 @@ type SetSidebarJSONRequestBody = SidebarLayout
 
 // SetSpillageReviewersJSONRequestBody defines body for SetSpillageReviewers for application/json ContentType.
 type SetSpillageReviewersJSONRequestBody SetSpillageReviewersJSONBody
+
+// CreateStickerPackJSONRequestBody defines body for CreateStickerPack for application/json ContentType.
+type CreateStickerPackJSONRequestBody CreateStickerPackJSONBody
 
 // SetWelcomeJSONRequestBody defines body for SetWelcome for application/json ContentType.
 type SetWelcomeJSONRequestBody = Welcome
@@ -6612,6 +6634,9 @@ type ServerInterface interface {
 	// GetSpillageIncident The incident report of a decided spillage report (spillage reviewers)
 	// (GET /api/spillage/{report_id}/incident)
 	GetSpillageIncident(w http.ResponseWriter, r *http.Request, reportId openapi_types.UUID)
+	// DeleteStickerPack Remove a sticker pack and its stickers (who made it, or a workspace admin)
+	// (DELETE /api/sticker-packs/{pack_id})
+	DeleteStickerPack(w http.ResponseWriter, r *http.Request, packId openapi_types.UUID)
 	// DeleteSticker Remove a sticker (who added it, or a workspace admin)
 	// (DELETE /api/stickers/{sticker_id})
 	DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
@@ -6864,10 +6889,16 @@ type ServerInterface interface {
 	// SetSpillageReviewers Choose who reviews spillage reports (owners); empty means the owners
 	// (PUT /api/workspaces/{workspace_id}/spillage-reviewers)
 	SetSpillageReviewers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListStickerPacks The workspace's sticker packs
+	// (GET /api/workspaces/{workspace_id}/sticker-packs)
+	ListStickerPacks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// CreateStickerPack Make a sticker pack (members; up to 50 per workspace)
+	// (POST /api/workspaces/{workspace_id}/sticker-packs)
+	CreateStickerPack(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListStickers The workspace's stickers
 	// (GET /api/workspaces/{workspace_id}/stickers)
 	ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
-	// AddSticker Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace)
+	// AddSticker Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 1000 per workspace)
 	// (POST /api/workspaces/{workspace_id}/stickers)
 	AddSticker(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params AddStickerParams)
 	// ListMyTasks Forms and approvals waiting for me
@@ -8256,6 +8287,12 @@ func (_ Unimplemented) GetSpillageIncident(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteStickerPack Remove a sticker pack and its stickers (who made it, or a workspace admin)
+// (DELETE /api/sticker-packs/{pack_id})
+func (_ Unimplemented) DeleteStickerPack(w http.ResponseWriter, r *http.Request, packId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteSticker Remove a sticker (who added it, or a workspace admin)
 // (DELETE /api/stickers/{sticker_id})
 func (_ Unimplemented) DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID) {
@@ -8760,13 +8797,25 @@ func (_ Unimplemented) SetSpillageReviewers(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListStickerPacks The workspace's sticker packs
+// (GET /api/workspaces/{workspace_id}/sticker-packs)
+func (_ Unimplemented) ListStickerPacks(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateStickerPack Make a sticker pack (members; up to 50 per workspace)
+// (POST /api/workspaces/{workspace_id}/sticker-packs)
+func (_ Unimplemented) CreateStickerPack(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListStickers The workspace's stickers
 // (GET /api/workspaces/{workspace_id}/stickers)
 func (_ Unimplemented) ListStickers(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// AddSticker Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 200 per workspace)
+// AddSticker Add a sticker (members; PNG, GIF, JPEG or WebP up to 5 MB; up to 1000 per workspace)
 // (POST /api/workspaces/{workspace_id}/stickers)
 func (_ Unimplemented) AddSticker(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID, params AddStickerParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -15105,6 +15154,32 @@ func (siw *ServerInterfaceWrapper) GetSpillageIncident(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteStickerPack operation middleware
+func (siw *ServerInterfaceWrapper) DeleteStickerPack(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "pack_id" -------------
+	var packId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pack_id", chi.URLParam(r, "pack_id"), &packId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pack_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteStickerPack(w, r, packId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteSticker operation middleware
 func (siw *ServerInterfaceWrapper) DeleteSticker(w http.ResponseWriter, r *http.Request) {
 
@@ -17496,6 +17571,58 @@ func (siw *ServerInterfaceWrapper) SetSpillageReviewers(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// ListStickerPacks operation middleware
+func (siw *ServerInterfaceWrapper) ListStickerPacks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListStickerPacks(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateStickerPack operation middleware
+func (siw *ServerInterfaceWrapper) CreateStickerPack(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateStickerPack(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListStickers operation middleware
 func (siw *ServerInterfaceWrapper) ListStickers(w http.ResponseWriter, r *http.Request) {
 
@@ -17549,6 +17676,19 @@ func (siw *ServerInterfaceWrapper) AddSticker(w http.ResponseWriter, r *http.Req
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pack_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pack_id", r.URL.Query(), &params.PackId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pack_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pack_id", Err: err})
 		}
 		return
 	}
@@ -18588,6 +18728,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/stickers/{sticker_id}", wrapper.DeleteSticker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/sticker-packs", wrapper.ListStickerPacks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/workspaces/{workspace_id}/sticker-packs", wrapper.CreateStickerPack)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/sticker-packs/{pack_id}", wrapper.DeleteStickerPack)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/forms", wrapper.ListForms)

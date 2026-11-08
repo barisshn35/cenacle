@@ -1478,11 +1478,14 @@
       "failed": "The message could not be shown."
     },
     "emoji": {
-      "workspace": "This workspace"
+      "workspace": "This workspace",
+      "insert": "Add emoji",
+      "suggest": "Emoji"
     },
     "stickers": {
       "open": "Stickers",
-      "title": "Stickers"
+      "title": "Stickers",
+      "other": "Other"
     },
     "record": {
       "voice": "Record a voice message",
@@ -1514,16 +1517,34 @@
       "remove": "Remove {{name}}",
       "emoji": {
         "title": "Custom emoji",
-        "hint": "PNG, JPEG, GIF or WebP; use them as :name: in messages and reactions.",
+        "hint": "PNG, JPEG, GIF or WebP; use them as :name: in messages and reactions. Choose several pictures or a .zip to add a set: their file names become their names.",
         "name": "Emoji name",
-        "added": "Emoji added.",
-        "code": "Type {{code}} to use it."
+        "code": "Type {{code}} to use it.",
+        "added_one": "Emoji added.",
+        "added_other": "{{count}} emoji added."
       },
-      "stickers": {
-        "title": "Stickers",
-        "hint": "Pictures sent as a message of their own.",
-        "name": "Sticker name",
-        "added": "Sticker added."
+      "uploading": "Uploading {{done}} of {{total}}…",
+      "partial": "{{ok}} added; {{failed}} could not be added.",
+      "noPictures": "No PNG, JPEG, GIF or WebP pictures were found.",
+      "packs": {
+        "title": "Sticker packs",
+        "hint": "Choose GIFs or other pictures, or a .zip of them: each becomes a sticker, sent as a message of its own.",
+        "name": "Pack name",
+        "upload": "Upload pack",
+        "untitled": "New pack",
+        "added_one": "{{count}} sticker added.",
+        "added_other": "{{count}} stickers added.",
+        "loose": "Stickers in no pack",
+        "count_one": "{{count}} sticker",
+        "count_other": "{{count}} stickers",
+        "addTo": "Add pictures to {{name}}",
+        "edit": "Edit {{name}}",
+        "remove": "Remove the pack {{name}}",
+        "empty": "No stickers yet: add pictures with +.",
+        "removeTitle": "Remove the pack “{{name}}”?",
+        "removeHint_one": "Its {{count}} sticker leaves the picker; messages that show it keep it.",
+        "removeHint_other": "Its {{count}} stickers leave the picker; messages that show one keep it.",
+        "removeConfirm": "Remove pack"
       }
     }
   },

@@ -126,6 +126,9 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   or `calls.enabled` in Helm.
 - Notifications are on for every message by default, with a message sound. People who
   saved their notification settings keep them.
+- Migration 00068 adds sticker packs and an index of the messages that are stickers
+  (`messages_sticker_idx`, partial). Building it reads the messages table once and holds
+  back writes to it meanwhile: on a large installation, plan the upgrade for a quiet time.
 
 ### 0.99.5
 

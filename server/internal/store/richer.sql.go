@@ -23,8 +23,19 @@ func (q *Queries) CountCustomEmoji(ctx context.Context, workspaceID pgtype.UUID)
 	return column_1, err
 }
 
+const countStickerPacks = `-- name: CountStickerPacks :one
+SELECT count(*)::int FROM sticker_packs WHERE workspace_id = $1
+`
+
+func (q *Queries) CountStickerPacks(ctx context.Context, workspaceID pgtype.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countStickerPacks, workspaceID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countStickers = `-- name: CountStickers :one
-SELECT count(*)::int FROM stickers WHERE workspace_id = $1
+SELECT count(*)::int FROM stickers WHERE workspace_id = $1 AND removed_at IS NULL
 `
 
 func (q *Queries) CountStickers(ctx context.Context, workspaceID pgtype.UUID) (int32, error) {
@@ -67,9 +78,9 @@ func (q *Queries) CreateCustomEmoji(ctx context.Context, arg CreateCustomEmojiPa
 }
 
 const createSticker = `-- name: CreateSticker :one
-INSERT INTO stickers (workspace_id, name, picture_id, created_by)
-VALUES ($1, $2, $3, $4)
-RETURNING id, workspace_id, name, picture_id, created_by, created_at
+INSERT INTO stickers (workspace_id, name, picture_id, created_by, pack_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, workspace_id, name, picture_id, created_by, created_at, pack_id, removed_at
 `
 
 type CreateStickerParams struct {
@@ -77,6 +88,7 @@ type CreateStickerParams struct {
 	Name        string      `json:"name"`
 	PictureID   pgtype.UUID `json:"picture_id"`
 	CreatedBy   pgtype.UUID `json:"created_by"`
+	PackID      pgtype.UUID `json:"pack_id"`
 }
 
 func (q *Queries) CreateSticker(ctx context.Context, arg CreateStickerParams) (Sticker, error) {
@@ -85,6 +97,7 @@ func (q *Queries) CreateSticker(ctx context.Context, arg CreateStickerParams) (S
 		arg.Name,
 		arg.PictureID,
 		arg.CreatedBy,
+		arg.PackID,
 	)
 	var i Sticker
 	err := row.Scan(
@@ -92,6 +105,33 @@ func (q *Queries) CreateSticker(ctx context.Context, arg CreateStickerParams) (S
 		&i.WorkspaceID,
 		&i.Name,
 		&i.PictureID,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.PackID,
+		&i.RemovedAt,
+	)
+	return i, err
+}
+
+const createStickerPack = `-- name: CreateStickerPack :one
+INSERT INTO sticker_packs (workspace_id, name, created_by)
+VALUES ($1, $2, $3)
+RETURNING id, workspace_id, name, created_by, created_at
+`
+
+type CreateStickerPackParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	Name        string      `json:"name"`
+	CreatedBy   pgtype.UUID `json:"created_by"`
+}
+
+func (q *Queries) CreateStickerPack(ctx context.Context, arg CreateStickerPackParams) (StickerPack, error) {
+	row := q.db.QueryRow(ctx, createStickerPack, arg.WorkspaceID, arg.Name, arg.CreatedBy)
+	var i StickerPack
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
 		&i.CreatedBy,
 		&i.CreatedAt,
 	)
@@ -129,6 +169,15 @@ DELETE FROM stickers WHERE id = $1
 
 func (q *Queries) DeleteSticker(ctx context.Context, id pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteSticker, id)
+	return err
+}
+
+const deleteStickerPack = `-- name: DeleteStickerPack :exec
+DELETE FROM sticker_packs WHERE id = $1
+`
+
+func (q *Queries) DeleteStickerPack(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStickerPack, id)
 	return err
 }
 
@@ -170,7 +219,7 @@ func (q *Queries) GetLinkPreview(ctx context.Context, url string) (LinkPreview, 
 }
 
 const getSticker = `-- name: GetSticker :one
-SELECT id, workspace_id, name, picture_id, created_by, created_at FROM stickers WHERE id = $1
+SELECT id, workspace_id, name, picture_id, created_by, created_at, pack_id, removed_at FROM stickers WHERE id = $1
 `
 
 func (q *Queries) GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, error) {
@@ -183,8 +232,42 @@ func (q *Queries) GetSticker(ctx context.Context, id pgtype.UUID) (Sticker, erro
 		&i.PictureID,
 		&i.CreatedBy,
 		&i.CreatedAt,
+		&i.PackID,
+		&i.RemovedAt,
 	)
 	return i, err
+}
+
+const getStickerPack = `-- name: GetStickerPack :one
+SELECT id, workspace_id, name, created_by, created_at FROM sticker_packs WHERE id = $1
+`
+
+func (q *Queries) GetStickerPack(ctx context.Context, id pgtype.UUID) (StickerPack, error) {
+	row := q.db.QueryRow(ctx, getStickerPack, id)
+	var i StickerPack
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const hideUsedSticker = `-- name: HideUsedSticker :execrows
+UPDATE stickers s SET removed_at = now()
+WHERE s.id = $1 AND EXISTS (SELECT 1 FROM messages m WHERE m.sticker_id = s.id)
+`
+
+// HideUsedSticker takes a sticker some message shows out of the picker; the
+// message keeps it.
+func (q *Queries) HideUsedSticker(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, hideUsedSticker, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const listBurnReveals = `-- name: ListBurnReveals :many
@@ -321,6 +404,39 @@ func (q *Queries) ListMemberIDs(ctx context.Context, channelID pgtype.UUID) ([]p
 	return items, nil
 }
 
+const listPackStickers = `-- name: ListPackStickers :many
+SELECT id, workspace_id, name, picture_id, created_by, created_at, pack_id, removed_at FROM stickers WHERE pack_id = $1 AND removed_at IS NULL
+`
+
+func (q *Queries) ListPackStickers(ctx context.Context, packID pgtype.UUID) ([]Sticker, error) {
+	rows, err := q.db.Query(ctx, listPackStickers, packID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Sticker
+	for rows.Next() {
+		var i Sticker
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Name,
+			&i.PictureID,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.PackID,
+			&i.RemovedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPendingLinks = `-- name: ListPendingLinks :many
 SELECT id, channel_id, link_url FROM messages
 WHERE link_state = 'pending' AND deleted_at IS NULL
@@ -353,8 +469,38 @@ func (q *Queries) ListPendingLinks(ctx context.Context, rowLimit int32) ([]ListP
 	return items, nil
 }
 
+const listStickerPacks = `-- name: ListStickerPacks :many
+SELECT id, workspace_id, name, created_by, created_at FROM sticker_packs WHERE workspace_id = $1 ORDER BY created_at
+`
+
+func (q *Queries) ListStickerPacks(ctx context.Context, workspaceID pgtype.UUID) ([]StickerPack, error) {
+	rows, err := q.db.Query(ctx, listStickerPacks, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StickerPack
+	for rows.Next() {
+		var i StickerPack
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Name,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listStickers = `-- name: ListStickers :many
-SELECT id, workspace_id, name, picture_id, created_by, created_at FROM stickers WHERE workspace_id = $1 ORDER BY created_at
+SELECT id, workspace_id, name, picture_id, created_by, created_at, pack_id, removed_at FROM stickers WHERE workspace_id = $1 AND removed_at IS NULL ORDER BY created_at
 `
 
 func (q *Queries) ListStickers(ctx context.Context, workspaceID pgtype.UUID) ([]Sticker, error) {
@@ -373,6 +519,8 @@ func (q *Queries) ListStickers(ctx context.Context, workspaceID pgtype.UUID) ([]
 			&i.PictureID,
 			&i.CreatedBy,
 			&i.CreatedAt,
+			&i.PackID,
+			&i.RemovedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -385,7 +533,7 @@ func (q *Queries) ListStickers(ctx context.Context, workspaceID pgtype.UUID) ([]
 }
 
 const listStickersByID = `-- name: ListStickersByID :many
-SELECT id, workspace_id, name, picture_id, created_by, created_at FROM stickers WHERE id = ANY($1::uuid[])
+SELECT id, workspace_id, name, picture_id, created_by, created_at, pack_id, removed_at FROM stickers WHERE id = ANY($1::uuid[])
 `
 
 func (q *Queries) ListStickersByID(ctx context.Context, ids []pgtype.UUID) ([]Sticker, error) {
@@ -404,6 +552,8 @@ func (q *Queries) ListStickersByID(ctx context.Context, ids []pgtype.UUID) ([]St
 			&i.PictureID,
 			&i.CreatedBy,
 			&i.CreatedAt,
+			&i.PackID,
+			&i.RemovedAt,
 		); err != nil {
 			return nil, err
 		}
