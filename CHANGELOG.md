@@ -10,6 +10,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- 24 built-in notification sounds instead of 10 (Bubble, Twinkle, Whistle, Tap, Blip,
+  Kalimba, Arcade, Breeze, Echo, Gong, Sparkle, Notify, Woodblock and Soft are new).
 - Save stickers others made: from the message's menu or with the star in the picker; saved
   ones come first. Keep GIFs from messages in your own GIFs (up to 40, 8 MB each), and send
   them again from the new GIF tab of the sticker button. Make a GIF from a part of a video

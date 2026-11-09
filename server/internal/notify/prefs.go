@@ -39,7 +39,9 @@ type Prefs struct {
 }
 
 // BuiltinSounds are the sounds the app makes itself (no audio files).
-var BuiltinSounds = []string{"chime", "bell", "pop", "ding", "marimba", "glass", "drop", "pulse", "harp", "knock"}
+var BuiltinSounds = []string{"chime", "bell", "pop", "ding", "marimba", "glass", "drop", "pulse", "harp", "knock",
+	"bubble", "twinkle", "whistle", "tap", "blip", "kalimba", "arcade", "breeze", "echo", "gong", "sparkle",
+	"notify", "woodblock", "soft"}
 
 // Defaults are the settings until a person changes them.
 func Defaults() Prefs {
