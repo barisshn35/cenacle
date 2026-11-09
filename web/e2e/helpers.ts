@@ -497,6 +497,8 @@ export async function mockApi(
     messages?: MockMessage[];
     failSend?: number;
     admin?: boolean;
+    /** The user's role in the default workspace (owner with admin, member otherwise). */
+    workspaceRole?: 'owner' | 'admin' | 'member' | 'guest';
     /** More channels the user is in (conversations), with changes to the defaults. */
     channels?: MockChannel[];
     general?: Partial<MockChannel> & Record<string, unknown>;
@@ -533,7 +535,7 @@ export async function mockApi(
       icon_url: null as string | null,
       appearance: { preset: 'cenacle', font_template: 'modern' },
       is_default: true,
-      role: opts.admin ? 'owner' : 'member',
+      role: (opts.workspaceRole ?? (opts.admin ? 'owner' : 'member')) as string,
       ...(opts.ai ? { ai_enabled: true } : {}),
       ...(opts.reads ? { read_receipts: true } : {}),
       permissions: { ...SCHEME } as Record<string, string[]>,

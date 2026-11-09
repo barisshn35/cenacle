@@ -334,3 +334,68 @@ test('a .zip of GIFs becomes a sticker pack, named after the archive', async ({
     '?name=2%20nap&pack_id=01a15e50-5a00-7000-8000-000000000009',
   ]);
 });
+
+test('a member makes a sticker from a picture and sends it', async ({ page }, testInfo) => {
+  const api = await mockApi(page);
+  // A 2×1 red and blue PNG.
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAADklEQVR4nGP4z8AAQv8BD/kD/YURmXYAAAAASUVORK5CYII=',
+    'base64',
+  );
+  const uploads: { search: string; png: boolean; size: number }[] = [];
+  const made = {
+    id: '01a15e50-5a00-7000-8000-00000000000a',
+    name: 'Ship it',
+    url: '/api/pictures/made.png',
+    created_by: SESSION.user.id,
+    pack_id: null,
+  };
+  await page.route(/\/stickers\?/, (route) => {
+    const r = route.request();
+    uploads.push({
+      search: new URL(r.url()).search,
+      png: r.postDataBuffer()?.subarray(1, 4).toString() === 'PNG',
+      size: r.postDataBuffer()?.length ?? 0,
+    });
+    return route.fulfill({ status: 201, json: made });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+
+  // With no stickers yet, the button is there to make one.
+  await page.getByRole('button', { name: 'Stickers' }).click();
+  await expect(page.getByText('No stickers yet.')).toBeVisible();
+  await page.getByTestId('sticker-make').click();
+  const maker = page.getByRole('dialog', { name: 'Make a sticker' });
+  await expect(maker.getByRole('button', { name: 'Save and send' })).toBeDisabled();
+  await maker.getByTestId('sticker-maker-file').setInputFiles({
+    name: 'ship_it.png',
+    mimeType: 'image/png',
+    buffer: png,
+  });
+  await expect(maker.getByLabel('Sticker name')).toHaveValue('ship it');
+  await maker.getByLabel('Sticker name').fill('Ship it');
+  await maker.getByLabel('Text at the bottom').fill('SHIP IT');
+  // Moving without dragging: the arrow keys on the preview.
+  await maker.getByRole('img', { name: 'Sticker preview' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(maker.getByRole('button', { name: 'Fit again' })).toBeEnabled();
+  await expectTargetSizes(page, testInfo, '[data-testid="sticker-maker"]');
+  await expectNoAxeViolations(page, '[data-testid="sticker-maker"]');
+
+  await maker.getByRole('button', { name: 'Save and send' }).click();
+  await expect(maker).toBeHidden();
+  expect(uploads).toHaveLength(1);
+  expect(uploads[0]!.search).toBe('?name=Ship%20it');
+  expect(uploads[0]!.png).toBe(true);
+  // The drawn square, not the 2×1 original.
+  expect(uploads[0]!.size).toBeGreaterThan(png.length);
+  await expect.poll(() => api.sent.at(-1)).toMatchObject({ body: '', sticker_id: made.id });
+});
+
+test('a guest has no sticker maker', async ({ page }) => {
+  await mockApi(page, { stickers: STICKERS, workspaceRole: 'guest' });
+  await page.goto(`/c/${GENERAL.id}`);
+  await page.getByRole('button', { name: 'Stickers' }).click();
+  await expect(page.getByTestId('sticker-list')).toBeVisible();
+  await expect(page.getByTestId('sticker-make')).toHaveCount(0);
+});

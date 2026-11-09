@@ -1485,7 +1485,9 @@
     "stickers": {
       "open": "Çıkartmalar",
       "title": "Çıkartmalar",
-      "other": "Diğer"
+      "other": "Diğer",
+      "none": "Henüz çıkartma yok.",
+      "make": "Çıkartma yap"
     },
     "record": {
       "voice": "Sesli mesaj kaydet",
@@ -1546,6 +1548,27 @@
         "removeHint_other": "Paketteki {{count}} çıkartma seçiciden kalkar; gönderilmiş mesajlarda görünmeye devam eder.",
         "removeConfirm": "Paketi kaldır"
       }
+    },
+    "maker": {
+      "title": "Çıkartma yap",
+      "description": "Bir resimle başlayın: kareye yerleştirin, yazı ekleyin ve adını verin. Bu çalışma alanındaki herkes kullanabilir.",
+      "choose": "Resim seçin",
+      "chooseHint": "PNG, JPEG, GIF veya WebP. Buraya sürükleyip bırakabilir ya da yapıştırabilirsiniz.",
+      "unreadable": "Bu resim açılamadı. Başka bir PNG, JPEG, GIF veya WebP dosyası deneyin.",
+      "preview": "Çıkartma önizlemesi",
+      "keys": "Resmi sürükleyin ya da üzerine gelip ok tuşlarıyla kaydırın (Shift daha çok kaydırır); + ve − ile yakınlaştırın.",
+      "other": "Başka resim",
+      "center": "Yeniden sığdır",
+      "zoom": "Yakınlaştırma: %{{zoom}}",
+      "top": "Üstteki yazı",
+      "bottom": "Alttaki yazı",
+      "movingGif": "Yakınlaştırmaz, kaydırmaz ve yazı eklemezseniz GIF hareketli kalır.",
+      "stillGif": "Bu değişikliklerle GIF durağan bir resme dönüşür.",
+      "name": "Çıkartma adı",
+      "pack": "Paket",
+      "noPack": "Paketsiz",
+      "save": "Kaydet",
+      "saveAndSend": "Kaydet ve gönder"
     }
   },
   "automation": {

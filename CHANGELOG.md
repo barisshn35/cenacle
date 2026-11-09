@@ -10,6 +10,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Make a sticker: from the composer's sticker button (or workspace settings), a member
+  fits a picture into the square, zooms and moves it (by dragging or with the arrow keys),
+  adds a caption above and below, names it and sends it. An animated GIF left as it is
+  keeps moving.
 - `CENACLE_MEDIA_ICE_UDP_ADDR` and `CENACLE_MEDIA_ICE_TCP_ADDR` move the media node's ICE
   ports from 7882/udp and 7881/tcp, for example for a second installation on one host.
 - TLS mode `acme-ca`: certificates from another ACME service, such as your organization's
@@ -102,6 +106,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Density (Appearance) changes what you see: "Comfortable" gives messages and channel
+  rows more room; before, the choice was saved but changed nothing. A select's list takes
+  the theme's colours.
 - Channel names carry no "#" anywhere: the thread panel, search results, Send later,
   onboarding, federation, compliance and the AI's sources showed one, as did three texts
   ("Join #General"), the message archive's e-mail (its subject and recipient) and the

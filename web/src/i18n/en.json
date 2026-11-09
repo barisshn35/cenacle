@@ -1485,7 +1485,9 @@
     "stickers": {
       "open": "Stickers",
       "title": "Stickers",
-      "other": "Other"
+      "other": "Other",
+      "none": "No stickers yet.",
+      "make": "Make a sticker"
     },
     "record": {
       "voice": "Record a voice message",
@@ -1546,6 +1548,27 @@
         "removeHint_other": "Its {{count}} stickers leave the picker; messages that show one keep it.",
         "removeConfirm": "Remove pack"
       }
+    },
+    "maker": {
+      "title": "Make a sticker",
+      "description": "Start from a picture: fit it into the square, add a caption, and name it. Everyone in this workspace can use it.",
+      "choose": "Choose a picture",
+      "chooseHint": "PNG, JPEG, GIF or WebP. You can also drop or paste one here.",
+      "unreadable": "This picture could not be opened. Try another PNG, JPEG, GIF or WebP file.",
+      "preview": "Sticker preview",
+      "keys": "Drag the picture, or focus it and use the arrow keys (Shift moves further) and + or − to zoom.",
+      "other": "Another picture",
+      "center": "Fit again",
+      "zoom": "Zoom: {{zoom}}%",
+      "top": "Text at the top",
+      "bottom": "Text at the bottom",
+      "movingGif": "This GIF keeps moving as long as you neither zoom, move it, nor add text.",
+      "stillGif": "With these changes, the GIF becomes a still picture.",
+      "name": "Sticker name",
+      "pack": "Pack",
+      "noPack": "No pack",
+      "save": "Save",
+      "saveAndSend": "Save and send"
     }
   },
   "automation": {

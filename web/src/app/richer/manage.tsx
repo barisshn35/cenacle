@@ -12,6 +12,7 @@ import { Label } from '@cenacle/ui/components/label';
 import { useSession } from '../auth/session';
 import { isWorkspaceAdmin, may, type Workspace } from '../chat/workspaces';
 import { baseName, packPictures, stickerName, zipName } from './packs';
+import { StickerMaker } from './sticker-maker';
 import {
   addCustomEmoji,
   addSticker,
@@ -212,6 +213,7 @@ function StickerPacks({ workspace }: { workspace: Workspace }) {
   const packs = useQuery(stickerPacksQuery(workspace.id)).data ?? [];
   const stickers = useQuery(stickersQuery(workspace.id)).data ?? [];
   const [name, setName] = useState('');
+  const [making, setMaking] = useState(false);
   const batch = useBatch();
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['stickers', workspace.id] });
 
@@ -270,8 +272,13 @@ function StickerPacks({ workspace }: { workspace: Workspace }) {
             <UploadIcon strokeWidth={1.75} />
             {t('richer.manage.packs.upload')}
           </Button>
+          <Button type="button" variant="outline" onClick={() => setMaking(true)}>
+            <PlusIcon strokeWidth={1.75} />
+            {t('richer.stickers.make')}
+          </Button>
         </div>
         {batch.status}
+        <StickerMaker open={making} onOpenChange={setMaking} workspace={workspace} />
       </div>
       {packs.map((pack) => (
         <PackGroup
