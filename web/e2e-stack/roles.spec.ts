@@ -119,7 +119,7 @@ test('a guest sees only the channel of their link, and leaves when it ends', asy
   // Someone without an account joins with the link and its password.
   const guest = await (await browser.newContext()).newPage();
   await guest.goto(link);
-  await expect(guest.getByRole('heading', { name: `Join #${name}` })).toBeVisible();
+  await expect(guest.getByRole('heading', { name: `Join ${name}` })).toBeVisible();
   await guest.getByLabel('Your name').fill('Tedarikçi Ali');
   await guest.getByLabel('Password').fill('misafir-parola-1');
   await guest.getByRole('button', { name: 'Join as a guest' }).click();
