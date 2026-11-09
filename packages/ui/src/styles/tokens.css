@@ -13,6 +13,8 @@
  */
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+/* Comfortable density (the default on touch screens): more room between rows. */
+@custom-variant comfortable (&:where([data-density='comfortable'] *));
 
 @theme inline {
   /* v0.29 (ADR 0031): one family, Geist; Geist Mono for record values. */
@@ -130,7 +132,7 @@
   --target: var(--target-fine);
 
   /* --- Density --------------------------------------------------------- */
-  --row-height: max(var(--target), 32px);
+  --row-height: max(var(--target), 40px);
   --density-gap: 0.5rem;
   --density-pad-x: 0.75rem;
 

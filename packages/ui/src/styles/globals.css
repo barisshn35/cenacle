@@ -29,6 +29,11 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  /* A select's list is drawn by the system (white on Windows): give it the theme's colours. */
+  option,
+  optgroup {
+    @apply bg-popover text-popover-foreground;
+  }
   /* Code follows the code font's ligature setting (Appearance). */
   code,
   pre,

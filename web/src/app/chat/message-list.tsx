@@ -180,7 +180,7 @@ export function MessageRow({
         className={cn(
           'group relative rounded-[10px] hover:bg-hover focus-within:bg-hover',
           SPEAKER_GRID(inThread),
-          row.first ? 'pt-2 pb-1' : 'py-0.5',
+          row.first ? 'pt-2 pb-1 comfortable:pt-4 comfortable:pb-1.5' : 'py-0.5 comfortable:py-1.5',
           (editing || selected) && 'bg-hover',
           highlighted && 'bg-accent',
         )}

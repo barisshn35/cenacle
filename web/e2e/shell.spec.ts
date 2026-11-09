@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
-import { mockApi, trackExternalRequests } from './helpers';
+import { GENERAL, mockApi, mockMessage, trackExternalRequests } from './helpers';
 
 // The app needs a session and the chat API; the chat server is not running in these tests.
 test.beforeEach(async ({ page }) => {
@@ -59,6 +59,27 @@ test.describe('appearance', () => {
     await expect(html).toHaveAttribute('data-theme', 'light');
     await page.emulateMedia({ colorScheme: 'dark' });
     await expect(html).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('comfortable density gives messages and channels more room', async ({ page }) => {
+    await mockApi(page, { messages: [mockMessage(1, 'Hello'), mockMessage(2, 'Again')] });
+    await page.goto(`/c/${GENERAL.id}`);
+    const message = page.getByTestId('message').last();
+    const channel = page.locator(`a[href="/c/${GENERAL.id}"]`).first();
+    await message.waitFor();
+    const heights = async () => ({
+      message: (await message.boundingBox())!.height,
+      channel: (await channel.boundingBox())!.height,
+    });
+    const compact = await heights();
+    await openSettings(page, 'Appearance');
+    await page.getByRole('combobox', { name: 'Density' }).selectOption('comfortable');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('html')).toHaveAttribute('data-density', 'comfortable');
+    await expect
+      .poll(async () => (await heights()).message)
+      .toBeGreaterThanOrEqual(compact.message + 8);
+    expect((await heights()).channel).toBeGreaterThanOrEqual(compact.channel + 8);
   });
 
   test('language switches to Turkish', async ({ page }) => {
