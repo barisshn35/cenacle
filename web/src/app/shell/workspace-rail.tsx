@@ -49,8 +49,8 @@ export function WorkspaceRail() {
               <span
                 aria-hidden
                 className={cn(
-                  'absolute top-1/2 start-0 w-1 -translate-y-1/2 rounded-e-full bg-sidebar-foreground transition-[height] duration-(--duration-base) ease-(--ease-out)',
-                  isActive ? 'h-8' : hasUnread ? 'h-2' : 'h-0',
+                  'absolute top-1/2 start-0 h-8 w-1 -translate-y-1/2 rounded-e-full bg-sidebar-foreground transition-transform duration-(--duration-base) ease-(--ease-out)',
+                  isActive ? 'scale-y-100' : hasUnread ? 'scale-y-25' : 'scale-y-0',
                 )}
               />
               <Tooltip>

@@ -527,6 +527,20 @@ export function removeMessage(
  * Adds a message to the newest page of its channel (and of its thread, for a
  * reply) unless it is there already.
  */
+/** When messages came in live (not with a page), for their arrival to show. */
+const arrivals = new Map<string, number>();
+/** How long a message counts as just arrived. */
+const ARRIVAL_MS = 800;
+
+/** Whether a message came in live a moment ago (its row then slides in once). */
+export function justArrived(id: string): boolean {
+  const at = arrivals.get(id);
+  if (at === undefined) return false;
+  if (performance.now() - at < ARRIVAL_MS) return true;
+  arrivals.delete(id);
+  return false;
+}
+
 export function addMessage(queryClient: QueryClient, message: Message): void {
   if (message.root_id) addToList(queryClient, ['replies', message.root_id], message);
   if (inChannel(message)) addToList(queryClient, ['messages', message.channel_id], message);
@@ -537,6 +551,8 @@ function addToList(queryClient: QueryClient, queryKey: readonly unknown[], messa
   queryClient.setQueryData<InfiniteData<MessagePage, string | undefined>>(queryKey, (data) => {
     if (!data) return data; // not loaded: it comes with the (restarted) first fetch
     if (data.pages.some((p) => p.messages.some((m) => m.id === message.id))) return data;
+    arrivals.set(message.id, performance.now());
+    if (arrivals.size > 200) arrivals.delete(arrivals.keys().next().value!);
     const [newest, ...older] = data.pages;
     const messages = [...(newest?.messages ?? []), message].sort((a, b) =>
       a.id < b.id ? -1 : a.id > b.id ? 1 : 0,

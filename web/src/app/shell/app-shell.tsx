@@ -130,7 +130,15 @@ function DesktopShell() {
           }}
         >
           {/* Collapsed content is not rendered, so it leaves the tab order and the a11y tree. */}
-          {detailsOpen && <RightPanel view={rightView} />}
+          {detailsOpen && (
+            // Each view comes in from the side (its width is not animated: that lays out every frame).
+            <div
+              key={rightView}
+              className="h-full motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-end-2 motion-safe:duration-(--duration-base) motion-safe:ease-(--ease-out)"
+            >
+              <RightPanel view={rightView} />
+            </div>
+          )}
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

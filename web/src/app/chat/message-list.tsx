@@ -35,6 +35,7 @@ import { useSession } from '../auth/session';
 import {
   flatten,
   isConversation,
+  justArrived,
   lineOf,
   markRead,
   messagesQuery,
@@ -183,6 +184,9 @@ export function MessageRow({
           row.first ? 'pt-2 pb-1 comfortable:pt-4 comfortable:pb-1.5' : 'py-0.5 comfortable:py-1.5',
           (editing || selected) && 'bg-hover',
           highlighted && 'bg-accent',
+          // A message that just came in slides in; loaded ones stand still.
+          justArrived(m.id) &&
+            'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-(--duration-slow) motion-safe:ease-(--ease-out)',
         )}
         data-mentions-me={mentionsMe || undefined}
         data-highlighted={highlighted || undefined}

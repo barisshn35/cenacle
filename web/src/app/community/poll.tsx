@@ -88,8 +88,8 @@ export function PollCard({ message, channel }: { message: Message; channel: Chan
             {(voted || poll.closed) && (
               <span
                 aria-hidden
-                className="absolute inset-y-0 start-0 bg-primary/10 motion-safe:transition-[width]"
-                style={{ width: `${share}%` }}
+                className="absolute inset-0 origin-left bg-primary/10 motion-safe:transition-transform motion-safe:duration-(--duration-slow) motion-safe:ease-(--ease-out) rtl:origin-right"
+                style={{ transform: `scaleX(${share / 100})` }}
               />
             )}
             <span className="relative flex size-4 shrink-0 items-center justify-center">

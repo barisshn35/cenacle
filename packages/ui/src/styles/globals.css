@@ -29,6 +29,31 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  /*
+   * Hover and selection colours change smoothly on everything one can act on.
+   * Only colours (painted, never laid out); an element's own transition
+   * utility replaces this, and reduced motion turns it off with the rest.
+   */
+  :where(
+    a,
+    button,
+    summary,
+    select,
+    [role='button'],
+    [role='menuitem'],
+    [role='menuitemradio'],
+    [role='menuitemcheckbox'],
+    [role='option'],
+    [role='tab'],
+    [role='radio'],
+    [role='switch'],
+    [role='checkbox']
+  ) {
+    transition-property:
+      color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-out);
+  }
   /* A select's list is drawn by the system (white on Windows): give it the theme's colours. */
   option,
   optgroup {

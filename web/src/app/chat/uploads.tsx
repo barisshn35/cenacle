@@ -75,8 +75,8 @@ export function UploadList({
               className="absolute inset-x-0 bottom-0 h-0.5 bg-muted"
             >
               <div
-                className="h-full bg-primary transition-[width]"
-                style={{ width: `${u.progress * 100}%` }}
+                className="h-full origin-left bg-primary motion-safe:transition-transform motion-safe:duration-(--duration-base) rtl:origin-right"
+                style={{ transform: `scaleX(${u.progress})` }}
               />
             </div>
           )}

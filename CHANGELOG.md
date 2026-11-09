@@ -67,6 +67,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- Smoother, lighter motion: menus and popovers grow from where they open, dialogs and the
+  side panel slide in, a new message slides in as it arrives, hover colors fade, and progress
+  bars and the workspace marker move with transforms instead of laying out the page each frame.
 - Messages read like a conversation: the speaker's round picture on the left, the name
   and time on one line above the words, later messages of the same turn without them (their
   time shows on hover or focus). Direct messages in the sidebar show the other person's
