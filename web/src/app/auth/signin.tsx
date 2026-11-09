@@ -8,11 +8,18 @@ import { safeReturnPath, signInUrl } from '@cenacle/core/api';
 import { buttonVariants } from '@cenacle/ui/components/button';
 import { InlineError } from '@cenacle/ui/components/error-state';
 import { cn } from '@cenacle/ui/lib/utils';
+import { useTheme } from '@cenacle/ui/theme';
 import { sessionQuery, type SigninError } from './session';
 import { SigninLayout, SigninRecord } from './signin-layout';
 import { metaQuery, serverAddress } from './web-app';
 import { WebOffPage } from './web-off';
 import { desktop } from '../desktop/desktop';
+
+/** The theme chosen in the app for Cenacle ID's pages; none when it follows the system. */
+function useChosenTheme(): 'light' | 'dark' | undefined {
+  const { theme } = useTheme();
+  return theme === 'system' ? undefined : theme;
+}
 
 /** Informational outcomes are announced politely; failures as alerts. */
 const POLITE: ReadonlySet<SigninError> = new Set(['cancelled', 'session_expired']);
@@ -79,12 +86,13 @@ function Steps() {
 /** In the desktop app: opens its sign-in window once, with a way to open it again. */
 function DesktopSignin({ returnTo }: { returnTo: string }) {
   const { t } = useTranslation();
+  const theme = useChosenTheme();
   const opened = useRef(false);
   useEffect(() => {
     if (opened.current) return;
     opened.current = true;
-    void desktop?.signIn(returnTo);
-  }, [returnTo]);
+    void desktop?.signIn(returnTo, theme);
+  }, [returnTo, theme]);
   return (
     <SigninLayout aside={<Steps />}>
       <h1 className="text-[34px] leading-[1.15] font-semibold tracking-[-0.02em] text-balance">
@@ -95,7 +103,7 @@ function DesktopSignin({ returnTo }: { returnTo: string }) {
       </p>
       <button
         type="button"
-        onClick={() => void desktop?.signIn(returnTo)}
+        onClick={() => void desktop?.signIn(returnTo, theme)}
         className={cn(buttonVariants({ size: 'lg' }), 'mt-6 h-12 w-full text-[15.5px]')}
       >
         {t('auth.desktop.open')}
@@ -120,6 +128,7 @@ export function SigninPage() {
   const { t } = useTranslation();
   const search = useSearch({ from: '/signin' });
   const returnTo = safeReturnPath(search.return_to);
+  const theme = useChosenTheme();
   const session = useQuery(sessionQuery);
   const meta = useQuery(metaQuery);
 
@@ -162,7 +171,7 @@ export function SigninPage() {
         </p>
       </div>
       <a
-        href={signInUrl(returnTo)}
+        href={signInUrl(returnTo, theme)}
         className={cn(buttonVariants({ size: 'lg' }), 'mt-5 h-12 w-full text-[15.5px]')}
         data-testid="signin-continue"
       >

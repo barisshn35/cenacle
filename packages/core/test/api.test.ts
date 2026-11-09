@@ -101,5 +101,7 @@ describe('sign-in URLs', () => {
   it('builds the login URL', () => {
     expect(signInUrl('/')).toBe('/api/auth/login');
     expect(signInUrl('/c/a b')).toBe('/api/auth/login?return_to=%2Fc%2Fa%20b');
+    expect(signInUrl('/', 'light')).toBe('/api/auth/login?theme=light');
+    expect(signInUrl('/c/x', 'dark')).toBe('/api/auth/login?return_to=%2Fc%2Fx&theme=dark');
   });
 });

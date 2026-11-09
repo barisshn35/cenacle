@@ -5,6 +5,15 @@ import type { FastifyRequest } from 'fastify';
 export const LOCALE_COOKIE = 'cenacle_id_locale';
 
 /**
+ * The theme chosen in the app (light or dark), which the app passes to the
+ * authorization endpoint. Kept in a cookie that theme.js reads, so every
+ * Cenacle ID page matches the app; without it the pages follow the system.
+ */
+export const THEME_COOKIE = 'cenacle_id_theme';
+export const THEME_PARAM = 'cenacle_theme';
+export const THEMES = ['light', 'dark'] as const;
+
+/**
  * Headers for HTML pages. Everything is served from our own origin; forms may
  * only post to us, and the redirects that follow a sign-in may only reach the
  * registered client origins (browsers apply form-action to redirects too).

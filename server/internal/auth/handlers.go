@@ -36,6 +36,10 @@ const AuthService = "cenacle-id"
 // (its interaction lifetime is 15 minutes).
 const flowTTL = 15 * time.Minute
 
+// ThemeParam carries the theme chosen in the app (light or dark) to Cenacle
+// ID's authorization endpoint, so its pages match the app.
+const ThemeParam = "cenacle_theme"
+
 // Error codes passed to the web app in /signin?error=..., mapped to localized text there.
 const (
 	signinCancelled   = "cancelled"   // the user cancelled at Cenacle ID
@@ -171,8 +175,12 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request, params api.Logi
 	// replayed in someone else's browser (login CSRF).
 	h.Cookies.setFlow(w, state, flowTTL)
 
-	target := h.IdP.oauth2Config(provider).AuthCodeURL(state,
-		oauth2.S256ChallengeOption(f.Verifier), oidc.Nonce(f.Nonce))
+	opts := []oauth2.AuthCodeOption{oauth2.S256ChallengeOption(f.Verifier), oidc.Nonce(f.Nonce)}
+	// Cenacle ID's pages take the theme chosen in the app.
+	if params.Theme != nil && params.Theme.Valid() {
+		opts = append(opts, oauth2.SetAuthURLParam(ThemeParam, string(*params.Theme)))
+	}
+	target := h.IdP.oauth2Config(provider).AuthCodeURL(state, opts...)
 	http.Redirect(w, r, target, http.StatusFound)
 }
 

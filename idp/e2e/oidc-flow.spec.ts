@@ -35,7 +35,7 @@ async function rp(): Promise<client.Configuration> {
   );
 }
 
-async function startAuthorization(page: Page) {
+async function startAuthorization(page: Page, extra: Record<string, string> = {}) {
   const config = await rp();
   const verifier = client.randomPKCECodeVerifier();
   const state = client.randomState();
@@ -45,6 +45,7 @@ async function startAuthorization(page: Page) {
     code_challenge: await client.calculatePKCECodeChallenge(verifier),
     code_challenge_method: 'S256',
     state,
+    ...extra,
   });
   await page.goto(url.href);
   return { config, verifier, state };
@@ -159,6 +160,24 @@ test('sign-in pages follow the language of the browser and can switch it', async
   await page.getByRole('link', { name: 'English' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in');
+  await context.close();
+});
+
+test('sign-in pages take the theme chosen in the app, else the system one', async ({ browser }) => {
+  const context = await browser.newContext({ colorScheme: 'dark' });
+  const page = await context.newPage();
+  const root = page.locator('html');
+  await startAuthorization(page, { cenacle_theme: 'light' });
+  await expect(root).toHaveAttribute('data-theme', 'light');
+  // A wrong password keeps the theme on the next page.
+  await submitLogin(page, EMAIL, 'not the password');
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(root).toHaveAttribute('data-theme', 'light');
+  // The app follows the system again: so do the pages.
+  await startAuthorization(page);
+  await expect(root).toHaveAttribute('data-theme', 'dark');
+  await startAuthorization(page, { cenacle_theme: 'no' });
+  await expect(root).toHaveAttribute('data-theme', 'dark');
   await context.close();
 });
 

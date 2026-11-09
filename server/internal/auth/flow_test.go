@@ -532,3 +532,26 @@ func TestSignInAppliesAdministratorAndDefaultChannels(t *testing.T) {
 		t.Errorf("administrators = %v, want [sub-2]", admins)
 	}
 }
+
+func TestLoginPassesTheChosenTheme(t *testing.T) {
+	e := newEnv(t)
+	for query, want := range map[string]string{
+		"?theme=light": "light",
+		"?theme=dark":  "dark",
+		"?theme=blue":  "",
+		"":             "",
+	} {
+		res, err := newClient(t).Get(e.app.URL + "/api/auth/login" + query)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		loc, err := res.Location()
+		if err != nil {
+			t.Fatalf("%q: %v", query, err)
+		}
+		if got := loc.Query().Get(auth.ThemeParam); got != want {
+			t.Errorf("%q: %s = %q, want %q", query, auth.ThemeParam, got, want)
+		}
+	}
+}

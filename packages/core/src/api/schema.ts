@@ -10132,6 +10132,11 @@ export interface operations {
          *     app is turned off.
          */
         desktop?: string;
+        /**
+         * @description The theme the person chose in the app, so that Cenacle ID's pages
+         *     match it. Left out when the app follows the system.
+         */
+        theme?: 'light' | 'dark';
       };
       header?: never;
       path?: never;

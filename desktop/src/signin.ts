@@ -24,6 +24,8 @@ export function signIn(opts: {
   server: string;
   parent: BrowserWindow | null;
   returnTo: string;
+  /** The app's theme for Cenacle ID's pages; none when it follows the system. */
+  theme?: 'light' | 'dark';
   /** Opens a window with the app's bar (the address of the page) around a page view. */
   frame: (ses: Session, parent?: BrowserWindow) => { win: BrowserWindow; view: WebContentsView };
   /** Called with the origin of Cenacle ID, where the server's sign-in redirects. */
@@ -51,6 +53,7 @@ export function signIn(opts: {
     const url = new URL('/api/auth/login', opts.server);
     url.searchParams.set('desktop', challenge);
     url.searchParams.set('return_to', opts.returnTo);
+    if (opts.theme) url.searchParams.set('theme', opts.theme);
 
     const signedIn = `${opts.server}/desktop/signed-in`;
     const failedAt = `${opts.server}/signin`;

@@ -32,6 +32,17 @@ test('return_to never leaves the app', async ({ page }) => {
   await expect(continueLink(page)).toHaveAttribute('href', '/api/auth/login');
 });
 
+test("Cenacle ID's pages take the theme chosen in the app", async ({ page }) => {
+  await mockSession(page, null);
+  await page.addInitScript(() => localStorage.setItem('cenacle.theme', 'light'));
+  await page.goto('/signin');
+  await expect(continueLink(page)).toHaveAttribute('href', '/api/auth/login?theme=light');
+  // Following the system: Cenacle ID does the same.
+  await page.addInitScript(() => localStorage.setItem('cenacle.theme', 'system'));
+  await page.reload();
+  await expect(continueLink(page)).toHaveAttribute('href', '/api/auth/login');
+});
+
 test('a signed-in user skips the sign-in page', async ({ page }) => {
   await mockApi(page);
   await page.goto('/signin');

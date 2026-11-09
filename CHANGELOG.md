@@ -106,6 +106,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- Cenacle ID's sign-in pages take the theme chosen in the app (web and desktop);
+  before, they always followed the system, so a light app opened a dark sign-in.
 - Density (Appearance) changes what you see: "Comfortable" gives messages and channel
   rows more room; before, the choice was saved but changed nothing. A select's list takes
   the theme's colours.

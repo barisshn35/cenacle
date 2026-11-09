@@ -5,7 +5,8 @@ import { queryOptions } from '@tanstack/react-query';
 export interface DesktopBridge {
   version: string;
   platform: string;
-  signIn: (returnTo: string) => Promise<void>;
+  /** `theme` (the app's, unless it follows the system) is ignored before 1.0's desktop app. */
+  signIn: (returnTo: string, theme?: 'light' | 'dark') => Promise<void>;
   signOut: () => Promise<void>;
   changeServer: () => Promise<void>;
   setBadge: (count: number) => Promise<void>;

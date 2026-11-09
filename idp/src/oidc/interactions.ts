@@ -26,7 +26,14 @@ import {
   type CodeError,
   type LoginError,
 } from '../ui/pages.ts';
-import { isSameOriginPost, LOCALE_COOKIE, pageSecurityHeaders } from './security.ts';
+import {
+  isSameOriginPost,
+  LOCALE_COOKIE,
+  pageSecurityHeaders,
+  THEME_COOKIE,
+  THEME_PARAM,
+  THEMES,
+} from './security.ts';
 
 export interface InteractionOptions {
   provider: Provider;
@@ -68,6 +75,22 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
     return pickLocale(
       cookie ?? (typeof uiLocales === 'string' ? uiLocales : undefined),
       request.headers['accept-language'],
+    );
+  }
+
+  /**
+   * Keeps the app's theme for the pages: the one the sign-in carries, or
+   * none (the system's) when it carries none. Readable by theme.js.
+   */
+  function rememberTheme(request: FastifyRequest, reply: FastifyReply, param: unknown) {
+    const theme = THEMES.find((t) => t === param);
+    if (request.cookieValue(THEME_COOKIE) === theme) return;
+    const tail = `Path=/; SameSite=Lax${secure ? '; Secure' : ''}`;
+    reply.header(
+      'set-cookie',
+      theme
+        ? `${THEME_COOKIE}=${theme}; Max-Age=31536000; ${tail}`
+        : `${THEME_COOKIE}=; Max-Age=0; ${tail}`,
     );
   }
 
@@ -120,6 +143,7 @@ export async function registerInteractions(app: FastifyInstance, opts: Interacti
       }
       const d = await details(request, reply);
       if (!d || d.uid !== request.params.uid) return expired(request, reply);
+      rememberTheme(request, reply, d.params[THEME_PARAM]);
       const loc = locale(request, d.params.ui_locales);
       if (d.prompt.name !== 'login') {
         // Consent is only granted automatically to first-party clients (v0.2).

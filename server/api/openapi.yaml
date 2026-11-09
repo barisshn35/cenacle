@@ -2521,6 +2521,12 @@ paths:
             app exchanges at `POST /api/auth/desktop/token`. Allowed while the web
             app is turned off.
           schema: { type: string, pattern: '^[A-Za-z0-9_-]{43}$' }
+        - name: theme
+          in: query
+          description: |
+            The theme the person chose in the app, so that Cenacle ID's pages
+            match it. Left out when the app follows the system.
+          schema: { type: string, enum: [light, dark] }
       responses:
         '302':
           description: Redirect to the authorization endpoint of Cenacle ID.

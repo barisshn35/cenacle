@@ -42,7 +42,7 @@ var fontID = regexp.MustCompile(`^([a-z0-9-]{2,40}|user:[0-9a-f-]{36})$`)
 // DefaultAppearance is what people see until they choose.
 func DefaultAppearance() api.Appearance {
 	var a api.Appearance
-	a.Theme = api.System
+	a.Theme = api.AppearanceThemeSystem
 	a.Preset = api.AppearancePresetWorkspace
 	a.Density = api.AppearanceDensityAuto
 	a.Fonts.Template = api.AppearanceFontsTemplateWorkspace

@@ -8,7 +8,7 @@ import { pickLocale } from '../ui/messages.ts';
 import { errorPage, loggedOutPage, logoutPage } from '../ui/pages.ts';
 import { createPostgresAdapter } from './adapter.ts';
 import type { ClientMetadata } from './clients.ts';
-import { LOCALE_COOKIE, pageSecurityHeaders } from './security.ts';
+import { LOCALE_COOKIE, pageSecurityHeaders, THEME_PARAM } from './security.ts';
 
 export interface ProviderOptions {
   issuer: string;
@@ -104,6 +104,8 @@ export function createProvider(opts: ProviderOptions): Provider {
     // RFC 9700 (OAuth 2.0 Security BCP): authorization code flow only, PKCE for
     // every client, exact redirect_uri matching, short-lived artifacts.
     responseTypes: ['code'],
+    // The theme chosen in the app, for the sign-in pages (see THEME_COOKIE).
+    extraParams: [THEME_PARAM],
     pkce: { required: () => true },
     allowOmittingSingleRegisteredRedirectUri: false,
     // Confidential clients authenticate with HTTP Basic; no public clients yet.

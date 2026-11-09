@@ -89,10 +89,16 @@ export function safeReturnPath(path: string | undefined): string {
   return path;
 }
 
-/** URL that starts sign-in with Cenacle ID and comes back to `returnTo`. */
-export function signInUrl(returnTo?: string): string {
+/**
+ * URL that starts sign-in with Cenacle ID and comes back to `returnTo`.
+ * `theme` is the theme chosen in the app, for Cenacle ID's pages; left out
+ * when the app follows the system.
+ */
+export function signInUrl(returnTo?: string, theme?: 'light' | 'dark'): string {
   const target = safeReturnPath(returnTo);
-  return target === '/'
-    ? '/api/auth/login'
-    : `/api/auth/login?return_to=${encodeURIComponent(target)}`;
+  const query = new URLSearchParams();
+  if (target !== '/') query.set('return_to', target);
+  if (theme) query.set('theme', theme);
+  const q = query.toString().replace(/\+/g, '%20');
+  return q ? `/api/auth/login?${q}` : '/api/auth/login';
 }

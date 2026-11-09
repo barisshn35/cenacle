@@ -224,19 +224,19 @@ func (e AppearancePreset) Valid() bool {
 
 // Defines values for AppearanceTheme.
 const (
-	Dark   AppearanceTheme = "dark"
-	Light  AppearanceTheme = "light"
-	System AppearanceTheme = "system"
+	AppearanceThemeDark   AppearanceTheme = "dark"
+	AppearanceThemeLight  AppearanceTheme = "light"
+	AppearanceThemeSystem AppearanceTheme = "system"
 )
 
 // Valid indicates whether the value is a known member of the AppearanceTheme enum.
 func (e AppearanceTheme) Valid() bool {
 	switch e {
-	case Dark:
+	case AppearanceThemeDark:
 		return true
-	case Light:
+	case AppearanceThemeLight:
 		return true
-	case System:
+	case AppearanceThemeSystem:
 		return true
 	default:
 		return false
@@ -1806,6 +1806,24 @@ func (e WorkspaceMemberRole) Valid() bool {
 	case WorkspaceMemberRoleMember:
 		return true
 	case WorkspaceMemberRoleOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LoginParamsTheme.
+const (
+	LoginParamsThemeDark  LoginParamsTheme = "dark"
+	LoginParamsThemeLight LoginParamsTheme = "light"
+)
+
+// Valid indicates whether the value is a known member of the LoginParamsTheme enum.
+func (e LoginParamsTheme) Valid() bool {
+	switch e {
+	case LoginParamsThemeDark:
+		return true
+	case LoginParamsThemeLight:
 		return true
 	default:
 		return false
@@ -4740,7 +4758,14 @@ type LoginParams struct {
 	// app exchanges at `POST /api/auth/desktop/token`. Allowed while the web
 	// app is turned off.
 	Desktop *string `form:"desktop,omitempty" json:"desktop,omitempty"`
+
+	// Theme The theme the person chose in the app, so that Cenacle ID's pages
+	// match it. Left out when the app follows the system.
+	Theme *LoginParamsTheme `form:"theme,omitempty" json:"theme,omitempty"`
 }
+
+// LoginParamsTheme defines parameters for Login.
+type LoginParamsTheme string
 
 // UpdateBotJSONBody defines parameters for UpdateBot.
 type UpdateBotJSONBody struct {
@@ -9732,6 +9757,19 @@ func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request)
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "desktop"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "desktop", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "theme" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "theme", r.URL.Query(), &params.Theme, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "theme"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "theme", Err: err})
 		}
 		return
 	}

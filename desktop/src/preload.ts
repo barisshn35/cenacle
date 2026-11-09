@@ -8,8 +8,9 @@ const version = process.argv.find((a) => a.startsWith('--cenacle-version='))?.sp
 contextBridge.exposeInMainWorld('cenacleDesktop', {
   version,
   platform: process.platform,
-  /** Opens the sign-in window; afterwards the app opens `returnTo`. */
-  signIn: (returnTo: string) => ipcRenderer.invoke('desktop:sign-in', returnTo),
+  /** Opens the sign-in window (in the app's theme); afterwards the app opens `returnTo`. */
+  signIn: (returnTo: string, theme?: string) =>
+    ipcRenderer.invoke('desktop:sign-in', returnTo, theme),
   /** Ends the session on the server and in the app. */
   signOut: () => ipcRenderer.invoke('desktop:sign-out'),
   changeServer: () => ipcRenderer.invoke('desktop:change-server'),

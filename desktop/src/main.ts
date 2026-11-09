@@ -412,7 +412,7 @@ function openExternalWindow(url: string) {
   void view.webContents.loadURL(url);
 }
 
-async function startSignIn(returnTo: string) {
+async function startSignIn(returnTo: string, theme?: 'light' | 'dark') {
   const server = config.server;
   if (!server || signingIn) return;
   signingIn = true;
@@ -421,6 +421,7 @@ async function startSignIn(returnTo: string) {
       server,
       parent: main,
       returnTo,
+      theme,
       frame: (ses, parent) => frame(ses, false, parent),
       onIdentityProvider: (origin) => {
         if (config.idp !== origin) {
@@ -453,7 +454,7 @@ async function startSignIn(returnTo: string) {
     };
     const response = await showDialog(main, opts);
     signingIn = false;
-    if (response === 0) void startSignIn(returnTo);
+    if (response === 0) void startSignIn(returnTo, theme);
   } finally {
     signingIn = false;
   }
@@ -589,7 +590,7 @@ function fromLocal(e: IpcMainInvokeEvent): boolean {
 }
 
 function registerIpc() {
-  ipcMain.handle('desktop:sign-in', (e, returnTo: unknown) => {
+  ipcMain.handle('desktop:sign-in', (e, returnTo: unknown, theme: unknown) => {
     if (!fromServer(e)) return;
     const path = returnPath(returnTo, config.server ?? '');
     // A page that loaded before the sign-in finished still asks: it only
@@ -598,7 +599,7 @@ function registerIpc() {
       void main?.loadURL(new URL(path, config.server).toString());
       return;
     }
-    void startSignIn(path);
+    void startSignIn(path, theme === 'light' || theme === 'dark' ? theme : undefined);
   });
   ipcMain.handle('desktop:sign-out', async (e) => {
     if (fromServer(e)) await signOut();
