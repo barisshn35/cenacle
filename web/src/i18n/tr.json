@@ -35,7 +35,8 @@
       "forest": "Orman",
       "sunset": "Gün batımı",
       "rose": "Gül",
-      "contrast": "Yüksek karşıtlık"
+      "contrast": "Yüksek karşıtlık",
+      "custom": "Özel"
     },
     "fontTemplate": "Yazı tipleri",
     "templates": {
@@ -83,7 +84,40 @@
     "fontAdded": "Yazı tipi eklendi. Kendi seçimim altından seçebilirsiniz.",
     "fontLimit": "Beş yazı tipiniz var; önce birini kaldırın.",
     "fontInvalid": "En çok 2 MB'lık WOFF2, WOFF, TrueType ya da OpenType yazı tipi kullanın.",
-    "saveFailed": "Görünümünüz kaydedilemedi."
+    "saveFailed": "Görünümünüz kaydedilemedi.",
+    "custom": {
+      "accent": "Vurgu rengi",
+      "sidebar": "Kenar çubuğu",
+      "pick": "Renk seçici: {{what}}",
+      "invalidHex": "Rengi #rrggbb biçiminde yazın, örneğin #0b5cad.",
+      "suggested": "Önerilen renkler",
+      "surface": "Yüzeyler",
+      "surfaces": {
+        "neutral": "Nötr",
+        "warm": "Sıcak",
+        "cool": "Soğuk",
+        "tinted": "Renkli"
+      },
+      "radius": "Köşeler",
+      "radiuss": {
+        "sharp": "Keskin",
+        "default": "Yuvarlatılmış",
+        "round": "Yuvarlak"
+      },
+      "preview": "Önizleme",
+      "previewLight": "Açık temada",
+      "previewDark": "Koyu temada",
+      "readable": "Yazılar okunaklı kalır: okunması zor olacak renkler biraz açılır ya da koyulaşır.",
+      "reset": "Cenacle renklerine dön",
+      "sampleChannels": "Kanallar",
+      "sampleChannel": "genel",
+      "sampleOther": "tasarım",
+      "sampleAuthor": "Ayşe",
+      "sampleText": "Plan hazır,",
+      "sampleLink": "buradan bakın",
+      "sampleTime": "10:42",
+      "sampleButton": "Gönder"
+    }
   },
   "shell": {
     "workspaceNav": "Çalışma alanları",

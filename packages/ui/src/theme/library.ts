@@ -3,6 +3,8 @@
 // library, font templates and code themes, and applying a person's settings
 // to the page.
 
+import { applyCustomTheme, type CustomTheme } from './custom-theme';
+
 export const THEME_PRESETS = [
   'cenacle',
   'graphite',
@@ -11,6 +13,7 @@ export const THEME_PRESETS = [
   'sunset',
   'rose',
   'contrast',
+  'custom',
 ] as const;
 export type ThemePreset = (typeof THEME_PRESETS)[number];
 
@@ -23,6 +26,8 @@ export const PRESET_SWATCHES: Record<ThemePreset, [string, string]> = {
   sunset: ['#b0420a', '#ff9a5c'],
   rose: ['#b0245c', '#ff8fb8'],
   contrast: ['#0033b3', '#ffd400'],
+  // Shown with the picked colors instead.
+  custom: ['#8f6b1f', '#14342b'],
 };
 
 export interface LibraryFont {
@@ -96,6 +101,8 @@ const LINE_HEIGHTS = { compact: '1.45', normal: '1.625', relaxed: '1.8' } as con
 /** What the page needs to show a person's appearance. */
 export interface ResolvedAppearance {
   preset: ThemePreset;
+  /** The colors of the custom preset, when it is the one. */
+  custom?: CustomTheme;
   /** CSS font-family names (a library family or an uploaded font's). */
   textFamily: string;
   codeFamily: string;
@@ -117,6 +124,7 @@ export function applyResolvedAppearance(
 ): void {
   if (a.preset === 'cenacle') delete root.dataset.preset;
   else root.dataset.preset = a.preset;
+  applyCustomTheme(a.preset === 'custom' ? a.custom : null, root.ownerDocument);
   root.style.setProperty('--font-sans', `'${a.textFamily}', ${SANS_FALLBACK}`);
   root.style.setProperty('--font-mono', `'${a.codeFamily}', ${MONO_FALLBACK}`);
   root.style.setProperty('--code-ligatures', a.ligatures ? 'normal' : 'none');

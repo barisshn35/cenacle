@@ -41,6 +41,25 @@ func TestAppearance(t *testing.T) {
 		t.Errorf("odd font id = %d", status)
 	}
 
+	// A custom theme needs its colors, and only known ones.
+	custom := back
+	custom.Preset = "custom"
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/me/appearance", ayse, custom); status != http.StatusBadRequest {
+		t.Errorf("custom without colors = %d", status)
+	}
+	custom.CustomTheme = &api.CustomTheme{Accent: "#0b5cad", Sidebar: "#102030", Surface: "cool", Radius: "round"}
+	if res := s.call(http.MethodPut, "/api/me/appearance", ayse, custom, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("save custom = %d", res.StatusCode)
+	}
+	s.call(http.MethodGet, "/api/me/appearance", ayse, nil, &back)
+	if back.Preset != "custom" || back.CustomTheme == nil || back.CustomTheme.Accent != "#0b5cad" || back.CustomTheme.Radius != "round" {
+		t.Errorf("saved custom = %+v", back.CustomTheme)
+	}
+	custom.CustomTheme.Accent = "red; }"
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/me/appearance", ayse, custom); status != http.StatusBadRequest {
+		t.Errorf("odd accent = %d", status)
+	}
+
 	// Workspace defaults (owners and admins).
 	admin := s.admin()
 	ws := s.newWorkspace(admin, "Design")
@@ -48,6 +67,16 @@ func TestAppearance(t *testing.T) {
 	s.call(http.MethodPut, "/api/workspaces/"+ws+"/appearance", admin, map[string]string{"preset": "forest", "font_template": "reading"}, &out)
 	if out.Appearance.Preset != "forest" || out.Appearance.FontTemplate != "reading" {
 		t.Errorf("workspace appearance = %+v", out.Appearance)
+	}
+	brand := map[string]any{"preset": "custom", "font_template": "modern",
+		"custom_theme": map[string]string{"accent": "#b0245c", "sidebar": "#2a0f1c", "surface": "tinted", "radius": "sharp"}}
+	if res := s.call(http.MethodPut, "/api/workspaces/"+ws+"/appearance", admin, brand, &out); res.StatusCode != http.StatusOK ||
+		out.Appearance.CustomTheme == nil || out.Appearance.CustomTheme.Sidebar != "#2a0f1c" {
+		t.Errorf("workspace custom theme = %d %+v", res.StatusCode, out.Appearance.CustomTheme)
+	}
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/workspaces/"+ws+"/appearance", admin,
+		map[string]string{"preset": "custom", "font_template": "modern"}); status != http.StatusBadRequest {
+		t.Errorf("workspace custom without colors = %d", status)
 	}
 	if status, _ := problemCode(t, s, http.MethodPut, "/api/workspaces/"+s.defaultWS+"/appearance", ayse, map[string]string{"preset": "forest", "font_template": "reading"}); status != http.StatusForbidden {
 		t.Errorf("member sets workspace appearance = %d", status)

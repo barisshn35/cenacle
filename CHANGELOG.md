@@ -10,6 +10,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- A custom theme (Appearance, and workspace settings for its admins): pick the accent and
+  sidebar colors, the tone of the surfaces and how round corners are, with a preview in both
+  themes. Colors that would make text hard to read are made a little lighter or darker, so
+  every pair still meets WCAG 2.2 AA.
 - 24 built-in notification sounds instead of 10 (Bubble, Twinkle, Whistle, Tap, Blip,
   Kalimba, Arcade, Breeze, Echo, Gong, Sparkle, Notify, Woodblock and Soft are new).
 - Save stickers others made: from the message's menu or with the star in the picker; saved

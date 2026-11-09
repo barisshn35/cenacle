@@ -10,6 +10,7 @@ import { Label } from '@cenacle/ui/components/label';
 import { cn } from '@cenacle/ui/lib/utils';
 import {
   CODE_THEMES,
+  DEFAULT_CUSTOM_THEME,
   FONT_LIBRARY,
   FONT_TEMPLATES,
   PRESET_SWATCHES,
@@ -26,6 +27,7 @@ import {
   uploadFont,
   type Appearance,
 } from './appearance';
+import { CustomThemeEditor } from './custom-theme-editor';
 import { useSaveAppearance } from './use-save-appearance';
 
 const selectClass =
@@ -78,6 +80,14 @@ export function AppearancePanel() {
     </>
   );
   const custom = a.fonts.template === 'custom';
+  // The custom preset shows the colors picked for it.
+  const swatch = (p: (typeof THEME_PRESETS)[number]) =>
+    p === 'custom'
+      ? [
+          (a.custom_theme ?? DEFAULT_CUSTOM_THEME).accent,
+          (a.custom_theme ?? DEFAULT_CUSTOM_THEME).sidebar,
+        ]
+      : PRESET_SWATCHES[p];
 
   return (
     <div className="flex flex-col gap-5" data-testid="appearance-panel">
@@ -129,7 +139,13 @@ export function AppearancePanel() {
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                onClick={() => set({ preset: p })}
+                onClick={() =>
+                  set(
+                    p === 'custom'
+                      ? { preset: p, custom_theme: a.custom_theme ?? DEFAULT_CUSTOM_THEME }
+                      : { preset: p },
+                  )
+                }
                 className={cn(
                   'flex min-h-target items-center gap-2 rounded-lg border px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                   selected ? 'border-ring bg-accent' : 'hover:bg-muted',
@@ -145,7 +161,7 @@ export function AppearancePanel() {
                     aria-hidden
                     className="size-4 rounded-full"
                     style={{
-                      background: `linear-gradient(135deg, ${PRESET_SWATCHES[p][0]} 50%, ${PRESET_SWATCHES[p][1]} 50%)`,
+                      background: `linear-gradient(135deg, ${swatch(p)[0]} 50%, ${swatch(p)[1]} 50%)`,
                     }}
                   />
                 )}
@@ -155,6 +171,13 @@ export function AppearancePanel() {
             );
           })}
         </div>
+        {a.preset === 'custom' && (
+          <CustomThemeEditor
+            live
+            value={a.custom_theme ?? DEFAULT_CUSTOM_THEME}
+            onChange={(custom_theme) => set({ custom_theme })}
+          />
+        )}
       </fieldset>
 
       <div className="grid gap-3 sm:grid-cols-2">

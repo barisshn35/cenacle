@@ -35,7 +35,8 @@
       "forest": "Forest",
       "sunset": "Sunset",
       "rose": "Rose",
-      "contrast": "High contrast"
+      "contrast": "High contrast",
+      "custom": "Custom"
     },
     "fontTemplate": "Fonts",
     "templates": {
@@ -83,7 +84,40 @@
     "fontAdded": "The font is added. Choose it under My own combination.",
     "fontLimit": "You have five fonts; remove one first.",
     "fontInvalid": "Use a WOFF2, WOFF, TrueType or OpenType font of up to 2 MB.",
-    "saveFailed": "Your appearance could not be saved."
+    "saveFailed": "Your appearance could not be saved.",
+    "custom": {
+      "accent": "Accent",
+      "sidebar": "Sidebar",
+      "pick": "Color picker: {{what}}",
+      "invalidHex": "Write a color as #rrggbb, for example #0b5cad.",
+      "suggested": "Suggested colors",
+      "surface": "Surfaces",
+      "surfaces": {
+        "neutral": "Neutral",
+        "warm": "Warm",
+        "cool": "Cool",
+        "tinted": "Tinted"
+      },
+      "radius": "Corners",
+      "radiuss": {
+        "sharp": "Sharp",
+        "default": "Rounded",
+        "round": "Round"
+      },
+      "preview": "Preview",
+      "previewLight": "In the light theme",
+      "previewDark": "In the dark theme",
+      "readable": "Text stays readable: colors that would be hard to read are made a little lighter or darker.",
+      "reset": "Back to Cenacle's colors",
+      "sampleChannels": "Channels",
+      "sampleChannel": "general",
+      "sampleOther": "design",
+      "sampleAuthor": "Ayşe",
+      "sampleText": "The plan is ready,",
+      "sampleLink": "see it here",
+      "sampleTime": "10:42",
+      "sampleButton": "Send"
+    }
   },
   "shell": {
     "workspaceNav": "Workspaces",

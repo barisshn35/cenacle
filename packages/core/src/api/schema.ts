@@ -6280,13 +6280,35 @@ export interface components {
       /** @enum {string} */
       status: 'online' | 'away' | 'dnd';
     };
-    /** @enum {string} */
-    ThemePreset: 'cenacle' | 'graphite' | 'ocean' | 'forest' | 'sunset' | 'rose' | 'contrast';
+    /**
+     * @description 'custom' is made from `custom_theme`.
+     * @enum {string}
+     */
+    ThemePreset:
+      'cenacle' | 'graphite' | 'ocean' | 'forest' | 'sunset' | 'rose' | 'contrast' | 'custom';
+    /** @description The colors a custom theme is made from; the app makes both themes from them and keeps their text readable (WCAG 2.2 AA). */
+    CustomTheme: {
+      /** @description Buttons */
+      accent: string;
+      /** @description The sidebar and the workspace rail. */
+      sidebar: string;
+      /**
+       * @description The tone of the surfaces.
+       * @enum {string}
+       */
+      surface: 'neutral' | 'warm' | 'cool' | 'tinted';
+      /**
+       * @description How round corners are.
+       * @enum {string}
+       */
+      radius: 'sharp' | 'default' | 'round';
+    };
     /** @enum {string} */
     FontTemplate: 'corporate' | 'classic' | 'modern' | 'product' | 'reading' | 'legible';
     WorkspaceAppearance: {
       preset: components['schemas']['ThemePreset'];
       font_template: components['schemas']['FontTemplate'];
+      custom_theme?: components['schemas']['CustomTheme'];
     };
     Appearance: {
       /** @enum {string} */
@@ -6296,7 +6318,16 @@ export interface components {
        * @enum {string}
        */
       preset:
-        'workspace' | 'cenacle' | 'graphite' | 'ocean' | 'forest' | 'sunset' | 'rose' | 'contrast';
+        | 'workspace'
+        | 'cenacle'
+        | 'graphite'
+        | 'ocean'
+        | 'forest'
+        | 'sunset'
+        | 'rose'
+        | 'contrast'
+        | 'custom';
+      custom_theme?: components['schemas']['CustomTheme'];
       /** @enum {string} */
       density: 'auto' | 'compact' | 'comfortable';
       fonts: {

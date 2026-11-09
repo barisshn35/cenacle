@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 export * from './appearance';
+export * from './custom-theme';
 export * from './library';
 export {
   DensityProvider,

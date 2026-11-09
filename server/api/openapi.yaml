@@ -9055,7 +9055,17 @@ components:
         status: { type: string, enum: [online, away, dnd] }
     ThemePreset:
       type: string
-      enum: [cenacle, graphite, ocean, forest, sunset, rose, contrast]
+      description: "'custom' is made from `custom_theme`."
+      enum: [cenacle, graphite, ocean, forest, sunset, rose, contrast, custom]
+    CustomTheme:
+      type: object
+      description: The colors a custom theme is made from; the app makes both themes from them and keeps their text readable (WCAG 2.2 AA).
+      required: [accent, sidebar, surface, radius]
+      properties:
+        accent: { type: string, pattern: '^#[0-9a-fA-F]{6}$', description: Buttons, links and focus rings. }
+        sidebar: { type: string, pattern: '^#[0-9a-fA-F]{6}$', description: The sidebar and the workspace rail. }
+        surface: { type: string, enum: [neutral, warm, cool, tinted], description: The tone of the surfaces. }
+        radius: { type: string, enum: [sharp, default, round], description: How round corners are. }
     FontTemplate:
       type: string
       enum: [corporate, classic, modern, product, reading, legible]
@@ -9065,6 +9075,7 @@ components:
       properties:
         preset: { $ref: '#/components/schemas/ThemePreset' }
         font_template: { $ref: '#/components/schemas/FontTemplate' }
+        custom_theme: { $ref: '#/components/schemas/CustomTheme' }
     Appearance:
       type: object
       required: [theme, preset, density, fonts, font_size, line_height, code]
@@ -9073,7 +9084,8 @@ components:
         preset:
           type: string
           description: "A ThemePreset, or 'workspace' for the workspace's."
-          enum: [workspace, cenacle, graphite, ocean, forest, sunset, rose, contrast]
+          enum: [workspace, cenacle, graphite, ocean, forest, sunset, rose, contrast, custom]
+        custom_theme: { $ref: '#/components/schemas/CustomTheme' }
         density: { type: string, enum: [auto, compact, comfortable] }
         fonts:
           type: object

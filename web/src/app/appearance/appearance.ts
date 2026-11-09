@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { apiFetch, type components } from '@cenacle/core/api';
 import {
   applyResolvedAppearance,
+  DEFAULT_CUSTOM_THEME,
   familyOf,
   FONT_TEMPLATES,
   type ResolvedAppearance,
@@ -67,10 +68,12 @@ export function resolveAppearance(
   ws: WorkspaceAppearance = DEFAULT_WORKSPACE,
 ): ResolvedAppearance {
   const preset = (a.preset === 'workspace' ? ws.preset : a.preset) as ThemePreset;
+  const custom = a.preset === 'workspace' ? ws.custom_theme : a.custom_theme;
   const template = a.fonts.template === 'workspace' ? ws.font_template : a.fonts.template;
   const fonts = template === 'custom' ? a.fonts : FONT_TEMPLATES[template];
   return {
     preset,
+    ...(preset === 'custom' ? { custom: custom ?? DEFAULT_CUSTOM_THEME } : {}),
     textFamily: familyOf(fonts.text, 'text'),
     codeFamily: familyOf(fonts.code, 'code'),
     fontSize: a.font_size,

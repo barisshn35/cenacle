@@ -8,7 +8,8 @@ import { ApiError } from '@cenacle/core/api';
 import { Button } from '@cenacle/ui/components/button';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
-import { FONT_TEMPLATES, THEME_PRESETS } from '@cenacle/ui/theme';
+import { DEFAULT_CUSTOM_THEME, FONT_TEMPLATES, THEME_PRESETS } from '@cenacle/ui/theme';
+import { CustomThemeEditor } from '../appearance/custom-theme-editor';
 import { setWorkspaceAppearance } from '../appearance/appearance';
 import { initials } from '../auth/sign-out';
 import {
@@ -173,7 +174,14 @@ export function WorkspaceAppearanceForm({ workspace }: { workspace: Workspace })
             className={selectClass}
             value={a.preset}
             disabled={save.isPending}
-            onChange={(e) => save.mutate({ ...a, preset: e.target.value as typeof a.preset })}
+            onChange={(e) => {
+              const preset = e.target.value as typeof a.preset;
+              save.mutate(
+                preset === 'custom'
+                  ? { ...a, preset, custom_theme: a.custom_theme ?? DEFAULT_CUSTOM_THEME }
+                  : { ...a, preset },
+              );
+            }}
           >
             {THEME_PRESETS.map((p) => (
               <option key={p} value={p}>
@@ -201,6 +209,12 @@ export function WorkspaceAppearanceForm({ workspace }: { workspace: Workspace })
           </select>
         </div>
       </div>
+      {a.preset === 'custom' && (
+        <CustomThemeEditor
+          value={a.custom_theme ?? DEFAULT_CUSTOM_THEME}
+          onChange={(custom_theme) => save.mutate({ ...a, custom_theme })}
+        />
+      )}
     </section>
   );
 }

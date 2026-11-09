@@ -36,6 +36,18 @@ var EditableUITexts = []string{
 	"shell.channelStart", "shell.composerPlaceholder",
 }
 
+// hexColor is a "#rrggbb" color of a custom theme.
+var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// validCustomTheme checks the colors a custom theme is made from: needed when
+// the preset is "custom", optional (kept for later) otherwise.
+func validCustomTheme(custom bool, t *api.CustomTheme) bool {
+	if t == nil {
+		return !custom
+	}
+	return hexColor.MatchString(t.Accent) && hexColor.MatchString(t.Sidebar) && t.Surface.Valid() && t.Radius.Valid()
+}
+
 // fontID is a library font ("inter") or one of the user's ("user:<uuid>").
 var fontID = regexp.MustCompile(`^([a-z0-9-]{2,40}|user:[0-9a-f-]{36})$`)
 
@@ -57,7 +69,8 @@ func DefaultAppearance() api.Appearance {
 func validAppearance(a api.Appearance) bool {
 	return a.Theme.Valid() && a.Preset.Valid() && a.Density.Valid() && a.Fonts.Template.Valid() &&
 		fontID.MatchString(a.Fonts.Text) && fontID.MatchString(a.Fonts.Code) &&
-		a.FontSize >= 12 && a.FontSize <= 20 && a.LineHeight.Valid() && a.Code.Theme.Valid()
+		a.FontSize >= 12 && a.FontSize <= 20 && a.LineHeight.Valid() && a.Code.Theme.Valid() &&
+		validCustomTheme(a.Preset == api.AppearancePresetCustom, a.CustomTheme)
 }
 
 // readAppearance merges what is stored over the defaults (settings added in a
@@ -112,7 +125,8 @@ func (h *Handlers) SetMyAppearance(w http.ResponseWriter, r *http.Request) {
 func workspaceAppearance(raw []byte) api.WorkspaceAppearance {
 	a := api.WorkspaceAppearance{Preset: api.ThemePresetCenacle, FontTemplate: api.FontTemplateModern}
 	stored := a
-	if json.Unmarshal(raw, &stored) == nil && stored.Preset.Valid() && stored.FontTemplate.Valid() {
+	if json.Unmarshal(raw, &stored) == nil && stored.Preset.Valid() && stored.FontTemplate.Valid() &&
+		validCustomTheme(stored.Preset == api.ThemePresetCustom, stored.CustomTheme) {
 		return stored
 	}
 	return a
@@ -132,8 +146,8 @@ func (h *Handlers) SetWorkspaceAppearance(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	if !in.Preset.Valid() || !in.FontTemplate.Valid() {
-		badRequest(w, r, "Choose a known theme preset and font template.")
+	if !in.Preset.Valid() || !in.FontTemplate.Valid() || !validCustomTheme(in.Preset == api.ThemePresetCustom, in.CustomTheme) {
+		badRequest(w, r, "Choose a known theme preset and font template; a custom theme needs its colors.")
 		return
 	}
 	raw, _ := json.Marshal(in)

@@ -190,6 +190,7 @@ func (e AppearanceLineHeight) Valid() bool {
 const (
 	AppearancePresetCenacle   AppearancePreset = "cenacle"
 	AppearancePresetContrast  AppearancePreset = "contrast"
+	AppearancePresetCustom    AppearancePreset = "custom"
 	AppearancePresetForest    AppearancePreset = "forest"
 	AppearancePresetGraphite  AppearancePreset = "graphite"
 	AppearancePresetOcean     AppearancePreset = "ocean"
@@ -204,6 +205,8 @@ func (e AppearancePreset) Valid() bool {
 	case AppearancePresetCenacle:
 		return true
 	case AppearancePresetContrast:
+		return true
+	case AppearancePresetCustom:
 		return true
 	case AppearancePresetForest:
 		return true
@@ -828,6 +831,51 @@ func (e CommandResultResponseType) Valid() bool {
 	case CommandResultResponseTypeInChannel:
 		return true
 	case CommandResultResponseTypeNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomThemeRadius.
+const (
+	CustomThemeRadiusDefault CustomThemeRadius = "default"
+	CustomThemeRadiusRound   CustomThemeRadius = "round"
+	CustomThemeRadiusSharp   CustomThemeRadius = "sharp"
+)
+
+// Valid indicates whether the value is a known member of the CustomThemeRadius enum.
+func (e CustomThemeRadius) Valid() bool {
+	switch e {
+	case CustomThemeRadiusDefault:
+		return true
+	case CustomThemeRadiusRound:
+		return true
+	case CustomThemeRadiusSharp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomThemeSurface.
+const (
+	CustomThemeSurfaceCool    CustomThemeSurface = "cool"
+	CustomThemeSurfaceNeutral CustomThemeSurface = "neutral"
+	CustomThemeSurfaceTinted  CustomThemeSurface = "tinted"
+	CustomThemeSurfaceWarm    CustomThemeSurface = "warm"
+)
+
+// Valid indicates whether the value is a known member of the CustomThemeSurface enum.
+func (e CustomThemeSurface) Valid() bool {
+	switch e {
+	case CustomThemeSurfaceCool:
+		return true
+	case CustomThemeSurfaceNeutral:
+		return true
+	case CustomThemeSurfaceTinted:
+		return true
+	case CustomThemeSurfaceWarm:
 		return true
 	default:
 		return false
@@ -1555,6 +1603,7 @@ func (e TaskStatus) Valid() bool {
 const (
 	ThemePresetCenacle  ThemePreset = "cenacle"
 	ThemePresetContrast ThemePreset = "contrast"
+	ThemePresetCustom   ThemePreset = "custom"
 	ThemePresetForest   ThemePreset = "forest"
 	ThemePresetGraphite ThemePreset = "graphite"
 	ThemePresetOcean    ThemePreset = "ocean"
@@ -1568,6 +1617,8 @@ func (e ThemePreset) Valid() bool {
 	case ThemePresetCenacle:
 		return true
 	case ThemePresetContrast:
+		return true
+	case ThemePresetCustom:
 		return true
 	case ThemePresetForest:
 		return true
@@ -2436,9 +2487,12 @@ type Appearance struct {
 		Theme       AppearanceCodeTheme `json:"theme"`
 		Wrap        bool                `json:"wrap"`
 	} `json:"code"`
-	Density  AppearanceDensity `json:"density"`
-	FontSize int               `json:"font_size"`
-	Fonts    struct {
+
+	// CustomTheme The colors a custom theme is made from; the app makes both themes from them and keeps their text readable (WCAG 2.2 AA).
+	CustomTheme *CustomTheme      `json:"custom_theme,omitempty"`
+	Density     AppearanceDensity `json:"density"`
+	FontSize    int               `json:"font_size"`
+	Fonts       struct {
 		Code string `json:"code"`
 
 		// Template A FontTemplate, 'workspace' for the workspace's, or 'custom' (text and code below).
@@ -3126,6 +3180,27 @@ type CustomStatus struct {
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	Text      string     `json:"text"`
 }
+
+// CustomTheme The colors a custom theme is made from; the app makes both themes from them and keeps their text readable (WCAG 2.2 AA).
+type CustomTheme struct {
+	// Accent Buttons
+	Accent string `json:"accent"`
+
+	// Radius How round corners are.
+	Radius CustomThemeRadius `json:"radius"`
+
+	// Sidebar The sidebar and the workspace rail.
+	Sidebar string `json:"sidebar"`
+
+	// Surface The tone of the surfaces.
+	Surface CustomThemeSurface `json:"surface"`
+}
+
+// CustomThemeRadius How round corners are.
+type CustomThemeRadius string
+
+// CustomThemeSurface The tone of the surfaces.
+type CustomThemeSurface string
 
 // Delivery defines model for Delivery.
 type Delivery struct {
@@ -4407,7 +4482,7 @@ type Terms struct {
 	Text string `json:"text"`
 }
 
-// ThemePreset defines model for ThemePreset.
+// ThemePreset 'custom' is made from `custom_theme`.
 type ThemePreset string
 
 // ThreadSummary The replies of a message (absent when it has none).
@@ -4659,8 +4734,12 @@ type WorkspaceRole string
 
 // WorkspaceAppearance defines model for WorkspaceAppearance.
 type WorkspaceAppearance struct {
+	// CustomTheme The colors a custom theme is made from; the app makes both themes from them and keeps their text readable (WCAG 2.2 AA).
+	CustomTheme  *CustomTheme `json:"custom_theme,omitempty"`
 	FontTemplate FontTemplate `json:"font_template"`
-	Preset       ThemePreset  `json:"preset"`
+
+	// Preset 'custom' is made from `custom_theme`.
+	Preset ThemePreset `json:"preset"`
 }
 
 // WorkspaceMember defines model for WorkspaceMember.
