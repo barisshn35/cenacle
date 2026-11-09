@@ -3958,6 +3958,85 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/stickers/{sticker_id}/save': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sticker_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Save a sticker for yourself (it comes first in your picker) */
+    put: operations['saveSticker'];
+    post?: never;
+    /** Take a sticker out of your saved ones */
+    delete: operations['unsaveSticker'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/gifs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Your GIFs, newest first */
+    get: operations['listMyGifs'];
+    put?: never;
+    /**
+     * Keep a GIF for yourself (saved from a message or made from a video)
+     * @description An animated or still GIF of at most 8 MB; 40 per person. Only you see your GIFs; sending one uploads it into the channel.
+     */
+    post: operations['addGif'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/gifs/{gif_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gif_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove one of your GIFs */
+    delete: operations['deleteGif'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/gifs/{gif_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gif_id: string;
+      };
+      cookie?: never;
+    };
+    /** One of your GIFs (only for you) */
+    get: operations['getGif'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspace_id}/sticker-packs': {
     parameters: {
       query?: never;
@@ -5451,6 +5530,8 @@ export interface components {
        * @description The pack it belongs to
        */
       pack_id: string | null;
+      /** @description You saved it (only in the workspace's list). */
+      saved?: boolean;
     };
     StickerPack: {
       /** Format: uuid */
@@ -6583,6 +6664,17 @@ export interface components {
       push_public_key: string | null;
       /** @description The installation can send e-mail. */
       email_available: boolean;
+    };
+    UserGif: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      width: number;
+      height: number;
+      size: number;
+      url: string;
+      /** Format: date-time */
+      created_at: string;
     };
     UserSound: {
       /** Format: uuid */
@@ -14394,6 +14486,150 @@ export interface operations {
       };
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  saveSticker: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sticker_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Saved. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  unsaveSticker: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sticker_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Taken out. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listMyGifs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Your GIFs. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            gifs: components['schemas']['UserGif'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  addGif: {
+    parameters: {
+      query: {
+        name: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'image/gif': string;
+      };
+    };
+    responses: {
+      /** @description Kept. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserGif'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      413: components['responses']['Problem'];
+      422: components['responses']['Problem'];
+    };
+  };
+  deleteGif: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gif_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getGif: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gif_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The GIF. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'image/gif': string;
+        };
+      };
+      401: components['responses']['Problem'];
       404: components['responses']['Problem'];
     };
   };

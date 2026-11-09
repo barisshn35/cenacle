@@ -551,6 +551,7 @@ export function Composer({
               <InsertEmojiButton onPick={insert} returnTo={input} />
               {!burn && (
                 <StickerPicker
+                  onGif={permissions.upload_files ? (f) => addFiles([f]) : undefined}
                   onPick={(s) =>
                     send(
                       channelId,

@@ -55,25 +55,40 @@ export function drawSticker(ctx: CanvasRenderingContext2D, art: StickerArt, size
   const p = placement(art.picture.width, art.picture.height, art.zoom, art.offset, size);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(art.picture, p.x, p.y, p.w, p.h);
-  const caption = (text: string, at: 'top' | 'bottom') => {
-    const line = text.trim();
-    if (!line) return;
-    const font = (px: number) => `800 ${px}px ${art.font}`;
-    const px = captionSize((n) => {
+  drawCaption(ctx, art.top, 'top', size, size, art.font);
+  drawCaption(ctx, art.bottom, 'bottom', size, size, art.font);
+}
+
+/**
+ * A caption in the style of stickers and GIFs: bold white letters with a
+ * black edge, as large as fits, at the top or bottom of a width × height area.
+ */
+export function drawCaption(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  at: 'top' | 'bottom',
+  width: number,
+  height: number,
+  family: string,
+) {
+  const line = text.trim();
+  if (!line) return;
+  const font = (px: number) => `800 ${px}px ${family}`;
+  const px = captionSize(
+    (n) => {
       ctx.font = font(n);
       return ctx.measureText(line).width;
-    }, size);
-    ctx.font = font(px);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = at === 'top' ? 'top' : 'bottom';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(3, px * 0.16);
-    ctx.strokeStyle = '#000';
-    ctx.fillStyle = '#fff';
-    const y = at === 'top' ? size * 0.04 : size * 0.96;
-    ctx.strokeText(line, size / 2, y);
-    ctx.fillText(line, size / 2, y);
-  };
-  caption(art.top, 'top');
-  caption(art.bottom, 'bottom');
+    },
+    Math.min(width, height * 1.4),
+  );
+  ctx.font = font(px);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = at === 'top' ? 'top' : 'bottom';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = Math.max(3, px * 0.16);
+  ctx.strokeStyle = '#000';
+  ctx.fillStyle = '#fff';
+  const y = at === 'top' ? height * 0.04 : height * 0.96;
+  ctx.strokeText(line, width / 2, y);
+  ctx.fillText(line, width / 2, y);
 }

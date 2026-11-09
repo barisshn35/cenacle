@@ -402,3 +402,92 @@ func TestVoiceUploadFields(t *testing.T) {
 		}
 	}
 }
+
+func TestSavedStickersAndGIFs(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-ayse", "Ayşe")
+	mert := s.user("sub-mert", "Mert")
+	s.general(ayse)
+	s.general(mert)
+	stickersPath := "/api/workspaces/" + s.defaultWS + "/stickers"
+
+	// Mert saves the sticker Ayşe made; only his list says so.
+	res, body := s.upload(http.MethodPost, stickersPath+"?name=Wave", ayse, pngImage(t, 300, 300))
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("add sticker = %d %s", res.StatusCode, body)
+	}
+	var stickers struct{ Stickers []api.Sticker }
+	s.call(http.MethodGet, stickersPath, mert, nil, &stickers)
+	id := stickers.Stickers[0].Id.String()
+	for range 2 { // saving twice is fine
+		if res := s.call(http.MethodPut, "/api/stickers/"+id+"/save", mert, nil, nil); res.StatusCode != http.StatusNoContent {
+			t.Fatalf("save sticker = %d", res.StatusCode)
+		}
+	}
+	saved := func(token string) bool {
+		s.call(http.MethodGet, stickersPath, token, nil, &stickers)
+		return len(stickers.Stickers) == 1 && stickers.Stickers[0].Saved != nil && *stickers.Stickers[0].Saved
+	}
+	if !saved(mert) || saved(ayse) {
+		t.Errorf("saved: mert %v, ayşe %v", saved(mert), saved(ayse))
+	}
+	if res := s.call(http.MethodPut, "/api/stickers/00000000-0000-7000-8000-000000000000/save", mert, nil, nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("save unknown sticker = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodDelete, "/api/stickers/"+id+"/save", mert, nil, nil); res.StatusCode != http.StatusNoContent || saved(mert) {
+		t.Errorf("unsave = %d", res.StatusCode)
+	}
+	// A sticker taken out of the picker leaves the saved ones too.
+	s.call(http.MethodPut, "/api/stickers/"+id+"/save", mert, nil, nil)
+	if res := s.call(http.MethodDelete, "/api/stickers/"+id, ayse, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("remove sticker = %d", res.StatusCode)
+	}
+	var n int
+	if err := s.pool.QueryRow(context.Background(), "SELECT count(*) FROM sticker_saves WHERE sticker_id = $1", id).Scan(&n); err != nil || n != 0 {
+		t.Errorf("saves after removal = %d (%v)", n, err)
+	}
+
+	// GIFs: kept for oneself, seen by no one else.
+	res, body = s.upload(http.MethodPost, "/api/me/gifs?name=Dance", mert, animatedGIF(t))
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("add gif = %d %s", res.StatusCode, body)
+	}
+	var gifs struct{ Gifs []api.UserGif }
+	s.call(http.MethodGet, "/api/me/gifs", mert, nil, &gifs)
+	if len(gifs.Gifs) != 1 || gifs.Gifs[0].Name != "Dance" || gifs.Gifs[0].Width != 40 || gifs.Gifs[0].Url == "" {
+		t.Fatalf("gifs = %+v", gifs.Gifs)
+	}
+	g := gifs.Gifs[0]
+	if res := s.call(http.MethodGet, g.Url, mert, nil, nil); res.StatusCode != http.StatusOK || res.Header.Get("Content-Type") != "image/gif" {
+		t.Errorf("get gif = %d %s", res.StatusCode, res.Header.Get("Content-Type"))
+	}
+	if res := s.call(http.MethodGet, g.Url, ayse, nil, nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("another's gif = %d", res.StatusCode)
+	}
+	s.call(http.MethodGet, "/api/me/gifs", ayse, nil, &gifs)
+	if len(gifs.Gifs) != 0 {
+		t.Errorf("ayşe sees %+v", gifs.Gifs)
+	}
+	if res, _ := s.upload(http.MethodPost, "/api/me/gifs?name=Still", mert, pngImage(t, 10, 10)); res.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("png as gif = %d", res.StatusCode)
+	}
+	if res, _ := s.upload(http.MethodPost, "/api/me/gifs?name=%20", mert, animatedGIF(t)); res.StatusCode != http.StatusBadRequest {
+		t.Errorf("blank name = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodDelete, "/api/me/gifs/"+g.Id.String(), ayse, nil, nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("deleting another's gif = %d", res.StatusCode)
+	}
+	if res := s.call(http.MethodDelete, "/api/me/gifs/"+g.Id.String(), mert, nil, nil); res.StatusCode != http.StatusNoContent {
+		t.Errorf("delete gif = %d", res.StatusCode)
+	}
+
+	// Up to 40 each.
+	for i := range chat.MaxUserGIFs {
+		if res, _ := s.upload(http.MethodPost, fmt.Sprintf("/api/me/gifs?name=g%d", i), mert, animatedGIF(t)); res.StatusCode != http.StatusCreated {
+			t.Fatalf("gif %d = %d", i, res.StatusCode)
+		}
+	}
+	if res, _ := s.upload(http.MethodPost, "/api/me/gifs?name=more", mert, animatedGIF(t)); res.StatusCode != http.StatusConflict {
+		t.Errorf("over the limit = %d", res.StatusCode)
+	}
+}

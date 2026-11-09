@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BookmarkIcon,
   BookmarkMinusIcon,
+  FilmIcon,
   FlagIcon,
   ForwardIcon,
   LinkIcon,
@@ -16,6 +17,8 @@ import {
   PinOffIcon,
   Trash2Icon,
   ShieldAlertIcon,
+  StarIcon,
+  StarOffIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -32,6 +35,11 @@ import { useSession } from '../auth/session';
 import { ReportDialog } from '../community/moderation';
 import { SpillageReportDialog } from '../compliance/spillage';
 import { ForwardDialog } from '../richer/forward';
+import { stickerName } from '../richer/packs';
+import { addGif, MAX_GIF, myGifsQuery, stickersQuery } from '../richer/richer';
+import { GifTooLarge, gifError, useSaveSticker } from '../richer/keep';
+import { useActiveWorkspace } from './active-workspace';
+import { fileUrl } from './files';
 import {
   applySaved,
   savedQuery,
@@ -122,6 +130,31 @@ export function MessageActions({
 
   const unread = useMarkUnread(message);
 
+  // Stickers and GIFs others sent can be kept for oneself.
+  const { id: ws } = useActiveWorkspace();
+  const stickers = useQuery({ ...stickersQuery(ws), enabled: !!ws && !!message.sticker });
+  const sticker = message.sticker && stickers.data?.find((s) => s.id === message.sticker!.id);
+  const saveSticker = useSaveSticker(ws);
+  const gifs = (message.files ?? []).filter((f) => f.content_type === 'image/gif' && !f.encrypted);
+  const keepGifs = useMutation({
+    mutationFn: async () => {
+      for (const f of gifs) {
+        if (f.size > MAX_GIF) throw new GifTooLarge();
+        const res = await fetch(fileUrl(f.id), { credentials: 'same-origin' });
+        if (!res.ok) throw new Error(`file ${res.status}`);
+        await addGif(stickerName(f.name) || 'GIF', await res.blob());
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: myGifsQuery.queryKey });
+      toast.success(t('richer.gifs.kept', { count: gifs.length }));
+    },
+    onError: (err) => {
+      void queryClient.invalidateQueries({ queryKey: myGifsQuery.queryKey });
+      toast.error(gifError(err, t));
+    },
+  });
+
   const remove = useMutation({
     mutationFn: () => deleteMessage(message),
     onMutate: () => removeMessage(queryClient, message),
@@ -182,6 +215,20 @@ export function MessageActions({
                 <BookmarkIcon strokeWidth={1.75} />
               )}
               {saved ? t('saved.remove') : t('saved.save')}
+            </DropdownMenuItem>
+          )}
+          {!burn && sticker && (
+            <DropdownMenuItem
+              onClick={() => saveSticker.mutate({ id: sticker.id, saved: !sticker.saved })}
+            >
+              {sticker.saved ? <StarOffIcon strokeWidth={1.75} /> : <StarIcon strokeWidth={1.75} />}
+              {sticker.saved ? t('richer.stickers.unsaveAction') : t('richer.stickers.saveAction')}
+            </DropdownMenuItem>
+          )}
+          {!burn && gifs.length > 0 && (
+            <DropdownMenuItem disabled={keepGifs.isPending} onClick={() => keepGifs.mutate()}>
+              <FilmIcon strokeWidth={1.75} />
+              {t('richer.gifs.keep', { count: gifs.length })}
             </DropdownMenuItem>
           )}
           {!burn && (

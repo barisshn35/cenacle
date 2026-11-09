@@ -185,6 +185,8 @@ UNION ALL SELECT 'encryption_backup', to_jsonb(b) - 'data' FROM e2e_backups b WH
 UNION ALL SELECT 'encryption_recovery', jsonb_build_object('created_at', r.created_at) FROM e2e_recovery r WHERE r.user_id = @user_id
 UNION ALL SELECT 'font', to_jsonb(f) - 'data' || jsonb_build_object('data_base64', encode(f.data, 'base64')) FROM user_fonts f WHERE f.user_id = @user_id
 UNION ALL SELECT 'sound', to_jsonb(s) - 'data' || jsonb_build_object('data_base64', encode(s.data, 'base64')) FROM user_sounds s WHERE s.user_id = @user_id
+UNION ALL SELECT 'gif', to_jsonb(g) - 'data' || jsonb_build_object('data_base64', encode(g.data, 'base64')) FROM user_gifs g WHERE g.user_id = @user_id
+UNION ALL SELECT 'saved_sticker', to_jsonb(v) FROM sticker_saves v WHERE v.user_id = @user_id
 UNION ALL SELECT 'profile_picture', jsonb_build_object('content_type', p.content_type, 'data_base64', encode(p.data, 'base64'))
 FROM users u JOIN pictures p ON p.id = u.avatar_id WHERE u.id = @user_id
 -- What they made.

@@ -146,3 +146,36 @@ export const emojiName = (s: string) =>
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_+-]/g, '')
     .slice(0, 32);
+
+// --- saved stickers and one's own GIFs ------------------------------------------------
+
+/** Saves a sticker for oneself (it comes first in the picker), or takes it out. */
+export const setStickerSaved = (id: string, saved: boolean) =>
+  apiFetch<void>(`/api/stickers/${id}/save`, { method: saved ? 'PUT' : 'DELETE' });
+
+export type UserGif = components['schemas']['UserGif'];
+/** The server's limits for one's GIFs. */
+export const MAX_GIF = 8 << 20;
+export const MAX_GIFS = 40;
+
+export const myGifsQuery = queryOptions({
+  queryKey: ['me', 'gifs'],
+  queryFn: () => apiFetch<{ gifs: UserGif[] }>('/api/me/gifs').then((r) => r.gifs),
+  staleTime: 5 * 60_000,
+});
+
+export const addGif = (name: string, gif: Blob) =>
+  apiFetch<UserGif>(`/api/me/gifs?name=${encodeURIComponent(name.slice(0, 60))}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'image/gif' },
+    body: gif,
+  });
+
+export const deleteGif = (id: string) => apiFetch<void>(`/api/me/gifs/${id}`, { method: 'DELETE' });
+
+/** One's GIF as a file, to attach to a message like any upload. */
+export async function gifFile(gif: UserGif): Promise<File> {
+  const res = await fetch(gif.url, { credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`gif ${res.status}`);
+  return new File([await res.blob()], `${gif.name}.gif`, { type: 'image/gif' });
+}

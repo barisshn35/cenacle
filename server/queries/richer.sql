@@ -132,3 +132,37 @@ SELECT ((SELECT count(*) FROM gone) + (SELECT count(*) FROM kept))::bigint;
 
 -- name: ListMemberIDs :many
 SELECT user_id FROM channel_members WHERE channel_id = @channel_id;
+
+-- name: ListSavedStickerIDs :many
+-- ListSavedStickerIDs returns which stickers of a workspace a person saved, newest first.
+SELECT v.sticker_id FROM sticker_saves v JOIN stickers s ON s.id = v.sticker_id
+WHERE v.user_id = @user_id AND s.workspace_id = @workspace_id AND s.removed_at IS NULL
+ORDER BY v.created_at DESC;
+
+-- name: SaveSticker :exec
+INSERT INTO sticker_saves (user_id, sticker_id) VALUES (@user_id, @sticker_id)
+ON CONFLICT DO NOTHING;
+
+-- name: UnsaveSticker :exec
+DELETE FROM sticker_saves WHERE user_id = @user_id AND sticker_id = @sticker_id;
+
+-- name: DeleteStickerSaves :exec
+-- DeleteStickerSaves forgets a sticker taken out of the picker in everyone's saved ones.
+DELETE FROM sticker_saves WHERE sticker_id = @sticker_id;
+
+-- name: ListUserGIFs :many
+SELECT id, name, width, height, octet_length(data)::int AS size, created_at FROM user_gifs
+WHERE user_id = @user_id ORDER BY created_at DESC;
+
+-- name: CountUserGIFs :one
+SELECT count(*)::int FROM user_gifs WHERE user_id = @user_id;
+
+-- name: InsertUserGIF :one
+INSERT INTO user_gifs (user_id, name, width, height, data) VALUES (@user_id, @name, @width, @height, @data)
+RETURNING id, name, width, height, octet_length(data)::int AS size, created_at;
+
+-- name: GetUserGIF :one
+SELECT user_id, data FROM user_gifs WHERE id = @id;
+
+-- name: DeleteUserGIF :execrows
+DELETE FROM user_gifs WHERE id = @id AND user_id = @user_id;

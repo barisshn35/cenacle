@@ -119,7 +119,7 @@ test('custom emoji show in text and reactions; stickers are sent from the compos
   );
 
   await page.getByRole('button', { name: 'Stickers' }).click();
-  await page.getByTestId('sticker-list').getByRole('button', { name: 'Wave' }).click();
+  await page.getByTestId('sticker-list').getByRole('button', { name: 'Wave', exact: true }).click();
   await expect.poll(() => api.sent.at(-1)).toMatchObject({ body: '', sticker_id: STICKERS[0]!.id });
   await expect(page.getByTestId('sticker').last()).toHaveAttribute('alt', 'Wave');
 });
@@ -265,11 +265,11 @@ test('the sticker picker shows packs as sections', async ({ page }) => {
   await page.goto(`/c/${GENERAL.id}`);
   await page.getByRole('button', { name: 'Stickers' }).click();
   const list = page.getByTestId('sticker-list');
-  await expect(list.getByRole('region', { name: 'Cats' }).getByRole('button')).toHaveAccessibleName(
-    'Purr',
-  );
   await expect(
-    list.getByRole('region', { name: 'Other' }).getByRole('button'),
+    list.getByRole('region', { name: 'Cats' }).getByRole('button').first(),
+  ).toHaveAccessibleName('Purr');
+  await expect(
+    list.getByRole('region', { name: 'Other' }).getByRole('button').first(),
   ).toHaveAccessibleName('Wave');
 });
 
@@ -398,4 +398,199 @@ test('a guest has no sticker maker', async ({ page }) => {
   await page.getByRole('button', { name: 'Stickers' }).click();
   await expect(page.getByTestId('sticker-list')).toBeVisible();
   await expect(page.getByTestId('sticker-make')).toHaveCount(0);
+});
+
+// A 1×1 GIF.
+const GIF = Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64');
+
+/** One's GIFs on a mocked server: listed, added and removed. */
+async function mockGifs(page: import('@playwright/test').Page) {
+  const gifs: {
+    id: string;
+    name: string;
+    width: number;
+    height: number;
+    size: number;
+    url: string;
+    created_at: string;
+  }[] = [];
+  const added: { name: string; size: number }[] = [];
+  await page.route('**/api/me/gifs', (route) =>
+    route.fulfill({ json: { gifs: [...gifs].reverse() } }),
+  );
+  await page.route('**/api/me/gifs?*', (route) => {
+    const name = new URL(route.request().url()).searchParams.get('name')!;
+    const size = route.request().postDataBuffer()?.length ?? 0;
+    added.push({ name, size });
+    const id = `01a15e50-6100-7000-8000-${String(gifs.length + 1).padStart(12, '0')}`;
+    const gif = {
+      id,
+      name,
+      width: 2,
+      height: 2,
+      size,
+      url: `/api/gifs/${id}`,
+      created_at: '2026-11-09T10:00:00Z',
+    };
+    gifs.push(gif);
+    return route.fulfill({ status: 201, json: gif });
+  });
+  await page.route(/\/api\/gifs\/[0-9a-f-]{36}$/, (route) =>
+    route.fulfill({ body: GIF, contentType: 'image/gif' }),
+  );
+  return { gifs, added };
+}
+
+test('a sticker someone made is saved; saved ones come first', async ({ page }) => {
+  const purr = {
+    id: '01a15e50-5000-7000-8000-000000000002',
+    name: 'Purr',
+    url: '/api/pictures/01a15e50-5000-7000-8000-0000000000e2',
+    created_by: MERT.id,
+    pack_id: null,
+  };
+  await mockApi(page, {
+    stickers: [...STICKERS, purr],
+    messages: [
+      { ...mockMessage(3, '', 'Mert Kaya'), sticker: purr } as ReturnType<typeof mockMessage>,
+    ],
+  });
+  const saves: string[] = [];
+  await page.route(/\/api\/stickers\/[0-9a-f-]{36}\/save$/, (route) => {
+    saves.push(`${route.request().method()} ${route.request().url().split('/').at(-2)}`);
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+
+  // From the message that shows it.
+  const message = page.getByTestId('message').filter({ has: page.getByTestId('sticker') });
+  await message.hover();
+  await showActions(message);
+  await message.getByRole('button', { name: 'Message actions' }).click();
+  await page.getByRole('menuitem', { name: 'Save sticker' }).click();
+  await expect.poll(() => saves).toEqual([`PUT ${purr.id}`]);
+
+  // In the picker it comes first, and can be taken out there.
+  await page.getByRole('button', { name: 'Stickers' }).click();
+  const list = page.getByTestId('sticker-list');
+  await expect(list.getByRole('region').first()).toHaveAccessibleName('Saved');
+  await expect(
+    list.getByRole('region', { name: 'Saved' }).getByRole('button', { name: 'Purr', exact: true }),
+  ).toBeVisible();
+  await list
+    .getByRole('region', { name: 'Saved' })
+    .getByRole('button', { name: 'Take Purr out of saved' })
+    .click();
+  await expect(list.getByRole('region', { name: 'Saved' })).toHaveCount(0);
+  expect(saves.at(-1)).toBe(`DELETE ${purr.id}`);
+  // Saving from the picker: the star of a sticker.
+  await list.getByRole('button', { name: 'Save Wave' }).click();
+  await expect(
+    list.getByRole('region', { name: 'Saved' }).getByRole('button', { name: 'Wave', exact: true }),
+  ).toBeVisible();
+});
+
+test("a GIF in someone's message is kept, then sent again from the GIF tab", async ({
+  page,
+}, testInfo) => {
+  const file = {
+    id: '01a15e50-f11e-7000-8000-000000000009',
+    name: 'dance.gif',
+    content_type: 'image/gif',
+    size: GIF.length,
+    width: 2,
+    height: 2,
+    has_thumbnail: false,
+  };
+  await mockApi(page, { messages: [{ ...mockMessage(3, 'look', 'Mert Kaya'), files: [file] }] });
+  const { added } = await mockGifs(page);
+  await page.route(/\/api\/files\/[0-9a-f-]{36}\/(content|thumbnail)/, (route) =>
+    route.fulfill({ body: GIF, contentType: 'image/gif' }),
+  );
+  const uploads: string[] = [];
+  await page.route(`**/api/channels/${GENERAL.id}/files`, (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    const { name } = route.request().postDataJSON() as { name: string };
+    uploads.push(name);
+    return route.fulfill({
+      status: 201,
+      json: {
+        file: { ...file, id: '01a15e50-f11e-7000-8000-000000000010', name },
+        upload: { url: '/cenacle-files/', fields: {} },
+      },
+    });
+  });
+  await page.route('**/cenacle-files/', (route) => route.fulfill({ status: 204 }));
+  await page.route(/\/api\/files\/[0-9a-f-]{36}\/complete$/, (route) =>
+    route.fulfill({ json: { ...file, id: '01a15e50-f11e-7000-8000-000000000010' } }),
+  );
+  await page.goto(`/c/${GENERAL.id}`);
+
+  const message = page.getByTestId('message').filter({ hasText: 'look' });
+  await message.hover();
+  await showActions(message);
+  await message.getByRole('button', { name: 'Message actions' }).click();
+  await page.getByRole('menuitem', { name: 'Keep GIF' }).click();
+  await expect(page.getByText('GIF kept in your GIFs.')).toBeVisible();
+  expect(added).toEqual([{ name: 'dance', size: GIF.length }]);
+
+  await page.getByRole('button', { name: 'Stickers' }).click();
+  await page.getByRole('tab', { name: 'GIFs' }).click();
+  await expect(page.getByText('1 of 40 GIFs')).toBeVisible();
+  await expectTargetSizes(page, testInfo, '#sticker-panel-gifs');
+  await expectNoAxeViolations(page, '#sticker-panel-gifs');
+  await page.getByTestId('gif-list').getByRole('button', { name: 'dance', exact: true }).click();
+  // It goes into the message being written, as an upload.
+  await expect(page.getByTestId('upload')).toContainText('dance.gif');
+  expect(uploads).toEqual(['dance.gif']);
+});
+
+test('a GIF is made from a part of a video and kept', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'records the test video with MediaRecorder');
+  await mockApi(page);
+  const { added } = await mockGifs(page);
+  await page.goto(`/c/${GENERAL.id}`);
+  // A short video, recorded in the page from a canvas.
+  const webm = await page.evaluate(async () => {
+    const canvas = Object.assign(document.createElement('canvas'), { width: 64, height: 48 });
+    const ctx = canvas.getContext('2d')!;
+    const recorder = new MediaRecorder(canvas.captureStream(20), { mimeType: 'video/webm' });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    const stopped = new Promise((r) => (recorder.onstop = r));
+    recorder.start();
+    for (let i = 0; i < 24; i++) {
+      ctx.fillStyle = `hsl(${i * 15} 80% 50%)`;
+      ctx.fillRect(0, 0, 64, 48);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    recorder.stop();
+    await stopped;
+    const bytes = new Uint8Array(await new Blob(chunks).arrayBuffer());
+    let s = '';
+    for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s);
+  });
+
+  await page.getByRole('button', { name: 'Stickers' }).click();
+  await page.getByRole('tab', { name: 'GIFs' }).click();
+  await expect(page.getByText('No GIFs yet.', { exact: false })).toBeVisible();
+  await page.getByTestId('gif-make').click();
+  const maker = page.getByRole('dialog', { name: 'Make a GIF from a video' });
+  await maker.getByTestId('gif-maker-file').setInputFiles({
+    name: 'party_time.webm',
+    mimeType: 'video/webm',
+    buffer: Buffer.from(webm, 'base64'),
+  });
+  await expect(maker.getByLabel('Preview of the chosen part')).toBeVisible();
+  await maker.getByLabel('Text at the bottom').fill('YES');
+  await maker.getByLabel('Frames per second').selectOption('10');
+  await maker.getByRole('button', { name: 'Make GIF' }).click();
+  await expect(maker.getByTestId('gif-maker-result')).toBeVisible({ timeout: 20_000 });
+  await expect(maker.getByLabel('GIF name')).toHaveValue('party time');
+  await maker.getByRole('button', { name: 'Keep in my GIFs' }).click();
+  await expect(maker).toBeHidden();
+  expect(added).toHaveLength(1);
+  expect(added[0]!.name).toBe('party time');
+  expect(added[0]!.size).toBeGreaterThan(100);
 });

@@ -10,6 +10,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Save stickers others made: from the message's menu or with the star in the picker; saved
+  ones come first. Keep GIFs from messages in your own GIFs (up to 40, 8 MB each), and send
+  them again from the new GIF tab of the sticker button. Make a GIF from a part of a video
+  (up to 10 seconds, with a caption), on your device: the video is not uploaded.
 - Make a sticker: from the composer's sticker button (or workspace settings), a member
   fits a picture into the square, zooms and moves it (by dragging or with the arrow keys),
   adds a caption above and below, names it and sends it. An animated GIF left as it is

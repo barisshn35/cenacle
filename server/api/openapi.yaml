@@ -6186,6 +6186,92 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/stickers/{sticker_id}/save:
+    parameters:
+      - { name: sticker_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [chat]
+      operationId: saveSticker
+      summary: Save a sticker for yourself (it comes first in your picker)
+      responses:
+        '204': { description: Saved. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [chat]
+      operationId: unsaveSticker
+      summary: Take a sticker out of your saved ones
+      responses:
+        '204': { description: Taken out. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/me/gifs:
+    get:
+      tags: [chat]
+      operationId: listMyGifs
+      summary: Your GIFs, newest first
+      responses:
+        '200':
+          description: Your GIFs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [gifs]
+                properties:
+                  gifs:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserGif' }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: addGif
+      summary: Keep a GIF for yourself (saved from a message or made from a video)
+      description: An animated or still GIF of at most 8 MB; 40 per person. Only you see your GIFs; sending one uploads it into the channel.
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 60 } }
+      requestBody:
+        required: true
+        content:
+          image/gif:
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: Kept.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserGif' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /api/me/gifs/{gif_id}:
+    parameters:
+      - { name: gif_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: deleteGif
+      summary: Remove one of your GIFs
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/gifs/{gif_id}:
+    parameters:
+      - { name: gif_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: getGif
+      summary: One of your GIFs (only for you)
+      responses:
+        '200':
+          description: The GIF.
+          content:
+            image/gif:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /api/workspaces/{workspace_id}/sticker-packs:
     parameters:
       - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -8134,6 +8220,7 @@ components:
         url: { type: string }
         created_by: { type: string, format: uuid, nullable: true }
         pack_id: { type: string, format: uuid, nullable: true, description: The pack it belongs to, if any. }
+        saved: { type: boolean, description: You saved it (only in the workspace's list). }
     StickerPack:
       type: object
       required: [id, name, created_by, created_at]
@@ -9395,6 +9482,17 @@ components:
           nullable: true
           description: The VAPID public key (base64url) when web push is on, else null.
         email_available: { type: boolean, description: The installation can send e-mail. }
+    UserGif:
+      type: object
+      required: [id, name, width, height, size, url, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        size: { type: integer }
+        url: { type: string }
+        created_at: { type: string, format: date-time }
     UserSound:
       type: object
       required: [id, name, content_type, size, created_at]

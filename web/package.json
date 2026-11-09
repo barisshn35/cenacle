@@ -26,6 +26,7 @@
     "@tanstack/react-router": "1.170.45",
     "fflate": "0.8.3",
     "frimousse": "0.4.0",
+    "gifenc": "1.0.3",
     "i18next": "26.5.4",
     "lucide-react": "1.61.0",
     "react": "19.3.1",

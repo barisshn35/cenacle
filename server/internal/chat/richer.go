@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -562,9 +563,17 @@ func (h *Handlers) ListStickers(w http.ResponseWriter, r *http.Request, workspac
 		h.unavailable(w, r, "list stickers", err)
 		return
 	}
+	saved, err := h.Queries.ListSavedStickerIDs(r.Context(), store.ListSavedStickerIDsParams{
+		UserID: p.User.ID, WorkspaceID: pgUUID(workspaceID),
+	})
+	if err != nil {
+		h.unavailable(w, r, "list saved stickers", err)
+		return
+	}
 	out := make([]api.Sticker, len(list))
 	for i, s := range list {
 		out[i] = stickerAPI(s)
+		out[i].Saved = ptr(slices.Contains(saved, s.ID))
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string][]api.Sticker{"stickers": out})
 }
@@ -677,6 +686,9 @@ func (h *Handlers) DeleteSticker(w http.ResponseWriter, r *http.Request, sticker
 // removeSticker takes a sticker out of the picker: one some message shows is
 // only hidden (the message keeps showing it), any other goes with its picture.
 func removeSticker(ctx context.Context, q *store.Queries, s store.Sticker) error {
+	if err := q.DeleteStickerSaves(ctx, s.ID); err != nil {
+		return err
+	}
 	n, err := q.HideUsedSticker(ctx, s.ID)
 	if err != nil || n > 0 {
 		return err

@@ -45,6 +45,17 @@ func (q *Queries) CountStickers(ctx context.Context, workspaceID pgtype.UUID) (i
 	return column_1, err
 }
 
+const countUserGIFs = `-- name: CountUserGIFs :one
+SELECT count(*)::int FROM user_gifs WHERE user_id = $1
+`
+
+func (q *Queries) CountUserGIFs(ctx context.Context, userID pgtype.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countUserGIFs, userID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createCustomEmoji = `-- name: CreateCustomEmoji :one
 INSERT INTO custom_emoji (workspace_id, name, picture_id, created_by)
 VALUES ($1, $2, $3, $4)
@@ -181,6 +192,33 @@ func (q *Queries) DeleteStickerPack(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const deleteStickerSaves = `-- name: DeleteStickerSaves :exec
+DELETE FROM sticker_saves WHERE sticker_id = $1
+`
+
+// DeleteStickerSaves forgets a sticker taken out of the picker in everyone's saved ones.
+func (q *Queries) DeleteStickerSaves(ctx context.Context, stickerID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStickerSaves, stickerID)
+	return err
+}
+
+const deleteUserGIF = `-- name: DeleteUserGIF :execrows
+DELETE FROM user_gifs WHERE id = $1 AND user_id = $2
+`
+
+type DeleteUserGIFParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteUserGIF(ctx context.Context, arg DeleteUserGIFParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUserGIF, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getCustomEmoji = `-- name: GetCustomEmoji :one
 SELECT id, workspace_id, name, picture_id, created_by, created_at FROM custom_emoji WHERE id = $1
 `
@@ -255,6 +293,22 @@ func (q *Queries) GetStickerPack(ctx context.Context, id pgtype.UUID) (StickerPa
 	return i, err
 }
 
+const getUserGIF = `-- name: GetUserGIF :one
+SELECT user_id, data FROM user_gifs WHERE id = $1
+`
+
+type GetUserGIFRow struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Data   []byte      `json:"data"`
+}
+
+func (q *Queries) GetUserGIF(ctx context.Context, id pgtype.UUID) (GetUserGIFRow, error) {
+	row := q.db.QueryRow(ctx, getUserGIF, id)
+	var i GetUserGIFRow
+	err := row.Scan(&i.UserID, &i.Data)
+	return i, err
+}
+
 const hideUsedSticker = `-- name: HideUsedSticker :execrows
 UPDATE stickers s SET removed_at = now()
 WHERE s.id = $1 AND EXISTS (SELECT 1 FROM messages m WHERE m.sticker_id = s.id)
@@ -268,6 +322,48 @@ func (q *Queries) HideUsedSticker(ctx context.Context, id pgtype.UUID) (int64, e
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const insertUserGIF = `-- name: InsertUserGIF :one
+INSERT INTO user_gifs (user_id, name, width, height, data) VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, width, height, octet_length(data)::int AS size, created_at
+`
+
+type InsertUserGIFParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Name   string      `json:"name"`
+	Width  int32       `json:"width"`
+	Height int32       `json:"height"`
+	Data   []byte      `json:"data"`
+}
+
+type InsertUserGIFRow struct {
+	ID        pgtype.UUID `json:"id"`
+	Name      string      `json:"name"`
+	Width     int32       `json:"width"`
+	Height    int32       `json:"height"`
+	Size      int32       `json:"size"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+func (q *Queries) InsertUserGIF(ctx context.Context, arg InsertUserGIFParams) (InsertUserGIFRow, error) {
+	row := q.db.QueryRow(ctx, insertUserGIF,
+		arg.UserID,
+		arg.Name,
+		arg.Width,
+		arg.Height,
+		arg.Data,
+	)
+	var i InsertUserGIFRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Width,
+		&i.Height,
+		&i.Size,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const listBurnReveals = `-- name: ListBurnReveals :many
@@ -469,6 +565,38 @@ func (q *Queries) ListPendingLinks(ctx context.Context, rowLimit int32) ([]ListP
 	return items, nil
 }
 
+const listSavedStickerIDs = `-- name: ListSavedStickerIDs :many
+SELECT v.sticker_id FROM sticker_saves v JOIN stickers s ON s.id = v.sticker_id
+WHERE v.user_id = $1 AND s.workspace_id = $2 AND s.removed_at IS NULL
+ORDER BY v.created_at DESC
+`
+
+type ListSavedStickerIDsParams struct {
+	UserID      pgtype.UUID `json:"user_id"`
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+}
+
+// ListSavedStickerIDs returns which stickers of a workspace a person saved, newest first.
+func (q *Queries) ListSavedStickerIDs(ctx context.Context, arg ListSavedStickerIDsParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, listSavedStickerIDs, arg.UserID, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var sticker_id pgtype.UUID
+		if err := rows.Scan(&sticker_id); err != nil {
+			return nil, err
+		}
+		items = append(items, sticker_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listStickerPacks = `-- name: ListStickerPacks :many
 SELECT id, workspace_id, name, created_by, created_at FROM sticker_packs WHERE workspace_id = $1 ORDER BY created_at
 `
@@ -565,6 +693,47 @@ func (q *Queries) ListStickersByID(ctx context.Context, ids []pgtype.UUID) ([]St
 	return items, nil
 }
 
+const listUserGIFs = `-- name: ListUserGIFs :many
+SELECT id, name, width, height, octet_length(data)::int AS size, created_at FROM user_gifs
+WHERE user_id = $1 ORDER BY created_at DESC
+`
+
+type ListUserGIFsRow struct {
+	ID        pgtype.UUID `json:"id"`
+	Name      string      `json:"name"`
+	Width     int32       `json:"width"`
+	Height    int32       `json:"height"`
+	Size      int32       `json:"size"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+func (q *Queries) ListUserGIFs(ctx context.Context, userID pgtype.UUID) ([]ListUserGIFsRow, error) {
+	rows, err := q.db.Query(ctx, listUserGIFs, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserGIFsRow
+	for rows.Next() {
+		var i ListUserGIFsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Width,
+			&i.Height,
+			&i.Size,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const pruneLinkPreviews = `-- name: PruneLinkPreviews :many
 DELETE FROM link_previews WHERE url IN (
     SELECT l.url FROM link_previews l WHERE l.fetched_at < $1::timestamptz LIMIT $2
@@ -649,6 +818,21 @@ func (q *Queries) RevealBurn(ctx context.Context, arg RevealBurnParams) (time.Ti
 	return revealed_at, err
 }
 
+const saveSticker = `-- name: SaveSticker :exec
+INSERT INTO sticker_saves (user_id, sticker_id) VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+type SaveStickerParams struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	StickerID pgtype.UUID `json:"sticker_id"`
+}
+
+func (q *Queries) SaveSticker(ctx context.Context, arg SaveStickerParams) error {
+	_, err := q.db.Exec(ctx, saveSticker, arg.UserID, arg.StickerID)
+	return err
+}
+
 const setLinkState = `-- name: SetLinkState :exec
 UPDATE messages SET link_state = $1 WHERE id = $2
 `
@@ -660,6 +844,20 @@ type SetLinkStateParams struct {
 
 func (q *Queries) SetLinkState(ctx context.Context, arg SetLinkStateParams) error {
 	_, err := q.db.Exec(ctx, setLinkState, arg.LinkState, arg.ID)
+	return err
+}
+
+const unsaveSticker = `-- name: UnsaveSticker :exec
+DELETE FROM sticker_saves WHERE user_id = $1 AND sticker_id = $2
+`
+
+type UnsaveStickerParams struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	StickerID pgtype.UUID `json:"sticker_id"`
+}
+
+func (q *Queries) UnsaveSticker(ctx context.Context, arg UnsaveStickerParams) error {
+	_, err := q.db.Exec(ctx, unsaveSticker, arg.UserID, arg.StickerID)
 	return err
 }
 

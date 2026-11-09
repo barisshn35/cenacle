@@ -165,6 +165,7 @@ type Querier interface {
 	// CountUnsentFiles counts a person's uploads that no message carries yet.
 	CountUnsentFiles(ctx context.Context, uploaderID pgtype.UUID) (int64, error)
 	CountUserFonts(ctx context.Context, userID pgtype.UUID) (int32, error)
+	CountUserGIFs(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountUserSounds(ctx context.Context, userID pgtype.UUID) (int32, error)
 	CountWorkflows(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
@@ -282,10 +283,13 @@ type Querier interface {
 	DeleteStaleArchiveExport(ctx context.Context, arg DeleteStaleArchiveExportParams) (int64, error)
 	DeleteSticker(ctx context.Context, id pgtype.UUID) error
 	DeleteStickerPack(ctx context.Context, id pgtype.UUID) error
+	// DeleteStickerSaves forgets a sticker taken out of the picker in everyone's saved ones.
+	DeleteStickerSaves(ctx context.Context, stickerID pgtype.UUID) error
 	DeleteSubscription(ctx context.Context, arg DeleteSubscriptionParams) (int64, error)
 	DeleteUITexts(ctx context.Context, locale string) error
 	DeleteUnattachedFile(ctx context.Context, arg DeleteUnattachedFileParams) (File, error)
 	DeleteUserFont(ctx context.Context, arg DeleteUserFontParams) (int64, error)
+	DeleteUserGIF(ctx context.Context, arg DeleteUserGIFParams) (int64, error)
 	DeleteUserSession(ctx context.Context, arg DeleteUserSessionParams) (int64, error)
 	DeleteUserSound(ctx context.Context, arg DeleteUserSoundParams) (int64, error)
 	DeleteWebhook(ctx context.Context, arg DeleteWebhookParams) (int64, error)
@@ -498,6 +502,7 @@ type Querier interface {
 	GetUser(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByAuth(ctx context.Context, arg GetUserByAuthParams) (User, error)
 	GetUserFont(ctx context.Context, id pgtype.UUID) (GetUserFontRow, error)
+	GetUserGIF(ctx context.Context, id pgtype.UUID) (GetUserGIFRow, error)
 	GetUserSound(ctx context.Context, id pgtype.UUID) (GetUserSoundRow, error)
 	GetUsersByIDs(ctx context.Context, ids []pgtype.UUID) ([]User, error)
 	GetWorkflow(ctx context.Context, id pgtype.UUID) (Workflow, error)
@@ -532,6 +537,7 @@ type Querier interface {
 	InsertPushKeys(ctx context.Context, arg InsertPushKeysParams) error
 	InsertUIText(ctx context.Context, arg InsertUITextParams) error
 	InsertUserFont(ctx context.Context, arg InsertUserFontParams) (InsertUserFontRow, error)
+	InsertUserGIF(ctx context.Context, arg InsertUserGIFParams) (InsertUserGIFRow, error)
 	InsertUserSound(ctx context.Context, arg InsertUserSoundParams) (InsertUserSoundRow, error)
 	// InstanceCounts summarizes the installation (support bundle, status).
 	InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
@@ -705,6 +711,8 @@ type Querier interface {
 	// ListSaved returns the saved messages of a user in channels they belong to,
 	// newest first.
 	ListSaved(ctx context.Context, userID pgtype.UUID) ([]ListSavedRow, error)
+	// ListSavedStickerIDs returns which stickers of a workspace a person saved, newest first.
+	ListSavedStickerIDs(ctx context.Context, arg ListSavedStickerIDsParams) ([]pgtype.UUID, error)
 	ListScheduledMessages(ctx context.Context, ownerID pgtype.UUID) ([]ListScheduledMessagesRow, error)
 	// ListSharedChannels returns the channels shared over a connection, with their names.
 	ListSharedChannels(ctx context.Context, connectionID pgtype.UUID) ([]ListSharedChannelsRow, error)
@@ -730,6 +738,7 @@ type Querier interface {
 	// ones too (their earlier commits and messages are still checked with them).
 	ListUserDevicesFor(ctx context.Context, userIds []pgtype.UUID) ([]ListUserDevicesForRow, error)
 	ListUserFonts(ctx context.Context, userID pgtype.UUID) ([]ListUserFontsRow, error)
+	ListUserGIFs(ctx context.Context, userID pgtype.UUID) ([]ListUserGIFsRow, error)
 	ListUserGroups(ctx context.Context, userID pgtype.UUID) ([]string, error)
 	ListUserOpenCalls(ctx context.Context, userID pgtype.UUID) ([]Call, error)
 	// ListUserSessions returns a user's usable sessions, most recently used first.
@@ -972,6 +981,7 @@ type Querier interface {
 	SaveCanvas(ctx context.Context, arg SaveCanvasParams) (pgtype.UUID, error)
 	SaveDirectorySyncState(ctx context.Context, cursor string) error
 	SaveGroupRenameCursor(ctx context.Context, cursor int64) error
+	SaveSticker(ctx context.Context, arg SaveStickerParams) error
 	SaveWorkflowRun(ctx context.Context, arg SaveWorkflowRunParams) error
 	// SearchCanvases finds canvases of the user's channels by their text.
 	SearchCanvases(ctx context.Context, arg SearchCanvasesParams) ([]SearchCanvasesRow, error)
@@ -1103,6 +1113,7 @@ type Querier interface {
 	TouchSession(ctx context.Context, arg TouchSessionParams) error
 	TouchWebhook(ctx context.Context, id pgtype.UUID) error
 	UnackMessage(ctx context.Context, arg UnackMessageParams) (int64, error)
+	UnsaveSticker(ctx context.Context, arg UnsaveStickerParams) error
 	UnshareChannel(ctx context.Context, arg UnshareChannelParams) error
 	UpdateAutomodRule(ctx context.Context, arg UpdateAutomodRuleParams) (AutomodRule, error)
 	UpdateBot(ctx context.Context, arg UpdateBotParams) error

@@ -886,6 +886,12 @@ type StickerPack struct {
 	CreatedAt   time.Time   `json:"created_at"`
 }
 
+type StickerSafe struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	StickerID pgtype.UUID `json:"sticker_id"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
 type TermsOfService struct {
 	ID          pgtype.UUID        `json:"id"`
 	Text        string             `json:"text"`
@@ -944,6 +950,16 @@ type UserFont struct {
 	UserID    pgtype.UUID `json:"user_id"`
 	Name      string      `json:"name"`
 	Format    string      `json:"format"`
+	Data      []byte      `json:"data"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type UserGif struct {
+	ID        pgtype.UUID `json:"id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	Name      string      `json:"name"`
+	Width     int32       `json:"width"`
+	Height    int32       `json:"height"`
 	Data      []byte      `json:"data"`
 	CreatedAt time.Time   `json:"created_at"`
 }

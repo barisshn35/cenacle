@@ -4308,7 +4308,10 @@ type Sticker struct {
 
 	// PackId The pack it belongs to
 	PackId *openapi_types.UUID `json:"pack_id"`
-	Url    string              `json:"url"`
+
+	// Saved You saved it (only in the workspace's list).
+	Saved *bool  `json:"saved,omitempty"`
+	Url   string `json:"url"`
 }
 
 // StickerPack defines model for StickerPack.
@@ -4444,6 +4447,17 @@ type UserFont struct {
 
 // UserFontFormat defines model for UserFont.Format.
 type UserFontFormat string
+
+// UserGif defines model for UserGif.
+type UserGif struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Height    int                `json:"height"`
+	Id        openapi_types.UUID `json:"id"`
+	Name      string             `json:"name"`
+	Size      int                `json:"size"`
+	Url       string             `json:"url"`
+	Width     int                `json:"width"`
+}
 
 // UserSound defines model for UserSound.
 type UserSound struct {
@@ -5143,6 +5157,11 @@ type SetMyAIConsentJSONBody struct {
 
 // UploadFontParams defines parameters for UploadFont.
 type UploadFontParams struct {
+	Name string `form:"name" json:"name"`
+}
+
+// AddGifParams defines parameters for AddGif.
+type AddGifParams struct {
 	Name string `form:"name" json:"name"`
 }
 
@@ -6503,6 +6522,9 @@ type ServerInterface interface {
 	// SubmitForm Fill in a form; the answers are posted in a channel
 	// (POST /api/forms/{form_id}/submissions)
 	SubmitForm(w http.ResponseWriter, r *http.Request, formId openapi_types.UUID)
+	// GetGif One of your GIFs (only for you)
+	// (GET /api/gifs/{gif_id})
+	GetGif(w http.ResponseWriter, r *http.Request, gifId openapi_types.UUID)
 	// GetGuestLink What a guest link leads to (no sign-in)
 	// (GET /api/guest-links/{token})
 	GetGuestLink(w http.ResponseWriter, r *http.Request, token string)
@@ -6572,6 +6594,15 @@ type ServerInterface interface {
 	// DeleteFont Remove a font you uploaded
 	// (DELETE /api/me/fonts/{font_id})
 	DeleteFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID)
+	// ListMyGifs Your GIFs, newest first
+	// (GET /api/me/gifs)
+	ListMyGifs(w http.ResponseWriter, r *http.Request)
+	// AddGif Keep a GIF for yourself (saved from a message or made from a video)
+	// (POST /api/me/gifs)
+	AddGif(w http.ResponseWriter, r *http.Request, params AddGifParams)
+	// DeleteGif Remove one of your GIFs
+	// (DELETE /api/me/gifs/{gif_id})
+	DeleteGif(w http.ResponseWriter, r *http.Request, gifId openapi_types.UUID)
 	// GetNotificationSettings Your notification settings, with muted channels and workspaces
 	// (GET /api/me/notifications)
 	GetNotificationSettings(w http.ResponseWriter, r *http.Request)
@@ -6719,6 +6750,12 @@ type ServerInterface interface {
 	// DeleteSticker Remove a sticker (who added it, or a workspace admin)
 	// (DELETE /api/stickers/{sticker_id})
 	DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
+	// UnsaveSticker Take a sticker out of your saved ones
+	// (DELETE /api/stickers/{sticker_id}/save)
+	UnsaveSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
+	// SaveSticker Save a sticker for yourself (it comes first in your picker)
+	// (PUT /api/stickers/{sticker_id}/save)
+	SaveSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID)
 	// DeleteChannelTab Delete a tab with its canvas or list (who added it and channel managers)
 	// (DELETE /api/tabs/{tab_id})
 	DeleteChannelTab(w http.ResponseWriter, r *http.Request, tabId openapi_types.UUID)
@@ -7964,6 +8001,12 @@ func (_ Unimplemented) SubmitForm(w http.ResponseWriter, r *http.Request, formId
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetGif One of your GIFs (only for you)
+// (GET /api/gifs/{gif_id})
+func (_ Unimplemented) GetGif(w http.ResponseWriter, r *http.Request, gifId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetGuestLink What a guest link leads to (no sign-in)
 // (GET /api/guest-links/{token})
 func (_ Unimplemented) GetGuestLink(w http.ResponseWriter, r *http.Request, token string) {
@@ -8099,6 +8142,24 @@ func (_ Unimplemented) UploadFont(w http.ResponseWriter, r *http.Request, params
 // DeleteFont Remove a font you uploaded
 // (DELETE /api/me/fonts/{font_id})
 func (_ Unimplemented) DeleteFont(w http.ResponseWriter, r *http.Request, fontId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListMyGifs Your GIFs, newest first
+// (GET /api/me/gifs)
+func (_ Unimplemented) ListMyGifs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AddGif Keep a GIF for yourself (saved from a message or made from a video)
+// (POST /api/me/gifs)
+func (_ Unimplemented) AddGif(w http.ResponseWriter, r *http.Request, params AddGifParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteGif Remove one of your GIFs
+// (DELETE /api/me/gifs/{gif_id})
+func (_ Unimplemented) DeleteGif(w http.ResponseWriter, r *http.Request, gifId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8393,6 +8454,18 @@ func (_ Unimplemented) DeleteStickerPack(w http.ResponseWriter, r *http.Request,
 // DeleteSticker Remove a sticker (who added it, or a workspace admin)
 // (DELETE /api/stickers/{sticker_id})
 func (_ Unimplemented) DeleteSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UnsaveSticker Take a sticker out of your saved ones
+// (DELETE /api/stickers/{sticker_id}/save)
+func (_ Unimplemented) UnsaveSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SaveSticker Save a sticker for yourself (it comes first in your picker)
+// (PUT /api/stickers/{sticker_id}/save)
+func (_ Unimplemented) SaveSticker(w http.ResponseWriter, r *http.Request, stickerId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -13462,6 +13535,32 @@ func (siw *ServerInterfaceWrapper) SubmitForm(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// GetGif operation middleware
+func (siw *ServerInterfaceWrapper) GetGif(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "gif_id" -------------
+	var gifId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "gif_id", chi.URLParam(r, "gif_id"), &gifId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "gif_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGif(w, r, gifId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetGuestLink operation middleware
 func (siw *ServerInterfaceWrapper) GetGuestLink(w http.ResponseWriter, r *http.Request) {
 
@@ -13995,6 +14094,79 @@ func (siw *ServerInterfaceWrapper) DeleteFont(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteFont(w, r, fontId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyGifs operation middleware
+func (siw *ServerInterfaceWrapper) ListMyGifs(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyGifs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddGif operation middleware
+func (siw *ServerInterfaceWrapper) AddGif(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AddGifParams
+
+	// ------------- Required query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddGif(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteGif operation middleware
+func (siw *ServerInterfaceWrapper) DeleteGif(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "gif_id" -------------
+	var gifId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "gif_id", chi.URLParam(r, "gif_id"), &gifId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "gif_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteGif(w, r, gifId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15349,6 +15521,58 @@ func (siw *ServerInterfaceWrapper) DeleteSticker(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteSticker(w, r, stickerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnsaveSticker operation middleware
+func (siw *ServerInterfaceWrapper) UnsaveSticker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sticker_id" -------------
+	var stickerId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sticker_id", chi.URLParam(r, "sticker_id"), &stickerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sticker_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnsaveSticker(w, r, stickerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveSticker operation middleware
+func (siw *ServerInterfaceWrapper) SaveSticker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sticker_id" -------------
+	var stickerId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sticker_id", chi.URLParam(r, "sticker_id"), &stickerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sticker_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveSticker(w, r, stickerId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18889,6 +19113,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/stickers/{sticker_id}", wrapper.DeleteSticker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/stickers/{sticker_id}/save", wrapper.UnsaveSticker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/stickers/{sticker_id}/save", wrapper.SaveSticker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/gifs", wrapper.ListMyGifs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/me/gifs", wrapper.AddGif)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/gifs/{gif_id}", wrapper.DeleteGif)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/gifs/{gif_id}", wrapper.GetGif)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/sticker-packs", wrapper.ListStickerPacks)
