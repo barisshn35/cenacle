@@ -1385,6 +1385,54 @@ func (q *Queries) RemoveMember(ctx context.Context, arg RemoveMemberParams) (int
 	return result.RowsAffected(), nil
 }
 
+const replaceAttachments = `-- name: ReplaceAttachments :one
+UPDATE messages SET attachments = $1
+WHERE id = $2 AND deleted_at IS NULL
+RETURNING id, channel_id, author_id, body, nonce, created_at, edited_at, deleted_at, deleted_by, attachments, has_files, root_id, also_in_channel, pinned_at, pinned_by, title, tags, link_url, link_state, forward, sticker_id, burn_seconds, task_id, submission_id, priority, ack_requested, persistent
+`
+
+type ReplaceAttachmentsParams struct {
+	Attachments []byte      `json:"attachments"`
+	ID          pgtype.UUID `json:"id"`
+}
+
+// ReplaceAttachments sets the cards of a message (live cards); its text and
+// edit time stay.
+func (q *Queries) ReplaceAttachments(ctx context.Context, arg ReplaceAttachmentsParams) (Message, error) {
+	row := q.db.QueryRow(ctx, replaceAttachments, arg.Attachments, arg.ID)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.AuthorID,
+		&i.Body,
+		&i.Nonce,
+		&i.CreatedAt,
+		&i.EditedAt,
+		&i.DeletedAt,
+		&i.DeletedBy,
+		&i.Attachments,
+		&i.HasFiles,
+		&i.RootID,
+		&i.AlsoInChannel,
+		&i.PinnedAt,
+		&i.PinnedBy,
+		&i.Title,
+		&i.Tags,
+		&i.LinkUrl,
+		&i.LinkState,
+		&i.Forward,
+		&i.StickerID,
+		&i.BurnSeconds,
+		&i.TaskID,
+		&i.SubmissionID,
+		&i.Priority,
+		&i.AckRequested,
+		&i.Persistent,
+	)
+	return i, err
+}
+
 const restoreMessage = `-- name: RestoreMessage :one
 UPDATE messages x SET deleted_at = NULL, deleted_by = NULL
 WHERE x.id = $1 AND x.deleted_at > now() - $2::interval

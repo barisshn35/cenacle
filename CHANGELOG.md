@@ -10,6 +10,12 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Charts and live cards: a card can carry a bar or line chart (up to 24 labels, four series),
+  drawn with a legend and the numbers as a table; a bot replaces the cards of its own message
+  in place (`PUT …/messages/{id}/attachments`, `messages:write`) without marking it edited.
+- Today, at the top of the sidebar: the mentions and direct messages that wait for you, the
+  day's events, what waits for your answer and the reminders due, on one page (with a
+  summary per conversation when AI is on).
 - Out of office (the status menu): the first day away, the day back and an optional
   automatic reply. Meanwhile the profile card and a direct conversation with you say so, and
   a direct message to you gets one automatic reply per conversation. Migration 00073; the data

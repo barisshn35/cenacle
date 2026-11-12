@@ -291,6 +291,24 @@ func (e ArchiveScheduleFormat) Valid() bool {
 	}
 }
 
+// Defines values for AttachmentChartKind.
+const (
+	Bar  AttachmentChartKind = "bar"
+	Line AttachmentChartKind = "line"
+)
+
+// Valid indicates whether the value is a known member of the AttachmentChartKind enum.
+func (e AttachmentChartKind) Valid() bool {
+	switch e {
+	case Bar:
+		return true
+	case Line:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AttachmentColor.
 const (
 	AttachmentColorDanger  AttachmentColor = "danger"
@@ -2580,6 +2598,20 @@ type Attachment struct {
 	// people are given by id and shown with their current profile.
 	ChannelEvent *ChannelLine `json:"channel_event,omitempty"`
 
+	// Chart A small chart on the card, bar or line: one label per point and up to four
+	// series with a value for each label. Apps show the numbers as a table too.
+	Chart *struct {
+		Kind   AttachmentChartKind `json:"kind"`
+		Labels []string            `json:"labels"`
+		Series []struct {
+			Name   string    `json:"name"`
+			Values []float64 `json:"values"`
+		} `json:"series"`
+
+		// Unit What the values count, e.g. "ms" or "%".
+		Unit *string `json:"unit,omitempty"`
+	} `json:"chart,omitempty"`
+
 	// Color The stripe on the card's edge (meaning is never the color alone).
 	Color  *AttachmentColor `json:"color,omitempty"`
 	Fields *[]struct {
@@ -2597,6 +2629,9 @@ type Attachment struct {
 	// TitleLink An http(s) URL the title links to.
 	TitleLink *string `json:"title_link,omitempty"`
 }
+
+// AttachmentChartKind defines model for Attachment.Chart.Kind.
+type AttachmentChartKind string
 
 // AttachmentColor The stripe on the card's edge (meaning is never the color alone).
 type AttachmentColor string
@@ -5119,6 +5154,11 @@ type RunMessageActionJSONBody struct {
 	Value *string `json:"value,omitempty"`
 }
 
+// ReplaceAttachmentsJSONBody defines parameters for ReplaceAttachments.
+type ReplaceAttachmentsJSONBody struct {
+	Attachments []Attachment `json:"attachments"`
+}
+
 // ForwardMessageJSONBody defines parameters for ForwardMessage.
 type ForwardMessageJSONBody struct {
 	ChannelId openapi_types.UUID `json:"channel_id"`
@@ -5829,6 +5869,9 @@ type EditMessageJSONRequestBody EditMessageJSONBody
 // RunMessageActionJSONRequestBody defines body for RunMessageAction for application/json ContentType.
 type RunMessageActionJSONRequestBody RunMessageActionJSONBody
 
+// ReplaceAttachmentsJSONRequestBody defines body for ReplaceAttachments for application/json ContentType.
+type ReplaceAttachmentsJSONRequestBody ReplaceAttachmentsJSONBody
+
 // ForwardMessageJSONRequestBody defines body for ForwardMessage for application/json ContentType.
 type ForwardMessageJSONRequestBody ForwardMessageJSONBody
 
@@ -6475,6 +6518,9 @@ type ServerInterface interface {
 	// RunMessageAction Press a button or choose in a menu of a bot's card
 	// (POST /api/channels/{channel_id}/messages/{message_id}/actions)
 	RunMessageAction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
+	// ReplaceAttachments Replace the cards of your message (live cards)
+	// (PUT /api/channels/{channel_id}/messages/{message_id}/attachments)
+	ReplaceAttachments(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
 	// ListMessageEdits The earlier versions of an edited message, the newest first
 	// (GET /api/channels/{channel_id}/messages/{message_id}/edits)
 	ListMessageEdits(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID)
@@ -7792,6 +7838,12 @@ func (_ Unimplemented) AckMessage(w http.ResponseWriter, r *http.Request, channe
 // RunMessageAction Press a button or choose in a menu of a bot's card
 // (POST /api/channels/{channel_id}/messages/{message_id}/actions)
 func (_ Unimplemented) RunMessageAction(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReplaceAttachments Replace the cards of your message (live cards)
+// (PUT /api/channels/{channel_id}/messages/{message_id}/attachments)
+func (_ Unimplemented) ReplaceAttachments(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID, messageId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -12088,6 +12140,41 @@ func (siw *ServerInterfaceWrapper) RunMessageAction(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RunMessageAction(w, r, channelId, messageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceAttachments operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceAttachments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "message_id" -------------
+	var messageId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "message_id", chi.URLParam(r, "message_id"), &messageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceAttachments(w, r, channelId, messageId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -19297,6 +19384,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/runs/{run_id}/finish", wrapper.FinishRun)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/attachments", wrapper.ReplaceAttachments)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channel_id}/messages/{message_id}/forward", wrapper.ForwardMessage)

@@ -95,6 +95,10 @@
   --color-unread: var(--unread);
   --color-bot-badge: var(--bot-badge);
   --color-bot-badge-foreground: var(--bot-badge-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
   --color-attachment-stripe-default: var(--attachment-stripe-default);
   --color-attachment-stripe-info: var(--attachment-stripe-info);
   --color-attachment-stripe-success: var(--attachment-stripe-success);
@@ -231,6 +235,13 @@
   --unread: var(--foreground);
   --bot-badge: var(--brand-forest);
   --bot-badge-foreground: var(--brand-bone);
+  /* Chart series, in this fixed order (validated for colour vision deficiency
+     on the card surface; light pairs below 3:1 always come with a legend and
+     the numbers as a table). */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
   --attachment-stripe-default: var(--rule-strong);
   --attachment-stripe-info: var(--info);
   --attachment-stripe-success: var(--success);
@@ -253,6 +264,10 @@
   --foreground: #ece8dd;
   --card: #14221d;
   --card-foreground: var(--foreground);
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
   --popover: #16251f;
   --popover-foreground: var(--foreground);
   --accent-brand: var(--brand-brass);

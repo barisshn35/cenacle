@@ -3861,6 +3861,32 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/channels/{channel_id}/messages/{message_id}/attachments': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Replace the cards of your message (live cards)
+     * @description The author (a bot, usually) replaces the cards under its message, e.g. to show a
+     *     build's progress or new numbers in a chart. The text stays; it is not an edit
+     *     and keeps no history. Members receive `message.updated`. Not in end-to-end
+     *     encrypted channels.
+     */
+    put: operations['replaceAttachments'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/messages/{message_id}/forward': {
     parameters: {
       query?: never;
@@ -7075,6 +7101,21 @@ export interface components {
     };
     /** @description A card under a message, e.g. from a bot (an issue, an alert). */
     Attachment: {
+      /**
+       * @description A small chart on the card, bar or line: one label per point and up to four
+       *     series with a value for each label. Apps show the numbers as a table too.
+       */
+      chart?: {
+        /** @enum {string} */
+        kind: 'bar' | 'line';
+        /** @description What the values count, e.g. "ms" or "%". */
+        unit?: string;
+        labels: string[];
+        series: {
+          name: string;
+          values: number[];
+        }[];
+      };
       /** @description The message is an automatic reply of someone out of office. */
       auto_reply?: {
         /** Format: date-time */
@@ -14410,6 +14451,39 @@ export interface operations {
           'application/json': components['schemas']['Run'];
         };
       };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  replaceAttachments: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+        message_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          attachments: components['schemas']['Attachment'][];
+        };
+      };
+    };
+    responses: {
+      /** @description Replaced. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Message'];
+        };
+      };
+      400: components['responses']['Problem'];
       401: components['responses']['Problem'];
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];

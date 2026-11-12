@@ -4,6 +4,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -640,4 +641,71 @@ func (p Purger) PurgeDeleted(ctx context.Context) (int64, error) {
 
 func interval(d time.Duration) pgtype.Interval {
 	return pgtype.Interval{Microseconds: d.Microseconds(), Valid: true}
+}
+
+// ReplaceAttachments implements api.ServerInterface.
+func (h *Handlers) ReplaceAttachments(w http.ResponseWriter, r *http.Request, channelID, messageID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
+	var in api.ReplaceAttachmentsJSONBody
+	if !decode(w, r, &in) {
+		return
+	}
+	cards, raw, problem := cleanAttachments(&in.Attachments)
+	if problem != "" {
+		badRequest(w, r, problem)
+		return
+	}
+	c, _, m, ok := h.message(w, r, channelID, messageID, p.User)
+	if !ok {
+		return
+	}
+	// Cards the server writes (lines, automatic replies, call summaries) are not the author's to change.
+	var before []api.Attachment
+	_ = json.Unmarshal(m.Attachments, &before)
+	serverCards := len(before) > 0 && (before[0].ChannelEvent != nil || before[0].AutoReply != nil || before[0].CallSummary != nil)
+	switch {
+	case m.DeletedAt.Valid:
+		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusNotFound, Code: httpx.CodeNotFound,
+			Detail: "The message was deleted."})
+		return
+	case m.AuthorID != p.User.ID || serverCards:
+		forbidden(w, r, httpx.CodeForbidden, "Only the author can change a message's cards.")
+		return
+	case c.Encrypted || c.Mls:
+		refuseEncrypted(w, r)
+		return
+	case m.BurnSeconds.Valid:
+		forbidden(w, r, CodeNotForBurn, "Burn-on-read messages cannot be changed.")
+		return
+	case c.ArchivedAt.Valid:
+		forbidden(w, r, CodeChannelArchived, "The channel is archived.")
+		return
+	case len(cards) == 0 && m.Body == "" && !m.HasFiles && !m.StickerID.Valid:
+		badRequest(w, r, "A message without text keeps at least one card.")
+		return
+	}
+	var out api.Message
+	err := h.inTx(r.Context(), func(q *store.Queries) error {
+		changed, err := q.ReplaceAttachments(r.Context(), store.ReplaceAttachmentsParams{ID: m.ID, Attachments: raw})
+		if err != nil {
+			return err
+		}
+		msgs := []api.Message{messageAPI(changed, m.AuthorName, m.AuthorIsBot)}
+		if err := decorate(r.Context(), q, p.User.ID, msgs); err != nil {
+			return err
+		}
+		out = msgs[0]
+		return emit(r.Context(), q, events.MessageUpdated, out)
+	})
+	if err != nil {
+		h.unavailable(w, r, "replace attachments", err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, out)
 }

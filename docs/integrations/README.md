@@ -42,18 +42,39 @@ are Markdown; `<@user-id>` or `@username` mentions a member (not inside code). U
 Colors are `neutral`, `info`, `success`, `warning` and `danger`; say the meaning in the text
 too.
 
+A card can carry a small chart, bar or line: up to 24 labels and up to four series with one
+number per label. Apps draw it and offer the numbers as a table too, so say what matters in
+the card's text as well:
+
+```json
+{
+  "title": "p95 latency, last 6 hours",
+  "chart": {
+    "kind": "line",
+    "unit": "ms",
+    "labels": ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00"],
+    "series": [{ "name": "api", "values": [120, 118, 140, 210, 160, 125] }]
+  }
+}
+```
+
+**Live cards.** With `messages:write` a bot replaces the cards of its own message:
+`PUT /api/channels/<channel id>/messages/<message id>/attachments` with
+`{"attachments": [ … ]}`. The text stays and no edit is recorded; members see the new cards
+at once (`message.updated`). Use it for a build's progress or numbers that change.
+
 A bot token reaches only these operations; anything else answers `403` with the code
 `bot_not_allowed`:
 
 - `messages:read`: list its channels (`GET /api/channels`), read a channel's messages and
   files, download a file or its thumbnail;
-- `messages:write`: send messages, add and remove reactions, upload files (announce,
-  complete) and delete an upload not yet sent.
+- `messages:write`: send messages, replace the cards of its own messages, add and remove
+  reactions, upload files (announce, complete) and delete an upload not yet sent.
 
 Bots cannot edit or delete messages, their own included, whatever role the bot account
 holds in the workspace or channel: `PATCH` and `DELETE /api/channels/<id>/messages/<id>`
 answer `bot_not_allowed`, and the SDKs have no call for them. To change a card the bot
-posted, answer an interaction with `update` (see
+posted, replace its cards (above) or answer an interaction with `update` (see
 [Interactive messages](#interactive-messages)).
 
 Bots, webhooks, commands and workflows cannot write in channels encrypted end to end

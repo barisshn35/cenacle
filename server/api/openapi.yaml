@@ -6082,6 +6082,45 @@ paths:
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+  /api/channels/{channel_id}/messages/{message_id}/attachments:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: message_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [chat]
+      operationId: replaceAttachments
+      summary: Replace the cards of your message (live cards)
+      description: |
+        The author (a bot, usually) replaces the cards under its message, e.g. to show a
+        build's progress or new numbers in a chart. The text stays; it is not an edit
+        and keeps no history. Members receive `message.updated`. Not in end-to-end
+        encrypted channels.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attachments]
+              properties:
+                attachments:
+                  type: array
+                  maxItems: 5
+                  items: { $ref: '#/components/schemas/Attachment' }
+      responses:
+        '200':
+          description: Replaced.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/channels/{channel_id}/messages/{message_id}/forward:
     parameters:
       - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -9985,6 +10024,33 @@ components:
       type: object
       description: A card under a message, e.g. from a bot (an issue, an alert).
       properties:
+        chart:
+          type: object
+          description: |
+            A small chart on the card, bar or line: one label per point and up to four
+            series with a value for each label. Apps show the numbers as a table too.
+          required: [kind, labels, series]
+          properties:
+            kind: { type: string, enum: [bar, line] }
+            unit: { type: string, maxLength: 20, description: 'What the values count, e.g. "ms" or "%".' }
+            labels:
+              type: array
+              minItems: 1
+              maxItems: 24
+              items: { type: string, maxLength: 40 }
+            series:
+              type: array
+              minItems: 1
+              maxItems: 4
+              items:
+                type: object
+                required: [name, values]
+                properties:
+                  name: { type: string, maxLength: 60 }
+                  values:
+                    type: array
+                    maxItems: 24
+                    items: { type: number, format: double }
         auto_reply:
           type: object
           description: The message is an automatic reply of someone out of office.

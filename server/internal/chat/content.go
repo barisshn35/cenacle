@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"regexp"
 	"slices"
@@ -161,8 +162,15 @@ func cleanAttachments(in *[]api.Attachment) ([]api.Attachment, []byte, string) {
 			}
 			c.Actions = &actions
 		}
-		if c.Title == nil && c.Text == nil && c.Fields == nil {
-			return nil, nil, "An attachment needs a title, a text or fields."
+		if a.Chart != nil {
+			chart, problem := cleanChart(*a.Chart)
+			if problem != "" {
+				return nil, nil, problem
+			}
+			c.Chart = &chart
+		}
+		if c.Title == nil && c.Text == nil && c.Fields == nil && c.Chart == nil {
+			return nil, nil, "An attachment needs a title, a text, fields or a chart."
 		}
 		out = append(out, c)
 	}
@@ -386,4 +394,60 @@ func ackMessages(ctx context.Context, q store.Querier, reader pgtype.UUID, msgs 
 		}
 	}
 	return nil
+}
+
+// chartOf is the chart of an attachment.
+type chartOf = struct {
+	Kind   api.AttachmentChartKind `json:"kind"`
+	Labels []string                `json:"labels"`
+	Series []struct {
+		Name   string    `json:"name"`
+		Values []float64 `json:"values"`
+	} `json:"series"`
+	Unit *string `json:"unit,omitempty"`
+}
+
+// cleanChart checks a card's chart: bar or line, 1 to 24 labels, 1 to 4
+// series with one finite value per label, short texts.
+func cleanChart(in chartOf) (chartOf, string) {
+	const problem = "A chart is bar or line, with 1 to 24 labels (40 characters) and 1 to 4 series (60 characters) of one number per label."
+	out := chartOf{Kind: in.Kind}
+	if !in.Kind.Valid() {
+		return out, problem
+	}
+	if len(in.Labels) == 0 || len(in.Labels) > 24 || len(in.Series) == 0 || len(in.Series) > 4 {
+		return out, problem
+	}
+	for _, l := range in.Labels {
+		v, ok := cleanText(l, 40, false)
+		if !ok {
+			return out, problem
+		}
+		out.Labels = append(out.Labels, v)
+	}
+	for _, s := range in.Series {
+		name, ok := cleanText(s.Name, 60, false)
+		if !ok || name == "" || len(s.Values) != len(in.Labels) {
+			return out, problem
+		}
+		for _, v := range s.Values {
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return out, problem
+			}
+		}
+		out.Series = append(out.Series, struct {
+			Name   string    `json:"name"`
+			Values []float64 `json:"values"`
+		}{name, append([]float64{}, s.Values...)})
+	}
+	if in.Unit != nil {
+		u, ok := cleanText(*in.Unit, 20, false)
+		if !ok {
+			return out, problem
+		}
+		if u != "" {
+			out.Unit = &u
+		}
+	}
+	return out, ""
 }

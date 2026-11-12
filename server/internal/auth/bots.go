@@ -77,6 +77,8 @@ var botRoutes = []struct {
 	{http.MethodGet, regexp.MustCompile(`^/api/channels$`), ScopeMessagesRead},
 	{http.MethodGet, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages$`), ScopeMessagesRead},
 	{http.MethodPost, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages$`), ScopeMessagesWrite},
+	// Live cards: a bot replaces the cards of its own message.
+	{http.MethodPut, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages/[0-9a-fA-F-]{36}/attachments$`), ScopeMessagesWrite},
 	{http.MethodPut, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages/[0-9a-fA-F-]{36}/reactions/[^/]+$`), ScopeMessagesWrite},
 	{http.MethodDelete, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/messages/[0-9a-fA-F-]{36}/reactions/[^/]+$`), ScopeMessagesWrite},
 	{http.MethodPost, regexp.MustCompile(`^/api/channels/[0-9a-fA-F-]{36}/files$`), ScopeMessagesWrite},

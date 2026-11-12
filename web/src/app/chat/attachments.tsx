@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { CardChart } from './card-chart';
 import { cn } from '@cenacle/ui/lib/utils';
 import { CardActions } from './interactions';
 import type { components } from '@cenacle/core/api';
@@ -72,6 +73,7 @@ export function Attachments({
                 ))}
               </dl>
             )}
+            {a.chart && <CardChart chart={a.chart} />}
             {a.footer && <p className="mt-1 text-xs text-muted-foreground">{a.footer}</p>}
             {message && a.actions && a.actions.length > 0 && (
               <CardActions message={message} index={i} actions={a.actions} />

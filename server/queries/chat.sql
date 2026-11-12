@@ -188,6 +188,13 @@ UPDATE messages SET body = @body, edited_at = now()
 WHERE id = @id AND deleted_at IS NULL
 RETURNING *;
 
+-- name: ReplaceAttachments :one
+-- ReplaceAttachments sets the cards of a message (live cards); its text and
+-- edit time stay.
+UPDATE messages SET attachments = @attachments
+WHERE id = @id AND deleted_at IS NULL
+RETURNING *;
+
 -- name: DeleteMessage :one
 UPDATE messages SET deleted_at = now(), deleted_by = @deleted_by
 WHERE id = @id AND deleted_at IS NULL

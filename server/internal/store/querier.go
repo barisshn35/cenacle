@@ -943,6 +943,9 @@ type Querier interface {
 	// changed to its new name (one a workspace: the strongest role), unless the
 	// workspace maps the new name already.
 	RenameWorkspaceGroupMappings(ctx context.Context, arg RenameWorkspaceGroupMappingsParams) ([]RenameWorkspaceGroupMappingsRow, error)
+	// ReplaceAttachments sets the cards of a message (live cards); its text and
+	// edit time stay.
+	ReplaceAttachments(ctx context.Context, arg ReplaceAttachmentsParams) (Message, error)
 	ReplaceClassification(ctx context.Context, arg ReplaceClassificationParams) (Classification, error)
 	// ReplaceUserGroups sets the directory groups of a person.
 	ReplaceUserGroups(ctx context.Context, arg ReplaceUserGroupsParams) error
