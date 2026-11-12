@@ -1219,7 +1219,32 @@
     },
     "today": "bugün"
   },
+  "today": {
+    "needs": "Sizi bekleyenler",
+    "events": "Takviminizde",
+    "waiting": "Yanıtınızı bekleyenler",
+    "reminders": "Hatırlatıcılar",
+    "allUnreads": "Tüm okunmamışlar",
+    "noAnswer": "Yanıt verilmedi",
+    "overdue": "Gecikti",
+    "dueToday": "Bugün bitiyor",
+    "attachment": "Dosyalı bir mesaj",
+    "clear": "Bugün sizi bekleyen bir şey yok. Yeni bahsetmeler, doğrudan mesajlar, etkinlikler ve hatırlatıcılar burada görünür.",
+    "mentions_one": "{{count}} bahsetme",
+    "mentions_other": "{{count}} bahsetme",
+    "unread_one": "{{count}} okunmamış",
+    "unread_other": "{{count}} okunmamış",
+    "task": { "form": "Doldurulacak bir form", "approval": "Bir onay" }
+  },
+  "chart": {
+    "summary_one": "{{series}} için {{kind}}, {{count}} nokta. Sayılar aşağıdaki tabloda.",
+    "summary_other": "{{series}} için {{kind}}, {{count}} nokta. Sayılar aşağıdaki tabloda.",
+    "kinds": { "bar": "çubuk grafik", "line": "çizgi grafik" },
+    "table": "Sayıları göster",
+    "label": "Etiket"
+  },
   "home": {
+    "today": "Bugün",
     "threads": "Yanıt dizileri",
     "activity": "Gelen kutusu",
     "saved": "Kaydedilenler",

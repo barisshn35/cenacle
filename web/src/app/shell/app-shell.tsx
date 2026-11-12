@@ -26,7 +26,7 @@ import type { RightView } from '../../stores/layout';
 /** The view across channels at the path, if it is one (threads, inbox, saved, …). */
 function useHomeView() {
   const path = useLocation({ select: (l) => l.pathname });
-  return /^\/(threads|activity|saved|unreads|tasks|events|playbooks|workflows|compliance|ask|federation)$/.exec(
+  return /^\/(today|threads|activity|saved|unreads|tasks|events|playbooks|workflows|compliance|ask|federation)$/.exec(
     path,
   )?.[1] as HomeView | undefined;
 }

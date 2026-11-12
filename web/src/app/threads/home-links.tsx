@@ -11,6 +11,7 @@ import {
   ShieldCheckIcon,
   SparklesIcon,
   SquareCheckBigIcon,
+  SunIcon,
   ZapIcon,
 } from 'lucide-react';
 import { ChevronRightIcon } from 'lucide-react';
@@ -33,9 +34,10 @@ import { channelsQuery } from '../chat/data';
 import { unreadThreadsQuery } from './threads';
 
 /** The views everyone uses daily stay in sight; the rest fold under "More". */
-const PRIMARY = new Set(['activity', 'threads', 'saved', 'tasks']);
+const PRIMARY = new Set(['today', 'activity', 'threads', 'saved', 'tasks']);
 
 const LINKS = [
+  { view: 'today', icon: SunIcon },
   { view: 'activity', icon: InboxIcon },
   { view: 'threads', icon: MessagesSquareIcon },
   { view: 'saved', icon: BookmarkIcon },

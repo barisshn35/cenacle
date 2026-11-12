@@ -43,6 +43,7 @@ import { InboxBoard } from './inbox-board';
 import { EventsList } from '../community/events';
 import { PlaybooksList } from '../community/playbooks';
 import { MyTasks } from '../collab/my-tasks';
+import { TodayView } from './today';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import {
@@ -71,6 +72,7 @@ const FederationPage = lazy(() =>
 );
 
 export type HomeView =
+  | 'today'
   | 'threads'
   | 'activity'
   | 'saved'
@@ -160,14 +162,21 @@ function Empty({ children }: { children: ReactNode }) {
 }
 
 export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?: boolean }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <Shell
       title={t(`home.${view}`)}
-      subtitle={t(`home.subtitles.${view}`, { defaultValue: '' }) || undefined}
+      subtitle={
+        view === 'today'
+          ? new Intl.DateTimeFormat(dateLocale(i18n.language), { dateStyle: 'full' }).format(
+              new Date(),
+            )
+          : t(`home.subtitles.${view}`, { defaultValue: '' }) || undefined
+      }
       actions={view === 'threads' ? <MarkThreadsRead /> : undefined}
       mobile={mobile}
     >
+      {view === 'today' && <TodayView />}
       {view === 'threads' && <ThreadsList />}
       {view === 'activity' && <InboxBoard />}
       {view === 'saved' && <SavedList />}

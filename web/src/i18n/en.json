@@ -1219,7 +1219,32 @@
     },
     "today": "today"
   },
+  "today": {
+    "needs": "Needs you",
+    "events": "On your calendar",
+    "waiting": "Waiting for your answer",
+    "reminders": "Reminders",
+    "allUnreads": "All unreads",
+    "noAnswer": "Not answered",
+    "overdue": "Overdue",
+    "dueToday": "Due today",
+    "attachment": "A message with files",
+    "clear": "Nothing needs you today. New mentions, direct messages, events and reminders show here.",
+    "mentions_one": "{{count}} mention",
+    "mentions_other": "{{count}} mentions",
+    "unread_one": "{{count}} unread",
+    "unread_other": "{{count}} unread",
+    "task": { "form": "A form to fill in", "approval": "An approval" }
+  },
+  "chart": {
+    "summary_one": "{{kind}} of {{series}}, {{count}} point. The numbers are in the table below.",
+    "summary_other": "{{kind}} of {{series}}, {{count}} points. The numbers are in the table below.",
+    "kinds": { "bar": "Bar chart", "line": "Line chart" },
+    "table": "Show the numbers",
+    "label": "Label"
+  },
   "home": {
+    "today": "Today",
     "threads": "Threads",
     "activity": "Inbox",
     "saved": "Saved",

@@ -85,6 +85,7 @@ const channelRoute = createRoute({
 // /events, /playbooks.
 const homeRoutes = (
   [
+    'today',
     'threads',
     'activity',
     'saved',
