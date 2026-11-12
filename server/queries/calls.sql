@@ -63,12 +63,13 @@ UPDATE call_participants SET state = 'left', left_at = now(), session_id = NULL
 WHERE call_id = @call_id AND left_at IS NULL;
 
 -- name: GetCallSettings :one
-SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate
+SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions
 FROM workspaces WHERE id = @workspace_id;
 
 -- name: UpdateCallSettings :exec
 UPDATE workspaces SET calls_enabled = @calls_enabled, calls_guest_start = @calls_guest_start,
-    calls_max_participants = @calls_max_participants, calls_max_bitrate = @calls_max_bitrate
+    calls_max_participants = @calls_max_participants, calls_max_bitrate = @calls_max_bitrate,
+    calls_captions = @calls_captions
 WHERE id = @workspace_id;
 
 -- name: ExpireUserCallReservation :exec
@@ -203,3 +204,13 @@ JOIN channel_members m ON m.channel_id = k.channel_id AND m.user_id = @user_id
 WHERE k.ended_at IS NULL
 ORDER BY k.created_at DESC
 LIMIT 100;
+
+-- name: SetCallCaptions :one
+UPDATE calls SET captions_on = @captions_on, captions_by = CASE WHEN @captions_on THEN @user_id::uuid END,
+    revision = revision + 1
+WHERE id = @id AND ended_at IS NULL RETURNING *;
+
+-- name: CallCaptionsAllowed :one
+SELECT w.calls_captions FROM calls k
+JOIN channels c ON c.id = k.channel_id JOIN workspaces w ON w.id = c.workspace_id
+WHERE k.id = @call_id;

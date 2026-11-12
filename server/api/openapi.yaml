@@ -274,6 +274,55 @@ paths:
         '204': { description: Done. }
         '404': { description: No accessible call. }
         '409': { description: You are not in the call. }
+  /api/calls/{id}/captions:
+    put:
+      tags: [chat]
+      operationId: setCallCaptions
+      summary: Turn live captions on or off in a call
+      description: Everyone in the call sees that captions are on and who turned them on.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [on]
+              properties:
+                on: { type: boolean }
+      responses:
+        '204': { description: Done. }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { description: No accessible call. }
+        '409': { description: You are not in the call. }
+  /api/calls/{id}/captions/audio:
+    post:
+      tags: [chat]
+      operationId: sendCaptionAudio
+      summary: Send what one just said, to be captioned
+      description: |
+        While captions are on, each speaker's app sends its own microphone between
+        pauses (WebM or Ogg Opus, up to 12 seconds and 512 KiB). The text goes to the
+        call as `call.caption`; neither the audio nor the text is stored.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - name: language
+          in: query
+          schema: { type: string, enum: [auto, en, tr] }
+      requestBody:
+        required: true
+        content:
+          audio/webm: { schema: { type: string, format: binary } }
+          audio/ogg: { schema: { type: string, format: binary } }
+      responses:
+        '204': { description: Taken (the text follows as an event). }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { description: No accessible call. }
+        '409': { description: Captions are off, or you are not in the call. }
+        '413': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
   /api/calls/{id}/reactions:
     post:
       tags: [chat]
@@ -7859,10 +7908,14 @@ components:
         max_participants: { type: integer, minimum: 2, maximum: 16 }
         max_bitrate: { type: integer, minimum: 64000, maximum: 10000000 }
         available: { type: boolean }
+        captions: { type: boolean, description: 'Live captions are allowed in this workspace''s calls (ADR 0052).' }
+        captions_available: { type: boolean, description: The installation has a speech to text service. }
     Call:
       type: object
       required: [id, channel_id, state, revision, created_at, participants]
       properties:
+        captions_on: { type: boolean, description: Live captions are on in this call. }
+        captions_by: { type: string, format: uuid, nullable: true, description: Who turned the captions on. }
         id: { type: string, format: uuid }
         channel_id: { type: string, format: uuid }
         state: { type: string, enum: [ringing, active, ended] }

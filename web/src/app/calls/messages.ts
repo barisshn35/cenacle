@@ -1,6 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 export const callMessages = {
   en: {
+    captions: {
+      allow: 'Allow live captions',
+      allowHint: 'Speech in calls is written out on this installation; nothing is kept.',
+      turnOn: 'Captions',
+      turnOff: 'Stop captions',
+      on: 'Captions are on',
+      onBy: '{{name}} turned captions on',
+      onByYou: 'You turned captions on',
+      hide: 'Hide on my screen',
+      show: 'Show on my screen',
+      waiting: 'What people say will show here.',
+      cannotSend: 'This browser cannot send your speech for captions; you still see the others.',
+    },
     effects: {
       noise: 'Noise suppression',
       noiseStandard: 'Standard',
@@ -129,6 +142,20 @@ export const callMessages = {
     shortcutLeave: 'Leave call',
   },
   tr: {
+    captions: {
+      allow: 'Canlı altyazıya izin ver',
+      allowHint: 'Görüşmelerdeki konuşma bu kurulumda yazıya dökülür; hiçbir şey saklanmaz.',
+      turnOn: 'Altyazı',
+      turnOff: 'Altyazıyı kapat',
+      on: 'Altyazı açık',
+      onBy: 'Altyazıyı {{name}} açtı',
+      onByYou: 'Altyazıyı siz açtınız',
+      hide: 'Ekranımda gizle',
+      show: 'Ekranımda göster',
+      waiting: 'Söylenenler burada görünecek.',
+      cannotSend:
+        'Bu tarayıcı konuşmanızı altyazı için gönderemiyor; diğerlerininkini yine görürsünüz.',
+    },
     effects: {
       noise: 'Gürültü bastırma',
       noiseStandard: 'Standart',

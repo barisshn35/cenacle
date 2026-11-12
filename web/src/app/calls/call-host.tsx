@@ -36,6 +36,8 @@ import { channelsQuery } from '../chat/data';
 import { errorCode, joinCall, leaveCall, reapply, startRinging, useCall } from './state';
 import { PreJoinDialog } from './prejoin';
 import { EffectControls } from './effect-controls';
+import { CaptionsArea, CaptionsButton } from './captions';
+import { useCaptionsAllowed } from './captions-sender';
 import { loadJoinPrefs } from './prejoin-state';
 
 /** Quick reactions in a call. */
@@ -324,6 +326,7 @@ function CallPanel({
     .map((p) => p.user_id);
   const handUp = hands.includes(selfID);
   const live = !!state.session && state.connection === 'connected';
+  const captionsAllowed = useCaptionsAllowed();
   const callID = state.call?.id;
   const setHand = (raised: boolean) => {
     if (callID) void calls.setHand(callID, raised).catch(report);
@@ -376,6 +379,7 @@ function CallPanel({
           );
         })}
       </div>
+      <CaptionsArea selfID={selfID} />
       {state.error && (
         <p role="alert" className="text-sm text-destructive">
           {t(state.error, { defaultValue: t('error') })}
@@ -421,6 +425,7 @@ function CallPanel({
           <HandIcon data-icon="inline-start" />
           {handUp ? t('lowerHand') : t('raiseHand')}
         </Button>
+        {captionsAllowed && <CaptionsButton disabled={!live} />}
         <Popover>
           <PopoverTrigger
             render={

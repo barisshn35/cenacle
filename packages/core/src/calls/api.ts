@@ -22,6 +22,9 @@ export interface Call {
   ended_at: string | null;
   end_reason: string;
   participants: CallParticipant[];
+  /** Live captions are on (servers before 1.0 leave these out). */
+  captions_on?: boolean;
+  captions_by?: string | null;
 }
 export interface CallSettings {
   enabled: boolean;
@@ -29,6 +32,9 @@ export interface CallSettings {
   max_participants: number;
   max_bitrate: number;
   available: boolean;
+  /** Live captions allowed in this workspace, and offered by the installation. */
+  captions?: boolean;
+  captions_available?: boolean;
 }
 export interface CallAdmission {
   token: string;
@@ -70,6 +76,9 @@ export const calls = {
   /** Raises or lowers one's hand; everyone in the call sees it. */
   setHand: (callID: string, raised: boolean): Promise<void> =>
     apiFetch(`/api/calls/${id(callID)}/hand`, { ...json({ raised }), method: 'PUT' }),
+  /** Turns live captions on or off in a call (everyone sees it). */
+  setCaptions: (callID: string, on: boolean): Promise<void> =>
+    apiFetch(`/api/calls/${id(callID)}/captions`, { ...json({ on }), method: 'PUT' }),
   /** A reaction that floats over one's tile for the others (not stored). */
   react: (callID: string, emoji: string): Promise<void> =>
     apiFetch(`/api/calls/${id(callID)}/reactions`, json({ emoji })),
@@ -77,7 +86,7 @@ export const calls = {
     apiFetch(`/api/workspaces/${id(workspaceID)}/calls/settings`, { cache: 'no-store' }),
   updateSettings: (
     workspaceID: string,
-    settings: Omit<CallSettings, 'available'>,
+    settings: Omit<CallSettings, 'available' | 'captions_available'>,
   ): Promise<CallSettings> =>
     apiFetch(`/api/workspaces/${id(workspaceID)}/calls/settings`, {
       ...json({
@@ -85,6 +94,7 @@ export const calls = {
         guest_start: settings.guest_start,
         max_participants: settings.max_participants,
         max_bitrate: settings.max_bitrate,
+        ...(settings.captions === undefined ? {} : { captions: settings.captions }),
       }),
       method: 'PUT',
     }),

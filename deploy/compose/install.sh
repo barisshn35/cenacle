@@ -48,6 +48,9 @@ Usage: sudo sh install.sh [options]
   --media-public-ip IP the address users reach the media service on (asked when missing;
                        suggested from this host's interfaces, never looked up on the internet)
   --media-image REF    another cenacle-media image (default: the release's, like the others)
+  --captions MODEL     live captions in calls, on this host: base (faster) or small (better
+                       Turkish); turns calls on and downloads the model (without internet,
+                       copy ggml-MODEL.bin into captions-models/ first)
   --yes                ask nothing: the values above must be given as options
   --wait SECONDS       how long to wait for the services (default 600)
   -h, --help           this text
@@ -56,7 +59,7 @@ EOF
 
 domain='' id_domain='' admin_email='' acme_email='' tls_mode=''
 dir=/opt/cenacle keep_selinux='' skip_ports='' yes=''
-calls_mode='' calls_turn='' calls_public_ip='' calls_image=''
+calls_mode='' calls_turn='' calls_public_ip='' calls_image='' captions_model=''
 [ "${CENACLE_CALLS:-off}" != on ] || calls_mode=1
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -72,6 +75,7 @@ while [ $# -gt 0 ]; do
     --calls-turn) calls_mode=1 calls_turn=1; shift ;;
     --media-public-ip) calls_public_ip=${2:?--media-public-ip needs a value}; shift 2 ;;
     --media-image) calls_image=${2:?--media-image needs a value}; shift 2 ;;
+    --captions) captions_model=${2:?--captions needs base or small}; calls_mode=1; shift 2 ;;
     --yes) yes=1; shift ;;
     --wait) WAIT_SECONDS=${2:?--wait needs a value}; shift 2 ;;
     -h | --help) usage; exit 0 ;;
@@ -206,10 +210,12 @@ for d in "$data_dir" "$compose_dir"; do
 done
 
 dc() {
-  if [ -f .env.calls ] && grep -q '^CENACLE_CALLS_TURN=on' .env.calls; then
-    docker compose -f prod.yml -f calls.yml -f calls-turn.yml --env-file .env.prod --env-file .env.calls "$@"
-  elif [ -f .env.calls ]; then
-    docker compose -f prod.yml -f calls.yml --env-file .env.prod --env-file .env.calls "$@"
+  if [ -f .env.calls ]; then
+    set -- -f calls.yml \
+      $(grep -q '^CENACLE_CALLS_TURN=on' .env.calls && echo -f calls-turn.yml) \
+      $(grep -q '^CENACLE_CAPTIONS_MODEL=' .env.calls && echo -f captions.yml) \
+      --env-file .env.prod --env-file .env.calls "$@"
+    docker compose -f prod.yml "$@"
   else
     docker compose -f prod.yml --env-file .env.prod "$@"
   fi
@@ -430,6 +436,31 @@ if [ -n "$calls_new" ]; then
   mv .env.calls.new .env.calls
   umask 022
   say "wrote .env.calls: media address $calls_public_ip${calls_turn:+, TURN on}"
+fi
+# Live captions (ADR 0052): the model the speech to text service loads.
+if [ -n "$captions_model" ]; then
+  case "$captions_model" in
+    base) captions_sha=60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe ;;
+    small) captions_sha=1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b ;;
+    *) fail "--captions takes base or small" ;;
+  esac
+  captions_file=captions-models/ggml-$captions_model.bin
+  mkdir -p captions-models
+  if [ ! -s "$captions_file" ]; then
+    say "downloading the $captions_model speech model (Whisper, MIT) into $compose_dir/$captions_file"
+    curl -fsSL -o "$captions_file.part" "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-$captions_model.bin" ||
+      fail "the speech model could not be downloaded: copy ggml-$captions_model.bin into $compose_dir/captions-models/ and run again"
+    mv "$captions_file.part" "$captions_file"
+  fi
+  printf '%s  %s\n' "$captions_sha" "$captions_file" | sha256sum -c - >/dev/null 2>&1 ||
+    fail "$captions_file is not the expected Whisper $captions_model model (SHA-256 differs)"
+  chmod 0644 "$captions_file"
+  [ -f .env.calls ] || fail "live captions need calls: give --calls too"
+  grep -v '^CENACLE_CAPTIONS_MODEL=' .env.calls > .env.calls.new || true
+  printf 'CENACLE_CAPTIONS_MODEL=ggml-%s.bin\n' "$captions_model" >> .env.calls.new
+  mv .env.calls.new .env.calls
+  chmod 0600 .env.calls
+  say "live captions: on for this installation with the $captions_model model; each workspace's administrators allow them in its call settings"
 fi
 if [ -f .env.calls ]; then
   sh ./gen-call-secrets.sh >> "$log_file" 2>&1 || fail "the call keys could not be created (see $log_file; no key is written there)"

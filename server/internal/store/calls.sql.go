@@ -14,7 +14,7 @@ import (
 
 const activateCall = `-- name: ActivateCall :one
 UPDATE calls SET state = 'active', revision = revision + 1
-WHERE id = $1 AND ended_at IS NULL RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision
+WHERE id = $1 AND ended_at IS NULL RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by
 `
 
 func (q *Queries) ActivateCall(ctx context.Context, id pgtype.UUID) (Call, error) {
@@ -34,12 +34,14 @@ func (q *Queries) ActivateCall(ctx context.Context, id pgtype.UUID) (Call, error
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
 
 const bumpCallRevision = `-- name: BumpCallRevision :one
-UPDATE calls SET revision = revision + 1 WHERE id = $1 RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision
+UPDATE calls SET revision = revision + 1 WHERE id = $1 RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by
 `
 
 func (q *Queries) BumpCallRevision(ctx context.Context, id pgtype.UUID) (Call, error) {
@@ -59,6 +61,8 @@ func (q *Queries) BumpCallRevision(ctx context.Context, id pgtype.UUID) (Call, e
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
@@ -103,6 +107,19 @@ func (q *Queries) CallAdmissionAllowed(ctx context.Context, arg CallAdmissionAll
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const callCaptionsAllowed = `-- name: CallCaptionsAllowed :one
+SELECT w.calls_captions FROM calls k
+JOIN channels c ON c.id = k.channel_id JOIN workspaces w ON w.id = c.workspace_id
+WHERE k.id = $1
+`
+
+func (q *Queries) CallCaptionsAllowed(ctx context.Context, callID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, callCaptionsAllowed, callID)
+	var calls_captions bool
+	err := row.Scan(&calls_captions)
+	return calls_captions, err
 }
 
 const closeCallParticipants = `-- name: CloseCallParticipants :exec
@@ -196,7 +213,7 @@ func (q *Queries) CountOpenCalls(ctx context.Context) (int64, error) {
 const createCall = `-- name: CreateCall :one
 INSERT INTO calls (channel_id, created_by, nonce, state, ring_until, node_id, node_generation)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision
+RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by
 `
 
 type CreateCallParams struct {
@@ -234,6 +251,8 @@ func (q *Queries) CreateCall(ctx context.Context, arg CreateCallParams) (Call, e
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
@@ -295,7 +314,7 @@ func (q *Queries) CreateCallSummaryMessage(ctx context.Context, arg CreateCallSu
 
 const endCall = `-- name: EndCall :one
 UPDATE calls SET state = 'ended', ended_at = now(), end_reason = $1, revision = revision + 1
-WHERE id = $2 AND ended_at IS NULL RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision
+WHERE id = $2 AND ended_at IS NULL RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by
 `
 
 type EndCallParams struct {
@@ -320,6 +339,8 @@ func (q *Queries) EndCall(ctx context.Context, arg EndCallParams) (Call, error) 
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
@@ -404,7 +425,7 @@ func (q *Queries) ForceLeaveCallUser(ctx context.Context, arg ForceLeaveCallUser
 
 const getCall = `-- name: GetCall :one
 
-SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision FROM calls WHERE id = $1
+SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by FROM calls WHERE id = $1
 `
 
 // SPDX-License-Identifier: AGPL-3.0-only
@@ -425,12 +446,14 @@ func (q *Queries) GetCall(ctx context.Context, id pgtype.UUID) (Call, error) {
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
 
 const getCallByNonce = `-- name: GetCallByNonce :one
-SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision FROM calls WHERE channel_id = $1 AND nonce = $2
+SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by FROM calls WHERE channel_id = $1 AND nonce = $2
 `
 
 type GetCallByNonceParams struct {
@@ -455,12 +478,14 @@ func (q *Queries) GetCallByNonce(ctx context.Context, arg GetCallByNonceParams) 
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
 
 const getCallSettings = `-- name: GetCallSettings :one
-SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate
+SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions
 FROM workspaces WHERE id = $1
 `
 
@@ -469,6 +494,7 @@ type GetCallSettingsRow struct {
 	CallsGuestStart      bool  `json:"calls_guest_start"`
 	CallsMaxParticipants int32 `json:"calls_max_participants"`
 	CallsMaxBitrate      int32 `json:"calls_max_bitrate"`
+	CallsCaptions        bool  `json:"calls_captions"`
 }
 
 func (q *Queries) GetCallSettings(ctx context.Context, workspaceID pgtype.UUID) (GetCallSettingsRow, error) {
@@ -479,12 +505,13 @@ func (q *Queries) GetCallSettings(ctx context.Context, workspaceID pgtype.UUID) 
 		&i.CallsGuestStart,
 		&i.CallsMaxParticipants,
 		&i.CallsMaxBitrate,
+		&i.CallsCaptions,
 	)
 	return i, err
 }
 
 const getChannelCall = `-- name: GetChannelCall :one
-SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision FROM calls WHERE channel_id = $1 AND ended_at IS NULL
+SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by FROM calls WHERE channel_id = $1 AND ended_at IS NULL
 `
 
 func (q *Queries) GetChannelCall(ctx context.Context, channelID pgtype.UUID) (Call, error) {
@@ -504,6 +531,8 @@ func (q *Queries) GetChannelCall(ctx context.Context, channelID pgtype.UUID) (Ca
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
@@ -570,7 +599,7 @@ func (q *Queries) LeaveCallParticipant(ctx context.Context, arg LeaveCallPartici
 }
 
 const listActiveCallsForUser = `-- name: ListActiveCallsForUser :many
-SELECT k.id, k.channel_id, k.created_by, k.nonce, k.state, k.created_at, k.ring_until, k.started_at, k.ended_at, k.end_reason, k.node_id, k.node_generation, k.revision FROM calls k
+SELECT k.id, k.channel_id, k.created_by, k.nonce, k.state, k.created_at, k.ring_until, k.started_at, k.ended_at, k.end_reason, k.node_id, k.node_generation, k.revision, k.captions_on, k.captions_by FROM calls k
 JOIN channels c ON c.id = k.channel_id AND c.workspace_id = $1 AND c.archived_at IS NULL
 JOIN channel_members m ON m.channel_id = k.channel_id AND m.user_id = $2
 WHERE k.ended_at IS NULL
@@ -608,6 +637,8 @@ func (q *Queries) ListActiveCallsForUser(ctx context.Context, arg ListActiveCall
 			&i.NodeID,
 			&i.NodeGeneration,
 			&i.Revision,
+			&i.CaptionsOn,
+			&i.CaptionsBy,
 		); err != nil {
 			return nil, err
 		}
@@ -660,7 +691,7 @@ func (q *Queries) ListCallParticipants(ctx context.Context, callID pgtype.UUID) 
 }
 
 const listOpenCalls = `-- name: ListOpenCalls :many
-SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision FROM calls WHERE ended_at IS NULL ORDER BY id
+SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by FROM calls WHERE ended_at IS NULL ORDER BY id
 `
 
 func (q *Queries) ListOpenCalls(ctx context.Context) ([]Call, error) {
@@ -686,6 +717,8 @@ func (q *Queries) ListOpenCalls(ctx context.Context) ([]Call, error) {
 			&i.NodeID,
 			&i.NodeGeneration,
 			&i.Revision,
+			&i.CaptionsOn,
+			&i.CaptionsBy,
 		); err != nil {
 			return nil, err
 		}
@@ -698,7 +731,7 @@ func (q *Queries) ListOpenCalls(ctx context.Context) ([]Call, error) {
 }
 
 const listUserOpenCalls = `-- name: ListUserOpenCalls :many
-SELECT DISTINCT c.id, c.channel_id, c.created_by, c.nonce, c.state, c.created_at, c.ring_until, c.started_at, c.ended_at, c.end_reason, c.node_id, c.node_generation, c.revision FROM calls c JOIN call_participants p ON p.call_id = c.id
+SELECT DISTINCT c.id, c.channel_id, c.created_by, c.nonce, c.state, c.created_at, c.ring_until, c.started_at, c.ended_at, c.end_reason, c.node_id, c.node_generation, c.revision, c.captions_on, c.captions_by FROM calls c JOIN call_participants p ON p.call_id = c.id
 WHERE p.user_id = $1 AND p.left_at IS NULL AND c.ended_at IS NULL ORDER BY c.id
 `
 
@@ -725,6 +758,8 @@ func (q *Queries) ListUserOpenCalls(ctx context.Context, userID pgtype.UUID) ([]
 			&i.NodeID,
 			&i.NodeGeneration,
 			&i.Revision,
+			&i.CaptionsOn,
+			&i.CaptionsBy,
 		); err != nil {
 			return nil, err
 		}
@@ -737,7 +772,7 @@ func (q *Queries) ListUserOpenCalls(ctx context.Context, userID pgtype.UUID) ([]
 }
 
 const lockCall = `-- name: LockCall :one
-SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision FROM calls WHERE id = $1 FOR UPDATE
+SELECT id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by FROM calls WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) LockCall(ctx context.Context, id pgtype.UUID) (Call, error) {
@@ -757,6 +792,8 @@ func (q *Queries) LockCall(ctx context.Context, id pgtype.UUID) (Call, error) {
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
@@ -886,6 +923,41 @@ func (q *Queries) ReserveCallParticipant(ctx context.Context, arg ReserveCallPar
 	return i, err
 }
 
+const setCallCaptions = `-- name: SetCallCaptions :one
+UPDATE calls SET captions_on = $1, captions_by = CASE WHEN $1 THEN $2::uuid END,
+    revision = revision + 1
+WHERE id = $3 AND ended_at IS NULL RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by
+`
+
+type SetCallCaptionsParams struct {
+	CaptionsOn bool        `json:"captions_on"`
+	UserID     pgtype.UUID `json:"user_id"`
+	ID         pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) SetCallCaptions(ctx context.Context, arg SetCallCaptionsParams) (Call, error) {
+	row := q.db.QueryRow(ctx, setCallCaptions, arg.CaptionsOn, arg.UserID, arg.ID)
+	var i Call
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.CreatedBy,
+		&i.Nonce,
+		&i.State,
+		&i.CreatedAt,
+		&i.RingUntil,
+		&i.StartedAt,
+		&i.EndedAt,
+		&i.EndReason,
+		&i.NodeID,
+		&i.NodeGeneration,
+		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
+	)
+	return i, err
+}
+
 const setCallHand = `-- name: SetCallHand :execrows
 UPDATE call_participants
 SET hand_raised_at = CASE WHEN $1::boolean THEN coalesce(hand_raised_at, now()) ELSE NULL END
@@ -910,7 +982,7 @@ func (q *Queries) SetCallHand(ctx context.Context, arg SetCallHandParams) (int64
 
 const startConnectedCall = `-- name: StartConnectedCall :one
 UPDATE calls SET started_at = coalesce(started_at, now()), revision = revision + 1
-WHERE id = $1 AND state = 'active' RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision
+WHERE id = $1 AND state = 'active' RETURNING id, channel_id, created_by, nonce, state, created_at, ring_until, started_at, ended_at, end_reason, node_id, node_generation, revision, captions_on, captions_by
 `
 
 func (q *Queries) StartConnectedCall(ctx context.Context, id pgtype.UUID) (Call, error) {
@@ -930,14 +1002,17 @@ func (q *Queries) StartConnectedCall(ctx context.Context, id pgtype.UUID) (Call,
 		&i.NodeID,
 		&i.NodeGeneration,
 		&i.Revision,
+		&i.CaptionsOn,
+		&i.CaptionsBy,
 	)
 	return i, err
 }
 
 const updateCallSettings = `-- name: UpdateCallSettings :exec
 UPDATE workspaces SET calls_enabled = $1, calls_guest_start = $2,
-    calls_max_participants = $3, calls_max_bitrate = $4
-WHERE id = $5
+    calls_max_participants = $3, calls_max_bitrate = $4,
+    calls_captions = $5
+WHERE id = $6
 `
 
 type UpdateCallSettingsParams struct {
@@ -945,6 +1020,7 @@ type UpdateCallSettingsParams struct {
 	CallsGuestStart      bool        `json:"calls_guest_start"`
 	CallsMaxParticipants int32       `json:"calls_max_participants"`
 	CallsMaxBitrate      int32       `json:"calls_max_bitrate"`
+	CallsCaptions        bool        `json:"calls_captions"`
 	WorkspaceID          pgtype.UUID `json:"workspace_id"`
 }
 
@@ -954,6 +1030,7 @@ func (q *Queries) UpdateCallSettings(ctx context.Context, arg UpdateCallSettings
 		arg.CallsGuestStart,
 		arg.CallsMaxParticipants,
 		arg.CallsMaxBitrate,
+		arg.CallsCaptions,
 		arg.WorkspaceID,
 	)
 	return err

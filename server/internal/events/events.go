@@ -36,7 +36,9 @@ const (
 	CallEnded        = "call.ended"
 	CallParticipants = "call.participants"
 	// CallReaction: someone in a call sent a reaction (ephemeral).
-	CallReaction   = "call.reaction"
+	CallReaction = "call.reaction"
+	// CallCaption: a line of live captions (ephemeral).
+	CallCaption    = "call.caption"
 	MessageCreated = "message.created"
 	MessageUpdated = "message.updated"
 	MessageDeleted = "message.deleted"

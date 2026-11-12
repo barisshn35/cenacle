@@ -414,3 +414,73 @@ test('noise suppression and background blur load on the device and are remembere
   const kept = await page.evaluate(() => localStorage.getItem('cenacle.call.effects'));
   expect(JSON.parse(kept!)).toEqual({ noise: 'strong', background: 'blur' });
 });
+
+const startedNowCall = () => ({
+  ...snapshot,
+  id: '019a0000-0000-7000-8000-0000000000d9',
+  channel_id: GENERAL.id,
+  state: 'active',
+  started_at: new Date().toISOString(),
+});
+
+test('live captions: everyone sees who turned them on, the lines, and may hide them', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the call view is the same on phones');
+  const api = await mockApi(page);
+  await page.route('**/api/workspaces/*/calls/settings', (route) =>
+    route.fulfill({ json: { ...settings, captions: true, captions_available: true } }),
+  );
+  let turned: unknown;
+  await page.route('**/api/calls/*/captions', (route) => {
+    turned = route.request().postDataJSON();
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  await expect(page.getByRole('heading', { name: 'General', exact: true })).toBeVisible();
+  // In a call (no media server here: the call state is set as connected).
+  const call = {
+    ...startedNowCall(),
+    captions_on: false,
+    participants: [
+      { id: 'p0', user_id: PEOPLE[0]!.id, state: 'connected', joined_at: null, left_at: null },
+      { id: 'p1', user_id: AYSE.id, state: 'connected', joined_at: null, left_at: null },
+    ],
+  };
+  await page.evaluate(async (c) => {
+    const m = await import('/src/app/calls/state.ts');
+    m.useCall.setState({
+      call: c as never,
+      session: { registerAudio: async () => () => undefined } as never,
+      connection: 'connected',
+      expanded: true,
+    });
+  }, call);
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Captions', exact: true }).click();
+  await expect.poll(() => turned).toEqual({ on: true });
+
+  // The server says captions are on; a line arrives.
+  await page.evaluate(async (c) => {
+    const m = await import('/src/app/calls/state.ts');
+    m.useCall.setState({
+      call: { ...c, captions_on: true, captions_by: c.participants[1].user_id } as never,
+    });
+  }, call);
+  await expect(dialog.getByTestId('captions')).toContainText('Ayşe Yılmaz turned captions on');
+  api.emitEphemeral('call.caption', {
+    call_id: call.id,
+    channel_id: GENERAL.id,
+    user_id: AYSE.id,
+    text: 'Let us start with the release.',
+    at: new Date().toISOString(),
+  });
+  await expect(dialog.getByTestId('captions')).toContainText(
+    'Ayşe Yılmaz:Let us start with the release.',
+  );
+  await expectNoAxeViolations(page, '[data-testid="captions"]');
+  await dialog.getByRole('button', { name: 'Hide on my screen' }).click();
+  await expect(dialog.getByText('Let us start with the release.')).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Show on my screen' })).toBeVisible();
+});

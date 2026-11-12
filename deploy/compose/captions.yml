@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Opt-in overlay over prod.yml and calls.yml: live captions in calls (ADR 0052).
+# Speech to text is whisper.cpp's server (MIT) with a Whisper model (MIT) from
+# ./captions-models (install.sh --captions downloads it; without internet, copy
+# the file there). Only the chat server reaches it, on an internal network.
+services:
+  server:
+    environment:
+      CENACLE_CAPTIONS_URL: http://captions:8080
+    networks:
+      captions: {}
+  captions:
+    # whisper.cpp main-2ca53bb (2026-08-03), CPU build; pinned by digest.
+    image: ${CENACLE_CAPTIONS_IMAGE:-ghcr.io/ggml-org/whisper.cpp@sha256:1a139641f640851e844b6dcc237dd5bc9efaa851dd8a139827e64d0e870dac88}
+    entrypoint: ['/app/build/bin/whisper-server']
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --model
+      - /models/${CENACLE_CAPTIONS_MODEL:-ggml-base.bin}
+      # WebM and Ogg Opus from the apps become WAV with the image's ffmpeg.
+      - --convert
+      - --threads
+      - '${CENACLE_CAPTIONS_THREADS:-4}'
+    user: '65532:65532'
+    init: true
+    working_dir: /tmp
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:size=64m,noexec,nosuid']
+    volumes: ['./captions-models:/models:ro']
+    mem_limit: 3g
+    cpus: ${CENACLE_CAPTIONS_CPUS:-4}
+    pids_limit: 128
+    restart: unless-stopped
+    networks: [captions]
+    logging:
+      driver: local
+      options: { max-size: 10m, max-file: '3' }
+networks:
+  captions:
+    internal: true

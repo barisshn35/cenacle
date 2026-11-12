@@ -109,6 +109,8 @@ type Call struct {
 	NodeID         string             `json:"node_id"`
 	NodeGeneration pgtype.UUID        `json:"node_generation"`
 	Revision       int64              `json:"revision"`
+	CaptionsOn     bool               `json:"captions_on"`
+	CaptionsBy     pgtype.UUID        `json:"captions_by"`
 }
 
 type CallParticipant struct {
@@ -1074,6 +1076,7 @@ type Workspace struct {
 	CallsGuestStart         bool          `json:"calls_guest_start"`
 	CallsMaxParticipants    int32         `json:"calls_max_participants"`
 	CallsMaxBitrate         int32         `json:"calls_max_bitrate"`
+	CallsCaptions           bool          `json:"calls_captions"`
 }
 
 type WorkspaceAttribute struct {

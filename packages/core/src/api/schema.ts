@@ -168,6 +168,48 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/calls/{id}/captions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Turn live captions on or off in a call
+     * @description Everyone in the call sees that captions are on and who turned them on.
+     */
+    put: operations['setCallCaptions'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calls/{id}/captions/audio': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send what one just said, to be captioned
+     * @description While captions are on, each speaker's app sends its own microphone between
+     *     pauses (WebM or Ogg Opus, up to 12 seconds and 512 KiB). The text goes to the
+     *     call as `call.caption`; neither the audio nor the text is stored.
+     */
+    post: operations['sendCaptionAudio'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/calls/{id}/reactions': {
     parameters: {
       query?: never;
@@ -5152,8 +5194,19 @@ export interface components {
       max_participants: number;
       max_bitrate: number;
       available: boolean;
+      /** @description Live captions are allowed in this workspace's calls (ADR 0052). */
+      captions?: boolean;
+      /** @description The installation has a speech to text service. */
+      captions_available?: boolean;
     };
     Call: {
+      /** @description Live captions are on in this call. */
+      captions_on?: boolean;
+      /**
+       * Format: uuid
+       * @description Who turned the captions on.
+       */
+      captions_by?: string | null;
       /** Format: uuid */
       id: string;
       /** Format: uuid */
@@ -7662,6 +7715,92 @@ export interface operations {
         };
         content?: never;
       };
+    };
+  };
+  setCallCaptions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          on: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Done. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      403: components['responses']['Problem'];
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description You are not in the call. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  sendCaptionAudio: {
+    parameters: {
+      query?: {
+        language?: 'auto' | 'en' | 'tr';
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'audio/webm': string;
+        'audio/ogg': string;
+      };
+    };
+    responses: {
+      /** @description Taken (the text follows as an event). */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Captions are off */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      413: components['responses']['Problem'];
+      429: components['responses']['Problem'];
+      503: components['responses']['Problem'];
     };
   };
   sendCallReaction: {

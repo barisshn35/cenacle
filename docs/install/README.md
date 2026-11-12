@@ -86,6 +86,16 @@ options.
 
 The manual steps below remain the reference; `install.sh` follows them.
 
+**Live captions in calls** (optional, ADR 0052): `--captions base` or `--captions small`
+(with `--calls`) adds a speech to text service on this host, whisper.cpp's server with a
+Whisper model, in the `captions.yml` overlay. `install.sh` downloads the model into
+`captions-models/` and checks its SHA-256; without internet, copy `ggml-base.bin` or
+`ggml-small.bin` there before running it. *base* (148 MB) is quicker, *small* (488 MB)
+understands Turkish better and needs more processor time; the service uses up to 4 CPUs and
+3 GB of memory (`CENACLE_CAPTIONS_CPUS`, `CENACLE_CAPTIONS_THREADS` in `.env.calls`). Audio
+and text stay on this host and are not stored. Each workspace's administrators then allow
+captions in its call settings.
+
 ## Installing by hand
 
 1. Get the deployment files:

@@ -42,6 +42,8 @@ interface State {
   devices: { audio?: string; camera?: string };
   /** Reactions floating over tiles for a moment (call.reaction). */
   reactions: readonly { key: number; userID: string; emoji: string }[];
+  /** The last lines of live captions (call.caption). */
+  captions: readonly { key: number; userID: string; text: string }[];
 }
 export const useCall = create<State>()(() => ({
   call: null,
@@ -57,11 +59,30 @@ export const useCall = create<State>()(() => ({
   ringTone: null,
   devices: {},
   reactions: [],
+  captions: [],
 }));
 
 /** How long a reaction floats over a tile. */
 export const REACTION_MS = 3500;
 let reactionKey = 0;
+
+/** How long a caption line stays. */
+const CAPTION_MS = 8000;
+
+/** call.caption: a line of live captions, for a while. */
+export function applyCallCaption(data: unknown): void {
+  const d = data as { call_id?: string; user_id?: string; text?: string } | null;
+  const call = useCall.getState().call;
+  if (!d || !call || d.call_id !== call.id || !d.user_id || !d.text) return;
+  const key = ++reactionKey;
+  useCall.setState((s) => ({
+    captions: [...s.captions.slice(-2), { key, userID: d.user_id!, text: d.text! }],
+  }));
+  setTimeout(
+    () => useCall.setState((s) => ({ captions: s.captions.filter((c) => c.key !== key) })),
+    CAPTION_MS,
+  );
+}
 
 /** call.reaction: show it over the sender's tile for a moment. */
 export function applyCallReaction(data: unknown): void {

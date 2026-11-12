@@ -68,6 +68,8 @@ type callView struct {
 	EndedAt      *time.Time            `json:"ended_at"`
 	EndReason    string                `json:"end_reason"`
 	Participants []callParticipantView `json:"participants"`
+	CaptionsOn   bool                  `json:"captions_on"`
+	CaptionsBy   *openapi_types.UUID   `json:"captions_by"`
 }
 type callParticipantView struct {
 	ID       openapi_types.UUID  `json:"id"`
@@ -80,7 +82,11 @@ type callParticipantView struct {
 }
 
 func callSnapshot(ctx context.Context, q store.Querier, c store.Call) (callView, error) {
-	out := callView{ID: uuid(c.ID), ChannelID: uuid(c.ChannelID), State: c.State, Revision: c.Revision, CreatedAt: c.CreatedAt, RingUntil: timePtr(c.RingUntil), StartedAt: timePtr(c.StartedAt), EndedAt: timePtr(c.EndedAt), EndReason: c.EndReason, Participants: []callParticipantView{}}
+	out := callView{ID: uuid(c.ID), ChannelID: uuid(c.ChannelID), State: c.State, Revision: c.Revision, CreatedAt: c.CreatedAt, RingUntil: timePtr(c.RingUntil), StartedAt: timePtr(c.StartedAt), EndedAt: timePtr(c.EndedAt), EndReason: c.EndReason, Participants: []callParticipantView{}, CaptionsOn: c.CaptionsOn}
+	if c.CaptionsBy.Valid {
+		by := uuid(c.CaptionsBy)
+		out.CaptionsBy = &by
+	}
 	rows, err := q.ListCallParticipants(ctx, c.ID)
 	if err != nil {
 		return out, err

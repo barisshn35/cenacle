@@ -86,6 +86,7 @@ type Querier interface {
 	AuditEventsAfter(ctx context.Context, arg AuditEventsAfterParams) ([]AuditEventsAfterRow, error)
 	BumpCallRevision(ctx context.Context, id pgtype.UUID) (Call, error)
 	CallAdmissionAllowed(ctx context.Context, arg CallAdmissionAllowedParams) (bool, error)
+	CallCaptionsAllowed(ctx context.Context, callID pgtype.UUID) (bool, error)
 	CancelEvent(ctx context.Context, id pgtype.UUID) (int64, error)
 	CancelScheduled(ctx context.Context, id pgtype.UUID) error
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
@@ -1045,6 +1046,7 @@ type Querier interface {
 	SetBotDescription(ctx context.Context, arg SetBotDescriptionParams) error
 	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
 	SetBotInteractions(ctx context.Context, arg SetBotInteractionsParams) error
+	SetCallCaptions(ctx context.Context, arg SetCallCaptionsParams) (Call, error)
 	// SetCallHand raises (keeping the first time) or lowers the hand of a user's
 	// open session in a call.
 	SetCallHand(ctx context.Context, arg SetCallHandParams) (int64, error)

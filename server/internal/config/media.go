@@ -107,6 +107,9 @@ type Calls struct {
 	InternalCIDRs               []netip.Prefix
 	TURNSecret                  string
 	TURNURLs                    []string
+	// CaptionsURL is the speech to text service (whisper.cpp's server) on an
+	// internal network; empty: no live captions (ADR 0052).
+	CaptionsURL string
 }
 
 func loadCalls(l *loader) *Calls {
@@ -116,6 +119,13 @@ func loadCalls(l *loader) *Calls {
 	}
 	c := &Calls{Private: privateKey(l, "CENACLE_CALLS_PRIVATE_KEY"), ControlPublic: publicKey(l, "CENACLE_MEDIA_CONTROL_PUBLIC_KEY"), KeyID: l.str("CENACLE_CALLS_KEY_ID", "calls-1"), NodeID: l.str("CENACLE_MEDIA_NODE_ID", "media-1"), InternalAddr: l.str("CENACLE_CALLS_INTERNAL_ADDR", "127.0.0.1:7883")}
 	loadCallTURN(l, c)
+	if raw := l.str("CENACLE_CAPTIONS_URL", ""); raw != "" {
+		u, err := url.Parse(raw)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			l.fail("CENACLE_CAPTIONS_URL: expected an http(s) URL")
+		}
+		c.CaptionsURL = strings.TrimSuffix(raw, "/")
+	}
 	if _, _, err := net.SplitHostPort(c.InternalAddr); err != nil {
 		l.fail("CENACLE_CALLS_INTERNAL_ADDR: expected host:port")
 	}

@@ -18,6 +18,8 @@ type callSettingsInput struct {
 	GuestStart      bool  `json:"guest_start"`
 	MaxParticipants int32 `json:"max_participants"`
 	MaxBitrate      int32 `json:"max_bitrate"`
+	// Captions: nil keeps it (clients before live captions).
+	Captions *bool `json:"captions"`
 }
 
 func (h *Handlers) GetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
@@ -33,7 +35,8 @@ func (h *Handlers) GetWorkspaceCallSettings(w http.ResponseWriter, r *http.Reque
 		h.callError(w, r, err)
 		return
 	}
-	httpx.WriteJSON(w, 200, map[string]any{"enabled": settings.CallsEnabled, "guest_start": settings.CallsGuestStart, "max_participants": settings.CallsMaxParticipants, "max_bitrate": settings.CallsMaxBitrate, "available": h.Calls != nil})
+	httpx.WriteJSON(w, 200, map[string]any{"enabled": settings.CallsEnabled, "guest_start": settings.CallsGuestStart, "max_participants": settings.CallsMaxParticipants, "max_bitrate": settings.CallsMaxBitrate, "available": h.Calls != nil,
+		"captions": settings.CallsCaptions, "captions_available": h.captionsAvailable()})
 }
 func (h *Handlers) SetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
@@ -52,11 +55,24 @@ func (h *Handlers) SetWorkspaceCallSettings(w http.ResponseWriter, r *http.Reque
 		forbidden(w, r, "calls_disabled", "Calls are disabled on this installation.")
 		return
 	}
-	err := h.Queries.UpdateCallSettings(r.Context(), store.UpdateCallSettingsParams{WorkspaceID: pgUUID(id), CallsEnabled: in.Enabled, CallsGuestStart: in.GuestStart, CallsMaxParticipants: in.MaxParticipants, CallsMaxBitrate: in.MaxBitrate})
+	current, err := h.Queries.GetCallSettings(r.Context(), pgUUID(id))
 	if err != nil {
 		h.callError(w, r, err)
 		return
 	}
-	h.record(r, pgUUID(id), "call.settings_changed", "workspace", id.String(), map[string]any{"enabled": in.Enabled, "guest_start": in.GuestStart, "max_participants": in.MaxParticipants, "max_bitrate": in.MaxBitrate})
+	captions := current.CallsCaptions
+	if in.Captions != nil {
+		captions = *in.Captions
+	}
+	if captions && !current.CallsCaptions && !h.captionsAvailable() {
+		forbidden(w, r, "captions_unavailable", "This installation has no speech to text service.")
+		return
+	}
+	err = h.Queries.UpdateCallSettings(r.Context(), store.UpdateCallSettingsParams{WorkspaceID: pgUUID(id), CallsEnabled: in.Enabled, CallsGuestStart: in.GuestStart, CallsMaxParticipants: in.MaxParticipants, CallsMaxBitrate: in.MaxBitrate, CallsCaptions: captions})
+	if err != nil {
+		h.callError(w, r, err)
+		return
+	}
+	h.record(r, pgUUID(id), "call.settings_changed", "workspace", id.String(), map[string]any{"enabled": in.Enabled, "guest_start": in.GuestStart, "max_participants": in.MaxParticipants, "max_bitrate": in.MaxBitrate, "captions": captions})
 	h.GetWorkspaceCallSettings(w, r, id)
 }

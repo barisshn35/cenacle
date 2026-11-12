@@ -10,6 +10,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Live captions in calls (ADR 0052): an optional speech to text service on the installation
+  (whisper.cpp's server with a Whisper model, `captions.yml`, `install.sh --captions base|small`)
+  writes out what people say. Workspace administrators allow them; anyone in a call turns them
+  on and everyone sees who did; each person can hide them on their own screen. Each speaker's
+  app sends its own speech between pauses; neither audio nor text is stored. Migration 00075.
 - Calls: noise suppression (standard, strong with RNNoise, or off for music) and background
   blur (MediaPipe), done on the device before anything is sent, in the check before joining
   (its preview shows the blur) and in the call's devices; remembered per device (ADR 0051).

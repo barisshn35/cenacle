@@ -1995,6 +1995,27 @@ func (e AnswerCallJSONBodyAnswer) Valid() bool {
 	}
 }
 
+// Defines values for SendCaptionAudioParamsLanguage.
+const (
+	SendCaptionAudioParamsLanguageAuto SendCaptionAudioParamsLanguage = "auto"
+	SendCaptionAudioParamsLanguageEn   SendCaptionAudioParamsLanguage = "en"
+	SendCaptionAudioParamsLanguageTr   SendCaptionAudioParamsLanguage = "tr"
+)
+
+// Valid indicates whether the value is a known member of the SendCaptionAudioParamsLanguage enum.
+func (e SendCaptionAudioParamsLanguage) Valid() bool {
+	switch e {
+	case SendCaptionAudioParamsLanguageAuto:
+		return true
+	case SendCaptionAudioParamsLanguageEn:
+		return true
+	case SendCaptionAudioParamsLanguageTr:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CreateCallToken200JSONResponseBodyExpiresIn.
 const (
 	CreateCallToken200JSONResponseBodyExpiresInN60 CreateCallToken200JSONResponseBodyExpiresIn = 60
@@ -2162,16 +2183,16 @@ func (e DecideSpillageJSONBodyDecision) Valid() bool {
 
 // Defines values for SetUITextsJSONBodyLocale.
 const (
-	En SetUITextsJSONBodyLocale = "en"
-	Tr SetUITextsJSONBodyLocale = "tr"
+	SetUITextsJSONBodyLocaleEn SetUITextsJSONBodyLocale = "en"
+	SetUITextsJSONBodyLocaleTr SetUITextsJSONBodyLocale = "tr"
 )
 
 // Valid indicates whether the value is a known member of the SetUITextsJSONBodyLocale enum.
 func (e SetUITextsJSONBodyLocale) Valid() bool {
 	switch e {
-	case En:
+	case SetUITextsJSONBodyLocaleEn:
 		return true
-	case Tr:
+	case SetUITextsJSONBodyLocaleTr:
 		return true
 	default:
 		return false
@@ -2832,6 +2853,11 @@ type BurnInfo struct {
 
 // Call defines model for Call.
 type Call struct {
+	// CaptionsBy Who turned the captions on.
+	CaptionsBy *openapi_types.UUID `json:"captions_by,omitempty"`
+
+	// CaptionsOn Live captions are on in this call.
+	CaptionsOn   *bool              `json:"captions_on,omitempty"`
 	ChannelId    openapi_types.UUID `json:"channel_id"`
 	CreatedAt    time.Time          `json:"created_at"`
 	EndReason    *string            `json:"end_reason,omitempty"`
@@ -2863,11 +2889,17 @@ type CallParticipantState string
 
 // CallSettings defines model for CallSettings.
 type CallSettings struct {
-	Available       bool `json:"available"`
-	Enabled         bool `json:"enabled"`
-	GuestStart      bool `json:"guest_start"`
-	MaxBitrate      int  `json:"max_bitrate"`
-	MaxParticipants int  `json:"max_participants"`
+	Available bool `json:"available"`
+
+	// Captions Live captions are allowed in this workspace's calls (ADR 0052).
+	Captions *bool `json:"captions,omitempty"`
+
+	// CaptionsAvailable The installation has a speech to text service.
+	CaptionsAvailable *bool `json:"captions_available,omitempty"`
+	Enabled           bool  `json:"enabled"`
+	GuestStart        bool  `json:"guest_start"`
+	MaxBitrate        int   `json:"max_bitrate"`
+	MaxParticipants   int   `json:"max_participants"`
 }
 
 // CallSettingsInput defines model for CallSettingsInput.
@@ -5007,6 +5039,19 @@ type AnswerCallJSONBody struct {
 // AnswerCallJSONBodyAnswer defines parameters for AnswerCall.
 type AnswerCallJSONBodyAnswer string
 
+// SetCallCaptionsJSONBody defines parameters for SetCallCaptions.
+type SetCallCaptionsJSONBody struct {
+	On bool `json:"on"`
+}
+
+// SendCaptionAudioParams defines parameters for SendCaptionAudio.
+type SendCaptionAudioParams struct {
+	Language *SendCaptionAudioParamsLanguage `form:"language,omitempty" json:"language,omitempty"`
+}
+
+// SendCaptionAudioParamsLanguage defines parameters for SendCaptionAudio.
+type SendCaptionAudioParamsLanguage string
+
 // SetCallHandJSONBody defines parameters for SetCallHand.
 type SetCallHandJSONBody struct {
 	Raised bool `json:"raised"`
@@ -5830,6 +5875,9 @@ type CreateWebhookJSONRequestBody CreateWebhookJSONBody
 // AnswerCallJSONRequestBody defines body for AnswerCall for application/json ContentType.
 type AnswerCallJSONRequestBody AnswerCallJSONBody
 
+// SetCallCaptionsJSONRequestBody defines body for SetCallCaptions for application/json ContentType.
+type SetCallCaptionsJSONRequestBody SetCallCaptionsJSONBody
+
 // SetCallHandJSONRequestBody defines body for SetCallHand for application/json ContentType.
 type SetCallHandJSONRequestBody SetCallHandJSONBody
 
@@ -6404,6 +6452,12 @@ type ServerInterface interface {
 	// AnswerCall Accept or decline a direct call while it is ringing
 	// (POST /api/calls/{id}/answer)
 	AnswerCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SetCallCaptions Turn live captions on or off in a call
+	// (PUT /api/calls/{id}/captions)
+	SetCallCaptions(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SendCaptionAudio Send what one just said, to be captioned
+	// (POST /api/calls/{id}/captions/audio)
+	SendCaptionAudio(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, params SendCaptionAudioParams)
 	// SetCallHand Raise or lower your hand in a call
 	// (PUT /api/calls/{id}/hand)
 	SetCallHand(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
@@ -7589,6 +7643,18 @@ func (_ Unimplemented) GetCall(w http.ResponseWriter, r *http.Request, id openap
 // AnswerCall Accept or decline a direct call while it is ringing
 // (POST /api/calls/{id}/answer)
 func (_ Unimplemented) AnswerCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetCallCaptions Turn live captions on or off in a call
+// (PUT /api/calls/{id}/captions)
+func (_ Unimplemented) SetCallCaptions(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SendCaptionAudio Send what one just said, to be captioned
+// (POST /api/calls/{id}/captions/audio)
+func (_ Unimplemented) SendCaptionAudio(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, params SendCaptionAudioParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10813,6 +10879,74 @@ func (siw *ServerInterfaceWrapper) AnswerCall(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AnswerCall(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetCallCaptions operation middleware
+func (siw *ServerInterfaceWrapper) SetCallCaptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetCallCaptions(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SendCaptionAudio operation middleware
+func (siw *ServerInterfaceWrapper) SendCaptionAudio(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SendCaptionAudioParams
+
+	// ------------- Optional query parameter "language" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "language", r.URL.Query(), &params.Language, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "language"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SendCaptionAudio(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18790,6 +18924,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/calls/{id}/hand", wrapper.SetCallHand)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/calls/{id}/captions", wrapper.SetCallCaptions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/calls/{id}/captions/audio", wrapper.SendCaptionAudio)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/reactions", wrapper.SendCallReaction)
