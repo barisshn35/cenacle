@@ -966,6 +966,15 @@
     }
   },
   "notifications": {
+    "meetings": {
+      "title": "Meetings",
+      "remind": "Remind me before a meeting",
+      "noReminder": "No reminder",
+      "before_one": "{{count}} minute before",
+      "before_other": "{{count}} minutes before",
+      "email": "Send me invitations, changes and cancellations by e-mail too",
+      "hint": "Paused notifications and quiet hours keep reminders quiet too."
+    },
     "calls": {
       "title": "Calls",
       "ring": "Direct and group calls ring",
@@ -1250,8 +1259,185 @@
     "table": "Show the numbers",
     "label": "Label"
   },
+  "meetings": {
+    "title": "Meeting",
+    "loading": "Loading the meeting",
+    "new": "New meeting",
+    "plan": "Plan a meeting",
+    "edit": "Change the meeting",
+    "today": "Today",
+    "previous": {
+      "agenda": "Previous week",
+      "board": "Previous week",
+      "planner": "Previous week",
+      "today": "Previous month"
+    },
+    "next": {
+      "agenda": "Next week",
+      "board": "Next week",
+      "planner": "Next week",
+      "today": "Next month"
+    },
+    "viewLabel": "Show by",
+    "views": {
+      "agenda": "Agenda",
+      "board": "Board",
+      "planner": "Planner",
+      "today": "Today & month"
+    },
+    "empty": "Nothing planned for these days. Plan a meeting, or answer going to an event.",
+    "now": "Now",
+    "event": "Workspace event",
+    "answers": {
+      "pending": "Not answered",
+      "yes": "Going",
+      "maybe": "Maybe",
+      "no": "Not going"
+    },
+    "answer": {
+      "yes": "Going",
+      "maybe": "Maybe",
+      "no": "Not going"
+    },
+    "yourAnswer": "Will you come?",
+    "organizer": "Organizer",
+    "invited": "Invited",
+    "where": "Where",
+    "agenda": "Agenda",
+    "callIn": "Call in {{place}}",
+    "placeUnknown": "A channel you are not in",
+    "join": "Join",
+    "joinHint": "Join opens 5 minutes before the meeting.",
+    "download": "Add to my calendar (.ics)",
+    "change": "Change",
+    "cancelMeeting": "Cancel the meeting",
+    "cancelAll": "Cancel all",
+    "cancelOne": "Cancel this one",
+    "keep": "Keep it",
+    "cancelled": "Cancelled",
+    "cancelledAll": "Meeting cancelled. Everyone invited is told.",
+    "cancelledOne": "This one is cancelled. Everyone invited is told.",
+    "confirmAll": {
+      "title": "Cancel {{title}}?",
+      "description": "Every time it would meet is cancelled. Everyone invited is told, by e-mail too."
+    },
+    "confirmOne": {
+      "title": "Cancel the meeting on {{day}}?",
+      "description": "Only this one is cancelled; the others stay. Everyone invited is told."
+    },
+    "failed": "Couldn't save. Try again.",
+    "freq": {
+      "none": "Does not repeat",
+      "daily": "Every day",
+      "weekly": "Every week",
+      "monthly": "Every month"
+    },
+    "unit": {
+      "daily_one": "day",
+      "daily_other": "days",
+      "weekly_one": "week",
+      "weekly_other": "weeks",
+      "monthly_one": "month",
+      "monthly_other": "months"
+    },
+    "days": {
+      "short": {
+        "MO": "Mon",
+        "TU": "Tue",
+        "WE": "Wed",
+        "TH": "Thu",
+        "FR": "Fri",
+        "SA": "Sat",
+        "SU": "Sun"
+      },
+      "long": {
+        "MO": "Monday",
+        "TU": "Tuesday",
+        "WE": "Wednesday",
+        "TH": "Thursday",
+        "FR": "Friday",
+        "SA": "Saturday",
+        "SU": "Sunday"
+      }
+    },
+    "repeats": {
+      "daily_one": "Every day",
+      "daily_other": "Every {{count}} days",
+      "weekly_one": "Every {{days}}",
+      "weekly_other": "Every {{count}} weeks on {{days}}",
+      "monthly_one": "Monthly on day {{day}}",
+      "monthly_other": "Every {{count}} months on day {{day}}",
+      "until": "{{what}} until {{date}}",
+      "times_one": "{{what}}, once",
+      "times_other": "{{what}}, {{count}} times"
+    },
+    "form": {
+      "hint": "Times are in your time zone ({{zone}}). Everyone invited gets an e-mail, if they want one.",
+      "title": "Title",
+      "date": "Date",
+      "starts": "Starts",
+      "ends": "Ends",
+      "repeat": "Repeat",
+      "every": "Every",
+      "onDays": "On",
+      "endsRepeat": "Until",
+      "endsOn": "A day",
+      "endsOnDate": "The last day",
+      "endsAfter": "After",
+      "endsAfterCount": "How many times",
+      "times_one": "time",
+      "times_other": "times",
+      "where": "Where the call happens",
+      "newConversation": "A conversation with the people I invite",
+      "inChannel": "{{name}}",
+      "placeHint": "Invite people of this channel or conversation.",
+      "conversationHint": "Opens (or finds) the conversation of you and up to {{count}} people.",
+      "callIn": "The call happens in {{place}}.",
+      "people": "Who is invited",
+      "picked": "Invited",
+      "find": "Find people",
+      "pick": "Invite {{person}}",
+      "unpick": "Remove {{person}}",
+      "everyone": "Everyone here ({{count}})",
+      "full": "At most {{count}} people.",
+      "agenda": "Agenda",
+      "plan": "Plan meeting",
+      "saveChanges": "Save changes"
+    },
+    "reminder": {
+      "title": "{{title}} starts soon",
+      "body": "At {{time}}",
+      "open": "Open"
+    },
+    "subscribe": {
+      "open": "Subscribe",
+      "title": "Subscribe in your calendar",
+      "description": "Calendar programs (Outlook, Apple Calendar, Thunderbird and others) can read your meetings from a private address and keep them up to date.",
+      "address": "Your private address",
+      "copy": "Copy",
+      "copied": "Address copied",
+      "once": "This address is shown only now. Add it to your calendar program as a subscription.",
+      "exists": "You have an address. Make a new one if you lost it; the old one then stops working.",
+      "private": "Anyone with the address sees your meetings' titles, times and places (not their agendas).",
+      "make": "Make an address",
+      "replace": "Make a new address",
+      "stop": "Stop the address",
+      "stopped": "The address no longer works."
+    },
+    "tomorrow": "Tomorrow",
+    "nextUp": "Next",
+    "open": "Open",
+    "showFrom": "Show from {{day}}",
+    "miniHint": "The days shown are lit; days with meetings are bold.",
+    "day": "Day",
+    "weekend": "Weekend",
+    "nothingPlanned": "Nothing planned.",
+    "dayCount_one": "{{count}} meeting",
+    "dayCount_other": "{{count}} meetings"
+  },
   "home": {
     "today": "Today",
+    "calendar": "Calendar",
     "threads": "Threads",
     "activity": "Inbox",
     "saved": "Saved",
@@ -1274,6 +1460,7 @@
     "ask": "Ask AI",
     "federation": "Federation",
     "subtitles": {
+      "calendar": "Your meetings, and the events you said you would join.",
       "threads": "Threads you started, replied to or were mentioned in. New replies first.",
       "activity": "What needs you: mentions, replies and reactions. New rows stay lit until you open or mark them.",
       "saved": "Messages you kept to come back to. Set a reminder or mark them done.",
@@ -2609,6 +2796,13 @@
     "choose": "Choose…"
   },
   "console": {
+    "testEmail": {
+      "title": "Test e-mail",
+      "hint": "Sends you a sample meeting invitation, in your language, so you can see that e-mail works and how invitations look.",
+      "send": "Send me a test e-mail",
+      "sent": "Sent. Check your inbox.",
+      "failed": "The test e-mail could not be sent."
+    },
     "title": "System console",
     "version": "Cenacle {{version}}",
     "names": {

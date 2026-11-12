@@ -95,6 +95,12 @@ type BurnReveal struct {
 	RevealedAt time.Time   `json:"revealed_at"`
 }
 
+type CalendarFeed struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	TokenHash []byte      `json:"token_hash"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
 type Call struct {
 	ID             pgtype.UUID        `json:"id"`
 	ChannelID      pgtype.UUID        `json:"channel_id"`
@@ -592,6 +598,51 @@ type ListItem struct {
 	UpdatedBy pgtype.UUID   `json:"updated_by"`
 }
 
+type Meeting struct {
+	ID          pgtype.UUID        `json:"id"`
+	WorkspaceID pgtype.UUID        `json:"workspace_id"`
+	ChannelID   pgtype.UUID        `json:"channel_id"`
+	OrganizerID pgtype.UUID        `json:"organizer_id"`
+	Title       string             `json:"title"`
+	Agenda      string             `json:"agenda"`
+	StartsAt    time.Time          `json:"starts_at"`
+	EndsAt      time.Time          `json:"ends_at"`
+	Timezone    string             `json:"timezone"`
+	Rrule       string             `json:"rrule"`
+	Exdates     []time.Time        `json:"exdates"`
+	LastStart   time.Time          `json:"last_start"`
+	Sequence    int32              `json:"sequence"`
+	CancelledAt pgtype.Timestamptz `json:"cancelled_at"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+}
+
+type MeetingInvitee struct {
+	MeetingID   pgtype.UUID        `json:"meeting_id"`
+	UserID      pgtype.UUID        `json:"user_id"`
+	Response    string             `json:"response"`
+	RespondedAt pgtype.Timestamptz `json:"responded_at"`
+}
+
+type MeetingMail struct {
+	ID          pgtype.UUID        `json:"id"`
+	MeetingID   pgtype.UUID        `json:"meeting_id"`
+	UserID      pgtype.UUID        `json:"user_id"`
+	Kind        string             `json:"kind"`
+	WasStartsAt pgtype.Timestamptz `json:"was_starts_at"`
+	WasEndsAt   pgtype.Timestamptz `json:"was_ends_at"`
+	CreatedAt   time.Time          `json:"created_at"`
+	Attempts    int32              `json:"attempts"`
+	SentAt      pgtype.Timestamptz `json:"sent_at"`
+}
+
+type MeetingReminder struct {
+	MeetingID  pgtype.UUID `json:"meeting_id"`
+	UserID     pgtype.UUID `json:"user_id"`
+	Occurrence time.Time   `json:"occurrence"`
+	SentAt     time.Time   `json:"sent_at"`
+}
+
 type MentionGroup struct {
 	ID             pgtype.UUID        `json:"id"`
 	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
@@ -968,6 +1019,7 @@ type User struct {
 	OooFrom               pgtype.Timestamptz `json:"ooo_from"`
 	OooUntil              pgtype.Timestamptz `json:"ooo_until"`
 	OooMessage            string             `json:"ooo_message"`
+	Language              pgtype.Text        `json:"language"`
 }
 
 type UserFont struct {

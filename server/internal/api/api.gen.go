@@ -564,6 +564,24 @@ func (e BannerInputLevel) Valid() bool {
 	}
 }
 
+// Defines values for CalendarItemKind.
+const (
+	CalendarItemKindEvent   CalendarItemKind = "event"
+	CalendarItemKindMeeting CalendarItemKind = "meeting"
+)
+
+// Valid indicates whether the value is a known member of the CalendarItemKind enum.
+func (e CalendarItemKind) Valid() bool {
+	switch e {
+	case CalendarItemKindEvent:
+		return true
+	case CalendarItemKindMeeting:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CallState.
 const (
 	CallStateActive  CallState = "active"
@@ -1170,6 +1188,54 @@ func (e ListColumnKind) Valid() bool {
 	}
 }
 
+// Defines values for MeetingMyResponse.
+const (
+	MeetingMyResponseMaybe   MeetingMyResponse = "maybe"
+	MeetingMyResponseNo      MeetingMyResponse = "no"
+	MeetingMyResponsePending MeetingMyResponse = "pending"
+	MeetingMyResponseYes     MeetingMyResponse = "yes"
+)
+
+// Valid indicates whether the value is a known member of the MeetingMyResponse enum.
+func (e MeetingMyResponse) Valid() bool {
+	switch e {
+	case MeetingMyResponseMaybe:
+		return true
+	case MeetingMyResponseNo:
+		return true
+	case MeetingMyResponsePending:
+		return true
+	case MeetingMyResponseYes:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MeetingInviteeResponse.
+const (
+	MeetingInviteeResponseMaybe   MeetingInviteeResponse = "maybe"
+	MeetingInviteeResponseNo      MeetingInviteeResponse = "no"
+	MeetingInviteeResponsePending MeetingInviteeResponse = "pending"
+	MeetingInviteeResponseYes     MeetingInviteeResponse = "yes"
+)
+
+// Valid indicates whether the value is a known member of the MeetingInviteeResponse enum.
+func (e MeetingInviteeResponse) Valid() bool {
+	switch e {
+	case MeetingInviteeResponseMaybe:
+		return true
+	case MeetingInviteeResponseNo:
+		return true
+	case MeetingInviteeResponsePending:
+		return true
+	case MeetingInviteeResponseYes:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MemberRole.
 const (
 	MemberRoleManager MemberRole = "manager"
@@ -1377,6 +1443,30 @@ func (e NotificationPrefsEmailDelayMinutes) Valid() bool {
 	case NotificationPrefsEmailDelayMinutesN5:
 		return true
 	case NotificationPrefsEmailDelayMinutesN60:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationPrefsMeetingsRemindMinutes.
+const (
+	NotificationPrefsMeetingsRemindMinutesN0  NotificationPrefsMeetingsRemindMinutes = 0
+	NotificationPrefsMeetingsRemindMinutesN10 NotificationPrefsMeetingsRemindMinutes = 10
+	NotificationPrefsMeetingsRemindMinutesN15 NotificationPrefsMeetingsRemindMinutes = 15
+	NotificationPrefsMeetingsRemindMinutesN5  NotificationPrefsMeetingsRemindMinutes = 5
+)
+
+// Valid indicates whether the value is a known member of the NotificationPrefsMeetingsRemindMinutes enum.
+func (e NotificationPrefsMeetingsRemindMinutes) Valid() bool {
+	switch e {
+	case NotificationPrefsMeetingsRemindMinutesN0:
+		return true
+	case NotificationPrefsMeetingsRemindMinutesN10:
+		return true
+	case NotificationPrefsMeetingsRemindMinutesN15:
+		return true
+	case NotificationPrefsMeetingsRemindMinutesN5:
 		return true
 	default:
 		return false
@@ -2097,6 +2187,45 @@ func (e RsvpEventJSONBodyStatus) Valid() bool {
 	case RsvpEventJSONBodyStatusGoing:
 		return true
 	case RsvpEventJSONBodyStatusMaybe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetLanguageJSONBodyLanguage.
+const (
+	SetLanguageJSONBodyLanguageEn SetLanguageJSONBodyLanguage = "en"
+	SetLanguageJSONBodyLanguageTr SetLanguageJSONBodyLanguage = "tr"
+)
+
+// Valid indicates whether the value is a known member of the SetLanguageJSONBodyLanguage enum.
+func (e SetLanguageJSONBodyLanguage) Valid() bool {
+	switch e {
+	case SetLanguageJSONBodyLanguageEn:
+		return true
+	case SetLanguageJSONBodyLanguageTr:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AnswerMeetingJSONBodyResponse.
+const (
+	AnswerMeetingJSONBodyResponseMaybe AnswerMeetingJSONBodyResponse = "maybe"
+	AnswerMeetingJSONBodyResponseNo    AnswerMeetingJSONBodyResponse = "no"
+	AnswerMeetingJSONBodyResponseYes   AnswerMeetingJSONBodyResponse = "yes"
+)
+
+// Valid indicates whether the value is a known member of the AnswerMeetingJSONBodyResponse enum.
+func (e AnswerMeetingJSONBodyResponse) Valid() bool {
+	switch e {
+	case AnswerMeetingJSONBodyResponseMaybe:
+		return true
+	case AnswerMeetingJSONBodyResponseNo:
+		return true
+	case AnswerMeetingJSONBodyResponseYes:
 		return true
 	default:
 		return false
@@ -2850,6 +2979,26 @@ type BurnInfo struct {
 	RevealedAt *time.Time `json:"revealed_at"`
 	Seconds    int        `json:"seconds"`
 }
+
+// CalendarItem defines model for CalendarItem.
+type CalendarItem struct {
+	ChannelId *openapi_types.UUID `json:"channel_id"`
+	EndsAt    time.Time           `json:"ends_at"`
+	Id        openapi_types.UUID  `json:"id"`
+	Kind      CalendarItemKind    `json:"kind"`
+	Recurring bool                `json:"recurring"`
+
+	// Response Meetings: pending, yes, maybe or no; events: going or maybe.
+	Response string `json:"response"`
+
+	// StartsAt This occurrence's start.
+	StartsAt    time.Time          `json:"starts_at"`
+	Title       string             `json:"title"`
+	WorkspaceId openapi_types.UUID `json:"workspace_id"`
+}
+
+// CalendarItemKind defines model for CalendarItem.Kind.
+type CalendarItemKind string
 
 // Call defines model for Call.
 type Call struct {
@@ -3774,6 +3923,85 @@ type MLSGroup struct {
 	} `json:"members"`
 }
 
+// Meeting defines model for Meeting.
+type Meeting struct {
+	Agenda    string             `json:"agenda"`
+	CanEdit   bool               `json:"can_edit"`
+	Cancelled bool               `json:"cancelled"`
+	ChannelId openapi_types.UUID `json:"channel_id"`
+	EndsAt    time.Time          `json:"ends_at"`
+
+	// Exdates Occurrences cancelled one by one.
+	Exdates     []time.Time         `json:"exdates"`
+	Id          openapi_types.UUID  `json:"id"`
+	Invitees    []MeetingInvitee    `json:"invitees"`
+	MyResponse  MeetingMyResponse   `json:"my_response"`
+	OrganizerId *openapi_types.UUID `json:"organizer_id"`
+	Rrule       string              `json:"rrule"`
+
+	// StartsAt The first occurrence's start.
+	StartsAt    time.Time          `json:"starts_at"`
+	Timezone    string             `json:"timezone"`
+	Title       string             `json:"title"`
+	WorkspaceId openapi_types.UUID `json:"workspace_id"`
+}
+
+// MeetingMyResponse defines model for Meeting.MyResponse.
+type MeetingMyResponse string
+
+// MeetingCreate defines model for MeetingCreate.
+type MeetingCreate struct {
+	Agenda *string `json:"agenda,omitempty"`
+
+	// ChannelId Where the call happens; none for a conversation with the invitees.
+	ChannelId *openapi_types.UUID `json:"channel_id,omitempty"`
+
+	// EndsAt At most 24 hours after the start.
+	EndsAt time.Time `json:"ends_at"`
+
+	// Rrule '' or FREQ=DAILY|WEEKLY|MONTHLY with INTERVAL, BYDAY (weekly) and UNTIL or COUNT.
+	Rrule    *string   `json:"rrule,omitempty"`
+	StartsAt time.Time `json:"starts_at"`
+
+	// Timezone The organizer's IANA time zone: repeats keep its clock time.
+	Timezone string `json:"timezone"`
+	Title    string `json:"title"`
+
+	// UserIds The invitees besides you.
+	UserIds     []openapi_types.UUID `json:"user_ids"`
+	WorkspaceId openapi_types.UUID   `json:"workspace_id"`
+}
+
+// MeetingInput defines model for MeetingInput.
+type MeetingInput struct {
+	Agenda *string `json:"agenda,omitempty"`
+
+	// EndsAt At most 24 hours after the start.
+	EndsAt time.Time `json:"ends_at"`
+
+	// Rrule '' or FREQ=DAILY|WEEKLY|MONTHLY with INTERVAL, BYDAY (weekly) and UNTIL or COUNT.
+	Rrule    *string   `json:"rrule,omitempty"`
+	StartsAt time.Time `json:"starts_at"`
+
+	// Timezone The organizer's IANA time zone: repeats keep its clock time.
+	Timezone string `json:"timezone"`
+	Title    string `json:"title"`
+
+	// UserIds The invitees besides you.
+	UserIds []openapi_types.UUID `json:"user_ids"`
+}
+
+// MeetingInvitee defines model for MeetingInvitee.
+type MeetingInvitee struct {
+	DisplayName string                 `json:"display_name"`
+	Organizer   bool                   `json:"organizer"`
+	Response    MeetingInviteeResponse `json:"response"`
+	UserId      openapi_types.UUID     `json:"user_id"`
+}
+
+// MeetingInviteeResponse defines model for MeetingInvitee.Response.
+type MeetingInviteeResponse string
+
 // Member defines model for Member.
 type Member struct {
 	Role MemberRole `json:"role"`
@@ -4070,6 +4298,15 @@ type NotificationPrefs struct {
 		Enabled      bool                               `json:"enabled"`
 	} `json:"email"`
 
+	// Meetings Meetings (ADR 0054). Paused notifications and quiet hours hold for reminders.
+	Meetings *struct {
+		// Email Invitations
+		Email bool `json:"email"`
+
+		// RemindMinutes Remind this long before each occurrence; 0 for no reminder.
+		RemindMinutes NotificationPrefsMeetingsRemindMinutes `json:"remind_minutes"`
+	} `json:"meetings,omitempty"`
+
 	// PausedUntil All notifications paused until then.
 	PausedUntil *time.Time `json:"paused_until"`
 
@@ -4100,6 +4337,9 @@ type NotificationPrefsDefaultLevel string
 
 // NotificationPrefsEmailDelayMinutes defines model for NotificationPrefs.Email.DelayMinutes.
 type NotificationPrefsEmailDelayMinutes int
+
+// NotificationPrefsMeetingsRemindMinutes Remind this long before each occurrence; 0 for no reminder.
+type NotificationPrefsMeetingsRemindMinutes int
 
 // NotificationSettings defines model for NotificationSettings.
 type NotificationSettings struct {
@@ -5052,6 +5292,12 @@ type CreateWebhookJSONBody struct {
 // CreateWebhookJSONBodyKind defines parameters for CreateWebhook.
 type CreateWebhookJSONBodyKind string
 
+// GetCalendarParams defines parameters for GetCalendar.
+type GetCalendarParams struct {
+	From time.Time `form:"from" json:"from"`
+	To   time.Time `form:"to" json:"to"`
+}
+
 // AnswerCallJSONBody defines parameters for AnswerCall.
 type AnswerCallJSONBody struct {
 	Answer AnswerCallJSONBodyAnswer `json:"answer"`
@@ -5425,6 +5671,14 @@ type AddGifParams struct {
 	Name string `form:"name" json:"name"`
 }
 
+// SetLanguageJSONBody defines parameters for SetLanguage.
+type SetLanguageJSONBody struct {
+	Language *SetLanguageJSONBodyLanguage `json:"language"`
+}
+
+// SetLanguageJSONBodyLanguage defines parameters for SetLanguage.
+type SetLanguageJSONBodyLanguage string
+
 // UpdateMyProfileJSONBody defines parameters for UpdateMyProfile.
 type UpdateMyProfileJSONBody struct {
 	// ShareReadReceipts Others see how far you read conversations (where a workspace turned read receipts on); off, you see theirs neither.
@@ -5481,6 +5735,20 @@ type MarkThreadReadJSONBody struct {
 // ListUnreadsParams defines parameters for ListUnreads.
 type ListUnreadsParams struct {
 	WorkspaceId openapi_types.UUID `form:"workspace_id" json:"workspace_id"`
+}
+
+// AnswerMeetingJSONBody defines parameters for AnswerMeeting.
+type AnswerMeetingJSONBody struct {
+	Response AnswerMeetingJSONBodyResponse `json:"response"`
+}
+
+// AnswerMeetingJSONBodyResponse defines parameters for AnswerMeeting.
+type AnswerMeetingJSONBodyResponse string
+
+// SkipMeetingOccurrenceJSONBody defines parameters for SkipMeetingOccurrence.
+type SkipMeetingOccurrenceJSONBody struct {
+	// Occurrence The occurrence's start.
+	Occurrence time.Time `json:"occurrence"`
 }
 
 // UpdateGroupJSONBody defines parameters for UpdateGroup.
@@ -6079,6 +6347,9 @@ type SetMyAIConsentJSONRequestBody SetMyAIConsentJSONBody
 // SetMyAppearanceJSONRequestBody defines body for SetMyAppearance for application/json ContentType.
 type SetMyAppearanceJSONRequestBody = Appearance
 
+// SetLanguageJSONRequestBody defines body for SetLanguage for application/json ContentType.
+type SetLanguageJSONRequestBody SetLanguageJSONBody
+
 // SetNotificationPrefsJSONRequestBody defines body for SetNotificationPrefs for application/json ContentType.
 type SetNotificationPrefsJSONRequestBody = NotificationPrefs
 
@@ -6105,6 +6376,18 @@ type SetThreadFollowingJSONRequestBody SetThreadFollowingJSONBody
 
 // MarkThreadReadJSONRequestBody defines body for MarkThreadRead for application/json ContentType.
 type MarkThreadReadJSONRequestBody MarkThreadReadJSONBody
+
+// CreateMeetingJSONRequestBody defines body for CreateMeeting for application/json ContentType.
+type CreateMeetingJSONRequestBody = MeetingCreate
+
+// UpdateMeetingJSONRequestBody defines body for UpdateMeeting for application/json ContentType.
+type UpdateMeetingJSONRequestBody = MeetingInput
+
+// AnswerMeetingJSONRequestBody defines body for AnswerMeeting for application/json ContentType.
+type AnswerMeetingJSONRequestBody AnswerMeetingJSONBody
+
+// SkipMeetingOccurrenceJSONRequestBody defines body for SkipMeetingOccurrence for application/json ContentType.
+type SkipMeetingOccurrenceJSONRequestBody SkipMeetingOccurrenceJSONBody
 
 // UpdateGroupJSONRequestBody defines body for UpdateGroup for application/json ContentType.
 type UpdateGroupJSONRequestBody UpdateGroupJSONBody
@@ -6380,6 +6663,9 @@ type ServerInterface interface {
 	// ApplySoundDefaults Give everyone the default notification sounds and volume
 	// (POST /api/admin/sound-defaults/apply)
 	ApplySoundDefaults(w http.ResponseWriter, r *http.Request)
+	// SendTestEmail Send yourself a sample meeting invitation (instance administrators)
+	// (POST /api/admin/test-email)
+	SendTestEmail(w http.ResponseWriter, r *http.Request)
 	// AdminListUsers Everyone of the installation, by name (instance administrators)
 	// (GET /api/admin/users)
 	AdminListUsers(w http.ResponseWriter, r *http.Request, params AdminListUsersParams)
@@ -6488,6 +6774,12 @@ type ServerInterface interface {
 	// DeleteWebhook Delete a webhook (its URL stops working)
 	// (DELETE /api/bots/{bot_id}/webhooks/{webhook_id})
 	DeleteWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, webhookId openapi_types.UUID)
+	// GetCalendar Your meetings and events in a time range
+	// (GET /api/calendar)
+	GetCalendar(w http.ResponseWriter, r *http.Request, params GetCalendarParams)
+	// ReadCalendarFeed A person's meetings for calendar programs (no sign-in; the address is the key)
+	// (GET /api/calendar-feeds/{token})
+	ReadCalendarFeed(w http.ResponseWriter, r *http.Request, token string)
 	// GetCall Read authorized call state after a reconnect or resync
 	// (GET /api/calls/{id})
 	GetCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
@@ -6896,6 +7188,15 @@ type ServerInterface interface {
 	// SetAvatar Set your profile picture
 	// (PUT /api/me/avatar)
 	SetAvatar(w http.ResponseWriter, r *http.Request)
+	// DeleteCalendarFeed Stop your calendar subscription address
+	// (DELETE /api/me/calendar-feed)
+	DeleteCalendarFeed(w http.ResponseWriter, r *http.Request)
+	// GetCalendarFeed Whether you have a calendar subscription address
+	// (GET /api/me/calendar-feed)
+	GetCalendarFeed(w http.ResponseWriter, r *http.Request)
+	// CreateCalendarFeed Make a new private calendar subscription address
+	// (POST /api/me/calendar-feed)
+	CreateCalendarFeed(w http.ResponseWriter, r *http.Request)
 	// ExportMyData Download your data (NDJSON; contents listed in docs/privacy.md)
 	// (GET /api/me/export)
 	ExportMyData(w http.ResponseWriter, r *http.Request)
@@ -6917,6 +7218,9 @@ type ServerInterface interface {
 	// DeleteGif Remove one of your GIFs
 	// (DELETE /api/me/gifs/{gif_id})
 	DeleteGif(w http.ResponseWriter, r *http.Request, gifId openapi_types.UUID)
+	// SetLanguage Tell the server your language (for e-mails)
+	// (PUT /api/me/language)
+	SetLanguage(w http.ResponseWriter, r *http.Request)
 	// GetNotificationSettings Your notification settings, with muted channels and workspaces
 	// (GET /api/me/notifications)
 	GetNotificationSettings(w http.ResponseWriter, r *http.Request)
@@ -6983,6 +7287,27 @@ type ServerInterface interface {
 	// ListUnreads The unread messages of a workspace's channels (20 latest per channel)
 	// (GET /api/me/unreads)
 	ListUnreads(w http.ResponseWriter, r *http.Request, params ListUnreadsParams)
+	// CreateMeeting Plan a meeting
+	// (POST /api/meetings)
+	CreateMeeting(w http.ResponseWriter, r *http.Request)
+	// CancelMeeting Cancel a meeting with all its occurrences (its organizer or a workspace administrator)
+	// (DELETE /api/meetings/{id})
+	CancelMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// GetMeeting A meeting you are invited to
+	// (GET /api/meetings/{id})
+	GetMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// UpdateMeeting Change a meeting (its organizer or a workspace administrator)
+	// (PUT /api/meetings/{id})
+	UpdateMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// DownloadMeeting The meeting as an iCalendar file
+	// (GET /api/meetings/{id}/ics)
+	DownloadMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// AnswerMeeting Say whether you will come
+	// (PUT /api/meetings/{id}/response)
+	AnswerMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SkipMeetingOccurrence Cancel one occurrence of a repeating meeting
+	// (POST /api/meetings/{id}/skip)
+	SkipMeetingOccurrence(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// GetGroup A group and its members
 	// (GET /api/mention-groups/{group_id})
 	GetGroup(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID)
@@ -7472,6 +7797,12 @@ func (_ Unimplemented) ApplySoundDefaults(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SendTestEmail Send yourself a sample meeting invitation (instance administrators)
+// (POST /api/admin/test-email)
+func (_ Unimplemented) SendTestEmail(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // AdminListUsers Everyone of the installation, by name (instance administrators)
 // (GET /api/admin/users)
 func (_ Unimplemented) AdminListUsers(w http.ResponseWriter, r *http.Request, params AdminListUsersParams) {
@@ -7685,6 +8016,18 @@ func (_ Unimplemented) CreateWebhook(w http.ResponseWriter, r *http.Request, bot
 // DeleteWebhook Delete a webhook (its URL stops working)
 // (DELETE /api/bots/{bot_id}/webhooks/{webhook_id})
 func (_ Unimplemented) DeleteWebhook(w http.ResponseWriter, r *http.Request, botId openapi_types.UUID, webhookId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCalendar Your meetings and events in a time range
+// (GET /api/calendar)
+func (_ Unimplemented) GetCalendar(w http.ResponseWriter, r *http.Request, params GetCalendarParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReadCalendarFeed A person's meetings for calendar programs (no sign-in; the address is the key)
+// (GET /api/calendar-feeds/{token})
+func (_ Unimplemented) ReadCalendarFeed(w http.ResponseWriter, r *http.Request, token string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8504,6 +8847,24 @@ func (_ Unimplemented) SetAvatar(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteCalendarFeed Stop your calendar subscription address
+// (DELETE /api/me/calendar-feed)
+func (_ Unimplemented) DeleteCalendarFeed(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCalendarFeed Whether you have a calendar subscription address
+// (GET /api/me/calendar-feed)
+func (_ Unimplemented) GetCalendarFeed(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateCalendarFeed Make a new private calendar subscription address
+// (POST /api/me/calendar-feed)
+func (_ Unimplemented) CreateCalendarFeed(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ExportMyData Download your data (NDJSON; contents listed in docs/privacy.md)
 // (GET /api/me/export)
 func (_ Unimplemented) ExportMyData(w http.ResponseWriter, r *http.Request) {
@@ -8543,6 +8904,12 @@ func (_ Unimplemented) AddGif(w http.ResponseWriter, r *http.Request, params Add
 // DeleteGif Remove one of your GIFs
 // (DELETE /api/me/gifs/{gif_id})
 func (_ Unimplemented) DeleteGif(w http.ResponseWriter, r *http.Request, gifId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetLanguage Tell the server your language (for e-mails)
+// (PUT /api/me/language)
+func (_ Unimplemented) SetLanguage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8675,6 +9042,48 @@ func (_ Unimplemented) MarkThreadRead(w http.ResponseWriter, r *http.Request, ro
 // ListUnreads The unread messages of a workspace's channels (20 latest per channel)
 // (GET /api/me/unreads)
 func (_ Unimplemented) ListUnreads(w http.ResponseWriter, r *http.Request, params ListUnreadsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateMeeting Plan a meeting
+// (POST /api/meetings)
+func (_ Unimplemented) CreateMeeting(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CancelMeeting Cancel a meeting with all its occurrences (its organizer or a workspace administrator)
+// (DELETE /api/meetings/{id})
+func (_ Unimplemented) CancelMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetMeeting A meeting you are invited to
+// (GET /api/meetings/{id})
+func (_ Unimplemented) GetMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateMeeting Change a meeting (its organizer or a workspace administrator)
+// (PUT /api/meetings/{id})
+func (_ Unimplemented) UpdateMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DownloadMeeting The meeting as an iCalendar file
+// (GET /api/meetings/{id}/ics)
+func (_ Unimplemented) DownloadMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AnswerMeeting Say whether you will come
+// (PUT /api/meetings/{id}/response)
+func (_ Unimplemented) AnswerMeeting(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SkipMeetingOccurrence Cancel one occurrence of a repeating meeting
+// (POST /api/meetings/{id}/skip)
+func (_ Unimplemented) SkipMeetingOccurrence(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9882,6 +10291,20 @@ func (siw *ServerInterfaceWrapper) ApplySoundDefaults(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// SendTestEmail operation middleware
+func (siw *ServerInterfaceWrapper) SendTestEmail(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SendTestEmail(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // AdminListUsers operation middleware
 func (siw *ServerInterfaceWrapper) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 
@@ -10905,6 +11328,78 @@ func (siw *ServerInterfaceWrapper) DeleteWebhook(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteWebhook(w, r, botId, webhookId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCalendar operation middleware
+func (siw *ServerInterfaceWrapper) GetCalendar(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCalendarParams
+
+	// ------------- Required query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCalendar(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadCalendarFeed operation middleware
+func (siw *ServerInterfaceWrapper) ReadCalendarFeed(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", chi.URLParam(r, "token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadCalendarFeed(w, r, token)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14718,6 +15213,48 @@ func (siw *ServerInterfaceWrapper) SetAvatar(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteCalendarFeed operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCalendarFeed(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCalendarFeed(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCalendarFeed operation middleware
+func (siw *ServerInterfaceWrapper) GetCalendarFeed(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCalendarFeed(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCalendarFeed operation middleware
+func (siw *ServerInterfaceWrapper) CreateCalendarFeed(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCalendarFeed(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ExportMyData operation middleware
 func (siw *ServerInterfaceWrapper) ExportMyData(w http.ResponseWriter, r *http.Request) {
 
@@ -14869,6 +15406,20 @@ func (siw *ServerInterfaceWrapper) DeleteGif(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteGif(w, r, gifId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetLanguage operation middleware
+func (siw *ServerInterfaceWrapper) SetLanguage(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetLanguage(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15351,6 +15902,176 @@ func (siw *ServerInterfaceWrapper) ListUnreads(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListUnreads(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMeeting operation middleware
+func (siw *ServerInterfaceWrapper) CreateMeeting(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMeeting(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelMeeting operation middleware
+func (siw *ServerInterfaceWrapper) CancelMeeting(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelMeeting(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMeeting operation middleware
+func (siw *ServerInterfaceWrapper) GetMeeting(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMeeting(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMeeting operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMeeting(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadMeeting operation middleware
+func (siw *ServerInterfaceWrapper) DownloadMeeting(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadMeeting(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AnswerMeeting operation middleware
+func (siw *ServerInterfaceWrapper) AnswerMeeting(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AnswerMeeting(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SkipMeetingOccurrence operation middleware
+func (siw *ServerInterfaceWrapper) SkipMeetingOccurrence(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SkipMeetingOccurrence(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -19140,6 +19861,48 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/calls/{id}/recording", wrapper.SetCallRecording)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/calendar", wrapper.GetCalendar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/meetings", wrapper.CreateMeeting)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/meetings/{id}", wrapper.CancelMeeting)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/meetings/{id}", wrapper.GetMeeting)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/meetings/{id}", wrapper.UpdateMeeting)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/meetings/{id}/skip", wrapper.SkipMeetingOccurrence)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/meetings/{id}/response", wrapper.AnswerMeeting)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/meetings/{id}/ics", wrapper.DownloadMeeting)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/calendar-feed", wrapper.DeleteCalendarFeed)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/calendar-feed", wrapper.GetCalendarFeed)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/me/calendar-feed", wrapper.CreateCalendarFeed)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/calendar-feeds/{token}", wrapper.ReadCalendarFeed)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/language", wrapper.SetLanguage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/admin/test-email", wrapper.SendTestEmail)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/reactions", wrapper.SendCallReaction)

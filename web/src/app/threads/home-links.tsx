@@ -2,6 +2,7 @@
 import { useAI } from '../ai/ai';
 import {
   BookmarkIcon,
+  CalendarDaysIcon,
   CalendarIcon,
   InboxIcon,
   ListIcon,
@@ -34,10 +35,11 @@ import { channelsQuery } from '../chat/data';
 import { unreadThreadsQuery } from './threads';
 
 /** The views everyone uses daily stay in sight; the rest fold under "More". */
-const PRIMARY = new Set(['today', 'activity', 'threads', 'saved', 'tasks']);
+const PRIMARY = new Set(['today', 'calendar', 'activity', 'threads', 'saved', 'tasks']);
 
 const LINKS = [
   { view: 'today', icon: SunIcon },
+  { view: 'calendar', icon: CalendarDaysIcon },
   { view: 'activity', icon: InboxIcon },
   { view: 'threads', icon: MessagesSquareIcon },
   { view: 'saved', icon: BookmarkIcon },

@@ -966,6 +966,15 @@
     }
   },
   "notifications": {
+    "meetings": {
+      "title": "Toplantılar",
+      "remind": "Toplantıdan önce hatırlat",
+      "noReminder": "Hatırlatma yok",
+      "before_one": "{{count}} dakika önce",
+      "before_other": "{{count}} dakika önce",
+      "email": "Davet, değişiklik ve iptalleri e-postayla da gönder",
+      "hint": "Bildirimleri duraklattığınızda ve sessiz saatlerde hatırlatmalar da sessiz kalır."
+    },
     "calls": {
       "title": "Görüşmeler",
       "ring": "Birebir ve grup aramaları çalsın",
@@ -1250,8 +1259,185 @@
     "table": "Sayıları göster",
     "label": "Etiket"
   },
+  "meetings": {
+    "title": "Toplantı",
+    "loading": "Toplantı yükleniyor",
+    "new": "Yeni toplantı",
+    "plan": "Toplantı planla",
+    "edit": "Toplantıyı değiştir",
+    "today": "Bugün",
+    "previous": {
+      "agenda": "Önceki hafta",
+      "board": "Önceki hafta",
+      "planner": "Önceki hafta",
+      "today": "Önceki ay"
+    },
+    "next": {
+      "agenda": "Sonraki hafta",
+      "board": "Sonraki hafta",
+      "planner": "Sonraki hafta",
+      "today": "Sonraki ay"
+    },
+    "viewLabel": "Görünüm",
+    "views": {
+      "agenda": "Ajanda",
+      "board": "Pano",
+      "planner": "Planlayıcı",
+      "today": "Bugün ve ay"
+    },
+    "empty": "Bu günler için planlanmış bir şey yok. Bir toplantı planlayın ya da bir etkinliğe katılacağınızı bildirin.",
+    "now": "Şimdi",
+    "event": "Çalışma alanı etkinliği",
+    "answers": {
+      "pending": "Yanıt bekliyor",
+      "yes": "Katılıyor",
+      "maybe": "Belki",
+      "no": "Katılmıyor"
+    },
+    "answer": {
+      "yes": "Katılıyorum",
+      "maybe": "Belki",
+      "no": "Katılmıyorum"
+    },
+    "yourAnswer": "Katılacak mısınız?",
+    "organizer": "Düzenleyen",
+    "invited": "Davetliler",
+    "where": "Nerede",
+    "agenda": "Gündem",
+    "callIn": "{{place}} içinde görüşme",
+    "placeUnknown": "Üyesi olmadığınız bir kanal",
+    "join": "Katıl",
+    "joinHint": "Katıl düğmesi toplantıdan 5 dakika önce açılır.",
+    "download": "Takvimime ekle (.ics)",
+    "change": "Değiştir",
+    "cancelMeeting": "Toplantıyı iptal et",
+    "cancelAll": "Tümünü iptal et",
+    "cancelOne": "Yalnızca bunu iptal et",
+    "keep": "Vazgeç",
+    "cancelled": "İptal edildi",
+    "cancelledAll": "Toplantı iptal edildi. Davetlilerin hepsine bildirildi.",
+    "cancelledOne": "Bu oturum iptal edildi. Davetlilerin hepsine bildirildi.",
+    "confirmAll": {
+      "title": "{{title}} iptal edilsin mi?",
+      "description": "Toplantının bütün oturumları iptal edilir. Davetlilerin hepsine, e-postayla da bildirilir."
+    },
+    "confirmOne": {
+      "title": "{{day}} tarihli oturum iptal edilsin mi?",
+      "description": "Yalnızca bu oturum iptal edilir, diğerleri yerinde kalır. Davetlilerin hepsine bildirilir."
+    },
+    "failed": "Kaydedilemedi. Yeniden deneyin.",
+    "freq": {
+      "none": "Tekrarlanmaz",
+      "daily": "Her gün",
+      "weekly": "Her hafta",
+      "monthly": "Her ay"
+    },
+    "unit": {
+      "daily_one": "gün",
+      "daily_other": "gün",
+      "weekly_one": "hafta",
+      "weekly_other": "hafta",
+      "monthly_one": "ay",
+      "monthly_other": "ay"
+    },
+    "days": {
+      "short": {
+        "MO": "Pzt",
+        "TU": "Sal",
+        "WE": "Çar",
+        "TH": "Per",
+        "FR": "Cum",
+        "SA": "Cmt",
+        "SU": "Paz"
+      },
+      "long": {
+        "MO": "pazartesi",
+        "TU": "salı",
+        "WE": "çarşamba",
+        "TH": "perşembe",
+        "FR": "cuma",
+        "SA": "cumartesi",
+        "SU": "pazar"
+      }
+    },
+    "repeats": {
+      "daily_one": "Her gün",
+      "daily_other": "{{count}} günde bir",
+      "weekly_one": "Her {{days}}",
+      "weekly_other": "{{count}} haftada bir, {{days}}",
+      "monthly_one": "Her ayın {{day}}. günü",
+      "monthly_other": "{{count}} ayda bir, ayın {{day}}. günü",
+      "until": "{{what}}, {{date}} tarihine kadar",
+      "times_one": "{{what}}, bir kez",
+      "times_other": "{{what}}, {{count}} kez"
+    },
+    "form": {
+      "hint": "Saatler sizin saat diliminizde ({{zone}}). İsteyen davetlilere e-posta gider.",
+      "title": "Başlık",
+      "date": "Tarih",
+      "starts": "Başlangıç",
+      "ends": "Bitiş",
+      "repeat": "Tekrar",
+      "every": "Her",
+      "onDays": "Günler",
+      "endsRepeat": "Ne zamana kadar",
+      "endsOn": "Bir güne kadar",
+      "endsOnDate": "Son gün",
+      "endsAfter": "Şu kadar",
+      "endsAfterCount": "Kaç kez",
+      "times_one": "kez",
+      "times_other": "kez",
+      "where": "Görüşme nerede yapılacak",
+      "newConversation": "Davet ettiğim kişilerle bir konuşma",
+      "inChannel": "{{name}}",
+      "placeHint": "Bu kanalın ya da konuşmanın üyelerini davet edebilirsiniz.",
+      "conversationHint": "Sizinle en çok {{count}} kişinin konuşmasını açar (varsa onu bulur).",
+      "callIn": "Görüşme {{place}} içinde yapılır.",
+      "people": "Davetliler",
+      "picked": "Davet edilenler",
+      "find": "Kişi bulun",
+      "pick": "{{person}} kişisini davet et",
+      "unpick": "{{person}} kişisini çıkar",
+      "everyone": "Buradaki herkes ({{count}})",
+      "full": "En çok {{count}} kişi.",
+      "agenda": "Gündem",
+      "plan": "Toplantıyı planla",
+      "saveChanges": "Değişiklikleri kaydet"
+    },
+    "reminder": {
+      "title": "{{title}} birazdan başlıyor",
+      "body": "Saat {{time}}",
+      "open": "Aç"
+    },
+    "subscribe": {
+      "open": "Abone ol",
+      "title": "Takviminizde abone olun",
+      "description": "Takvim programları (Outlook, Apple Takvim, Thunderbird ve diğerleri) toplantılarınızı size özel bir adresten okuyup güncel tutabilir.",
+      "address": "Size özel adres",
+      "copy": "Kopyala",
+      "copied": "Adres kopyalandı",
+      "once": "Bu adres yalnızca şimdi gösterilir. Takvim programınıza abonelik olarak ekleyin.",
+      "exists": "Bir adresiniz var. Kaybettiyseniz yenisini oluşturun; eskisi o zaman çalışmaz.",
+      "private": "Adresi bilen herkes toplantılarınızın başlığını, saatini ve yerini görür (gündemini görmez).",
+      "make": "Adres oluştur",
+      "replace": "Yeni adres oluştur",
+      "stop": "Adresi kapat",
+      "stopped": "Adres artık çalışmıyor."
+    },
+    "tomorrow": "Yarın",
+    "nextUp": "Sıradaki",
+    "open": "Aç",
+    "showFrom": "{{day}} gününden göster",
+    "miniHint": "Gösterilen günler açık zeminli, toplantı olan günler kalın.",
+    "day": "Gün",
+    "weekend": "Hafta sonu",
+    "nothingPlanned": "Planlanmış bir şey yok.",
+    "dayCount_one": "{{count}} toplantı",
+    "dayCount_other": "{{count}} toplantı"
+  },
   "home": {
     "today": "Bugün",
+    "calendar": "Takvim",
     "threads": "Yanıt dizileri",
     "activity": "Gelen kutusu",
     "saved": "Kaydedilenler",
@@ -1274,6 +1460,7 @@
     "ask": "Yapay zekâya sor",
     "federation": "Federasyon",
     "subtitles": {
+      "calendar": "Toplantılarınız ve katılacağınızı söylediğiniz etkinlikler.",
       "threads": "Başlattığınız, yanıtladığınız ya da anıldığınız diziler. Yeni yanıtlar önce.",
       "activity": "Sizi bekleyenler: anılmalar, yanıtlar ve tepkiler. Yeni satırlar açana ya da işaretleyene kadar vurgulu kalır.",
       "saved": "Geri dönmek için kaydettiğiniz mesajlar. Hatırlatma kurun ya da tamamlandı sayın.",
@@ -2609,6 +2796,13 @@
     "choose": "Seçin…"
   },
   "console": {
+    "testEmail": {
+      "title": "Deneme e-postası",
+      "hint": "Size, sizin dilinizde örnek bir toplantı daveti gönderir; e-postanın çalıştığını ve davetlerin nasıl göründüğünü görürsünüz.",
+      "send": "Bana deneme e-postası gönder",
+      "sent": "Gönderildi. Gelen kutunuza bakın.",
+      "failed": "Deneme e-postası gönderilemedi."
+    },
     "title": "Sistem konsolu",
     "version": "Cenacle {{version}}",
     "names": {

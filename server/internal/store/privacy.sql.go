@@ -105,7 +105,7 @@ UPDATE users SET display_name = $1, email = '', email_verified = false, username
     auth_service = 'erased', auth_data = 'erased:' || id::text, directory_role = NULL, is_admin = false,
     deactivated_at = coalesce(deactivated_at, now()), last_seen_at = NULL, updated_at = now()
 WHERE id = $2 AND NOT is_bot
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id, ooo_from, ooo_until, ooo_message
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id, ooo_from, ooo_until, ooo_message, language
 `
 
 type EraseUserParams struct {
@@ -150,6 +150,7 @@ func (q *Queries) EraseUser(ctx context.Context, arg EraseUserParams) (User, err
 		&i.OooFrom,
 		&i.OooUntil,
 		&i.OooMessage,
+		&i.Language,
 	)
 	return i, err
 }

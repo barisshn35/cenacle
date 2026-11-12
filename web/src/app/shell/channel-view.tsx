@@ -35,6 +35,7 @@ import { useMLSChannel } from '../e2e/use-mls-channel';
 import { dateLocale } from '../../i18n/time-format';
 import { usePageTitle } from './use-page-title';
 import { CallAction, ChannelCallBar } from '../calls/channel-call';
+import { PlanMeetingAction } from '../meetings/plan-action';
 
 /** Header buttons that open a panel: Brass while their panel is open. */
 const HEADER_TOGGLE =
@@ -127,6 +128,7 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           </div>
         )}
         {id && channel && !channel.encrypted && <SummarizeButton channelId={id} />}
+        {channel && <PlanMeetingAction channel={channel} />}
         {channel && <CallAction channel={channel} />}
         <Button
           variant="ghost"

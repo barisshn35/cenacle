@@ -46,6 +46,8 @@ type Querier interface {
 	// (by handle, not archived) who is in the channel, but the author.
 	AddGroupMentions(ctx context.Context, arg AddGroupMentionsParams) error
 	AddMLSMember(ctx context.Context, arg AddMLSMemberParams) error
+	AddMeetingInvitee(ctx context.Context, arg AddMeetingInviteeParams) (int64, error)
+	AddMeetingReminder(ctx context.Context, arg AddMeetingReminderParams) (int64, error)
 	AddMember(ctx context.Context, arg AddMemberParams) (int64, error)
 	// AddMentionGroupMembers adds people of the group's workspace to it.
 	AddMentionGroupMembers(ctx context.Context, arg AddMentionGroupMembersParams) error
@@ -89,6 +91,7 @@ type Querier interface {
 	CallAdmissionAllowed(ctx context.Context, arg CallAdmissionAllowedParams) (bool, error)
 	CallCaptionsAllowed(ctx context.Context, callID pgtype.UUID) (CallCaptionsAllowedRow, error)
 	CancelEvent(ctx context.Context, id pgtype.UUID) (int64, error)
+	CancelMeeting(ctx context.Context, id pgtype.UUID) (Meeting, error)
 	CancelScheduled(ctx context.Context, id pgtype.UUID) error
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
 	// CancelScheduledOf stops what a deactivated person still has queued.
@@ -154,6 +157,7 @@ type Querier interface {
 	CountHeldMessages(ctx context.Context, arg CountHeldMessagesParams) (int64, error)
 	CountJoinedCallParticipants(ctx context.Context, callID pgtype.UUID) (int64, error)
 	CountListItems(ctx context.Context, listID pgtype.UUID) (int32, error)
+	CountMeetingInvitees(ctx context.Context, meetingID pgtype.UUID) (int64, error)
 	CountMentionGroupManagers(ctx context.Context, groupID pgtype.UUID) (int32, error)
 	CountOpenCallParticipants(ctx context.Context, callID pgtype.UUID) (int64, error)
 	CountOpenCalls(ctx context.Context) (int64, error)
@@ -215,6 +219,8 @@ type Querier interface {
 	CreateList(ctx context.Context, arg CreateListParams) (List, error)
 	CreateListItem(ctx context.Context, arg CreateListItemParams) (ListItem, error)
 	CreateMLSGroup(ctx context.Context, arg CreateMLSGroupParams) error
+	// Meetings and calendar (ADR 0054).
+	CreateMeeting(ctx context.Context, arg CreateMeetingParams) (Meeting, error)
 	CreateMentionGroup(ctx context.Context, arg CreateMentionGroupParams) (MentionGroup, error)
 	// CreateMessage inserts a message; with a nonce the author used before it
 	// returns nothing (see GetMessageByNonce).
@@ -245,6 +251,7 @@ type Querier interface {
 	DecideSpillageReport(ctx context.Context, arg DecideSpillageReportParams) (SpillageReport, error)
 	DeleteAutomodRule(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteBanner(ctx context.Context) error
+	DeleteCalendarFeed(ctx context.Context, userID pgtype.UUID) (int64, error)
 	DeleteCanvas(ctx context.Context, id pgtype.UUID) error
 	DeleteCategory(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteChannelGroupMapping(ctx context.Context, arg DeleteChannelGroupMappingParams) (int64, error)
@@ -323,6 +330,9 @@ type Querier interface {
 	// DueFeeds lists feeds to read again: every 15 minutes, less often after
 	// failures (up to every 8 hours), in channels that are not archived.
 	DueFeeds(ctx context.Context) ([]DueFeedsRow, error)
+	// E-mails to send now: tried for at most a day. A newer e-mail about the same
+	// meeting for the same person replaces an older one still waiting.
+	DueMeetingMails(ctx context.Context) ([]DueMeetingMailsRow, error)
 	// DueReminders lists the people persistent messages mention (themselves or
 	// through a group) who are still in the channel, have not acknowledged them
 	// and are due another reminder under their workspace's rules.
@@ -362,6 +372,9 @@ type Querier interface {
 	// person's messages (also those a legal hold keeps: the hold keeps the message,
 	// not copies on their way out) and the bot deliveries of their reactions.
 	EraseUserDeliveries(ctx context.Context, userID pgtype.UUID) (int32, error)
+	// Erasure: the person leaves every meeting and loses the subscription
+	// address; meetings they planned stay for the others, without an organizer.
+	EraseUserMeetings(ctx context.Context, userID pgtype.UUID) error
 	// EraseUserMessages deletes a person's messages (the purge removes them for good
 	// within the restore window). Those a legal hold keeps are marked deleted too,
 	// so nobody sees them, and keep their text and edits for eDiscovery; the purge
@@ -369,6 +382,8 @@ type Querier interface {
 	EraseUserMessages(ctx context.Context, arg EraseUserMessagesParams) (EraseUserMessagesRow, error)
 	// EraseUserTraces removes what a person kept or set for themselves.
 	EraseUserTraces(ctx context.Context, userID pgtype.UUID) error
+	// Workspace events the person answered going or maybe to, in the range.
+	EventsForUser(ctx context.Context, arg EventsForUserParams) ([]EventsForUserRow, error)
 	// ExpireBotToken lets a token work until a time (rotation overlap).
 	ExpireBotToken(ctx context.Context, arg ExpireBotTokenParams) (BotToken, error)
 	ExpireCallReservations(ctx context.Context, callID pgtype.UUID) (int64, error)
@@ -428,6 +443,7 @@ type Querier interface {
 	GetBanner(ctx context.Context) (InstanceBanner, error)
 	GetBot(ctx context.Context, id pgtype.UUID) (GetBotRow, error)
 	GetBotToken(ctx context.Context, arg GetBotTokenParams) (BotToken, error)
+	GetCalendarFeed(ctx context.Context, userID pgtype.UUID) (time.Time, error)
 	// SPDX-License-Identifier: AGPL-3.0-only
 	GetCall(ctx context.Context, id pgtype.UUID) (Call, error)
 	GetCallByNonce(ctx context.Context, arg GetCallByNonceParams) (Call, error)
@@ -470,6 +486,8 @@ type Querier interface {
 	GetList(ctx context.Context, id pgtype.UUID) (List, error)
 	GetListItem(ctx context.Context, id pgtype.UUID) (ListItem, error)
 	GetMLSGroup(ctx context.Context, channelID pgtype.UUID) (MlsGroup, error)
+	GetMeeting(ctx context.Context, id pgtype.UUID) (Meeting, error)
+	GetMeetingResponse(ctx context.Context, arg GetMeetingResponseParams) (string, error)
 	GetMemberAttributes(ctx context.Context, arg GetMemberAttributesParams) ([]byte, error)
 	// GetMemberRole returns the user's role in a channel ('' when not a member).
 	GetMemberRole(ctx context.Context, arg GetMemberRoleParams) (string, error)
@@ -668,6 +686,7 @@ type Querier interface {
 	ListMLSMembers(ctx context.Context, channelID pgtype.UUID) ([]ListMLSMembersRow, error)
 	// ListManualWorkflows returns the workflows people can start in a channel.
 	ListManualWorkflows(ctx context.Context, arg ListManualWorkflowsParams) ([]Workflow, error)
+	ListMeetingInvitees(ctx context.Context, meetingID pgtype.UUID) ([]ListMeetingInviteesRow, error)
 	ListMemberAttributes(ctx context.Context, workspaceID pgtype.UUID) ([]ListMemberAttributesRow, error)
 	ListMemberChannelIDs(ctx context.Context, userID pgtype.UUID) ([]ListMemberChannelIDsRow, error)
 	// ListMemberChannels returns the channels a user belongs to with the user's
@@ -800,6 +819,8 @@ type Querier interface {
 	MarkChannelImported(ctx context.Context, channelID pgtype.UUID) error
 	// MarkChannelReadForAll makes the history of an imported channel read.
 	MarkChannelReadForAll(ctx context.Context, channelID pgtype.UUID) error
+	// The e-mail went (or is not for this person); older ones waiting go with it.
+	MarkMeetingMailsSent(ctx context.Context, arg MarkMeetingMailsSentParams) error
 	// MarkRead moves a member's read position forward (never back).
 	MarkRead(ctx context.Context, arg MarkReadParams) (int64, error)
 	// MarkThreadRead moves a follower's read position in a thread forward.
@@ -812,6 +833,14 @@ type Querier interface {
 	MarkUnreadFrom(ctx context.Context, arg MarkUnreadFromParams) (pgtype.UUID, error)
 	// MarkWorkspaceImported records that an import created the workspace.
 	MarkWorkspaceImported(ctx context.Context, workspaceID pgtype.UUID) error
+	MeetingInviteeNames(ctx context.Context, meetingID pgtype.UUID) ([]string, error)
+	MeetingMailFailed(ctx context.Context, id pgtype.UUID) error
+	// The meetings a person is invited to that can have an occurrence in the range
+	// (a meeting lasts at most a day).
+	MeetingsForUser(ctx context.Context, arg MeetingsForUserParams) ([]MeetingsForUserRow, error)
+	// Meetings that can start within the next quarter of an hour, with the people
+	// to remind (all but those who said no).
+	MeetingsSoon(ctx context.Context) ([]MeetingsSoonRow, error)
 	// MessageLive: the message exists and is not deleted.
 	MessageLive(ctx context.Context, id pgtype.UUID) (bool, error)
 	// MissedForEmail lists unread mentions, conversation messages and replies in
@@ -864,6 +893,8 @@ type Querier interface {
 	// cut-off (CENACLE_LINK_PREVIEW_RETENTION) and returns their pictures; messages
 	// that showed one show the bare link. A message posted later fetches it again.
 	PruneLinkPreviews(ctx context.Context, arg PruneLinkPreviewsParams) ([]pgtype.UUID, error)
+	PruneMeetingMails(ctx context.Context) error
+	PruneMeetingReminders(ctx context.Context) error
 	// PurgeBurned removes burn-on-read messages every other member has read and
 	// whose time is up, and any older than a week. Messages a legal hold keeps are
 	// deleted for people instead (and stay for eDiscovery).
@@ -897,6 +928,7 @@ type Querier interface {
 	// QueueFederationDelivery queues an event; one that carries a message's content
 	// names it (message_id), so the copy goes when the message does.
 	QueueFederationDelivery(ctx context.Context, arg QueueFederationDeliveryParams) error
+	QueueMeetingMail(ctx context.Context, arg QueueMeetingMailParams) error
 	// ReceiptsAllowed tells whether a person sees and shows read receipts in a
 	// channel: a conversation of a workspace that turned them on, and the person
 	// shares theirs.
@@ -932,6 +964,7 @@ type Querier interface {
 	ReminderSubject(ctx context.Context, id pgtype.UUID) (ReminderSubjectRow, error)
 	RemoteMessageOf(ctx context.Context, arg RemoteMessageOfParams) (pgtype.UUID, error)
 	RemoveMLSMembers(ctx context.Context, arg RemoveMLSMembersParams) error
+	RemoveMeetingInvitee(ctx context.Context, arg RemoveMeetingInviteeParams) (int64, error)
 	RemoveMember(ctx context.Context, arg RemoveMemberParams) (int64, error)
 	RemoveMentionGroupMember(ctx context.Context, arg RemoveMentionGroupMemberParams) (int64, error)
 	RemovePushEndpoint(ctx context.Context, endpoint string) error
@@ -1050,6 +1083,7 @@ type Querier interface {
 	SetBotDescription(ctx context.Context, arg SetBotDescriptionParams) error
 	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
 	SetBotInteractions(ctx context.Context, arg SetBotInteractionsParams) error
+	SetCalendarFeed(ctx context.Context, arg SetCalendarFeedParams) error
 	SetCallCaptions(ctx context.Context, arg SetCallCaptionsParams) (Call, error)
 	// SetCallHand raises (keeping the first time) or lowers the hand of a user's
 	// open session in a call.
@@ -1088,6 +1122,7 @@ type Querier interface {
 	SetLastSeen(ctx context.Context, id pgtype.UUID) error
 	SetLinkState(ctx context.Context, arg SetLinkStateParams) error
 	SetListItemPosition(ctx context.Context, arg SetListItemPositionParams) error
+	SetMeetingResponse(ctx context.Context, arg SetMeetingResponseParams) (int64, error)
 	SetMemberAttributes(ctx context.Context, arg SetMemberAttributesParams) error
 	SetMemberTimeout(ctx context.Context, arg SetMemberTimeoutParams) (int64, error)
 	SetMentionGroupManager(ctx context.Context, arg SetMentionGroupManagerParams) (int64, error)
@@ -1117,6 +1152,7 @@ type Querier interface {
 	// SetUserDeactivated deactivates or reactivates a person; it returns whether
 	// the state changed.
 	SetUserDeactivated(ctx context.Context, arg SetUserDeactivatedParams) (pgtype.UUID, error)
+	SetUserLanguage(ctx context.Context, arg SetUserLanguageParams) error
 	SetWebApp(ctx context.Context, webApp bool) error
 	SetWorkflowNextRun(ctx context.Context, arg SetWorkflowNextRunParams) error
 	SetWorkflowWebhook(ctx context.Context, arg SetWorkflowWebhookParams) error
@@ -1131,6 +1167,7 @@ type Querier interface {
 	// ---------------------------------------------------------------- welcome ---
 	SetWorkspaceWelcome(ctx context.Context, arg SetWorkspaceWelcomeParams) (Workspace, error)
 	ShareChannel(ctx context.Context, arg ShareChannelParams) (SharedChannel, error)
+	SkipMeetingOccurrence(ctx context.Context, arg SkipMeetingOccurrenceParams) (Meeting, error)
 	// SpillageExposure is who could see a channel's message when it was removed.
 	SpillageExposure(ctx context.Context, channelID pgtype.UUID) ([]SpillageExposureRow, error)
 	StartConnectedCall(ctx context.Context, id pgtype.UUID) (Call, error)
@@ -1160,6 +1197,9 @@ type Querier interface {
 	UpdateLegalHold(ctx context.Context, arg UpdateLegalHoldParams) (LegalHold, error)
 	UpdateList(ctx context.Context, arg UpdateListParams) (List, error)
 	UpdateListItem(ctx context.Context, arg UpdateListItemParams) (ListItem, error)
+	// A change of time or repeat clears the cancelled occurrences (they no longer
+	// match); the sequence grows so calendars take the new version.
+	UpdateMeeting(ctx context.Context, arg UpdateMeetingParams) (Meeting, error)
 	UpdateMentionGroup(ctx context.Context, arg UpdateMentionGroupParams) (MentionGroup, error)
 	// UpdateMessageByBot replaces the text and cards of a bot's message (answering
 	// an interaction); it is not marked edited.
@@ -1185,6 +1225,7 @@ type Querier interface {
 	// UseInvite counts one use of a valid invitation; no row when it is not valid.
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
 	UserAuditEvents(ctx context.Context, userID pgtype.UUID) ([]UserAuditEventsRow, error)
+	UserByCalendarFeed(ctx context.Context, tokenHash []byte) (User, error)
 	UserCallMetadataAfter(ctx context.Context, arg UserCallMetadataAfterParams) ([]UserCallMetadataAfterRow, error)
 	UserCallNotes(ctx context.Context, userID pgtype.UUID) ([]UserCallNotesRow, error)
 	UserChannels(ctx context.Context, userID pgtype.UUID) ([]UserChannelsRow, error)
@@ -1203,6 +1244,8 @@ type Querier interface {
 	UserFiles(ctx context.Context, userID pgtype.UUID) ([]UserFilesRow, error)
 	// UserIDsByUsernames finds the people a message names by @username (active ones).
 	UserIDsByUsernames(ctx context.Context, usernames []string) ([]pgtype.UUID, error)
+	// A person's meetings for their data export.
+	UserMeetings(ctx context.Context, userID pgtype.UUID) ([]UserMeetingsRow, error)
 	// UserMessagesAfter returns the messages a person wrote, oldest first, after a
 	// cursor (their data export).
 	UserMessagesAfter(ctx context.Context, arg UserMessagesAfterParams) ([]UserMessagesAfterRow, error)

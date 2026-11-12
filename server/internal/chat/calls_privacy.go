@@ -57,6 +57,9 @@ func eraseUserCalls(ctx context.Context, q *store.Queries, user pgtype.UUID) err
 	if _, err = q.EraseUserCallNotes(ctx, user); err != nil {
 		return err
 	}
+	if err = q.EraseUserMeetings(ctx, user); err != nil {
+		return err
+	}
 	_, err = q.EraseCallInitiator(ctx, user)
 	return err
 }
@@ -68,6 +71,17 @@ func (h *Handlers) writeUserCalls(ctx context.Context, put func(string, any) err
 	}
 	for _, n := range notes {
 		if err := put("call_note", map[string]any{"call_id": uuid(n.CallID), "text": n.Text, "said_at": n.SaidAt}); err != nil {
+			return err
+		}
+	}
+	meetings, err := h.Queries.UserMeetings(ctx, user)
+	if err != nil {
+		return err
+	}
+	for _, m := range meetings {
+		if err := put("meeting", map[string]any{"meeting_id": uuid(m.ID), "title": m.Title, "starts_at": m.StartsAt,
+			"ends_at": m.EndsAt, "timezone": m.Timezone, "repeat": m.Rrule, "cancelled_at": timePtr(m.CancelledAt),
+			"response": m.Response, "organizer": m.Organizer}); err != nil {
 			return err
 		}
 	}

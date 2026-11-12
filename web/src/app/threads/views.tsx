@@ -44,6 +44,7 @@ import { EventsList } from '../community/events';
 import { PlaybooksList } from '../community/playbooks';
 import { MyTasks } from '../collab/my-tasks';
 import { TodayView } from './today';
+import { CalendarView } from '../meetings/calendar-page';
 import { UserAvatar } from '../profile/avatar';
 import { plainText } from '../search/search';
 import {
@@ -73,6 +74,7 @@ const FederationPage = lazy(() =>
 
 export type HomeView =
   | 'today'
+  | 'calendar'
   | 'threads'
   | 'activity'
   | 'saved'
@@ -177,6 +179,7 @@ export function HomeViewPage({ view, mobile = false }: { view: HomeView; mobile?
       mobile={mobile}
     >
       {view === 'today' && <TodayView />}
+      {view === 'calendar' && <CalendarView />}
       {view === 'threads' && <ThreadsList />}
       {view === 'activity' && <InboxBoard />}
       {view === 'saved' && <SavedList />}

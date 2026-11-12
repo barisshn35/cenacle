@@ -68,6 +68,7 @@ export function NotificationsPanel() {
     start: useId(),
     end: useId(),
     delay: useId(),
+    remind: useId(),
   };
   const settings = useQuery(notificationsQuery);
   const sounds = useQuery(soundsQuery);
@@ -81,6 +82,7 @@ export function NotificationsPanel() {
   const paused = isActive(p.paused_until);
   // Servers before 1.0 have no call settings: these are theirs.
   const calls = p.calls ?? { ring: true, channel: true, sound: p.sounds.direct };
+  const meetings = p.meetings ?? { remind_minutes: 10 as const, email: true };
 
   const soundOptions = (
     <>
@@ -285,6 +287,49 @@ export function NotificationsPanel() {
           onChange={(v) => save({ calls: { ...calls, sound: v } })}
         />
         <p className="text-xs text-muted-foreground">{t('notifications.calls.hint')}</p>
+      </section>
+
+      <section className="grid gap-3" aria-labelledby={`${ids.remind}-title`}>
+        <h3 id={`${ids.remind}-title`} className="text-sm font-medium">
+          {t('notifications.meetings.title')}
+        </h3>
+        <div className="grid gap-1.5">
+          <Label htmlFor={ids.remind}>{t('notifications.meetings.remind')}</Label>
+          <select
+            id={ids.remind}
+            className={selectClass}
+            value={meetings.remind_minutes}
+            onChange={(e) =>
+              save({
+                meetings: {
+                  ...meetings,
+                  remind_minutes: Number(e.target.value) as typeof meetings.remind_minutes,
+                },
+              })
+            }
+          >
+            {([0, 5, 10, 15] as const).map((m) => (
+              <option key={m} value={m}>
+                {m === 0
+                  ? t('notifications.meetings.noReminder')
+                  : t('notifications.meetings.before', { count: m })}
+              </option>
+            ))}
+          </select>
+        </div>
+        {settings.data.email_available && (
+          <label data-target className="flex min-h-target items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={meetings.email}
+              onChange={(e) => save({ meetings: { ...meetings, email: e.target.checked } })}
+              className="size-4 accent-primary"
+              data-target-exempt
+            />
+            {t('notifications.meetings.email')}
+          </label>
+        )}
+        <p className="text-xs text-muted-foreground">{t('notifications.meetings.hint')}</p>
       </section>
 
       <section className="grid gap-3" aria-labelledby={`${ids.start}-title`}>

@@ -13,6 +13,8 @@ import { useSession } from '../auth/session';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { metaQuery } from '../auth/web-app';
 import { RealtimeClient } from '@cenacle/core/realtime';
+import { meetingsChanged } from '../meetings/data';
+import { notifyMeetingReminder, type MeetingReminder } from '../meetings/reminder';
 import { useConnection } from './connection';
 import { reloadWorkspaces } from './workspaces';
 import { QuickSwitcher } from './quick-switcher';
@@ -193,6 +195,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (ev.type === 'report.created') {
           const { workspace_id } = ev.data as { workspace_id: string };
           void queryClient.invalidateQueries({ queryKey: ['reports', workspace_id] });
+        } else if (ev.type === 'meeting.changed') {
+          meetingsChanged(queryClient, (ev.data as { meeting_id: string }).meeting_id);
+        } else if (ev.type === 'meeting.reminder') {
+          notifyMeetingReminder(queryClient, ev.data as MeetingReminder, (meeting) => {
+            void navigateRef.current({ to: '/calendar', search: { meeting } });
+          });
         } else if (ev.type === 'event.changed') {
           const { workspace_id } = ev.data as { workspace_id: string };
           void queryClient.invalidateQueries({ queryKey: ['events', workspace_id] });

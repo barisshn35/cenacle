@@ -327,6 +327,17 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			},
 		}
 	}
+	// Meeting reminders always; their pushes and e-mails when those are on.
+	meetingJob := &notify.Meetings{
+		Queries: queries, Presence: presence, Sessions: sessions, PublicURL: cfg.PublicURL.String(), Log: log,
+	}
+	if p, ok := deps.Push.(*notify.Pusher); ok {
+		meetingJob.Push = p.Push
+	}
+	if e, ok := deps.Email.(*notify.Emailer); ok {
+		meetingJob.SMTP = e.SMTP
+	}
+	deps.Meetings = meetingJob
 	jobClient, err := jobs.NewClient(pool, deps)
 	if err != nil {
 		return err
@@ -380,6 +391,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Settings:          admin.Settings(cfg),
 			AccountURL:        auth.AccountURL(cfg.OIDCIssuer, cfg.PublicURL.String()),
 			EmailAvailable:    cfg.SMTPHost != "",
+			MeetingMail:       meetingJob,
 			PushPublicKey:     pushPublicKey,
 			Ephemeral:         ephemeral,
 			Audit:             auditLog,

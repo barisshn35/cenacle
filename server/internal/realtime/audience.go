@@ -115,6 +115,8 @@ func (a *audience) allowsData(typ string, d *eventData) bool {
 			}
 		}
 		return false
+	case events.MeetingChanged, events.MeetingReminder: // the people named
+		return slices.Contains(d.To, a.user)
 	case events.BannerChanged, events.TermsChanged: // everyone
 		return true
 	case events.CategoriesChanged, events.WorkspaceUpdated, events.WorkspaceMembersChanged, events.GroupsChanged,

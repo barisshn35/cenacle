@@ -1,0 +1,20 @@
+{{.Lead}}
+
+{{.Title}}{{if .Cancelled}} ({{.CancelledLabel}}){{end}}
+
+{{.LongDate}}, {{.Time}}{{if .TimeChanged}}  [{{.ChangedLabel}}; {{.WasLabel}} {{.OldTime}}]{{end}}
+{{.Zone}}
+{{- if .Repeat}}
+{{.Repeat}}{{end}}
+{{range .Rows}}
+{{.Label}}:{{if eq (len .Lines) 1}} {{index .Lines 0}}{{else}}{{range .Lines}}
+  {{.}}{{end}}{{end}}{{end}}
+
+{{.Button}}: {{.ButtonURL}}
+
+{{.Hint}}
+{{.CalendarNote}}
+
+-- 
+{{.Footer}}
+{{.Host}}

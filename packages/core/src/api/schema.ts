@@ -271,6 +271,210 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/calendar': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Your meetings and events in a time range
+     * @description The occurrences of the meetings you are invited to (ADR 0054) and the workspace
+     *     events you answered going or maybe to, that overlap the range (at most 62 days).
+     */
+    get: operations['getCalendar'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/meetings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Plan a meeting
+     * @description In a channel you can post in (`channel_id`), with invitees who are its members;
+     *     or, without `channel_id`, in the direct or group conversation of you and the
+     *     invitees (1 to 8 people). Invitees get an e-mail if they want one.
+     */
+    post: operations['createMeeting'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/meetings/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    /** A meeting you are invited to */
+    get: operations['getMeeting'];
+    /**
+     * Change a meeting (its organizer or a workspace administrator)
+     * @description Changes every occurrence. `user_ids` is the whole list of invitees: people left
+     *     out are uninvited (and told), new ones invited. A new time or repeat brings back
+     *     the occurrences cancelled one by one.
+     */
+    put: operations['updateMeeting'];
+    post?: never;
+    /** Cancel a meeting with all its occurrences (its organizer or a workspace administrator) */
+    delete: operations['cancelMeeting'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/meetings/{id}/skip': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel one occurrence of a repeating meeting */
+    post: operations['skipMeetingOccurrence'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/meetings/{id}/response': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Say whether you will come */
+    put: operations['answerMeeting'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/meetings/{id}/ics': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    /** The meeting as an iCalendar file */
+    get: operations['downloadMeeting'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/calendar-feed': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Whether you have a calendar subscription address */
+    get: operations['getCalendarFeed'];
+    put?: never;
+    /**
+     * Make a new private calendar subscription address
+     * @description The address replaces any earlier one, which stops working. It is shown once.
+     */
+    post: operations['createCalendarFeed'];
+    /** Stop your calendar subscription address */
+    delete: operations['deleteCalendarFeed'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calendar-feeds/{token}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    /** A person's meetings for calendar programs (no sign-in; the address is the key) */
+    get: operations['readCalendarFeed'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/language': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Tell the server your language (for e-mails) */
+    put: operations['setLanguage'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/test-email': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send yourself a sample meeting invitation (instance administrators)
+     * @description Shows that e-mail works and what invitations look like, in your language.
+     */
+    post: operations['sendTestEmail'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/calls/{id}/reactions': {
     parameters: {
       query?: never;
@@ -6946,6 +7150,16 @@ export interface components {
         channel: boolean;
         sound: components['schemas']['NotificationSound'];
       };
+      /** @description Meetings (ADR 0054). Paused notifications and quiet hours hold for reminders. */
+      meetings?: {
+        /**
+         * @description Remind this long before each occurrence; 0 for no reminder.
+         * @enum {integer}
+         */
+        remind_minutes: 0 | 5 | 10 | 15;
+        /** @description Invitations */
+        email: boolean;
+      };
     };
     ChannelNotificationInput: {
       /** @enum {string} */
@@ -7038,6 +7252,89 @@ export interface components {
       guest: boolean;
       /** @description An absence that has not ended (it may start later); null when there is none. */
       out_of_office?: components['schemas']['OutOfOffice'] | null;
+    };
+    MeetingInput: {
+      title: string;
+      agenda?: string;
+      /** Format: date-time */
+      starts_at: string;
+      /**
+       * Format: date-time
+       * @description At most 24 hours after the start.
+       */
+      ends_at: string;
+      /** @description The organizer's IANA time zone: repeats keep its clock time. */
+      timezone: string;
+      /** @description '' or FREQ=DAILY|WEEKLY|MONTHLY with INTERVAL, BYDAY (weekly) and UNTIL or COUNT. */
+      rrule?: string;
+      /** @description The invitees besides you. */
+      user_ids: string[];
+    };
+    MeetingCreate: components['schemas']['MeetingInput'] & {
+      /** Format: uuid */
+      workspace_id: string;
+      /**
+       * Format: uuid
+       * @description Where the call happens; none for a conversation with the invitees.
+       */
+      channel_id?: string | null;
+    };
+    MeetingInvitee: {
+      /** Format: uuid */
+      user_id: string;
+      display_name: string;
+      /** @enum {string} */
+      response: 'pending' | 'yes' | 'maybe' | 'no';
+      organizer: boolean;
+    };
+    Meeting: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      workspace_id: string;
+      /** Format: uuid */
+      channel_id: string;
+      /** Format: uuid */
+      organizer_id: string | null;
+      title: string;
+      agenda: string;
+      /**
+       * Format: date-time
+       * @description The first occurrence's start.
+       */
+      starts_at: string;
+      /** Format: date-time */
+      ends_at: string;
+      timezone: string;
+      rrule: string;
+      /** @description Occurrences cancelled one by one. */
+      exdates: string[];
+      cancelled: boolean;
+      /** @enum {string} */
+      my_response: 'pending' | 'yes' | 'maybe' | 'no';
+      can_edit: boolean;
+      invitees: components['schemas']['MeetingInvitee'][];
+    };
+    CalendarItem: {
+      /** @enum {string} */
+      kind: 'meeting' | 'event';
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      workspace_id: string;
+      /** Format: uuid */
+      channel_id: string | null;
+      title: string;
+      /**
+       * Format: date-time
+       * @description This occurrence's start.
+       */
+      starts_at: string;
+      /** Format: date-time */
+      ends_at: string;
+      /** @description Meetings: pending, yes, maybe or no; events: going or maybe. */
+      response: string;
+      recurring: boolean;
     };
     OutOfOffice: {
       /** Format: date-time */
@@ -8034,6 +8331,373 @@ export interface operations {
         };
         content?: never;
       };
+    };
+  };
+  getCalendar: {
+    parameters: {
+      query: {
+        from: string;
+        to: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The items, by start. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            items: components['schemas']['CalendarItem'][];
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  createMeeting: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MeetingCreate'];
+      };
+    };
+    responses: {
+      /** @description Planned. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Meeting'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  getMeeting: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The meeting. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Meeting'];
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  updateMeeting: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MeetingInput'];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Meeting'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+    };
+  };
+  cancelMeeting: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cancelled. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  skipMeetingOccurrence: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /**
+           * Format: date-time
+           * @description The occurrence's start.
+           */
+          occurrence: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Cancelled. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Meeting'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  answerMeeting: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string} */
+          response: 'yes' | 'maybe' | 'no';
+        };
+      };
+    };
+    responses: {
+      /** @description Answered. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  downloadMeeting: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The file. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/calendar': string;
+        };
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  getCalendarFeed: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Its state (the address itself is shown only when made). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            exists: boolean;
+            /** Format: date-time */
+            created_at?: string | null;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  createCalendarFeed: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The address. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            url: string;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  deleteCalendarFeed: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Stopped. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  readCalendarFeed: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The calendar (titles, times and places; no agendas). */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/calendar': string;
+        };
+      };
+      /** @description Unknown address. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  setLanguage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** @enum {string|null} */
+          language: 'en' | 'tr' | null;
+        };
+      };
+    };
+    responses: {
+      /** @description Set. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  sendTestEmail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Sent. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
+      502: components['responses']['Problem'];
     };
   };
   sendCallReaction: {

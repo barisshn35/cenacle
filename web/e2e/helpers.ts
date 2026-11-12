@@ -593,6 +593,14 @@ export async function mockApi(
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/federation$/, (route) =>
     route.fulfill({ json: { connections: [], offers: [] } }),
   );
+  // Meetings (ADR 0054): an empty calendar, the language told, no subscription.
+  await page.route(/\/api\/calendar\?/, (route) => route.fulfill({ json: { items: [] } }));
+  await page.route('**/api/me/language', (route) => route.fulfill({ status: 204 }));
+  await page.route('**/api/me/calendar-feed', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { exists: false, created_at: null } })
+      : route.fallback(),
+  );
   // Calls going on in one's channels (the sidebar's marks): none unless a test adds them.
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/calls$/, (route) =>
     route.fulfill({ json: { calls: [] } }),

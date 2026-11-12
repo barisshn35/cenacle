@@ -10,6 +10,18 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Meetings and calendar (ADR 0054): plan a meeting in a channel or with people (a direct or
+  group conversation), once or repeating (daily, weekly on chosen days, monthly; until a day or
+  a number of times), cancel one occurrence or all. Invitees answer going, maybe or not going;
+  Join opens 5 minutes before. The calendar shows one's meetings and the workspace events one
+  answered going or maybe to, in four views each person chooses: an agenda, a board (days along
+  the hours), a planner (days as columns) and today beside the month. Reminders before each
+  meeting (off, 5, 10 or 15 minutes) in the app and by web push, in a new Meetings section of
+  the notification settings. Invitations, changes and cancellations go by e-mail (HTML and text,
+  English or Turkish by the person's language, which the app now tells the server) with an
+  iCalendar file that adds, updates or removes the meeting in one's calendar; each meeting
+  downloads as `.ics`, and a private subscription address serves one's meetings to calendar
+  programs. Administrators can send themselves a test e-mail. Migration 00078.
 - Call recording with visible consent (ADR 0053): where a workspace allows it, one person
   in a call records it; everyone sees a red "Recording" mark and who records, people see it
   before they join (the check before joining always shows then), and anyone in the call can

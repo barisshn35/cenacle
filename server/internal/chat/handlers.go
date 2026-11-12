@@ -84,6 +84,8 @@ type Handlers struct {
 	AccountURL string
 	// EmailAvailable: the installation sends e-mail (SMTP is configured).
 	EmailAvailable bool
+	// MeetingMail sends an administrator a sample invitation; nil without e-mail.
+	MeetingMail MeetingMailer
 	// PushPublicKey gives the web push (VAPID) public key; nil: web push is off.
 	PushPublicKey func(ctx context.Context) (string, error)
 	Limiter       RateLimiter

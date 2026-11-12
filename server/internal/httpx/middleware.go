@@ -57,12 +57,13 @@ func AccessLog(log *slog.Logger) func(http.Handler) http.Handler {
 }
 
 // secretPathPrefixes are routes whose next path segment is a bearer secret
-// (webhook addresses, invite and guest-link tokens).
+// (webhook addresses, invite and guest-link tokens, calendar subscriptions).
 var secretPathPrefixes = []string{
 	"/api/hooks/",
 	"/api/workflow-hooks/",
 	"/api/invites/",
 	"/api/guest-links/",
+	"/api/calendar-feeds/",
 }
 
 // RedactPath hides secrets carried in paths: the token segment is replaced,

@@ -254,6 +254,12 @@ func (ExportArchiveArgs) Kind() string { return "export_archive" }
 // ArchiveInterval is how often finished days are looked for.
 var ArchiveInterval = 10 * time.Minute
 
+// MeetingsArgs reminds people of meetings and sends meeting e-mails (ADR 0054).
+type MeetingsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (MeetingsArgs) Kind() string { return "meetings" }
+
 // EmailNotificationsArgs e-mails people about what they missed.
 type EmailNotificationsArgs struct{}
 
@@ -390,6 +396,8 @@ type Deps struct {
 	Email Runner
 	// Reminders is optional (reminders of urgent messages).
 	Reminders Runner
+	// Meetings is optional (meeting reminders and e-mails).
+	Meetings Runner
 	// Feeds is optional (feeds channels follow).
 	Feeds Runner
 	// Links is optional (link previews may be turned off).
@@ -461,6 +469,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Reminders != nil {
 		river.AddWorker(workers, &runnerWorker[SendRemindersArgs]{r: d.Reminders, what: "reminders sent", log: d.Log})
 		jobs = append(jobs, periodic(ReminderInterval, SendRemindersArgs{}))
+	}
+	if d.Meetings != nil {
+		river.AddWorker(workers, &runnerWorker[MeetingsArgs]{r: d.Meetings, what: "meeting reminders and e-mails sent", log: d.Log, timeout: NotifyTimeout})
+		jobs = append(jobs, periodic(30*time.Second, MeetingsArgs{}))
 	}
 	if d.Email != nil {
 		river.AddWorker(workers, &runnerWorker[EmailNotificationsArgs]{r: d.Email, what: "notification e-mails sent", log: d.Log, timeout: NotifyTimeout})

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { beforeJoining } from './prejoin-state';
+import { startOrJoinCall } from './start';
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -34,22 +35,13 @@ export function CallAction({ channel }: { channel: Channel }) {
   if (!settings.data?.available || channel.archived) return null;
   const encrypted = channel.encrypted || channel.mls;
   const start = () => {
-    useCall.setState({ error: '' });
     setPending(true);
     nonce.current ??= crypto.randomUUID();
     const existing = current.data && current.data.state !== 'ended' ? current.data : null;
     // Starting or joining goes through the check of microphone and camera first.
-    void beforeJoining(channel.name, !existing, !!existing?.recording_on, (media) =>
-      (existing
-        ? existing.state === 'ringing' && !existing.participants.some((p) => p.user_id === selfID)
-          ? calls.answer(existing.id, 'accept').then((call) => joinCall(call, media))
-          : joinCall(existing, media)
-        : calls.start(channel.id, nonce.current!).then((call) => {
-            nonce.current = null;
-            return joinCall(call, media);
-          })
-      ).catch((error) => useCall.setState({ error: errorCode(error) })),
-    ).finally(() => setPending(false));
+    void startOrJoinCall(channel, existing, selfID, nonce.current, () => {
+      nonce.current = null;
+    }).finally(() => setPending(false));
   };
   return (
     <>

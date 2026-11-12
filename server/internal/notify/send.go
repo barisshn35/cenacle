@@ -6,16 +6,19 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
+	"mime/multipart"
 	"mime/quotedprintable"
 	"net"
 	"net/http"
 	"net/mail"
 	"net/smtp"
+	"net/textproto"
 	"strconv"
 	"strings"
 	"time"
@@ -39,14 +42,136 @@ type SMTP struct {
 	Timeout  time.Duration
 }
 
-// Mail is one message to send (plain text).
+// Mail is one message to send: plain text, and HTML with its inline images
+// and files when there is one.
 type Mail struct {
 	To      string
 	Subject string
 	Text    string
+	HTML    string
+	// Calendar is an iCalendar file sent with the HTML (an invitation): as
+	// a part calendar programs read (with its METHOD) and as an attachment.
+	Calendar       []byte
+	CalendarMethod string // REQUEST or CANCEL
+	CalendarName   string // the attachment's file name
+	Inline         []InlineImage
+}
+
+// InlineImage is an image the HTML shows by its Content-ID (cid:).
+type InlineImage struct {
+	ID   string
+	Type string
+	Data []byte
 }
 
 func headerValue(s string) string { return mime.QEncoding.Encode("utf-8", s) }
+
+// message writes the whole message, headers included.
+func (m Mail) message(from, to *mail.Address, now time.Time) ([]byte, error) {
+	var body bytes.Buffer
+	fmt.Fprintf(&body, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\n",
+		from.String(), to.String(), headerValue(m.Subject), now.UTC().Format(time.RFC1123Z))
+	body.WriteString("Auto-Submitted: auto-generated\r\n")
+	if m.HTML == "" {
+		body.WriteString("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n")
+		if err := writeQP(&body, m.Text); err != nil {
+			return nil, err
+		}
+		return body.Bytes(), nil
+	}
+	// mixed( related( alternative(text, html, calendar), images ), calendar file )
+	mixed := multipart.NewWriter(&body)
+	fmt.Fprintf(&body, "Content-Type: multipart/mixed; boundary=%s\r\n\r\n", mixed.Boundary())
+	var relatedBuf bytes.Buffer
+	related := multipart.NewWriter(&relatedBuf)
+	var altBuf bytes.Buffer
+	alt := multipart.NewWriter(&altBuf)
+	qpPart := func(w *multipart.Writer, typ, text string) error {
+		pw, err := w.CreatePart(textproto.MIMEHeader{"Content-Type": {typ}, "Content-Transfer-Encoding": {"quoted-printable"}})
+		if err != nil {
+			return err
+		}
+		return writeQP(pw, text)
+	}
+	b64Part := func(w *multipart.Writer, h textproto.MIMEHeader, data []byte) error {
+		h.Set("Content-Transfer-Encoding", "base64")
+		pw, err := w.CreatePart(h)
+		if err != nil {
+			return err
+		}
+		enc := base64.StdEncoding.EncodeToString(data)
+		for len(enc) > 76 {
+			if _, err := io.WriteString(pw, enc[:76]+"\r\n"); err != nil {
+				return err
+			}
+			enc = enc[76:]
+		}
+		_, err = io.WriteString(pw, enc+"\r\n")
+		return err
+	}
+	if err := qpPart(alt, "text/plain; charset=utf-8", m.Text); err != nil {
+		return nil, err
+	}
+	if err := qpPart(alt, "text/html; charset=utf-8", m.HTML); err != nil {
+		return nil, err
+	}
+	if len(m.Calendar) > 0 {
+		if err := b64Part(alt, textproto.MIMEHeader{"Content-Type": {"text/calendar; charset=utf-8; method=" + m.CalendarMethod}}, m.Calendar); err != nil {
+			return nil, err
+		}
+	}
+	if err := alt.Close(); err != nil {
+		return nil, err
+	}
+	rw, err := related.CreatePart(textproto.MIMEHeader{"Content-Type": {"multipart/alternative; boundary=" + alt.Boundary()}})
+	if err != nil {
+		return nil, err
+	}
+	if _, err := rw.Write(altBuf.Bytes()); err != nil {
+		return nil, err
+	}
+	for _, img := range m.Inline {
+		if err := b64Part(related, textproto.MIMEHeader{
+			"Content-Type": {img.Type}, "Content-ID": {"<" + img.ID + ">"}, "Content-Disposition": {"inline"},
+		}, img.Data); err != nil {
+			return nil, err
+		}
+	}
+	if err := related.Close(); err != nil {
+		return nil, err
+	}
+	mw, err := mixed.CreatePart(textproto.MIMEHeader{"Content-Type": {"multipart/related; type=\"multipart/alternative\"; boundary=" + related.Boundary()}})
+	if err != nil {
+		return nil, err
+	}
+	if _, err := mw.Write(relatedBuf.Bytes()); err != nil {
+		return nil, err
+	}
+	if len(m.Calendar) > 0 {
+		name := m.CalendarName
+		if name == "" {
+			name = "invite.ics"
+		}
+		if err := b64Part(mixed, textproto.MIMEHeader{
+			"Content-Type":        {"application/ics; name=\"" + name + "\""},
+			"Content-Disposition": {"attachment; filename=\"" + name + "\""},
+		}, m.Calendar); err != nil {
+			return nil, err
+		}
+	}
+	if err := mixed.Close(); err != nil {
+		return nil, err
+	}
+	return body.Bytes(), nil
+}
+
+func writeQP(w io.Writer, text string) error {
+	qp := quotedprintable.NewWriter(w)
+	if _, err := qp.Write([]byte(strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\n", "\r\n"))); err != nil {
+		return err
+	}
+	return qp.Close()
+}
 
 // Send delivers a message (one recipient).
 func (s *SMTP) Send(ctx context.Context, m Mail) error {
@@ -58,16 +183,10 @@ func (s *SMTP) Send(ctx context.Context, m Mail) error {
 	if err != nil {
 		return fmt.Errorf("smtp: to: %w", err)
 	}
-	var body bytes.Buffer
-	fmt.Fprintf(&body, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\n",
-		from.String(), to.String(), headerValue(m.Subject), time.Now().UTC().Format(time.RFC1123Z))
-	body.WriteString("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n")
-	body.WriteString("Auto-Submitted: auto-generated\r\n\r\n")
-	qp := quotedprintable.NewWriter(&body)
-	if _, err := qp.Write([]byte(strings.ReplaceAll(m.Text, "\n", "\r\n"))); err != nil {
-		return err
+	msg, err := m.message(from, to, time.Now())
+	if err != nil {
+		return fmt.Errorf("smtp: message: %w", err)
 	}
-	_ = qp.Close()
 
 	timeout := s.Timeout
 	if timeout == 0 {
@@ -113,7 +232,7 @@ func (s *SMTP) Send(ctx context.Context, m Mail) error {
 	if err != nil {
 		return fmt.Errorf("smtp: data: %w", err)
 	}
-	if _, err := w.Write(body.Bytes()); err != nil {
+	if _, err := w.Write(msg); err != nil {
 		return err
 	}
 	if err := w.Close(); err != nil {

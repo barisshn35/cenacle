@@ -594,8 +594,37 @@ function NotificationsPanel() {
     <div className="flex max-w-xl flex-col gap-6">
       {group('push_contents', ['full', 'sender', 'none'])}
       {group('email_contents', ['full', 'sender'])}
+      <TestEmail />
       <SoundDefaultsSection />
     </div>
+  );
+}
+
+/** Sends the administrator a sample meeting invitation: e-mail works, and how it looks. */
+function TestEmail() {
+  const { t } = useTranslation();
+  const send = useMutation({
+    mutationFn: () => apiFetch<void>('/api/admin/test-email', { method: 'POST' }),
+    onSuccess: () => toast.success(t('console.testEmail.sent')),
+    onError: (err) =>
+      toast.error((err instanceof ApiError && err.problem.detail) || t('console.testEmail.failed')),
+  });
+  return (
+    <section className="flex flex-col gap-2" aria-labelledby="test-email-title">
+      <h3 id="test-email-title" className="text-sm font-semibold">
+        {t('console.testEmail.title')}
+      </h3>
+      <p className="text-xs text-muted-foreground">{t('console.testEmail.hint')}</p>
+      <Button
+        variant="outline"
+        className="self-start"
+        disabled={send.isPending}
+        aria-busy={send.isPending || undefined}
+        onClick={() => send.mutate()}
+      >
+        {t('console.testEmail.send')}
+      </Button>
+    </section>
   );
 }
 

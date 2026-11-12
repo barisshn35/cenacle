@@ -11,9 +11,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/mail"
 	"net/netip"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Cenacle-TR/cenacle/server/internal/egress"
 )
@@ -94,5 +96,14 @@ func TestPushEgressIsStrict(t *testing.T) {
 func TestTopic(t *testing.T) {
 	if got := topic("c-01a15e50-2335-7d7d-bbee-8e7809fd8ad2"); len(got) > 32 || strings.ContainsAny(got, "/ ") {
 		t.Errorf("topic = %q", got)
+	}
+}
+
+func TestMailMessage(t *testing.T) {
+	from, _ := mail.ParseAddress("Cenacle <chat@example.com>")
+	to, _ := mail.ParseAddress("mert@example.com")
+	msg, err := Mail{Subject: "Hi", Text: "Merhaba\nline two"}.message(from, to, time.Now())
+	if err != nil || !strings.Contains(string(msg), "Merhaba\r\nline two") {
+		t.Fatalf("plain message: %v\n%s", err, msg)
 	}
 }

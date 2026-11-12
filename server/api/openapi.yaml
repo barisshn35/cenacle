@@ -414,6 +414,245 @@ paths:
         '403': { $ref: '#/components/responses/Problem' }
         '404': { description: No accessible call. }
         '409': { description: You are not in the call, or someone else records it. }
+  /api/calendar:
+    get:
+      tags: [chat]
+      operationId: getCalendar
+      summary: Your meetings and events in a time range
+      description: |
+        The occurrences of the meetings you are invited to (ADR 0054) and the workspace
+        events you answered going or maybe to, that overlap the range (at most 62 days).
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: The items, by start.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/CalendarItem' } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/meetings:
+    post:
+      tags: [chat]
+      operationId: createMeeting
+      summary: Plan a meeting
+      description: |
+        In a channel you can post in (`channel_id`), with invitees who are its members;
+        or, without `channel_id`, in the direct or group conversation of you and the
+        invitees (1 to 8 people). Invitees get an e-mail if they want one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MeetingCreate' }
+      responses:
+        '201':
+          description: Planned.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Meeting' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/meetings/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: getMeeting
+      summary: A meeting you are invited to
+      responses:
+        '200':
+          description: The meeting.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Meeting' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [chat]
+      operationId: updateMeeting
+      summary: Change a meeting (its organizer or a workspace administrator)
+      description: |
+        Changes every occurrence. `user_ids` is the whole list of invitees: people left
+        out are uninvited (and told), new ones invited. A new time or repeat brings back
+        the occurrences cancelled one by one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MeetingInput' }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Meeting' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [chat]
+      operationId: cancelMeeting
+      summary: Cancel a meeting with all its occurrences (its organizer or a workspace administrator)
+      responses:
+        '204': { description: Cancelled. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/meetings/{id}/skip:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [chat]
+      operationId: skipMeetingOccurrence
+      summary: Cancel one occurrence of a repeating meeting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [occurrence]
+              properties:
+                occurrence: { type: string, format: date-time, description: The occurrence's start. }
+      responses:
+        '200':
+          description: Cancelled.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Meeting' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/meetings/{id}/response:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [chat]
+      operationId: answerMeeting
+      summary: Say whether you will come
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [response]
+              properties:
+                response: { type: string, enum: [yes, maybe, no] }
+      responses:
+        '204': { description: Answered. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/meetings/{id}/ics:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [chat]
+      operationId: downloadMeeting
+      summary: The meeting as an iCalendar file
+      responses:
+        '200':
+          description: The file.
+          content:
+            text/calendar: { schema: { type: string } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/me/calendar-feed:
+    get:
+      tags: [chat]
+      operationId: getCalendarFeed
+      summary: Whether you have a calendar subscription address
+      responses:
+        '200':
+          description: Its state (the address itself is shown only when made).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [exists]
+                properties:
+                  exists: { type: boolean }
+                  created_at: { type: string, format: date-time, nullable: true }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [chat]
+      operationId: createCalendarFeed
+      summary: Make a new private calendar subscription address
+      description: The address replaces any earlier one, which stops working. It is shown once.
+      responses:
+        '201':
+          description: The address.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url]
+                properties:
+                  url: { type: string }
+        '401': { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [chat]
+      operationId: deleteCalendarFeed
+      summary: Stop your calendar subscription address
+      responses:
+        '204': { description: Stopped. }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/calendar-feeds/{token}:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string, maxLength: 100 } }
+    get:
+      tags: [chat]
+      operationId: readCalendarFeed
+      summary: A person's meetings for calendar programs (no sign-in; the address is the key)
+      security: []
+      responses:
+        '200':
+          description: The calendar (titles, times and places; no agendas).
+          content:
+            text/calendar: { schema: { type: string } }
+        '404': { description: Unknown address. }
+  /api/me/language:
+    put:
+      tags: [profiles]
+      operationId: setLanguage
+      summary: Tell the server your language (for e-mails)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [language]
+              properties:
+                language: { type: string, enum: [en, tr], nullable: true }
+      responses:
+        '204': { description: Set. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/admin/test-email:
+    post:
+      tags: [admin]
+      operationId: sendTestEmail
+      summary: Send yourself a sample meeting invitation (instance administrators)
+      description: Shows that e-mail works and what invitations look like, in your language.
+      responses:
+        '204': { description: Sent. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
   /api/calls/{id}/reactions:
     post:
       tags: [chat]
@@ -9790,6 +10029,13 @@ components:
             ring: { type: boolean, description: Direct and group calls ring. }
             channel: { type: boolean, description: A call starting in a channel is told (not in muted channels). }
             sound: { $ref: '#/components/schemas/NotificationSound' }
+        meetings:
+          type: object
+          description: Meetings (ADR 0054). Paused notifications and quiet hours hold for reminders.
+          required: [remind_minutes, email]
+          properties:
+            remind_minutes: { type: integer, enum: [0, 5, 10, 15], description: Remind this long before each occurrence; 0 for no reminder. }
+            email: { type: boolean, description: Invitations, changes and cancellations come by e-mail too. }
     ChannelNotificationInput:
       type: object
       required: [level, muted_until, sound]
@@ -9903,6 +10149,68 @@ components:
           nullable: true
           description: An absence that has not ended (it may start later); null when there is none.
           allOf: [{ $ref: '#/components/schemas/OutOfOffice' }]
+    MeetingInput:
+      type: object
+      required: [title, starts_at, ends_at, timezone, user_ids]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        agenda: { type: string, maxLength: 4000 }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time, description: At most 24 hours after the start. }
+        timezone: { type: string, maxLength: 64, description: "The organizer's IANA time zone: repeats keep its clock time." }
+        rrule:
+          type: string
+          maxLength: 200
+          description: "'' or FREQ=DAILY|WEEKLY|MONTHLY with INTERVAL, BYDAY (weekly) and UNTIL or COUNT."
+        user_ids: { type: array, maxItems: 50, items: { type: string, format: uuid }, description: The invitees besides you. }
+    MeetingCreate:
+      allOf:
+        - $ref: '#/components/schemas/MeetingInput'
+        - type: object
+          required: [workspace_id]
+          properties:
+            workspace_id: { type: string, format: uuid }
+            channel_id: { type: string, format: uuid, nullable: true, description: Where the call happens; none for a conversation with the invitees. }
+    MeetingInvitee:
+      type: object
+      required: [user_id, display_name, response, organizer]
+      properties:
+        user_id: { type: string, format: uuid }
+        display_name: { type: string }
+        response: { type: string, enum: [pending, yes, maybe, no] }
+        organizer: { type: boolean }
+    Meeting:
+      type: object
+      required: [id, workspace_id, channel_id, organizer_id, title, agenda, starts_at, ends_at, timezone, rrule, exdates, cancelled, my_response, can_edit, invitees]
+      properties:
+        id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid }
+        organizer_id: { type: string, format: uuid, nullable: true }
+        title: { type: string }
+        agenda: { type: string }
+        starts_at: { type: string, format: date-time, description: The first occurrence's start. }
+        ends_at: { type: string, format: date-time }
+        timezone: { type: string }
+        rrule: { type: string }
+        exdates: { type: array, items: { type: string, format: date-time }, description: Occurrences cancelled one by one. }
+        cancelled: { type: boolean }
+        my_response: { type: string, enum: [pending, yes, maybe, no] }
+        can_edit: { type: boolean }
+        invitees: { type: array, items: { $ref: '#/components/schemas/MeetingInvitee' } }
+    CalendarItem:
+      type: object
+      required: [kind, id, workspace_id, channel_id, title, starts_at, ends_at, response, recurring]
+      properties:
+        kind: { type: string, enum: [meeting, event] }
+        id: { type: string, format: uuid }
+        workspace_id: { type: string, format: uuid }
+        channel_id: { type: string, format: uuid, nullable: true }
+        title: { type: string }
+        starts_at: { type: string, format: date-time, description: This occurrence's start. }
+        ends_at: { type: string, format: date-time }
+        response: { type: string, description: "Meetings: pending, yes, maybe or no; events: going or maybe." }
+        recurring: { type: boolean }
     OutOfOffice:
       type: object
       required: [from, until, message]

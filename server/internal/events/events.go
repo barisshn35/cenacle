@@ -107,6 +107,11 @@ const (
 	TabsChanged   = "tabs.changed"
 	CanvasUpdated = "canvas.updated"
 	ListChanged   = "list.changed"
+	// MeetingChanged (a meeting one is invited to was planned, changed,
+	// answered or cancelled) and MeetingReminder (one starts soon) go to the
+	// people named in "to".
+	MeetingChanged  = "meeting.changed"
+	MeetingReminder = "meeting.reminder"
 )
 
 // ID is a parsed stream id.

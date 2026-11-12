@@ -106,6 +106,25 @@ const homeRoutes = (
   }),
 );
 
+// The calendar (ADR 0054); ?meeting= opens one meeting (e-mails link to it).
+const calendarRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/calendar',
+  validateSearch: (s: Record<string, unknown>): { meeting?: string } => ({
+    meeting:
+      typeof s.meeting === 'string' && /^[0-9a-f-]{36}$/.test(s.meeting) ? s.meeting : undefined,
+  }),
+  component: AppShell,
+});
+
+const meetingRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/meetings/$meetingId',
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: '/calendar', search: { meeting: params.meetingId }, replace: true });
+  },
+});
+
 const guestRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/guest/$token',
@@ -144,7 +163,15 @@ const galleryRoute = createRoute({
 
 export const router = createRouter({
   routeTree: rootRoute.addChildren([
-    appRoute.addChildren([indexRoute, workspaceRoute, inviteRoute, channelRoute, ...homeRoutes]),
+    appRoute.addChildren([
+      indexRoute,
+      workspaceRoute,
+      inviteRoute,
+      channelRoute,
+      calendarRoute,
+      meetingRoute,
+      ...homeRoutes,
+    ]),
     signinRoute,
     guestRoute,
     galleryRoute,

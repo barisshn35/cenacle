@@ -43,6 +43,12 @@ type Prefs struct {
 		Channel bool   `json:"channel"`
 		Sound   string `json:"sound"`
 	} `json:"calls"`
+	// Meetings (ADR 0054): the reminder before each occurrence (minutes, 0
+	// for none) and whether invitations come by e-mail.
+	Meetings struct {
+		RemindMinutes int  `json:"remind_minutes"`
+		Email         bool `json:"email"`
+	} `json:"meetings"`
 }
 
 // BuiltinSounds are the sounds the app makes itself (no audio files).
@@ -61,6 +67,7 @@ func Defaults() Prefs {
 	p.QuietHours.Start, p.QuietHours.End = "22:00", "08:00"
 	p.QuietHours.Days = []int{0, 1, 2, 3, 4, 5, 6}
 	p.Calls.Ring, p.Calls.Channel, p.Calls.Sound = true, true, "marimba"
+	p.Meetings.RemindMinutes, p.Meetings.Email = 10, true
 	return p
 }
 
@@ -93,6 +100,11 @@ func (p Prefs) Valid() bool {
 	}
 	switch p.DefaultLevel {
 	case "all", "mentions", "none":
+	default:
+		return false
+	}
+	switch p.Meetings.RemindMinutes {
+	case 0, 5, 10, 15:
 	default:
 		return false
 	}

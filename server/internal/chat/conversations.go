@@ -62,21 +62,35 @@ func (h *Handlers) OpenConversation(w http.ResponseWriter, r *http.Request, work
 	if !ok {
 		return
 	}
-	self := uuid(p.User.ID)
+	c, people, status, ok := h.openConversation(w, r, workspaceID, p.User, wsRole, in.UserIDs)
+	if !ok {
+		return
+	}
+	out := toAPI(c, access{ch: RoleMember, ws: wsRole})
+	out.Participants = people
+	httpx.WriteJSON(w, status, out)
+}
+
+// openConversation finds or makes the direct or group conversation of the
+// user and the others (1 to 8 people of the workspace) and makes everyone a
+// member again; it writes the problem when it cannot.
+func (h *Handlers) openConversation(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID, user store.User, wsRole string, userIDs []openapi_types.UUID) (store.Channel, []api.Person, int, bool) {
+	var c store.Channel
+	self := uuid(user.ID)
 	others := []openapi_types.UUID{}
-	for _, id := range in.UserIDs {
+	for _, id := range userIDs {
 		if id != self && !slices.Contains(others, id) {
 			others = append(others, id)
 		}
 	}
 	if len(others) == 0 || len(others) > MaxConversationPeople {
 		badRequest(w, r, "Name 1 to 8 other people.")
-		return
+		return c, nil, 0, false
 	}
 	ws := pgUUID(workspaceID)
-	visible, ok := h.visiblePeople(w, r, workspaceID, p.User, wsRole)
+	visible, ok := h.visiblePeople(w, r, workspaceID, user, wsRole)
 	if !ok {
-		return
+		return c, nil, 0, false
 	}
 	people := make([]api.Person, 0, len(others))
 	ids := []string{self.String()}
@@ -84,16 +98,16 @@ func (h *Handlers) OpenConversation(w http.ResponseWriter, r *http.Request, work
 		role, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: ws, UserID: pgUUID(id)})
 		if err != nil {
 			h.unavailable(w, r, "get workspace role", err)
-			return
+			return c, nil, 0, false
 		}
 		if role == "" || (visible != nil && !visible[pgUUID(id)]) {
 			badRequest(w, r, "Everyone must be a member of the workspace.")
-			return
+			return c, nil, 0, false
 		}
 		u, err := h.Queries.GetUser(r.Context(), pgUUID(id))
 		if err != nil {
 			h.unavailable(w, r, "get user", err)
-			return
+			return c, nil, 0, false
 		}
 		people = append(people, api.Person{Id: id, DisplayName: u.DisplayName, Email: u.Email})
 		ids = append(ids, id.String())
@@ -105,32 +119,30 @@ func (h *Handlers) OpenConversation(w http.ResponseWriter, r *http.Request, work
 	if isNoRows(err) {
 		status = http.StatusCreated
 		c, err = h.Queries.CreateConversation(r.Context(), store.CreateConversationParams{
-			WorkspaceID: ws, Name: key, Kind: kind, CreatedBy: p.User.ID,
+			WorkspaceID: ws, Name: key, Kind: kind, CreatedBy: user.ID,
 		})
 	}
 	if err != nil {
 		h.unavailable(w, r, "open conversation", err)
-		return
+		return c, nil, 0, false
 	}
 	if c.Kind != kind { // a channel from before names were checked
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: CodeNameTaken,
 			Detail: "A channel holds this conversation's name."})
-		return
+		return c, nil, 0, false
 	}
 	// Everyone is (again) a member: a direct conversation someone left comes back.
 	for _, id := range ids {
 		n, err := h.Queries.AddMember(r.Context(), store.AddMemberParams{ChannelID: c.ID, UserID: pgUUID(uuidFrom(id)), Role: RoleMember})
 		if err != nil {
 			h.unavailable(w, r, "add conversation member", err)
-			return
+			return c, nil, 0, false
 		}
 		if n > 0 {
 			h.publish(r.Context(), events.ChannelJoined, ChannelEvent{Channel: toAPI(c, access{ch: RoleMember}), UserID: id})
 		}
 	}
-	out := toAPI(c, access{ch: RoleMember, ws: wsRole})
-	out.Participants = people
-	httpx.WriteJSON(w, status, out)
+	return c, people, status, true
 }
 
 // MaxConversationTitle is how long a group conversation's name may be.
