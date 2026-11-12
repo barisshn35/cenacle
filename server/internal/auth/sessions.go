@@ -58,6 +58,8 @@ type Principal struct {
 	IP string
 	// Bot is set for requests with a bot token (Session is empty then).
 	Bot *BotPrincipal
+	// Assistant is set for requests with a person's assistant token (ADR 0056).
+	Assistant *AssistantPrincipal
 	// AdminNetwork: the request comes from a network the session policy lets
 	// use the administration (every network when it names none).
 	AdminNetwork bool

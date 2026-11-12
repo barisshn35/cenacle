@@ -262,6 +262,17 @@ func (q *Queries) DesktopAppVersions(ctx context.Context) ([]DesktopAppVersionsR
 	return items, nil
 }
 
+const getAssistantsEnabled = `-- name: GetAssistantsEnabled :one
+SELECT assistants_enabled FROM instance_settings
+`
+
+func (q *Queries) GetAssistantsEnabled(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, getAssistantsEnabled)
+	var assistants_enabled bool
+	err := row.Scan(&assistants_enabled)
+	return assistants_enabled, err
+}
+
 const getFederationPolicy = `-- name: GetFederationPolicy :one
 SELECT federation_mode, federation_servers FROM instance_settings
 `
@@ -396,6 +407,15 @@ func (q *Queries) InstanceCounts(ctx context.Context) (InstanceCountsRow, error)
 		&i.ScheduledPending,
 	)
 	return i, err
+}
+
+const setAssistantsEnabled = `-- name: SetAssistantsEnabled :exec
+UPDATE instance_settings SET assistants_enabled = $1, updated_at = now()
+`
+
+func (q *Queries) SetAssistantsEnabled(ctx context.Context, enabled bool) error {
+	_, err := q.db.Exec(ctx, setAssistantsEnabled, enabled)
+	return err
 }
 
 const setFederationPolicy = `-- name: SetFederationPolicy :exec

@@ -15,6 +15,7 @@ import {
   TypeIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { AssistantDraftBar } from '../assistants/draft-bar';
 import { toast } from 'sonner';
 import { ApiError } from '@cenacle/core/api';
 import {
@@ -432,6 +433,15 @@ export function Composer({
         <label htmlFor={ids.input} className="sr-only">
           {label}
         </label>
+        <AssistantDraftBar
+          channelId={channelId}
+          rootId={thread?.rootId}
+          onUse={(text) => {
+            // In the box to edit and send; what was typed stays before it.
+            change(body.trim() ? `${body.trimEnd()}\n\n${text}` : text);
+            input.current?.focus();
+          }}
+        />
         {!thread && <PriorityChip value={priority} onClear={() => setPriority({})} />}
         {/* The frame holds the text and the send button side by side, so a
             scrollbar of long text never runs under the button. */}

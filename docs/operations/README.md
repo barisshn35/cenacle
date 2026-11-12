@@ -174,6 +174,7 @@ How many connections a server keeps, the load test and its results: see the
 ## AI (optional)
 
 AI features are off until a model you run is configured; see the [AI guide](ai.md).
+AI assistants of people (over MCP) are off until allowed; see [Assistants](assistants.md).
 
 ## Compliance
 

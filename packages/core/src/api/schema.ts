@@ -472,6 +472,97 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/me/assistants': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Your assistant tokens (ADR 0056) */
+    get: operations['listAssistantTokens'];
+    put?: never;
+    /** Make a token for an assistant (shown once) */
+    post: operations['createAssistantToken'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/assistants/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke an assistant token */
+    delete: operations['revokeAssistantToken'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/assistant-drafts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Drafts your assistants left in message boxes */
+    get: operations['listAssistantDrafts'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/me/assistant-drafts/{channel_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Take an assistant's draft away (used or thrown away) */
+    delete: operations['deleteAssistantDraft'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/admin/assistants': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Whether people may connect assistants over MCP (instance administrators) */
+    get: operations['getAssistantsPolicy'];
+    /** Allow or stop assistants (stopping makes every assistant token stop working) */
+    put: operations['setAssistantsPolicy'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/test-email': {
     parameters: {
       query?: never;
@@ -7275,6 +7366,32 @@ export interface components {
       /** @description An absence that has not ended (it may start later); null when there is none. */
       out_of_office?: components['schemas']['OutOfOffice'] | null;
     };
+    AssistantToken: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      scopes: string[];
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      /** Format: date-time */
+      last_used_at?: string | null;
+    };
+    AssistantDraft: {
+      /** Format: uuid */
+      channel_id: string;
+      /** Format: uuid */
+      root_id?: string | null;
+      body: string;
+      /** Format: date-time */
+      created_at: string;
+      /** @description The token's name. */
+      assistant: string;
+    };
+    AssistantsPolicy: {
+      enabled: boolean;
+    };
     MeetingInput: {
       title: string;
       agenda?: string;
@@ -8724,6 +8841,179 @@ export interface operations {
             /** Format: int64 */
             queued: number;
           };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  listAssistantTokens: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Whether assistants are allowed, the MCP address and your tokens. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            allowed: boolean;
+            mcp_url: string;
+            tokens: components['schemas']['AssistantToken'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  createAssistantToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          name: string;
+          scopes: ('read' | 'draft')[];
+          /** @enum {integer} */
+          days: 7 | 30 | 90;
+        };
+      };
+    };
+    responses: {
+      /** @description The token, once. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssistantToken'] & {
+            token: string;
+          };
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  revokeAssistantToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revoked. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  listAssistantDrafts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The drafts. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            drafts: components['schemas']['AssistantDraft'][];
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  deleteAssistantDraft: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Gone. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  getAssistantsPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The policy. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssistantsPolicy'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setAssistantsPolicy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AssistantsPolicy'];
+      };
+    };
+    responses: {
+      /** @description Set. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssistantsPolicy'];
         };
       };
       401: components['responses']['Problem'];

@@ -60,6 +60,10 @@ func eraseUserCalls(ctx context.Context, q *store.Queries, user pgtype.UUID) err
 	if err = q.EraseUserMeetings(ctx, user); err != nil {
 		return err
 	}
+	// Their assistants stop (ADR 0056).
+	if err = q.RevokeUserAssistantTokens(ctx, user); err != nil {
+		return err
+	}
 	_, err = q.EraseCallInitiator(ctx, user)
 	return err
 }

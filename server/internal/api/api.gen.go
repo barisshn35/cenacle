@@ -2217,6 +2217,45 @@ func (e RsvpEventJSONBodyStatus) Valid() bool {
 	}
 }
 
+// Defines values for CreateAssistantTokenJSONBodyDays.
+const (
+	N30 CreateAssistantTokenJSONBodyDays = 30
+	N7  CreateAssistantTokenJSONBodyDays = 7
+	N90 CreateAssistantTokenJSONBodyDays = 90
+)
+
+// Valid indicates whether the value is a known member of the CreateAssistantTokenJSONBodyDays enum.
+func (e CreateAssistantTokenJSONBodyDays) Valid() bool {
+	switch e {
+	case N30:
+		return true
+	case N7:
+		return true
+	case N90:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateAssistantTokenJSONBodyScopes.
+const (
+	Draft CreateAssistantTokenJSONBodyScopes = "draft"
+	Read  CreateAssistantTokenJSONBodyScopes = "read"
+)
+
+// Valid indicates whether the value is a known member of the CreateAssistantTokenJSONBodyScopes enum.
+func (e CreateAssistantTokenJSONBodyScopes) Valid() bool {
+	switch e {
+	case Draft:
+		return true
+	case Read:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetLanguageJSONBodyLanguage.
 const (
 	SetLanguageJSONBodyLanguageEn SetLanguageJSONBodyLanguage = "en"
@@ -2773,6 +2812,31 @@ type AssignedItem struct {
 	Item        ListItem            `json:"item"`
 	ListTitle   string              `json:"list_title"`
 	TabId       openapi_types.UUID  `json:"tab_id"`
+}
+
+// AssistantDraft defines model for AssistantDraft.
+type AssistantDraft struct {
+	// Assistant The token's name.
+	Assistant string              `json:"assistant"`
+	Body      string              `json:"body"`
+	ChannelId openapi_types.UUID  `json:"channel_id"`
+	CreatedAt time.Time           `json:"created_at"`
+	RootId    *openapi_types.UUID `json:"root_id,omitempty"`
+}
+
+// AssistantToken defines model for AssistantToken.
+type AssistantToken struct {
+	CreatedAt  time.Time          `json:"created_at"`
+	ExpiresAt  time.Time          `json:"expires_at"`
+	Id         openapi_types.UUID `json:"id"`
+	LastUsedAt *time.Time         `json:"last_used_at,omitempty"`
+	Name       string             `json:"name"`
+	Scopes     []string           `json:"scopes"`
+}
+
+// AssistantsPolicy defines model for AssistantsPolicy.
+type AssistantsPolicy struct {
+	Enabled bool `json:"enabled"`
 }
 
 // Attachment A card under a message, e.g. from a bot (an issue, an alert).
@@ -5709,6 +5773,19 @@ type SetMyAIConsentJSONBody struct {
 	Accepted bool `json:"accepted"`
 }
 
+// CreateAssistantTokenJSONBody defines parameters for CreateAssistantToken.
+type CreateAssistantTokenJSONBody struct {
+	Days   CreateAssistantTokenJSONBodyDays     `json:"days"`
+	Name   string                               `json:"name"`
+	Scopes []CreateAssistantTokenJSONBodyScopes `json:"scopes"`
+}
+
+// CreateAssistantTokenJSONBodyDays defines parameters for CreateAssistantToken.
+type CreateAssistantTokenJSONBodyDays int
+
+// CreateAssistantTokenJSONBodyScopes defines parameters for CreateAssistantToken.
+type CreateAssistantTokenJSONBodyScopes string
+
 // UploadFontParams defines parameters for UploadFont.
 type UploadFontParams struct {
 	Name string `form:"name" json:"name"`
@@ -6168,6 +6245,9 @@ type AddStickerParams struct {
 	PackId *openapi_types.UUID `form:"pack_id,omitempty" json:"pack_id,omitempty"`
 }
 
+// SetAssistantsPolicyJSONRequestBody defines body for SetAssistantsPolicy for application/json ContentType.
+type SetAssistantsPolicyJSONRequestBody = AssistantsPolicy
+
 // SetAuditStreamJSONRequestBody defines body for SetAuditStream for application/json ContentType.
 type SetAuditStreamJSONRequestBody = AuditStream
 
@@ -6398,6 +6478,9 @@ type SetMyAIConsentJSONRequestBody SetMyAIConsentJSONBody
 
 // SetMyAppearanceJSONRequestBody defines body for SetMyAppearance for application/json ContentType.
 type SetMyAppearanceJSONRequestBody = Appearance
+
+// CreateAssistantTokenJSONRequestBody defines body for CreateAssistantToken for application/json ContentType.
+type CreateAssistantTokenJSONRequestBody CreateAssistantTokenJSONBody
 
 // SetLanguageJSONRequestBody defines body for SetLanguage for application/json ContentType.
 type SetLanguageJSONRequestBody SetLanguageJSONBody
@@ -6661,6 +6744,12 @@ func (t *FormValues_AdditionalProperties) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetAssistantsPolicy Whether people may connect assistants over MCP (instance administrators)
+	// (GET /api/admin/assistants)
+	GetAssistantsPolicy(w http.ResponseWriter, r *http.Request)
+	// SetAssistantsPolicy Allow or stop assistants (stopping makes every assistant token stop working)
+	// (PUT /api/admin/assistants)
+	SetAssistantsPolicy(w http.ResponseWriter, r *http.Request)
 	// ListInstanceAudit The audit log of the whole installation (instance administrators)
 	// (GET /api/admin/audit)
 	ListInstanceAudit(w http.ResponseWriter, r *http.Request, params ListInstanceAuditParams)
@@ -7237,6 +7326,21 @@ type ServerInterface interface {
 	// SetMyAppearance Save your appearance settings (they follow you to every device)
 	// (PUT /api/me/appearance)
 	SetMyAppearance(w http.ResponseWriter, r *http.Request)
+	// ListAssistantDrafts Drafts your assistants left in message boxes
+	// (GET /api/me/assistant-drafts)
+	ListAssistantDrafts(w http.ResponseWriter, r *http.Request)
+	// DeleteAssistantDraft Take an assistant's draft away (used or thrown away)
+	// (DELETE /api/me/assistant-drafts/{channel_id})
+	DeleteAssistantDraft(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// ListAssistantTokens Your assistant tokens (ADR 0056)
+	// (GET /api/me/assistants)
+	ListAssistantTokens(w http.ResponseWriter, r *http.Request)
+	// CreateAssistantToken Make a token for an assistant (shown once)
+	// (POST /api/me/assistants)
+	CreateAssistantToken(w http.ResponseWriter, r *http.Request)
+	// RevokeAssistantToken Revoke an assistant token
+	// (DELETE /api/me/assistants/{id})
+	RevokeAssistantToken(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// DeleteAvatar Remove your profile picture
 	// (DELETE /api/me/avatar)
 	DeleteAvatar(w http.ResponseWriter, r *http.Request)
@@ -7743,6 +7847,18 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// GetAssistantsPolicy Whether people may connect assistants over MCP (instance administrators)
+// (GET /api/admin/assistants)
+func (_ Unimplemented) GetAssistantsPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetAssistantsPolicy Allow or stop assistants (stopping makes every assistant token stop working)
+// (PUT /api/admin/assistants)
+func (_ Unimplemented) SetAssistantsPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // ListInstanceAudit The audit log of the whole installation (instance administrators)
 // (GET /api/admin/audit)
@@ -8896,6 +9012,36 @@ func (_ Unimplemented) SetMyAppearance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListAssistantDrafts Drafts your assistants left in message boxes
+// (GET /api/me/assistant-drafts)
+func (_ Unimplemented) ListAssistantDrafts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteAssistantDraft Take an assistant's draft away (used or thrown away)
+// (DELETE /api/me/assistant-drafts/{channel_id})
+func (_ Unimplemented) DeleteAssistantDraft(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListAssistantTokens Your assistant tokens (ADR 0056)
+// (GET /api/me/assistants)
+func (_ Unimplemented) ListAssistantTokens(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateAssistantToken Make a token for an assistant (shown once)
+// (POST /api/me/assistants)
+func (_ Unimplemented) CreateAssistantToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeAssistantToken Revoke an assistant token
+// (DELETE /api/me/assistants/{id})
+func (_ Unimplemented) RevokeAssistantToken(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteAvatar Remove your profile picture
 // (DELETE /api/me/avatar)
 func (_ Unimplemented) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
@@ -9906,6 +10052,34 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetAssistantsPolicy operation middleware
+func (siw *ServerInterfaceWrapper) GetAssistantsPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAssistantsPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAssistantsPolicy operation middleware
+func (siw *ServerInterfaceWrapper) SetAssistantsPolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAssistantsPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListInstanceAudit operation middleware
 func (siw *ServerInterfaceWrapper) ListInstanceAudit(w http.ResponseWriter, r *http.Request) {
@@ -15260,6 +15434,100 @@ func (siw *ServerInterfaceWrapper) SetMyAppearance(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListAssistantDrafts operation middleware
+func (siw *ServerInterfaceWrapper) ListAssistantDrafts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAssistantDrafts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAssistantDraft operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAssistantDraft(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAssistantDraft(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAssistantTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListAssistantTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAssistantTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAssistantToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateAssistantToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAssistantToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeAssistantToken operation middleware
+func (siw *ServerInterfaceWrapper) RevokeAssistantToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeAssistantToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteAvatar operation middleware
 func (siw *ServerInterfaceWrapper) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 
@@ -19991,6 +20259,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/admin/semantic-search", wrapper.GetSemanticSearchStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/assistants", wrapper.ListAssistantTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/me/assistants", wrapper.CreateAssistantToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/assistants/{id}", wrapper.RevokeAssistantToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/me/assistant-drafts", wrapper.ListAssistantDrafts)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/assistant-drafts/{channel_id}", wrapper.DeleteAssistantDraft)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/assistants", wrapper.GetAssistantsPolicy)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/assistants", wrapper.SetAssistantsPolicy)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/admin/test-email", wrapper.SendTestEmail)

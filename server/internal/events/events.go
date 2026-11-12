@@ -112,6 +112,9 @@ const (
 	// people named in "to".
 	MeetingChanged  = "meeting.changed"
 	MeetingReminder = "meeting.reminder"
+	// AssistantDraft: an assistant left a draft for the person named in "to"
+	// (ADR 0056).
+	AssistantDraft = "assistant.draft"
 )
 
 // ID is a parsed stream id.

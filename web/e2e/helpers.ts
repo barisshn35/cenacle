@@ -596,6 +596,13 @@ export async function mockApi(
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/federation$/, (route) =>
     route.fulfill({ json: { connections: [], offers: [] } }),
   );
+  // Assistants (ADR 0056): not allowed and no drafts unless a test says so.
+  await page.route('**/api/me/assistants', (route) =>
+    route.fulfill({ json: { allowed: false, mcp_url: 'http://localhost/api/mcp', tokens: [] } }),
+  );
+  await page.route('**/api/me/assistant-drafts', (route) =>
+    route.fulfill({ json: { drafts: [] } }),
+  );
   // Meetings (ADR 0054): an empty calendar, the language told, no subscription.
   await page.route(/\/api\/calendar\?/, (route) => route.fulfill({ json: { items: [] } }));
   await page.route('**/api/me/language', (route) => route.fulfill({ status: 204 }));

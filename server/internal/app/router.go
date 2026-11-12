@@ -76,12 +76,17 @@ func NewRouter(d Deps) http.Handler {
 			r.Use(auth.SameOrigin(a.PublicURL, a.Cookies))
 			r.Use(auth.Authenticate(a.Sessions, a.Cookies, a.TrustProxy, d.Log))
 			r.Use(auth.RestrictBots)
+			r.Use(auth.RestrictAssistants)
 			r.Use(auth.WebAppGate(a.WebApp, a.Cookies))
 			if d.Chat != nil {
 				r.Use(d.Chat.TermsGate)
 			}
 			if d.Realtime != nil {
 				r.Get("/ws", d.Realtime.ServeWS)
+			}
+			if d.Chat != nil {
+				// Assistants over MCP (ADR 0056): GET, POST and DELETE of one address.
+				r.Handle(auth.MCPPath, d.Chat.MCP())
 			}
 			api.HandlerWithOptions(apiServer{a, d.Chat, d.Realtime}, api.ChiServerOptions{
 				BaseRouter:       r,

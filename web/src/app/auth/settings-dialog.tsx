@@ -17,8 +17,11 @@ import {
   SparklesIcon,
   TypeIcon,
   UserIcon,
+  BotIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { AssistantsPanel } from '../assistants/assistants-panel';
+import { assistantsQuery } from '../assistants/assistants';
 import { LANGUAGE_NAMES, LANGUAGES, setLanguage, type Language } from '../../i18n';
 import { getTimeFormat, setTimeFormat, type TimeFormat } from '../../i18n/time-format';
 import { AppearancePanel } from '../appearance/appearance-panel';
@@ -123,6 +126,7 @@ type Tab =
   | 'notifications'
   | 'language'
   | 'ai'
+  | 'assistants'
   | 'texts'
   | 'announcements'
   | 'signIn';
@@ -144,6 +148,7 @@ export function SettingsDialog({
   const others = (devices.data ?? []).filter((d) => !d.current).length;
   const admin = session.permissions.create_workspaces;
   const meta = useQuery(metaQuery).data;
+  const assistants = useQuery({ ...assistantsQuery, enabled: open });
   const privacyUrl = meta?.privacy_url;
   const groups: { label?: string; tabs: Tab[] }[] = [
     {
@@ -153,6 +158,8 @@ export function SettingsDialog({
         'notifications',
         'language',
         ...(session.permissions.ai ? (['ai'] as Tab[]) : []),
+        // Only where the administrators allow assistants (ADR 0056).
+        ...(assistants.data?.allowed ? (['assistants'] as Tab[]) : []),
       ],
     },
     ...(admin
@@ -166,6 +173,7 @@ export function SettingsDialog({
     notifications: BellIcon,
     language: LanguagesIcon,
     ai: SparklesIcon,
+    assistants: BotIcon,
     texts: TypeIcon,
     announcements: MegaphoneIcon,
     signIn: ShieldCheckIcon,
@@ -246,6 +254,7 @@ export function SettingsDialog({
           {tab === 'appearance' && <AppearancePanel />}
           {tab === 'language' && <LanguagePanel />}
           {tab === 'ai' && <AISettingsPanel />}
+          {tab === 'assistants' && <AssistantsPanel />}
           {tab === 'notifications' && <NotificationsPanel />}
           {tab === 'announcements' && <AnnouncementsPanel />}
           {tab === 'signIn' && <WebAppPanel />}

@@ -38,21 +38,25 @@ const (
 	ChannelRoleChanged   = "channel.role_changed"
 	MessageRemoved       = "message.removed_by_manager"
 
-	BotCreated          = "bot.created"
-	BotDisabled         = "bot.disabled"
-	BotEnabled          = "bot.enabled"
-	BotTokenCreated     = "bot.token_created" //nolint:gosec // an event name, not a credential
-	BotTokenRevoked     = "bot.token_revoked" //nolint:gosec // an event name, not a credential
-	WebhookCreated      = "bot.webhook_created"
-	WebhookDeleted      = "bot.webhook_deleted"
-	BotTokenRotated     = "bot.token_rotated" //nolint:gosec // an event name, not a credential
-	CommandCreated      = "bot.command_created"
-	CommandDeleted      = "bot.command_deleted"
-	SubscribedTo        = "bot.subscription_created"
-	GroupMappingSet     = "workspace.group_mapping_set"
-	UITextsChanged      = "ui_texts.changed"
-	GroupMappingDeleted = "workspace.group_mapping_deleted"
-	ChannelGroupsSet    = "channel.groups_set"
+	BotCreated      = "bot.created"
+	BotDisabled     = "bot.disabled"
+	BotEnabled      = "bot.enabled"
+	BotTokenCreated = "bot.token_created" //nolint:gosec // an event name, not a credential
+	BotTokenRevoked = "bot.token_revoked" //nolint:gosec // an event name, not a credential
+	WebhookCreated  = "bot.webhook_created"
+	WebhookDeleted  = "bot.webhook_deleted"
+	BotTokenRotated = "bot.token_rotated" //nolint:gosec // an event name, not a credential
+	// Assistants over MCP (ADR 0056).
+	AssistantTokenCreated = "assistant.token_created" //nolint:gosec // an event name, not a credential
+	AssistantTokenRevoked = "assistant.token_revoked" //nolint:gosec // an event name, not a credential
+	AssistantsChanged     = "assistant.policy_changed"
+	CommandCreated        = "bot.command_created"
+	CommandDeleted        = "bot.command_deleted"
+	SubscribedTo          = "bot.subscription_created"
+	GroupMappingSet       = "workspace.group_mapping_set"
+	UITextsChanged        = "ui_texts.changed"
+	GroupMappingDeleted   = "workspace.group_mapping_deleted"
+	ChannelGroupsSet      = "channel.groups_set"
 	// A group's name changed at Cenacle ID (ADR 0046): its mappings followed,
 	// gave way to a mapping of the new name, or wait for an administrator.
 	GroupMappingRenamed     = "workspace.group_mapping_renamed"

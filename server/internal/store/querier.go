@@ -146,6 +146,7 @@ type Querier interface {
 	// recovery keys and history backups.
 	CountActiveDevices(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CountActiveRuns(ctx context.Context, playbookID pgtype.UUID) (int32, error)
+	CountAssistantTokens(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CountAutomodRules(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountBackupBytes(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CountCallNotes(ctx context.Context, callID pgtype.UUID) (int64, error)
@@ -183,6 +184,8 @@ type Querier interface {
 	CountWorkspaceOwners(ctx context.Context, workspaceID pgtype.UUID) (int64, error)
 	CreateActiveSharedChannel(ctx context.Context, arg CreateActiveSharedChannelParams) (SharedChannel, error)
 	CreateArchiveExport(ctx context.Context, arg CreateArchiveExportParams) (ArchiveExport, error)
+	// Assistants over MCP (ADR 0056).
+	CreateAssistantToken(ctx context.Context, arg CreateAssistantTokenParams) (CreateAssistantTokenRow, error)
 	CreateAutomodRule(ctx context.Context, arg CreateAutomodRuleParams) (AutomodRule, error)
 	CreateBot(ctx context.Context, arg CreateBotParams) (Bot, error)
 	CreateBotToken(ctx context.Context, arg CreateBotTokenParams) (BotToken, error)
@@ -249,6 +252,7 @@ type Querier interface {
 	CreateWorkspaceAttribute(ctx context.Context, arg CreateWorkspaceAttributeParams) error
 	CustomEmojiExists(ctx context.Context, arg CustomEmojiExistsParams) (bool, error)
 	DecideSpillageReport(ctx context.Context, arg DecideSpillageReportParams) (SpillageReport, error)
+	DeleteAssistantDraft(ctx context.Context, arg DeleteAssistantDraftParams) (int64, error)
 	DeleteAutomodRule(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteBanner(ctx context.Context) error
 	DeleteCalendarFeed(ctx context.Context, userID pgtype.UUID) (int64, error)
@@ -425,6 +429,9 @@ type Querier interface {
 	// started (their variables) and of their tasks (titles rendered from them).
 	ForgetTriggerMessage(ctx context.Context, messageID pgtype.UUID) ([]pgtype.UUID, error)
 	GetAIConsent(ctx context.Context, userID pgtype.UUID) (AiConsent, error)
+	// A token that works now: not revoked or expired, its person active, and the
+	// installation allowing assistants.
+	GetActiveAssistantToken(ctx context.Context, tokenHash []byte) (GetActiveAssistantTokenRow, error)
 	// GetActiveBotToken returns a usable token with its bot and the bot's user.
 	GetActiveBotToken(ctx context.Context, tokenHash []byte) (GetActiveBotTokenRow, error)
 	GetActiveDevice(ctx context.Context, arg GetActiveDeviceParams) (E2eDevice, error)
@@ -437,6 +444,7 @@ type Querier interface {
 	GetActiveWebhook(ctx context.Context, tokenHash []byte) (GetActiveWebhookRow, error)
 	GetAppearance(ctx context.Context, userID pgtype.UUID) ([]byte, error)
 	GetArchiveExport(ctx context.Context, id pgtype.UUID) (ArchiveExport, error)
+	GetAssistantsEnabled(ctx context.Context) (bool, error)
 	GetAuditStream(ctx context.Context) (GetAuditStreamRow, error)
 	GetAutomodRule(ctx context.Context, id pgtype.UUID) (AutomodRule, error)
 	// ------------------------------------------------------- banner and terms ---
@@ -616,6 +624,8 @@ type Querier interface {
 	// ListAssignedItems returns the open list rows assigned to a person in the
 	// channels of a workspace they belong to, the soonest due first.
 	ListAssignedItems(ctx context.Context, arg ListAssignedItemsParams) ([]ListAssignedItemsRow, error)
+	ListAssistantDrafts(ctx context.Context, userID pgtype.UUID) ([]ListAssistantDraftsRow, error)
+	ListAssistantTokens(ctx context.Context, userID pgtype.UUID) ([]ListAssistantTokensRow, error)
 	// ---------------------------------------------------------------- AutoMod ---
 	ListAutomodRules(ctx context.Context, workspaceID pgtype.UUID) ([]AutomodRule, error)
 	ListBackups(ctx context.Context, arg ListBackupsParams) ([]ListBackupsRow, error)
@@ -810,6 +820,13 @@ type Querier interface {
 	// LockUserAvatar returns a person's profile picture, holding the row until the
 	// erasure commits.
 	LockUserAvatar(ctx context.Context, id pgtype.UUID) (pgtype.UUID, error)
+	// A channel the person is in (never an encrypted one).
+	MCPChannelFor(ctx context.Context, arg MCPChannelForParams) (MCPChannelForRow, error)
+	// The channels and conversations a person is in (never encrypted ones).
+	MCPChannels(ctx context.Context, userID pgtype.UUID) ([]MCPChannelsRow, error)
+	// A channel's messages, newest first, before a message (a page), with the
+	// number of replies of each thread root.
+	MCPMessages(ctx context.Context, arg MCPMessagesParams) ([]MCPMessagesRow, error)
 	// MarkArchiveStale marks the daily export holding a message to be written again.
 	MarkArchiveStale(ctx context.Context, messageID pgtype.UUID) (int64, error)
 	// MarkArchiveStaleForAuthor marks the daily exports holding a person's
@@ -1016,6 +1033,7 @@ type Querier interface {
 	// e-mail address is no longer the configured one ('' revokes it from all),
 	// unless the directory makes them an administrator.
 	RevokeAdminUnlessEmail(ctx context.Context, email string) error
+	RevokeAssistantToken(ctx context.Context, arg RevokeAssistantTokenParams) (int64, error)
 	RevokeBotToken(ctx context.Context, arg RevokeBotTokenParams) (int64, error)
 	RevokeDevice(ctx context.Context, arg RevokeDeviceParams) (E2eDevice, error)
 	// RevokeEmailAdminsExcept takes the administrator flag from everyone who held
@@ -1023,6 +1041,7 @@ type Querier interface {
 	RevokeEmailAdminsExcept(ctx context.Context, id pgtype.UUID) error
 	RevokeGuestLink(ctx context.Context, arg RevokeGuestLinkParams) (int64, error)
 	RevokeInvite(ctx context.Context, arg RevokeInviteParams) (int64, error)
+	RevokeUserAssistantTokens(ctx context.Context, userID pgtype.UUID) error
 	// RewroteArchiveExport records a stale export written again, unless it was
 	// marked again meanwhile.
 	RewroteArchiveExport(ctx context.Context, arg RewroteArchiveExportParams) (int64, error)
@@ -1074,6 +1093,8 @@ type Querier interface {
 	// SetArchiveFormat turns daily exports on (from yesterday) or off.
 	SetArchiveFormat(ctx context.Context, arg SetArchiveFormatParams) error
 	SetArchiveLastDay(ctx context.Context, arg SetArchiveLastDayParams) error
+	SetAssistantDraft(ctx context.Context, arg SetAssistantDraftParams) error
+	SetAssistantsEnabled(ctx context.Context, enabled bool) error
 	SetAuditStream(ctx context.Context, arg SetAuditStreamParams) error
 	SetAuditStreamProgress(ctx context.Context, arg SetAuditStreamProgressParams) error
 	// SetAvatar changes the picture of a person and returns the previous one (to
@@ -1177,6 +1198,7 @@ type Querier interface {
 	// ThreadSummaries counts the replies of messages and names their latest three
 	// repliers (newest first).
 	ThreadSummaries(ctx context.Context, rootIds []pgtype.UUID) ([]ThreadSummariesRow, error)
+	TouchAssistantToken(ctx context.Context, id pgtype.UUID) error
 	TouchBotToken(ctx context.Context, id pgtype.UUID) error
 	TouchDevice(ctx context.Context, id pgtype.UUID) error
 	TouchFederationConnection(ctx context.Context, id pgtype.UUID) error

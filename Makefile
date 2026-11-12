@@ -207,9 +207,11 @@ test-e2e-stack: node_modules ## Sign in end to end: Cenacle ID, chat server and 
 licenses: licenses-go licenses-js ## Check dependency licenses against the policy
 
 # GOROOT is the one of the pinned toolchain (go.mod), not the one go-licenses was built with.
+# github.com/segmentio/asm (via the MCP SDK, ADR 0056) is MIT-0 ("MIT No Attribution"),
+# which go-licenses does not recognize; checked by hand (v1.2.1).
 .PHONY: licenses-go
 licenses-go: $(GO_LICENSES)
-	cd $(SERVER_DIR) && GOROOT="$$(go env GOROOT)" $(GO_LICENSES) check ./... --allowed_licenses=$(GO_ALLOWED_LICENSES) --ignore github.com/Cenacle-TR/cenacle
+	cd $(SERVER_DIR) && GOROOT="$$(go env GOROOT)" $(GO_LICENSES) check ./... --allowed_licenses=$(GO_ALLOWED_LICENSES) --ignore github.com/Cenacle-TR/cenacle --ignore github.com/segmentio/asm
 
 .PHONY: licenses-js
 licenses-js: node_modules

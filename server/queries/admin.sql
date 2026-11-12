@@ -104,3 +104,9 @@ FROM sessions
 WHERE expires_at > now() AND user_agent LIKE '%CenacleDesktop/%'
 GROUP BY 1, 2
 ORDER BY 1 DESC, 2;
+
+-- name: GetAssistantsEnabled :one
+SELECT assistants_enabled FROM instance_settings;
+
+-- name: SetAssistantsEnabled :exec
+UPDATE instance_settings SET assistants_enabled = @enabled, updated_at = now();

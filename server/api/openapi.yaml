@@ -661,6 +661,121 @@ paths:
                   queued: { type: integer, format: int64 }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /api/me/assistants:
+    get:
+      tags: [profiles]
+      operationId: listAssistantTokens
+      summary: Your assistant tokens (ADR 0056)
+      responses:
+        '200':
+          description: Whether assistants are allowed, the MCP address and your tokens.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [allowed, mcp_url, tokens]
+                properties:
+                  allowed: { type: boolean }
+                  mcp_url: { type: string }
+                  tokens: { type: array, items: { $ref: '#/components/schemas/AssistantToken' } }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [profiles]
+      operationId: createAssistantToken
+      summary: Make a token for an assistant (shown once)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes, days]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+                scopes: { type: array, items: { type: string, enum: [read, draft] }, minItems: 1 }
+                days: { type: integer, enum: [7, 30, 90] }
+      responses:
+        '201':
+          description: The token, once.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AssistantToken'
+                  - type: object
+                    required: [token]
+                    properties:
+                      token: { type: string }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/me/assistants/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [profiles]
+      operationId: revokeAssistantToken
+      summary: Revoke an assistant token
+      responses:
+        '204': { description: Revoked. }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /api/me/assistant-drafts:
+    get:
+      tags: [chat]
+      operationId: listAssistantDrafts
+      summary: Drafts your assistants left in message boxes
+      responses:
+        '200':
+          description: The drafts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [drafts]
+                properties:
+                  drafts: { type: array, items: { $ref: '#/components/schemas/AssistantDraft' } }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/me/assistant-drafts/{channel_id}:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [chat]
+      operationId: deleteAssistantDraft
+      summary: Take an assistant's draft away (used or thrown away)
+      responses:
+        '204': { description: Gone. }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/admin/assistants:
+    get:
+      tags: [admin]
+      operationId: getAssistantsPolicy
+      summary: Whether people may connect assistants over MCP (instance administrators)
+      responses:
+        '200':
+          description: The policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssistantsPolicy' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [admin]
+      operationId: setAssistantsPolicy
+      summary: Allow or stop assistants (stopping makes every assistant token stop working)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssistantsPolicy' }
+      responses:
+        '200':
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssistantsPolicy' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/admin/test-email:
     post:
       tags: [admin]
@@ -10174,6 +10289,30 @@ components:
           nullable: true
           description: An absence that has not ended (it may start later); null when there is none.
           allOf: [{ $ref: '#/components/schemas/OutOfOffice' }]
+    AssistantToken:
+      type: object
+      required: [id, name, scopes, created_at, expires_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        scopes: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        last_used_at: { type: string, format: date-time, nullable: true }
+    AssistantDraft:
+      type: object
+      required: [channel_id, body, created_at, assistant]
+      properties:
+        channel_id: { type: string, format: uuid }
+        root_id: { type: string, format: uuid, nullable: true }
+        body: { type: string }
+        created_at: { type: string, format: date-time }
+        assistant: { type: string, description: The token's name. }
+    AssistantsPolicy:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean }
     MeetingInput:
       type: object
       required: [title, starts_at, ends_at, timezone, user_ids]

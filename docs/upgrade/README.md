@@ -128,6 +128,7 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
   external database (Helm), its administrator installs pgvector and runs the same
   statement; without it semantic search stays off and nothing else changes. With the
   backup overlay, rebuild its image (`docker compose … -f backup.yml build postgres`).
+- Migration 00080 adds assistants over MCP (off until allowed in System console → Security).
 - Migration 00078 adds meetings; 00079 adds the queue of semantic search (a trigger on
   messages that does nothing until an embedding model is set).
 - Migration 00065: calls are on in every workspace unless its administrators turn them

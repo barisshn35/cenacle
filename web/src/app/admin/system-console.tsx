@@ -680,10 +680,61 @@ function SecurityPanel() {
   });
   if (!policy.data) return <Skeleton className="h-60" />;
   return (
-    <SecurityForm
-      policy={policy.data}
-      onSaved={(p) => queryClient.setQueryData(['admin', 'session-policy'], p)}
-    />
+    <div className="flex flex-col gap-8">
+      <SecurityForm
+        policy={policy.data}
+        onSaved={(p) => queryClient.setQueryData(['admin', 'session-policy'], p)}
+      />
+      <AssistantsPolicy />
+    </div>
+  );
+}
+
+/** Whether people may connect AI assistants over MCP (ADR 0056); off by default. */
+function AssistantsPolicy() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const policy = useQuery({
+    queryKey: ['admin', 'assistants'],
+    queryFn: () => apiFetch<{ enabled: boolean }>('/api/admin/assistants'),
+  });
+  const set = useMutation({
+    mutationFn: (enabled: boolean) =>
+      apiFetch<{ enabled: boolean }>('/api/admin/assistants', json('PUT', { enabled })),
+    onSuccess: (p) => {
+      queryClient.setQueryData(['admin', 'assistants'], p);
+      void queryClient.invalidateQueries({ queryKey: ['assistants'] });
+    },
+    onError: () => toast.error(t('console.changeFailed')),
+  });
+  if (!policy.data) return null;
+  return (
+    <section aria-labelledby="console-assistants" className="flex max-w-xl flex-col gap-2">
+      <h3 id="console-assistants" className="text-sm font-semibold">
+        {t('console.assistants.title')}
+      </h3>
+      <div className="flex min-h-target items-start gap-2.5 text-sm">
+        <input
+          id="console-assistants-allow"
+          type="checkbox"
+          className="mt-1 size-4"
+          // Its label, beside it, is the larger target.
+          data-target-exempt
+          aria-describedby="console-assistants-hint"
+          checked={policy.data.enabled}
+          disabled={set.isPending}
+          onChange={(e) => set.mutate(e.target.checked)}
+        />
+        <div>
+          <label htmlFor="console-assistants-allow" className="font-medium">
+            {t('console.assistants.allow')}
+          </label>
+          <p id="console-assistants-hint" className="text-xs text-muted-foreground">
+            {t('console.assistants.hint')}
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 

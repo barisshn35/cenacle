@@ -10,6 +10,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Assistants over MCP (ADR 0056): where administrators allow it (System console → Security),
+  people make personal tokens (Settings → Assistants) for AI assistants that speak MCP, at
+  `/api/mcp`. An assistant reads the person's channels, threads and meetings and searches
+  them; with the draft scope it leaves a draft above a message box, which only the person can
+  send. Assistant tokens reach nothing else of the API. Migration 00080.
 - Semantic search (ADR 0055): with an embedding model on the AI server
   (`CENACLE_AI_EMBEDDING_MODEL`), messages of workspaces with AI on are indexed with pgvector
   and the search panel can search by meaning; Ask AI finds its sources by meaning too. The
@@ -128,6 +133,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Security
 
+- Web push is documented and tested as RFC 8291 encryption: the test decrypts what the server
+  sends as a browser does (docs/security).
 - The images built on Alpine use Alpine 3.24.3 (zlib 1.3.2-r1, CVE-2026-85091) instead of
   updating packages while they are built, so a rebuild from the tag gives the same image
   again; 0.99.5's update step had made them depend on the day of the build.

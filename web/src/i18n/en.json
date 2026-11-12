@@ -579,6 +579,7 @@
     "endedOthers_one": "{{count}} device was signed out.",
     "endedOthers_other": "{{count}} devices were signed out.",
     "tabs": {
+      "assistants": "Assistants",
       "account": "Account and devices",
       "appearance": "Appearance",
       "texts": "Interface texts",
@@ -591,6 +592,7 @@
     "adminGroup": "Workspace · admin",
     "cenacleId": "Cenacle ID account",
     "sections": {
+      "assistants": "Connect AI assistants that read with you and draft for you (MCP).",
       "account": "Your Cenacle ID account and the devices signed in to it.",
       "appearance": "Theme, density, type and code blocks on your devices.",
       "notifications": "What reaches you, how it sounds, and when Cenacle stays quiet.",
@@ -1436,6 +1438,49 @@
     "nothingPlanned": "Nothing planned.",
     "dayCount_one": "{{count}} meeting",
     "dayCount_other": "{{count}} meetings"
+  },
+  "assistants": {
+    "what": "Connect an AI assistant",
+    "whatHint": "Assistants that speak MCP (desktop AI apps, editors, agents) can read the channels and conversations you are in, find messages and see your meetings, and, if you allow it, leave a draft in a message box for you to send.",
+    "privacy": "What the assistant reads goes to the assistant's own provider. Encrypted channels are never shared.",
+    "address": "MCP address",
+    "copy": "Copy",
+    "copied": "Copied",
+    "new": "Make a token",
+    "name": "Name",
+    "namePlaceholder": "e.g. Desktop assistant",
+    "may": "The assistant may",
+    "scopes": {
+      "read": "Read your channels, conversations and meetings",
+      "draft": "Leave drafts in message boxes"
+    },
+    "neverSends": "An assistant never sends, edits or deletes a message: you send its drafts yourself.",
+    "lasts": "Works for",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "make": "Make the token",
+    "made": "Your token",
+    "once": "Copy it now: it is not shown again. Give it to the assistant as a bearer token.",
+    "token": "Token",
+    "config": "For assistants configured with a file, this is the entry:",
+    "done": "Done",
+    "yours": "Your tokens",
+    "none": "No tokens yet.",
+    "readOnly": "Reads",
+    "readDraft": "Reads and drafts",
+    "until": "until {{date}}",
+    "used": "last used {{date}}",
+    "notUsed": "not used yet",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke {{name}}?",
+    "revokeHint": "The assistant stops reaching Cenacle at once. Its drafts stay until you use or drop them.",
+    "failed": "Couldn't do that. Try again.",
+    "draft": {
+      "label": "Draft from {{name}}",
+      "from": "{{name}} drafted this. Nothing is sent until you send it.",
+      "use": "Put in the message box",
+      "drop": "Throw away"
+    }
   },
   "home": {
     "today": "Today",
@@ -2798,6 +2843,11 @@
     "choose": "Choose…"
   },
   "console": {
+    "assistants": {
+      "title": "Assistants (MCP)",
+      "allow": "Let people connect AI assistants",
+      "hint": "People make personal tokens for assistants that read their channels and may leave drafts; assistants never send. Turning this off stops every assistant token at once."
+    },
     "semantic": {
       "title": "Semantic search",
       "ready": "On, with the model {{model}}.",

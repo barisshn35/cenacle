@@ -39,6 +39,27 @@ type ArchiveExport struct {
 	StaleAt     pgtype.Timestamptz `json:"stale_at"`
 }
 
+type AssistantDraft struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	RootID    pgtype.UUID `json:"root_id"`
+	Body      string      `json:"body"`
+	TokenID   pgtype.UUID `json:"token_id"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+type AssistantToken struct {
+	ID         pgtype.UUID        `json:"id"`
+	UserID     pgtype.UUID        `json:"user_id"`
+	Name       string             `json:"name"`
+	TokenHash  []byte             `json:"token_hash"`
+	Scopes     []string           `json:"scopes"`
+	CreatedAt  time.Time          `json:"created_at"`
+	ExpiresAt  time.Time          `json:"expires_at"`
+	LastUsedAt pgtype.Timestamptz `json:"last_used_at"`
+	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
+}
+
 type AuditEvent struct {
 	ID          pgtype.UUID `json:"id"`
 	At          time.Time   `json:"at"`
@@ -553,6 +574,7 @@ type InstanceSetting struct {
 	SoundDirect          string             `json:"sound_direct"`
 	SoundMessage         string             `json:"sound_message"`
 	SoundVolume          int32              `json:"sound_volume"`
+	AssistantsEnabled    bool               `json:"assistants_enabled"`
 }
 
 type LegalHold struct {
