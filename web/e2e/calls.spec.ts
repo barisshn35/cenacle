@@ -450,7 +450,9 @@ test('live captions: everyone sees who turned them on, the lines, and may hide t
     ],
   };
   await page.evaluate(async (c) => {
-    const m = await import('/src/app/calls/state.ts');
+    const m = (await import(/* @vite-ignore */ `${'/src/app/calls/state.ts'}`)) as {
+      useCall: { setState(state: Record<string, unknown>): void };
+    };
     m.useCall.setState({
       call: c as never,
       session: { registerAudio: async () => () => undefined } as never,
@@ -464,9 +466,11 @@ test('live captions: everyone sees who turned them on, the lines, and may hide t
 
   // The server says captions are on; a line arrives.
   await page.evaluate(async (c) => {
-    const m = await import('/src/app/calls/state.ts');
+    const m = (await import(/* @vite-ignore */ `${'/src/app/calls/state.ts'}`)) as {
+      useCall: { setState(state: Record<string, unknown>): void };
+    };
     m.useCall.setState({
-      call: { ...c, captions_on: true, captions_by: c.participants[1].user_id } as never,
+      call: { ...c, captions_on: true, captions_by: c.participants[1]!.user_id } as never,
     });
   }, call);
   await expect(dialog.getByTestId('captions')).toContainText('Ayşe Yılmaz turned captions on');
@@ -572,7 +576,9 @@ test('a recorded call says so to everyone and before joining; anyone may stop it
 
   // In the call: everyone sees who records, and may stop it.
   await page.evaluate(async (c) => {
-    const m = await import('/src/app/calls/state.ts');
+    const m = (await import(/* @vite-ignore */ `${'/src/app/calls/state.ts'}`)) as {
+      useCall: { setState(state: Record<string, unknown>): void };
+    };
     m.useCall.setState({
       call: c as never,
       session: { registerAudio: async () => () => undefined } as never,
@@ -595,7 +601,9 @@ test('the recorder makes a video file in the browser', async ({ page, isMobile }
   // A person's click lets the page make sound (as the click on Record does).
   await page.getByRole('heading', { name: 'General', exact: true }).click();
   const size = await page.evaluate(async () => {
-    const m = await import('/src/app/calls/recorder.ts');
+    const m = (await import(/* @vite-ignore */ `${'/src/app/calls/recorder.ts'}`)) as {
+      startRecording(selfID: string): { stop(): Promise<Blob> } | null;
+    };
     const rec = m.startRecording('nobody');
     if (!rec) return -1;
     await new Promise((r) => setTimeout(r, 1500));

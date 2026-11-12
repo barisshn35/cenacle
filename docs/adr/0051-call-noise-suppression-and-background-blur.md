@@ -18,10 +18,10 @@ hook of `CallSession` (packages/core): it gets the captured microphone or camera
 track and returns the one to send and a way to stop it. Screens are never
 processed.
 
-- **Noise suppression**, three choices remembered per device: *Standard* (the
-  browser's own, as before), *Strong* (RNNoise in an AudioWorklet, from
+- **Noise suppression**, three choices remembered per device: _Standard_ (the
+  browser's own, as before), _Strong_ (RNNoise in an AudioWorklet, from
   `@sapphi-red/web-noise-suppressor` 0.4.1, MIT; RNNoise is BSD-3-Clause and its
-  WebAssembly build Apache-2.0) and *Off* (for music: the browser's processing is
+  WebAssembly build Apache-2.0) and _Off_ (for music: the browser's processing is
   turned off with `applyConstraints`).
 - **Background blur**: MediaPipe's Image Segmenter (`@mediapipe/tasks-vision`
   1.2.0, Apache-2.0) with the Selfie Segmentation model (Apache-2.0), drawn on a

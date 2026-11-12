@@ -211,11 +211,10 @@ done
 
 dc() {
   if [ -f .env.calls ]; then
-    set -- -f calls.yml \
-      $(grep -q '^CENACLE_CALLS_TURN=on' .env.calls && echo -f calls-turn.yml) \
-      $(grep -q '^CENACLE_CAPTIONS_MODEL=' .env.calls && echo -f captions.yml) \
-      --env-file .env.prod --env-file .env.calls "$@"
-    docker compose -f prod.yml "$@"
+    set -- --env-file .env.prod --env-file .env.calls "$@"
+    if grep -q '^CENACLE_CAPTIONS_MODEL=' .env.calls; then set -- -f captions.yml "$@"; fi
+    if grep -q '^CENACLE_CALLS_TURN=on' .env.calls; then set -- -f calls-turn.yml "$@"; fi
+    docker compose -f prod.yml -f calls.yml "$@"
   else
     docker compose -f prod.yml --env-file .env.prod "$@"
   fi
