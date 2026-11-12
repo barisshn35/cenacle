@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
-import { directWith, GENERAL, mockApi, mockMessage, PEOPLE } from './helpers';
+import {
+  directWith,
+  expectNoAxeViolations,
+  expectTargetSizes,
+  GENERAL,
+  mockApi,
+  mockMessage,
+  PEOPLE,
+} from './helpers';
 
 const [, AYSE, MERT] = PEOPLE as [
   (typeof PEOPLE)[number],
@@ -162,5 +170,85 @@ test.describe('in Turkish', () => {
     await expect(page.getByText(/kanalına mesaj yazın/)).toHaveCount(0);
     await page.goto(`/c/${GENERAL.id}`);
     await expect(page.getByRole('textbox', { name: 'General kanalına mesaj yazın' })).toBeVisible();
+  });
+});
+
+test.describe('group conversation names', () => {
+  const group = () =>
+    directWith(AYSE, {
+      id: '01a15e50-dddd-7000-8000-0000000000a1',
+      name: 'group:abc',
+      kind: 'group',
+      participants: [AYSE, MERT],
+    });
+
+  test('people name a group; the name shows everywhere and the conversation says who gave it', async ({
+    page,
+    isMobile,
+  }, testInfo) => {
+    const g = group();
+    const api = await mockApi(page, { channels: [g] });
+    let sent: unknown;
+    await page.route(`**/api/channels/${g.id}/title`, (route) => {
+      sent = route.request().postDataJSON();
+      const c = api.channels.find((x) => x.id === g.id)!;
+      Object.assign(c, { title: 'Launch crew' });
+      return route.fulfill({ json: c });
+    });
+    await page.goto(`/c/${g.id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ayşe Yılmaz, Mert Kaya');
+    // The details are open beside the channel on wide screens, a sheet on phones.
+    const details = page.getByRole('button', { name: 'Channel details', exact: true });
+    if ((await details.getAttribute('aria-pressed')) !== 'true') await details.click();
+    const field = page.getByLabel('Conversation name');
+    await expect(field).toHaveAttribute('placeholder', 'Ayşe Yılmaz, Mert Kaya');
+    await field.fill('Launch crew');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('The conversation is named.')).toBeVisible();
+    expect(sent).toEqual({ title: 'Launch crew' });
+    await expectTargetSizes(page, testInfo, 'aside');
+    await expectNoAxeViolations(page, 'aside');
+    if (isMobile) await page.keyboard.press('Escape');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Launch crew');
+
+    // The line in the conversation.
+    api.emit('message.created', {
+      ...mockMessage(7, ''),
+      channel_id: g.id,
+      author: { id: 'bot', display_name: 'Cenacle', is_bot: true },
+      attachments: [{ channel_event: { kind: 'renamed', user_id: MERT.id, title: 'Launch crew' } }],
+    });
+    await expect(page.getByTestId('channel-line')).toContainText(
+      'named the conversation Launch crew',
+    );
+  });
+
+  test('a group can be named as it starts', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the sidebar is in the drawer on phones');
+    const g = group();
+    const api = await mockApi(page, { channels: [g] });
+    // The same people meet in the same conversation.
+    await page.route('**/api/workspaces/*/conversations', (route) => route.fulfill({ json: g }));
+    let named: unknown;
+    await page.route(`**/api/channels/${g.id}/title`, (route) => {
+      named = route.request().postDataJSON();
+      const c = api.channels.find((x) => x.id === g.id)!;
+      Object.assign(c, { title: 'Release' });
+      return route.fulfill({ json: c });
+    });
+    await page.goto('/');
+    const nav = page.getByRole('navigation', { name: 'Channels' });
+    await nav.getByRole('button', { name: 'New conversation' }).click();
+    const dialog = page.getByRole('dialog', { name: 'New conversation' });
+    await dialog.getByLabel('Find people').fill('mert');
+    await dialog.getByRole('button', { name: 'Add Mert Kaya' }).click();
+    // One person: a direct conversation has no name.
+    await expect(dialog.getByLabel('Conversation name (optional)')).toHaveCount(0);
+    await dialog.getByLabel('Find people').fill('ayşe');
+    await dialog.getByRole('button', { name: 'Add Ayşe Yılmaz' }).click();
+    await dialog.getByLabel('Conversation name (optional)').fill('Release');
+    await dialog.getByRole('button', { name: 'Start conversation' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Release');
+    expect(named).toEqual({ title: 'Release' });
   });
 });

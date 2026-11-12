@@ -19,6 +19,8 @@ const (
 	LineLeft    = "left"
 	LineAdded   = "added"
 	LineRemoved = "removed"
+	// LineRenamed: someone named a group conversation (or took its name away).
+	LineRenamed = "renamed"
 )
 
 // channelLine writes a line about a membership change into the channel's
@@ -29,17 +31,24 @@ const (
 // whose text the server cannot read get none. A failure is logged, never
 // returned: the membership change has happened.
 func (h *Handlers) channelLine(ctx context.Context, c store.Channel, kind string, user, actor pgtype.UUID) {
-	if isConversation(c) || c.Encrypted || c.Mls {
+	h.channelLineWith(ctx, c, kind, user, actor, nil)
+}
+
+// channelLineWith is channelLine with more data on the line (a new title).
+// Group conversations get a line only when they are named.
+func (h *Handlers) channelLineWith(ctx context.Context, c store.Channel, kind string, user, actor pgtype.UUID, extra map[string]any) {
+	named := kind == LineRenamed && c.Kind == KindGroup
+	if (isConversation(c) && !named) || c.Encrypted || c.Mls {
 		return
 	}
 	ctx = context.WithoutCancel(ctx)
-	err := h.inTx(ctx, func(q *store.Queries) error { return writeChannelLine(ctx, q, c, kind, user, actor) })
+	err := h.inTx(ctx, func(q *store.Queries) error { return writeChannelLine(ctx, q, c, kind, user, actor, extra) })
 	if err != nil {
 		slog.ErrorContext(ctx, "channel line", "channel", uuid(c.ID).String(), "kind", kind, "err", err)
 	}
 }
 
-func writeChannelLine(ctx context.Context, q *store.Queries, c store.Channel, kind string, user, actor pgtype.UUID) error {
+func writeChannelLine(ctx context.Context, q *store.Queries, c store.Channel, kind string, user, actor pgtype.UUID, extra map[string]any) error {
 	bot, err := systemBot(ctx, q, c.WorkspaceID)
 	if err != nil {
 		return err
@@ -47,6 +56,9 @@ func writeChannelLine(ctx context.Context, q *store.Queries, c store.Channel, ki
 	line := map[string]any{"kind": kind, "user_id": uuid(user)}
 	if actor.Valid && actor != user {
 		line["actor_id"] = uuid(actor)
+	}
+	for k, v := range extra {
+		line[k] = v
 	}
 	raw, err := json.Marshal([]map[string]any{{"channel_event": line}})
 	if err != nil {

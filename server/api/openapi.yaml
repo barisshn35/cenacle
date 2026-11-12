@@ -3647,6 +3647,40 @@ paths:
           $ref: '#/components/responses/Problem'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/channels/{channel_id}/title:
+    parameters:
+      - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [chat]
+      operationId: setConversationTitle
+      summary: Name a group conversation (its people)
+      description: |
+        Everyone in a group conversation may name it or take the name away (an empty
+        title); the conversation then shows the name instead of its people. A line in
+        the conversation says who named it. Only group conversations have titles (400).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, maxLength: 80 }
+      responses:
+        '200':
+          description: The conversation.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Channel' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/channels/{channel_id}/reads:
     parameters:
       - { name: channel_id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -8957,6 +8991,10 @@ components:
         id: { type: string, format: uuid }
         workspace_id: { type: string, format: uuid }
         name: { type: string }
+        title:
+          type: string
+          maxLength: 80
+          description: A group conversation's own name, given by its people (empty when it has none).
         topic: { type: string }
         kind:
           type: string
@@ -9947,9 +9985,10 @@ components:
         people are given by id and shown with their current profile.
       required: [kind, user_id]
       properties:
-        kind: { type: string, enum: [joined, left, added, removed] }
-        user_id: { type: string, format: uuid }
+        kind: { type: string, enum: [joined, left, added, removed, renamed] }
+        user_id: { type: string, format: uuid, description: 'The person it is about; for renamed, who named the conversation.' }
         actor_id: { type: string, format: uuid, description: Who added or removed the person. }
+        title: { type: string, description: 'renamed: the group conversation''s new name (empty when it was taken away).' }
     MessagePage:
       type: object
       required: [messages, has_more]

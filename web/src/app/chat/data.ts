@@ -28,10 +28,11 @@ export const isConversation = (c: Pick<Channel, 'kind'>) =>
 
 /**
  * A conversation is named after its other people (the server's name is a
- * key), so every view can show `name`.
+ * key), a group by the name its people gave it, so every view can show `name`.
  */
 function displayName(c: Channel): Channel {
   if (!isConversation(c)) return c;
+  if (c.kind === 'group' && c.title) return { ...c, name: c.title };
   const names = c.participants.map((p) => p.display_name || p.email);
   return { ...c, name: names.length ? names.join(', ') : i18next.t('dm.onlyYou') };
 }
@@ -53,6 +54,18 @@ export const openConversation = (workspaceId: string, userIds: string[]) =>
     `/api/workspaces/${workspaceId}/conversations`,
     json({ user_ids: userIds }),
   ).then(displayName);
+
+/** Names a group conversation ('' takes the name away). */
+export const setConversationTitle = (channelId: string, title: string) =>
+  apiFetch<Channel>(`/api/channels/${channelId}/title`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  }).then(displayName);
+
+/** The names of a conversation's other people, as it is called without a name of its own. */
+export const peopleNames = (c: Pick<Channel, 'participants'>) =>
+  c.participants.map((p) => p.display_name || p.email).join(', ');
 
 /** Marks a channel read up to a message (without one: all of it). */
 export const markRead = (channelId: string, messageId?: string) =>
@@ -149,7 +162,7 @@ export function setUnreadLocally(
 
 export type ChannelLine = components['schemas']['ChannelLine'];
 
-const KINDS = ['joined', 'left', 'added', 'removed'] as const;
+const KINDS = ['joined', 'left', 'added', 'removed', 'renamed'] as const;
 
 /** The membership line a message of the Cenacle bot carries, if it is one. */
 export function lineOf(m: Pick<Message, 'attachments' | 'author'>): ChannelLine | null {

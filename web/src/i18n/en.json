@@ -255,6 +255,8 @@
       "added": "<b>{{user}}</b> was added to the channel",
       "addedBy": "<b>{{user}}</b> was added by <b>{{actor}}</b>",
       "removed": "<b>{{user}}</b> was removed from the channel",
+      "renamed": "<b>{{user}}</b> named the conversation <b>{{title}}</b>",
+      "unnamed": "<b>{{user}}</b> took the conversation's name away",
       "removedBy": "<b>{{user}}</b> was removed by <b>{{actor}}</b>",
       "someone": "A former member"
     }
@@ -503,6 +505,14 @@
     "revoke": "Revoke"
   },
   "dm": {
+    "naming": {
+      "label": "Conversation name",
+      "optional": "Conversation name (optional)",
+      "hint": "Everyone in the conversation sees it and can change it. Leave it empty to show the people's names.",
+      "saved": "The conversation is named.",
+      "removed": "The conversation shows its people's names again.",
+      "failed": "The name could not be saved. Try again."
+    },
     "title": "Direct messages",
     "none": "No conversations yet.",
     "newTitle": "New conversation",

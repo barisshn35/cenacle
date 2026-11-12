@@ -42,7 +42,7 @@ func (q *Queries) MoveExportChannelMembers(ctx context.Context, channelID pgtype
 }
 
 const moveExportChannels = `-- name: MoveExportChannels :many
-SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation, mls FROM channels WHERE workspace_id = $1 ORDER BY created_at, id
+SELECT id, name, topic, created_at, kind, is_default, is_mandatory, created_by, visibility, archived_at, category_id, workspace_id, group_managed, forum_tags, slow_mode_seconds, retention_days, classification_id, access_rules, encrypted, key_check, moderation, mls, title FROM channels WHERE workspace_id = $1 ORDER BY created_at, id
 `
 
 // MoveExportChannels lists the channels and conversations of a workspace.
@@ -78,6 +78,7 @@ func (q *Queries) MoveExportChannels(ctx context.Context, workspaceID pgtype.UUI
 			&i.KeyCheck,
 			&i.Moderation,
 			&i.Mls,
+			&i.Title,
 		); err != nil {
 			return nil, err
 		}

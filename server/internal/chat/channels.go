@@ -121,6 +121,9 @@ func toAPI(c store.Channel, a access) api.Channel {
 		Encrypted:       ptr(c.Encrypted),
 		AccessRules:     ptr(accessRules(c)),
 	}
+	if c.Title != "" {
+		out.Title = &c.Title
+	}
 	if c.Encrypted {
 		out.KeyCheck = &c.KeyCheck
 	}

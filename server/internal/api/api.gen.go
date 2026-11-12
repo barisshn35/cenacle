@@ -687,6 +687,7 @@ const (
 	ChannelLineKindJoined  ChannelLineKind = "joined"
 	ChannelLineKindLeft    ChannelLineKind = "left"
 	ChannelLineKindRemoved ChannelLineKind = "removed"
+	ChannelLineKindRenamed ChannelLineKind = "renamed"
 )
 
 // Valid indicates whether the value is a known member of the ChannelLineKind enum.
@@ -699,6 +700,8 @@ func (e ChannelLineKind) Valid() bool {
 	case ChannelLineKindLeft:
 		return true
 	case ChannelLineKindRemoved:
+		return true
+	case ChannelLineKindRenamed:
 		return true
 	default:
 		return false
@@ -2937,8 +2940,11 @@ type Channel struct {
 	RetentionDays *int `json:"retention_days,omitempty"`
 
 	// SlowModeSeconds Seconds a member waits between messages (0 off; managers are exempt).
-	SlowModeSeconds *int   `json:"slow_mode_seconds,omitempty"`
-	Topic           string `json:"topic"`
+	SlowModeSeconds *int `json:"slow_mode_seconds,omitempty"`
+
+	// Title A group conversation's own name, given by its people (empty when it has none).
+	Title *string `json:"title,omitempty"`
+	Topic string  `json:"topic"`
 
 	// UnreadCount Messages of others after the read position, counted up to 100.
 	UnreadCount int `json:"unread_count"`
@@ -3011,7 +3017,12 @@ type ChannelLine struct {
 	// ActorId Who added or removed the person.
 	ActorId *openapi_types.UUID `json:"actor_id,omitempty"`
 	Kind    ChannelLineKind     `json:"kind"`
-	UserId  openapi_types.UUID  `json:"user_id"`
+
+	// Title renamed: the group conversation's new name (empty when it was taken away).
+	Title *string `json:"title,omitempty"`
+
+	// UserId The person it is about; for renamed, who named the conversation.
+	UserId openapi_types.UUID `json:"user_id"`
 }
 
 // ChannelLineKind defines model for ChannelLine.Kind.
@@ -5131,6 +5142,11 @@ type ShareChannelJSONBody struct {
 	ConnectionId openapi_types.UUID `json:"connection_id"`
 }
 
+// SetConversationTitleJSONBody defines parameters for SetConversationTitle.
+type SetConversationTitleJSONBody struct {
+	Title string `json:"title"`
+}
+
 // MarkUnreadJSONBody defines parameters for MarkUnread.
 type MarkUnreadJSONBody struct {
 	MessageId *openapi_types.UUID `json:"message_id,omitempty"`
@@ -5819,6 +5835,9 @@ type ShareChannelJSONRequestBody ShareChannelJSONBody
 
 // CreateChannelTabJSONRequestBody defines body for CreateChannelTab for application/json ContentType.
 type CreateChannelTabJSONRequestBody = TabInput
+
+// SetConversationTitleJSONRequestBody defines body for SetConversationTitle for application/json ContentType.
+type SetConversationTitleJSONRequestBody SetConversationTitleJSONBody
 
 // MarkUnreadJSONRequestBody defines body for MarkUnread for application/json ContentType.
 type MarkUnreadJSONRequestBody MarkUnreadJSONBody
@@ -6511,6 +6530,9 @@ type ServerInterface interface {
 	// CreateChannelTab Add a canvas, a list or a link (people who can post)
 	// (POST /api/channels/{channel_id}/tabs)
 	CreateChannelTab(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
+	// SetConversationTitle Name a group conversation (its people)
+	// (PUT /api/channels/{channel_id}/title)
+	SetConversationTitle(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
 	// SendTyping Tell the channel you are typing (every few seconds while typing)
 	// (POST /api/channels/{channel_id}/typing)
 	SendTyping(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID)
@@ -7897,6 +7919,12 @@ func (_ Unimplemented) ListChannelTabs(w http.ResponseWriter, r *http.Request, c
 // CreateChannelTab Add a canvas, a list or a link (people who can post)
 // (POST /api/channels/{channel_id}/tabs)
 func (_ Unimplemented) CreateChannelTab(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetConversationTitle Name a group conversation (its people)
+// (PUT /api/channels/{channel_id}/title)
+func (_ Unimplemented) SetConversationTitle(w http.ResponseWriter, r *http.Request, channelId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -12877,6 +12905,32 @@ func (siw *ServerInterfaceWrapper) CreateChannelTab(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateChannelTab(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetConversationTitle operation middleware
+func (siw *ServerInterfaceWrapper) SetConversationTitle(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channel_id" -------------
+	var channelId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channel_id", chi.URLParam(r, "channel_id"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channel_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetConversationTitle(w, r, channelId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18862,6 +18916,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/channels/{channel_id}", wrapper.UpdateChannel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/channels/{channel_id}/title", wrapper.SetConversationTitle)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channel_id}/reads", wrapper.ListConversationReads)

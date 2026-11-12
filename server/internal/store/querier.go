@@ -1034,6 +1034,7 @@ type Querier interface {
 	SetChannelMemberRole(ctx context.Context, arg SetChannelMemberRoleParams) (int64, error)
 	SetChannelNotificationPrefs(ctx context.Context, arg SetChannelNotificationPrefsParams) error
 	SetChannelTabPosition(ctx context.Context, arg SetChannelTabPositionParams) error
+	SetChannelTitle(ctx context.Context, arg SetChannelTitleParams) (Channel, error)
 	// SetCustomStatus sets the custom status and puts it first in the recent
 	// ones (five, without duplicates).
 	SetCustomStatus(ctx context.Context, arg SetCustomStatusParams) error

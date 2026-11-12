@@ -19,7 +19,14 @@ import { Label } from '@cenacle/ui/components/label';
 import { ApiError } from '@cenacle/core/api';
 import { useSession } from '../auth/session';
 import { PersonLine } from './channel-members';
-import { openConversation, peopleQuery, reloadChannels, type Person } from './data';
+import {
+  openConversation,
+  peopleQuery,
+  reloadChannels,
+  setConversationTitle,
+  type Person,
+} from './data';
+import { MAX_TITLE } from './group-title';
 
 /** Up to this many others in a group conversation (the server's limit). */
 const MAX_PEOPLE = 8;
@@ -42,16 +49,21 @@ export function NewConversationDialog({
   const self = useSession().user.id;
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<Person[]>([]);
+  const [title, setTitle] = useState('');
   const query = useDeferredValue(q.trim());
   const people = useQuery({ ...peopleQuery(workspaceId, query), enabled: open && query !== '' });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const start = useMutation({
-    mutationFn: () =>
-      openConversation(
+    mutationFn: async () => {
+      const channel = await openConversation(
         workspaceId,
         picked.map((p) => p.id),
-      ),
+      );
+      // A group may be named as it starts (an existing one keeps its name unless one is given).
+      if (picked.length > 1 && title.trim()) return setConversationTitle(channel.id, title.trim());
+      return channel;
+    },
     onSuccess: async (channel) => {
       await reloadChannels(queryClient);
       onOpenChange(false);
@@ -123,6 +135,18 @@ export function NewConversationDialog({
             <li className="px-1 text-sm text-muted-foreground">{t('channels.noPeople')}</li>
           )}
         </ul>
+        {picked.length > 1 && (
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-title`}>{t('dm.naming.optional')}</Label>
+            <Input
+              id={`${id}-title`}
+              value={title}
+              maxLength={MAX_TITLE}
+              autoComplete="off"
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+        )}
         {start.isError && (
           <InlineError
             problem={start.error instanceof ApiError ? start.error.problem : { status: 500 }}

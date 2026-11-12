@@ -12,6 +12,7 @@ import { Button } from '@cenacle/ui/components/button';
 import { showUndoToast } from '@cenacle/ui/components/undo-toast';
 import { ChannelFiles } from '../chat/channel-files';
 import { MembersSection, VisibilitySetting } from '../chat/channel-members';
+import { GroupTitleField } from '../chat/group-title';
 import {
   isConversation,
   joinChannel,
@@ -63,6 +64,7 @@ export function DetailsPanel() {
       {channel && isConversation(channel) && (
         <div className="flex flex-col gap-3 p-4 text-sm">
           <p className="text-muted-foreground">{t(`dm.about.${channel.kind}`)}</p>
+          {channel.kind === 'group' && !channel.archived && <GroupTitleField channel={channel} />}
           {channel.kind === 'group' && (
             <div>
               <LeaveButton channel={channel} />

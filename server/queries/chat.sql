@@ -280,3 +280,6 @@ WHERE message_id = ANY(@message_ids::uuid[]) ORDER BY message_id, id;
 INSERT INTO messages (channel_id, author_id, body, nonce, attachments)
 VALUES (@channel_id, @author_id, '', @nonce, @attachments)
 RETURNING *;
+
+-- name: SetChannelTitle :one
+UPDATE channels SET title = @title WHERE id = @id RETURNING *;

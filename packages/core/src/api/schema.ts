@@ -2323,6 +2323,30 @@ export interface paths {
     patch: operations['updateChannel'];
     trace?: never;
   };
+  '/api/channels/{channel_id}/title': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Name a group conversation (its people)
+     * @description Everyone in a group conversation may name it or take the name away (an empty
+     *     title); the conversation then shows the name instead of its people. A line in
+     *     the conversation says who named it. Only group conversations have titles (400).
+     */
+    put: operations['setConversationTitle'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channel_id}/reads': {
     parameters: {
       query?: never;
@@ -6203,6 +6227,8 @@ export interface components {
       /** Format: uuid */
       workspace_id: string;
       name: string;
+      /** @description A group conversation's own name, given by its people (empty when it has none). */
+      title?: string;
       topic: string;
       /**
        * @description In announcement channels only workspace owners and admins send. Direct and
@@ -7056,14 +7082,19 @@ export interface components {
      */
     ChannelLine: {
       /** @enum {string} */
-      kind: 'joined' | 'left' | 'added' | 'removed';
-      /** Format: uuid */
+      kind: 'joined' | 'left' | 'added' | 'removed' | 'renamed';
+      /**
+       * Format: uuid
+       * @description The person it is about; for renamed, who named the conversation.
+       */
       user_id: string;
       /**
        * Format: uuid
        * @description Who added or removed the person.
        */
       actor_id?: string;
+      /** @description renamed: the group conversation's new name (empty when it was taken away). */
+      title?: string;
     };
     MessagePage: {
       messages: components['schemas']['Message'][];
@@ -11388,6 +11419,38 @@ export interface operations {
     };
     responses: {
       /** @description Updated. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Channel'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+    };
+  };
+  setConversationTitle: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        channel_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          title: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The conversation. */
       200: {
         headers: {
           [name: string]: unknown;

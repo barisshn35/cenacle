@@ -159,6 +159,7 @@ type Channel struct {
 	KeyCheck         string             `json:"key_check"`
 	Moderation       []byte             `json:"moderation"`
 	Mls              bool               `json:"mls"`
+	Title            string             `json:"title"`
 }
 
 type ChannelCategory struct {

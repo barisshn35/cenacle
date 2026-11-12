@@ -10,6 +10,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Group conversations can be named by their people (in the conversation's details, or as it
+  starts); the name shows instead of the people's names, and a line in the conversation says
+  who named it. Migration 00072 adds the column.
+- Several messages can be picked ("Select messages" in a message's menu) and forwarded
+  together, up to ten, in the order they were written.
 - A custom theme (Appearance, and workspace settings for its admins): pick the accent and
   sidebar colors, the tone of the surfaces and how round corners are, with a preview in both
   themes. Colors that would make text hard to read are made a little lighter or darker, so
@@ -71,6 +76,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- The message menu is grouped (answering, keeping, reporting, changing), and "Report
+  spillage" shows only in workspaces that classify their channels.
 - Smoother, lighter motion: menus and popovers grow from where they open, dialogs and the
   side panel slide in, a new message slides in as it arrives, hover colors fade, and progress
   bars and the workspace marker move with transforms instead of laying out the page each frame.

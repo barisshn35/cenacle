@@ -5,6 +5,7 @@ package app_test
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/coder/websocket"
@@ -304,5 +305,60 @@ func TestMarkUnread(t *testing.T) {
 	}
 	if c := s.listed(ayse, general); c.UnreadCount != before {
 		t.Errorf("channel unread changed: %d → %d", before, c.UnreadCount)
+	}
+}
+
+func TestGroupConversationTitles(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ayse := s.user("sub-a", "Ayşe")
+	mert := s.user("sub-m", "Mert")
+	zeynep := s.user("sub-z", "Zeynep")
+	ayseID, mertID := s.userID(ayse), s.userID(mert)
+	group, _ := s.open(ayse, s.defaultWS, mertID, s.userID(zeynep))
+	dm, _ := s.open(ayse, s.defaultWS, mertID)
+
+	type titled struct {
+		ID    string `json:"id"`
+		Title string `json:"title"`
+	}
+	var got titled
+	res := s.call(http.MethodPut, "/api/channels/"+group.ID+"/title", mert, map[string]string{"title": "  Launch   crew "}, &got)
+	if res.StatusCode != http.StatusOK || got.Title != "Launch crew" {
+		t.Fatalf("naming = %d %+v", res.StatusCode, got)
+	}
+	// Everyone in it sees the name; the conversation says who gave it.
+	var listed struct{ Channels []titled }
+	s.call(http.MethodGet, "/api/channels", zeynep, nil, &listed)
+	found := false
+	for _, c := range listed.Channels {
+		found = found || (c.ID == group.ID && c.Title == "Launch crew")
+	}
+	if !found {
+		t.Errorf("Zeynep's list = %+v", listed.Channels)
+	}
+	lines := s.lines(ayse, group.ID)
+	if len(lines) != 1 || lines[0].Kind != "renamed" || lines[0].UserId.String() != mertID ||
+		lines[0].Title == nil || *lines[0].Title != "Launch crew" {
+		t.Errorf("lines = %+v", lines)
+	}
+	// Taking the name away is a line too; the same name again is not.
+	s.call(http.MethodPut, "/api/channels/"+group.ID+"/title", ayse, map[string]string{"title": ""}, nil)
+	got = titled{}
+	s.call(http.MethodPut, "/api/channels/"+group.ID+"/title", ayse, map[string]string{"title": ""}, &got)
+	if lines := s.lines(ayse, group.ID); got.Title != "" || len(lines) != 2 || lines[1].UserId.String() != ayseID {
+		t.Errorf("after taking it away: %+v %+v", got, lines)
+	}
+
+	// Only group conversations have names, only their people give them.
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/channels/"+dm.ID+"/title", ayse, map[string]string{"title": "x"}); status != http.StatusBadRequest {
+		t.Errorf("naming a direct conversation = %d", status)
+	}
+	outsider := s.user("sub-o", "Okan")
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/channels/"+group.ID+"/title", outsider, map[string]string{"title": "x"}); status != http.StatusNotFound {
+		t.Errorf("outsider naming = %d", status)
+	}
+	long := strings.Repeat("ş", 81)
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/channels/"+group.ID+"/title", ayse, map[string]string{"title": long}); status != http.StatusBadRequest {
+		t.Errorf("81 characters = %d", status)
 	}
 }

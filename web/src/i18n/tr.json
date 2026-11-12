@@ -255,6 +255,8 @@
       "added": "<b>{{user}}</b> kanala eklendi",
       "addedBy": "<b>{{user}}</b>, <b>{{actor}}</b> tarafından eklendi",
       "removed": "<b>{{user}}</b> kanaldan çıkarıldı",
+      "renamed": "<b>{{user}}</b> konuşmanın adını <b>{{title}}</b> yaptı",
+      "unnamed": "<b>{{user}}</b> konuşmanın adını kaldırdı",
       "removedBy": "<b>{{user}}</b>, <b>{{actor}}</b> tarafından çıkarıldı",
       "someone": "Eski bir üye"
     }
@@ -503,6 +505,14 @@
     "revoke": "İptal et"
   },
   "dm": {
+    "naming": {
+      "label": "Konuşmanın adı",
+      "optional": "Konuşmanın adı (isteğe bağlı)",
+      "hint": "Konuşmadaki herkes görür ve değiştirebilir. Kişilerin adlarının görünmesi için boş bırakın.",
+      "saved": "Konuşmaya ad verildi.",
+      "removed": "Konuşmada yeniden kişilerin adları görünüyor.",
+      "failed": "Ad kaydedilemedi. Yeniden deneyin."
+    },
     "title": "Doğrudan mesajlar",
     "none": "Henüz konuşma yok.",
     "newTitle": "Yeni konuşma",

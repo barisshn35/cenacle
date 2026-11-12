@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { LogInIcon, LogOutIcon, UserMinusIcon, UserPlusIcon } from 'lucide-react';
+import { LogInIcon, LogOutIcon, PencilIcon, UserMinusIcon, UserPlusIcon } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { cn } from '@cenacle/ui/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -7,7 +7,13 @@ import { profileQuery } from '../profile/profiles';
 import type { ChannelLine } from './data';
 import type { Row, useFormatters } from './rows';
 
-const ICON = { joined: LogInIcon, left: LogOutIcon, added: UserPlusIcon, removed: UserMinusIcon };
+const ICON = {
+  joined: LogInIcon,
+  left: LogOutIcon,
+  added: UserPlusIcon,
+  removed: UserMinusIcon,
+  renamed: PencilIcon,
+};
 
 /** A person's current name; an erased person has none. */
 function useName(id: string | undefined) {
@@ -39,9 +45,13 @@ export function ChannelLineRow({
   const at = new Date(row.message.created_at);
   const Icon = ICON[line.kind];
   const key =
-    line.actor_id && (line.kind === 'added' || line.kind === 'removed')
-      ? `chat.lines.${line.kind}By`
-      : `chat.lines.${line.kind}`;
+    line.kind === 'renamed'
+      ? line.title
+        ? 'chat.lines.renamed'
+        : 'chat.lines.unnamed'
+      : line.actor_id && (line.kind === 'added' || line.kind === 'removed')
+        ? `chat.lines.${line.kind}By`
+        : `chat.lines.${line.kind}`;
   return (
     <div>
       {row.day && (
@@ -67,7 +77,7 @@ export function ChannelLineRow({
           <Trans
             t={t}
             i18nKey={key}
-            values={{ user, actor }}
+            values={{ user, actor, title: line.title }}
             components={{ b: <strong className="font-semibold text-foreground" /> }}
           />{' '}
           <time

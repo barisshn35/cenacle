@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -129,6 +131,70 @@ func (h *Handlers) OpenConversation(w http.ResponseWriter, r *http.Request, work
 	out := toAPI(c, access{ch: RoleMember, ws: wsRole})
 	out.Participants = people
 	httpx.WriteJSON(w, status, out)
+}
+
+// MaxConversationTitle is how long a group conversation's name may be.
+const MaxConversationTitle = 80
+
+// SetConversationTitle implements api.ServerInterface.
+func (h *Handlers) SetConversationTitle(w http.ResponseWriter, r *http.Request, channelID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	if !h.allowAction(w, r, p.User) {
+		return
+	}
+	var in api.SetConversationTitleJSONBody
+	if !decode(w, r, &in) {
+		return
+	}
+	c, _, ok := h.memberChannel(w, r, channelID, p.User)
+	if !ok {
+		return
+	}
+	if c.Kind != KindGroup {
+		badRequest(w, r, "Only group conversations are named by their people.")
+		return
+	}
+	if c.ArchivedAt.Valid {
+		forbidden(w, r, httpx.CodeForbidden, "The conversation is archived.")
+		return
+	}
+	title := strings.Join(strings.Fields(in.Title), " ")
+	if utf8.RuneCountInString(title) > MaxConversationTitle || strings.ContainsFunc(title, unicode.IsControl) {
+		badRequest(w, r, "A conversation's name has up to 80 characters.")
+		return
+	}
+	if title == c.Title {
+		h.writeConversation(w, r, c, p.User)
+		return
+	}
+	c, err := h.Queries.SetChannelTitle(r.Context(), store.SetChannelTitleParams{ID: c.ID, Title: title})
+	if err != nil {
+		h.unavailable(w, r, "name conversation", err)
+		return
+	}
+	h.channelLineWith(r.Context(), c, LineRenamed, p.User.ID, pgtype.UUID{}, map[string]any{"title": title})
+	h.publish(r.Context(), events.ChannelUpdated, ChannelEvent{
+		Channel: toAPI(c, access{ch: RoleMember}), ChannelID: uuid(c.ID).String(),
+	})
+	h.writeConversation(w, r, c, p.User)
+}
+
+// writeConversation answers with a conversation as its member sees it.
+func (h *Handlers) writeConversation(w http.ResponseWriter, r *http.Request, c store.Channel, user store.User) {
+	people, err := h.participants(r.Context(), user.ID)
+	if err != nil {
+		h.unavailable(w, r, "conversation participants", err)
+		return
+	}
+	out := toAPI(c, access{ch: RoleMember})
+	out.Participants = people[uuid(c.ID)]
+	if out.Participants == nil {
+		out.Participants = []api.Person{}
+	}
+	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
 func uuidFrom(s string) openapi_types.UUID {
