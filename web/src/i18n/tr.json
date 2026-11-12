@@ -245,6 +245,8 @@
       "many": "Birkaç kişi yazıyor…"
     },
     "markUnread": "Okunmamış olarak işaretle",
+    "markUnreadKeys": "Alt+Tık",
+    "reportMenu": "Sorun bildir",
     "markedUnread": "Okunmamış olarak işaretlendi. Buradan ayrılana kadar öyle kalır.",
     "markUnreadFailed": "Okunmamış olarak işaretlenemedi. Tekrar deneyin.",
     "lines": {

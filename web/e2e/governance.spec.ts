@@ -10,12 +10,36 @@ import {
   showActions,
 } from './helpers';
 
+const CLASSIFIED = {
+  id: '01a16100-0000-7000-8000-0000000000a1',
+  name: 'Internal',
+  description: 'For employees only',
+  color: 'info',
+};
+
+test('spillage is reported only where the workspace classifies channels', async ({ page }) => {
+  await mockApi(page, { messages: [mockMessage(1, 'parola: hunter2')] });
+  await page.goto(`/c/${GENERAL.id}`);
+  const msg = page.getByTestId('message').filter({ hasText: 'parola: hunter2' });
+  await showActions(msg);
+  await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
+  // Without classifications only reporting the person is left, on the first level.
+  await expect(page.getByRole('menuitem', { name: 'Report', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Report spillage' })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: 'Report a problem' })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: 'Mark as unread' })).toContainText('Alt+Click');
+  await expectNoAxeViolations(page, '[role="menu"]');
+});
+
 test('someone reports spillage and a reviewer removes it everywhere', async ({
   page,
   isMobile,
 }, testInfo) => {
   test.skip(isMobile, 'the workspace menu is in the drawer on phones');
   await mockApi(page, { admin: true, messages: [mockMessage(1, 'parola: hunter2')] });
+  await page.route(`**/api/workspaces/${DEFAULT_WS}/classifications`, (route) =>
+    route.fulfill({ json: { classifications: [CLASSIFIED], default_id: null } }),
+  );
   const reports: Record<string, unknown>[] = [];
   let reported: unknown;
   await page.route(
@@ -56,6 +80,8 @@ test('someone reports spillage and a reviewer removes it everywhere', async ({
   const msg = page.getByTestId('message').filter({ hasText: 'parola: hunter2' });
   await showActions(msg);
   await msg.getByRole('button', { name: 'Message actions' }).click({ force: true });
+  // Reporting someone and reporting spillage share a submenu.
+  await page.getByRole('menuitem', { name: 'Report a problem' }).click();
   await page.getByRole('menuitem', { name: 'Report spillage' }).click();
   const dialog = page.getByRole('dialog', { name: 'Report spillage' });
   await dialog.getByLabel('What is wrong').fill('Bir parola paylaşıldı.');

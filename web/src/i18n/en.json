@@ -245,6 +245,8 @@
       "many": "Several people are typing…"
     },
     "markUnread": "Mark as unread",
+    "markUnreadKeys": "Alt+Click",
+    "reportMenu": "Report a problem",
     "markedUnread": "Marked as unread. It stays unread until you leave.",
     "markUnreadFailed": "Couldn't mark it unread. Try again.",
     "lines": {

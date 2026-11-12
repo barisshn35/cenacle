@@ -26,13 +26,19 @@ import { Button } from '@cenacle/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@cenacle/ui/components/dropdown-menu';
 import { useLayout } from '../../stores/layout';
 import { useSession } from '../auth/session';
 import { ReportDialog } from '../community/moderation';
+import { classificationsQuery } from '../compliance/compliance';
 import { SpillageReportDialog } from '../compliance/spillage';
 import { ForwardDialog } from '../richer/forward';
 import { stickerName } from '../richer/packs';
@@ -129,6 +135,11 @@ export function MessageActions({
   });
 
   const unread = useMarkUnread(message);
+  const canReport = message.author.id !== user.id;
+  // Spillage (classified text in the wrong place) matters only where the
+  // workspace marks channels with classifications.
+  const classifications = useQuery(classificationsQuery(channel.workspace_id)).data;
+  const canReportSpillage = !burn && (classifications?.classifications.length ?? 0) > 0;
 
   // Stickers and GIFs others sent can be kept for oneself.
   const { id: ws } = useActiveWorkspace();
@@ -188,82 +199,113 @@ export function MessageActions({
           <MoreHorizontalIcon strokeWidth={1.75} />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          {!inThread && !channel.archived && (
-            <DropdownMenuItem
-              onClick={() =>
-                openThread({
-                  channelId: message.channel_id,
-                  rootId: message.root_id ?? message.id,
-                })
-              }
-            >
-              <MessageSquareIcon strokeWidth={1.75} />
-              {t('threads.reply')}
-            </DropdownMenuItem>
-          )}
-          {message.author.id !== user.id && (
-            <DropdownMenuItem onClick={() => unread.mutate()}>
-              <MailIcon strokeWidth={1.75} />
-              {t('chat.markUnread')}
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuGroup>
+            {!inThread && !channel.archived && (
+              <DropdownMenuItem
+                onClick={() =>
+                  openThread({
+                    channelId: message.channel_id,
+                    rootId: message.root_id ?? message.id,
+                  })
+                }
+              >
+                <MessageSquareIcon strokeWidth={1.75} />
+                {t('threads.reply')}
+              </DropdownMenuItem>
+            )}
+            {!burn && (
+              <DropdownMenuItem onClick={() => setForwarding(true)}>
+                <ForwardIcon strokeWidth={1.75} />
+                {t('richer.forward.action')}
+              </DropdownMenuItem>
+            )}
+            {message.author.id !== user.id && (
+              <DropdownMenuItem onClick={() => unread.mutate()}>
+                <MailIcon strokeWidth={1.75} />
+                {t('chat.markUnread')}
+                <DropdownMenuShortcut>{t('chat.markUnreadKeys')}</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
           {!burn && (
-            <DropdownMenuItem onClick={() => save.mutate()}>
-              {saved ? (
-                <BookmarkMinusIcon strokeWidth={1.75} />
-              ) : (
-                <BookmarkIcon strokeWidth={1.75} />
-              )}
-              {saved ? t('saved.remove') : t('saved.save')}
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => save.mutate()}>
+                  {saved ? (
+                    <BookmarkMinusIcon strokeWidth={1.75} />
+                  ) : (
+                    <BookmarkIcon strokeWidth={1.75} />
+                  )}
+                  {saved ? t('saved.remove') : t('saved.save')}
+                </DropdownMenuItem>
+                {channel.can_post && !channel.archived && (
+                  <DropdownMenuItem onClick={() => pin.mutate()}>
+                    {message.pinned_at ? (
+                      <PinOffIcon strokeWidth={1.75} />
+                    ) : (
+                      <PinIcon strokeWidth={1.75} />
+                    )}
+                    {message.pinned_at ? t('pins.unpin') : t('pins.pin')}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={copyLink}>
+                  <LinkIcon strokeWidth={1.75} />
+                  {t('richer.link.copy')}
+                </DropdownMenuItem>
+                {sticker && (
+                  <DropdownMenuItem
+                    onClick={() => saveSticker.mutate({ id: sticker.id, saved: !sticker.saved })}
+                  >
+                    {sticker.saved ? (
+                      <StarOffIcon strokeWidth={1.75} />
+                    ) : (
+                      <StarIcon strokeWidth={1.75} />
+                    )}
+                    {sticker.saved
+                      ? t('richer.stickers.unsaveAction')
+                      : t('richer.stickers.saveAction')}
+                  </DropdownMenuItem>
+                )}
+                {gifs.length > 0 && (
+                  <DropdownMenuItem disabled={keepGifs.isPending} onClick={() => keepGifs.mutate()}>
+                    <FilmIcon strokeWidth={1.75} />
+                    {t('richer.gifs.keep', { count: gifs.length })}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuGroup>
+            </>
           )}
-          {!burn && sticker && (
-            <DropdownMenuItem
-              onClick={() => saveSticker.mutate({ id: sticker.id, saved: !sticker.saved })}
-            >
-              {sticker.saved ? <StarOffIcon strokeWidth={1.75} /> : <StarIcon strokeWidth={1.75} />}
-              {sticker.saved ? t('richer.stickers.unsaveAction') : t('richer.stickers.saveAction')}
-            </DropdownMenuItem>
-          )}
-          {!burn && gifs.length > 0 && (
-            <DropdownMenuItem disabled={keepGifs.isPending} onClick={() => keepGifs.mutate()}>
-              <FilmIcon strokeWidth={1.75} />
-              {t('richer.gifs.keep', { count: gifs.length })}
-            </DropdownMenuItem>
-          )}
-          {!burn && (
-            <DropdownMenuItem onClick={() => setForwarding(true)}>
-              <ForwardIcon strokeWidth={1.75} />
-              {t('richer.forward.action')}
-            </DropdownMenuItem>
-          )}
-          {!burn && (
-            <DropdownMenuItem onClick={copyLink}>
-              <LinkIcon strokeWidth={1.75} />
-              {t('richer.link.copy')}
-            </DropdownMenuItem>
-          )}
-          {channel.can_post && !channel.archived && !burn && (
-            <DropdownMenuItem onClick={() => pin.mutate()}>
-              {message.pinned_at ? (
-                <PinOffIcon strokeWidth={1.75} />
-              ) : (
-                <PinIcon strokeWidth={1.75} />
-              )}
-              {message.pinned_at ? t('pins.unpin') : t('pins.pin')}
-            </DropdownMenuItem>
-          )}
-          {message.author.id !== user.id && (
+          {(canReport || canReportSpillage) && <DropdownMenuSeparator />}
+          {canReport && canReportSpillage ? (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <FlagIcon strokeWidth={1.75} />
+                {t('chat.reportMenu')}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => setReporting(true)}>
+                  <FlagIcon strokeWidth={1.75} />
+                  {t('community.report.action')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSpilled(true)}>
+                  <ShieldAlertIcon strokeWidth={1.75} />
+                  {t('spillage.action')}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          ) : canReport ? (
             <DropdownMenuItem onClick={() => setReporting(true)}>
               <FlagIcon strokeWidth={1.75} />
               {t('community.report.action')}
             </DropdownMenuItem>
-          )}
-          {!burn && (
-            <DropdownMenuItem onClick={() => setSpilled(true)}>
-              <ShieldAlertIcon strokeWidth={1.75} />
-              {t('spillage.action')}
-            </DropdownMenuItem>
+          ) : (
+            canReportSpillage && (
+              <DropdownMenuItem onClick={() => setSpilled(true)}>
+                <ShieldAlertIcon strokeWidth={1.75} />
+                {t('spillage.action')}
+              </DropdownMenuItem>
+            )
           )}
           {(can.edit || can.remove) && <DropdownMenuSeparator />}
           {can.edit && (
