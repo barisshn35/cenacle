@@ -40,8 +40,13 @@ func callSummary(ctx context.Context, q *store.Queries, c store.Call) error {
 	} else if outcome == "ended" {
 		outcome = "missed"
 	}
+	notes, err := q.CountCallNotes(ctx, c.ID)
+	if err != nil {
+		return err
+	}
 	raw, err := json.Marshal([]map[string]any{{"call_summary": map[string]any{
 		"call_id": uuid(c.ID), "outcome": outcome, "duration_seconds": duration, "participants": count,
+		"notes": notes,
 	}}})
 	if err != nil {
 		return err

@@ -1,6 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 export const callMessages = {
   en: {
+    notes: {
+      allow: 'Allow call notes',
+      allowHint:
+        'People in a call may keep what is said, written out, for the channel to read later.',
+      start: 'Notes',
+      stop: 'Stop notes',
+      on: 'Notes are being kept',
+      onBy: '{{name}} is keeping notes',
+      onByYou: 'You are keeping notes',
+      open: 'Notes',
+      title: 'Call notes',
+      hint: 'What was said while notes were on, written out by speech recognition: it may contain mistakes.',
+      none: 'No notes were kept.',
+      erased: 'A deleted user',
+      copy: 'Copy',
+      copied: 'Notes copied.',
+      copyFailed: 'The notes could not be copied.',
+      download: 'Download',
+      summarize: 'Summarize',
+    },
     captions: {
       allow: 'Allow live captions',
       allowHint: 'Speech in calls is written out on this installation; nothing is kept.',
@@ -142,6 +162,26 @@ export const callMessages = {
     shortcutLeave: 'Leave call',
   },
   tr: {
+    notes: {
+      allow: 'Görüşme notlarına izin ver',
+      allowHint:
+        'Görüşmedekiler söylenenleri yazıya dökülmüş olarak saklayabilir; kanal sonradan okuyabilir.',
+      start: 'Notlar',
+      stop: 'Notları durdur',
+      on: 'Notlar tutuluyor',
+      onBy: 'Notları {{name}} tutuyor',
+      onByYou: 'Notları siz tutuyorsunuz',
+      open: 'Notlar',
+      title: 'Görüşme notları',
+      hint: 'Notlar açıkken söylenenler, konuşma tanımayla yazıya döküldü: hata içerebilir.',
+      none: 'Not tutulmadı.',
+      erased: 'Silinmiş kullanıcı',
+      copy: 'Kopyala',
+      copied: 'Notlar kopyalandı.',
+      copyFailed: 'Notlar kopyalanamadı.',
+      download: 'İndir',
+      summarize: 'Özetle',
+    },
     captions: {
       allow: 'Canlı altyazıya izin ver',
       allowHint: 'Görüşmelerdeki konuşma bu kurulumda yazıya dökülür; hiçbir şey saklanmaz.',

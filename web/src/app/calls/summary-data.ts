@@ -4,6 +4,8 @@ export interface Summary {
   outcome: 'ended' | 'missed' | 'declined' | 'busy' | 'failed';
   duration_seconds: number;
   participants: number;
+  /** Lines of call notes kept (servers before 1.0 leave it out). */
+  notes?: number;
 }
 export function summaryOf(attachment: unknown): Summary | null {
   const value = (attachment as { call_summary?: Partial<Summary> })?.call_summary;

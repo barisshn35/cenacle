@@ -64,7 +64,7 @@ func (h *Handlers) SetCallCaptions(w http.ResponseWriter, r *http.Request, id op
 			h.callError(w, r, err)
 			return
 		}
-		if !allowed || !h.captionsAvailable() {
+		if !allowed.CallsCaptions || !h.captionsAvailable() {
 			forbidden(w, r, "captions_unavailable", "Live captions are not allowed in this workspace.")
 			return
 		}
@@ -169,7 +169,14 @@ func (h *Handlers) SendCaptionAudio(w http.ResponseWriter, r *http.Request, id o
 			h.Log.WarnContext(ctx, "caption", "error", err)
 			return
 		}
-		if text == "" || h.Ephemeral == nil {
+		if text == "" {
+			return
+		}
+		// Kept only while the call's notes are on (the query checks it).
+		if err := h.Queries.AddCallNote(ctx, store.AddCallNoteParams{CallID: call.ID, UserID: p.User.ID, Text: truncateRunes(text, 2000)}); err != nil {
+			h.Log.WarnContext(ctx, "call note", "error", err)
+		}
+		if h.Ephemeral == nil {
 			return
 		}
 		if err := h.Ephemeral.Publish(ctx, events.CallCaption, CallCaptionEvent{
@@ -236,3 +243,11 @@ func (h *Handlers) transcribe(ctx context.Context, audio []byte, kind, language 
 type httpStatusError struct{ status int }
 
 func (e *httpStatusError) Error() string { return "captions service: " + http.StatusText(e.status) }
+
+func truncateRunes(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n])
+}

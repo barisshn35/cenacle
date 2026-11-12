@@ -40,6 +40,7 @@ type Querier interface {
 	// for each member it reaches: everyone but the author, those online (users,
 	// for @here) or those with a workspace role (role).
 	AddBroadcastMentions(ctx context.Context, arg AddBroadcastMentionsParams) error
+	AddCallNote(ctx context.Context, arg AddCallNoteParams) error
 	AddChannelGroupMapping(ctx context.Context, arg AddChannelGroupMappingParams) error
 	// AddGroupMentions records a mention for each person of the mentioned groups
 	// (by handle, not archived) who is in the channel, but the author.
@@ -86,7 +87,7 @@ type Querier interface {
 	AuditEventsAfter(ctx context.Context, arg AuditEventsAfterParams) ([]AuditEventsAfterRow, error)
 	BumpCallRevision(ctx context.Context, id pgtype.UUID) (Call, error)
 	CallAdmissionAllowed(ctx context.Context, arg CallAdmissionAllowedParams) (bool, error)
-	CallCaptionsAllowed(ctx context.Context, callID pgtype.UUID) (bool, error)
+	CallCaptionsAllowed(ctx context.Context, callID pgtype.UUID) (CallCaptionsAllowedRow, error)
 	CancelEvent(ctx context.Context, id pgtype.UUID) (int64, error)
 	CancelScheduled(ctx context.Context, id pgtype.UUID) error
 	CancelScheduledMessage(ctx context.Context, arg CancelScheduledMessageParams) (int64, error)
@@ -144,6 +145,7 @@ type Querier interface {
 	CountActiveRuns(ctx context.Context, playbookID pgtype.UUID) (int32, error)
 	CountAutomodRules(ctx context.Context, workspaceID pgtype.UUID) (int32, error)
 	CountBackupBytes(ctx context.Context, userID pgtype.UUID) (int64, error)
+	CountCallNotes(ctx context.Context, callID pgtype.UUID) (int64, error)
 	CountChannelFeeds(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountChannelTabs(ctx context.Context, channelID pgtype.UUID) (int32, error)
 	CountConnectedCallParticipants(ctx context.Context, callID pgtype.UUID) (int64, error)
@@ -355,6 +357,7 @@ type Querier interface {
 	// EraseUserAuditEvents blanks the address (IP) of the audit events a person did
 	// and keeps only the neutral parts of their detail; who did what and when stays.
 	EraseUserAuditEvents(ctx context.Context, arg EraseUserAuditEventsParams) (int64, error)
+	EraseUserCallNotes(ctx context.Context, userID pgtype.UUID) (int64, error)
 	// EraseUserDeliveries removes the queued bot and federation deliveries of a
 	// person's messages (also those a legal hold keeps: the hold keeps the message,
 	// not copies on their way out) and the bot deliveries of their reactions.
@@ -605,6 +608,7 @@ type Querier interface {
 	ListBotTokens(ctx context.Context, botID pgtype.UUID) ([]BotToken, error)
 	ListBots(ctx context.Context, workspaceID pgtype.UUID) ([]ListBotsRow, error)
 	ListBurnReveals(ctx context.Context, arg ListBurnRevealsParams) ([]ListBurnRevealsRow, error)
+	ListCallNotes(ctx context.Context, callID pgtype.UUID) ([]ListCallNotesRow, error)
 	// Live snapshots/reconciliation are bounded; historical export has its own cursor.
 	ListCallParticipants(ctx context.Context, callID pgtype.UUID) ([]CallParticipant, error)
 	ListCategories(ctx context.Context, workspaceID pgtype.UUID) ([]ChannelCategory, error)
@@ -1050,6 +1054,8 @@ type Querier interface {
 	// SetCallHand raises (keeping the first time) or lowers the hand of a user's
 	// open session in a call.
 	SetCallHand(ctx context.Context, arg SetCallHandParams) (int64, error)
+	// SetCallNotes turns notes on (and captions with them) or off.
+	SetCallNotes(ctx context.Context, arg SetCallNotesParams) (Call, error)
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
 	SetChannelCompliance(ctx context.Context, arg SetChannelComplianceParams) (Channel, error)
 	SetChannelGroupManaged(ctx context.Context, arg SetChannelGroupManagedParams) error
@@ -1177,6 +1183,7 @@ type Querier interface {
 	UseInvite(ctx context.Context, id pgtype.UUID) (WorkspaceInvite, error)
 	UserAuditEvents(ctx context.Context, userID pgtype.UUID) ([]UserAuditEventsRow, error)
 	UserCallMetadataAfter(ctx context.Context, arg UserCallMetadataAfterParams) ([]UserCallMetadataAfterRow, error)
+	UserCallNotes(ctx context.Context, userID pgtype.UUID) ([]UserCallNotesRow, error)
 	UserChannels(ctx context.Context, userID pgtype.UUID) ([]UserChannelsRow, error)
 	UserExists(ctx context.Context, arg UserExistsParams) (bool, error)
 	// UserExportRows returns the rest of what is stored about a person for their

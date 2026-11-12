@@ -99,3 +99,8 @@ export const compose = (
   );
 export const ask = (workspaceId: string, question: string, language: string) =>
   apiFetch<AIAnswer>(`/api/workspaces/${workspaceId}/ai/ask`, json({ question, language }));
+
+/** The problem of a failed AI request, for InlineError. */
+export function failure(err: unknown) {
+  return err instanceof ApiError ? err.problem : { status: 500 };
+}

@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { PhoneIcon } from 'lucide-react';
+import { NotebookPenIcon, PhoneIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@cenacle/ui/components/button';
+import { NotesDialog } from './notes';
 import { calls } from '@cenacle/core';
 
 import { useProfile } from '../profile/profiles';
@@ -11,6 +14,7 @@ const SHOWN = 4;
 
 export function CallSummaryCard({ summary }: { summary: Summary }) {
   const { t, i18n } = useTranslation('calls');
+  const [notesOpen, setNotesOpen] = useState(false);
   const minutes = Math.floor(summary.duration_seconds / 60);
   const seconds = String(Math.floor(summary.duration_seconds % 60)).padStart(2, '0');
   // Who took part comes from the call record, which follows erasure and retention:
@@ -48,6 +52,15 @@ export function CallSummaryCard({ summary }: { summary: Summary }) {
             t('participants', { count: summary.participants })
           )}
         </span>
+      )}
+      {!!summary.notes && summary.call_id && (
+        <>
+          <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
+            <NotebookPenIcon data-icon="inline-start" />
+            {t('notes.open')}
+          </Button>
+          {notesOpen && <NotesDialog callID={summary.call_id} open onOpenChange={setNotesOpen} />}
+        </>
       )}
     </div>
   );

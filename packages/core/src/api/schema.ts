@@ -210,6 +210,45 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/calls/{id}/notes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The notes of a call (the members of its channel) */
+    get: operations['getCallNotes'];
+    /**
+     * Keep notes of a call, or stop
+     * @description While on, what people say is written out (captions turn on too) and kept, with who
+     *     said it; everyone in the call sees it and who turned it on. The workspace must allow it.
+     */
+    put: operations['setCallNotes'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calls/{id}/notes/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Summarize a call's notes with the workspace's AI model (the asker's consent) */
+    post: operations['summarizeCallNotes'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/calls/{id}/reactions': {
     parameters: {
       query?: never;
@@ -5198,8 +5237,17 @@ export interface components {
       captions?: boolean;
       /** @description The installation has a speech to text service. */
       captions_available?: boolean;
+      /** @description Calls may keep notes (what was said while notes are on); needs captions. */
+      notes?: boolean;
     };
     Call: {
+      /** @description Notes are kept (what is said */
+      notes_on?: boolean;
+      /**
+       * Format: uuid
+       * @description Who turned the notes on.
+       */
+      notes_by?: string | null;
       /** @description Live captions are on in this call. */
       captions_on?: boolean;
       /**
@@ -7280,6 +7328,11 @@ export interface components {
       duration_seconds: number;
       /** Format: int64 */
       participants: number;
+      /**
+       * Format: int64
+       * @description Lines of call notes kept (0 when none).
+       */
+      notes?: number;
     };
     /**
      * @description Server-authored line in a channel's timeline about its membership. It
@@ -7801,6 +7854,114 @@ export interface operations {
       413: components['responses']['Problem'];
       429: components['responses']['Problem'];
       503: components['responses']['Problem'];
+    };
+  };
+  getCallNotes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The lines, oldest first. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            lines: {
+              /**
+               * Format: uuid
+               * @description null: an erased person.
+               */
+              user_id: string | null;
+              text: string;
+              /** Format: date-time */
+              said_at: string;
+            }[];
+          };
+        };
+      };
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  setCallNotes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          on: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Done. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      403: components['responses']['Problem'];
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description You are not in the call. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  summarizeCallNotes: {
+    parameters: {
+      query?: {
+        language?: string;
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The summary. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AIAnswer'];
+        };
+      };
+      403: components['responses']['Problem'];
+      404: components['responses']['Problem'];
+      429: components['responses']['Problem'];
     };
   };
   sendCallReaction: {

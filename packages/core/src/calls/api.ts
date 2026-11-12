@@ -25,6 +25,8 @@ export interface Call {
   /** Live captions are on (servers before 1.0 leave these out). */
   captions_on?: boolean;
   captions_by?: string | null;
+  notes_on?: boolean;
+  notes_by?: string | null;
 }
 export interface CallSettings {
   enabled: boolean;
@@ -35,6 +37,7 @@ export interface CallSettings {
   /** Live captions allowed in this workspace, and offered by the installation. */
   captions?: boolean;
   captions_available?: boolean;
+  notes?: boolean;
 }
 export interface CallAdmission {
   token: string;
@@ -79,6 +82,13 @@ export const calls = {
   /** Turns live captions on or off in a call (everyone sees it). */
   setCaptions: (callID: string, on: boolean): Promise<void> =>
     apiFetch(`/api/calls/${id(callID)}/captions`, { ...json({ on }), method: 'PUT' }),
+  /** Keeps notes of a call (what is said, written out), or stops. */
+  setNotes: (callID: string, on: boolean): Promise<void> =>
+    apiFetch(`/api/calls/${id(callID)}/notes`, { ...json({ on }), method: 'PUT' }),
+  notes: (
+    callID: string,
+  ): Promise<{ lines: { user_id: string | null; text: string; said_at: string }[] }> =>
+    apiFetch(`/api/calls/${id(callID)}/notes`),
   /** A reaction that floats over one's tile for the others (not stored). */
   react: (callID: string, emoji: string): Promise<void> =>
     apiFetch(`/api/calls/${id(callID)}/reactions`, json({ emoji })),
@@ -95,6 +105,7 @@ export const calls = {
         max_participants: settings.max_participants,
         max_bitrate: settings.max_bitrate,
         ...(settings.captions === undefined ? {} : { captions: settings.captions }),
+        ...(settings.notes === undefined ? {} : { notes: settings.notes }),
       }),
       method: 'PUT',
     }),

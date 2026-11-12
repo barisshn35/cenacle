@@ -5,6 +5,7 @@ import {
   PEOPLE,
   directWith,
   mockApi,
+  mockMessage,
   expectNoAxeViolations,
   expectTargetSizes,
 } from './helpers';
@@ -483,4 +484,51 @@ test('live captions: everyone sees who turned them on, the lines, and may hide t
   await dialog.getByRole('button', { name: 'Hide on my screen' }).click();
   await expect(dialog.getByText('Let us start with the release.')).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Show on my screen' })).toBeVisible();
+});
+
+test('a call that kept notes shows them from its summary, to copy or download', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'same dialog on phones');
+  const callId = '019a0000-0000-7000-8000-0000000000e1';
+  const summaryMessage = {
+    ...mockMessage(1, ''),
+    author: { id: '01a15e50-b0b0-7000-8000-000000000009', display_name: 'Cenacle', is_bot: true },
+    attachments: [
+      {
+        call_summary: {
+          call_id: callId,
+          outcome: 'ended',
+          duration_seconds: 300,
+          participants: 2,
+          notes: 2,
+        },
+      },
+    ],
+  } as unknown as ReturnType<typeof mockMessage>;
+  await mockApi(page, { messages: [summaryMessage] });
+  await page.route(`**/api/calls/${callId}`, (route) =>
+    route.fulfill({ json: { ...snapshot, id: callId, state: 'ended', participants: [] } }),
+  );
+  await page.route(`**/api/calls/${callId}/notes`, (route) =>
+    route.fulfill({
+      json: {
+        lines: [
+          { user_id: AYSE.id, text: 'We ship on Friday.', said_at: '2026-11-12T10:01:00Z' },
+          { user_id: null, text: 'Agreed.', said_at: '2026-11-12T10:02:00Z' },
+        ],
+      },
+    }),
+  );
+  await page.goto(`/c/${GENERAL.id}`);
+  await page.getByTestId('call-summary').getByRole('button', { name: 'Notes' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Call notes' });
+  await expect(dialog.getByRole('listitem')).toHaveCount(2);
+  await expect(dialog.getByRole('listitem').first()).toContainText(
+    'Ayşe Yılmaz:We ship on Friday.',
+  );
+  await expect(dialog.getByRole('listitem').nth(1)).toContainText('A deleted user:Agreed.');
+  await expect(dialog.getByRole('button', { name: 'Download' })).toBeEnabled();
+  await expectNoAxeViolations(page, '[role="dialog"]');
 });

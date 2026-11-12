@@ -241,7 +241,7 @@ func (q *Queries) SetAIConsent(ctx context.Context, arg SetAIConsentParams) (AiC
 }
 
 const setWorkspaceAI = `-- name: SetWorkspaceAI :one
-UPDATE workspaces SET ai_enabled = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions
+UPDATE workspaces SET ai_enabled = $1 WHERE id = $2 RETURNING id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions, calls_notes
 `
 
 type SetWorkspaceAIParams struct {
@@ -279,6 +279,7 @@ func (q *Queries) SetWorkspaceAI(ctx context.Context, arg SetWorkspaceAIParams) 
 		&i.CallsMaxParticipants,
 		&i.CallsMaxBitrate,
 		&i.CallsCaptions,
+		&i.CallsNotes,
 	)
 	return i, err
 }

@@ -323,6 +323,72 @@ paths:
         '413': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/Problem' }
         '503': { $ref: '#/components/responses/Problem' }
+  /api/calls/{id}/notes:
+    put:
+      tags: [chat]
+      operationId: setCallNotes
+      summary: Keep notes of a call, or stop
+      description: |
+        While on, what people say is written out (captions turn on too) and kept, with who
+        said it; everyone in the call sees it and who turned it on. The workspace must allow it.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [on]
+              properties:
+                on: { type: boolean }
+      responses:
+        '204': { description: Done. }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { description: No accessible call. }
+        '409': { description: You are not in the call. }
+    get:
+      tags: [chat]
+      operationId: getCallNotes
+      summary: The notes of a call (the members of its channel)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: The lines, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lines]
+                properties:
+                  lines:
+                    type: array
+                    items:
+                      type: object
+                      required: [user_id, text, said_at]
+                      properties:
+                        user_id: { type: string, format: uuid, nullable: true, description: 'null: an erased person.' }
+                        text: { type: string }
+                        said_at: { type: string, format: date-time }
+        '404': { description: No accessible call. }
+  /api/calls/{id}/notes/summary:
+    post:
+      tags: [chat]
+      operationId: summarizeCallNotes
+      summary: Summarize a call's notes with the workspace's AI model (the asker's consent)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: language, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: The summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AIAnswer' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
   /api/calls/{id}/reactions:
     post:
       tags: [chat]
@@ -7910,10 +7976,13 @@ components:
         available: { type: boolean }
         captions: { type: boolean, description: 'Live captions are allowed in this workspace''s calls (ADR 0052).' }
         captions_available: { type: boolean, description: The installation has a speech to text service. }
+        notes: { type: boolean, description: 'Calls may keep notes (what was said while notes are on); needs captions.' }
     Call:
       type: object
       required: [id, channel_id, state, revision, created_at, participants]
       properties:
+        notes_on: { type: boolean, description: Notes are kept (what is said, written out). }
+        notes_by: { type: string, format: uuid, nullable: true, description: Who turned the notes on. }
         captions_on: { type: boolean, description: Live captions are on in this call. }
         captions_by: { type: string, format: uuid, nullable: true, description: Who turned the captions on. }
         id: { type: string, format: uuid }
@@ -10225,6 +10294,7 @@ components:
         outcome: { type: string, enum: [ended, missed, declined, busy, failed] }
         duration_seconds: { type: integer, format: int64, minimum: 0 }
         participants: { type: integer, format: int64, minimum: 0 }
+        notes: { type: integer, format: int64, minimum: 0, description: Lines of call notes kept (0 when none). }
     ChannelLine:
       type: object
       description: |

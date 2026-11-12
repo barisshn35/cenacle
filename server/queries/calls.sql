@@ -63,13 +63,13 @@ UPDATE call_participants SET state = 'left', left_at = now(), session_id = NULL
 WHERE call_id = @call_id AND left_at IS NULL;
 
 -- name: GetCallSettings :one
-SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions
+SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions, calls_notes
 FROM workspaces WHERE id = @workspace_id;
 
 -- name: UpdateCallSettings :exec
 UPDATE workspaces SET calls_enabled = @calls_enabled, calls_guest_start = @calls_guest_start,
     calls_max_participants = @calls_max_participants, calls_max_bitrate = @calls_max_bitrate,
-    calls_captions = @calls_captions
+    calls_captions = @calls_captions, calls_notes = @calls_notes
 WHERE id = @workspace_id;
 
 -- name: ExpireUserCallReservation :exec
@@ -211,6 +211,31 @@ UPDATE calls SET captions_on = @captions_on, captions_by = CASE WHEN @captions_o
 WHERE id = @id AND ended_at IS NULL RETURNING *;
 
 -- name: CallCaptionsAllowed :one
-SELECT w.calls_captions FROM calls k
+SELECT w.calls_captions, w.calls_notes FROM calls k
 JOIN channels c ON c.id = k.channel_id JOIN workspaces w ON w.id = c.workspace_id
 WHERE k.id = @call_id;
+
+-- name: SetCallNotes :one
+-- SetCallNotes turns notes on (and captions with them) or off.
+UPDATE calls SET notes_on = @notes_on, notes_by = CASE WHEN @notes_on THEN @user_id::uuid END,
+    captions_on = captions_on OR @notes_on,
+    captions_by = CASE WHEN @notes_on AND NOT captions_on THEN @user_id::uuid ELSE captions_by END,
+    revision = revision + 1
+WHERE id = @id AND ended_at IS NULL RETURNING *;
+
+-- name: AddCallNote :exec
+INSERT INTO call_notes (call_id, user_id, text)
+SELECT @call_id, @user_id, @text FROM calls WHERE id = @call_id AND notes_on AND ended_at IS NULL;
+
+-- name: ListCallNotes :many
+SELECT n.id, n.user_id, n.text, n.said_at FROM call_notes n
+WHERE n.call_id = @call_id ORDER BY n.said_at, n.id LIMIT 5000;
+
+-- name: CountCallNotes :one
+SELECT count(*) FROM call_notes WHERE call_id = @call_id;
+
+-- name: EraseUserCallNotes :execrows
+DELETE FROM call_notes WHERE user_id = @user_id;
+
+-- name: UserCallNotes :many
+SELECT call_id, text, said_at FROM call_notes WHERE user_id = @user_id ORDER BY said_at LIMIT 10000;

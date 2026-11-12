@@ -53,11 +53,24 @@ func eraseUserCalls(ctx context.Context, q *store.Queries, user pgtype.UUID) err
 	if _, err = q.EraseCallParticipants(ctx, user); err != nil {
 		return err
 	}
+	// What the person said in call notes is theirs.
+	if _, err = q.EraseUserCallNotes(ctx, user); err != nil {
+		return err
+	}
 	_, err = q.EraseCallInitiator(ctx, user)
 	return err
 }
 
 func (h *Handlers) writeUserCalls(ctx context.Context, put func(string, any) error, user pgtype.UUID) error {
+	notes, err := h.Queries.UserCallNotes(ctx, user)
+	if err != nil {
+		return err
+	}
+	for _, n := range notes {
+		if err := put("call_note", map[string]any{"call_id": uuid(n.CallID), "text": n.Text, "said_at": n.SaidAt}); err != nil {
+			return err
+		}
+	}
 	var after pgtype.UUID
 	for {
 		rows, err := h.Queries.UserCallMetadataAfter(ctx, store.UserCallMetadataAfterParams{UserID: user, After: after, RowLimit: exportPage})

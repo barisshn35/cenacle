@@ -70,6 +70,8 @@ type callView struct {
 	Participants []callParticipantView `json:"participants"`
 	CaptionsOn   bool                  `json:"captions_on"`
 	CaptionsBy   *openapi_types.UUID   `json:"captions_by"`
+	NotesOn      bool                  `json:"notes_on"`
+	NotesBy      *openapi_types.UUID   `json:"notes_by"`
 }
 type callParticipantView struct {
 	ID       openapi_types.UUID  `json:"id"`
@@ -86,6 +88,11 @@ func callSnapshot(ctx context.Context, q store.Querier, c store.Call) (callView,
 	if c.CaptionsBy.Valid {
 		by := uuid(c.CaptionsBy)
 		out.CaptionsBy = &by
+	}
+	out.NotesOn = c.NotesOn
+	if c.NotesBy.Valid {
+		by := uuid(c.NotesBy)
+		out.NotesBy = &by
 	}
 	rows, err := q.ListCallParticipants(ctx, c.ID)
 	if err != nil {

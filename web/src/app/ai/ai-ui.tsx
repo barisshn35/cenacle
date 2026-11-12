@@ -37,6 +37,7 @@ import {
   compose,
   consentLost,
   setAIConsent,
+  failure,
   setWorkspaceAI,
   summarize,
   useAI,
@@ -50,7 +51,7 @@ import {
 } from './ai';
 
 /** The AI's answer, marked as written by AI. */
-function Answer({ answer }: { answer: AIAnswer }) {
+export function Answer({ answer }: { answer: AIAnswer }) {
   const { t } = useTranslation();
   const self = useSession().user.id;
   return (
@@ -87,7 +88,7 @@ function Answer({ answer }: { answer: AIAnswer }) {
 }
 
 /** While the model writes: placeholder lines with a warm beam under them. */
-function Writing({ lines }: { lines: 2 | 3 }) {
+export function Writing({ lines }: { lines: 2 | 3 }) {
   const { t } = useTranslation();
   return (
     <WorkingBeam className="rounded-[10px]">
@@ -102,10 +103,6 @@ function Writing({ lines }: { lines: 2 | 3 }) {
       </div>
     </WorkingBeam>
   );
-}
-
-function failure(err: unknown) {
-  return err instanceof ApiError ? err.problem : { status: 500 };
 }
 
 /** The channel header's (or a thread's) "Summarize" button and its result. */

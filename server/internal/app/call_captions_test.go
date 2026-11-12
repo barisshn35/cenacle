@@ -124,4 +124,48 @@ func TestLiveCaptions(t *testing.T) {
 	if caption.UserID != s.userID(mert) || caption.Text != "Merhaba, herkese." || got.language != "tr" || got.file != "audio.webm" {
 		t.Errorf("caption = %+v, service got %+v", caption, got)
 	}
+
+	// Notes: off until the workspace allows them; on, the lines are kept and the summary says so.
+	if status, _ := problemCode(t, s, http.MethodPut, "/api/calls/"+call.ID+"/notes", ayse, map[string]bool{"on": true}); status != http.StatusForbidden {
+		t.Errorf("notes before the workspace allows them = %d", status)
+	}
+	input["captions"], input["notes"] = true, true
+	s.call(http.MethodPut, "/api/workspaces/"+s.defaultWS+"/calls/settings", admin, input, nil)
+	if res := s.call(http.MethodPut, "/api/calls/"+call.ID+"/notes", ayse, map[string]bool{"on": true}, nil); res.StatusCode != http.StatusNoContent {
+		t.Fatalf("notes on = %d", res.StatusCode)
+	}
+	if status := send(mert, "audio/webm"); status != http.StatusNoContent {
+		t.Fatalf("audio with notes = %d", status)
+	}
+	readEphemeral(t, conn, "call.caption")
+	var notes struct {
+		Lines []struct {
+			UserID string `json:"user_id"`
+			Text   string `json:"text"`
+		} `json:"lines"`
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for len(notes.Lines) == 0 && time.Now().Before(deadline) {
+		s.call(http.MethodGet, "/api/calls/"+call.ID+"/notes", ayse, nil, &notes)
+		time.Sleep(50 * time.Millisecond)
+	}
+	if len(notes.Lines) != 1 || notes.Lines[0].Text != "Merhaba, herkese." || notes.Lines[0].UserID != s.userID(mert) {
+		t.Fatalf("notes = %+v", notes)
+	}
+	// The call ends: its summary counts the notes.
+	for _, token := range []string{ayse, mert} {
+		s.call(http.MethodPost, "/api/calls/"+call.ID+"/leave", token, nil, nil)
+	}
+	var count int
+	if err := s.pool.QueryRow(ctx, "SELECT (attachments->0->'call_summary'->>'notes')::int FROM messages WHERE nonce = $1", "call-summary-"+call.ID).Scan(&count); err != nil || count != 1 {
+		t.Errorf("summary notes = %d %v", count, err)
+	}
+	// Erasure removes what the person said.
+	if res := s.call(http.MethodPost, "/api/admin/users/"+s.userID(mert)+"/erase", admin, map[string]string{"confirm": "Mert"}, nil); res.StatusCode != http.StatusOK {
+		t.Fatalf("erase = %d", res.StatusCode)
+	}
+	var left int
+	if err := s.pool.QueryRow(ctx, "SELECT count(*) FROM call_notes WHERE call_id = $1", call.ID).Scan(&left); err != nil || left != 0 {
+		t.Errorf("lines left after erasure = %d %v", left, err)
+	}
 }

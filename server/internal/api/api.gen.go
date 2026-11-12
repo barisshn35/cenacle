@@ -2857,17 +2857,23 @@ type Call struct {
 	CaptionsBy *openapi_types.UUID `json:"captions_by,omitempty"`
 
 	// CaptionsOn Live captions are on in this call.
-	CaptionsOn   *bool              `json:"captions_on,omitempty"`
-	ChannelId    openapi_types.UUID `json:"channel_id"`
-	CreatedAt    time.Time          `json:"created_at"`
-	EndReason    *string            `json:"end_reason,omitempty"`
-	EndedAt      *time.Time         `json:"ended_at,omitempty"`
-	Id           openapi_types.UUID `json:"id"`
-	Participants []CallParticipant  `json:"participants"`
-	Revision     int64              `json:"revision"`
-	RingUntil    *time.Time         `json:"ring_until,omitempty"`
-	StartedAt    *time.Time         `json:"started_at,omitempty"`
-	State        CallState          `json:"state"`
+	CaptionsOn *bool              `json:"captions_on,omitempty"`
+	ChannelId  openapi_types.UUID `json:"channel_id"`
+	CreatedAt  time.Time          `json:"created_at"`
+	EndReason  *string            `json:"end_reason,omitempty"`
+	EndedAt    *time.Time         `json:"ended_at,omitempty"`
+	Id         openapi_types.UUID `json:"id"`
+
+	// NotesBy Who turned the notes on.
+	NotesBy *openapi_types.UUID `json:"notes_by,omitempty"`
+
+	// NotesOn Notes are kept (what is said
+	NotesOn      *bool             `json:"notes_on,omitempty"`
+	Participants []CallParticipant `json:"participants"`
+	Revision     int64             `json:"revision"`
+	RingUntil    *time.Time        `json:"ring_until,omitempty"`
+	StartedAt    *time.Time        `json:"started_at,omitempty"`
+	State        CallState         `json:"state"`
 }
 
 // CallState defines model for Call.State.
@@ -2900,6 +2906,9 @@ type CallSettings struct {
 	GuestStart        bool  `json:"guest_start"`
 	MaxBitrate        int   `json:"max_bitrate"`
 	MaxParticipants   int   `json:"max_participants"`
+
+	// Notes Calls may keep notes (what was said while notes are on); needs captions.
+	Notes *bool `json:"notes,omitempty"`
 }
 
 // CallSettingsInput defines model for CallSettingsInput.
@@ -2914,8 +2923,11 @@ type CallSettingsInput struct {
 type CallSummary struct {
 	CallId          openapi_types.UUID `json:"call_id"`
 	DurationSeconds int64              `json:"duration_seconds"`
-	Outcome         CallSummaryOutcome `json:"outcome"`
-	Participants    int64              `json:"participants"`
+
+	// Notes Lines of call notes kept (0 when none).
+	Notes        *int64             `json:"notes,omitempty"`
+	Outcome      CallSummaryOutcome `json:"outcome"`
+	Participants int64              `json:"participants"`
 }
 
 // CallSummaryOutcome defines model for CallSummary.Outcome.
@@ -5057,6 +5069,16 @@ type SetCallHandJSONBody struct {
 	Raised bool `json:"raised"`
 }
 
+// SetCallNotesJSONBody defines parameters for SetCallNotes.
+type SetCallNotesJSONBody struct {
+	On bool `json:"on"`
+}
+
+// SummarizeCallNotesParams defines parameters for SummarizeCallNotes.
+type SummarizeCallNotesParams struct {
+	Language *string `form:"language,omitempty" json:"language,omitempty"`
+}
+
 // SendCallReactionJSONBody defines parameters for SendCallReaction.
 type SendCallReactionJSONBody struct {
 	Emoji string `json:"emoji"`
@@ -5881,6 +5903,9 @@ type SetCallCaptionsJSONRequestBody SetCallCaptionsJSONBody
 // SetCallHandJSONRequestBody defines body for SetCallHand for application/json ContentType.
 type SetCallHandJSONRequestBody SetCallHandJSONBody
 
+// SetCallNotesJSONRequestBody defines body for SetCallNotes for application/json ContentType.
+type SetCallNotesJSONRequestBody SetCallNotesJSONBody
+
 // SendCallReactionJSONRequestBody defines body for SendCallReaction for application/json ContentType.
 type SendCallReactionJSONRequestBody SendCallReactionJSONBody
 
@@ -6464,6 +6489,15 @@ type ServerInterface interface {
 	// LeaveCall Leave the caller's participant session, idempotently
 	// (POST /api/calls/{id}/leave)
 	LeaveCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// GetCallNotes The notes of a call (the members of its channel)
+	// (GET /api/calls/{id}/notes)
+	GetCallNotes(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SetCallNotes Keep notes of a call, or stop
+	// (PUT /api/calls/{id}/notes)
+	SetCallNotes(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SummarizeCallNotes Summarize a call's notes with the workspace's AI model (the asker's consent)
+	// (POST /api/calls/{id}/notes/summary)
+	SummarizeCallNotes(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, params SummarizeCallNotesParams)
 	// SendCallReaction Send a reaction to everyone in a call
 	// (POST /api/calls/{id}/reactions)
 	SendCallReaction(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
@@ -7667,6 +7701,24 @@ func (_ Unimplemented) SetCallHand(w http.ResponseWriter, r *http.Request, id op
 // LeaveCall Leave the caller's participant session, idempotently
 // (POST /api/calls/{id}/leave)
 func (_ Unimplemented) LeaveCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCallNotes The notes of a call (the members of its channel)
+// (GET /api/calls/{id}/notes)
+func (_ Unimplemented) GetCallNotes(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetCallNotes Keep notes of a call, or stop
+// (PUT /api/calls/{id}/notes)
+func (_ Unimplemented) SetCallNotes(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SummarizeCallNotes Summarize a call's notes with the workspace's AI model (the asker's consent)
+// (POST /api/calls/{id}/notes/summary)
+func (_ Unimplemented) SummarizeCallNotes(w http.ResponseWriter, r *http.Request, id openapi_types.UUID, params SummarizeCallNotesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10999,6 +11051,100 @@ func (siw *ServerInterfaceWrapper) LeaveCall(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.LeaveCall(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCallNotes operation middleware
+func (siw *ServerInterfaceWrapper) GetCallNotes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCallNotes(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetCallNotes operation middleware
+func (siw *ServerInterfaceWrapper) SetCallNotes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetCallNotes(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SummarizeCallNotes operation middleware
+func (siw *ServerInterfaceWrapper) SummarizeCallNotes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SummarizeCallNotesParams
+
+	// ------------- Optional query parameter "language" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "language", r.URL.Query(), &params.Language, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "language"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SummarizeCallNotes(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18930,6 +19076,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/captions/audio", wrapper.SendCaptionAudio)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/calls/{id}/notes", wrapper.GetCallNotes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/calls/{id}/notes", wrapper.SetCallNotes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/calls/{id}/notes/summary", wrapper.SummarizeCallNotes)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/reactions", wrapper.SendCallReaction)

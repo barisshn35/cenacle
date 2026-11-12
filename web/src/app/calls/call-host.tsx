@@ -37,7 +37,8 @@ import { errorCode, joinCall, leaveCall, reapply, startRinging, useCall } from '
 import { PreJoinDialog } from './prejoin';
 import { EffectControls } from './effect-controls';
 import { CaptionsArea, CaptionsButton } from './captions';
-import { useCaptionsAllowed } from './captions-sender';
+import { useCaptionsAllowed, useNotesAllowed } from './captions-sender';
+import { NotesButton, NotesStatus } from './notes';
 import { loadJoinPrefs } from './prejoin-state';
 
 /** Quick reactions in a call. */
@@ -327,6 +328,7 @@ function CallPanel({
   const handUp = hands.includes(selfID);
   const live = !!state.session && state.connection === 'connected';
   const captionsAllowed = useCaptionsAllowed();
+  const notesAllowed = useNotesAllowed();
   const callID = state.call?.id;
   const setHand = (raised: boolean) => {
     if (callID) void calls.setHand(callID, raised).catch(report);
@@ -379,6 +381,7 @@ function CallPanel({
           );
         })}
       </div>
+      <NotesStatus selfID={selfID} />
       <CaptionsArea selfID={selfID} />
       {state.error && (
         <p role="alert" className="text-sm text-destructive">
@@ -426,6 +429,7 @@ function CallPanel({
           {handUp ? t('lowerHand') : t('raiseHand')}
         </Button>
         {captionsAllowed && <CaptionsButton disabled={!live} />}
+        {notesAllowed && <NotesButton disabled={!live} />}
         <Popover>
           <PopoverTrigger
             render={

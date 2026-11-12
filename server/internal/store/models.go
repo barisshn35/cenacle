@@ -111,6 +111,16 @@ type Call struct {
 	Revision       int64              `json:"revision"`
 	CaptionsOn     bool               `json:"captions_on"`
 	CaptionsBy     pgtype.UUID        `json:"captions_by"`
+	NotesOn        bool               `json:"notes_on"`
+	NotesBy        pgtype.UUID        `json:"notes_by"`
+}
+
+type CallNote struct {
+	ID     pgtype.UUID `json:"id"`
+	CallID pgtype.UUID `json:"call_id"`
+	UserID pgtype.UUID `json:"user_id"`
+	Text   string      `json:"text"`
+	SaidAt time.Time   `json:"said_at"`
 }
 
 type CallParticipant struct {
@@ -1077,6 +1087,7 @@ type Workspace struct {
 	CallsMaxParticipants    int32         `json:"calls_max_participants"`
 	CallsMaxBitrate         int32         `json:"calls_max_bitrate"`
 	CallsCaptions           bool          `json:"calls_captions"`
+	CallsNotes              bool          `json:"calls_notes"`
 }
 
 type WorkspaceAttribute struct {

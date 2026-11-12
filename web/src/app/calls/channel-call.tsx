@@ -201,6 +201,19 @@ function SettingsForm({
           </span>
         </label>
       )}
+      {initial.captions_available && value.captions && (
+        <label className="flex min-h-11 items-center gap-2">
+          <input
+            type="checkbox"
+            checked={!!value.notes}
+            onChange={(event) => setValue({ ...value, notes: event.target.checked })}
+          />
+          <span>
+            {t('notes.allow')}
+            <span className="block text-xs text-muted-foreground">{t('notes.allowHint')}</span>
+          </span>
+        </label>
+      )}
       <label className="flex flex-col gap-1">
         {t('capacity')}
         <Input

@@ -103,3 +103,11 @@ export function useCaptionsAllowed(): boolean {
   const settings = useQuery(callSettingsQuery(workspace ?? '')).data;
   return !!settings?.captions && !!settings.captions_available;
 }
+
+/** Call notes are allowed (they need captions). */
+export function useNotesAllowed(): boolean {
+  const channelID = useCall((s) => s.call?.channel_id);
+  const workspace = useQuery(channelsQuery).data?.find((c) => c.id === channelID)?.workspace_id;
+  const settings = useQuery(callSettingsQuery(workspace ?? '')).data;
+  return !!settings?.notes && !!settings.captions && !!settings.captions_available;
+}

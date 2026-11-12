@@ -10,6 +10,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Call notes: where a workspace allows them, anyone in a call can keep what is said, written
+  out by the live captions, with who said it; everyone sees that notes are kept and who
+  turned them on. The call's summary in the channel opens them, to copy, download or
+  summarize with AI (with the reader's own AI consent). Erasure removes what a person said;
+  the data export includes it. Migration 00076.
 - Live captions in calls (ADR 0052): an optional speech to text service on the installation
   (whisper.cpp's server with a Whisper model, `captions.yml`, `install.sh --captions base|small`)
   writes out what people say. Workspace administrators allow them; anyone in a call turns them

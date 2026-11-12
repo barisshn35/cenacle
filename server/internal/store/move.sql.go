@@ -297,7 +297,7 @@ func (q *Queries) MoveExportWorkspaceMembers(ctx context.Context, workspaceID pg
 
 const moveExportWorkspaces = `-- name: MoveExportWorkspaces :many
 
-SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions FROM workspaces
+SELECT id, name, is_default, created_at, description, icon_id, appearance, welcome, retention_days, classification_id, ai_enabled, group_creation, edit_history, persistent_notifications, persistent_every_minutes, persistent_times, read_receipts, permissions, spillage_reviewers, archive_format, archive_last_day, calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions, calls_notes FROM workspaces
 WHERE cardinality($1::text[]) = 0 OR name = ANY($1::text[])
 ORDER BY created_at
 `
@@ -340,6 +340,7 @@ func (q *Queries) MoveExportWorkspaces(ctx context.Context, names []string) ([]W
 			&i.CallsMaxParticipants,
 			&i.CallsMaxBitrate,
 			&i.CallsCaptions,
+			&i.CallsNotes,
 		); err != nil {
 			return nil, err
 		}
