@@ -21,6 +21,7 @@ import { loadProfile, myProfileQuery } from '../profile/profiles';
 import { inFront, systemNotification } from '../notifications/notifier';
 import { toast } from 'sonner';
 import { beforeJoining } from './prejoin-state';
+import { processTrack } from './effects';
 import { playSound } from '../notifications/sounds';
 import i18next from 'i18next';
 
@@ -204,6 +205,7 @@ export async function joinCall(call: Call, media?: JoinMedia): Promise<void> {
     onTracks: (tracks) => useCall.setState({ tracks }),
     onLocalTracks: (local) => useCall.setState({ local }),
     onSpeakers: (speakers) => useCall.setState({ speakers }),
+    process: processTrack,
   });
   useCall.setState({ call, session, joining: true, expanded: true, error: '', incoming: null });
   try {
@@ -475,4 +477,14 @@ function isCall(data: unknown): data is Call {
     ['ringing', 'active', 'ended'].includes(value.state ?? '') &&
     Array.isArray(value.participants)
   );
+}
+
+/** A changed effect applies at once to what is being sent (it is captured again). */
+export function reapply(kind: 'audio' | 'camera'): void {
+  const { session, local, devices } = useCall.getState();
+  if (!session || !local.has(kind)) return;
+  void session
+    .disable(kind)
+    .then(() => session.enable(kind, devices[kind]))
+    .catch((error: unknown) => useCall.setState({ error: errorCode(error) }));
 }

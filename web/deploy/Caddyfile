@@ -17,7 +17,7 @@
 		# No third-party origins: scripts, styles, fonts and images are self-hosted.
 		# CENACLE_UPLOAD_ORIGIN (optional) is an external object store browsers
 		# upload to (CENACLE_S3_UPLOAD_URL on another origin).
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' {$CENACLE_UPLOAD_ORIGIN}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' {$CENACLE_UPLOAD_ORIGIN}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 		# Voice messages and video clips record here; nothing else may.

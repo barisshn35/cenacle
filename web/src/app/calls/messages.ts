@@ -1,6 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 export const callMessages = {
   en: {
+    effects: {
+      noise: 'Noise suppression',
+      noiseStandard: 'Standard',
+      noiseStrong: 'Strong',
+      noiseOff: 'Off',
+      noiseHint: {
+        standard: "Your browser's own: removes some background noise.",
+        strong: 'Also removes typing, fans and street noise. Uses a little more of your device.',
+        off: 'Nothing is filtered: for music or several voices in one room.',
+      },
+      blur: 'Blur my background',
+      blurHint: 'Done on your device; it uses more of it. Your camera turns on again to apply it.',
+    },
     prejoin: {
       hint: 'Check your microphone and camera before you go in.',
       preview: 'Your camera',
@@ -116,6 +129,20 @@ export const callMessages = {
     shortcutLeave: 'Leave call',
   },
   tr: {
+    effects: {
+      noise: 'Gürültü bastırma',
+      noiseStandard: 'Standart',
+      noiseStrong: 'Güçlü',
+      noiseOff: 'Kapalı',
+      noiseHint: {
+        standard: 'Tarayıcınızın kendi bastırması: arka plandaki gürültünün bir kısmını siler.',
+        strong: 'Klavye, fan ve sokak sesini de siler. Cihazınızı biraz daha fazla kullanır.',
+        off: 'Hiçbir şey süzülmez: müzik ya da aynı odadaki birkaç ses için.',
+      },
+      blur: 'Arka planımı bulanıklaştır',
+      blurHint:
+        'Cihazınızda yapılır ve onu daha çok yorar. Uygulamak için kameranız yeniden açılır.',
+    },
     prejoin: {
       hint: 'Girmeden önce mikrofonunuzu ve kameranızı deneyin.',
       preview: 'Kameranız',

@@ -33,8 +33,9 @@ import { useSession } from '../auth/session';
 import { Avatar } from '../profile/avatar';
 import { useProfile } from '../profile/profiles';
 import { channelsQuery } from '../chat/data';
-import { errorCode, joinCall, leaveCall, startRinging, useCall } from './state';
+import { errorCode, joinCall, leaveCall, reapply, startRinging, useCall } from './state';
 import { PreJoinDialog } from './prejoin';
+import { EffectControls } from './effect-controls';
 import { loadJoinPrefs } from './prejoin-state';
 
 /** Quick reactions in a call. */
@@ -671,6 +672,7 @@ function Devices() {
     <details className="rounded-lg border p-3 text-sm">
       <summary className="min-h-11 cursor-pointer py-2">{t('devices')}</summary>
       <div className="flex flex-col gap-3">
+        <EffectControls onChange={reapply} />
         <fieldset className="grid gap-3 sm:grid-cols-3">
           <legend className="sr-only">{t('devices')}</legend>
           {(['audioinput', 'videoinput', 'audiooutput'] as const).map((kind) => (

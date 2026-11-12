@@ -366,3 +366,51 @@ test.describe('call notices', () => {
       .toBe('gong');
   });
 });
+
+async function startRoutes(page: import('@playwright/test').Page) {
+  await page.route('**/api/workspaces/*/calls/settings', (route) =>
+    route.fulfill({ json: settings }),
+  );
+  await page.route('**/api/channels/*/call', (route) =>
+    route.fulfill({ status: 404, json: { status: 404, code: 'not_found' } }),
+  );
+  await page.route('**/api/channels/*/calls', (route) =>
+    route.fulfill({ status: 201, json: snapshot }),
+  );
+  await page.route('**/api/calls/*/token', (route) =>
+    route.fulfill({ status: 503, json: { status: 503, code: 'media_unavailable' } }),
+  );
+  await page.route('**/api/calls/*/leave', (route) => route.fulfill({ status: 204 }));
+}
+
+test('noise suppression and background blur load on the device and are remembered', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'one run is enough: the work is the same');
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  const loaded: string[] = [];
+  page.on('response', (r) => {
+    if (/selfie_segmenter|vision_wasm_internal|rnnoise/.test(r.url()))
+      loaded.push(`${r.status()} ${r.url().split('/').pop()}`);
+  });
+  await mockApi(page);
+  await startRoutes(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start call', exact: true }).click();
+  const check = page.getByTestId('prejoin');
+  await check.getByRole('button', { name: 'Camera off' }).click();
+  await check.getByLabel('Noise suppression').selectOption('strong');
+  await expect(check.getByText('Also removes typing')).toBeVisible();
+  await check.getByLabel('Blur my background').check();
+  // The model and the WebAssembly come from the app's own origin.
+  await expect
+    .poll(() => loaded.filter((l) => l.startsWith('200')).length, { timeout: 60_000 })
+    .toBeGreaterThanOrEqual(2);
+  await expect(check.getByLabel('Your camera', { exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
+  const kept = await page.evaluate(() => localStorage.getItem('cenacle.call.effects'));
+  expect(JSON.parse(kept!)).toEqual({ noise: 'strong', background: 'blur' });
+});

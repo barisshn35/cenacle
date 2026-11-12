@@ -18,6 +18,15 @@ export interface CallSessionOptions {
   onTracks: (tracks: readonly RemotePublication[]) => void;
   onSpeakers: (userIDs: readonly string[]) => void;
   onLocalTracks: (tracks: ReadonlyMap<PublicationKind, MediaStreamTrack>) => void;
+  /**
+   * Turns a captured microphone or camera track into the one sent (noise
+   * suppression, background blur); `stop` ends what it started. The captured
+   * track is stopped with it.
+   */
+  process?: (
+    kind: 'audio' | 'camera',
+    track: MediaStreamTrack,
+  ) => Promise<{ track: MediaStreamTrack; stop: () => void }>;
 }
 interface Frame {
   v: number;
@@ -426,9 +435,33 @@ export class CallSession {
                     audio: false,
                   },
             );
-      const track = kind === 'audio' ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0];
-      if (!track || this.ended || !this.pc || !this.ready)
+      const captured = kind === 'audio' ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0];
+      if (!captured || this.ended || !this.pc || !this.ready)
         throw new Error('call_capture_cancelled');
+      // What is sent may be the captured track worked on (less noise, a blurred background).
+      const worked =
+        kind !== 'screen' && this.options.process
+          ? await this.options.process(kind, captured).catch(() => null)
+          : null;
+      const track = worked?.track ?? captured;
+      if (worked) {
+        const stopWorked = worked.stop;
+        const ownStop = track.stop.bind(track);
+        // Stopping what is sent also stops the capture and its processing.
+        track.stop = () => {
+          ownStop();
+          stopWorked();
+          captured.stop();
+        };
+        // A camera unplugged ends the capture: what is sent goes too.
+        captured.onended = () => {
+          if (this.locals.get(kind)?.track === track) void this.disable(kind);
+        };
+      }
+      if (this.ended || !this.pc || !this.ready) {
+        track.stop();
+        throw new Error('call_capture_cancelled');
+      }
       // Shared screens carry text: the encoder keeps detail and lowers the frame rate instead.
       if (kind === 'screen' && 'contentHint' in track) track.contentHint = 'detail';
       const old = this.locals.get(kind);
@@ -446,7 +479,8 @@ export class CallSession {
       };
       this.notifyLocal();
       // Keep only the intended track, including with an over-permissive desktop picker.
-      for (const extra of stream.getTracks()) if (extra !== track) extra.stop();
+      for (const extra of stream.getTracks())
+        if (extra !== track && extra !== captured) extra.stop();
       stream = undefined;
     } finally {
       stream?.getTracks().forEach((track) => track.stop());

@@ -10,6 +10,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Calls: noise suppression (standard, strong with RNNoise, or off for music) and background
+  blur (MediaPipe), done on the device before anything is sent, in the check before joining
+  (its preview shows the blur) and in the call's devices; remembered per device (ADR 0051).
+  The web app's Content-Security-Policy allows WebAssembly from its own origin
+  (`'wasm-unsafe-eval'`); the model ships with the app.
 - Call notices: group conversations ring like direct ones (declining only stops the ringing
   for you); a call starting in a channel shows a toast with Join, as the channel notifies
   you; the sidebar marks channels and conversations with a call going on and how many are in

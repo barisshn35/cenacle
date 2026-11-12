@@ -16,13 +16,15 @@ import { useSession } from '../auth/session';
 import { Avatar } from '../profile/avatar';
 import { useProfile } from '../profile/profiles';
 import { playSound } from '../notifications/sounds';
+import { EffectControls } from './effect-controls';
+import { processTrack, useEffects } from './effects';
 import { loadJoinPrefs, saveJoinPrefs, usePreJoin, type JoinPrefs } from './prejoin-state';
 
 const selectClass =
   'min-h-target h-9 w-full min-w-0 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50';
 
 /** The camera's picture and the microphone's level while choosing. */
-function usePreview(prefs: JoinPrefs) {
+function usePreview(prefs: JoinPrefs, blur: boolean) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [level, setLevel] = useState(0);
   const [blocked, setBlocked] = useState(false);
@@ -31,6 +33,7 @@ function usePreview(prefs: JoinPrefs) {
     let current: MediaStream | null = null;
     let ctx: AudioContext | null = null;
     let frame = 0;
+    let worked: { stop: () => void } | null = null;
     const id = (value: string) => (value ? { deviceId: { exact: value } } : true);
     if (!prefs.audio && !prefs.camera) return;
     navigator.mediaDevices
@@ -46,6 +49,16 @@ function usePreview(prefs: JoinPrefs) {
         current = s;
         setBlocked(false);
         setStream(s);
+        // The picture as the call will send it: blurred when blur is on.
+        const camera = s.getVideoTracks()[0];
+        if (blur && camera)
+          void processTrack('camera', camera)
+            .then((w) => {
+              if (cancelled) return w.stop();
+              worked = w;
+              setStream(new MediaStream([...s.getAudioTracks(), w.track]));
+            })
+            .catch(() => undefined);
         if (!prefs.audio || !s.getAudioTracks().length) return;
         ctx = new AudioContext();
         const analyser = ctx.createAnalyser();
@@ -70,10 +83,11 @@ function usePreview(prefs: JoinPrefs) {
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
+      worked?.stop();
       void ctx?.close();
       current?.getTracks().forEach((t) => t.stop());
     };
-  }, [prefs.audio, prefs.camera, prefs.mic, prefs.cam]);
+  }, [prefs.audio, prefs.camera, prefs.mic, prefs.cam, blur]);
   // With both off nothing is captured: the last picture and level do not linger.
   const on = prefs.audio || prefs.camera;
   return { stream: on ? stream : null, level: on ? level : 0, blocked };
@@ -96,7 +110,8 @@ function PreJoin() {
   const [prefs, setPrefs] = useState(loadJoinPrefs);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [joining, setJoining] = useState(false);
-  const { stream, level, blocked } = usePreview(prefs);
+  const blur = useEffects((s) => s.background === 'blur');
+  const { stream, level, blocked } = usePreview(prefs, blur);
   const video = useRef<HTMLVideoElement>(null);
   const self = useSession().user;
   const profile = useProfile(self.id);
@@ -267,6 +282,7 @@ function PreJoin() {
                 </Button>
               </div>
             </div>
+            <EffectControls />
             <label
               htmlFor={ids.show}
               data-target
