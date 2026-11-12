@@ -128,6 +128,47 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/calls/{id}/hand': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Raise or lower your hand in a call
+     * @description Everyone in the call sees raised hands, oldest first (`call.participants`).
+     */
+    put: operations['setCallHand'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/calls/{id}/reactions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send a reaction to everyone in a call
+     * @description A short-lived reaction (an emoji) that floats over your tile for the others
+     *     (`call.reaction`, not stored). Up to one per second.
+     */
+    post: operations['sendCallReaction'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces': {
     parameters: {
       query?: never;
@@ -5123,6 +5164,11 @@ export interface components {
       joined_at?: string | null;
       /** Format: date-time */
       left_at?: string | null;
+      /**
+       * Format: date-time
+       * @description A raised hand, since when.
+       */
+      hand_raised_at?: string | null;
     };
     FederationConnection: {
       /** Format: uuid */
@@ -7517,6 +7563,88 @@ export interface operations {
         };
         content?: never;
       };
+    };
+  };
+  setCallHand: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          raised: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Done. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description You are not in the call. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  sendCallReaction: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          emoji: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Sent. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['Problem'];
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description You are not in the call. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      429: components['responses']['Problem'];
     };
   };
   listWorkspaces: {

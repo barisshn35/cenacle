@@ -36,6 +36,8 @@ interface State {
   ringTone: { id: string; volume: number } | null;
   /** Chosen input devices; used the next time that device is turned on. */
   devices: { audio?: string; camera?: string };
+  /** Reactions floating over tiles for a moment (call.reaction). */
+  reactions: readonly { key: number; userID: string; emoji: string }[];
 }
 export const useCall = create<State>()(() => ({
   call: null,
@@ -50,7 +52,27 @@ export const useCall = create<State>()(() => ({
   joining: false,
   ringTone: null,
   devices: {},
+  reactions: [],
 }));
+
+/** How long a reaction floats over a tile. */
+export const REACTION_MS = 3500;
+let reactionKey = 0;
+
+/** call.reaction: show it over the sender's tile for a moment. */
+export function applyCallReaction(data: unknown): void {
+  const d = data as { call_id?: string; user_id?: string; emoji?: string } | null;
+  const call = useCall.getState().call;
+  if (!d || !call || d.call_id !== call.id || !d.user_id || !d.emoji) return;
+  const key = ++reactionKey;
+  useCall.setState((s) => ({
+    reactions: [...s.reactions.slice(-11), { key, userID: d.user_id!, emoji: d.emoji! }],
+  }));
+  setTimeout(
+    () => useCall.setState((s) => ({ reactions: s.reactions.filter((r) => r.key !== key) })),
+    REACTION_MS,
+  );
+}
 // The last live event per channel: a fetch that started before it must not
 // overwrite it when it answers later.
 const lastEvent = new Map<string, { at: number; call: Call }>();
@@ -92,7 +114,44 @@ export function endedCode(call: Call): string {
   if (call.end_reason === 'missed') return 'call_missed';
   return 'closed';
 }
-export async function joinCall(call: Call): Promise<void> {
+/** Turns on what the person chose to join with, once the call is connected. */
+function joinWith(session: CallSession, media: JoinMedia) {
+  const wanted = [
+    media.audio && (['audio', media.mic] as const),
+    media.camera && (['camera', media.cam] as const),
+  ].filter(Boolean) as (readonly ['audio' | 'camera', string])[];
+  useCall.setState((s) => ({
+    devices: { ...s.devices, audio: media.mic || undefined, camera: media.cam || undefined },
+  }));
+  if (media.speaker) void session.setSpeaker(media.speaker).catch(() => undefined);
+  if (!wanted.length) return;
+  const start = () => {
+    for (const [kind, device] of wanted)
+      void session
+        .enable(kind, device || undefined)
+        .catch((error: unknown) => useCall.setState({ error: errorCode(error) }));
+  };
+  if (useCall.getState().connection === 'connected') return start();
+  const stop = useCall.subscribe((s) => {
+    if (s.session !== session) return stop();
+    if (s.connection === 'connected') {
+      stop();
+      start();
+    }
+  });
+  setTimeout(stop, 30_000);
+}
+
+/** What to join a call with (the check before joining). */
+export interface JoinMedia {
+  audio: boolean;
+  camera: boolean;
+  mic: string;
+  cam: string;
+  speaker: string;
+}
+
+export async function joinCall(call: Call, media?: JoinMedia): Promise<void> {
   if (call.state === 'ended') {
     useCall.setState({ error: endedCode(call) });
     return;
@@ -121,6 +180,7 @@ export async function joinCall(call: Call): Promise<void> {
   useCall.setState({ call, session, joining: true, expanded: true, error: '', incoming: null });
   try {
     await session.connect();
+    if (media) joinWith(session, media);
   } catch (error) {
     session.close();
     useCall.setState({ session: null, error: errorCode(error) });

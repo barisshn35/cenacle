@@ -120,7 +120,7 @@ UPDATE call_participants SET state = 'connected', joined_at = coalesce(joined_at
     reserved_until = NULL, last_seen_at = now(), transport_generation = $1
 WHERE id = $2 AND call_id = $3 AND left_at IS NULL
   AND transport_generation <= $1
-RETURNING id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation
+RETURNING id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation, hand_raised_at
 `
 
 type ConnectCallParticipantParams struct {
@@ -144,6 +144,7 @@ func (q *Queries) ConnectCallParticipant(ctx context.Context, arg ConnectCallPar
 		&i.RedactedAt,
 		&i.LastSeenAt,
 		&i.TransportGeneration,
+		&i.HandRaisedAt,
 	)
 	return i, err
 }
@@ -508,7 +509,7 @@ func (q *Queries) GetChannelCall(ctx context.Context, channelID pgtype.UUID) (Ca
 }
 
 const getOpenUserCallParticipant = `-- name: GetOpenUserCallParticipant :one
-SELECT id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation FROM call_participants WHERE user_id = $1 AND left_at IS NULL FOR UPDATE
+SELECT id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation, hand_raised_at FROM call_participants WHERE user_id = $1 AND left_at IS NULL FOR UPDATE
 `
 
 func (q *Queries) GetOpenUserCallParticipant(ctx context.Context, userID pgtype.UUID) (CallParticipant, error) {
@@ -526,8 +527,26 @@ func (q *Queries) GetOpenUserCallParticipant(ctx context.Context, userID pgtype.
 		&i.RedactedAt,
 		&i.LastSeenAt,
 		&i.TransportGeneration,
+		&i.HandRaisedAt,
 	)
 	return i, err
+}
+
+const inCall = `-- name: InCall :one
+SELECT EXISTS (SELECT 1 FROM call_participants
+               WHERE call_id = $1 AND user_id = $2 AND state = 'connected')
+`
+
+type InCallParams struct {
+	CallID pgtype.UUID `json:"call_id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) InCall(ctx context.Context, arg InCallParams) (bool, error) {
+	row := q.db.QueryRow(ctx, inCall, arg.CallID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const leaveCallParticipant = `-- name: LeaveCallParticipant :execrows
@@ -551,7 +570,7 @@ func (q *Queries) LeaveCallParticipant(ctx context.Context, arg LeaveCallPartici
 }
 
 const listCallParticipants = `-- name: ListCallParticipants :many
-SELECT id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation FROM call_participants WHERE call_id = $1 AND redacted_at IS NULL
+SELECT id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation, hand_raised_at FROM call_participants WHERE call_id = $1 AND redacted_at IS NULL
  AND (left_at IS NULL OR left_at > now() - interval '30 seconds')
 ORDER BY id DESC LIMIT 64
 `
@@ -578,6 +597,7 @@ func (q *Queries) ListCallParticipants(ctx context.Context, callID pgtype.UUID) 
 			&i.RedactedAt,
 			&i.LastSeenAt,
 			&i.TransportGeneration,
+			&i.HandRaisedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -787,7 +807,7 @@ func (q *Queries) RedactHeldCallParticipants(ctx context.Context, userID pgtype.
 const reserveCallParticipant = `-- name: ReserveCallParticipant :one
 INSERT INTO call_participants (call_id, user_id, session_id, state, reserved_until)
 VALUES ($1, $2, $3, 'reserved', now() + interval '60 seconds')
-RETURNING id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation
+RETURNING id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation, hand_raised_at
 `
 
 type ReserveCallParticipantParams struct {
@@ -811,8 +831,31 @@ func (q *Queries) ReserveCallParticipant(ctx context.Context, arg ReserveCallPar
 		&i.RedactedAt,
 		&i.LastSeenAt,
 		&i.TransportGeneration,
+		&i.HandRaisedAt,
 	)
 	return i, err
+}
+
+const setCallHand = `-- name: SetCallHand :execrows
+UPDATE call_participants
+SET hand_raised_at = CASE WHEN $1::boolean THEN coalesce(hand_raised_at, now()) ELSE NULL END
+WHERE call_id = $2 AND user_id = $3 AND left_at IS NULL
+`
+
+type SetCallHandParams struct {
+	Raised bool        `json:"raised"`
+	CallID pgtype.UUID `json:"call_id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+// SetCallHand raises (keeping the first time) or lowers the hand of a user's
+// open session in a call.
+func (q *Queries) SetCallHand(ctx context.Context, arg SetCallHandParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setCallHand, arg.Raised, arg.CallID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const startConnectedCall = `-- name: StartConnectedCall :one

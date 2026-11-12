@@ -532,6 +532,7 @@ type Querier interface {
 	// history); importing the same message again stores nothing (no row).
 	ImportMessage(ctx context.Context, arg ImportMessageParams) (pgtype.UUID, error)
 	ImportReaction(ctx context.Context, arg ImportReactionParams) error
+	InCall(ctx context.Context, arg InCallParams) (bool, error)
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	InsertBackup(ctx context.Context, arg InsertBackupParams) (pgtype.UUID, error)
 	InsertMLSCommit(ctx context.Context, arg InsertMLSCommitParams) error
@@ -1036,6 +1037,9 @@ type Querier interface {
 	SetBotDescription(ctx context.Context, arg SetBotDescriptionParams) error
 	SetBotDisabled(ctx context.Context, arg SetBotDisabledParams) (Bot, error)
 	SetBotInteractions(ctx context.Context, arg SetBotInteractionsParams) error
+	// SetCallHand raises (keeping the first time) or lowers the hand of a user's
+	// open session in a call.
+	SetCallHand(ctx context.Context, arg SetCallHandParams) (int64, error)
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
 	SetChannelCompliance(ctx context.Context, arg SetChannelComplianceParams) (Channel, error)
 	SetChannelGroupManaged(ctx context.Context, arg SetChannelGroupManagedParams) error

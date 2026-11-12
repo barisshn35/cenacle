@@ -75,6 +75,8 @@ type callParticipantView struct {
 	State    string              `json:"state"`
 	JoinedAt *time.Time          `json:"joined_at"`
 	LeftAt   *time.Time          `json:"left_at"`
+	// HandRaisedAt: a raised hand, since when.
+	HandRaisedAt *time.Time `json:"hand_raised_at"`
 }
 
 func callSnapshot(ctx context.Context, q store.Querier, c store.Call) (callView, error) {
@@ -87,7 +89,7 @@ func callSnapshot(ctx context.Context, q store.Querier, c store.Call) (callView,
 		if p.RedactedAt.Valid {
 			continue
 		}
-		v := callParticipantView{ID: uuid(p.ID), State: p.State, JoinedAt: timePtr(p.JoinedAt), LeftAt: timePtr(p.LeftAt)}
+		v := callParticipantView{ID: uuid(p.ID), State: p.State, JoinedAt: timePtr(p.JoinedAt), LeftAt: timePtr(p.LeftAt), HandRaisedAt: timePtr(p.HandRaisedAt)}
 		if p.UserID.Valid {
 			id := uuid(p.UserID)
 			v.UserID = &id

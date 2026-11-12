@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { beforeJoining } from './prejoin-state';
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -36,19 +37,19 @@ export function CallAction({ channel }: { channel: Channel }) {
     useCall.setState({ error: '' });
     setPending(true);
     nonce.current ??= crypto.randomUUID();
-    void (
-      current.data && current.data.state !== 'ended'
-        ? current.data.state === 'ringing' &&
-          !current.data.participants.some((p) => p.user_id === selfID)
-          ? calls.answer(current.data.id, 'accept').then(joinCall)
-          : joinCall(current.data)
-        : calls.start(channel.id, nonce.current).then((call) => {
+    const existing = current.data && current.data.state !== 'ended' ? current.data : null;
+    // Starting or joining goes through the check of microphone and camera first.
+    void beforeJoining(channel.name, !existing, (media) =>
+      (existing
+        ? existing.state === 'ringing' && !existing.participants.some((p) => p.user_id === selfID)
+          ? calls.answer(existing.id, 'accept').then((call) => joinCall(call, media))
+          : joinCall(existing, media)
+        : calls.start(channel.id, nonce.current!).then((call) => {
             nonce.current = null;
-            return joinCall(call);
+            return joinCall(call, media);
           })
-    )
-      .catch((error) => useCall.setState({ error: errorCode(error) }))
-      .finally(() => setPending(false));
+      ).catch((error) => useCall.setState({ error: errorCode(error) })),
+    ).finally(() => setPending(false));
   };
   return (
     <>
@@ -105,9 +106,12 @@ export function ChannelCallBar({ channel }: { channel: Channel }) {
         disabled={pending}
         onClick={() => {
           setPending(true);
-          void (answer ? calls.answer(call.id, 'accept').then(joinCall) : joinCall(call))
-            .catch((error) => useCall.setState({ error: errorCode(error) }))
-            .finally(() => setPending(false));
+          void beforeJoining(channel.name, false, (media) =>
+            (answer
+              ? calls.answer(call.id, 'accept').then((c) => joinCall(c, media))
+              : joinCall(call, media)
+            ).catch((error) => useCall.setState({ error: errorCode(error) })),
+          ).finally(() => setPending(false));
         }}
       >
         {t(answer ? 'accept' : 'join')}

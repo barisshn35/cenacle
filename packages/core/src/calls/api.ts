@@ -8,6 +8,8 @@ export interface CallParticipant {
   state: 'reserved' | 'connected' | 'reconnecting' | 'left';
   joined_at: string | null;
   left_at: string | null;
+  /** A raised hand, since when (servers before 1.0 leave it out). */
+  hand_raised_at?: string | null;
 }
 export interface Call {
   id: string;
@@ -65,6 +67,12 @@ export const calls = {
     apiFetch(`/api/calls/${id(callID)}/answer`, json({ answer })),
   leave: (callID: string): Promise<void> =>
     apiFetch(`/api/calls/${id(callID)}/leave`, { method: 'POST' }),
+  /** Raises or lowers one's hand; everyone in the call sees it. */
+  setHand: (callID: string, raised: boolean): Promise<void> =>
+    apiFetch(`/api/calls/${id(callID)}/hand`, { ...json({ raised }), method: 'PUT' }),
+  /** A reaction that floats over one's tile for the others (not stored). */
+  react: (callID: string, emoji: string): Promise<void> =>
+    apiFetch(`/api/calls/${id(callID)}/reactions`, json({ emoji })),
   settings: (workspaceID: string): Promise<CallSettings> =>
     apiFetch(`/api/workspaces/${id(workspaceID)}/calls/settings`, { cache: 'no-store' }),
   updateSettings: (

@@ -182,3 +182,14 @@ FROM calls c JOIN call_participants p ON p.call_id = c.id
 WHERE p.user_id = @user_id AND p.redacted_at IS NULL
  AND (sqlc.narg(after)::uuid IS NULL OR p.id > sqlc.narg(after)::uuid)
 ORDER BY p.id LIMIT @row_limit;
+
+-- name: SetCallHand :execrows
+-- SetCallHand raises (keeping the first time) or lowers the hand of a user's
+-- open session in a call.
+UPDATE call_participants
+SET hand_raised_at = CASE WHEN @raised::boolean THEN coalesce(hand_raised_at, now()) ELSE NULL END
+WHERE call_id = @call_id AND user_id = @user_id AND left_at IS NULL;
+
+-- name: InCall :one
+SELECT EXISTS (SELECT 1 FROM call_participants
+               WHERE call_id = @call_id AND user_id = @user_id AND state = 'connected');

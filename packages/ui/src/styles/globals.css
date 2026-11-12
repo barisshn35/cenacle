@@ -90,6 +90,33 @@ select:focus-visible {
   outline-offset: 0;
 }
 
+/* A reaction in a call rises over its tile and fades (only fades with reduced motion). */
+@keyframes call-reaction {
+  0% {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-3rem);
+  }
+}
+.call-reaction {
+  animation: call-reaction 3.5s var(--ease-out) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-reaction {
+    animation: none;
+  }
+}
+
 /* Right-to-left languages: icons that point a way point the other way. */
 [dir='rtl']
   :is(

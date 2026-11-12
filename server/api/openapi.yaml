@@ -232,6 +232,52 @@ paths:
       responses:
         '204': { description: Participant left. }
         '404': { description: No accessible call. }
+  /api/calls/{id}/hand:
+    put:
+      tags: [chat]
+      operationId: setCallHand
+      summary: Raise or lower your hand in a call
+      description: Everyone in the call sees raised hands, oldest first (`call.participants`).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [raised]
+              properties:
+                raised: { type: boolean }
+      responses:
+        '204': { description: Done. }
+        '404': { description: No accessible call. }
+        '409': { description: You are not in the call. }
+  /api/calls/{id}/reactions:
+    post:
+      tags: [chat]
+      operationId: sendCallReaction
+      summary: Send a reaction to everyone in a call
+      description: |
+        A short-lived reaction (an emoji) that floats over your tile for the others
+        (`call.reaction`, not stored). Up to one per second.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji: { type: string, maxLength: 64 }
+      responses:
+        '204': { description: Sent. }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { description: No accessible call. }
+        '409': { description: You are not in the call. }
+        '429': { $ref: '#/components/responses/Problem' }
   /api/workspaces:
     get:
       tags: [workspaces]
@@ -7817,6 +7863,7 @@ components:
         state: { type: string, enum: [reserved, connected, reconnecting, left] }
         joined_at: { type: string, format: date-time, nullable: true }
         left_at: { type: string, format: date-time, nullable: true }
+        hand_raised_at: { type: string, format: date-time, nullable: true, description: 'A raised hand, since when.' }
     FederationConnection:
       type: object
       required: [id, name, url, status, last_error, requires_v2, shared]

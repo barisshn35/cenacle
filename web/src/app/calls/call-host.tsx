@@ -23,7 +23,10 @@ import {
   PhoneIcon,
   ExternalLinkIcon,
   PictureInPicture2Icon,
+  HandIcon,
+  SmilePlusIcon,
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@cenacle/ui/components/popover';
 import { cn } from '@cenacle/ui/lib/utils';
 import { toast } from 'sonner';
 import { useSession } from '../auth/session';
@@ -31,6 +34,11 @@ import { Avatar } from '../profile/avatar';
 import { useProfile } from '../profile/profiles';
 import { channelsQuery } from '../chat/data';
 import { errorCode, joinCall, leaveCall, startRinging, useCall } from './state';
+import { PreJoinDialog } from './prejoin';
+import { loadJoinPrefs } from './prejoin-state';
+
+/** Quick reactions in a call. */
+const CALL_REACTIONS = ['👍', '👏', '❤️', '😂', '🎉', '😮'];
 
 /** Call shortcuts: Ctrl/Cmd+Shift with these keys (listed in the shortcuts dialog). */
 const callShortcuts = { KeyM: 'audio', KeyO: 'camera', KeyE: 'screen', KeyH: 'leave' } as const;
@@ -157,6 +165,7 @@ export function CallHost() {
   }, [state.error, state.call, t]);
   return (
     <>
+      <PreJoinDialog />
       {state.tracks
         .filter((track) => track.kind === 'audio')
         .map((audio) => (
@@ -192,7 +201,12 @@ export function CallHost() {
               onClick={() => {
                 const call = state.incoming;
                 useCall.setState({ incoming: null });
-                if (call) void calls.answer(call.id, 'accept').then(joinCall).catch(report);
+                // An incoming call is answered at once, with what one joins with by default.
+                if (call)
+                  void calls
+                    .answer(call.id, 'accept')
+                    .then((c) => joinCall(c, loadJoinPrefs()))
+                    .catch(report);
               }}
             >
               {t('accept')}
@@ -300,6 +314,20 @@ function CallPanel({
   const state = useCall();
   const report = (error: unknown) => useCall.setState({ error: errorCode(error) });
   const people = state.call?.participants.filter((p) => p.state !== 'left') ?? [];
+  // Raised hands in the order they went up: the tile shows its place.
+  const hands = people
+    .filter((p) => p.hand_raised_at)
+    .sort((a, b) => a.hand_raised_at!.localeCompare(b.hand_raised_at!))
+    .map((p) => p.user_id);
+  const handUp = hands.includes(selfID);
+  const live = !!state.session && state.connection === 'connected';
+  const callID = state.call?.id;
+  const setHand = (raised: boolean) => {
+    if (callID) void calls.setHand(callID, raised).catch(report);
+  };
+  const react = (emoji: string) => {
+    if (callID) void calls.react(callID, emoji).catch(() => undefined);
+  };
   // Tiles share the room: one per row for one or two on narrow screens, up to four across.
   const columns =
     people.length <= 1
@@ -329,6 +357,8 @@ function CallPanel({
               userID={person.user_id ?? ''}
               own={own}
               speaking={state.speakers.includes(person.user_id ?? '')}
+              hand={person.user_id ? hands.indexOf(person.user_id) + 1 : 0}
+              reactions={state.reactions.filter((r) => r.userID === person.user_id)}
               tracks={tracks}
               local={own ? state.local : undefined}
             />
@@ -371,6 +401,41 @@ function CallPanel({
             </Button>
           );
         })}
+        <Button
+          variant="outline"
+          aria-pressed={handUp}
+          disabled={!live}
+          onClick={() => setHand(!handUp)}
+        >
+          <HandIcon data-icon="inline-start" />
+          {handUp ? t('lowerHand') : t('raiseHand')}
+        </Button>
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button variant="outline" disabled={!live}>
+                <SmilePlusIcon data-icon="inline-start" />
+                {t('react')}
+              </Button>
+            }
+          />
+          <PopoverContent side="top" className="w-auto p-1">
+            <div role="group" aria-label={t('react')} className="flex gap-1">
+              {CALL_REACTIONS.map((emoji) => (
+                <Button
+                  key={emoji}
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('reactWith', { emoji })}
+                  onClick={() => react(emoji)}
+                  className="text-xl"
+                >
+                  {emoji}
+                </Button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
         <Button variant="destructive" onClick={() => void leaveCall()}>
           <PhoneOffIcon data-icon="inline-start" />
           {t('leave')}
@@ -388,12 +453,17 @@ function Participant({
   userID,
   own,
   speaking,
+  hand = 0,
+  reactions = [],
   tracks,
   local,
 }: {
   userID: string;
   own: boolean;
   speaking: boolean;
+  /** The raised hand's place in the queue (0: not raised). */
+  hand?: number;
+  reactions?: readonly { key: number; emoji: string }[];
   tracks: readonly RemotePublication[];
   local?: ReadonlyMap<PublicationKind, MediaStreamTrack>;
 }) {
@@ -411,11 +481,23 @@ function Participant({
   return (
     <section
       className={cn(
-        'flex min-h-48 min-w-0 flex-col gap-2 rounded-xl border bg-muted p-3',
+        'relative flex min-h-48 min-w-0 flex-col gap-2 rounded-xl border bg-muted p-3',
         speaking && 'border-accent-brand',
       )}
       aria-label={name}
     >
+      {/* Reactions float up and fade; they are said once for screen readers. */}
+      <div
+        aria-live="polite"
+        className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center"
+      >
+        {reactions.map((r) => (
+          <span key={r.key} className="call-reaction absolute text-4xl">
+            {r.emoji}
+            <span className="sr-only">{t('reacted', { name, emoji: r.emoji })}</span>
+          </span>
+        ))}
+      </div>
       {videos.length ? (
         videos.map((video) => (
           <MediaTile
@@ -436,6 +518,15 @@ function Participant({
       )}
       <div className="flex min-w-0 items-center justify-between gap-2 text-sm">
         <span className="truncate">{name}</span>
+        {hand > 0 && (
+          <span
+            className="flex shrink-0 items-center gap-1 rounded-full bg-accent-brand px-2 py-0.5 text-xs font-semibold text-accent-brand-foreground"
+            data-testid="raised-hand"
+          >
+            <HandIcon aria-hidden className="size-3.5" />
+            {t('handPlace', { place: hand })}
+          </span>
+        )}
         {speaking && <span className="shrink-0 text-muted-foreground">{t('speaking')}</span>}
       </div>
     </section>

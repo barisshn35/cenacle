@@ -10,6 +10,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Calls: a check before joining (your camera's picture, the microphone's level, the
+  microphone, camera and speaker to use, and whether to come in with them on; remembered,
+  and it can be turned off); raise a hand (everyone sees the order hands went up) and send a
+  reaction that floats over your tile. Migration 00074.
 - Charts and live cards: a card can carry a bar or line chart (up to 24 labels, four series),
   drawn with a legend and the numbers as a table; a bot replaces the cards of its own message
   in place (`PUT …/messages/{id}/attachments`, `messages:write`) without marking it edited.

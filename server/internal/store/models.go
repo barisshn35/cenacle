@@ -123,6 +123,7 @@ type CallParticipant struct {
 	RedactedAt          pgtype.Timestamptz `json:"redacted_at"`
 	LastSeenAt          time.Time          `json:"last_seen_at"`
 	TransportGeneration int64              `json:"transport_generation"`
+	HandRaisedAt        pgtype.Timestamptz `json:"hand_raised_at"`
 }
 
 type Canvase struct {

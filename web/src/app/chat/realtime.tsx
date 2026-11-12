@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { applyCollabEvent } from '../collab/collab';
-import { applyCallEvent, clearCalls, resyncCalls } from '../calls/state';
+import { applyCallEvent, applyCallReaction, clearCalls, resyncCalls } from '../calls/state';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '../auth/session';
@@ -215,7 +215,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         }
       },
       onEphemeral(ev) {
-        if (ev.type === 'typing') {
+        if (ev.type === 'call.reaction') {
+          applyCallReaction(ev.data);
+        } else if (ev.type === 'typing') {
           const d = ev.data as { channel_id: string; user_id: string; display_name: string };
           live.startTyping(d.channel_id, d.user_id, d.display_name);
         } else if (ev.type === 'presence.changed') {

@@ -35,9 +35,11 @@ const (
 	CallLeft         = "call.left"
 	CallEnded        = "call.ended"
 	CallParticipants = "call.participants"
-	MessageCreated   = "message.created"
-	MessageUpdated   = "message.updated"
-	MessageDeleted   = "message.deleted"
+	// CallReaction: someone in a call sent a reaction (ephemeral).
+	CallReaction   = "call.reaction"
+	MessageCreated = "message.created"
+	MessageUpdated = "message.updated"
+	MessageDeleted = "message.deleted"
 	// ReactionAdded and ReactionRemoved go to the channel's members.
 	ReactionAdded   = "reaction.added"
 	ReactionRemoved = "reaction.removed"

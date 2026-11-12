@@ -1,6 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { test, expect } from '@playwright/test';
-import { GENERAL, PEOPLE, directWith, mockApi, expectNoAxeViolations } from './helpers';
+import {
+  GENERAL,
+  PEOPLE,
+  directWith,
+  mockApi,
+  expectNoAxeViolations,
+  expectTargetSizes,
+} from './helpers';
+
+// A camera and a microphone the browser makes up, allowed without asking.
+test.use({
+  launchOptions: {
+    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+  },
+});
 
 const AYSE = PEOPLE[1]!;
 
@@ -74,6 +88,7 @@ test('failed admission releases capture and displays recovery text', async ({ pa
   await page.route('**/api/calls/*/leave', (route) => route.fulfill({ status: 204 }));
   await page.goto('/');
   await page.getByRole('button', { name: 'Start call', exact: true }).click();
+  await page.getByTestId('prejoin').getByRole('button', { name: 'Start call' }).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('check your connection');
   await expect(page.getByRole('button', { name: 'Microphone', exact: true })).toBeDisabled();
 });
@@ -146,6 +161,7 @@ test('calling someone who is in another call says so and does not join', async (
   });
   await page.goto(`/c/${dm.id}`);
   await page.getByRole('button', { name: 'Start call', exact: true }).click();
+  await page.getByTestId('prejoin').getByRole('button', { name: 'Start call' }).click();
   await expect(page.getByText('The person you called is in another call.')).toBeVisible();
   expect(tokens).toBe(0);
 });
@@ -167,4 +183,74 @@ test('the shortcuts dialog lists the call shortcuts', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
   await expect(dialog.getByText('Calls', { exact: true })).toBeVisible();
   await expect(dialog.getByText('Leave call', { exact: true })).toBeVisible();
+});
+
+test('before joining one sees oneself, hears the microphone and chooses what to join with', async ({
+  page,
+}, testInfo) => {
+  await mockApi(page);
+  await page.route('**/api/workspaces/*/calls/settings', (route) =>
+    route.fulfill({ json: settings }),
+  );
+  await page.route('**/api/channels/*/call', (route) =>
+    route.fulfill({ status: 404, json: { status: 404, code: 'not_found' } }),
+  );
+  let started = false;
+  await page.route('**/api/channels/*/calls', (route) => {
+    started = true;
+    return route.fulfill({ status: 201, json: snapshot });
+  });
+  await page.route('**/api/calls/*/token', (route) =>
+    route.fulfill({ status: 503, json: { status: 503, code: 'media_unavailable' } }),
+  );
+  await page.route('**/api/calls/*/leave', (route) => route.fulfill({ status: 204 }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start call', exact: true }).click();
+  const check = page.getByTestId('prejoin');
+  await expect(check).toBeVisible();
+  // Nothing starts until the person is ready.
+  expect(started).toBe(false);
+  await expect(check.getByRole('button', { name: 'Microphone on' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await check.getByRole('button', { name: 'Camera off' }).click();
+  await expect(check.getByLabel('Your camera')).toBeVisible();
+  await expect(check.getByTestId('mic-level')).toContainText(/microphone|Say something/);
+  await expectTargetSizes(page, testInfo, '[data-testid="prejoin"]');
+  await expectNoAxeViolations(page, '[data-testid="prejoin"]');
+  await check.getByRole('button', { name: 'Start call' }).click();
+  await expect.poll(() => started).toBe(true);
+  // The choice is kept for the next call.
+  const kept = await page.evaluate(() => localStorage.getItem('cenacle.call.join'));
+  expect(JSON.parse(kept!)).toMatchObject({ audio: true, camera: true, preview: true });
+});
+
+test('turning the check off joins at once next time', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      'cenacle.call.join',
+      JSON.stringify({ audio: false, camera: false, preview: false }),
+    ),
+  );
+  await mockApi(page);
+  await page.route('**/api/workspaces/*/calls/settings', (route) =>
+    route.fulfill({ json: settings }),
+  );
+  await page.route('**/api/channels/*/call', (route) =>
+    route.fulfill({ status: 404, json: { status: 404, code: 'not_found' } }),
+  );
+  let started = false;
+  await page.route('**/api/channels/*/calls', (route) => {
+    started = true;
+    return route.fulfill({ status: 201, json: snapshot });
+  });
+  await page.route('**/api/calls/*/token', (route) =>
+    route.fulfill({ status: 503, json: { status: 503, code: 'media_unavailable' } }),
+  );
+  await page.route('**/api/calls/*/leave', (route) => route.fulfill({ status: 204 }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start call', exact: true }).click();
+  await expect.poll(() => started).toBe(true);
+  await expect(page.getByTestId('prejoin')).toHaveCount(0);
 });

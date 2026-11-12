@@ -2849,11 +2849,13 @@ type CallState string
 
 // CallParticipant defines model for CallParticipant.
 type CallParticipant struct {
-	Id       openapi_types.UUID   `json:"id"`
-	JoinedAt *time.Time           `json:"joined_at,omitempty"`
-	LeftAt   *time.Time           `json:"left_at,omitempty"`
-	State    CallParticipantState `json:"state"`
-	UserId   *openapi_types.UUID  `json:"user_id,omitempty"`
+	// HandRaisedAt A raised hand, since when.
+	HandRaisedAt *time.Time           `json:"hand_raised_at,omitempty"`
+	Id           openapi_types.UUID   `json:"id"`
+	JoinedAt     *time.Time           `json:"joined_at,omitempty"`
+	LeftAt       *time.Time           `json:"left_at,omitempty"`
+	State        CallParticipantState `json:"state"`
+	UserId       *openapi_types.UUID  `json:"user_id,omitempty"`
 }
 
 // CallParticipantState defines model for CallParticipant.State.
@@ -4993,6 +4995,16 @@ type AnswerCallJSONBody struct {
 // AnswerCallJSONBodyAnswer defines parameters for AnswerCall.
 type AnswerCallJSONBodyAnswer string
 
+// SetCallHandJSONBody defines parameters for SetCallHand.
+type SetCallHandJSONBody struct {
+	Raised bool `json:"raised"`
+}
+
+// SendCallReactionJSONBody defines parameters for SendCallReaction.
+type SendCallReactionJSONBody struct {
+	Emoji string `json:"emoji"`
+}
+
 // CreateCallToken200JSONResponseBodyExpiresIn defines parameters for CreateCallToken.
 type CreateCallToken200JSONResponseBodyExpiresIn int
 
@@ -5806,6 +5818,12 @@ type CreateWebhookJSONRequestBody CreateWebhookJSONBody
 // AnswerCallJSONRequestBody defines body for AnswerCall for application/json ContentType.
 type AnswerCallJSONRequestBody AnswerCallJSONBody
 
+// SetCallHandJSONRequestBody defines body for SetCallHand for application/json ContentType.
+type SetCallHandJSONRequestBody SetCallHandJSONBody
+
+// SendCallReactionJSONRequestBody defines body for SendCallReaction for application/json ContentType.
+type SendCallReactionJSONRequestBody SendCallReactionJSONBody
+
 // SaveCanvasJSONRequestBody defines body for SaveCanvas for application/json ContentType.
 type SaveCanvasJSONRequestBody SaveCanvasJSONBody
 
@@ -6374,9 +6392,15 @@ type ServerInterface interface {
 	// AnswerCall Accept or decline a direct call while it is ringing
 	// (POST /api/calls/{id}/answer)
 	AnswerCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SetCallHand Raise or lower your hand in a call
+	// (PUT /api/calls/{id}/hand)
+	SetCallHand(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// LeaveCall Leave the caller's participant session, idempotently
 	// (POST /api/calls/{id}/leave)
 	LeaveCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SendCallReaction Send a reaction to everyone in a call
+	// (POST /api/calls/{id}/reactions)
+	SendCallReaction(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// CreateCallToken Reserve a participant slot and issue one media admission token
 	// (POST /api/calls/{id}/token)
 	CreateCallToken(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
@@ -7553,9 +7577,21 @@ func (_ Unimplemented) AnswerCall(w http.ResponseWriter, r *http.Request, id ope
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SetCallHand Raise or lower your hand in a call
+// (PUT /api/calls/{id}/hand)
+func (_ Unimplemented) SetCallHand(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // LeaveCall Leave the caller's participant session, idempotently
 // (POST /api/calls/{id}/leave)
 func (_ Unimplemented) LeaveCall(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SendCallReaction Send a reaction to everyone in a call
+// (POST /api/calls/{id}/reactions)
+func (_ Unimplemented) SendCallReaction(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10765,6 +10801,32 @@ func (siw *ServerInterfaceWrapper) AnswerCall(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// SetCallHand operation middleware
+func (siw *ServerInterfaceWrapper) SetCallHand(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetCallHand(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // LeaveCall operation middleware
 func (siw *ServerInterfaceWrapper) LeaveCall(w http.ResponseWriter, r *http.Request) {
 
@@ -10782,6 +10844,32 @@ func (siw *ServerInterfaceWrapper) LeaveCall(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.LeaveCall(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SendCallReaction operation middleware
+func (siw *ServerInterfaceWrapper) SendCallReaction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SendCallReaction(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18649,6 +18737,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/leave", wrapper.LeaveCall)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/calls/{id}/hand", wrapper.SetCallHand)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/calls/{id}/reactions", wrapper.SendCallReaction)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/workspaces", wrapper.ListWorkspaces)
