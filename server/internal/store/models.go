@@ -714,6 +714,12 @@ type NotifyCursor struct {
 	CursorUser pgtype.UUID `json:"cursor_user"`
 }
 
+type OooReply struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	ChannelID pgtype.UUID `json:"channel_id"`
+	SentAt    time.Time   `json:"sent_at"`
+}
+
 type Picture struct {
 	ID          pgtype.UUID `json:"id"`
 	ContentType string      `json:"content_type"`
@@ -944,6 +950,9 @@ type User struct {
 	TermsAcceptedID       pgtype.UUID        `json:"terms_accepted_id"`
 	ShareReadReceipts     bool               `json:"share_read_receipts"`
 	GuestLinkID           pgtype.UUID        `json:"guest_link_id"`
+	OooFrom               pgtype.Timestamptz `json:"ooo_from"`
+	OooUntil              pgtype.Timestamptz `json:"ooo_until"`
+	OooMessage            string             `json:"ooo_message"`
 }
 
 type UserFont struct {

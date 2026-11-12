@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useMediaQuery } from '@cenacle/ui/hooks/use-media-query';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../i18n/time-format';
 import type { Profile } from './profiles';
 
 /** The picture to show: the still first frame when motion is reduced. */
@@ -55,4 +57,15 @@ export function sinceText(at: Date, locale: string, now = Date.now()): string {
     value = Math.round(value / size);
   }
   return rtf.format(value, 'year');
+}
+
+/** The day someone is back, as people say it ("Mon, Nov 16"). */
+export function useBackDay() {
+  const { i18n } = useTranslation();
+  const fmt = new Intl.DateTimeFormat(dateLocale(i18n.language), {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  return (until: string) => fmt.format(new Date(until));
 }

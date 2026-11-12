@@ -382,6 +382,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/me/out-of-office': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Say you are out of office
+     * @description From `from` until `until` (within a year) the profile says so, and a direct
+     *     message to you gets one automatic reply per conversation: `message`, or a default
+     *     one naming the day you are back.
+     */
+    put: operations['setOutOfOffice'];
+    post?: never;
+    /** Say you are back */
+    delete: operations['clearOutOfOffice'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/me/avatar': {
     parameters: {
       query?: never;
@@ -6781,6 +6804,16 @@ export interface components {
       /** @description Left the organisation; messages stay. */
       deactivated: boolean;
       guest: boolean;
+      /** @description An absence that has not ended (it may start later); null when there is none. */
+      out_of_office?: components['schemas']['OutOfOffice'] | null;
+    };
+    OutOfOffice: {
+      /** Format: date-time */
+      from: string;
+      /** Format: date-time */
+      until: string;
+      /** @description The automatic reply's words (empty for the default one). */
+      message: string;
     };
     MyProfile: components['schemas']['Profile'] & {
       /** @description False when the @username is the directory's sign-in name. */
@@ -7042,6 +7075,11 @@ export interface components {
     };
     /** @description A card under a message, e.g. from a bot (an issue, an alert). */
     Attachment: {
+      /** @description The message is an automatic reply of someone out of office. */
+      auto_reply?: {
+        /** Format: date-time */
+        until: string;
+      };
       call_summary?: components['schemas']['CallSummary'];
       channel_event?: components['schemas']['ChannelLine'];
       title?: string;
@@ -7907,6 +7945,51 @@ export interface operations {
     };
   };
   clearCustomStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cleared. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Problem'];
+    };
+  };
+  setOutOfOffice: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OutOfOffice'];
+      };
+    };
+    responses: {
+      /** @description Set. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MyProfile'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+    };
+  };
+  clearOutOfOffice: {
     parameters: {
       query?: never;
       header?: never;

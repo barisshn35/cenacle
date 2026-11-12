@@ -23,6 +23,7 @@ import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { MessageList } from '../chat/message-list';
 import { stopPicking, usePicking } from '../chat/message-select';
 import { PickBar } from '../chat/pick-bar';
+import { AwayNotice } from '../profile/away';
 import { CanvasView } from '../collab/canvas-view';
 import { ChannelTabs } from '../collab/channel-tabs';
 import { tabsQuery } from '../collab/collab';
@@ -190,12 +191,17 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
           ) : channel.can_post && channel.encrypted && !canWrite ? (
             <UnlockPanel channel={channel} />
           ) : channel.can_post ? (
-            <Composer
-              key={`composer-${id}`}
-              channelId={id}
-              channelName={name}
-              slowMode={channel.can_manage ? 0 : (channel.slow_mode_seconds ?? 0)}
-            />
+            <>
+              {channel.kind === 'direct' && channel.participants[0] && (
+                <AwayNotice userId={channel.participants[0].id} name={name} />
+              )}
+              <Composer
+                key={`composer-${id}`}
+                channelId={id}
+                channelName={name}
+                slowMode={channel.can_manage ? 0 : (channel.slow_mode_seconds ?? 0)}
+              />
+            </>
           ) : (
             <footer className="shrink-0 px-4 pb-4">
               <p

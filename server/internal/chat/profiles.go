@@ -72,6 +72,9 @@ func profileAPI(row store.GetProfilesRow) api.Profile {
 	if row.ShowLastSeen && row.LastSeenAt.Valid {
 		p.LastSeenAt = &row.LastSeenAt.Time
 	}
+	if row.OooCurrent {
+		p.OutOfOffice = outOfOfficeAPI(row.OooFrom, row.OooUntil, row.OooMessage)
+	}
 	return p
 }
 
@@ -128,7 +131,7 @@ func (h *Handlers) myProfile(ctx context.Context, user pgtype.UUID) (api.MyProfi
 		Id: pr.Id, DisplayName: pr.DisplayName, Username: pr.Username, Email: pr.Email,
 		IsBot: pr.IsBot, AvatarUrl: pr.AvatarUrl, AvatarStillUrl: pr.AvatarStillUrl,
 		Timezone: pr.Timezone, Status: pr.Status, LastSeenAt: pr.LastSeenAt,
-		Deactivated: pr.Deactivated, Guest: pr.Guest,
+		Deactivated: pr.Deactivated, Guest: pr.Guest, OutOfOffice: pr.OutOfOffice,
 		UsernameEditable:  !row.UsernameFromDirectory,
 		ShowLastSeen:      row.ShowLastSeen,
 		ShareReadReceipts: ptr(row.ShareReadReceipts),

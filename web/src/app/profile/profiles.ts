@@ -6,6 +6,7 @@ import { dateLocale } from '../../i18n/time-format';
 export type Profile = components['schemas']['Profile'];
 export type MyProfile = components['schemas']['MyProfile'];
 export type CustomStatus = components['schemas']['CustomStatus'];
+export type OutOfOffice = components['schemas']['OutOfOffice'];
 
 const json = (body: unknown, method: string): RequestInit => ({
   method,
@@ -88,6 +89,18 @@ export const updateMyProfile = (patch: {
 export const setCustomStatus = (status: CustomStatus) =>
   apiFetch<MyProfile>('/api/me/status', json(status, 'PUT'));
 export const clearCustomStatus = () => apiFetch<void>('/api/me/status', { method: 'DELETE' });
+
+export const setOutOfOffice = (o: OutOfOffice) =>
+  apiFetch<MyProfile>('/api/me/out-of-office', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(o),
+  });
+export const clearOutOfOffice = () => apiFetch<void>('/api/me/out-of-office', { method: 'DELETE' });
+
+/** Out of office now (an absence may be set ahead). */
+export const isAway = (o: OutOfOffice | null | undefined, now = Date.now()) =>
+  !!o && Date.parse(o.from) <= now && now < Date.parse(o.until);
 
 export const uploadAvatar = (file: Blob) =>
   apiFetch<MyProfile>('/api/me/avatar', {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test';
 import {
+  directWith,
   expectNoAxeViolations,
   expectTargetSizes,
   GENERAL,
@@ -41,6 +42,75 @@ test.describe('profiles', () => {
 
     await card.getByRole('button', { name: 'Message' }).click();
     await expect(page).toHaveURL(/\/c\/01a15e50-dddd/);
+  });
+
+  test('people say they are out of office; others see it and get an automatic reply', async ({
+    page,
+  }, testInfo) => {
+    const api = await mockApi(page, { messages: [fromAyse()] });
+    await page.goto(`/c/${GENERAL.id}`);
+    await page.getByRole('button', { name: /^Status: / }).click();
+    await page.getByRole('menuitem', { name: 'Set out of office' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Out of office' });
+    const back = new Date(Date.now() + 3 * 86_400_000);
+    const day = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    await dialog.getByLabel('Back on').fill(day(new Date()));
+    await expect(dialog.getByText('Choose a day after the first day away')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await dialog.getByLabel('Back on').fill(day(back));
+    await dialog.getByLabel('Automatic reply (optional)').fill('Ask Mert meanwhile.');
+    await expectTargetSizes(page, testInfo, '[role="dialog"]');
+    await expectNoAxeViolations(page, '[role="dialog"]');
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Out of office is set.')).toBeVisible();
+    const set = api.profiles[SESSION.user.id]!.out_of_office!;
+    expect(set.message).toBe('Ask Mert meanwhile.');
+    expect(new Date(set.until).getDate()).toBe(back.getDate());
+
+    // Back again: the menu ends it.
+    await page.getByRole('button', { name: /^Status: / }).click();
+    await page.getByRole('menuitem', { name: 'Change out of office' }).click();
+    await page
+      .getByRole('dialog', { name: 'Out of office' })
+      .getByRole('button', { name: "I'm back" })
+      .click();
+    await expect(page.getByText('Welcome back. The automatic reply is off.')).toBeVisible();
+    expect(api.profiles[SESSION.user.id]!.out_of_office).toBeNull();
+  });
+
+  test('someone out of office shows it on the card, in the conversation and in the automatic reply', async ({
+    page,
+  }) => {
+    const until = new Date(Date.now() + 2 * 86_400_000).toISOString();
+    const dm = directWith(AYSE);
+    const reply = {
+      ...mockMessage(2, ''),
+      channel_id: dm.id,
+      author: { id: AYSE.id, display_name: AYSE.display_name },
+      attachments: [{ auto_reply: { until } }],
+    };
+    const api = await mockApi(page, { channels: [dm], messages: [fromAyse(), reply] });
+    api.profiles[AYSE.id]!.out_of_office = {
+      from: new Date(Date.now() - 3_600_000).toISOString(),
+      until,
+      message: 'Ask Mert meanwhile.',
+    };
+    await page.goto(`/c/${GENERAL.id}`);
+    await page.getByTestId('message').first().getByRole('button', { name: 'Ayşe Yılmaz' }).click();
+    const card = page.getByTestId('profile-card');
+    await expect(card.getByTestId('away')).toContainText('Out of office until');
+    await expect(card.getByTestId('away')).toContainText('Ask Mert meanwhile.');
+    await page.keyboard.press('Escape');
+
+    await page.goto(`/c/${dm.id}`);
+    await expect(page.getByTestId('away-notice')).toContainText(
+      'Ayşe Yılmaz is out of office until',
+    );
+    const auto = page.getByTestId('message').filter({ has: page.getByTestId('auto-reply') });
+    await expect(auto).toContainText('Automatic reply');
+    await expect(auto).toContainText('Ayşe Yılmaz is out of office and back on');
+    await expectNoAxeViolations(page, '[role="log"]');
   });
 
   test('setting a custom status and editing the profile', async ({ page }, testInfo) => {

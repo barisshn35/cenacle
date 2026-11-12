@@ -319,7 +319,7 @@ func (q *Queries) GetDirectorySyncState(ctx context.Context) (DirectorySyncState
 }
 
 const getUserByAuth = `-- name: GetUserByAuth :one
-SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id FROM users WHERE auth_service = $1 AND auth_data = $2
+SELECT id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id, ooo_from, ooo_until, ooo_message FROM users WHERE auth_service = $1 AND auth_data = $2
 `
 
 type GetUserByAuthParams struct {
@@ -359,6 +359,9 @@ func (q *Queries) GetUserByAuth(ctx context.Context, arg GetUserByAuthParams) (U
 		&i.TermsAcceptedID,
 		&i.ShareReadReceipts,
 		&i.GuestLinkID,
+		&i.OooFrom,
+		&i.OooUntil,
+		&i.OooMessage,
 	)
 	return i, err
 }
@@ -1025,7 +1028,7 @@ func (q *Queries) UpsertWorkspaceGroupMapping(ctx context.Context, arg UpsertWor
 }
 
 const usersInGroup = `-- name: UsersInGroup :many
-SELECT DISTINCT u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts, u.guest_link_id FROM users u JOIN user_groups g ON g.user_id = u.id
+SELECT DISTINCT u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts, u.guest_link_id, u.ooo_from, u.ooo_until, u.ooo_message FROM users u JOIN user_groups g ON g.user_id = u.id
 WHERE lower(g.group_name) = lower($1) AND u.deactivated_at IS NULL
 `
 
@@ -1067,6 +1070,9 @@ func (q *Queries) UsersInGroup(ctx context.Context, groupName string) ([]User, e
 			&i.TermsAcceptedID,
 			&i.ShareReadReceipts,
 			&i.GuestLinkID,
+			&i.OooFrom,
+			&i.OooUntil,
+			&i.OooMessage,
 		); err != nil {
 			return nil, err
 		}

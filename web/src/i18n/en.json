@@ -853,6 +853,26 @@
     "keep": "Keep as it is"
   },
   "profile": {
+    "away": {
+      "set": "Set out of office",
+      "change": "Change out of office",
+      "title": "Out of office",
+      "description": "While you are away your profile says so, and a direct message to you gets one automatic reply.",
+      "from": "First day away",
+      "back": "Back on",
+      "backAfter": "Choose a day after the first day away, in the future.",
+      "message": "Automatic reply (optional)",
+      "messageHint": "Left empty, the reply says when you are back.",
+      "save": "Save",
+      "end": "I'm back",
+      "saved": "Out of office is set.",
+      "ended": "Welcome back. The automatic reply is off.",
+      "failed": "Out of office could not be saved. Try again.",
+      "until": "Out of office until {{day}}",
+      "notice": "{{name}} is out of office until {{day}}.",
+      "autoReply": "Automatic reply",
+      "defaultReply": "{{name}} is out of office and back on {{day}}."
+    },
     "until": "until {{time}}",
     "presence": "Status",
     "lastSeen": "last seen {{when}}",

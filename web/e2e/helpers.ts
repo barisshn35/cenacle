@@ -314,6 +314,7 @@ export interface MockProfile {
   avatar_still_url: string | null;
   timezone: string;
   status: { emoji: string; text: string; expires_at?: string | null } | null;
+  out_of_office?: { from: string; until: string; message: string } | null;
   last_seen_at: string | null;
   deactivated: boolean;
   guest: boolean;
@@ -753,6 +754,14 @@ export async function mockApi(
     const st = route.request().postDataJSON() as { emoji: string; text: string };
     self().status = st;
     recent.unshift({ emoji: st.emoji, text: st.text });
+    return route.fulfill({ json: myProfile() });
+  });
+  await page.route('**/api/me/out-of-office', (route) => {
+    if (route.request().method() === 'DELETE') {
+      self().out_of_office = null;
+      return route.fulfill({ status: 204 });
+    }
+    self().out_of_office = route.request().postDataJSON();
     return route.fulfill({ json: myProfile() });
   });
   await page.route('**/api/me/avatar', (route) => {

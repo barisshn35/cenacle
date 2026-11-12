@@ -30,10 +30,12 @@ export function Attachments({
   /** The message the cards are in: their buttons and menus work there only. */
   message?: { id: string; channel_id: string };
 }) {
-  if (items.length === 0) return null;
+  // An automatic reply is marked on the message itself, not as a card.
+  const cards = items.filter((a) => !a.auto_reply);
+  if (cards.length === 0) return null;
   return (
     <div className="mt-1 flex max-w-xl flex-col gap-1.5">
-      {items.map((a, i) =>
+      {cards.map((a, i) =>
         summaryOf(a) ? (
           <CallSummaryCard key={i} summary={summaryOf(a)!} />
         ) : (

@@ -58,7 +58,7 @@ func (q *Queries) CreateGuestLink(ctx context.Context, arg CreateGuestLinkParams
 const createLinkGuest = `-- name: CreateLinkGuest :one
 INSERT INTO users (auth_service, auth_data, display_name, directory_role, guest_link_id)
 VALUES ('guest-link', $1, $2, 'guest', $3)
-RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id
+RETURNING id, auth_service, auth_data, email, email_verified, display_name, created_at, updated_at, last_login_at, is_admin, is_bot, username, directory_role, deactivated_at, avatar_id, avatar_from_directory, directory_photo, timezone, show_last_seen, last_seen_at, status_emoji, status_text, status_expires_at, recent_statuses, username_from_directory, terms_accepted_id, share_read_receipts, guest_link_id, ooo_from, ooo_until, ooo_message
 `
 
 type CreateLinkGuestParams struct {
@@ -99,6 +99,9 @@ func (q *Queries) CreateLinkGuest(ctx context.Context, arg CreateLinkGuestParams
 		&i.TermsAcceptedID,
 		&i.ShareReadReceipts,
 		&i.GuestLinkID,
+		&i.OooFrom,
+		&i.OooUntil,
+		&i.OooMessage,
 	)
 	return i, err
 }

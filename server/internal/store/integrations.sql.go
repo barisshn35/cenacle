@@ -382,7 +382,7 @@ func (q *Queries) FinishScheduled(ctx context.Context, arg FinishScheduledParams
 }
 
 const getWorkspaceCommand = `-- name: GetWorkspaceCommand :one
-SELECT c.id, c.bot_id, c.workspace_id, c.trigger, c.url, c.description, c.hint, c.secret, c.created_by, c.created_at, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts, u.guest_link_id
+SELECT c.id, c.bot_id, c.workspace_id, c.trigger, c.url, c.description, c.hint, c.secret, c.created_by, c.created_at, u.id, u.auth_service, u.auth_data, u.email, u.email_verified, u.display_name, u.created_at, u.updated_at, u.last_login_at, u.is_admin, u.is_bot, u.username, u.directory_role, u.deactivated_at, u.avatar_id, u.avatar_from_directory, u.directory_photo, u.timezone, u.show_last_seen, u.last_seen_at, u.status_emoji, u.status_text, u.status_expires_at, u.recent_statuses, u.username_from_directory, u.terms_accepted_id, u.share_read_receipts, u.guest_link_id, u.ooo_from, u.ooo_until, u.ooo_message
 FROM slash_commands c JOIN bots b ON b.id = c.bot_id JOIN users u ON u.id = b.user_id
 WHERE c.workspace_id = $1 AND c.trigger = $2 AND b.disabled_at IS NULL
 `
@@ -439,6 +439,9 @@ func (q *Queries) GetWorkspaceCommand(ctx context.Context, arg GetWorkspaceComma
 		&i.User.TermsAcceptedID,
 		&i.User.ShareReadReceipts,
 		&i.User.GuestLinkID,
+		&i.User.OooFrom,
+		&i.User.OooUntil,
+		&i.User.OooMessage,
 	)
 	return i, err
 }

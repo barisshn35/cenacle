@@ -114,6 +114,10 @@ type Querier interface {
 	// ClaimImportedUser gives an imported person's account to the identity that
 	// signs in with their verified address for the first time.
 	ClaimImportedUser(ctx context.Context, arg ClaimImportedUserParams) (User, error)
+	// ClaimOutOfOfficeReplies returns the people of a conversation (not the
+	// sender) who are away now and have not answered it automatically in this
+	// absence, and notes that they now have.
+	ClaimOutOfOfficeReplies(ctx context.Context, arg ClaimOutOfOfficeRepliesParams) ([]pgtype.UUID, error)
 	// ClaimUpload lets one completion check an upload (for ten minutes): no row
 	// when the file is not the uploader's unchecked upload or another
 	// completion holds it.
@@ -125,6 +129,7 @@ type Querier interface {
 	ClearCustomStatus(ctx context.Context, id pgtype.UUID) error
 	// ClearExpiredStatuses empties custom statuses whose time is up.
 	ClearExpiredStatuses(ctx context.Context) ([]pgtype.UUID, error)
+	ClearOutOfOffice(ctx context.Context, id pgtype.UUID) error
 	ClearPollVotes(ctx context.Context, arg ClearPollVotesParams) error
 	CloseCallParticipants(ctx context.Context, callID pgtype.UUID) error
 	ClosePoll(ctx context.Context, messageID pgtype.UUID) error
@@ -1064,6 +1069,9 @@ type Querier interface {
 	SetNotificationPrefs(ctx context.Context, arg SetNotificationPrefsParams) error
 	SetNotifyCursor(ctx context.Context, arg SetNotifyCursorParams) error
 	SetOnboarded(ctx context.Context, arg SetOnboardedParams) (int64, error)
+	// SetOutOfOffice sets an absence and forgets which conversations got the
+	// automatic reply of the one before.
+	SetOutOfOffice(ctx context.Context, arg SetOutOfOfficeParams) error
 	SetPinned(ctx context.Context, arg SetPinnedParams) (Message, error)
 	SetRecovery(ctx context.Context, arg SetRecoveryParams) (E2eRecovery, error)
 	// SetReminderMessage records the message a reminder is about.

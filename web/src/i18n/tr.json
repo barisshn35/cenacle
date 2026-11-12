@@ -853,6 +853,26 @@
     "keep": "Olduğu gibi bırak"
   },
   "profile": {
+    "away": {
+      "set": "İzinde olduğunuzu belirtin",
+      "change": "İzin durumunu değiştir",
+      "title": "İzindeyim",
+      "description": "İzindeyken profiliniz bunu gösterir ve size gelen doğrudan mesajlara bir kez otomatik yanıt gider.",
+      "from": "İznin ilk günü",
+      "back": "Dönüş günü",
+      "backAfter": "İznin ilk gününden sonra, ileri bir gün seçin.",
+      "message": "Otomatik yanıt (isteğe bağlı)",
+      "messageHint": "Boş bırakırsanız yanıt, ne zaman döneceğinizi söyler.",
+      "save": "Kaydet",
+      "end": "Döndüm",
+      "saved": "İzin durumu ayarlandı.",
+      "ended": "Hoş geldiniz. Otomatik yanıt kapandı.",
+      "failed": "İzin durumu kaydedilemedi. Yeniden deneyin.",
+      "until": "{{day}} tarihine kadar izinde",
+      "notice": "{{name}}, {{day}} tarihine kadar izinde.",
+      "autoReply": "Otomatik yanıt",
+      "defaultReply": "{{name}} izinde, {{day}} tarihinde dönüyor."
+    },
     "until": "{{time}} saatine kadar",
     "presence": "Durum",
     "lastSeen": "son görülme {{when}}",

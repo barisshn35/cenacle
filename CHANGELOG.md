@@ -10,6 +10,10 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Out of office (the status menu): the first day away, the day back and an optional
+  automatic reply. Meanwhile the profile card and a direct conversation with you say so, and
+  a direct message to you gets one automatic reply per conversation. Migration 00073; the data
+  export and erasure include it.
 - Group conversations can be named by their people (in the conversation's details, or as it
   starts); the name shows instead of the people's names, and a line in the conversation says
   who named it. Migration 00072 adds the column.

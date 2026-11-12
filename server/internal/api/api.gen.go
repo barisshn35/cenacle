@@ -2567,6 +2567,11 @@ type Attachment struct {
 	// Actions Buttons and menus (bots with an interactions address).
 	Actions *[]AttachmentAction `json:"actions,omitempty"`
 
+	// AutoReply The message is an automatic reply of someone out of office.
+	AutoReply *struct {
+		Until time.Time `json:"until"`
+	} `json:"auto_reply,omitempty"`
+
 	// CallSummary Server-authored, local-only call outcome. Never contains media, device or session data.
 	CallSummary *CallSummary `json:"call_summary,omitempty"`
 
@@ -3841,7 +3846,10 @@ type MyProfile struct {
 	IsBot       bool               `json:"is_bot"`
 
 	// LastSeenAt When they were last online (null when unknown or hidden by them).
-	LastSeenAt        *time.Time     `json:"last_seen_at"`
+	LastSeenAt *time.Time `json:"last_seen_at"`
+
+	// OutOfOffice An absence that has not ended (it may start later); null when there is none.
+	OutOfOffice       *OutOfOffice   `json:"out_of_office,omitempty"`
 	RecentStatuses    []CustomStatus `json:"recent_statuses"`
 	ShareReadReceipts *bool          `json:"share_read_receipts,omitempty"`
 	ShowLastSeen      bool           `json:"show_last_seen"`
@@ -4007,6 +4015,15 @@ type NotificationSettings struct {
 // NotificationSound A built-in sound, 'none', or 'user:<sound id>' for one you uploaded.
 type NotificationSound = string
 
+// OutOfOffice defines model for OutOfOffice.
+type OutOfOffice struct {
+	From time.Time `json:"from"`
+
+	// Message The automatic reply's words (empty for the default one).
+	Message string    `json:"message"`
+	Until   time.Time `json:"until"`
+}
+
 // Permissions What the user may do across the instance. Rights inside a workspace follow
 // the role there (see Workspace).
 type Permissions struct {
@@ -4118,8 +4135,11 @@ type Profile struct {
 	IsBot       bool               `json:"is_bot"`
 
 	// LastSeenAt When they were last online (null when unknown or hidden by them).
-	LastSeenAt *time.Time    `json:"last_seen_at"`
-	Status     *CustomStatus `json:"status"`
+	LastSeenAt *time.Time `json:"last_seen_at"`
+
+	// OutOfOffice An absence that has not ended (it may start later); null when there is none.
+	OutOfOffice *OutOfOffice  `json:"out_of_office,omitempty"`
+	Status      *CustomStatus `json:"status"`
 
 	// Timezone IANA time zone, '' when unknown.
 	Timezone string `json:"timezone"`
@@ -5899,6 +5919,9 @@ type SetMyAppearanceJSONRequestBody = Appearance
 // SetNotificationPrefsJSONRequestBody defines body for SetNotificationPrefs for application/json ContentType.
 type SetNotificationPrefsJSONRequestBody = NotificationPrefs
 
+// SetOutOfOfficeJSONRequestBody defines body for SetOutOfOffice for application/json ContentType.
+type SetOutOfOfficeJSONRequestBody = OutOfOffice
+
 // UpdateMyProfileJSONRequestBody defines body for UpdateMyProfile for application/json ContentType.
 type UpdateMyProfileJSONRequestBody UpdateMyProfileJSONBody
 
@@ -6710,6 +6733,12 @@ type ServerInterface interface {
 	// SetNotificationPrefs Save your notification settings
 	// (PUT /api/me/notifications)
 	SetNotificationPrefs(w http.ResponseWriter, r *http.Request)
+	// ClearOutOfOffice Say you are back
+	// (DELETE /api/me/out-of-office)
+	ClearOutOfOffice(w http.ResponseWriter, r *http.Request)
+	// SetOutOfOffice Say you are out of office
+	// (PUT /api/me/out-of-office)
+	SetOutOfOffice(w http.ResponseWriter, r *http.Request)
 	// GetMyProfile Your profile and its settings
 	// (GET /api/me/profile)
 	GetMyProfile(w http.ResponseWriter, r *http.Request)
@@ -8279,6 +8308,18 @@ func (_ Unimplemented) GetNotificationSettings(w http.ResponseWriter, r *http.Re
 // SetNotificationPrefs Save your notification settings
 // (PUT /api/me/notifications)
 func (_ Unimplemented) SetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ClearOutOfOffice Say you are back
+// (DELETE /api/me/out-of-office)
+func (_ Unimplemented) ClearOutOfOffice(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetOutOfOffice Say you are out of office
+// (PUT /api/me/out-of-office)
+func (_ Unimplemented) SetOutOfOffice(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -14337,6 +14378,34 @@ func (siw *ServerInterfaceWrapper) SetNotificationPrefs(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// ClearOutOfOffice operation middleware
+func (siw *ServerInterfaceWrapper) ClearOutOfOffice(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearOutOfOffice(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetOutOfOffice operation middleware
+func (siw *ServerInterfaceWrapper) SetOutOfOffice(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetOutOfOffice(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMyProfile operation middleware
 func (siw *ServerInterfaceWrapper) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 
@@ -18544,6 +18613,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/me/status", wrapper.SetCustomStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/me/out-of-office", wrapper.ClearOutOfOffice)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/me/out-of-office", wrapper.SetOutOfOffice)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/me/avatar", wrapper.DeleteAvatar)

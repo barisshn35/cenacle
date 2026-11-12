@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CustomStatusDialog } from './custom-status-dialog';
 import { useProfileDialogs } from './dialogs-state';
 import { EditProfileDialog } from './edit-profile-dialog';
+import { OutOfOfficeDialog } from './out-of-office-dialog';
 import { browserTimeZone, myProfileQuery, saved, updateMyProfile } from './profiles';
 
 /**
@@ -34,6 +35,7 @@ export function ProfileDialogs() {
     <>
       {dialog === 'edit' && <EditProfileDialog open onOpenChange={onOpenChange} />}
       {dialog === 'status' && <CustomStatusDialog open onOpenChange={onOpenChange} />}
+      {dialog === 'away' && <OutOfOfficeDialog open onOpenChange={onOpenChange} />}
     </>
   );
 }

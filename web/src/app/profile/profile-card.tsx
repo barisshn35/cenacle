@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { AwayLine } from './away';
 import { useState, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -21,7 +22,7 @@ import { PresenceIndicator } from '../shell/presence';
 import { Avatar } from './avatar';
 import { useProfileDialogs } from './dialogs-state';
 import { sinceText } from './format';
-import { localTime, useProfile, type CustomStatus } from './profiles';
+import { isAway, localTime, useProfile, type CustomStatus } from './profiles';
 import { dateLocale } from '../../i18n/time-format';
 
 /** The emoji and text of a custom status, as one line. */
@@ -121,6 +122,9 @@ function CardBody({ userId, name, onDone }: { userId: string; name: string; onDo
           )}
         </div>
         {profile?.status && <StatusLine status={profile.status} className="text-sm" />}
+        {isAway(profile?.out_of_office) && (
+          <AwayLine away={profile!.out_of_office!} withMessage className="text-center text-sm" />
+        )}
       </div>
       <dl className="flex flex-col gap-2 border-t px-4 py-3 text-sm">
         {!profile?.is_bot && (

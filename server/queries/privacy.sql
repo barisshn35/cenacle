@@ -140,6 +140,7 @@ WHERE actor_id = @user_id;
 UPDATE users SET display_name = @display_name, email = '', email_verified = false, username = NULL,
     avatar_id = NULL, avatar_from_directory = false, directory_photo = '', timezone = '',
     status_emoji = '', status_text = '', status_expires_at = NULL, recent_statuses = '[]',
+    ooo_from = NULL, ooo_until = NULL, ooo_message = '',
     auth_service = 'erased', auth_data = 'erased:' || id::text, directory_role = NULL, is_admin = false,
     deactivated_at = coalesce(deactivated_at, now()), last_seen_at = NULL, updated_at = now()
 WHERE id = @id AND NOT is_bot

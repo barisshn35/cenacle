@@ -358,6 +358,11 @@ func (h *Handlers) CreateMessage(w http.ResponseWriter, r *http.Request, channel
 		if err := flagMessage(r.Context(), q, c, out.Id, flags); err != nil {
 			return err
 		}
+		if !reply.isReply() && !extra.burn.Valid {
+			if err := answerAbsent(r.Context(), q, c, p.User); err != nil {
+				return err
+			}
+		}
 		if extra.burn.Valid || body == "" || c.Encrypted {
 			return nil
 		}

@@ -53,6 +53,7 @@ import { ProfileCard } from '../profile/profile-card';
 import { BotBadge } from './bot-badge';
 import { MessageBody } from './markdown/message-body';
 import { MessageActions, MessageEditor } from './message-actions';
+import { AutoReplyLabel } from '../profile/away';
 import { useMarkUnread } from './mark-unread';
 import { EditedLabel } from './edit-history';
 import { AckBar, PriorityLabel } from './priority';
@@ -315,6 +316,13 @@ export function MessageRow({
                 </p>
               )}
               <PriorityLabel message={m} />
+              {m.attachments?.[0]?.auto_reply && (
+                <AutoReplyLabel
+                  until={m.attachments[0].auto_reply.until}
+                  name={m.author.display_name}
+                  empty={!m.body}
+                />
+              )}
               {m.burn ? <BurnBody message={m} /> : m.body && <Body message={m} selfId={self} />}
               {m.sticker && <StickerImage sticker={m.sticker} />}
               {m.task && <TaskCard task={m.task} />}

@@ -7,7 +7,10 @@ SELECT u.id, u.display_name, u.username, u.username_from_directory, u.email, u.i
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_emoji ELSE '' END::text AS status_emoji,
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_text ELSE '' END::text AS status_text,
        u.status_expires_at,
-       u.recent_statuses
+       u.recent_statuses,
+       -- Out of office, shown while it has not ended (it may start later).
+       u.ooo_from, u.ooo_until, u.ooo_message,
+       coalesce(u.ooo_until > now(), false)::boolean AS ooo_current
 FROM users u
 LEFT JOIN pictures p ON p.id = u.avatar_id
 WHERE u.id = ANY(@ids::uuid[]);
@@ -123,3 +126,26 @@ WHERE u.id = ANY(@ids::uuid[]) AND (
     OR EXISTS (SELECT 1 FROM channel_members a
                JOIN channel_members b ON b.channel_id = a.channel_id AND b.user_id = u.id
                WHERE a.user_id = @viewer));
+
+-- name: SetOutOfOffice :exec
+-- SetOutOfOffice sets an absence and forgets which conversations got the
+-- automatic reply of the one before.
+WITH forget AS (DELETE FROM ooo_replies WHERE user_id = @id)
+UPDATE users SET ooo_from = @from_at, ooo_until = @until_at, ooo_message = @message, updated_at = now()
+WHERE id = @id;
+
+-- name: ClearOutOfOffice :exec
+UPDATE users SET ooo_from = NULL, ooo_until = NULL, ooo_message = '', updated_at = now() WHERE id = @id;
+
+-- name: ClaimOutOfOfficeReplies :many
+-- ClaimOutOfOfficeReplies returns the people of a conversation (not the
+-- sender) who are away now and have not answered it automatically in this
+-- absence, and notes that they now have.
+INSERT INTO ooo_replies (user_id, channel_id)
+SELECT u.id, @channel_id::uuid
+FROM channel_members m JOIN users u ON u.id = m.user_id
+WHERE m.channel_id = @channel_id AND m.user_id <> @sender_id
+  AND u.ooo_from <= now() AND u.ooo_until > now()
+  AND u.deactivated_at IS NULL AND NOT u.is_bot
+ON CONFLICT DO NOTHING
+RETURNING user_id;

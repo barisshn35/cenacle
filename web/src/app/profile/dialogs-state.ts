@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { create } from 'zustand';
 
-type Dialog = 'edit' | 'status' | null;
+type Dialog = 'edit' | 'status' | 'away' | null;
 
 /** Which profile dialog is open (they open from the card, the menu and settings). */
 export const useProfileDialogs = create<{

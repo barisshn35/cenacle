@@ -26,6 +26,45 @@ func (q *Queries) AssignUsername(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const claimOutOfOfficeReplies = `-- name: ClaimOutOfOfficeReplies :many
+INSERT INTO ooo_replies (user_id, channel_id)
+SELECT u.id, $1::uuid
+FROM channel_members m JOIN users u ON u.id = m.user_id
+WHERE m.channel_id = $1 AND m.user_id <> $2
+  AND u.ooo_from <= now() AND u.ooo_until > now()
+  AND u.deactivated_at IS NULL AND NOT u.is_bot
+ON CONFLICT DO NOTHING
+RETURNING user_id
+`
+
+type ClaimOutOfOfficeRepliesParams struct {
+	ChannelID pgtype.UUID `json:"channel_id"`
+	SenderID  pgtype.UUID `json:"sender_id"`
+}
+
+// ClaimOutOfOfficeReplies returns the people of a conversation (not the
+// sender) who are away now and have not answered it automatically in this
+// absence, and notes that they now have.
+func (q *Queries) ClaimOutOfOfficeReplies(ctx context.Context, arg ClaimOutOfOfficeRepliesParams) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, claimOutOfOfficeReplies, arg.ChannelID, arg.SenderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.UUID
+	for rows.Next() {
+		var user_id pgtype.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const clearCustomStatus = `-- name: ClearCustomStatus :exec
 UPDATE users SET status_emoji = '', status_text = '', status_expires_at = NULL, updated_at = now()
 WHERE id = $1
@@ -61,6 +100,15 @@ func (q *Queries) ClearExpiredStatuses(ctx context.Context) ([]pgtype.UUID, erro
 		return nil, err
 	}
 	return items, nil
+}
+
+const clearOutOfOffice = `-- name: ClearOutOfOffice :exec
+UPDATE users SET ooo_from = NULL, ooo_until = NULL, ooo_message = '', updated_at = now() WHERE id = $1
+`
+
+func (q *Queries) ClearOutOfOffice(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, clearOutOfOffice, id)
+	return err
 }
 
 const deletePicture = `-- name: DeletePicture :exec
@@ -119,7 +167,10 @@ SELECT u.id, u.display_name, u.username, u.username_from_directory, u.email, u.i
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_emoji ELSE '' END::text AS status_emoji,
        CASE WHEN u.status_expires_at IS NULL OR u.status_expires_at > now() THEN u.status_text ELSE '' END::text AS status_text,
        u.status_expires_at,
-       u.recent_statuses
+       u.recent_statuses,
+       -- Out of office, shown while it has not ended (it may start later).
+       u.ooo_from, u.ooo_until, u.ooo_message,
+       coalesce(u.ooo_until > now(), false)::boolean AS ooo_current
 FROM users u
 LEFT JOIN pictures p ON p.id = u.avatar_id
 WHERE u.id = ANY($1::uuid[])
@@ -144,6 +195,10 @@ type GetProfilesRow struct {
 	StatusText            string             `json:"status_text"`
 	StatusExpiresAt       pgtype.Timestamptz `json:"status_expires_at"`
 	RecentStatuses        []byte             `json:"recent_statuses"`
+	OooFrom               pgtype.Timestamptz `json:"ooo_from"`
+	OooUntil              pgtype.Timestamptz `json:"ooo_until"`
+	OooMessage            string             `json:"ooo_message"`
+	OooCurrent            bool               `json:"ooo_current"`
 }
 
 // GetProfiles reads the profiles of people; an expired custom status reads
@@ -176,6 +231,10 @@ func (q *Queries) GetProfiles(ctx context.Context, ids []pgtype.UUID) ([]GetProf
 			&i.StatusText,
 			&i.StatusExpiresAt,
 			&i.RecentStatuses,
+			&i.OooFrom,
+			&i.OooUntil,
+			&i.OooMessage,
+			&i.OooCurrent,
 		); err != nil {
 			return nil, err
 		}
@@ -302,6 +361,31 @@ UPDATE users SET last_seen_at = now() WHERE id = $1
 
 func (q *Queries) SetLastSeen(ctx context.Context, id pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, setLastSeen, id)
+	return err
+}
+
+const setOutOfOffice = `-- name: SetOutOfOffice :exec
+WITH forget AS (DELETE FROM ooo_replies WHERE user_id = $4)
+UPDATE users SET ooo_from = $1, ooo_until = $2, ooo_message = $3, updated_at = now()
+WHERE id = $4
+`
+
+type SetOutOfOfficeParams struct {
+	FromAt  pgtype.Timestamptz `json:"from_at"`
+	UntilAt pgtype.Timestamptz `json:"until_at"`
+	Message string             `json:"message"`
+	ID      pgtype.UUID        `json:"id"`
+}
+
+// SetOutOfOffice sets an absence and forgets which conversations got the
+// automatic reply of the one before.
+func (q *Queries) SetOutOfOffice(ctx context.Context, arg SetOutOfOfficeParams) error {
+	_, err := q.db.Exec(ctx, setOutOfOffice,
+		arg.FromAt,
+		arg.UntilAt,
+		arg.Message,
+		arg.ID,
+	)
 	return err
 }
 

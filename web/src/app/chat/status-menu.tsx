@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { BellIcon, BellOffIcon, CheckIcon, PencilIcon, SmileIcon } from 'lucide-react';
+import { BellIcon, BellOffIcon, CheckIcon, PencilIcon, PlaneIcon, SmileIcon } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -76,6 +76,10 @@ export function StatusMenu({ name }: { name: string }) {
         <DropdownMenuItem onClick={() => openDialog('status')}>
           <SmileIcon aria-hidden strokeWidth={1.75} />
           {profile?.status ? t('profile.statusChange') : t('profile.statusSet')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openDialog('away')}>
+          <PlaneIcon aria-hidden strokeWidth={1.75} />
+          {profile?.out_of_office ? t('profile.away.change') : t('profile.away.set')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {paused ? (

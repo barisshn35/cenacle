@@ -686,6 +686,39 @@ paths:
           description: Cleared.
         '401':
           $ref: '#/components/responses/Problem'
+  /api/me/out-of-office:
+    put:
+      tags: [profiles]
+      operationId: setOutOfOffice
+      summary: Say you are out of office
+      description: |
+        From `from` until `until` (within a year) the profile says so, and a direct
+        message to you gets one automatic reply per conversation: `message`, or a default
+        one naming the day you are back.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OutOfOffice' }
+      responses:
+        '200':
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [profiles]
+      operationId: clearOutOfOffice
+      summary: Say you are back
+      responses:
+        '204':
+          description: Cleared.
+        '401':
+          $ref: '#/components/responses/Problem'
   /api/me/avatar:
     put:
       tags: [profiles]
@@ -9601,6 +9634,20 @@ components:
           description: When they were last online (null when unknown or hidden by them).
         deactivated: { type: boolean, description: Left the organisation; messages stay. }
         guest: { type: boolean }
+        out_of_office:
+          nullable: true
+          description: An absence that has not ended (it may start later); null when there is none.
+          allOf: [{ $ref: '#/components/schemas/OutOfOffice' }]
+    OutOfOffice:
+      type: object
+      required: [from, until, message]
+      properties:
+        from: { type: string, format: date-time }
+        until: { type: string, format: date-time }
+        message:
+          type: string
+          maxLength: 500
+          description: The automatic reply's words (empty for the default one).
     MyProfile:
       allOf:
         - $ref: '#/components/schemas/Profile'
@@ -9938,6 +9985,12 @@ components:
       type: object
       description: A card under a message, e.g. from a bot (an issue, an alert).
       properties:
+        auto_reply:
+          type: object
+          description: The message is an automatic reply of someone out of office.
+          required: [until]
+          properties:
+            until: { type: string, format: date-time }
         call_summary:
           $ref: '#/components/schemas/CallSummary'
         channel_event:
