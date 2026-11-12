@@ -79,6 +79,8 @@ export function NotificationsPanel() {
   const p = settings.data.prefs;
   const pushKey = settings.data.push_public_key;
   const paused = isActive(p.paused_until);
+  // Servers before 1.0 have no call settings: these are theirs.
+  const calls = p.calls ?? { ring: true, channel: true, sound: p.sounds.direct };
 
   const soundOptions = (
     <>
@@ -249,6 +251,40 @@ export function NotificationsPanel() {
           />
         </div>
         <SoundUploads />
+      </section>
+
+      <section className="grid gap-3" aria-labelledby={`${ids.volume}-calls`}>
+        <h3 id={`${ids.volume}-calls`} className="text-sm font-medium">
+          {t('notifications.calls.title')}
+        </h3>
+        <label data-target className="flex min-h-target items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={calls.ring}
+            onChange={(e) => save({ calls: { ...calls, ring: e.target.checked } })}
+            className="size-4 accent-primary"
+            data-target-exempt
+          />
+          {t('notifications.calls.ring')}
+        </label>
+        <label data-target className="flex min-h-target items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={calls.channel}
+            onChange={(e) => save({ calls: { ...calls, channel: e.target.checked } })}
+            className="size-4 accent-primary"
+            data-target-exempt
+          />
+          {t('notifications.calls.channel')}
+        </label>
+        <SoundChoice
+          label={t('notifications.calls.sound')}
+          value={calls.sound}
+          volume={p.volume}
+          options={soundOptions}
+          onChange={(v) => save({ calls: { ...calls, sound: v } })}
+        />
+        <p className="text-xs text-muted-foreground">{t('notifications.calls.hint')}</p>
       </section>
 
       <section className="grid gap-3" aria-labelledby={`${ids.start}-title`}>

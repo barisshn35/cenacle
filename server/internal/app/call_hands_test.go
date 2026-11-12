@@ -18,13 +18,15 @@ import (
 
 func TestCallHandsAndReactions(t *testing.T) {
 	shared := newShared(t)
+	// Unique per run: the shared Valkey keeps a node for a minute.
+	node := "test-media-hands-" + uuid.NewString()[:8]
 	_, private, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := newStack(t, shared, options{calls: &config.Calls{Private: private, KeyID: "test-calls", NodeID: "test-media-hands"}})
+	s := newStack(t, shared, options{calls: &config.Calls{Private: private, KeyID: "test-calls", NodeID: node}})
 	ctx := context.Background()
-	if err = shared.valkey.PutNew(ctx, "cenacle:media:node:test-media-hands", []byte(uuid.NewString()), time.Minute); err != nil {
+	if err = shared.valkey.PutNew(ctx, "cenacle:media:node:"+node, []byte(uuid.NewString()), time.Minute); err != nil {
 		t.Fatal(err)
 	}
 	ayse := s.user("hands-a", "Ayşe")
@@ -46,6 +48,16 @@ func TestCallHandsAndReactions(t *testing.T) {
 		if res := s.call(http.MethodPost, "/api/calls/"+call.ID+"/token", token, nil, nil); res.StatusCode != http.StatusOK {
 			t.Fatalf("token = %d", res.StatusCode)
 		}
+	}
+	// The sidebar learns of the call from the workspace's list of calls in one's channels.
+	var active struct {
+		Calls []struct {
+			ID string `json:"id"`
+		} `json:"calls"`
+	}
+	s.call(http.MethodGet, "/api/workspaces/"+s.defaultWS+"/calls", mert, nil, &active)
+	if len(active.Calls) != 1 || active.Calls[0].ID != call.ID {
+		t.Errorf("active calls = %+v", active.Calls)
 	}
 	// Mert has not connected yet: no hand, no reaction.
 	if status, _ := problemCode(t, s, http.MethodPost, "/api/calls/"+call.ID+"/reactions", mert, map[string]string{"emoji": "👏"}); status != http.StatusConflict {

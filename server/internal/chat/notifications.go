@@ -104,7 +104,14 @@ func (h *Handlers) SetNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	var in notify.Prefs
+	// Over the current settings: a client that does not know a part (calls,
+	// before 1.0) leaves it as it was.
+	raw, err := h.Queries.GetNotificationPrefs(r.Context(), p.User.ID)
+	if err != nil {
+		h.unavailable(w, r, "notification prefs", err)
+		return
+	}
+	in := notify.Read(raw)
 	if !decode(w, r, &in) {
 		return
 	}
@@ -112,7 +119,7 @@ func (h *Handlers) SetNotificationPrefs(w http.ResponseWriter, r *http.Request) 
 		badRequest(w, r, "Some notification settings are not known values.")
 		return
 	}
-	raw, _ := json.Marshal(in)
+	raw, _ = json.Marshal(in)
 	if err := h.Queries.SetNotificationPrefs(r.Context(), store.SetNotificationPrefsParams{UserID: p.User.ID, Prefs: raw}); err != nil {
 		h.unavailable(w, r, "set notification prefs", err)
 		return

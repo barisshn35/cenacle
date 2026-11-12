@@ -10,6 +10,14 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Call notices: group conversations ring like direct ones (declining only stops the ringing
+  for you); a call starting in a channel shows a toast with Join, as the channel notifies
+  you; the sidebar marks channels and conversations with a call going on and how many are in
+  it (`GET /api/workspaces/{id}/calls`); the system notification shows also when the app is
+  behind other windows (the desktop app's own notifications); direct and group calls are
+  pushed to phones and closed browsers. Settings → Notifications → Calls turns ringing and
+  channel notices on or off and picks the ring tone; pause, quiet hours and muted channels
+  hold for calls too.
 - Calls: a check before joining (your camera's picture, the microphone's level, the
   microphone, camera and speaker to use, and whether to come in with them on; remembered,
   and it can be turned off); raise a hand (everyone sees the order hands went up) and send a
@@ -90,6 +98,7 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- A call's summary message is no longer pushed (the call itself rang).
 - Interface review fixes: on phones the details and thread panel fill the screen; a
   notification sound plays as it is chosen and an own sound is named after its file is picked;
   the end-to-end encryption hint speaks of what turning it on would do; the custom theme's

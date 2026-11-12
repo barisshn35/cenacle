@@ -114,6 +114,27 @@ paths:
         '403': { description: Calls are disabled or this member cannot start one. }
         '409': { description: A call or user is already busy. }
         '503': { description: The media node is unavailable. }
+  /api/workspaces/{workspace_id}/calls:
+    get:
+      tags: [chat]
+      operationId: listActiveCalls
+      summary: The calls going on in your channels and conversations of a workspace
+      description: For the sidebar's call marks; changes arrive as `call.*` events.
+      parameters:
+        - { name: workspace_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Calls that have not ended.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [calls]
+                properties:
+                  calls:
+                    type: array
+                    items: { $ref: '#/components/schemas/Call' }
+        '404': { description: No such workspace. }
   /api/channels/{channelId}/call:
     get:
       tags: [chat]
@@ -9611,6 +9632,14 @@ components:
               description: Days of the week (0 Sunday) the quiet hours start on.
               items: { type: integer, minimum: 0, maximum: 6 }
               maxItems: 7
+        calls:
+          type: object
+          description: Calls. Paused notifications, quiet hours and muted channels hold for them too.
+          required: [ring, channel, sound]
+          properties:
+            ring: { type: boolean, description: Direct and group calls ring. }
+            channel: { type: boolean, description: A call starting in a channel is told (not in muted channels). }
+            sound: { $ref: '#/components/schemas/NotificationSound' }
     ChannelNotificationInput:
       type: object
       required: [level, muted_until, sound]

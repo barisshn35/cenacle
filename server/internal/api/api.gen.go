@@ -3995,6 +3995,18 @@ type NotificationPolicyPushContents string
 
 // NotificationPrefs defines model for NotificationPrefs.
 type NotificationPrefs struct {
+	// Calls Calls. Paused notifications, quiet hours and muted channels hold for them too.
+	Calls *struct {
+		// Channel A call starting in a channel is told (not in muted channels).
+		Channel bool `json:"channel"`
+
+		// Ring Direct and group calls ring.
+		Ring bool `json:"ring"`
+
+		// Sound A built-in sound, 'none', or 'user:<sound id>' for one you uploaded.
+		Sound NotificationSound `json:"sound"`
+	} `json:"calls,omitempty"`
+
 	// DefaultLevel What channels notify of unless set per channel (conversations always notify).
 	DefaultLevel NotificationPrefsDefaultLevel `json:"default_level"`
 
@@ -7067,6 +7079,9 @@ type ServerInterface interface {
 	// CreateBot Create a bot (owners and admins)
 	// (POST /api/workspaces/{workspace_id}/bots)
 	CreateBot(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
+	// ListActiveCalls The calls going on in your channels and conversations of a workspace
+	// (GET /api/workspaces/{workspace_id}/calls)
+	ListActiveCalls(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
 	// ListClassifications Classifications of a workspace and its default (members)
 	// (GET /api/workspaces/{workspace_id}/classifications)
 	ListClassifications(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID)
@@ -8924,6 +8939,12 @@ func (_ Unimplemented) ListBots(w http.ResponseWriter, r *http.Request, workspac
 // CreateBot Create a bot (owners and admins)
 // (POST /api/workspaces/{workspace_id}/bots)
 func (_ Unimplemented) CreateBot(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListActiveCalls The calls going on in your channels and conversations of a workspace
+// (GET /api/workspaces/{workspace_id}/calls)
+func (_ Unimplemented) ListActiveCalls(w http.ResponseWriter, r *http.Request, workspaceId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -16942,6 +16963,32 @@ func (siw *ServerInterfaceWrapper) CreateBot(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ListActiveCalls operation middleware
+func (siw *ServerInterfaceWrapper) ListActiveCalls(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "workspace_id" -------------
+	var workspaceId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workspace_id", chi.URLParam(r, "workspace_id"), &workspaceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "workspace_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListActiveCalls(w, r, workspaceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListClassifications operation middleware
 func (siw *ServerInterfaceWrapper) ListClassifications(w http.ResponseWriter, r *http.Request) {
 
@@ -18722,6 +18769,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/channels/{channelId}/calls", wrapper.StartCall)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/workspaces/{workspace_id}/calls", wrapper.ListActiveCalls)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/channels/{channelId}/call", wrapper.GetChannelCall)

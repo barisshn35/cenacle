@@ -593,6 +593,10 @@ export async function mockApi(
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/federation$/, (route) =>
     route.fulfill({ json: { connections: [], offers: [] } }),
   );
+  // Calls going on in one's channels (the sidebar's marks): none unless a test adds them.
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/calls$/, (route) =>
+    route.fulfill({ json: { calls: [] } }),
+  );
   // Classification banners (v0.23): none unless a test adds them.
   await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/classifications$/, (route) =>
     route.fulfill({ json: { classifications: [], default_id: null } }),
@@ -1333,6 +1337,7 @@ export async function mockApi(
       email: { enabled: false, delay_minutes: 15 },
       paused_until: null as string | null,
       quiet_hours: { enabled: false, start: '22:00', end: '08:00', days: [1, 2, 3, 4, 5] },
+      calls: { ring: true, channel: true, sound: 'marimba' },
     },
     channels: [] as Record<string, unknown>[],
     workspaces: [] as Record<string, unknown>[],

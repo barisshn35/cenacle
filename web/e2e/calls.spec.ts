@@ -254,3 +254,115 @@ test('turning the check off joins at once next time', async ({ page }) => {
   await expect.poll(() => started).toBe(true);
   await expect(page.getByTestId('prejoin')).toHaveCount(0);
 });
+
+/** The server's list of calls going on (the sidebar's marks), kept by the test. */
+async function activeCalls(page: import('@playwright/test').Page) {
+  const list: unknown[] = [];
+  await page.route(/\/api\/workspaces\/[0-9a-f-]{36}\/calls$/, (route) =>
+    route.fulfill({ json: { calls: list } }),
+  );
+  return list;
+}
+
+const startedNow = (channelId: string, by: string, extra: Record<string, unknown> = {}) => ({
+  ...snapshot,
+  id: '019a0000-0000-7000-8000-0000000000c1',
+  channel_id: channelId,
+  state: 'active',
+  created_at: new Date().toISOString(),
+  participants: [{ id: 'c1', user_id: by, state: 'reserved', joined_at: null, left_at: null }],
+  ...extra,
+});
+
+test.describe('call notices', () => {
+  test.skip(({ isMobile }) => isMobile, 'the sidebar is in the drawer on phones');
+
+  test('a call starting in a channel is told with Join, and marked in the sidebar', async ({
+    page,
+  }) => {
+    const api = await mockApi(page);
+    await callRoutes(page);
+    const going = await activeCalls(page);
+    const listed = page.waitForResponse(/\/workspaces\/[0-9a-f-]{36}\/calls$/);
+    await page.goto(`/c/${GENERAL.id}`);
+    await listed;
+    await expect(page.getByRole('heading', { name: 'General', exact: true })).toBeVisible();
+    going.push(startedNow(GENERAL.id, AYSE.id));
+    api.emit('call.participants', startedNow(GENERAL.id, AYSE.id));
+    await expect(page.getByText('Ayşe Yılmaz started a call in General')).toBeVisible();
+    const nav = page.getByRole('navigation', { name: 'Channels' });
+    const mark = nav.getByRole('link', { name: /General/ }).getByTestId('call-mark');
+    await expect(mark).toBeVisible();
+    await expect(mark).toContainText('1');
+    // Ended: the mark goes.
+    going.length = 0;
+    api.emit('call.ended', {
+      ...startedNow(GENERAL.id, AYSE.id),
+      revision: 9,
+      state: 'ended',
+      ended_at: new Date().toISOString(),
+    });
+    await expect(mark).toHaveCount(0);
+  });
+
+  test('a call in a muted channel, or with the notice turned off, stays quiet', async ({
+    page,
+  }) => {
+    const api = await mockApi(page);
+    await callRoutes(page);
+    api.notifications!.prefs = {
+      ...api.notifications!.prefs,
+      calls: { ring: true, channel: false, sound: 'marimba' },
+    };
+    const going = await activeCalls(page);
+    const listed = page.waitForResponse(/\/workspaces\/[0-9a-f-]{36}\/calls$/);
+    await page.goto('/');
+    await listed;
+    await expect(page.getByRole('heading', { name: 'General', exact: true })).toBeVisible();
+    going.push(startedNow(GENERAL.id, AYSE.id));
+    api.emit('call.participants', startedNow(GENERAL.id, AYSE.id));
+    const nav = page.getByRole('navigation', { name: 'Channels' });
+    await expect(nav.getByTestId('call-mark')).toBeVisible();
+    await expect(page.getByText('started a call in General')).toHaveCount(0);
+  });
+
+  test('a group call rings everyone; declining only stops the ringing here', async ({ page }) => {
+    const group = directWith(AYSE, {
+      id: '01a15e50-dddd-7000-8000-0000000000b2',
+      name: 'group:x',
+      kind: 'group',
+      participants: [AYSE, PEOPLE[2]],
+    });
+    const api = await mockApi(page, { channels: [group] });
+    await callRoutes(page);
+    let answered = false;
+    await page.route('**/api/calls/*/answer', (route) => {
+      answered = true;
+      return route.fulfill({ status: 403 });
+    });
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'General', exact: true })).toBeVisible();
+    api.emit('call.participants', startedNow(group.id, AYSE.id));
+    const ringing = page.getByRole('dialog', { name: /Incoming call/ });
+    await expect(ringing).toBeVisible();
+    await expectNoAxeViolations(page, '[role="dialog"]');
+    await ringing.getByRole('button', { name: 'Decline' }).click();
+    await expect(ringing).toHaveCount(0);
+    expect(answered).toBe(false);
+  });
+
+  test('calls can be told or not, and their ring tone chosen', async ({ page }) => {
+    const api = await mockApi(page);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    await dialog.getByRole('tab', { name: 'Notifications' }).click();
+    const panel = dialog.getByTestId('notifications-panel');
+    await panel.getByLabel('Direct and group calls ring').click();
+    await expect.poll(() => (api.notifications!.prefs.calls as { ring: boolean }).ring).toBe(false);
+    await panel.getByRole('combobox', { name: 'Ring tone' }).selectOption('gong');
+    await expect
+      .poll(() => (api.notifications!.prefs.calls as { sound: string }).sound)
+      .toBe('gong');
+  });
+});

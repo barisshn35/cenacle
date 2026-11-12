@@ -517,6 +517,8 @@ LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.cha
 LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
 WHERE m.id >= $1 AND (m.id, cm.user_id) > ($1::uuid, $2::uuid)
   AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day' AND NOT channel_line(m.attachments)
+  -- A call's summary is not pushed: the call itself rang.
+  AND NOT coalesce(m.attachments->0 ? 'call_summary', false)
   AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.user_id = cm.user_id)
   AND (CASE WHEN m.root_id IS NULL OR m.also_in_channel
             THEN cm.last_read_id IS NULL OR cm.last_read_id < m.id
@@ -632,6 +634,70 @@ type RemovePushSubscriptionParams struct {
 func (q *Queries) RemovePushSubscription(ctx context.Context, arg RemovePushSubscriptionParams) error {
 	_, err := q.db.Exec(ctx, removePushSubscription, arg.Endpoint, arg.UserID)
 	return err
+}
+
+const ringCandidates = `-- name: RingCandidates :many
+SELECT k.id AS call_id, k.channel_id, c.kind AS channel_kind, c.title AS channel_title,
+       a.display_name AS caller_name, cm.user_id,
+       coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,
+       wnp.muted_until AS workspace_muted_until
+FROM calls k
+JOIN channels c ON c.id = k.channel_id AND c.kind IN ('direct', 'group')
+JOIN users a ON a.id = k.created_by
+JOIN channel_members cm ON cm.channel_id = k.channel_id AND cm.user_id <> k.created_by
+JOIN users u ON u.id = cm.user_id AND NOT u.is_bot AND u.deactivated_at IS NULL
+LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.channel_id = k.channel_id
+LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
+WHERE k.id > $1 AND k.created_at > now() - interval '30 seconds' AND k.ended_at IS NULL
+  AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.user_id = cm.user_id)
+ORDER BY k.id, cm.user_id
+LIMIT 500
+`
+
+type RingCandidatesRow struct {
+	CallID              pgtype.UUID        `json:"call_id"`
+	ChannelID           pgtype.UUID        `json:"channel_id"`
+	ChannelKind         string             `json:"channel_kind"`
+	ChannelTitle        string             `json:"channel_title"`
+	CallerName          string             `json:"caller_name"`
+	UserID              pgtype.UUID        `json:"user_id"`
+	Level               string             `json:"level"`
+	ChannelMutedUntil   pgtype.Timestamptz `json:"channel_muted_until"`
+	WorkspaceMutedUntil pgtype.Timestamptz `json:"workspace_muted_until"`
+}
+
+// RingCandidates lists the people a direct or group call started after the
+// cursor rings (members other than the caller, with a push subscription), with
+// their channel and workspace settings. Only calls of the last 30 seconds that
+// have not ended: a late push for a call long over helps nobody.
+func (q *Queries) RingCandidates(ctx context.Context, afterCall pgtype.UUID) ([]RingCandidatesRow, error) {
+	rows, err := q.db.Query(ctx, ringCandidates, afterCall)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RingCandidatesRow
+	for rows.Next() {
+		var i RingCandidatesRow
+		if err := rows.Scan(
+			&i.CallID,
+			&i.ChannelID,
+			&i.ChannelKind,
+			&i.ChannelTitle,
+			&i.CallerName,
+			&i.UserID,
+			&i.Level,
+			&i.ChannelMutedUntil,
+			&i.WorkspaceMutedUntil,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setChannelNotificationPrefs = `-- name: SetChannelNotificationPrefs :exec

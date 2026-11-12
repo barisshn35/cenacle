@@ -59,7 +59,7 @@ export function canNotify(): boolean {
 }
 
 /** The page is in front: visible and focused (a window behind others is not). */
-function inFront(): boolean {
+export function inFront(): boolean {
   return document.visibilityState === 'visible' && document.hasFocus();
 }
 
@@ -68,7 +68,7 @@ function inFront(): boolean {
  * own (a page's Notification does not reach the notification centre from a
  * minimised window); browsers use the Notification API when allowed.
  */
-function systemNotification(
+export function systemNotification(
   note: { title: string; body: string; tag: string; channelId: string; sticky?: boolean },
   openChannel: (channelId: string) => void,
 ): void {

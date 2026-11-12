@@ -175,8 +175,12 @@ func (p *Pusher) Run(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// Calls first: a ring is late after half a minute.
+	sent, err := p.ringCalls(ctx, limits, policy)
+	if err != nil {
+		p.Log.WarnContext(ctx, "call pushes", "error", err)
+	}
 	at := pushKey{c.Cursor, c.CursorUser}
-	sent := 0
 	for {
 		if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < pushReserve {
 			return sent, nil // the rest on the next run

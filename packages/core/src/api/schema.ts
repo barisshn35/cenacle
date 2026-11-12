@@ -43,6 +43,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspace_id}/calls': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The calls going on in your channels and conversations of a workspace
+     * @description For the sidebar's call marks; changes arrive as `call.*` events.
+     */
+    get: operations['listActiveCalls'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/channels/{channelId}/call': {
     parameters: {
       query?: never;
@@ -6786,6 +6806,14 @@ export interface components {
         /** @description Days of the week (0 Sunday) the quiet hours start on. */
         days: number[];
       };
+      /** @description Calls. Paused notifications, quiet hours and muted channels hold for them too. */
+      calls?: {
+        /** @description Direct and group calls ring. */
+        ring: boolean;
+        /** @description A call starting in a channel is told (not in muted channels). */
+        channel: boolean;
+        sound: components['schemas']['NotificationSound'];
+      };
     };
     ChannelNotificationInput: {
       /** @enum {string} */
@@ -7366,6 +7394,37 @@ export interface operations {
       };
       /** @description The media node is unavailable. */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listActiveCalls: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspace_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Calls that have not ended. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            calls: components['schemas']['Call'][];
+          };
+        };
+      };
+      /** @description No such workspace. */
+      404: {
         headers: {
           [name: string]: unknown;
         };

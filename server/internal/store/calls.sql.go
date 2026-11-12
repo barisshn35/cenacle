@@ -569,6 +569,56 @@ func (q *Queries) LeaveCallParticipant(ctx context.Context, arg LeaveCallPartici
 	return result.RowsAffected(), nil
 }
 
+const listActiveCallsForUser = `-- name: ListActiveCallsForUser :many
+SELECT k.id, k.channel_id, k.created_by, k.nonce, k.state, k.created_at, k.ring_until, k.started_at, k.ended_at, k.end_reason, k.node_id, k.node_generation, k.revision FROM calls k
+JOIN channels c ON c.id = k.channel_id AND c.workspace_id = $1 AND c.archived_at IS NULL
+JOIN channel_members m ON m.channel_id = k.channel_id AND m.user_id = $2
+WHERE k.ended_at IS NULL
+ORDER BY k.created_at DESC
+LIMIT 100
+`
+
+type ListActiveCallsForUserParams struct {
+	WorkspaceID pgtype.UUID `json:"workspace_id"`
+	UserID      pgtype.UUID `json:"user_id"`
+}
+
+// ListActiveCallsForUser lists the calls that have not ended in the channels
+// of a workspace the user is a member of.
+func (q *Queries) ListActiveCallsForUser(ctx context.Context, arg ListActiveCallsForUserParams) ([]Call, error) {
+	rows, err := q.db.Query(ctx, listActiveCallsForUser, arg.WorkspaceID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Call
+	for rows.Next() {
+		var i Call
+		if err := rows.Scan(
+			&i.ID,
+			&i.ChannelID,
+			&i.CreatedBy,
+			&i.Nonce,
+			&i.State,
+			&i.CreatedAt,
+			&i.RingUntil,
+			&i.StartedAt,
+			&i.EndedAt,
+			&i.EndReason,
+			&i.NodeID,
+			&i.NodeGeneration,
+			&i.Revision,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCallParticipants = `-- name: ListCallParticipants :many
 SELECT id, call_id, user_id, session_id, state, reserved_until, joined_at, left_at, redacted_at, last_seen_at, transport_generation, hand_raised_at FROM call_participants WHERE call_id = $1 AND redacted_at IS NULL
  AND (left_at IS NULL OR left_at > now() - interval '30 seconds')

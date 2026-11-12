@@ -8,7 +8,7 @@ import {
   type PublicationKind,
   type RemotePublication,
 } from '@cenacle/core';
-import { ApiError } from '@cenacle/core/api';
+import { ApiError, apiFetch } from '@cenacle/core/api';
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { channelsQuery, type Channel } from '../chat/data';
 import {
@@ -17,7 +17,10 @@ import {
   soundFor,
   type NotificationSettings,
 } from '../notifications/notifications';
-import { myProfileQuery, type MyProfile } from '../profile/profiles';
+import { loadProfile, myProfileQuery } from '../profile/profiles';
+import { inFront, systemNotification } from '../notifications/notifier';
+import { toast } from 'sonner';
+import { beforeJoining } from './prejoin-state';
 import { playSound } from '../notifications/sounds';
 import i18next from 'i18next';
 
@@ -73,6 +76,8 @@ export function applyCallReaction(data: unknown): void {
     REACTION_MS,
   );
 }
+// Calls already rung or told about (events of one call come several times).
+const announced = new Set<string>();
 // The last live event per channel: a fetch that started before it must not
 // overwrite it when it answers later.
 const lastEvent = new Map<string, { at: number; call: Call }>();
@@ -90,6 +95,29 @@ export const channelCallQuery = (channelID: string) =>
     refetchInterval: 15000,
     retry: false,
   });
+/** The calls going on in one's channels of a workspace (the sidebar's marks). */
+export const activeCallsQuery = (workspaceID: string) =>
+  queryOptions({
+    queryKey: ['calls', 'active', workspaceID],
+    queryFn: ({ signal }) =>
+      apiFetch<{ calls: Call[] }>(`/api/workspaces/${workspaceID}/calls`, { signal }).then(
+        (r) => r.calls,
+      ),
+    enabled: !!workspaceID,
+    staleTime: 60_000,
+  });
+
+/** Keeps the sidebar's marks in step with a call's latest state. */
+function noteActive(client: QueryClient, call: Call) {
+  for (const [key, list] of client.getQueriesData<Call[]>({ queryKey: ['calls', 'active'] })) {
+    if (!list) continue;
+    const rest = list.filter((c) => c.channel_id !== call.channel_id || c.id !== call.id);
+    client.setQueryData(key, call.state === 'ended' ? rest : [call, ...rest]);
+  }
+  // A list still loading may predate the call: the server's answer settles it.
+  void client.invalidateQueries({ queryKey: ['calls', 'active'] });
+}
+
 export const callSettingsQuery = (workspaceID: string) =>
   queryOptions({
     queryKey: ['calls', 'settings', workspaceID],
@@ -276,6 +304,7 @@ export function applyCallEvent(
   )
     return true;
   client.setQueryData(key, call);
+  noteActive(client, call);
   lastEvent.set(call.channel_id, { at: performance.now(), call });
   const active = useCall.getState();
   if (active.call?.id === call.id) {
@@ -284,68 +313,133 @@ export function applyCallEvent(
   }
   if (active.incoming?.id === call.id && call.state !== 'ringing')
     useCall.setState({ incoming: null });
+  const mine = call.participants.some((p) => p.user_id === selfID);
   if (
     type === 'call.ringing' &&
     call.state === 'ringing' &&
     call.ring_until &&
     Date.parse(call.ring_until) > Date.now() &&
-    !call.participants.some((p) => p.user_id === selfID) &&
+    !mine &&
     !active.session
   )
-    void ring(client, call);
+    void ring(client, call, selfID);
+  // A call that just started without ringing: a group conversation rings, a channel tells.
+  const fresh =
+    call.state === 'active' &&
+    (!previous || previous.id !== call.id || previous.state === 'ended') &&
+    Date.now() - Date.parse(call.created_at) < GROUP_RING_MS &&
+    !mine &&
+    !active.session;
+  if (fresh && !announced.has(call.id)) {
+    announced.add(call.id);
+    void ring(client, call, selfID).then(() => {
+      if (useCall.getState().incoming?.id !== call.id) void announce(client, call, selfID);
+    });
+  }
   return true;
 }
-/** Shows an incoming direct call, honouring pause, mute and quiet hours. */
-async function ring(client: QueryClient, call: Call): Promise<void> {
+/** How long a group call rings (direct calls ring until the server's ring_until). */
+const GROUP_RING_MS = 30_000;
+
+/** The person who started a call (its first participant other than oneself). */
+async function callerName(call: Call, selfID: string): Promise<string> {
+  const id = call.participants.find((p) => p.user_id && p.user_id !== selfID)?.user_id;
+  const profile = id ? await loadProfile(id).catch(() => null) : null;
+  return profile?.display_name ?? '';
+}
+
+async function callContext(client: QueryClient, call: Call) {
   const find = (list?: Channel[]) => list?.find((c) => c.id === call.channel_id);
   // A conversation started a moment ago may not be in the list yet.
   const channel =
     find(client.getQueryData<Channel[]>(channelsQuery.queryKey)) ??
     find(await client.fetchQuery({ ...channelsQuery, staleTime: 0 }).catch(() => undefined));
-  if (channel?.kind !== 'direct') return;
-  let settings: NotificationSettings;
-  let profile: MyProfile | undefined;
   try {
     // A call may arrive before the settings were first loaded; never skip it for that.
-    settings = await client.ensureQueryData(notificationsQuery);
-    profile = await client.ensureQueryData(myProfileQuery).catch(() => undefined);
+    const settings = await client.ensureQueryData(notificationsQuery);
+    const profile = await client.ensureQueryData(myProfileQuery).catch(() => undefined);
+    return { channel, settings, timeZone: profile?.timezone ?? '' };
   } catch {
-    return;
-  }
-  const now = useCall.getState();
-  if (
-    !call.ring_until ||
-    Date.parse(call.ring_until) <= Date.now() ||
-    now.session ||
-    now.incoming?.id === call.id
-  )
-    return;
-  // A later event may have ended the call while the settings loaded.
-  const latest = client.getQueryData<Call | null>(channelCallQuery(call.channel_id).queryKey);
-  if (latest?.id === call.id && latest.state !== 'ringing') return;
-  if (!notifies(settings, channel, 'direct', profile?.timezone ?? '')) return;
-  useCall.setState({
-    incoming: call,
-    ringTone: { id: soundFor(settings, channel.id, 'direct'), volume: settings.prefs.volume },
-  });
-  if (
-    settings.prefs.desktop &&
-    typeof Notification !== 'undefined' &&
-    Notification.permission === 'granted' &&
-    document.visibilityState !== 'visible'
-  ) {
-    const notice = new Notification('Cenacle', {
-      body: i18next.t('calls:incoming'),
-      tag: `call-${call.id}`,
-      silent: true,
-    });
-    notice.onclick = () => {
-      if (useCall.getState().incoming?.id === call.id) window.focus();
-      notice.close();
-    };
-    setTimeout(() => notice.close(), Math.max(0, Date.parse(call.ring_until) - Date.now()));
+    return { channel, settings: undefined, timeZone: '' };
   }
 }
+
+/** The ring tone: the calls' own, else the conversation's direct-message sound. */
+const ringToneOf = (settings: NotificationSettings, channelId: string) =>
+  settings.prefs.calls?.sound ?? soundFor(settings, channelId, 'direct');
+
+/**
+ * Rings for an incoming direct or group call, honouring the person's call
+ * settings, pause, mute and quiet hours; outside the app's window (or with it
+ * behind others) the system notification says so too.
+ */
+async function ring(client: QueryClient, call: Call, selfID: string): Promise<void> {
+  const { channel, settings, timeZone } = await callContext(client, call);
+  if (!channel || !settings || (channel.kind !== 'direct' && channel.kind !== 'group')) return;
+  if (settings.prefs.calls && !settings.prefs.calls.ring) return;
+  // A group call has no ring time on the server: it rings here for a while.
+  const until =
+    call.ring_until ?? new Date(Date.parse(call.created_at) + GROUP_RING_MS).toISOString();
+  const now = useCall.getState();
+  if (Date.parse(until) <= Date.now() || now.session || now.incoming?.id === call.id) return;
+  // A later event may have ended the call while the settings loaded.
+  const latest = client.getQueryData<Call | null>(channelCallQuery(call.channel_id).queryKey);
+  if (latest?.id === call.id && latest.state === 'ended') return;
+  if (channel.kind === 'direct' && latest?.id === call.id && latest.state !== 'ringing') return;
+  if (!notifies(settings, channel, 'direct', timeZone)) return;
+  useCall.setState({
+    incoming: { ...call, ring_until: until },
+    ringTone: { id: ringToneOf(settings, channel.id), volume: settings.prefs.volume },
+  });
+  if (settings.prefs.desktop && !inFront()) {
+    const who = await callerName(call, selfID);
+    systemNotification(
+      {
+        title: channel.kind === 'group' ? `${who} · ${channel.name}` : who || 'Cenacle',
+        body: i18next.t('calls:incoming'),
+        tag: `call-${call.id}`,
+        channelId: channel.id,
+        sticky: true,
+      },
+      () => window.focus(),
+    );
+  }
+}
+
+/**
+ * A call started in a channel: a toast with "Join" (and the system
+ * notification when the app is behind), as the channel notifies the person,
+ * unless they turned this off.
+ */
+async function announce(client: QueryClient, call: Call, selfID: string): Promise<void> {
+  const { channel, settings, timeZone } = await callContext(client, call);
+  if (!channel || !settings || channel.kind === 'direct' || channel.kind === 'group') return;
+  if (settings.prefs.calls && !settings.prefs.calls.channel) return;
+  if (!notifies(settings, channel, 'message', timeZone)) return;
+  if (useCall.getState().session) return;
+  const who = await callerName(call, selfID);
+  const text = who
+    ? i18next.t('calls:startedIn', { name: who, channel: channel.name })
+    : i18next.t('calls:startedInSomeone', { channel: channel.name });
+  playSound(ringToneOf(settings, channel.id), settings.prefs.volume);
+  toast(text, {
+    id: `call-${call.id}`,
+    duration: 15_000,
+    action: {
+      label: i18next.t('calls:join'),
+      onClick: () =>
+        void beforeJoining(channel.name, false, (media) =>
+          joinCall(call, media).catch((error) => useCall.setState({ error: errorCode(error) })),
+        ),
+    },
+  });
+  if (settings.prefs.desktop && !inFront())
+    systemNotification(
+      { title: channel.name, body: text, tag: `call-${call.id}`, channelId: channel.id },
+      () => window.focus(),
+    );
+}
+
 /** Plays the ring tone now and every few seconds while the call still rings. */
 export function startRinging(): () => void {
   const play = () => {

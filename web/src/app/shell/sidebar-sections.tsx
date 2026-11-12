@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { CallMark } from '../calls/call-mark';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -568,16 +569,15 @@ function ChannelList({
                 <ChannelIcon channel={ch} labelled />
               )}
               <span>{ch.name}</span>
-              {isMuted && (
-                <>
-                  <BellOffIcon
-                    aria-hidden
-                    className="ms-auto size-3.5 shrink-0 opacity-70"
-                    strokeWidth={1.75}
-                  />
-                  <span className="sr-only">{t('notifications.mutedLabel')}</span>
-                </>
-              )}
+              <span className="ms-auto flex shrink-0 items-center gap-1 empty:hidden">
+                <CallMark channelId={ch.id} workspaceId={ch.workspace_id} />
+                {isMuted && (
+                  <>
+                    <BellOffIcon aria-hidden className="size-3.5 opacity-70" strokeWidth={1.75} />
+                    <span className="sr-only">{t('notifications.mutedLabel')}</span>
+                  </>
+                )}
+              </span>
               {unread && (
                 <span className="sr-only">
                   {t('dm.unread', { count: ch.unread_count })}

@@ -579,6 +579,9 @@ type Querier interface {
 	LeaveWorkspacesViaGroup(ctx context.Context, arg LeaveWorkspacesViaGroupParams) ([]pgtype.UUID, error)
 	// ListAcks returns who acknowledged messages, in the order they did.
 	ListAcks(ctx context.Context, messageIds []pgtype.UUID) ([]ListAcksRow, error)
+	// ListActiveCallsForUser lists the calls that have not ended in the channels
+	// of a workspace the user is a member of.
+	ListActiveCallsForUser(ctx context.Context, arg ListActiveCallsForUserParams) ([]Call, error)
 	ListActiveDevices(ctx context.Context, userID pgtype.UUID) ([]E2eDevice, error)
 	// ListActivity returns what happened for a user in the last 30 days, newest
 	// first: mentions, replies in threads they follow and reactions to their
@@ -985,6 +988,11 @@ type Querier interface {
 	// RewroteArchiveExport records a stale export written again, unless it was
 	// marked again meanwhile.
 	RewroteArchiveExport(ctx context.Context, arg RewroteArchiveExportParams) (int64, error)
+	// RingCandidates lists the people a direct or group call started after the
+	// cursor rings (members other than the caller, with a push subscription), with
+	// their channel and workspace settings. Only calls of the last 30 seconds that
+	// have not ended: a late push for a call long over helps nobody.
+	RingCandidates(ctx context.Context, afterCall pgtype.UUID) ([]RingCandidatesRow, error)
 	// SaveCanvas writes a new body over the version it was edited from, and ends
 	// the writer's turn; no row means the canvas changed in between.
 	SaveCanvas(ctx context.Context, arg SaveCanvasParams) (pgtype.UUID, error)

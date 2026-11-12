@@ -36,6 +36,13 @@ type Prefs struct {
 		End     string `json:"end"`
 		Days    []int  `json:"days"`
 	} `json:"quiet_hours"`
+	// Calls: whether direct and group calls ring, whether a call starting in
+	// a channel is told, and the ring tone.
+	Calls struct {
+		Ring    bool   `json:"ring"`
+		Channel bool   `json:"channel"`
+		Sound   string `json:"sound"`
+	} `json:"calls"`
 }
 
 // BuiltinSounds are the sounds the app makes itself (no audio files).
@@ -53,6 +60,7 @@ func Defaults() Prefs {
 	p.Email.DelayMinutes = 15
 	p.QuietHours.Start, p.QuietHours.End = "22:00", "08:00"
 	p.QuietHours.Days = []int{0, 1, 2, 3, 4, 5, 6}
+	p.Calls.Ring, p.Calls.Channel, p.Calls.Sound = true, true, "marimba"
 	return p
 }
 
@@ -79,7 +87,8 @@ func ValidSound(s string) bool {
 
 // Valid reports whether the settings are complete and known.
 func (p Prefs) Valid() bool {
-	if p.Volume < 0 || p.Volume > 100 || !ValidSound(p.Sounds.Mention) || !ValidSound(p.Sounds.Direct) || !ValidSound(p.Sounds.Message) {
+	if p.Volume < 0 || p.Volume > 100 || !ValidSound(p.Sounds.Mention) || !ValidSound(p.Sounds.Direct) || !ValidSound(p.Sounds.Message) ||
+		!ValidSound(p.Calls.Sound) {
 		return false
 	}
 	switch p.DefaultLevel {

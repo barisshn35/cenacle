@@ -193,3 +193,13 @@ WHERE call_id = @call_id AND user_id = @user_id AND left_at IS NULL;
 -- name: InCall :one
 SELECT EXISTS (SELECT 1 FROM call_participants
                WHERE call_id = @call_id AND user_id = @user_id AND state = 'connected');
+
+-- name: ListActiveCallsForUser :many
+-- ListActiveCallsForUser lists the calls that have not ended in the channels
+-- of a workspace the user is a member of.
+SELECT k.* FROM calls k
+JOIN channels c ON c.id = k.channel_id AND c.workspace_id = @workspace_id AND c.archived_at IS NULL
+JOIN channel_members m ON m.channel_id = k.channel_id AND m.user_id = @user_id
+WHERE k.ended_at IS NULL
+ORDER BY k.created_at DESC
+LIMIT 100;

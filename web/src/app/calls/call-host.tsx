@@ -192,7 +192,8 @@ export function CallHost() {
               onClick={() => {
                 const call = state.incoming;
                 useCall.setState({ incoming: null });
-                if (call) void calls.answer(call.id, 'decline').catch(report);
+                // A group call goes on for the others: declining only stops the ringing here.
+                if (call?.state === 'ringing') void calls.answer(call.id, 'decline').catch(report);
               }}
             >
               {t('decline')}
@@ -203,10 +204,11 @@ export function CallHost() {
                 useCall.setState({ incoming: null });
                 // An incoming call is answered at once, with what one joins with by default.
                 if (call)
-                  void calls
-                    .answer(call.id, 'accept')
-                    .then((c) => joinCall(c, loadJoinPrefs()))
-                    .catch(report);
+                  void (
+                    call.state === 'ringing'
+                      ? calls.answer(call.id, 'accept').then((c) => joinCall(c, loadJoinPrefs()))
+                      : joinCall(call, loadJoinPrefs())
+                  ).catch(report);
               }}
             >
               {t('accept')}
@@ -345,7 +347,15 @@ function CallPanel({
       </div>
       <p className="text-sm text-muted-foreground">{t('noRecording')}</p>
       <div
-        className={cn('grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3', columns)}
+        className={cn(
+          'grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3',
+          columns,
+          // An odd last tile in two columns sits in the middle, not alone at the left.
+          people.length % 2 === 1 &&
+            people.length > 1 &&
+            people.length <= 4 &&
+            'sm:[&>*:last-child]:col-span-2 sm:[&>*:last-child]:mx-auto sm:[&>*:last-child]:w-1/2',
+        )}
         aria-label={t('participants', { count: people.length })}
       >
         {people.map((person) => {
@@ -441,9 +451,6 @@ function CallPanel({
           {t('leave')}
         </Button>
       </div>
-      {!state.local.size && state.session && (
-        <p className="text-center text-sm text-muted-foreground">{t('listenOnly')}</p>
-      )}
       {state.session && <Devices />}
     </div>
   );
@@ -489,7 +496,7 @@ function Participant({
       {/* Reactions float up and fade; they are said once for screen readers. */}
       <div
         aria-live="polite"
-        className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center"
+        className="pointer-events-none absolute inset-x-0 top-[22%] z-10 flex justify-center"
       >
         {reactions.map((r) => (
           <span key={r.key} className="call-reaction absolute text-4xl">
@@ -510,7 +517,7 @@ function Participant({
         ))
       ) : (
         <div
-          className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg bg-background"
+          className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg"
           aria-hidden="true"
         >
           <Avatar name={realName || name} profile={profile} size="lg" />

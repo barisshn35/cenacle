@@ -113,6 +113,8 @@ LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.cha
 LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
 WHERE m.id >= @after_message AND (m.id, cm.user_id) > (@after_message::uuid, @after_user::uuid)
   AND m.deleted_at IS NULL AND m.created_at > now() - interval '1 day' AND NOT channel_line(m.attachments)
+  -- A call's summary is not pushed: the call itself rang.
+  AND NOT coalesce(m.attachments->0 ? 'call_summary', false)
   AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.user_id = cm.user_id)
   AND (CASE WHEN m.root_id IS NULL OR m.also_in_channel
             THEN cm.last_read_id IS NULL OR cm.last_read_id < m.id
@@ -177,3 +179,24 @@ WHERE cm.user_id = @user_id AND m.deleted_at IS NULL
   AND m.id > @after AND m.created_at < @older_than AND m.created_at > now() - interval '7 days'
 ORDER BY m.id
 LIMIT 50;
+
+-- name: RingCandidates :many
+-- RingCandidates lists the people a direct or group call started after the
+-- cursor rings (members other than the caller, with a push subscription), with
+-- their channel and workspace settings. Only calls of the last 30 seconds that
+-- have not ended: a late push for a call long over helps nobody.
+SELECT k.id AS call_id, k.channel_id, c.kind AS channel_kind, c.title AS channel_title,
+       a.display_name AS caller_name, cm.user_id,
+       coalesce(cnp.level, 'default')::text AS level, cnp.muted_until AS channel_muted_until,
+       wnp.muted_until AS workspace_muted_until
+FROM calls k
+JOIN channels c ON c.id = k.channel_id AND c.kind IN ('direct', 'group')
+JOIN users a ON a.id = k.created_by
+JOIN channel_members cm ON cm.channel_id = k.channel_id AND cm.user_id <> k.created_by
+JOIN users u ON u.id = cm.user_id AND NOT u.is_bot AND u.deactivated_at IS NULL
+LEFT JOIN channel_notification_prefs cnp ON cnp.user_id = cm.user_id AND cnp.channel_id = k.channel_id
+LEFT JOIN workspace_notification_prefs wnp ON wnp.user_id = cm.user_id AND wnp.workspace_id = c.workspace_id
+WHERE k.id > @after_call AND k.created_at > now() - interval '30 seconds' AND k.ended_at IS NULL
+  AND EXISTS (SELECT 1 FROM push_subscriptions ps WHERE ps.user_id = cm.user_id)
+ORDER BY k.id, cm.user_id
+LIMIT 500;

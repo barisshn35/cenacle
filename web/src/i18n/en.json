@@ -966,6 +966,13 @@
     }
   },
   "notifications": {
+    "calls": {
+      "title": "Calls",
+      "ring": "Direct and group calls ring",
+      "channel": "Tell me when a call starts in a channel",
+      "sound": "Ring tone",
+      "hint": "Paused notifications, quiet hours and muted channels keep calls quiet too."
+    },
     "title": "Notifications",
     "notifyMe": "Notify me about",
     "what": "What notifies you",

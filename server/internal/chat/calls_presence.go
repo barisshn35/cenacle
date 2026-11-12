@@ -120,3 +120,29 @@ func (h *Handlers) SendCallReaction(w http.ResponseWriter, r *http.Request, id o
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// ListActiveCalls implements api.ServerInterface.
+func (h *Handlers) ListActiveCalls(w http.ResponseWriter, r *http.Request, workspaceID openapi_types.UUID) {
+	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
+	if !ok {
+		return
+	}
+	if _, ok := h.workspaceRole(w, r, workspaceID, p.User); !ok {
+		return
+	}
+	rows, err := h.Queries.ListActiveCallsForUser(r.Context(), store.ListActiveCallsForUserParams{WorkspaceID: pgUUID(workspaceID), UserID: p.User.ID})
+	if err != nil {
+		h.callError(w, r, err)
+		return
+	}
+	out := make([]callView, 0, len(rows))
+	for _, c := range rows {
+		v, err := callSnapshot(r.Context(), h.Queries, c)
+		if err != nil {
+			h.callError(w, r, err)
+			return
+		}
+		out = append(out, v)
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"calls": out})
+}

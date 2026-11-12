@@ -966,6 +966,13 @@
     }
   },
   "notifications": {
+    "calls": {
+      "title": "Görüşmeler",
+      "ring": "Birebir ve grup aramaları çalsın",
+      "channel": "Bir kanalda görüşme başlayınca haber ver",
+      "sound": "Zil sesi",
+      "hint": "Duraklatılmış bildirimler, sessiz saatler ve sessize alınmış kanallar görüşmeleri de sessiz tutar."
+    },
     "title": "Bildirimler",
     "notifyMe": "Bana bildir",
     "what": "Neler bildirilsin",
