@@ -54,7 +54,7 @@ func (h *Handlers) writeUserData(ctx context.Context, w http.ResponseWriter, u s
 		"time_zone": u.Timezone, "status_emoji": u.StatusEmoji, "status_text": u.StatusText,
 		"out_of_office_from": timeOf(u.OooFrom), "out_of_office_until": timeOf(u.OooUntil),
 		"out_of_office_message": u.OooMessage,
-		"created_at": u.CreatedAt, "last_login_at": timeOf(u.LastLoginAt), "last_seen_at": timeOf(u.LastSeenAt),
+		"created_at":            u.CreatedAt, "last_login_at": timeOf(u.LastLoginAt), "last_seen_at": timeOf(u.LastSeenAt),
 		"deactivated_at": timeOf(u.DeactivatedAt), "is_admin": u.IsAdmin, "guest": u.DirectoryRole.String == WorkspaceGuest,
 	}); err != nil {
 		return err

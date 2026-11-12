@@ -67,7 +67,7 @@ func TestOutOfOffice(t *testing.T) {
 	s.send(mert, dm.ID, "Still away?", "ooo-test-5")
 	page = api.MessagePage{}
 	s.call(http.MethodGet, "/api/channels/"+dm.ID+"/messages", mert, nil, &page)
-	if last := page.Messages[len(page.Messages)-1]; last.Attachments == nil || len(last.Attachments) == 0 || last.Attachments[0].AutoReply == nil || last.Body != "" {
+	if last := page.Messages[len(page.Messages)-1]; len(last.Attachments) == 0 || last.Attachments[0].AutoReply == nil || last.Body != "" {
 		t.Errorf("second absence: newest = %+v", last)
 	}
 	if res := s.call(http.MethodDelete, "/api/me/out-of-office", ayse, nil, nil); res.StatusCode != http.StatusNoContent {
