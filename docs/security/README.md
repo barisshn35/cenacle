@@ -115,6 +115,26 @@ they all use the same library. Moving to a ts-mls with the fix needs a planned s
 GroupInfo the server keeps for each encrypted channel was written the old way, so the new
 version must still read it until every group has made a commit with the new one.
 
+## Web push notifications
+
+Web push is optional (`CENACLE_WEB_PUSH`). What the chat server sends through the browsers'
+push services (Google, Mozilla, Apple, Microsoft) is encrypted end to end for the browser,
+as RFC 8291 (Message Encryption for Web Push) requires, with the `aes128gcm` content coding
+of RFC 8188: a key agreed by ECDH between a one-time key of the server and the browser's
+subscription key (P-256), mixed with the subscription's 16-byte auth secret, and AES-128-GCM.
+The push services carry the message but cannot read it. Each request is signed with the
+installation's VAPID key (RFC 8292), which the services check; it is made at the first start
+and kept in the database.
+
+The test `TestPushSend` (`server/internal/notify/send_test.go`) decrypts what the server sends
+by these steps, as a browser does, with the subscription's private key: a change that sent
+anything the browser could not read, or anything in the clear, fails it.
+
+Still, a push message shows a title and a line on the device's lock screen. What it may show
+is set in System console → Notifications (`push_contents`: the whole text, only who wrote,
+or nothing), and push endpoints are reached only through the outgoing-address rules (public
+https addresses).
+
 ## Verifying a release (0.31)
 
 Releases are signed with the project's key (cosign; the public key is

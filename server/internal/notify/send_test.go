@@ -3,11 +3,18 @@
 package notify
 
 import (
+	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/ecdh"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -61,6 +68,16 @@ func TestPushSend(t *testing.T) {
 	if strings.Contains(string(gotBody), "Merhaba") {
 		t.Error("the payload went out unencrypted")
 	}
+	// Only the browser can read it: decrypted as RFC 8291 (aes128gcm, RFC 8188)
+	// says, with the subscription's private key and auth secret.
+	plain, err := decryptWebPush(gotBody, key, auth)
+	if err != nil {
+		t.Fatalf("decrypt as RFC 8291: %v", err)
+	}
+	var got Payload
+	if err := json.Unmarshal(plain, &got); err != nil || got.Body != "Merhaba" || got.Title != payload.Title {
+		t.Errorf("decrypted payload = %s (%v)", plain, err)
+	}
 	gone = true
 	if err := p.Send(ctx, srv.URL+"/sub", b64(key.PublicKey().Bytes()), b64(auth), payload); !errors.Is(err, ErrGone) {
 		t.Errorf("gone subscription = %v", err)
@@ -106,4 +123,58 @@ func TestMailMessage(t *testing.T) {
 	if err != nil || !strings.Contains(string(msg), "Merhaba\r\nline two") {
 		t.Fatalf("plain message: %v\n%s", err, msg)
 	}
+}
+
+// decryptWebPush reads a web push message as a browser does (RFC 8291 over the
+// aes128gcm content coding of RFC 8188): the header carries the salt, the
+// record size and the server's one-time public key; the content key and nonce
+// come from ECDH with the subscription's key, mixed with its auth secret.
+func decryptWebPush(body []byte, ua *ecdh.PrivateKey, authSecret []byte) ([]byte, error) {
+	if len(body) < 21 {
+		return nil, errors.New("short header")
+	}
+	salt, idLen := body[:16], int(body[20])
+	if len(body) < 21+idLen {
+		return nil, errors.New("short key id")
+	}
+	asPublicRaw, ciphertext := body[21:21+idLen], body[21+idLen:]
+	asPublic, err := ecdh.P256().NewPublicKey(asPublicRaw)
+	if err != nil {
+		return nil, fmt.Errorf("server key: %w", err)
+	}
+	shared, err := ua.ECDH(asPublic)
+	if err != nil {
+		return nil, err
+	}
+	hmacOf := func(key []byte, parts ...[]byte) []byte {
+		m := hmac.New(sha256.New, key)
+		for _, p := range parts {
+			m.Write(p)
+		}
+		return m.Sum(nil)
+	}
+	// IKM = HKDF(auth_secret, ecdh_secret, "WebPush: info" || 0 || ua_public || as_public, 32)
+	info := append(append([]byte("WebPush: info\x00"), ua.PublicKey().Bytes()...), asPublicRaw...)
+	ikm := hmacOf(hmacOf(authSecret, shared), info, []byte{1})
+	prk := hmacOf(salt, ikm)
+	cek := hmacOf(prk, []byte("Content-Encoding: aes128gcm\x00"), []byte{1})[:16]
+	nonce := hmacOf(prk, []byte("Content-Encoding: nonce\x00"), []byte{1})[:12]
+	block, err := aes.NewCipher(cek)
+	if err != nil {
+		return nil, err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	plain, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, fmt.Errorf("open: %w", err)
+	}
+	// The last record ends with the delimiter 2, then zero padding.
+	end := bytes.LastIndexByte(plain, 2)
+	if end < 0 || bytes.Count(plain[end+1:], []byte{0}) != len(plain)-end-1 {
+		return nil, errors.New("no last-record delimiter")
+	}
+	return plain[:end], nil
 }
