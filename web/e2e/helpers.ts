@@ -504,6 +504,8 @@ export async function mockApi(
     channels?: MockChannel[];
     general?: Partial<MockChannel> & Record<string, unknown>;
     presence?: { user_id: string; status: string }[];
+    /** The server searches by meaning (ADR 0055); with ai. */
+    semanticSearch?: boolean;
     /** Whether the server stores files (default: yes). */
     files?: boolean;
     emoji?: typeof EMOJI;
@@ -573,6 +575,7 @@ export async function mockApi(
           host: 'ollama:11434',
           decision,
           ...(decidedAt ? { decided_at: decidedAt } : {}),
+          ...(opts.semanticSearch ? { semantic_search: true } : {}),
         },
       });
     });

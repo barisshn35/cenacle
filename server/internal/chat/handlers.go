@@ -51,6 +51,8 @@ type Handlers struct {
 	Calls *CallControl
 	// AI is the model the operator configured; nil: no AI features.
 	AI *ai.Client
+	// Semantic finds messages by meaning (ADR 0055); nil or not ready: off.
+	Semantic *SemanticIndex
 	// AIPolicyURL is linked from the AI notice; optional.
 	AIPolicyURL string
 	// Presence tells who is online (for @here); optional.

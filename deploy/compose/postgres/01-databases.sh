@@ -25,3 +25,10 @@ secret() {
 
 create_db "$CHAT_DB_USER" "$(secret CHAT_DB_PASSWORD)" "$CHAT_DB_NAME"
 create_db "$IDP_DB_USER" "$(secret IDP_DB_PASSWORD)" "$IDP_DB_NAME"
+
+# Semantic search (ADR 0055) keeps message vectors with pgvector. Creating it
+# takes a superuser; where the image has no pgvector, the feature stays off.
+if [ -f "$(pg_config --sharedir)/extension/vector.control" ]; then
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$CHAT_DB_NAME" \
+    -c 'CREATE EXTENSION IF NOT EXISTS vector SCHEMA public'
+fi

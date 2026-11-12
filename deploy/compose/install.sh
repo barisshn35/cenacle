@@ -503,6 +503,12 @@ while :; do
   fi
   sleep 5
 done
+# Semantic search needs pgvector in the chat database (ADR 0055); a data
+# volume from before it was in the image gets it here (it takes a superuser).
+# shellcheck disable=SC2016 # expanded in the container
+if ! dc exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U postgres -d "$CHAT_DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS vector SCHEMA public"' >> "$log_file" 2>&1; then
+  warn "pgvector could not be set up in the chat database: semantic search stays off (see $log_file)"
+fi
 say "all services are healthy:"
 dc ps --format '  {{.Service}}: {{.State}} {{.Health}}' 2>/dev/null | tee -a "$log_file"
 

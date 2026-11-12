@@ -120,6 +120,16 @@ them migrations (00046 took 29) ([QA report](../qa/report-0.99.1.md)).
 
 ### Next release (after 0.99.5)
 
+- PostgreSQL now runs the stack's own image, `cenacle-postgres`: the same official Alpine
+  PostgreSQL 18.6 with pgvector added (ADR 0055); the data directory is kept as it is.
+  `install.sh` creates the `vector` extension in the chat database; without `install.sh`,
+  run once: `docker compose -f prod.yml --env-file .env.prod exec postgres psql -U postgres
+-d cenacle_chat -c 'CREATE EXTENSION IF NOT EXISTS vector SCHEMA public'`. With an
+  external database (Helm), its administrator installs pgvector and runs the same
+  statement; without it semantic search stays off and nothing else changes. With the
+  backup overlay, rebuild its image (`docker compose … -f backup.yml build postgres`).
+- Migration 00078 adds meetings; 00079 adds the queue of semantic search (a trigger on
+  messages that does nothing until an embedding model is set).
 - Migration 00065: calls are on in every workspace unless its administrators turn them
   off. Workspaces whose call settings nobody changed are turned on; those turned off on
   purpose stay off. Calls still need the installation's media service: `install.sh --calls`,

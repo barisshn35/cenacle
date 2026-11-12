@@ -101,6 +101,10 @@ func (h *Handlers) SearchMessages(w http.ResponseWriter, r *http.Request, params
 	if !ok {
 		return
 	}
+	if params.Mode != nil && *params.Mode == api.Meaning {
+		h.searchByMeaning(w, r, p.User, params)
+		return
+	}
 	q, ok := h.searchable(w, r, params.Q)
 	if !ok {
 		return

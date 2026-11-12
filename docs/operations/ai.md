@@ -49,3 +49,27 @@ deleted, burn-on-read or encrypted ones. Requests are logged without their conte
 (`ai_requests`: kind and sizes) and limited to 30 per person every 10 minutes. The model's
 address is your configuration: Cenacle does not apply its outgoing-address rules to it, so
 keep it on your own network.
+
+## Search by meaning (optional)
+
+With an embedding model on the same server, people can search by meaning: messages that
+say the same thing in other words (ADR 0055). With Ollama:
+
+```sh
+docker exec ollama ollama pull bge-m3
+```
+
+and in `.env.prod`:
+
+```sh
+CENACLE_AI_EMBEDDING_MODEL=bge-m3
+```
+
+The chat database needs pgvector: the stack's PostgreSQL image has it, and `install.sh`
+creates the extension (an external database: `CREATE EXTENSION vector SCHEMA public` by its
+administrator). The server then indexes the messages of workspaces with AI on, in the
+background, sending each message's text (at most 2000 characters) to the model; System
+console → Jobs shows how far it is. Encrypted, burn-on-read and deleted messages are never
+indexed; turning AI off in a workspace removes its vectors. A search by meaning sends the
+query to the model, so it needs the person to have accepted the AI notice. Changing the
+model indexes every message again.

@@ -1102,6 +1102,8 @@
     "newActivity": "New activity"
   },
   "search": {
+    "meaning": "Search by meaning",
+    "meaningHint": "Finds messages that mean the same in other words, nearest first. Your search goes to the AI model.",
     "title": "Search",
     "open": "Search messages and files",
     "close": "Close search",
@@ -2796,6 +2798,14 @@
     "choose": "Choose…"
   },
   "console": {
+    "semantic": {
+      "title": "Semantic search",
+      "ready": "On, with the model {{model}}.",
+      "building": "The index is being made with the model {{model}}; search by words works meanwhile.",
+      "no_model": "Off: no embedding model is set (CENACLE_AI_EMBEDDING_MODEL).",
+      "no_extension": "Off: the chat database has no pgvector. Run CREATE EXTENSION vector SCHEMA public in it as its administrator.",
+      "counts": "{{indexed}} messages indexed, {{queued}} waiting."
+    },
     "testEmail": {
       "title": "Test e-mail",
       "hint": "Sends you a sample meeting invitation, in your language, so you can see that e-mail works and how invitations look.",

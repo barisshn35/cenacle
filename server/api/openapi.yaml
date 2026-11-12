@@ -641,6 +641,26 @@ paths:
         '204': { description: Set. }
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
+  /api/admin/semantic-search:
+    get:
+      tags: [admin]
+      operationId: getSemanticSearchStatus
+      summary: How the index of semantic search is (instance administrators)
+      responses:
+        '200':
+          description: Its state.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [state, model, indexed, queued]
+                properties:
+                  state: { type: string, enum: [ready, building, no_model, no_extension] }
+                  model: { type: string }
+                  indexed: { type: integer, format: int64 }
+                  queued: { type: integer, format: int64 }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/admin/test-email:
     post:
       tags: [admin]
@@ -1881,6 +1901,9 @@ paths:
       description: |
         Every word must begin a word of the message (accents and case do not matter);
         `-word` leaves out messages with it. Newest first; `before` continues a page.
+        With `mode=meaning` (ADR 0055; needs `workspace_id`, the workspace's AI and the
+        person's acceptance of the AI notice) the messages nearest the query in meaning
+        come instead, nearest first, in one page.
       parameters:
         - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
         - { name: workspace_id, in: query, schema: { type: string, format: uuid } }
@@ -1891,6 +1914,7 @@ paths:
         - { name: has, in: query, schema: { type: string, enum: [file, link] } }
         - { name: before, in: query, schema: { type: string, format: uuid } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+        - { name: mode, in: query, schema: { type: string, enum: [words, meaning] } }
       responses:
         '200':
           description: Matching messages.
@@ -8355,6 +8379,7 @@ components:
           enum: [accepted, declined, undecided]
           description: The person's answer for this model; undecided when they were not asked yet or the model changed.
         decided_at: { type: string, format: date-time }
+        semantic_search: { type: boolean, description: Searching by meaning works (ADR 0055). }
     AIAnswer:
       type: object
       required: [text, sources]

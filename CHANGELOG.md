@@ -10,6 +10,11 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Semantic search (ADR 0055): with an embedding model on the AI server
+  (`CENACLE_AI_EMBEDDING_MODEL`), messages of workspaces with AI on are indexed with pgvector
+  and the search panel can search by meaning; Ask AI finds its sources by meaning too. The
+  stack's PostgreSQL is now its own image with pgvector (`cenacle-postgres`; see the upgrade
+  notes). System console → Jobs shows the index. Migration 00079.
 - Meetings and calendar (ADR 0054): plan a meeting in a channel or with people (a direct or
   group conversation), once or repeating (daily, weekly on chosen days, monthly; until a day or
   a number of times), cancel one occurrence or all. Invitees answer going, maybe or not going;

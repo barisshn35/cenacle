@@ -97,6 +97,8 @@ type options struct {
 	pushKey string
 	// ai turns on the AI features with this model.
 	ai *ai.Client
+	// semantic finds messages by meaning (with ai).
+	semantic *chat.SemanticIndex
 	// sessionMaxAge replaces the sessions' 24 hours (runs longer than a day).
 	sessionMaxAge time.Duration
 	// store connects this object store instead.
@@ -184,7 +186,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			AccountURL:        "http://id.test/account",
 			PushPublicKey:     pushKeyFunc(o.pushKey),
 			MessagesPerWindow: o.perWindow, Window: 10 * time.Second, Configured: []string{"Central", "General"},
-			Presence: presence, LinkPreviews: true, AI: o.ai, Sessions: sessions, SearchTimeout: o.searchTimeout,
+			Presence: presence, LinkPreviews: true, AI: o.ai, Semantic: o.semantic, Sessions: sessions, SearchTimeout: o.searchTimeout,
 		},
 		Realtime: &realtime.Handler{
 			Hub: hub, Tickets: sh.valkey, Sessions: sessions, Members: members, Presence: presence, Cookies: cookies, PublicURL: public,

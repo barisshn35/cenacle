@@ -14,6 +14,8 @@ export interface MessageFilters {
   /** yyyy-mm-dd, to the end of that day. */
   until?: string;
   has?: 'file' | 'link';
+  /** By meaning instead of by words (ADR 0055; within one workspace). */
+  meaning?: boolean;
 }
 
 const PAGE = 20;
@@ -39,6 +41,7 @@ export const searchMessagesQuery = (q: string, f: MessageFilters) =>
       if (f.after) p.set('after', dayStart(f.after));
       if (f.until) p.set('until', dayEnd(f.until));
       if (f.has) p.set('has', f.has);
+      if (f.meaning) p.set('mode', 'meaning');
       if (pageParam) p.set('before', pageParam);
       return apiFetch<{ results: SearchMessage[]; has_more: boolean }>(
         `/api/search/messages?${p.toString()}`,

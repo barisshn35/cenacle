@@ -254,6 +254,12 @@ func (ExportArchiveArgs) Kind() string { return "export_archive" }
 // ArchiveInterval is how often finished days are looked for.
 var ArchiveInterval = 10 * time.Minute
 
+// SemanticIndexArgs keeps the vectors of semantic search up to date (ADR 0055).
+type SemanticIndexArgs struct{}
+
+// Kind implements river.JobArgs.
+func (SemanticIndexArgs) Kind() string { return "semantic_index" }
+
 // MeetingsArgs reminds people of meetings and sends meeting e-mails (ADR 0054).
 type MeetingsArgs struct{}
 
@@ -398,6 +404,8 @@ type Deps struct {
 	Reminders Runner
 	// Meetings is optional (meeting reminders and e-mails).
 	Meetings Runner
+	// Semantic is optional (the index of semantic search).
+	Semantic Runner
 	// Feeds is optional (feeds channels follow).
 	Feeds Runner
 	// Links is optional (link previews may be turned off).
@@ -469,6 +477,10 @@ func NewClient(pool *pgxpool.Pool, d Deps) (*river.Client[pgx.Tx], error) {
 	if d.Reminders != nil {
 		river.AddWorker(workers, &runnerWorker[SendRemindersArgs]{r: d.Reminders, what: "reminders sent", log: d.Log})
 		jobs = append(jobs, periodic(ReminderInterval, SendRemindersArgs{}))
+	}
+	if d.Semantic != nil {
+		river.AddWorker(workers, &runnerWorker[SemanticIndexArgs]{r: d.Semantic, what: "messages indexed for semantic search", log: d.Log, timeout: time.Minute})
+		jobs = append(jobs, periodic(20*time.Second, SemanticIndexArgs{}))
 	}
 	if d.Meetings != nil {
 		river.AddWorker(workers, &runnerWorker[MeetingsArgs]{r: d.Meetings, what: "meeting reminders and e-mails sent", log: d.Log, timeout: NotifyTimeout})

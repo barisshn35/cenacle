@@ -512,6 +512,7 @@ function JobsPanel({ overview }: { overview?: Overview }) {
           </BoardGroup>
         </Board>
       )}
+      <SemanticStatus />
       <section aria-labelledby="console-failures" className="flex flex-col gap-2">
         <h3 id="console-failures" className="text-sm font-semibold">
           {t('console.failures')}
@@ -597,6 +598,41 @@ function NotificationsPanel() {
       <TestEmail />
       <SoundDefaultsSection />
     </div>
+  );
+}
+
+/** How the index of semantic search is (ADR 0055): working, being made, or why it is off. */
+function SemanticStatus() {
+  const { t, i18n } = useTranslation();
+  const status = useQuery({
+    queryKey: ['admin', 'semantic-search'],
+    queryFn: () =>
+      apiFetch<{
+        state: 'ready' | 'building' | 'no_model' | 'no_extension';
+        model: string;
+        indexed: number;
+        queued: number;
+      }>('/api/admin/semantic-search'),
+    refetchInterval: 15_000,
+  });
+  if (!status.data) return null;
+  const n = new Intl.NumberFormat(i18n.language);
+  const s = status.data;
+  return (
+    <section aria-labelledby="console-semantic" className="flex flex-col gap-1.5">
+      <h3 id="console-semantic" className="text-sm font-semibold">
+        {t('console.semantic.title')}
+      </h3>
+      <p className="text-sm">{t(`console.semantic.${s.state}`, { model: s.model })}</p>
+      {(s.state === 'ready' || s.state === 'building') && (
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {t('console.semantic.counts', {
+            indexed: n.format(s.indexed),
+            queued: n.format(s.queued),
+          })}
+        </p>
+      )}
+    </section>
   );
 }
 

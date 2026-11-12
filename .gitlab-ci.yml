@@ -290,6 +290,9 @@ images:
         DOCKERFILE: web/Dockerfile
       - IMAGE: proxy
         DOCKERFILE: deploy/compose/caddy/Dockerfile
+      # PostgreSQL with pgvector (ADR 0055).
+      - IMAGE: postgres
+        DOCKERFILE: deploy/compose/postgres/Dockerfile
       # The media service for calls (docs/install/calls.md).
       - IMAGE: media
         DOCKERFILE: server/media.Dockerfile

@@ -68,6 +68,10 @@ func Open(t *testing.T) *pgxpool.Pool {
 		"CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA public; COMMIT"); err != nil {
 		t.Fatal(err)
 	}
+	// pgvector (semantic search) takes a superuser, as in CI; elsewhere it is
+	// there when the database's administrator made it, else its tests skip.
+	_, _ = admin.Exec(ctx, "BEGIN; SELECT pg_advisory_xact_lock(7419001); "+
+		"CREATE EXTENSION IF NOT EXISTS vector SCHEMA public; COMMIT")
 	t.Cleanup(func() {
 		_, _ = admin.Exec(context.Background(), "DROP SCHEMA "+schema+" CASCADE")
 		_ = admin.Close(context.Background())

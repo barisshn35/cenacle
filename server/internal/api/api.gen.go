@@ -1974,6 +1974,30 @@ func (e WorkspaceMemberRole) Valid() bool {
 	}
 }
 
+// Defines values for GetSemanticSearchStatus200JSONResponseBodyState.
+const (
+	Building    GetSemanticSearchStatus200JSONResponseBodyState = "building"
+	NoExtension GetSemanticSearchStatus200JSONResponseBodyState = "no_extension"
+	NoModel     GetSemanticSearchStatus200JSONResponseBodyState = "no_model"
+	Ready       GetSemanticSearchStatus200JSONResponseBodyState = "ready"
+)
+
+// Valid indicates whether the value is a known member of the GetSemanticSearchStatus200JSONResponseBodyState enum.
+func (e GetSemanticSearchStatus200JSONResponseBodyState) Valid() bool {
+	switch e {
+	case Building:
+		return true
+	case NoExtension:
+		return true
+	case NoModel:
+		return true
+	case Ready:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LoginParamsTheme.
 const (
 	LoginParamsThemeDark  LoginParamsTheme = "dark"
@@ -2292,6 +2316,24 @@ func (e SearchMessagesParamsHas) Valid() bool {
 	}
 }
 
+// Defines values for SearchMessagesParamsMode.
+const (
+	Meaning SearchMessagesParamsMode = "meaning"
+	Words   SearchMessagesParamsMode = "words"
+)
+
+// Valid indicates whether the value is a known member of the SearchMessagesParamsMode enum.
+func (e SearchMessagesParamsMode) Valid() bool {
+	switch e {
+	case Meaning:
+		return true
+	case Words:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DecideSpillageJSONBodyDecision.
 const (
 	DecideSpillageJSONBodyDecisionDismiss DecideSpillageJSONBodyDecision = "dismiss"
@@ -2520,6 +2562,9 @@ type AIConsent struct {
 
 	// PolicyUrl The operator's page on how the model's server keeps requests; absent when none.
 	PolicyUrl *string `json:"policy_url,omitempty"`
+
+	// SemanticSearch Searching by meaning works (ADR 0055).
+	SemanticSearch *bool `json:"semantic_search,omitempty"`
 }
 
 // AIConsentDecision The person's answer for this model; undecided when they were not asked yet or the model changed.
@@ -5175,6 +5220,9 @@ type SetE2EEscrowKeyJSONBody struct {
 	PublicKey []byte `json:"public_key"`
 }
 
+// GetSemanticSearchStatus200JSONResponseBodyState defines parameters for GetSemanticSearchStatus.
+type GetSemanticSearchStatus200JSONResponseBodyState string
+
 // AdminListUsersParams defines parameters for AdminListUsers.
 type AdminListUsersParams struct {
 	Q         *string             `form:"q,omitempty" json:"q,omitempty"`
@@ -5833,16 +5881,20 @@ type SearchMessagesParams struct {
 	ChannelId   *openapi_types.UUID `form:"channel_id,omitempty" json:"channel_id,omitempty"`
 
 	// From Only messages of this person.
-	From   *openapi_types.UUID      `form:"from,omitempty" json:"from,omitempty"`
-	After  *time.Time               `form:"after,omitempty" json:"after,omitempty"`
-	Until  *time.Time               `form:"until,omitempty" json:"until,omitempty"`
-	Has    *SearchMessagesParamsHas `form:"has,omitempty" json:"has,omitempty"`
-	Before *openapi_types.UUID      `form:"before,omitempty" json:"before,omitempty"`
-	Limit  *int                     `form:"limit,omitempty" json:"limit,omitempty"`
+	From   *openapi_types.UUID       `form:"from,omitempty" json:"from,omitempty"`
+	After  *time.Time                `form:"after,omitempty" json:"after,omitempty"`
+	Until  *time.Time                `form:"until,omitempty" json:"until,omitempty"`
+	Has    *SearchMessagesParamsHas  `form:"has,omitempty" json:"has,omitempty"`
+	Before *openapi_types.UUID       `form:"before,omitempty" json:"before,omitempty"`
+	Limit  *int                      `form:"limit,omitempty" json:"limit,omitempty"`
+	Mode   *SearchMessagesParamsMode `form:"mode,omitempty" json:"mode,omitempty"`
 }
 
 // SearchMessagesParamsHas defines parameters for SearchMessages.
 type SearchMessagesParamsHas string
+
+// SearchMessagesParamsMode defines parameters for SearchMessages.
+type SearchMessagesParamsMode string
 
 // EndAllSessionsJSONBody defines parameters for EndAllSessions.
 type EndAllSessionsJSONBody struct {
@@ -6648,6 +6700,9 @@ type ServerInterface interface {
 	// AdminOverview The installation at a glance (instance administrators)
 	// (GET /api/admin/overview)
 	AdminOverview(w http.ResponseWriter, r *http.Request)
+	// GetSemanticSearchStatus How the index of semantic search is (instance administrators)
+	// (GET /api/admin/semantic-search)
+	GetSemanticSearchStatus(w http.ResponseWriter, r *http.Request)
 	// GetSessionPolicy How long sessions last and which networks may sign in (instance administrators)
 	// (GET /api/admin/session-policy)
 	GetSessionPolicy(w http.ResponseWriter, r *http.Request)
@@ -7764,6 +7819,12 @@ func (_ Unimplemented) SetNotificationPolicy(w http.ResponseWriter, r *http.Requ
 // AdminOverview The installation at a glance (instance administrators)
 // (GET /api/admin/overview)
 func (_ Unimplemented) AdminOverview(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSemanticSearchStatus How the index of semantic search is (instance administrators)
+// (GET /api/admin/semantic-search)
+func (_ Unimplemented) GetSemanticSearchStatus(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10212,6 +10273,20 @@ func (siw *ServerInterfaceWrapper) AdminOverview(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AdminOverview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSemanticSearchStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetSemanticSearchStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSemanticSearchStatus(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -16772,6 +16847,19 @@ func (siw *ServerInterfaceWrapper) SearchMessages(w http.ResponseWriter, r *http
 		return
 	}
 
+	// ------------- Optional query parameter "mode" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "mode", r.URL.Query(), &params.Mode, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "mode"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "mode", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SearchMessages(w, r, params)
 	}))
@@ -19900,6 +19988,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/me/language", wrapper.SetLanguage)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/semantic-search", wrapper.GetSemanticSearchStatus)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/admin/test-email", wrapper.SendTestEmail)

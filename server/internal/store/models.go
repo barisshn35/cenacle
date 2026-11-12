@@ -325,6 +325,11 @@ type EmailNotification struct {
 	SentAt      pgtype.Timestamptz `json:"sent_at"`
 }
 
+type EmbeddingQueue struct {
+	MessageID pgtype.UUID `json:"message_id"`
+	QueuedAt  time.Time   `json:"queued_at"`
+}
+
 type Event struct {
 	ID          pgtype.UUID        `json:"id"`
 	WorkspaceID pgtype.UUID        `json:"workspace_id"`
@@ -882,6 +887,14 @@ type ScheduledMessage struct {
 	MessageID      pgtype.UUID `json:"message_id"`
 	CreatedAt      time.Time   `json:"created_at"`
 	AboutMessageID pgtype.UUID `json:"about_message_id"`
+}
+
+type SemanticIndex struct {
+	ID      bool               `json:"id"`
+	Enabled bool               `json:"enabled"`
+	Model   string             `json:"model"`
+	Dims    int32              `json:"dims"`
+	BuiltAt pgtype.Timestamptz `json:"built_at"`
 }
 
 type Session struct {

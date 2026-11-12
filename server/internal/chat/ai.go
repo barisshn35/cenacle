@@ -3,6 +3,7 @@
 package chat
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -124,9 +125,14 @@ func transcript(rows []store.ListMessagesForAIRow) string {
 	return strings.Join(lines, "\n")
 }
 
-// aiConsent is the notice and a person's answer for the configured model.
-func (h *Handlers) aiConsent(c store.AiConsent, found bool) api.AIConsent {
+// aiConsent is the notice and a person's answer for the configured model, and
+// whether searching by meaning works.
+func (h *Handlers) aiConsent(ctx context.Context, c store.AiConsent, found bool) api.AIConsent {
 	out := api.AIConsent{Model: h.AI.Model, Host: h.AI.Host(), Decision: api.AIConsentDecisionUndecided}
+	if h.Semantic.Ready(ctx) {
+		on := true
+		out.SemanticSearch = &on
+	}
 	if h.AIPolicyURL != "" {
 		out.PolicyUrl = &h.AIPolicyURL
 	}
@@ -159,7 +165,7 @@ func (h *Handlers) GetMyAIConsent(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w, r, "get ai consent", err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, h.aiConsent(c, err == nil))
+	httpx.WriteJSON(w, http.StatusOK, h.aiConsent(r.Context(), c, err == nil))
 }
 
 // SetMyAIConsent implements api.ServerInterface.
@@ -178,7 +184,7 @@ func (h *Handlers) SetMyAIConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.record(r, pgtype.UUID{}, audit.AIConsentChanged, "user", uuid(p.User.ID).String(), map[string]any{"accepted": in.Accepted, "model": h.AI.Model})
-	httpx.WriteJSON(w, http.StatusOK, h.aiConsent(c, true))
+	httpx.WriteJSON(w, http.StatusOK, h.aiConsent(r.Context(), c, true))
 }
 
 // SetWorkspaceAI implements api.ServerInterface.
@@ -200,6 +206,9 @@ func (h *Handlers) SetWorkspaceAI(w http.ResponseWriter, r *http.Request, worksp
 	if err != nil {
 		h.unavailable(w, r, "set workspace ai", err)
 		return
+	}
+	if err := h.Semantic.WorkspaceAIChanged(r.Context(), ws.ID, in.Enabled); err != nil {
+		h.Log.ErrorContext(r.Context(), "semantic search: workspace ai changed", "error", err)
 	}
 	role, _ := h.workspaceRole(w, r, workspaceID, p.User)
 	h.record(r, ws.ID, audit.AIChanged, "workspace", workspaceID.String(), map[string]any{"enabled": in.Enabled})
@@ -344,6 +353,7 @@ func (h *Handlers) AskAI(w http.ResponseWriter, r *http.Request, workspaceID ope
 		h.unavailable(w, r, "search messages for ai", err)
 		return
 	}
+	rows = h.nearFirst(r, p.User, pgUUID(workspaceID), question, rows)
 	sources := make([]api.AISource, 0, len(rows))
 	var b strings.Builder
 	for i, m := range rows {
@@ -372,4 +382,33 @@ func (h *Handlers) AskAI(w http.ResponseWriter, r *http.Request, workspaceID ope
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, api.AIAnswer{Text: text, Sources: sources})
+}
+
+// nearFirst puts the messages nearest the question in meaning before those
+// found by its words (ADR 0055), when searching by meaning works.
+func (h *Handlers) nearFirst(r *http.Request, user store.User, workspace pgtype.UUID, question string, byWords []store.SearchMessagesForAIRow) []store.SearchMessagesForAIRow {
+	if !h.Semantic.Ready(r.Context()) {
+		return byWords
+	}
+	near, err := h.Semantic.Near(r.Context(), user.ID, workspace, question, NearFilter{Limit: aiAskSources})
+	if err != nil {
+		h.Log.WarnContext(r.Context(), "semantic search for ask", "error", err)
+		return byWords
+	}
+	out := make([]store.SearchMessagesForAIRow, 0, aiAskSources)
+	seen := map[pgtype.UUID]bool{}
+	for _, m := range near {
+		seen[m.ID] = true
+		out = append(out, store.SearchMessagesForAIRow{ID: m.ID, ChannelID: m.ChannelID, Body: m.Body, CreatedAt: m.CreatedAt,
+			AuthorName: m.AuthorName, ChannelName: m.ChannelName, ChannelKind: m.ChannelKind})
+	}
+	for _, m := range byWords {
+		if len(out) >= aiAskSources {
+			break
+		}
+		if !seen[m.ID] {
+			out = append(out, m)
+		}
+	}
+	return out
 }

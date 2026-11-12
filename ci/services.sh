@@ -12,7 +12,8 @@ cd "$(dirname "$0")/.."
 
 job="${CI_JOB_ID:-local}"
 label="cenacle-ci-job=$job"
-PG_IMAGE=postgres:18.6-alpine3.24@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
+# PostgreSQL with pgvector, as the stack runs it (built once; layers are cached).
+PG_IMAGE=cenacle-ci-postgres:local
 VALKEY_IMAGE=valkey/valkey:9.0.6-alpine@sha256:187679e3bd4036959631e3f03983ab2ba503ab21e6fd0454d508e909db2ee989
 AZURITE_IMAGE=mcr.microsoft.com/azure-storage/azurite:3.35.0
 PASSWORD=ci-only-password
@@ -33,6 +34,8 @@ stop_all() {
 }
 
 postgres() { # name port user database
+  docker image inspect "$PG_IMAGE" >/dev/null 2>&1 ||
+    docker build -q -f deploy/compose/postgres/Dockerfile -t "$PG_IMAGE" . >/dev/null
   docker run -d --name "ci-$job-$1" --label "$label" -p "127.0.0.1:$2:5432" \
     -e POSTGRES_USER="$3" -e POSTGRES_PASSWORD="$PASSWORD" -e POSTGRES_DB="$4" \
     --health-cmd "pg_isready -U $3 -d $4" --health-interval 2s --health-timeout 3s --health-retries 45 \

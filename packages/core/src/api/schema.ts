@@ -455,6 +455,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/semantic-search': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** How the index of semantic search is (instance administrators) */
+    get: operations['getSemanticSearchStatus'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/admin/test-email': {
     parameters: {
       query?: never;
@@ -1304,6 +1321,9 @@ export interface paths {
      * Search the messages of your channels and conversations
      * @description Every word must begin a word of the message (accents and case do not matter);
      *     `-word` leaves out messages with it. Newest first; `before` continues a page.
+     *     With `mode=meaning` (ADR 0055; needs `workspace_id`, the workspace's AI and the
+     *     person's acceptance of the AI notice) the messages nearest the query in meaning
+     *     come instead, nearest first, in one page.
      */
     get: operations['searchMessages'];
     put?: never;
@@ -5602,6 +5622,8 @@ export interface components {
       decision: 'accepted' | 'declined' | 'undecided';
       /** Format: date-time */
       decided_at?: string;
+      /** @description Searching by meaning works (ADR 0055). */
+      semantic_search?: boolean;
     };
     AIAnswer: {
       /** @description Markdown written by the model. */
@@ -8678,6 +8700,36 @@ export interface operations {
       401: components['responses']['Problem'];
     };
   };
+  getSemanticSearchStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Its state. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            state: 'ready' | 'building' | 'no_model' | 'no_extension';
+            model: string;
+            /** Format: int64 */
+            indexed: number;
+            /** Format: int64 */
+            queued: number;
+          };
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
   sendTestEmail: {
     parameters: {
       query?: never;
@@ -10214,6 +10266,7 @@ export interface operations {
         has?: 'file' | 'link';
         before?: string;
         limit?: number;
+        mode?: 'words' | 'meaning';
       };
       header?: never;
       path?: never;

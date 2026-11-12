@@ -4,6 +4,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { DownloadIcon, SearchIcon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAI, useAIConsent, useAIGate } from '../ai/ai';
 import { Button, buttonVariants } from '@cenacle/ui/components/button';
 import { Input } from '@cenacle/ui/components/input';
 import { Label } from '@cenacle/ui/components/label';
@@ -83,17 +84,25 @@ export function SearchPanel() {
   const [after, setAfter] = useState('');
   const [until, setUntil] = useState('');
   const [from, setFrom] = useState<Person | null>(null);
+  const [meaning, setMeaning] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  // Searching by meaning (ADR 0055): where AI is on and the server keeps the index.
+  const ai = useAI();
+  const consent = useAIConsent();
+  const gate = useAIGate();
+  const byMeaning = meaning && ai && !!consent?.semantic_search && !!workspaceId;
 
   useEffect(() => input.current?.focus(), []);
 
   const filters: MessageFilters = {
-    workspaceId: scope === 'all' ? undefined : workspaceId,
+    // By meaning searches one workspace: "all" means this one then.
+    workspaceId: scope === 'all' && !byMeaning ? undefined : workspaceId,
     channelId: scope === 'channel' ? channelId : undefined,
     from: from?.id,
     after: after || undefined,
     until: until || undefined,
     has: has || undefined,
+    meaning: byMeaning || undefined,
   };
 
   return (
@@ -157,6 +166,27 @@ export function SearchPanel() {
             </Button>
           ))}
         </div>
+        {tab === 'messages' && ai && consent?.semantic_search && (
+          <div className="grid gap-0.5">
+            <label data-target className="flex min-h-target items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={byMeaning}
+                onChange={(e) => {
+                  if (e.target.checked) gate(() => setMeaning(true));
+                  else setMeaning(false);
+                }}
+                className="size-4 accent-primary"
+                aria-describedby={`${ids.q}-meaning`}
+                data-target-exempt
+              />
+              {t('search.meaning')}
+            </label>
+            <p id={`${ids.q}-meaning`} className="text-xs text-muted-foreground">
+              {t('search.meaningHint')}
+            </p>
+          </div>
+        )}
         {tab === 'messages' && (
           <details className="group rounded-lg border px-3 py-2 text-sm">
             <summary className="flex min-h-target cursor-pointer items-center font-medium">

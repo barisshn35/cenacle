@@ -100,3 +100,63 @@ func (c *Client) Complete(ctx context.Context, system, user string) (string, err
 	}
 	return strings.TrimSpace(out.Choices[0].Message.Content), nil
 }
+
+// maxEmbedInput bounds the text of one input (in runes).
+const maxEmbedInput = 2000
+
+// Embed asks a model for the vectors of texts (the OpenAI-compatible
+// embeddings API), in their order.
+func (c *Client) Embed(ctx context.Context, model string, texts []string) ([][]float32, error) {
+	input := make([]string, len(texts))
+	for i, t := range texts {
+		if r := []rune(t); len(r) > maxEmbedInput {
+			t = string(r[:maxEmbedInput])
+		}
+		input[i] = t
+	}
+	body, _ := json.Marshal(map[string]any{"model": model, "input": input})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.URL+"/embeddings", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Cenacle")
+	if c.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	}
+	res, err := c.HTTP.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrModel, err)
+	}
+	defer func() { _ = res.Body.Close() }()
+	raw, err := io.ReadAll(io.LimitReader(res.Body, 64<<20))
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrModel, err)
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: status %d", ErrModel, res.StatusCode)
+	}
+	var out struct {
+		Data []struct {
+			Index     int       `json:"index"`
+			Embedding []float32 `json:"embedding"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil || len(out.Data) != len(texts) {
+		return nil, fmt.Errorf("%w: no vectors", ErrModel)
+	}
+	vectors := make([][]float32, len(texts))
+	for _, d := range out.Data {
+		if d.Index < 0 || d.Index >= len(texts) || len(d.Embedding) == 0 || vectors[d.Index] != nil {
+			return nil, fmt.Errorf("%w: unexpected vectors", ErrModel)
+		}
+		vectors[d.Index] = d.Embedding
+	}
+	dims := len(vectors[0])
+	for _, v := range vectors {
+		if len(v) != dims {
+			return nil, fmt.Errorf("%w: vectors of different widths", ErrModel)
+		}
+	}
+	return vectors, nil
+}

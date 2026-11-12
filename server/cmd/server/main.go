@@ -338,6 +338,13 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 		meetingJob.SMTP = e.SMTP
 	}
 	deps.Meetings = meetingJob
+	// Semantic search keeps its index when an embedding model is set (ADR 0055).
+	aiClient := ai.New(cfg.AIURL, cfg.AIModel, cfg.AIAPIKey, cfg.AITimeout)
+	var semantic *chat.SemanticIndex
+	if aiClient != nil {
+		semantic = &chat.SemanticIndex{DB: pool, AI: aiClient, Model: cfg.AIEmbeddingModel, Log: log}
+		deps.Semantic = semantic
+	}
 	jobClient, err := jobs.NewClient(pool, deps)
 	if err != nil {
 		return err
@@ -377,7 +384,8 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Log:               log,
 		},
 		Chat: &chat.Handlers{
-			AI:                ai.New(cfg.AIURL, cfg.AIModel, cfg.AIAPIKey, cfg.AITimeout),
+			AI:                aiClient,
+			Semantic:          semantic,
 			AIPolicyURL:       cfg.AIPolicyURL,
 			Queries:           queries,
 			DB:                pool,

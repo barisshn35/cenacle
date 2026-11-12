@@ -1102,6 +1102,8 @@
     "newActivity": "Yeni etkinlik"
   },
   "search": {
+    "meaning": "Anlamına göre ara",
+    "meaningHint": "Aynı şeyi başka kelimelerle söyleyen mesajları, en yakını önce gelecek şekilde bulur. Aramanız yapay zekâ modeline gider.",
     "title": "Ara",
     "open": "Mesajlarda ve dosyalarda ara",
     "close": "Aramayı kapat",
@@ -2796,6 +2798,14 @@
     "choose": "Seçin…"
   },
   "console": {
+    "semantic": {
+      "title": "Anlamsal arama",
+      "ready": "Açık, {{model}} modeliyle.",
+      "building": "Dizin {{model}} modeliyle hazırlanıyor; bu sırada kelimeyle arama çalışır.",
+      "no_model": "Kapalı: bir gömme modeli tanımlı değil (CENACLE_AI_EMBEDDING_MODEL).",
+      "no_extension": "Kapalı: sohbet veritabanında pgvector yok. Veritabanı yöneticisi olarak içinde CREATE EXTENSION vector SCHEMA public komutunu çalıştırın.",
+      "counts": "{{indexed}} mesaj dizinlendi, {{queued}} bekliyor."
+    },
     "testEmail": {
       "title": "Deneme e-postası",
       "hint": "Size, sizin dilinizde örnek bir toplantı daveti gönderir; e-postanın çalıştığını ve davetlerin nasıl göründüğünü görürsünüz.",

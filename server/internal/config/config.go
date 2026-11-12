@@ -158,6 +158,9 @@ type Config struct {
 	AIModel   string
 	AIAPIKey  string
 	AITimeout time.Duration
+	// AIEmbeddingModel turns on semantic search with a model of the same API
+	// (ADR 0055); empty: off.
+	AIEmbeddingModel string
 	// AIPolicyURL is the operator's page on how the model's server keeps
 	// requests, linked from the AI notice people accept; optional.
 	AIPolicyURL string
@@ -305,6 +308,10 @@ func load(lookup LookupFunc, readFile ReadFileFunc, serve bool) (Config, error) 
 	cfg.AIModel = strings.TrimSpace(l.str("CENACLE_AI_MODEL", ""))
 	cfg.AIAPIKey = l.str("CENACLE_AI_API_KEY", "")
 	cfg.AITimeout = l.duration("CENACLE_AI_TIMEOUT", 2*time.Minute)
+	cfg.AIEmbeddingModel = strings.TrimSpace(l.str("CENACLE_AI_EMBEDDING_MODEL", ""))
+	if cfg.AIEmbeddingModel != "" && cfg.AIURL == "" {
+		l.fail("CENACLE_AI_EMBEDDING_MODEL: it needs CENACLE_AI_URL (the same API)")
+	}
 	if cfg.AIURL != "" {
 		if u, err := url.Parse(cfg.AIURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			l.fail("CENACLE_AI_URL: an http(s) address of an OpenAI-compatible API")
