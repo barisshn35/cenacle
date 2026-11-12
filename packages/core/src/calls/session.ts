@@ -444,7 +444,10 @@ export class CallSession {
           ? await this.options.process(kind, captured).catch(() => null)
           : null;
       const track = worked?.track ?? captured;
-      if (worked) {
+      // Worked on, it is a new track: stopping it also ends the capture. (A hook
+      // that changed nothing returns the captured track itself: wrapping its
+      // stop would call itself.)
+      if (worked && worked.track !== captured) {
         const stopWorked = worked.stop;
         const ownStop = track.stop.bind(track);
         // Stopping what is sent also stops the capture and its processing.
@@ -667,8 +670,13 @@ export class CallSession {
         /* HTTP leave remains authoritative. */
       }
     }
-    this.close();
-    await calls.leave(this.options.callID);
+    try {
+      this.close();
+    } finally {
+      // The server hears it whatever happened here: otherwise the person
+      // stays in the call and it never ends.
+      await calls.leave(this.options.callID);
+    }
   }
   close(): void {
     if (this.ended) return;
@@ -677,7 +685,13 @@ export class CallSession {
     clearTimeout(this.reconnectTimer);
     clearTimeout(this.recoveryTimer);
     this.dropTransport();
-    for (const local of this.locals.values()) local.track.stop();
+    for (const local of this.locals.values()) {
+      try {
+        local.track.stop();
+      } catch {
+        // One track that fails to stop does not keep the others (or the call) open.
+      }
+    }
     this.locals.clear();
     this.audioElements.clear();
     this.notifyLocal();
