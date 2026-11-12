@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { execFileSync } from 'node:child_process';
-import { test, expect, type Page, type WebSocketRoute } from '@playwright/test';
+import {
+  test,
+  expect,
+  type BrowserContext,
+  type Page,
+  type WebSocketRoute,
+} from '@playwright/test';
 import { IDP_URL, idpEnv } from '../playwright.stack.config';
 
 const password = 'e2e stack password 2026';
@@ -26,6 +32,22 @@ test.beforeAll(() => {
     }
   }
 });
+/** Joins without the check before joining, muted and without camera (as calls did before it). */
+async function muted(context: BrowserContext) {
+  await context.addInitScript(() =>
+    localStorage.setItem(
+      'cenacle.call.join',
+      JSON.stringify({
+        audio: false,
+        camera: false,
+        mic: '',
+        cam: '',
+        speaker: '',
+        preview: false,
+      }),
+    ),
+  );
+}
 async function login(page: Page, email: string) {
   await page.goto('/');
   await page.getByRole('link', { name: 'Continue with Cenacle ID' }).click();
@@ -59,7 +81,23 @@ test('real chat/media stack forwards camera/audio, reconnects without duplicate 
         );
     await login(a, 'deniz@example.com');
     await enableCalls(a);
+    // The check before joining, with the browser's (fake) camera and microphone:
+    // the camera is turned on there, the microphone is heard, and the call starts
+    // with both.
     await a.getByRole('button', { name: 'Start call', exact: true }).click();
+    const check = a.getByTestId('prejoin');
+    await check.getByRole('button', { name: 'Camera off' }).click();
+    await expect
+      .poll(
+        () =>
+          check
+            .getByLabel('Your camera', { exact: true })
+            .evaluate((v) => v instanceof HTMLVideoElement && v.videoWidth > 0),
+        { timeout: 15000 },
+      )
+      .toBe(true);
+    await expect(check.getByText('Your microphone works')).toBeVisible({ timeout: 15000 });
+    await check.getByRole('button', { name: 'Start call' }).click();
     await expect(a.getByRole('dialog').getByText('Connected', { exact: true })).toBeVisible({
       timeout: 30000,
     });
@@ -68,11 +106,10 @@ test('real chat/media stack forwards camera/audio, reconnects without duplicate 
       .getByRole('region', { name: 'Call in progress' })
       .getByRole('button', { name: 'Join call' })
       .click();
+    await b.getByTestId('prejoin').getByRole('button', { name: 'Join' }).click();
     await expect(b.getByRole('dialog').getByText('Connected', { exact: true })).toBeVisible({
       timeout: 30000,
     });
-    await a.getByRole('button', { name: 'Microphone', exact: true }).click();
-    await a.getByRole('button', { name: 'Camera', exact: true }).click();
     await expect.poll(receivesVideo, { timeout: 20000 }).toBe(true);
     await expect
       .poll(() =>
@@ -161,6 +198,8 @@ test('a direct call rings the other person, who can decline and then accept', as
   test.setTimeout(120000);
   const first = await browser.newContext({ permissions: ['camera', 'microphone'] });
   const second = await browser.newContext({ permissions: ['camera', 'microphone'] });
+  await muted(first);
+  await muted(second);
   try {
     const a = await first.newPage();
     const b = await second.newPage();
@@ -211,6 +250,7 @@ test('three people in a channel call; one screen is shared at a time, video only
   const contexts = await Promise.all(
     [0, 1, 2].map(() => browser.newContext({ permissions: ['camera', 'microphone'] })),
   );
+  for (const context of contexts) await muted(context);
   try {
     const [a, b, c] = await Promise.all(contexts.map((context) => context.newPage()));
     await login(a!, 'deniz@example.com');
