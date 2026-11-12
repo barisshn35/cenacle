@@ -27,8 +27,9 @@ export function AppearanceControls({
   const ids = { theme: useId(), density: useId(), lang: useId() };
 
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor={ids.theme} className="sr-only">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {/* Shown where there is room: "Automatic" alone does not say what it sets. */}
+      <label htmlFor={ids.theme} className="text-xs text-muted-foreground max-sm:sr-only">
         {t('appearance.theme')}
       </label>
       <select
@@ -47,7 +48,8 @@ export function AppearanceControls({
         <option value="dark">{t('appearance.themeDark')}</option>
       </select>
 
-      <label htmlFor={ids.density} className="sr-only">
+      {/* Shown where there is room: "Automatic" alone does not say what it sets. */}
+      <label htmlFor={ids.density} className="text-xs text-muted-foreground max-sm:sr-only">
         {t('appearance.density')}
       </label>
       <select

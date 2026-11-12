@@ -53,6 +53,50 @@ test.describe('notifications', () => {
     await expect(panel.getByText(/Paused until/)).toHaveCount(0);
   });
 
+  test('a sound plays as it is chosen; an own sound is named after its file', async ({ page }) => {
+    // Count the tones the page makes (built-in sounds are synthesised).
+    await page.addInitScript(() => {
+      const w = window as unknown as { tones: number };
+      w.tones = 0;
+      const make = AudioContext.prototype.createOscillator;
+      AudioContext.prototype.createOscillator = function (this: AudioContext) {
+        w.tones++;
+        return make.call(this);
+      };
+    });
+    await mockApi(page, { messages: [] });
+    let uploaded = '';
+    await page.route('**/api/me/sounds**', (route) => {
+      if (route.request().method() === 'POST') {
+        uploaded = new URL(route.request().url()).searchParams.get('name') ?? '';
+        return route.fulfill({ status: 201, json: { id: 's1', name: uploaded } });
+      }
+      return route.fulfill({ json: { sounds: [] } });
+    });
+    await page.goto(`/c/${GENERAL.id}`);
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    await dialog.getByRole('tab', { name: 'Notifications' }).click();
+    const panel = dialog.getByTestId('notifications-panel');
+    await panel.getByLabel('Mentions', { exact: true }).selectOption('chime');
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { tones: number }).tones))
+      .toBeGreaterThan(0);
+
+    // The file first; its name is asked after, filled in from the file.
+    const uploads = panel.getByTestId('sound-uploads');
+    await expect(uploads.getByLabel('Sound name')).toHaveCount(0);
+    await uploads.locator('input[type="file"]').setInputFiles({
+      name: 'Kapı zili.mp3',
+      mimeType: 'audio/mpeg',
+      buffer: Buffer.from([0xff, 0xfb, 0x90, 0x00]),
+    });
+    await expect(uploads.getByLabel('Sound name')).toHaveValue('Kapı zili');
+    await uploads.getByLabel('Sound name').fill('Zil');
+    await uploads.getByRole('button', { name: 'Add sound' }).click();
+    await expect.poll(() => uploaded).toBe('Zil');
+  });
+
   test('a channel is muted from its details and dimmed in the sidebar', async ({ page }) => {
     const api = await mockApi(page, { messages: [] });
     await page.goto(`/c/${GENERAL.id}`);

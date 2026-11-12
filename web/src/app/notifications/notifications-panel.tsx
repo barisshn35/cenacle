@@ -102,13 +102,13 @@ export function NotificationsPanel() {
 
   return (
     <div
-      className="gap-x-10 pt-4 lg:columns-2 [&>section]:mb-7 [&>section]:break-inside-avoid [&>section]:content-start [&_section>h4]:border-b [&_section>h4]:pb-2 [&_section>h4]:font-semibold"
+      className="gap-x-10 pt-4 lg:columns-2 [&>section]:mb-7 [&>section]:break-inside-avoid [&>section]:content-start [&_section>h3]:border-b [&_section>h3]:pb-2 [&_section>h3]:font-semibold"
       data-testid="notifications-panel"
     >
       <section className="grid gap-2" aria-labelledby={`${ids.pause}-title`}>
-        <h4 id={`${ids.pause}-title`} className="text-sm font-medium">
+        <h3 id={`${ids.pause}-title`} className="text-sm font-medium">
           {t('notifications.pause')}
-        </h4>
+        </h3>
         {paused ? (
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span>
@@ -147,9 +147,9 @@ export function NotificationsPanel() {
       </section>
 
       <section className="grid gap-3" aria-labelledby={`${ids.level}-title`}>
-        <h4 id={`${ids.level}-title`} className="text-sm font-medium">
+        <h3 id={`${ids.level}-title`} className="text-sm font-medium">
           {t('notifications.what')}
-        </h4>
+        </h3>
         <div className="grid gap-1.5">
           <Label htmlFor={ids.level}>{t('notifications.channelsDefault')}</Label>
           <select
@@ -222,9 +222,9 @@ export function NotificationsPanel() {
       </section>
 
       <section className="grid gap-3" aria-labelledby={`${ids.volume}-title`}>
-        <h4 id={`${ids.volume}-title`} className="text-sm font-medium">
+        <h3 id={`${ids.volume}-title`} className="text-sm font-medium">
           {t('notifications.soundsTitle')}
-        </h4>
+        </h3>
         {(['mention', 'direct', 'message'] as const).map((k) => (
           <SoundChoice
             key={k}
@@ -252,9 +252,9 @@ export function NotificationsPanel() {
       </section>
 
       <section className="grid gap-3" aria-labelledby={`${ids.start}-title`}>
-        <h4 id={`${ids.start}-title`} className="text-sm font-medium">
+        <h3 id={`${ids.start}-title`} className="text-sm font-medium">
           {t('notifications.quietHours')}
-        </h4>
+        </h3>
         <label data-target className="flex min-h-target items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -332,9 +332,9 @@ export function NotificationsPanel() {
 
       {settings.data.email_available && (
         <section className="grid gap-2" aria-labelledby={`${ids.delay}-title`}>
-          <h4 id={`${ids.delay}-title`} className="text-sm font-medium">
+          <h3 id={`${ids.delay}-title`} className="text-sm font-medium">
             {t('notifications.email')}
-          </h4>
+          </h3>
           <label data-target className="flex min-h-target items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -407,12 +407,12 @@ function ChannelExceptions() {
       className="grid content-start gap-2 lg:col-start-2"
       aria-labelledby="notification-exceptions"
     >
-      <h4 className="flex items-baseline gap-2 text-sm">
+      <h3 className="flex items-baseline gap-2 text-sm">
         <span id="notification-exceptions">{t('notifications.exceptions.title')}</span>
         <span className="text-xs font-normal text-muted-foreground">
           {t('notifications.exceptions.hint')}
         </span>
-      </h4>
+      </h3>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('notifications.exceptions.none')}</p>
       ) : (
@@ -474,7 +474,11 @@ export function SoundChoice({
           id={id}
           className={selectClass}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            // Choosing is hearing: a sound plays as it is picked.
+            onChange(e.target.value);
+            if (e.target.value !== 'none') playSound(e.target.value, volume);
+          }}
         >
           {options}
         </select>
@@ -500,6 +504,7 @@ function SoundUploads() {
   const id = useId();
   const file = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
+  const [picked, setPicked] = useState<File | null>(null);
   const sounds = useQuery(soundsQuery);
   const queryClient = useQueryClient();
   const refresh = () => queryClient.invalidateQueries({ queryKey: soundsQuery.queryKey });
@@ -507,6 +512,7 @@ function SoundUploads() {
     mutationFn: (f: File) => uploadSound(name.trim() || f.name.replace(/\.[^.]+$/, ''), f),
     onSuccess: () => {
       setName('');
+      setPicked(null);
       void refresh();
       toast.success(t('notifications.soundAdded'));
     },
@@ -537,42 +543,61 @@ function SoundUploads() {
           ))}
         </ul>
       )}
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="grid min-w-40 flex-1 gap-1">
-          <Label htmlFor={`${id}-name`}>{t('notifications.soundName')}</Label>
-          <input
-            id={`${id}-name`}
-            value={name}
-            maxLength={60}
-            onChange={(e) => setName(e.target.value)}
-            className={`${inputClass} w-full min-w-0`}
-          />
-        </div>
-        <input
-          ref={file}
-          type="file"
-          accept="audio/mpeg,audio/ogg,audio/wav,audio/webm,.mp3,.ogg,.wav,.webm"
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (!f) return;
-            if (f.size > MAX_SOUND) toast.error(t('notifications.soundInvalid'));
-            else upload.mutate(f);
+      {picked ? (
+        // The file first, then its name (taken from the file, to change if wanted).
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            upload.mutate(picked);
           }}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          disabled={upload.isPending}
-          onClick={() => file.current?.click()}
         >
-          <UploadIcon aria-hidden strokeWidth={1.75} />
-          {t('notifications.soundUpload')}
-        </Button>
-      </div>
+          <div className="grid min-w-40 flex-1 gap-1">
+            <Label htmlFor={`${id}-name`}>{t('notifications.soundName')}</Label>
+            <input
+              id={`${id}-name`}
+              value={name}
+              maxLength={60}
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- the next step of the action just taken
+              autoFocus
+              onChange={(e) => setName(e.target.value)}
+              className={`${inputClass} w-full min-w-0`}
+            />
+          </div>
+          <Button type="button" variant="ghost" onClick={() => setPicked(null)}>
+            {t('ui:confirm.cancel')}
+          </Button>
+          <Button type="submit" disabled={upload.isPending}>
+            {t('notifications.soundAdd')}
+          </Button>
+        </form>
+      ) : (
+        <div>
+          <input
+            ref={file}
+            type="file"
+            accept="audio/mpeg,audio/ogg,audio/wav,audio/webm,.mp3,.ogg,.wav,.webm"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (!f) return;
+              if (f.size > MAX_SOUND) {
+                toast.error(t('notifications.soundInvalid'));
+                return;
+              }
+              setName(f.name.replace(/\.[^.]+$/, '').slice(0, 60));
+              setPicked(f);
+            }}
+          />
+          <Button type="button" variant="outline" onClick={() => file.current?.click()}>
+            <UploadIcon aria-hidden strokeWidth={1.75} />
+            {t('notifications.soundUpload')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

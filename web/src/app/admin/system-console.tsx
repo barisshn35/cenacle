@@ -122,11 +122,13 @@ export function SystemConsole({ onOpenChange }: { onOpenChange: (open: boolean) 
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/** A figure that leads the overview, with what it is measured against. */
+function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="flex flex-col gap-0.5 rounded-[10px] border px-4 py-3">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-xl font-semibold tabular-nums">{value}</span>
+      <span className="text-2xl font-semibold tabular-nums">{value}</span>
+      <span className="text-xs text-muted-foreground">{detail}</span>
     </div>
   );
 }
@@ -136,21 +138,41 @@ function OverviewPanel({ overview }: { overview?: Overview }) {
   if (!overview) return <Skeleton className="h-40" />;
   const n = new Intl.NumberFormat(dateLocale(i18n.language));
   const c = overview.counts;
+  // Who uses it and how much it holds lead; the rest is a line of counts.
+  const rest = [
+    ['workspaces', c.workspaces],
+    ['channels', c.channels],
+    ['messages', c.messages],
+    ['bots', c.bots],
+  ] as const;
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label={t('console.counts.users')} value={n.format(Number(c.users))} />
-        <Stat label={t('console.counts.active')} value={n.format(Number(c.active_users))} />
-        <Stat label={t('console.counts.workspaces')} value={n.format(Number(c.workspaces))} />
-        <Stat label={t('console.counts.channels')} value={n.format(Number(c.channels))} />
-        <Stat label={t('console.counts.messages')} value={n.format(Number(c.messages))} />
-        <Stat label={t('console.counts.files')} value={n.format(Number(c.files))} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Stat
+          label={t('console.counts.active')}
+          value={n.format(Number(c.active_users))}
+          detail={t('console.counts.ofPeople', {
+            count: Number(c.users),
+            n: n.format(Number(c.users)),
+          })}
+        />
         <Stat
           label={t('console.counts.storage')}
           value={formatSize(Number(c.file_bytes), i18n.language)}
+          detail={t('console.counts.inFiles', {
+            count: Number(c.files),
+            n: n.format(Number(c.files)),
+          })}
         />
-        <Stat label={t('console.counts.bots')} value={n.format(Number(c.bots))} />
       </div>
+      <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm" data-testid="console-counts">
+        {rest.map(([key, value]) => (
+          <div key={key} className="flex items-baseline gap-1.5">
+            <dt className="text-muted-foreground">{t(`console.counts.${key}`)}</dt>
+            <dd className="font-semibold tabular-nums">{n.format(Number(value))}</dd>
+          </div>
+        ))}
+      </dl>
       <section aria-labelledby="console-desktop" className="flex flex-col gap-2">
         <h3 id="console-desktop" className="text-sm font-semibold">
           {t('console.desktop.title')}

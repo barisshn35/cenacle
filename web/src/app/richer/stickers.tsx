@@ -66,7 +66,8 @@ function TileAction({
       aria-pressed={pressed}
       onClick={onClick}
       className={cn(
-        'absolute end-0 top-0 flex size-6 pointer-coarse:size-11 items-center justify-center rounded-md bg-popover/90 text-muted-foreground shadow-sm outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:opacity-100',
+        // On touch screens it sits under the tile, full width, not over the picture.
+        'absolute end-0 top-0 flex size-6 items-center justify-center rounded-md bg-popover/90 text-muted-foreground shadow-sm outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:static pointer-coarse:mt-1 pointer-coarse:h-11 pointer-coarse:w-full pointer-coarse:opacity-100 pointer-coarse:shadow-none',
         pressed
           ? 'text-foreground opacity-100'
           : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',

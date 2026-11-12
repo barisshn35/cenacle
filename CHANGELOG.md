@@ -80,6 +80,13 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- Interface review fixes: on phones the details and thread panel fill the screen; a
+  notification sound plays as it is chosen and an own sound is named after its file is picked;
+  the end-to-end encryption hint speaks of what turning it on would do; the custom theme's
+  swatches have names and a visible edge, its preview text is 12 px; settings sections are
+  h3; a disabled main button turns grey; the GIF maker stays at the top; on touch screens a
+  sticker's star sits under it; an empty thread says how to start it; the system console
+  leads with active people and storage; the sign-in page labels its theme and density choices.
 - The message menu is grouped (answering, keeping, reporting, changing), and "Report
   spillage" shows only in workspaces that classify their channels.
 - Smoother, lighter motion: menus and popovers grow from where they open, dialogs and the

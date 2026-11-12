@@ -16,26 +16,27 @@ import {
   type CustomTheme,
 } from '@cenacle/ui/theme';
 
-/** A few starting points for each color. */
-const ACCENTS = [
-  '#8f6b1f',
-  '#0b5cad',
-  '#1f7a4d',
-  '#b0420a',
-  '#b0245c',
-  '#6d28d9',
-  '#0f766e',
-  '#3f3f46',
+/** A few starting points for each color, with names for screen readers. */
+type Swatch = { hex: string; name: string };
+const ACCENTS: Swatch[] = [
+  { hex: '#8f6b1f', name: 'brass' },
+  { hex: '#0b5cad', name: 'blue' },
+  { hex: '#1f7a4d', name: 'green' },
+  { hex: '#b0420a', name: 'rust' },
+  { hex: '#b0245c', name: 'raspberry' },
+  { hex: '#6d28d9', name: 'violet' },
+  { hex: '#0f766e', name: 'teal' },
+  { hex: '#3f3f46', name: 'graphite' },
 ];
-const SIDEBARS = [
-  '#14342b',
-  '#0f1f3a',
-  '#1e1b2e',
-  '#2a0f1c',
-  '#1c1c1c',
-  '#f4f4f5',
-  '#eef2f7',
-  '#f6efe4',
+const SIDEBARS: Swatch[] = [
+  { hex: '#14342b', name: 'forest' },
+  { hex: '#0f1f3a', name: 'navy' },
+  { hex: '#1e1b2e', name: 'aubergine' },
+  { hex: '#2a0f1c', name: 'wine' },
+  { hex: '#1c1c1c', name: 'charcoal' },
+  { hex: '#f4f4f5', name: 'paper' },
+  { hex: '#eef2f7', name: 'mist' },
+  { hex: '#f6efe4', name: 'sand' },
 ];
 
 const sameTheme = (a: CustomTheme, b: CustomTheme) =>
@@ -55,7 +56,7 @@ function ColorField({
 }: {
   label: string;
   value: string;
-  swatches: string[];
+  swatches: Swatch[];
   onChange: (hex: string) => void;
 }) {
   const { t } = useTranslation();
@@ -107,17 +108,18 @@ function ColorField({
       >
         {swatches.map((s) => (
           <button
-            key={s}
+            key={s.hex}
             type="button"
-            aria-label={s}
-            aria-pressed={s === value}
-            title={s}
-            onClick={() => onChange(s)}
+            aria-label={t(`appearance.custom.colors.${s.name}`)}
+            aria-pressed={s.hex === value}
+            title={`${t(`appearance.custom.colors.${s.name}`)} ${s.hex}`}
+            onClick={() => onChange(s.hex)}
             className={cn(
-              'size-6 min-h-6 rounded-full border border-border outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11',
-              s === value && 'ring-2 ring-ring ring-offset-2 ring-offset-background',
+              // The edge keeps a swatch visible on a ground of its own color.
+              'size-6 min-h-6 rounded-full border border-foreground/25 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11',
+              s.hex === value && 'ring-2 ring-ring ring-offset-2 ring-offset-background',
             )}
-            style={{ background: s }}
+            style={{ background: s.hex }}
           />
         ))}
       </div>
@@ -132,7 +134,7 @@ function Preview({ theme, mode }: { theme: CustomTheme; mode: 'light' | 'dark' }
   const v = (k: string) => tokens[`--${k}`];
   return (
     <figure
-      className="grid grid-cols-[4.5rem_1fr] overflow-hidden border text-[11px]"
+      className="grid grid-cols-[5rem_1fr] overflow-hidden border text-xs"
       style={{ borderRadius: v('radius'), borderColor: v('border') } as CSSProperties}
     >
       <div className="grid content-start gap-1 p-2" style={{ background: v('sidebar') }}>

@@ -297,9 +297,9 @@ export function AppearancePanel() {
       </fieldset>
 
       <section aria-labelledby={`${ids.font}-title`} className="grid gap-2">
-        <h4 id={`${ids.font}-title`} className="text-sm font-medium">
+        <h3 id={`${ids.font}-title`} className="text-sm font-medium">
           {t('appearance.preview')}
-        </h4>
+        </h3>
         <div className="rounded-lg border p-3" data-testid="appearance-preview">
           <p className="text-sm" style={{ lineHeight: 'var(--line-height-base)' }}>
             {t('appearance.previewText')}
@@ -347,9 +347,9 @@ function FontUploads() {
   });
   return (
     <section aria-labelledby={`${id}-title`} className="grid gap-2" data-testid="font-uploads">
-      <h4 id={`${id}-title`} className="text-sm font-medium">
+      <h3 id={`${id}-title`} className="text-sm font-medium">
         {t('appearance.yourFonts')}
-      </h4>
+      </h3>
       <p className="text-xs text-muted-foreground">{t('appearance.fontsHint')}</p>
       {fonts.data && fonts.data.length > 0 && (
         <ul className="grid gap-1">

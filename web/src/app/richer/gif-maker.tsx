@@ -231,7 +231,11 @@ export function GifMaker({
         if (!next) reset();
       }}
     >
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg" data-testid="gif-maker">
+      <DialogContent
+        // Held at the top: the dialog grows as the steps go on, and does not jump.
+        className="top-[max(1rem,6svh)] max-h-[90svh] translate-y-0 overflow-y-auto sm:max-w-lg"
+        data-testid="gif-maker"
+      >
         <DialogHeader>
           <DialogTitle>{t('richer.gifMaker.title')}</DialogTitle>
           <DialogDescription>{t('richer.gifMaker.description')}</DialogDescription>

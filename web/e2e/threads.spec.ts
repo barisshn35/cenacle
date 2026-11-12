@@ -139,3 +139,14 @@ test('clicking a message opens its thread beside the channel; links and selectin
   await expect(panel.getByTestId('message').filter({ hasText: 'Release plan' })).toBeVisible();
   await expect(panel.getByLabel('Reply…')).toBeVisible();
 });
+
+test('on phones the side panel fills the screen', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'a sheet only on small screens');
+  await mockApi(page, { messages: [mockMessage(1, 'Hello')] });
+  await page.goto(`/c/${GENERAL.id}`);
+  await page.getByRole('button', { name: 'Channel details', exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toBeVisible();
+  const width = await sheet.evaluate((el) => el.getBoundingClientRect().width);
+  expect(width).toBe(page.viewportSize()!.width);
+});

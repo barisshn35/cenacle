@@ -158,7 +158,11 @@ function MobileShell() {
       </div>
       {/* On small screens the details panel is a full-height sheet. */}
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <SheetContent side="right" showCloseButton={false} className="w-full p-0 sm:max-w-sm">
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="w-full p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-sm"
+        >
           <SheetTitle className="sr-only">
             {rightView === 'search'
               ? t('search.title')

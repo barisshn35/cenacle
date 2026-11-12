@@ -206,6 +206,10 @@ function Thread({ target, channel }: { target: ThreadTarget; channel: Channel })
         )}
         {replies.isPending ? (
           <Skeleton className="mx-4 h-10" />
+        ) : rows.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-muted-foreground" data-testid="thread-empty">
+            {t('threads.firstReply')}
+          </p>
         ) : (
           rows.map((row) =>
             row.kind === 'message' ? (
