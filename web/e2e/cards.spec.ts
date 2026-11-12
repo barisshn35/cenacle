@@ -2,11 +2,12 @@
 import { expect, test } from '@playwright/test';
 import { expectNoAxeViolations, GENERAL, mockApi, mockMessage } from './helpers';
 
-const fromBot = (attachments: unknown[]) => ({
-  ...mockMessage(1, ''),
-  author: { id: '01a15e50-b0b0-7000-8000-000000000001', display_name: 'Metrics', is_bot: true },
-  attachments,
-});
+const fromBot = (attachments: unknown[]) =>
+  ({
+    ...mockMessage(1, ''),
+    author: { id: '01a15e50-b0b0-7000-8000-000000000001', display_name: 'Metrics', is_bot: true },
+    attachments,
+  }) as unknown as ReturnType<typeof mockMessage>;
 
 test('a card draws its chart, names it and offers the numbers; a live card changes in place', async ({
   page,

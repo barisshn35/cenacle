@@ -191,7 +191,7 @@ test.describe('group conversation names', () => {
     let sent: unknown;
     await page.route(`**/api/channels/${g.id}/title`, (route) => {
       sent = route.request().postDataJSON();
-      const c = api.channels.find((x) => x.id === g.id)!;
+      const c = api.channels!.find((x) => x.id === g.id)!;
       Object.assign(c, { title: 'Launch crew' });
       return route.fulfill({ json: c });
     });
@@ -232,7 +232,7 @@ test.describe('group conversation names', () => {
     let named: unknown;
     await page.route(`**/api/channels/${g.id}/title`, (route) => {
       named = route.request().postDataJSON();
-      const c = api.channels.find((x) => x.id === g.id)!;
+      const c = api.channels!.find((x) => x.id === g.id)!;
       Object.assign(c, { title: 'Release' });
       return route.fulfill({ json: c });
     });
