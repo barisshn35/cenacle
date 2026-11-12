@@ -58,7 +58,14 @@ import { EditedLabel } from './edit-history';
 import { AckBar, PriorityLabel } from './priority';
 import { SeenBy } from './read-receipts';
 import { AddReactionButton, ReactionBar } from './reactions';
-import { onControl, selectOnTap, useSelectedMessage } from './message-select';
+import {
+  MAX_PICKED,
+  onControl,
+  selectOnTap,
+  togglePicked,
+  useSelectedMessage,
+  usePicking,
+} from './message-select';
 import { useLayout } from '../../stores/layout';
 import { useEditing } from './message-state';
 import { usePending, type PendingMessage } from './pending';
@@ -111,6 +118,13 @@ export function MessageRow({
   const hasStatus = !!useProfile(m.author.id)?.status;
   const unread = useMarkUnread(m);
   const selected = useSelectedMessage((s) => s.id === m.id);
+  // Picking messages to forward together: a click picks instead of opening.
+  const picking = usePicking((s) => !inThread && s.channelId === channel.id);
+  const picked = usePicking((s) => s.picked.some((p) => p.id === m.id));
+  const pick = () => {
+    if (m.burn) return;
+    if (!togglePicked(m)) toast.info(t('richer.forward.pickLimit', { max: MAX_PICKED }));
+  };
   const openThread = useLayout((s) => s.openThread);
   const time = (className?: string) => (
     <time
@@ -164,6 +178,10 @@ export function MessageRow({
         onClick={(e) => {
           // Clicks in its menus and pickers (rendered elsewhere) reach it too: not its own.
           if (editing || !e.currentTarget.contains(e.target as Node)) return;
+          if (picking) {
+            if (!onControl(e.target)) pick();
+            return;
+          }
           if (e.altKey && m.author.id !== self) {
             e.preventDefault();
             unread.mutate();
@@ -183,6 +201,7 @@ export function MessageRow({
           SPEAKER_GRID(inThread),
           row.first ? 'pt-2 pb-1 comfortable:pt-4 comfortable:pb-1.5' : 'py-0.5 comfortable:py-1.5',
           (editing || selected) && 'bg-hover',
+          picked && 'bg-accent',
           highlighted && 'bg-accent',
           // A message that just came in slides in; loaded ones stand still.
           justArrived(m.id) &&
@@ -197,7 +216,18 @@ export function MessageRow({
             turn and, on the others, the time when the row is hovered or
             focused. A mention of the reader is marked with "@" and the time in
             red, never by a stripe. */}
-        {row.first ? (
+        {picking ? (
+          <div className="flex pt-1 sm:justify-center">
+            <input
+              type="checkbox"
+              checked={picked}
+              disabled={!!m.burn}
+              onChange={pick}
+              aria-label={t('richer.forward.pickOne', { name: m.author.display_name })}
+              className="size-5 cursor-pointer accent-(--accent-brand) disabled:cursor-not-allowed"
+            />
+          </div>
+        ) : row.first ? (
           <ProfileCard userId={m.author.id} name={m.author.display_name}>
             <button
               type="button"
@@ -302,7 +332,7 @@ export function MessageRow({
             </div>
           )}
         </div>
-        {!editing && (
+        {!editing && !picking && (
           <div
             className={cn(
               'absolute -top-3 end-3 flex gap-0.5 rounded-lg bg-popover p-0.5 opacity-0 shadow-popover transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:static pointer-coarse:justify-self-end sm:pointer-coarse:col-start-2 pointer-coarse:bg-transparent pointer-coarse:opacity-100 pointer-coarse:shadow-none',

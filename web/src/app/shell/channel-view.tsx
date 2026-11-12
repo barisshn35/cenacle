@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { SummarizeButton } from '../ai/ai-ui';
 import { ChevronDownIcon, PanelRightIcon, SearchIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,8 @@ import { isFuture } from '../community/community';
 import { ForumView } from '../community/forum';
 import { useQuickSwitcher } from '../chat/quick-switcher-state';
 import { MessageList } from '../chat/message-list';
+import { stopPicking, usePicking } from '../chat/message-select';
+import { PickBar } from '../chat/pick-bar';
 import { CanvasView } from '../collab/canvas-view';
 import { ChannelTabs } from '../collab/channel-tabs';
 import { tabsQuery } from '../collab/collab';
@@ -40,6 +42,11 @@ const HEADER_TOGGLE =
 export function ChannelView({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation();
   const { id, channel } = useActiveChannel();
+  const picking = usePicking((s) => s.channelId !== null && s.channelId === id);
+  // Moving to another channel ends picking in this one.
+  useEffect(() => {
+    if (usePicking.getState().channelId !== id) stopPicking();
+  }, [id]);
   const detailsOpen = useLayout((s) => s.detailsOpen);
   const rightView = useLayout((s) => s.rightView);
   const show = useLayout((s) => s.show);
@@ -161,7 +168,9 @@ export function ChannelView({ mobile = false }: { mobile?: boolean }) {
       ) : id && channel ? (
         <>
           <MessageList key={`log-${id}`} channel={channel} />
-          {channel.archived ? (
+          {picking ? (
+            <PickBar />
+          ) : channel.archived ? (
             <ArchivedNotice channel={channel} />
           ) : channel.can_post && isFuture(workspace?.timeout_until) ? (
             <footer className="shrink-0 px-4 pb-4">

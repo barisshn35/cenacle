@@ -53,15 +53,20 @@ export function ForwardedQuote({ message }: { message: Message }) {
   );
 }
 
-/** Sends a copy of a message, with an optional comment, to another channel. */
+/**
+ * Sends copies of messages, in the order they were written, to another
+ * channel; the optional comment goes with the first.
+ */
 export function ForwardDialog({
-  message,
+  messages,
   open,
   onOpenChange,
+  onSent,
 }: {
-  message: Message;
+  messages: Message[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSent?: () => void;
 }) {
   const { t } = useTranslation();
   const ids = { filter: useId(), comment: useId() };
@@ -74,10 +79,18 @@ export function ForwardDialog({
     c.name.toLocaleLowerCase().includes(filter.trim().toLocaleLowerCase()),
   );
   const send = useMutation({
-    mutationFn: () => forwardMessage(message, target!, comment.trim()),
+    mutationFn: async () => {
+      const ordered = [...messages].sort((a, b) => a.created_at.localeCompare(b.created_at));
+      let sent: Message | undefined;
+      for (const [i, m] of ordered.entries()) {
+        sent = await forwardMessage(m, target!, i === 0 ? comment.trim() : '');
+      }
+      return sent!;
+    },
     onSuccess: (sent) => {
       onOpenChange(false);
-      toast.success(t('richer.forward.done'), {
+      onSent?.();
+      toast.success(t('richer.forward.done', { count: messages.length }), {
         action: {
           label: t('richer.forward.open'),
           onClick: () =>
@@ -92,7 +105,7 @@ export function ForwardDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('richer.forward.title')}</DialogTitle>
+          <DialogTitle>{t('richer.forward.title', { count: messages.length })}</DialogTitle>
           <DialogDescription>{t('richer.forward.hint')}</DialogDescription>
         </DialogHeader>
         <form

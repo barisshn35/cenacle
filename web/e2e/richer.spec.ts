@@ -96,6 +96,81 @@ test('a message is forwarded with a comment; the copy shows where it came from',
   expect(body).toEqual({ channel_id: dm.id, comment: 'fyi' });
 });
 
+test('several messages are picked and forwarded together, oldest first', async ({
+  page,
+}, testInfo) => {
+  const dm = directWith(MERT);
+  await mockApi(page, {
+    channels: [dm],
+    messages: [
+      mockMessage(1, 'First point'),
+      mockMessage(2, 'Second point'),
+      mockMessage(3, 'Third'),
+    ],
+  });
+  const sent: { url: string; body: unknown }[] = [];
+  await page.route('**/forward', (route) => {
+    sent.push({ url: route.request().url(), body: route.request().postDataJSON() });
+    return route.fulfill({
+      status: 201,
+      json: { ...mockMessage(60 + sent.length, 'x'), channel_id: dm.id },
+    });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  const second = page.getByTestId('message').filter({ hasText: 'Second point' });
+  await showActions(second);
+  await second.getByRole('button', { name: 'Message actions' }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Select messages' }).click();
+
+  // The composer gives way to the picking bar; the chosen message is picked.
+  const bar = page.getByTestId('pick-bar');
+  await expect(bar).toContainText('1 message selected');
+  await expect(page.getByRole('textbox', { name: /^Message/ })).toHaveCount(0);
+  await page.getByRole('checkbox', { name: 'Select message from Ayşe Yılmaz' }).first().check();
+  await expect(bar).toContainText('2 messages selected');
+  await expectTargetSizes(page, testInfo, '[data-testid="pick-bar"]');
+  await expectNoAxeViolations(page, '[role="log"]');
+
+  await bar.getByRole('button', { name: 'Forward' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Forward 2 messages' });
+  await dialog.getByRole('option', { name: 'Mert Kaya' }).click();
+  await dialog.getByLabel('Add a comment (optional)').fill('both');
+  await dialog.getByRole('button', { name: 'Forward' }).click();
+  await expect(page.getByText('2 messages forwarded.')).toBeVisible();
+  // In the order they were written; the comment rides with the first.
+  expect(sent.map((s) => s.url.match(/messages\/([^/]+)\/forward/)![1])).toEqual([
+    mockMessage(1, '').id,
+    mockMessage(2, '').id,
+  ]);
+  expect(sent.map((s) => s.body)).toEqual([
+    { channel_id: dm.id, comment: 'both' },
+    { channel_id: dm.id },
+  ]);
+  await expect(bar).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: /^Message/ })).toBeVisible();
+});
+
+test('picking stops with Escape and keeps to ten messages', async ({ page }) => {
+  await mockApi(page, {
+    messages: Array.from({ length: 12 }, (_, i) => mockMessage(i + 1, `Note ${i + 1}`)),
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  const first = page.getByTestId('message').filter({ hasText: 'Note 12' });
+  await showActions(first);
+  await first.getByRole('button', { name: 'Message actions' }).click({ force: true });
+  await page.getByRole('menuitem', { name: 'Select messages' }).click();
+  const unpicked = page.getByRole('checkbox', { name: /^Select message from/, checked: false });
+  for (let n = 1; n < 10; n++) await unpicked.last().check();
+  await expect(page.getByTestId('pick-bar')).toContainText('10 messages selected');
+  // An eleventh is not taken (higher up on small screens).
+  await page.getByTestId('virtuoso-scroller').evaluate((el) => (el.scrollTop = 0));
+  await unpicked.first().click();
+  await expect(page.getByText('You can forward up to 10 messages at once.')).toBeVisible();
+  await expect(page.getByTestId('pick-bar')).toContainText('10 messages selected');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('pick-bar')).toHaveCount(0);
+});
+
 test('custom emoji show in text and reactions; stickers are sent from the composer', async ({
   page,
 }) => {

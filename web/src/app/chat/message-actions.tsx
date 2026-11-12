@@ -9,6 +9,7 @@ import {
   FlagIcon,
   ForwardIcon,
   LinkIcon,
+  ListChecksIcon,
   MailIcon,
   MessageSquareIcon,
   MoreHorizontalIcon,
@@ -70,6 +71,7 @@ import { mentionsToText } from './markdown/mentions';
 import { useMentionPicker } from './mention-picker';
 import { useEditing, useMessagePermissions } from './message-state';
 import { useMarkUnread } from './mark-unread';
+import { startPicking } from './message-select';
 
 /**
  * Actions of a message. The button shows on hover and keyboard focus, and
@@ -219,6 +221,12 @@ export function MessageActions({
                 {t('richer.forward.action')}
               </DropdownMenuItem>
             )}
+            {!burn && !inThread && (
+              <DropdownMenuItem onClick={() => startPicking(channel.id, message)}>
+                <ListChecksIcon strokeWidth={1.75} />
+                {t('richer.forward.pick')}
+              </DropdownMenuItem>
+            )}
             {message.author.id !== user.id && (
               <DropdownMenuItem onClick={() => unread.mutate()}>
                 <MailIcon strokeWidth={1.75} />
@@ -324,7 +332,7 @@ export function MessageActions({
       </DropdownMenu>
       {reporting && <ReportDialog message={message} open onOpenChange={setReporting} />}
       {spilled && <SpillageReportDialog message={message} open onOpenChange={setSpilled} />}
-      {forwarding && <ForwardDialog message={message} open onOpenChange={setForwarding} />}
+      {forwarding && <ForwardDialog messages={[message]} open onOpenChange={setForwarding} />}
     </>
   );
 }
