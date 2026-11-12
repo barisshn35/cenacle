@@ -22,7 +22,11 @@ test('Today gathers mentions, direct messages, the day’s events, answers and r
     channels: [dm],
     general: { unread_count: 5, mention_count: 1 },
   });
-  const inAnHour = new Date(Date.now() + 3_600_000);
+  // Midday, so that "in an hour" is still today whenever the test runs.
+  const noon = new Date();
+  noon.setHours(12, 0, 0, 0);
+  await page.clock.install({ time: noon });
+  const inAnHour = new Date(noon.getTime() + 3_600_000);
   api.events.push({
     id: '01a15e50-eeee-7000-8000-000000000099',
     workspace_id: DEFAULT_WS,
@@ -52,7 +56,7 @@ test('Today gathers mentions, direct messages, the day’s events, answers and r
             status: 'open',
             assignees: [],
             comment: '',
-            created_at: new Date().toISOString(),
+            created_at: noon.toISOString(),
           },
         ],
       },
@@ -65,8 +69,8 @@ test('Today gathers mentions, direct messages, the day’s events, answers and r
           {
             message: mockMessage(4, 'Send the contract'),
             channel: { id: RANDOM.id, name: 'Random', kind: 'standard', workspace_id: DEFAULT_WS },
-            saved_at: new Date(Date.now() - 86_400_000).toISOString(),
-            remind_at: new Date(Date.now() - 60_000).toISOString(),
+            saved_at: new Date(noon.getTime() - 86_400_000).toISOString(),
+            remind_at: new Date(noon.getTime() - 60_000).toISOString(),
             done_at: null,
           },
         ],
