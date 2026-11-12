@@ -216,7 +216,7 @@ test('before joining one sees oneself, hears the microphone and chooses what to 
     'true',
   );
   await check.getByRole('button', { name: 'Camera off' }).click();
-  await expect(check.getByLabel('Your camera')).toBeVisible();
+  await expect(check.getByLabel('Your camera', { exact: true })).toBeVisible();
   await expect(check.getByTestId('mic-level')).toContainText(/microphone|Say something/);
   await expectTargetSizes(page, testInfo, '[data-testid="prejoin"]');
   await expectNoAxeViolations(page, '[data-testid="prejoin"]');
@@ -531,4 +531,76 @@ test('a call that kept notes shows them from its summary, to copy or download', 
   await expect(dialog.getByRole('listitem').nth(1)).toContainText('A deleted user:Agreed.');
   await expect(dialog.getByRole('button', { name: 'Download' })).toBeEnabled();
   await expectNoAxeViolations(page, '[role="dialog"]');
+});
+
+test('a recorded call says so to everyone and before joining; anyone may stop it', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'same view on phones');
+  await mockApi(page);
+  await page.route('**/api/workspaces/*/calls/settings', (route) =>
+    route.fulfill({ json: { ...settings, recording: true } }),
+  );
+  const recorded = {
+    ...startedNowCall(),
+    recording_on: true,
+    recording_by: AYSE.id,
+    participants: [
+      { id: 'p1', user_id: AYSE.id, state: 'connected', joined_at: null, left_at: null },
+    ],
+  };
+  await page.route('**/api/channels/*/call', (route) => route.fulfill({ json: recorded }));
+  let stopped: unknown;
+  await page.route('**/api/calls/*/recording', (route) => {
+    stopped = route.request().postDataJSON();
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto(`/c/${GENERAL.id}`);
+  // Joining shows the check with the notice, whatever the person chose before.
+  await page.evaluate(() =>
+    localStorage.setItem('cenacle.call.join', JSON.stringify({ preview: false })),
+  );
+  await page
+    .getByRole('region', { name: 'Call in progress' })
+    .getByRole('button', { name: 'Join' })
+    .click();
+  await expect(page.getByTestId('prejoin').getByRole('alert')).toContainText(
+    'This call is being recorded.',
+  );
+  await page.getByTestId('prejoin').getByRole('button', { name: 'Cancel' }).click();
+
+  // In the call: everyone sees who records, and may stop it.
+  await page.evaluate(async (c) => {
+    const m = await import('/src/app/calls/state.ts');
+    m.useCall.setState({
+      call: c as never,
+      session: { registerAudio: async () => () => undefined } as never,
+      connection: 'connected',
+      expanded: true,
+    });
+  }, recorded);
+  const status = page.getByTestId('recording');
+  await expect(status).toContainText('Ayşe Yılmaz is recording this call');
+  await expect(page.getByRole('dialog')).toContainText('Calls here may be recorded');
+  await expectNoAxeViolations(page, '[data-testid="recording"]');
+  await status.getByRole('button', { name: 'Stop recording' }).click();
+  await expect.poll(() => stopped).toEqual({ on: false });
+});
+
+test('the recorder makes a video file in the browser', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'once is enough');
+  await mockApi(page);
+  await page.goto(`/c/${GENERAL.id}`);
+  // A person's click lets the page make sound (as the click on Record does).
+  await page.getByRole('heading', { name: 'General', exact: true }).click();
+  const size = await page.evaluate(async () => {
+    const m = await import('/src/app/calls/recorder.ts');
+    const rec = m.startRecording('nobody');
+    if (!rec) return -1;
+    await new Promise((r) => setTimeout(r, 1500));
+    const blob = await rec.stop();
+    return blob.type === 'video/webm' ? blob.size : -2;
+  });
+  expect(size).toBeGreaterThan(1000);
 });

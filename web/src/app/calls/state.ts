@@ -451,7 +451,7 @@ async function announce(client: QueryClient, call: Call, selfID: string): Promis
     action: {
       label: i18next.t('calls:join'),
       onClick: () =>
-        void beforeJoining(channel.name, false, (media) =>
+        void beforeJoining(channel.name, false, !!call.recording_on, (media) =>
           joinCall(call, media).catch((error) => useCall.setState({ error: errorCode(error) })),
         ),
     },

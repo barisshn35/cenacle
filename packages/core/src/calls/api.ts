@@ -27,6 +27,8 @@ export interface Call {
   captions_by?: string | null;
   notes_on?: boolean;
   notes_by?: string | null;
+  recording_on?: boolean;
+  recording_by?: string | null;
 }
 export interface CallSettings {
   enabled: boolean;
@@ -38,6 +40,7 @@ export interface CallSettings {
   captions?: boolean;
   captions_available?: boolean;
   notes?: boolean;
+  recording?: boolean;
 }
 export interface CallAdmission {
   token: string;
@@ -89,6 +92,9 @@ export const calls = {
     callID: string,
   ): Promise<{ lines: { user_id: string | null; text: string; said_at: string }[] }> =>
     apiFetch(`/api/calls/${id(callID)}/notes`),
+  /** Starts recording a call (visible to everyone) or stops it (anyone in it). */
+  setRecording: (callID: string, on: boolean): Promise<void> =>
+    apiFetch(`/api/calls/${id(callID)}/recording`, { ...json({ on }), method: 'PUT' }),
   /** A reaction that floats over one's tile for the others (not stored). */
   react: (callID: string, emoji: string): Promise<void> =>
     apiFetch(`/api/calls/${id(callID)}/reactions`, json({ emoji })),
@@ -106,6 +112,7 @@ export const calls = {
         max_bitrate: settings.max_bitrate,
         ...(settings.captions === undefined ? {} : { captions: settings.captions }),
         ...(settings.notes === undefined ? {} : { notes: settings.notes }),
+        ...(settings.recording === undefined ? {} : { recording: settings.recording }),
       }),
       method: 'PUT',
     }),

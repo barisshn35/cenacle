@@ -10,6 +10,12 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Call recording with visible consent (ADR 0053): where a workspace allows it, one person
+  in a call records it; everyone sees a red "Recording" mark and who records, people see it
+  before they join (the check before joining always shows then), and anyone in the call can
+  stop it. The recorder's app records what it receives (the shared screen, else cameras and
+  name cards, with everyone's sound) and posts it in the call's channel as a file, or offers
+  to save it on the device when the upload fails. Migration 00077.
 - Call notes: where a workspace allows them, anyone in a call can keep what is said, written
   out by the live captions, with who said it; everyone sees that notes are kept and who
   turned them on. The call's summary in the channel opens them, to copy, download or

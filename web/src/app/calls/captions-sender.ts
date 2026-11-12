@@ -111,3 +111,10 @@ export function useNotesAllowed(): boolean {
   const settings = useQuery(callSettingsQuery(workspace ?? '')).data;
   return !!settings?.notes && !!settings.captions && !!settings.captions_available;
 }
+
+/** Calls may be recorded in this workspace (visibly to everyone). */
+export function useRecordingAllowed(): boolean {
+  const channelID = useCall((s) => s.call?.channel_id);
+  const workspace = useQuery(channelsQuery).data?.find((c) => c.id === channelID)?.workspace_id;
+  return !!useQuery(callSettingsQuery(workspace ?? '')).data?.recording;
+}

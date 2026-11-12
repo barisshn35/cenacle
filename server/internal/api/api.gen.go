@@ -2870,10 +2870,16 @@ type Call struct {
 	// NotesOn Notes are kept (what is said
 	NotesOn      *bool             `json:"notes_on,omitempty"`
 	Participants []CallParticipant `json:"participants"`
-	Revision     int64             `json:"revision"`
-	RingUntil    *time.Time        `json:"ring_until,omitempty"`
-	StartedAt    *time.Time        `json:"started_at,omitempty"`
-	State        CallState         `json:"state"`
+
+	// RecordingBy Who records it.
+	RecordingBy *openapi_types.UUID `json:"recording_by,omitempty"`
+
+	// RecordingOn The call is being recorded.
+	RecordingOn *bool      `json:"recording_on,omitempty"`
+	Revision    int64      `json:"revision"`
+	RingUntil   *time.Time `json:"ring_until,omitempty"`
+	StartedAt   *time.Time `json:"started_at,omitempty"`
+	State       CallState  `json:"state"`
 }
 
 // CallState defines model for Call.State.
@@ -2909,6 +2915,9 @@ type CallSettings struct {
 
 	// Notes Calls may keep notes (what was said while notes are on); needs captions.
 	Notes *bool `json:"notes,omitempty"`
+
+	// Recording Calls may be recorded
+	Recording *bool `json:"recording,omitempty"`
 }
 
 // CallSettingsInput defines model for CallSettingsInput.
@@ -5084,6 +5093,11 @@ type SendCallReactionJSONBody struct {
 	Emoji string `json:"emoji"`
 }
 
+// SetCallRecordingJSONBody defines parameters for SetCallRecording.
+type SetCallRecordingJSONBody struct {
+	On bool `json:"on"`
+}
+
 // CreateCallToken200JSONResponseBodyExpiresIn defines parameters for CreateCallToken.
 type CreateCallToken200JSONResponseBodyExpiresIn int
 
@@ -5909,6 +5923,9 @@ type SetCallNotesJSONRequestBody SetCallNotesJSONBody
 // SendCallReactionJSONRequestBody defines body for SendCallReaction for application/json ContentType.
 type SendCallReactionJSONRequestBody SendCallReactionJSONBody
 
+// SetCallRecordingJSONRequestBody defines body for SetCallRecording for application/json ContentType.
+type SetCallRecordingJSONRequestBody SetCallRecordingJSONBody
+
 // SaveCanvasJSONRequestBody defines body for SaveCanvas for application/json ContentType.
 type SaveCanvasJSONRequestBody SaveCanvasJSONBody
 
@@ -6501,6 +6518,9 @@ type ServerInterface interface {
 	// SendCallReaction Send a reaction to everyone in a call
 	// (POST /api/calls/{id}/reactions)
 	SendCallReaction(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// SetCallRecording Start or stop recording a call
+	// (PUT /api/calls/{id}/recording)
+	SetCallRecording(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// CreateCallToken Reserve a participant slot and issue one media admission token
 	// (POST /api/calls/{id}/token)
 	CreateCallToken(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
@@ -7725,6 +7745,12 @@ func (_ Unimplemented) SummarizeCallNotes(w http.ResponseWriter, r *http.Request
 // SendCallReaction Send a reaction to everyone in a call
 // (POST /api/calls/{id}/reactions)
 func (_ Unimplemented) SendCallReaction(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetCallRecording Start or stop recording a call
+// (PUT /api/calls/{id}/recording)
+func (_ Unimplemented) SetCallRecording(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -11171,6 +11197,32 @@ func (siw *ServerInterfaceWrapper) SendCallReaction(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SendCallReaction(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetCallRecording operation middleware
+func (siw *ServerInterfaceWrapper) SetCallRecording(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetCallRecording(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -19085,6 +19137,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/notes/summary", wrapper.SummarizeCallNotes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/calls/{id}/recording", wrapper.SetCallRecording)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/reactions", wrapper.SendCallReaction)

@@ -63,13 +63,14 @@ UPDATE call_participants SET state = 'left', left_at = now(), session_id = NULL
 WHERE call_id = @call_id AND left_at IS NULL;
 
 -- name: GetCallSettings :one
-SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions, calls_notes
+SELECT calls_enabled, calls_guest_start, calls_max_participants, calls_max_bitrate, calls_captions, calls_notes,
+       calls_recording
 FROM workspaces WHERE id = @workspace_id;
 
 -- name: UpdateCallSettings :exec
 UPDATE workspaces SET calls_enabled = @calls_enabled, calls_guest_start = @calls_guest_start,
     calls_max_participants = @calls_max_participants, calls_max_bitrate = @calls_max_bitrate,
-    calls_captions = @calls_captions, calls_notes = @calls_notes
+    calls_captions = @calls_captions, calls_notes = @calls_notes, calls_recording = @calls_recording
 WHERE id = @workspace_id;
 
 -- name: ExpireUserCallReservation :exec
@@ -211,7 +212,7 @@ UPDATE calls SET captions_on = @captions_on, captions_by = CASE WHEN @captions_o
 WHERE id = @id AND ended_at IS NULL RETURNING *;
 
 -- name: CallCaptionsAllowed :one
-SELECT w.calls_captions, w.calls_notes FROM calls k
+SELECT w.calls_captions, w.calls_notes, w.calls_recording FROM calls k
 JOIN channels c ON c.id = k.channel_id JOIN workspaces w ON w.id = c.workspace_id
 WHERE k.id = @call_id;
 
@@ -239,3 +240,13 @@ DELETE FROM call_notes WHERE user_id = @user_id;
 
 -- name: UserCallNotes :many
 SELECT call_id, text, said_at FROM call_notes WHERE user_id = @user_id ORDER BY said_at LIMIT 10000;
+
+-- name: SetCallRecording :one
+-- SetCallRecording starts recording (one recorder at a time) or stops it (its
+-- recorder, or anyone when that person left).
+UPDATE calls SET recording_on = @recording_on,
+    recording_by = CASE WHEN @recording_on THEN @user_id::uuid END,
+    revision = revision + 1
+WHERE id = @id AND ended_at IS NULL
+  AND (CASE WHEN @recording_on THEN NOT recording_on ELSE recording_on END)
+RETURNING *;

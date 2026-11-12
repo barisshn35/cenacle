@@ -21,6 +21,8 @@ type callSettingsInput struct {
 	// Captions, Notes: nil keeps them (clients before live captions).
 	Captions *bool `json:"captions"`
 	Notes    *bool `json:"notes"`
+	// Recording: nil keeps it.
+	Recording *bool `json:"recording"`
 }
 
 func (h *Handlers) GetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
@@ -37,7 +39,7 @@ func (h *Handlers) GetWorkspaceCallSettings(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	httpx.WriteJSON(w, 200, map[string]any{"enabled": settings.CallsEnabled, "guest_start": settings.CallsGuestStart, "max_participants": settings.CallsMaxParticipants, "max_bitrate": settings.CallsMaxBitrate, "available": h.Calls != nil,
-		"captions": settings.CallsCaptions, "captions_available": h.captionsAvailable(), "notes": settings.CallsNotes})
+		"captions": settings.CallsCaptions, "captions_available": h.captionsAvailable(), "notes": settings.CallsNotes, "recording": settings.CallsRecording})
 }
 func (h *Handlers) SetWorkspaceCallSettings(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	p, ok := auth.RequirePrincipal(w, r, h.Cookies)
@@ -70,15 +72,19 @@ func (h *Handlers) SetWorkspaceCallSettings(w http.ResponseWriter, r *http.Reque
 		notes = *in.Notes
 	}
 	notes = notes && captions // notes are what captions write
+	recording := current.CallsRecording
+	if in.Recording != nil {
+		recording = *in.Recording
+	}
 	if captions && !current.CallsCaptions && !h.captionsAvailable() {
 		forbidden(w, r, "captions_unavailable", "This installation has no speech to text service.")
 		return
 	}
-	err = h.Queries.UpdateCallSettings(r.Context(), store.UpdateCallSettingsParams{WorkspaceID: pgUUID(id), CallsEnabled: in.Enabled, CallsGuestStart: in.GuestStart, CallsMaxParticipants: in.MaxParticipants, CallsMaxBitrate: in.MaxBitrate, CallsCaptions: captions, CallsNotes: notes})
+	err = h.Queries.UpdateCallSettings(r.Context(), store.UpdateCallSettingsParams{WorkspaceID: pgUUID(id), CallsEnabled: in.Enabled, CallsGuestStart: in.GuestStart, CallsMaxParticipants: in.MaxParticipants, CallsMaxBitrate: in.MaxBitrate, CallsCaptions: captions, CallsNotes: notes, CallsRecording: recording})
 	if err != nil {
 		h.callError(w, r, err)
 		return
 	}
-	h.record(r, pgUUID(id), "call.settings_changed", "workspace", id.String(), map[string]any{"enabled": in.Enabled, "guest_start": in.GuestStart, "max_participants": in.MaxParticipants, "max_bitrate": in.MaxBitrate, "captions": captions, "notes": notes})
+	h.record(r, pgUUID(id), "call.settings_changed", "workspace", id.String(), map[string]any{"enabled": in.Enabled, "guest_start": in.GuestStart, "max_participants": in.MaxParticipants, "max_bitrate": in.MaxBitrate, "captions": captions, "notes": notes, "recording": recording})
 	h.GetWorkspaceCallSettings(w, r, id)
 }

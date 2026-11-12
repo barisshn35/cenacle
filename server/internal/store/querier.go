@@ -1056,6 +1056,9 @@ type Querier interface {
 	SetCallHand(ctx context.Context, arg SetCallHandParams) (int64, error)
 	// SetCallNotes turns notes on (and captions with them) or off.
 	SetCallNotes(ctx context.Context, arg SetCallNotesParams) (Call, error)
+	// SetCallRecording starts recording (one recorder at a time) or stops it (its
+	// recorder, or anyone when that person left).
+	SetCallRecording(ctx context.Context, arg SetCallRecordingParams) (Call, error)
 	SetChannelArchived(ctx context.Context, arg SetChannelArchivedParams) (Channel, error)
 	SetChannelCompliance(ctx context.Context, arg SetChannelComplianceParams) (Channel, error)
 	SetChannelGroupManaged(ctx context.Context, arg SetChannelGroupManagedParams) error

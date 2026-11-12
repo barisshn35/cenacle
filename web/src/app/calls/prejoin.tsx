@@ -159,6 +159,15 @@ function PreJoin() {
           <DialogTitle>{open.title}</DialogTitle>
           <DialogDescription>{t('prejoin.hint')}</DialogDescription>
         </DialogHeader>
+        {open.recording && (
+          <p
+            role="alert"
+            className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-medium"
+          >
+            <span aria-hidden className="size-2.5 rounded-full bg-destructive" />
+            {t('recording.joinNotice')}
+          </p>
+        )}
         <div className="grid gap-5 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <div className="grid gap-3">
             <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-xl bg-muted">

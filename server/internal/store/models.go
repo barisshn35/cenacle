@@ -113,6 +113,8 @@ type Call struct {
 	CaptionsBy     pgtype.UUID        `json:"captions_by"`
 	NotesOn        bool               `json:"notes_on"`
 	NotesBy        pgtype.UUID        `json:"notes_by"`
+	RecordingOn    bool               `json:"recording_on"`
+	RecordingBy    pgtype.UUID        `json:"recording_by"`
 }
 
 type CallNote struct {
@@ -1088,6 +1090,7 @@ type Workspace struct {
 	CallsMaxBitrate         int32         `json:"calls_max_bitrate"`
 	CallsCaptions           bool          `json:"calls_captions"`
 	CallsNotes              bool          `json:"calls_notes"`
+	CallsRecording          bool          `json:"calls_recording"`
 }
 
 type WorkspaceAttribute struct {

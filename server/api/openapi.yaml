@@ -389,6 +389,31 @@ paths:
         '403': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/Problem' }
+  /api/calls/{id}/recording:
+    put:
+      tags: [chat]
+      operationId: setCallRecording
+      summary: Start or stop recording a call
+      description: |
+        One person records at a time, in their app; everyone in the call sees that it is
+        recorded and by whom, and so do people joining. The recording is posted to the
+        channel as a file when it stops. The workspace must allow recording.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [on]
+              properties:
+                on: { type: boolean }
+      responses:
+        '204': { description: Done. }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { description: No accessible call. }
+        '409': { description: You are not in the call, or someone else records it. }
   /api/calls/{id}/reactions:
     post:
       tags: [chat]
@@ -7977,10 +8002,13 @@ components:
         captions: { type: boolean, description: 'Live captions are allowed in this workspace''s calls (ADR 0052).' }
         captions_available: { type: boolean, description: The installation has a speech to text service. }
         notes: { type: boolean, description: 'Calls may keep notes (what was said while notes are on); needs captions.' }
+        recording: { type: boolean, description: Calls may be recorded, visibly to everyone in them (ADR 0053). }
     Call:
       type: object
       required: [id, channel_id, state, revision, created_at, participants]
       properties:
+        recording_on: { type: boolean, description: The call is being recorded. }
+        recording_by: { type: string, format: uuid, nullable: true, description: Who records it. }
         notes_on: { type: boolean, description: Notes are kept (what is said, written out). }
         notes_by: { type: string, format: uuid, nullable: true, description: Who turned the notes on. }
         captions_on: { type: boolean, description: Live captions are on in this call. }

@@ -45,7 +45,13 @@ export function saveJoinPrefs(prefs: JoinPrefs): void {
  * joining does once the person is ready.
  */
 export const usePreJoin = create<{
-  open: { title: string; starting: boolean; go: (prefs: JoinPrefs) => Promise<void> } | null;
+  open: {
+    title: string;
+    starting: boolean;
+    /** The call is being recorded: the person is told before joining. */
+    recording: boolean;
+    go: (prefs: JoinPrefs) => Promise<void>;
+  } | null;
 }>()(() => ({ open: null }));
 
 /**
@@ -55,10 +61,12 @@ export const usePreJoin = create<{
 export function beforeJoining(
   title: string,
   starting: boolean,
+  recording: boolean,
   go: (prefs: JoinPrefs) => Promise<void>,
 ): Promise<void> {
   const prefs = loadJoinPrefs();
-  if (!prefs.preview) return go(prefs);
-  usePreJoin.setState({ open: { title, starting, go } });
+  // A recorded call always shows the check: nobody joins one unknowingly.
+  if (!prefs.preview && !recording) return go(prefs);
+  usePreJoin.setState({ open: { title, starting, recording, go } });
   return Promise.resolve();
 }

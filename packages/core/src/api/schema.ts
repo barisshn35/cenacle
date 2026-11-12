@@ -249,6 +249,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/calls/{id}/recording': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Start or stop recording a call
+     * @description One person records at a time, in their app; everyone in the call sees that it is
+     *     recorded and by whom, and so do people joining. The recording is posted to the
+     *     channel as a file when it stops. The workspace must allow recording.
+     */
+    put: operations['setCallRecording'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/calls/{id}/reactions': {
     parameters: {
       query?: never;
@@ -5239,8 +5261,17 @@ export interface components {
       captions_available?: boolean;
       /** @description Calls may keep notes (what was said while notes are on); needs captions. */
       notes?: boolean;
+      /** @description Calls may be recorded */
+      recording?: boolean;
     };
     Call: {
+      /** @description The call is being recorded. */
+      recording_on?: boolean;
+      /**
+       * Format: uuid
+       * @description Who records it.
+       */
+      recording_by?: string | null;
       /** @description Notes are kept (what is said */
       notes_on?: boolean;
       /**
@@ -7962,6 +7993,47 @@ export interface operations {
       403: components['responses']['Problem'];
       404: components['responses']['Problem'];
       429: components['responses']['Problem'];
+    };
+  };
+  setCallRecording: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          on: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Done. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      403: components['responses']['Problem'];
+      /** @description No accessible call. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description You are not in the call */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   sendCallReaction: {

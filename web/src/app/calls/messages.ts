@@ -1,6 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 export const callMessages = {
   en: {
+    mayRecord:
+      'Calls here may be recorded; when someone records, everyone sees it and can stop it.',
+    recording: {
+      allow: 'Allow recording calls',
+      allowHint:
+        'Someone in a call may record it in their app; everyone sees it and can stop it. The recording is posted to the channel.',
+      start: 'Record',
+      stop: 'Stop recording',
+      on: 'This call is being recorded',
+      by: '{{name}} is recording this call',
+      byYou: 'You are recording this call',
+      joinNotice: 'This call is being recorded.',
+      fileName: 'Call recording',
+      posted: 'Call recording',
+      uploading: 'Posting the recording…',
+      done: 'The recording is in the channel.',
+      failed: 'The recording could not be posted (it may be too large). Save it on this device.',
+      save: 'Save',
+    },
     notes: {
       allow: 'Allow call notes',
       allowHint:
@@ -162,6 +181,25 @@ export const callMessages = {
     shortcutLeave: 'Leave call',
   },
   tr: {
+    mayRecord:
+      'Buradaki görüşmeler kaydedilebilir; biri kayda başlarsa herkes görür ve durdurabilir.',
+    recording: {
+      allow: 'Görüşmelerin kaydedilmesine izin ver',
+      allowHint:
+        'Görüşmedeki biri kendi uygulamasında kaydedebilir; herkes görür ve durdurabilir. Kayıt kanala eklenir.',
+      start: 'Kaydet',
+      stop: 'Kaydı durdur',
+      on: 'Bu görüşme kaydediliyor',
+      by: 'Bu görüşmeyi {{name}} kaydediyor',
+      byYou: 'Bu görüşmeyi siz kaydediyorsunuz',
+      joinNotice: 'Bu görüşme kaydediliyor.',
+      fileName: 'Görüşme kaydı',
+      posted: 'Görüşme kaydı',
+      uploading: 'Kayıt ekleniyor…',
+      done: 'Kayıt kanala eklendi.',
+      failed: 'Kayıt eklenemedi (çok büyük olabilir). Bu cihaza kaydedin.',
+      save: 'Kaydet',
+    },
     notes: {
       allow: 'Görüşme notlarına izin ver',
       allowHint:

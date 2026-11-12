@@ -72,6 +72,8 @@ type callView struct {
 	CaptionsBy   *openapi_types.UUID   `json:"captions_by"`
 	NotesOn      bool                  `json:"notes_on"`
 	NotesBy      *openapi_types.UUID   `json:"notes_by"`
+	RecordingOn  bool                  `json:"recording_on"`
+	RecordingBy  *openapi_types.UUID   `json:"recording_by"`
 }
 type callParticipantView struct {
 	ID       openapi_types.UUID  `json:"id"`
@@ -93,6 +95,11 @@ func callSnapshot(ctx context.Context, q store.Querier, c store.Call) (callView,
 	if c.NotesBy.Valid {
 		by := uuid(c.NotesBy)
 		out.NotesBy = &by
+	}
+	out.RecordingOn = c.RecordingOn
+	if c.RecordingBy.Valid {
+		by := uuid(c.RecordingBy)
+		out.RecordingBy = &by
 	}
 	rows, err := q.ListCallParticipants(ctx, c.ID)
 	if err != nil {
@@ -561,6 +568,12 @@ func (h *Handlers) LeaveCall(w http.ResponseWriter, r *http.Request, id openapi_
 		if count == 0 || call.State == "ringing" {
 			_, e = endCall(r.Context(), q, call, "left")
 			return e
+		}
+		// The one who records left: the recording stops with them.
+		if call.RecordingOn && call.RecordingBy == p.User.ID {
+			if _, e = q.SetCallRecording(r.Context(), store.SetCallRecordingParams{RecordingOn: false, UserID: p.User.ID, ID: call.ID}); e != nil && !isNoRows(e) {
+				return e
+			}
 		}
 		call, e = q.BumpCallRevision(r.Context(), call.ID)
 		if e != nil {

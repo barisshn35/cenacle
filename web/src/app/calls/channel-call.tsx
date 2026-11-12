@@ -39,7 +39,7 @@ export function CallAction({ channel }: { channel: Channel }) {
     nonce.current ??= crypto.randomUUID();
     const existing = current.data && current.data.state !== 'ended' ? current.data : null;
     // Starting or joining goes through the check of microphone and camera first.
-    void beforeJoining(channel.name, !existing, (media) =>
+    void beforeJoining(channel.name, !existing, !!existing?.recording_on, (media) =>
       (existing
         ? existing.state === 'ringing' && !existing.participants.some((p) => p.user_id === selfID)
           ? calls.answer(existing.id, 'accept').then((call) => joinCall(call, media))
@@ -106,7 +106,7 @@ export function ChannelCallBar({ channel }: { channel: Channel }) {
         disabled={pending}
         onClick={() => {
           setPending(true);
-          void beforeJoining(channel.name, false, (media) =>
+          void beforeJoining(channel.name, false, !!call.recording_on, (media) =>
             (answer
               ? calls.answer(call.id, 'accept').then((c) => joinCall(c, media))
               : joinCall(call, media)
@@ -127,7 +127,9 @@ export function WorkspaceCallsSettings({ workspaceId }: { workspaceId: string })
   if (!settings.data) return null;
   return (
     <section className="grid gap-3" data-testid="workspace-calls">
-      <p className="text-sm text-muted-foreground">{t('noRecording')}</p>
+      <p className="text-sm text-muted-foreground">
+        {settings.data.recording ? t('mayRecord') : t('noRecording')}
+      </p>
       <SettingsForm
         key={saved}
         workspaceID={workspaceId}
@@ -214,6 +216,17 @@ function SettingsForm({
           </span>
         </label>
       )}
+      <label className="flex min-h-11 items-center gap-2">
+        <input
+          type="checkbox"
+          checked={!!value.recording}
+          onChange={(event) => setValue({ ...value, recording: event.target.checked })}
+        />
+        <span>
+          {t('recording.allow')}
+          <span className="block text-xs text-muted-foreground">{t('recording.allowHint')}</span>
+        </span>
+      </label>
       <label className="flex flex-col gap-1">
         {t('capacity')}
         <Input

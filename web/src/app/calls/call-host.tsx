@@ -37,7 +37,8 @@ import { errorCode, joinCall, leaveCall, reapply, startRinging, useCall } from '
 import { PreJoinDialog } from './prejoin';
 import { EffectControls } from './effect-controls';
 import { CaptionsArea, CaptionsButton } from './captions';
-import { useCaptionsAllowed, useNotesAllowed } from './captions-sender';
+import { useCaptionsAllowed, useNotesAllowed, useRecordingAllowed } from './captions-sender';
+import { RecordButton, RecordingStatus } from './recording';
 import { NotesButton, NotesStatus } from './notes';
 import { loadJoinPrefs } from './prejoin-state';
 
@@ -189,6 +190,12 @@ export function CallHost() {
       >
         <DialogContent>
           <DialogTitle>{t('incoming')}</DialogTitle>
+          {state.incoming?.recording_on && (
+            <p role="alert" className="flex items-center gap-2 text-sm font-medium">
+              <span aria-hidden className="size-2.5 rounded-full bg-destructive" />
+              {t('recording.joinNotice')}
+            </p>
+          )}
           <DialogDescription>{incomingName}</DialogDescription>
           <div className="flex flex-wrap justify-end gap-2">
             <Button
@@ -329,6 +336,7 @@ function CallPanel({
   const live = !!state.session && state.connection === 'connected';
   const captionsAllowed = useCaptionsAllowed();
   const notesAllowed = useNotesAllowed();
+  const recordingAllowed = useRecordingAllowed();
   const callID = state.call?.id;
   const setHand = (raised: boolean) => {
     if (callID) void calls.setHand(callID, raised).catch(report);
@@ -351,7 +359,9 @@ function CallPanel({
         {heading}
         <div className="flex shrink-0 gap-1">{windowAction}</div>
       </div>
-      <p className="text-sm text-muted-foreground">{t('noRecording')}</p>
+      <p className="text-sm text-muted-foreground">
+        {recordingAllowed ? t('mayRecord') : t('noRecording')}
+      </p>
       <div
         className={cn(
           'grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3',
@@ -381,6 +391,7 @@ function CallPanel({
           );
         })}
       </div>
+      <RecordingStatus selfID={selfID} />
       <NotesStatus selfID={selfID} />
       <CaptionsArea selfID={selfID} />
       {state.error && (
@@ -430,6 +441,7 @@ function CallPanel({
         </Button>
         {captionsAllowed && <CaptionsButton disabled={!live} />}
         {notesAllowed && <NotesButton disabled={!live} />}
+        {recordingAllowed && <RecordButton disabled={!live} />}
         <Popover>
           <PopoverTrigger
             render={
