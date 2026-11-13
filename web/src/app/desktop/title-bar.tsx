@@ -59,7 +59,9 @@ export function DesktopTitleBar({ tone = 'sidebar' }: { tone?: 'sidebar' | 'page
     >
       <Logo variant="icon" size={18} decorative />
       <span>Cenacle</span>
-      <span className="truncate text-xs font-normal opacity-70">{window.location.host}</span>
+      <span className="truncate text-xs font-normal opacity-70 forced-colors:opacity-100">
+        {window.location.host}
+      </span>
     </div>
   );
 }

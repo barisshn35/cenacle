@@ -982,11 +982,11 @@ function DayColumn({
       </div>
       {next && (
         <div className="flex flex-col gap-2 rounded-[10px] bg-sidebar p-4 text-sidebar-foreground">
-          <span className="text-xs opacity-80">
+          <span className="text-xs opacity-80 forced-colors:opacity-100">
             {t('meetings.nextUp')}, {when(next)}
           </span>
           <strong className="text-[17px] leading-snug font-semibold">{next.item.title}</strong>
-          <span className="text-[13px] tabular-nums opacity-80">
+          <span className="text-[13px] tabular-nums opacity-80 forced-colors:opacity-100">
             {time.format(next.start)} – {time.format(next.end)}
           </span>
           <div className="flex gap-2">
