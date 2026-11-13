@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useIsMobile } from '@cenacle/ui/hooks/use-mobile';
 import {
   ResizableHandle,
@@ -93,6 +93,10 @@ function DesktopShell() {
   // Views across channels have no channel details; search and threads still open.
   const view = useHomeView();
   const detailsOpen = panelOpen && !(view && rightView === 'details');
+  // Closed from the start when it has nothing to show: on narrow windows a panel
+  // laid out open cannot be collapsed below the others' minimums. Only the first
+  // layout uses it; later the panel reopens at the size it had.
+  const [detailsStart] = useState(() => (detailsOpen ? 300 : 0));
 
   // Keep the panel in sync with the toggle button.
   useEffect(() => {
@@ -117,7 +121,7 @@ function DesktopShell() {
         <ResizablePanel
           id="details"
           panelRef={detailsRef}
-          defaultSize={300}
+          defaultSize={detailsStart}
           minSize={240}
           maxSize={480}
           collapsible

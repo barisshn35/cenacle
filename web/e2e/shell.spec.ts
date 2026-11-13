@@ -107,6 +107,22 @@ test.describe('appearance', () => {
   });
 });
 
+test('a view across channels opened in a tablet-wide window leaves no empty panel', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'phones show one panel at a time');
+  // An iPad held upright: the desktop layout, with little room to spare.
+  await page.setViewportSize({ width: 810, height: 1080 });
+  await page.route(/\/api\/calendar\?/, (route) => route.fulfill({ json: { items: [] } }));
+  await page.goto('/calendar');
+  await expect(page.getByRole('heading', { name: 'Calendar', level: 1 })).toBeVisible();
+  const width = (id: string) =>
+    page.getByTestId(id).evaluate((el) => el.getBoundingClientRect().width);
+  await expect.poll(() => width('details')).toBe(0);
+  expect(await width('main')).toBeGreaterThanOrEqual(360);
+});
+
 test('unknown route shows a not-found state', async ({ page }) => {
   await page.goto('/does-not-exist');
   await expect(page.getByRole('status')).toContainText("This page doesn't exist.");
