@@ -237,8 +237,12 @@ test('a reminder says the meeting starts soon and opens it', async ({ page }) =>
 test('a calendar subscription address is made, shown once and copied', async ({
   page,
   context,
+  browserName,
 }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  // WebKit lets a click write to the clipboard and knows no such permissions.
+  if (browserName === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  }
   await mockApi(page);
   const url = 'http://localhost/api/calendar-feeds/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG';
   await page.route('**/api/me/calendar-feed', (route) =>
