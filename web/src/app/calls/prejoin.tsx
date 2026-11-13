@@ -27,6 +27,8 @@ const selectClass =
 function usePreview(prefs: JoinPrefs, blur: boolean) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [level, setLevel] = useState(0);
+  // Heard in the last moment and a half: the words hold between syllables.
+  const [heard, setHeard] = useState(false);
   const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +68,7 @@ function usePreview(prefs: JoinPrefs, blur: boolean) {
         ctx.createMediaStreamSource(s).connect(analyser);
         const data = new Uint8Array(analyser.fftSize);
         let last = 0;
+        let loud = -Infinity;
         const tick = (now: number) => {
           frame = requestAnimationFrame(tick);
           if (now - last < 80) return;
@@ -73,7 +76,10 @@ function usePreview(prefs: JoinPrefs, blur: boolean) {
           analyser.getByteTimeDomainData(data);
           let peak = 0;
           for (const v of data) peak = Math.max(peak, Math.abs(v - 128));
-          setLevel(Math.min(1, peak / 64));
+          const l = Math.min(1, peak / 64);
+          if (l > 0.08) loud = now;
+          setLevel(l);
+          setHeard(now - loud < 1500);
         };
         frame = requestAnimationFrame(tick);
       })
@@ -83,6 +89,7 @@ function usePreview(prefs: JoinPrefs, blur: boolean) {
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
+      setHeard(false);
       worked?.stop();
       void ctx?.close();
       current?.getTracks().forEach((t) => t.stop());
@@ -90,7 +97,12 @@ function usePreview(prefs: JoinPrefs, blur: boolean) {
   }, [prefs.audio, prefs.camera, prefs.mic, prefs.cam, blur]);
   // With both off nothing is captured: the last picture and level do not linger.
   const on = prefs.audio || prefs.camera;
-  return { stream: on ? stream : null, level: on ? level : 0, blocked };
+  return {
+    stream: on ? stream : null,
+    level: on ? level : 0,
+    heard: prefs.audio && heard,
+    blocked,
+  };
 }
 
 /**
@@ -111,7 +123,7 @@ function PreJoin() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [joining, setJoining] = useState(false);
   const blur = useEffects((s) => s.background === 'blur');
-  const { stream, level, blocked } = usePreview(prefs, blur);
+  const { stream, level, heard, blocked } = usePreview(prefs, blur);
   const video = useRef<HTMLVideoElement>(null);
   const self = useSession().user;
   const profile = useProfile(self.id);
@@ -242,7 +254,7 @@ function PreJoin() {
                 <span className="text-xs text-muted-foreground" aria-live="polite">
                   {!prefs.audio
                     ? t('prejoin.micMuted')
-                    : level > 0.08
+                    : heard
                       ? t('prejoin.hearing')
                       : t('prejoin.speak')}
                 </span>
