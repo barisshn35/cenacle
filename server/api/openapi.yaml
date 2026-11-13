@@ -788,6 +788,41 @@ paths:
         '403': { $ref: '#/components/responses/Problem' }
         '409': { $ref: '#/components/responses/Problem' }
         '502': { $ref: '#/components/responses/Problem' }
+  /api/admin/mail-server:
+    get:
+      tags: [admin]
+      operationId: getMailServer
+      summary: The outgoing mail server (instance administrators)
+      responses:
+        '200':
+          description: The mail server.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MailServer' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [admin]
+      operationId: setMailServer
+      summary: Set the outgoing mail server
+      description: |
+        Meeting invitations and notification e-mails go out through it. Not
+        possible while the server's own settings (CENACLE_SMTP_HOST) name one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MailServer' }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MailServer' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
   /api/calls/{id}/reactions:
     post:
       tags: [chat]
@@ -9267,6 +9302,37 @@ components:
         has_secret: { type: boolean, readOnly: true }
         last_error: { type: string, readOnly: true }
         last_sent_at: { type: string, format: date-time, nullable: true, readOnly: true }
+    MailServer:
+      type: object
+      required: [host, port, security, username, from]
+      properties:
+        host:
+          type: string
+          maxLength: 253
+          description: The mail server's name or address; empty turns e-mail off.
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        security:
+          type: string
+          enum: [starttls, tls, none]
+          description: STARTTLS (usually port 587), TLS from the start (465), or none (a relay inside the network, usually 25).
+        username:
+          type: string
+          maxLength: 320
+          description: The account e-mails are sent with; empty when the server asks for none.
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 500
+          description: The account's password. Empty keeps the saved one; no user name removes it.
+        has_password: { type: boolean, readOnly: true }
+        from:
+          type: string
+          maxLength: 400
+          description: The sender, as an address or "Name <address>".
+        managed:
+          type: boolean
+          readOnly: true
+          description: The server's own settings (CENACLE_SMTP_*) name the mail server; it cannot be changed here.
     Bot:
       type: object
       required: [id, user_id, name, description, disabled, created_at]
@@ -10407,6 +10473,9 @@ components:
       required: [id, display_name, email]
       properties:
         is_bot: { type: boolean, description: A bot (shows a badge). }
+        is_guest:
+          type: boolean
+          description: A guest of the workspace (channel members and people search); guests are not invited to meetings.
         id: { type: string, format: uuid }
         display_name: { type: string }
         email: { type: string }

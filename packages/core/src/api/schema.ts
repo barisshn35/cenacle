@@ -583,6 +583,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/admin/mail-server': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The outgoing mail server (instance administrators) */
+    get: operations['getMailServer'];
+    /**
+     * Set the outgoing mail server
+     * @description Meeting invitations and notification e-mails go out through it. Not
+     *     possible while the server's own settings (CENACLE_SMTP_HOST) name one.
+     */
+    put: operations['setMailServer'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/calls/{id}/reactions': {
     parameters: {
       query?: never;
@@ -6405,6 +6427,25 @@ export interface components {
       /** Format: date-time */
       readonly last_sent_at?: string | null;
     };
+    MailServer: {
+      /** @description The mail server's name or address; empty turns e-mail off. */
+      host: string;
+      port: number;
+      /**
+       * @description STARTTLS (usually port 587), TLS from the start (465), or none (a relay inside the network, usually 25).
+       * @enum {string}
+       */
+      security: 'starttls' | 'tls' | 'none';
+      /** @description The account e-mails are sent with; empty when the server asks for none. */
+      username: string;
+      /** @description The account's password. Empty keeps the saved one; no user name removes it. */
+      password?: string;
+      readonly has_password?: boolean;
+      /** @description The sender, as an address or "Name <address>". */
+      from: string;
+      /** @description The server's own settings (CENACLE_SMTP_*) name the mail server; it cannot be changed here. */
+      readonly managed?: boolean;
+    };
     Bot: {
       /** Format: uuid */
       id: string;
@@ -7495,6 +7536,8 @@ export interface components {
     Person: {
       /** @description A bot (shows a badge). */
       is_bot?: boolean;
+      /** @description A guest of the workspace (channel members and people search); guests are not invited to meetings. */
+      is_guest?: boolean;
       /** Format: uuid */
       id: string;
       display_name: string;
@@ -9040,6 +9083,56 @@ export interface operations {
       403: components['responses']['Problem'];
       409: components['responses']['Problem'];
       502: components['responses']['Problem'];
+    };
+  };
+  getMailServer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The mail server. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MailServer'];
+        };
+      };
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+    };
+  };
+  setMailServer: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MailServer'];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MailServer'];
+        };
+      };
+      400: components['responses']['Problem'];
+      401: components['responses']['Problem'];
+      403: components['responses']['Problem'];
+      409: components['responses']['Problem'];
     };
   };
   sendCallReaction: {

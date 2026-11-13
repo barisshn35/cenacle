@@ -121,6 +121,113 @@ test('the system console shows the installation and sets the notification policy
   await expectNoAxeViolations(page, '[role="dialog"]');
 });
 
+test('administrators set the outgoing mail server, its password never shown', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Settings opens from the sidebar on wide screens');
+  await mockApi(page, { admin: true });
+  const off = { host: '', port: 587, security: 'starttls', username: '', from: '' };
+  let server: Record<string, unknown> = { ...off, has_password: false, managed: false };
+  const saves: Record<string, unknown>[] = [];
+  await page.route('**/api/admin/mail-server', (route) => {
+    if (route.request().method() === 'PUT') {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      saves.push(body);
+      const { password, ...rest } = body;
+      server = {
+        ...rest,
+        has_password: body.username ? !!password || !!server.has_password : false,
+        managed: false,
+      };
+    }
+    return route.fulfill({ json: server });
+  });
+  await page.route('**/api/admin/notification-policy', (route) =>
+    route.fulfill({ json: { push_contents: 'full', email_contents: 'full' } }),
+  );
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'System console' }).click();
+  const console = page.getByRole('dialog', { name: 'System console' });
+  await console.getByRole('tab', { name: /Notifications/ }).click();
+  const form = console.getByRole('form', { name: 'Outgoing mail server' });
+  await expect(form.getByTestId('mail-server-off')).toBeVisible();
+  await expect(form.getByRole('textbox', { name: 'Account' })).toHaveAttribute(
+    'placeholder',
+    'meetings@your-company.com',
+  );
+
+  // TLS from the start moves the usual port along.
+  await form.getByRole('textbox', { name: 'Server' }).fill('mail.example.com');
+  await form.getByLabel('TLS from the start (usually port 465)').check();
+  await expect(form.getByRole('textbox', { name: 'Port' })).toHaveValue('465');
+  await form.getByRole('textbox', { name: 'Account' }).fill('meetings@example.com');
+  await form.getByLabel('Password').fill('s3cret-pass');
+  await expect(form.getByLabel('Password')).toHaveAttribute('autocomplete', 'new-password');
+  await form.getByLabel('Sender').fill('Cenacle <meetings@example.com>');
+  await expectTargetSizes(page, test.info(), '[role="dialog"]');
+  await expectNoAxeViolations(page, '[role="dialog"]');
+  await form.getByRole('button', { name: 'Save mail server' }).click();
+  await expect(page.getByText('Mail server saved.')).toBeVisible();
+  expect(saves.at(-1)).toEqual({
+    host: 'mail.example.com',
+    port: 465,
+    security: 'tls',
+    username: 'meetings@example.com',
+    password: 's3cret-pass',
+    from: 'Cenacle <meetings@example.com>',
+  });
+  // Saved: the field is empty again, and saving keeps the password.
+  await expect(form.getByLabel('Password')).toHaveValue('');
+  await expect(form.getByText('A password is saved.')).toBeVisible();
+  await form.getByRole('button', { name: 'Save mail server' }).click();
+  await expect.poll(() => saves.length).toBe(2);
+  expect(saves.at(-1)).not.toHaveProperty('password');
+
+  // A relay inside the network: no account, so no password.
+  await form.getByLabel('Unencrypted, inside your network (usually port 25)').check();
+  await expect(form.getByRole('textbox', { name: 'Port' })).toHaveValue('25');
+  await expect(form.getByRole('textbox', { name: 'Account' })).toHaveCount(0);
+
+  // Turning e-mail off is confirmed first.
+  await form.getByRole('button', { name: 'Turn e-mail off' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Turn e-mail off' }).click();
+  await expect(page.getByText('E-mail is off.')).toBeVisible();
+  expect(saves.at(-1)).toEqual(off);
+});
+
+test('a mail server the server settings name is shown, not edited', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Settings opens from the sidebar on wide screens');
+  await mockApi(page, { admin: true });
+  await page.route('**/api/admin/mail-server', (route) =>
+    route.fulfill({
+      json: {
+        host: 'relay.internal',
+        port: 25,
+        security: 'none',
+        username: '',
+        from: 'Cenacle <chat@example.com>',
+        has_password: false,
+        managed: true,
+      },
+    }),
+  );
+  await page.route('**/api/admin/notification-policy', (route) =>
+    route.fulfill({ json: { push_contents: 'full', email_contents: 'full' } }),
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'System console' }).click();
+  const console = page.getByRole('dialog', { name: 'System console' });
+  await console.getByRole('tab', { name: /Notifications/ }).click();
+  await expect(
+    console.getByText(/own settings name the mail server \(relay\.internal\)/),
+  ).toBeVisible();
+  await expect(console.getByRole('button', { name: 'Save mail server' })).toHaveCount(0);
+});
+
 test('the system console sets the session and network policy', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Settings opens from the sidebar on wide screens');
   await mockApi(page, { admin: true });

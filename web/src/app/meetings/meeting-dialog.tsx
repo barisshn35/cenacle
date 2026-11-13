@@ -123,16 +123,25 @@ export function MeetingDialog({
   const candidates: Invitee[] = (
     form.place
       ? (members.data ?? [])
-          .filter((m) => !m.user.is_bot)
+          // Meetings are for the organization: no bots, no guests.
+          .filter((m) => !m.user.is_bot && !m.user.is_guest)
           .map((m) => ({ id: m.user.id, name: m.user.display_name || m.user.email }))
           .filter((m) => query === '' || m.name.toLocaleLowerCase().includes(query))
-      : (people.data ?? []).map((p) => ({ id: p.id, name: p.display_name || p.email }))
+      : (people.data ?? [])
+          .filter((p) => !p.is_bot && !p.is_guest)
+          .map((p) => ({ id: p.id, name: p.display_name || p.email }))
   ).filter(
     (p) => p.id !== self && p.id !== meeting?.organizer_id && !picked.some((x) => x.id === p.id),
   );
   const everyone: Invitee[] = form.place
     ? (members.data ?? [])
-        .filter((m) => !m.user.is_bot && m.user.id !== self && m.user.id !== meeting?.organizer_id)
+        .filter(
+          (m) =>
+            !m.user.is_bot &&
+            !m.user.is_guest &&
+            m.user.id !== self &&
+            m.user.id !== meeting?.organizer_id,
+        )
         .map((m) => ({ id: m.user.id, name: m.user.display_name || m.user.email }))
     : [];
 

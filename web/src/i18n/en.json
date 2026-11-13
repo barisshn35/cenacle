@@ -2856,6 +2856,37 @@
       "no_extension": "Off: the chat database has no pgvector. Run CREATE EXTENSION vector SCHEMA public in it as its administrator.",
       "counts": "{{indexed}} messages indexed, {{queued}} waiting."
     },
+    "mailServer": {
+      "title": "Outgoing mail server",
+      "hint": "Meeting invitations and notification e-mails go out through this server. Use an account made only for sending, such as meetings@your-company.com.",
+      "managed": "This server's own settings name the mail server ({{host}}). Change it there.",
+      "off": "No mail server is set: Cenacle sends no e-mail.",
+      "host": "Server",
+      "hostHint": "The mail server's name or address, without a port.",
+      "port": "Port",
+      "security": "Connection",
+      "securities": {
+        "starttls": "STARTTLS (usually port 587)",
+        "tls": "TLS from the start (usually port 465)",
+        "none": "Unencrypted, inside your network (usually port 25)"
+      },
+      "username": "Account",
+      "usernameHint": "Leave empty when the server asks for no sign-in.",
+      "password": "Password",
+      "passwordHint": "Never shown again once saved.",
+      "passwordKept": "A password is saved. Type a new one only to change it.",
+      "from": "Sender",
+      "fromHint": "How e-mails are signed, as an address or Name <address>. Replies to invitations go to the meeting's organizer.",
+      "noAccountInClear": "An account needs STARTTLS or TLS: the password must not travel unencrypted.",
+      "save": "Save mail server",
+      "saved": "Mail server saved.",
+      "turnOff": "Turn e-mail off",
+      "turnedOff": "E-mail is off.",
+      "usernamePlaceholder": "meetings@your-company.com",
+      "fromPlaceholder": "Cenacle <meetings@your-company.com>",
+      "turnOffTitle": "Turn e-mail off?",
+      "turnOffDescription": "Cenacle stops sending meeting invitations and notification e-mails. The saved password is removed; to turn e-mail on again, enter the server and its password once more."
+    },
     "testEmail": {
       "title": "Test e-mail",
       "hint": "Sends you a sample meeting invitation, in your language, so you can see that e-mail works and how invitations look.",

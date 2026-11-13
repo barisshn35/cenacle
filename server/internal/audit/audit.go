@@ -110,6 +110,7 @@ const (
 	E2EEscrowOpened                = "instance.e2e_escrow_opened"
 	AuditExported                  = "instance.audit_exported"
 	AuditStreamChanged             = "instance.audit_stream_changed"
+	MailServerChanged              = "instance.mail_server_changed"
 	UserDataExported               = "admin.user_data_exported"
 	UserErased                     = "admin.user_erased"
 	SpillageReported               = "spillage.reported"

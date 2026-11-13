@@ -81,7 +81,7 @@ func (q *Queries) RevokeAdminUnlessEmail(ctx context.Context, email string) erro
 }
 
 const searchUsers = `-- name: SearchUsers :many
-SELECT u.id, u.display_name, u.email, u.is_bot
+SELECT u.id, u.display_name, u.email, u.is_bot, (wm.role = 'guest')::boolean AS is_guest
 FROM users u
 JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = $1
 WHERE (u.display_name ILIKE $2 OR u.email ILIKE $2)
@@ -103,6 +103,7 @@ type SearchUsersRow struct {
 	DisplayName string      `json:"display_name"`
 	Email       string      `json:"email"`
 	IsBot       bool        `json:"is_bot"`
+	IsGuest     bool        `json:"is_guest"`
 }
 
 // SearchUsers finds members of a workspace by name or e-mail address
@@ -129,6 +130,7 @@ func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]Sea
 			&i.DisplayName,
 			&i.Email,
 			&i.IsBot,
+			&i.IsGuest,
 		); err != nil {
 			return nil, err
 		}

@@ -494,6 +494,7 @@ type Querier interface {
 	GetList(ctx context.Context, id pgtype.UUID) (List, error)
 	GetListItem(ctx context.Context, id pgtype.UUID) (ListItem, error)
 	GetMLSGroup(ctx context.Context, channelID pgtype.UUID) (MlsGroup, error)
+	GetMailServer(ctx context.Context) (GetMailServerRow, error)
 	GetMeeting(ctx context.Context, id pgtype.UUID) (Meeting, error)
 	GetMeetingResponse(ctx context.Context, arg GetMeetingResponseParams) (string, error)
 	GetMemberAttributes(ctx context.Context, arg GetMemberAttributesParams) ([]byte, error)
@@ -1143,6 +1144,7 @@ type Querier interface {
 	SetLastSeen(ctx context.Context, id pgtype.UUID) error
 	SetLinkState(ctx context.Context, arg SetLinkStateParams) error
 	SetListItemPosition(ctx context.Context, arg SetListItemPositionParams) error
+	SetMailServer(ctx context.Context, arg SetMailServerParams) error
 	SetMeetingResponse(ctx context.Context, arg SetMeetingResponseParams) (int64, error)
 	SetMemberAttributes(ctx context.Context, arg SetMemberAttributesParams) error
 	SetMemberTimeout(ctx context.Context, arg SetMemberTimeoutParams) (int64, error)

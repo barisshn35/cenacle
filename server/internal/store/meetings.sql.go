@@ -166,8 +166,12 @@ SELECT mm.id, mm.kind, mm.was_starts_at, mm.was_ends_at, mm.attempts,
     m.channel_id, m.workspace_id, m.organizer_id,
     c.name AS channel_name, c.kind AS channel_kind, c.title AS channel_title, w.name AS workspace_name,
     coalesce(o.display_name, '')::text AS organizer_name,
+    (CASE WHEN o.email_verified THEN coalesce(o.email, '') ELSE '' END)::text AS organizer_email,
     u.id AS user_id, u.email, u.email_verified, u.display_name, u.timezone AS user_timezone,
     coalesce(u.language, '')::text AS language, coalesce(np.prefs, '{}')::jsonb AS prefs,
+    -- Meetings are for the organization: guests get no e-mail about them.
+    EXISTS (SELECT 1 FROM workspace_members g WHERE g.workspace_id = m.workspace_id AND g.user_id = mm.user_id
+        AND g.role = 'guest')::boolean AS guest,
     -- An invitation not sent yet: the person has not heard of the meeting.
     EXISTS (SELECT 1 FROM meeting_mails o WHERE o.meeting_id = mm.meeting_id AND o.user_id = mm.user_id
         AND o.id < mm.id AND o.sent_at IS NULL AND o.kind = 'invite')::boolean AS unsent_invite
@@ -186,36 +190,38 @@ LIMIT 100
 `
 
 type DueMeetingMailsRow struct {
-	ID            pgtype.UUID        `json:"id"`
-	Kind          string             `json:"kind"`
-	WasStartsAt   pgtype.Timestamptz `json:"was_starts_at"`
-	WasEndsAt     pgtype.Timestamptz `json:"was_ends_at"`
-	Attempts      int32              `json:"attempts"`
-	MeetingID     pgtype.UUID        `json:"meeting_id"`
-	Title         string             `json:"title"`
-	Agenda        string             `json:"agenda"`
-	StartsAt      time.Time          `json:"starts_at"`
-	EndsAt        time.Time          `json:"ends_at"`
-	Timezone      string             `json:"timezone"`
-	Rrule         string             `json:"rrule"`
-	Exdates       []time.Time        `json:"exdates"`
-	Sequence      int32              `json:"sequence"`
-	ChannelID     pgtype.UUID        `json:"channel_id"`
-	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
-	OrganizerID   pgtype.UUID        `json:"organizer_id"`
-	ChannelName   string             `json:"channel_name"`
-	ChannelKind   string             `json:"channel_kind"`
-	ChannelTitle  string             `json:"channel_title"`
-	WorkspaceName string             `json:"workspace_name"`
-	OrganizerName string             `json:"organizer_name"`
-	UserID        pgtype.UUID        `json:"user_id"`
-	Email         string             `json:"email"`
-	EmailVerified bool               `json:"email_verified"`
-	DisplayName   string             `json:"display_name"`
-	UserTimezone  string             `json:"user_timezone"`
-	Language      string             `json:"language"`
-	Prefs         []byte             `json:"prefs"`
-	UnsentInvite  bool               `json:"unsent_invite"`
+	ID             pgtype.UUID        `json:"id"`
+	Kind           string             `json:"kind"`
+	WasStartsAt    pgtype.Timestamptz `json:"was_starts_at"`
+	WasEndsAt      pgtype.Timestamptz `json:"was_ends_at"`
+	Attempts       int32              `json:"attempts"`
+	MeetingID      pgtype.UUID        `json:"meeting_id"`
+	Title          string             `json:"title"`
+	Agenda         string             `json:"agenda"`
+	StartsAt       time.Time          `json:"starts_at"`
+	EndsAt         time.Time          `json:"ends_at"`
+	Timezone       string             `json:"timezone"`
+	Rrule          string             `json:"rrule"`
+	Exdates        []time.Time        `json:"exdates"`
+	Sequence       int32              `json:"sequence"`
+	ChannelID      pgtype.UUID        `json:"channel_id"`
+	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
+	OrganizerID    pgtype.UUID        `json:"organizer_id"`
+	ChannelName    string             `json:"channel_name"`
+	ChannelKind    string             `json:"channel_kind"`
+	ChannelTitle   string             `json:"channel_title"`
+	WorkspaceName  string             `json:"workspace_name"`
+	OrganizerName  string             `json:"organizer_name"`
+	OrganizerEmail string             `json:"organizer_email"`
+	UserID         pgtype.UUID        `json:"user_id"`
+	Email          string             `json:"email"`
+	EmailVerified  bool               `json:"email_verified"`
+	DisplayName    string             `json:"display_name"`
+	UserTimezone   string             `json:"user_timezone"`
+	Language       string             `json:"language"`
+	Prefs          []byte             `json:"prefs"`
+	Guest          bool               `json:"guest"`
+	UnsentInvite   bool               `json:"unsent_invite"`
 }
 
 // E-mails to send now: tried for at most a day. A newer e-mail about the same
@@ -252,6 +258,7 @@ func (q *Queries) DueMeetingMails(ctx context.Context) ([]DueMeetingMailsRow, er
 			&i.ChannelTitle,
 			&i.WorkspaceName,
 			&i.OrganizerName,
+			&i.OrganizerEmail,
 			&i.UserID,
 			&i.Email,
 			&i.EmailVerified,
@@ -259,6 +266,7 @@ func (q *Queries) DueMeetingMails(ctx context.Context) ([]DueMeetingMailsRow, er
 			&i.UserTimezone,
 			&i.Language,
 			&i.Prefs,
+			&i.Guest,
 			&i.UnsentInvite,
 		); err != nil {
 			return nil, err

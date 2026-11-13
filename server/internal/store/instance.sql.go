@@ -20,6 +20,60 @@ func (q *Queries) GetInstanceSettings(ctx context.Context) (bool, error) {
 	return web_app, err
 }
 
+const getMailServer = `-- name: GetMailServer :one
+SELECT smtp_host, smtp_port, smtp_security, smtp_username, smtp_password, smtp_from
+FROM instance_settings
+`
+
+type GetMailServerRow struct {
+	SmtpHost     string `json:"smtp_host"`
+	SmtpPort     int32  `json:"smtp_port"`
+	SmtpSecurity string `json:"smtp_security"`
+	SmtpUsername string `json:"smtp_username"`
+	SmtpPassword string `json:"smtp_password"`
+	SmtpFrom     string `json:"smtp_from"`
+}
+
+func (q *Queries) GetMailServer(ctx context.Context) (GetMailServerRow, error) {
+	row := q.db.QueryRow(ctx, getMailServer)
+	var i GetMailServerRow
+	err := row.Scan(
+		&i.SmtpHost,
+		&i.SmtpPort,
+		&i.SmtpSecurity,
+		&i.SmtpUsername,
+		&i.SmtpPassword,
+		&i.SmtpFrom,
+	)
+	return i, err
+}
+
+const setMailServer = `-- name: SetMailServer :exec
+UPDATE instance_settings SET smtp_host = $1, smtp_port = $2, smtp_security = $3,
+    smtp_username = $4, smtp_password = $5, smtp_from = $6, updated_at = now()
+`
+
+type SetMailServerParams struct {
+	Host     string `json:"host"`
+	Port     int32  `json:"port"`
+	Security string `json:"security"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Sender   string `json:"sender"`
+}
+
+func (q *Queries) SetMailServer(ctx context.Context, arg SetMailServerParams) error {
+	_, err := q.db.Exec(ctx, setMailServer,
+		arg.Host,
+		arg.Port,
+		arg.Security,
+		arg.Username,
+		arg.Password,
+		arg.Sender,
+	)
+	return err
+}
+
 const setWebApp = `-- name: SetWebApp :exec
 INSERT INTO instance_settings (id, web_app, updated_at) VALUES (true, $1, now())
 ON CONFLICT (id) DO UPDATE SET web_app = EXCLUDED.web_app, updated_at = now()

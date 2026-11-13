@@ -62,6 +62,8 @@ type MeetingMail struct {
 	RecipientEmail string
 	PublicURL      string
 	From           string // the sender address, as the calendar's organizer
+	// OrganizerEmail receives replies to the e-mail (Reply-To); empty: none.
+	OrganizerEmail string
 }
 
 type mailRow struct {
@@ -357,7 +359,7 @@ func RenderMeetingMail(m MeetingMail, now time.Time) (Mail, error) {
 		name = "toplanti.ics"
 	}
 	return Mail{
-		To: m.RecipientEmail, Subject: d.Subject, Text: text.String(), HTML: html.String(),
+		To: m.RecipientEmail, ReplyTo: m.OrganizerEmail, Subject: d.Subject, Text: text.String(), HTML: html.String(),
 		Calendar: meetings.Calendar(method, []meetings.Event{ev}, now), CalendarMethod: method, CalendarName: name,
 		Inline: []InlineImage{{ID: "logo", Type: "image/png", Data: logoPNG}},
 	}, nil

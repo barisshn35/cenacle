@@ -53,7 +53,9 @@ SELECT coalesce((
 ), '')::text;
 
 -- name: ListMembers :many
-SELECT u.id, u.display_name, u.email, u.is_bot, m.role, m.joined_at
+SELECT u.id, u.display_name, u.email, u.is_bot, m.role, m.joined_at,
+    EXISTS (SELECT 1 FROM channels c JOIN workspace_members wm ON wm.workspace_id = c.workspace_id
+        WHERE c.id = m.channel_id AND wm.user_id = u.id AND wm.role = 'guest')::boolean AS is_guest
 FROM channel_members m
 JOIN users u ON u.id = m.user_id
 WHERE m.channel_id = @channel_id

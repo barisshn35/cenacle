@@ -82,8 +82,12 @@ SELECT mm.id, mm.kind, mm.was_starts_at, mm.was_ends_at, mm.attempts,
     m.channel_id, m.workspace_id, m.organizer_id,
     c.name AS channel_name, c.kind AS channel_kind, c.title AS channel_title, w.name AS workspace_name,
     coalesce(o.display_name, '')::text AS organizer_name,
+    (CASE WHEN o.email_verified THEN coalesce(o.email, '') ELSE '' END)::text AS organizer_email,
     u.id AS user_id, u.email, u.email_verified, u.display_name, u.timezone AS user_timezone,
     coalesce(u.language, '')::text AS language, coalesce(np.prefs, '{}')::jsonb AS prefs,
+    -- Meetings are for the organization: guests get no e-mail about them.
+    EXISTS (SELECT 1 FROM workspace_members g WHERE g.workspace_id = m.workspace_id AND g.user_id = mm.user_id
+        AND g.role = 'guest')::boolean AS guest,
     -- An invitation not sent yet: the person has not heard of the meeting.
     EXISTS (SELECT 1 FROM meeting_mails o WHERE o.meeting_id = mm.meeting_id AND o.user_id = mm.user_id
         AND o.id < mm.id AND o.sent_at IS NULL AND o.kind = 'invite')::boolean AS unsent_invite

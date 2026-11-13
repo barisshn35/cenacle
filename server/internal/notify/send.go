@@ -45,7 +45,9 @@ type SMTP struct {
 // Mail is one message to send: plain text, and HTML with its inline images
 // and files when there is one.
 type Mail struct {
-	To      string
+	To string
+	// ReplyTo is where replies go when not to the sender (a meeting's organizer).
+	ReplyTo string
 	Subject string
 	Text    string
 	HTML    string
@@ -71,6 +73,11 @@ func (m Mail) message(from, to *mail.Address, now time.Time) ([]byte, error) {
 	var body bytes.Buffer
 	fmt.Fprintf(&body, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\n",
 		from.String(), to.String(), headerValue(m.Subject), now.UTC().Format(time.RFC1123Z))
+	if m.ReplyTo != "" {
+		if r, err := mail.ParseAddress(m.ReplyTo); err == nil {
+			fmt.Fprintf(&body, "Reply-To: %s\r\n", r.String())
+		}
+	}
 	body.WriteString("Auto-Submitted: auto-generated\r\n")
 	if m.HTML == "" {
 		body.WriteString("Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n")

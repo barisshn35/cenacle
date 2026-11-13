@@ -575,6 +575,12 @@ type InstanceSetting struct {
 	SoundMessage         string             `json:"sound_message"`
 	SoundVolume          int32              `json:"sound_volume"`
 	AssistantsEnabled    bool               `json:"assistants_enabled"`
+	SmtpHost             string             `json:"smtp_host"`
+	SmtpPort             int32              `json:"smtp_port"`
+	SmtpSecurity         string             `json:"smtp_security"`
+	SmtpUsername         string             `json:"smtp_username"`
+	SmtpPassword         string             `json:"smtp_password"`
+	SmtpFrom             string             `json:"smtp_from"`
 }
 
 type LegalHold struct {

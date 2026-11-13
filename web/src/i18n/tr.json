@@ -2856,6 +2856,37 @@
       "no_extension": "Kapalı: sohbet veritabanında pgvector yok. Veritabanı yöneticisi olarak içinde CREATE EXTENSION vector SCHEMA public komutunu çalıştırın.",
       "counts": "{{indexed}} mesaj dizinlendi, {{queued}} bekliyor."
     },
+    "mailServer": {
+      "title": "Giden posta sunucusu",
+      "hint": "Toplantı davetleri ve bildirim e-postaları bu sunucu üzerinden gider. Gönderim için açılmış bir hesap kullanın, örneğin toplanti@sirketiniz.com.",
+      "managed": "Posta sunucusunu bu sunucunun kendi ayarları belirliyor ({{host}}). Değişikliği orada yapın.",
+      "off": "Posta sunucusu tanımlı değil: Cenacle e-posta göndermiyor.",
+      "host": "Sunucu",
+      "hostHint": "Posta sunucusunun adı ya da adresi, port olmadan.",
+      "port": "Port",
+      "security": "Bağlantı",
+      "securities": {
+        "starttls": "STARTTLS (genellikle 587 numaralı port)",
+        "tls": "Baştan TLS (genellikle 465 numaralı port)",
+        "none": "Şifresiz, ağınızın içinde (genellikle 25 numaralı port)"
+      },
+      "username": "Hesap",
+      "usernameHint": "Sunucu oturum açma istemiyorsa boş bırakın.",
+      "password": "Parola",
+      "passwordHint": "Kaydedildikten sonra bir daha gösterilmez.",
+      "passwordKept": "Kayıtlı bir parola var. Yalnızca değiştirmek için yenisini yazın.",
+      "from": "Gönderen",
+      "fromHint": "E-postaların kimden gittiği: bir adres ya da Ad <adres>. Davetlere verilen yanıtlar toplantının düzenleyicisine gider.",
+      "noAccountInClear": "Hesap kullanmak için STARTTLS ya da TLS gerekir: parola şifresiz gönderilmemeli.",
+      "save": "Posta sunucusunu kaydet",
+      "saved": "Posta sunucusu kaydedildi.",
+      "turnOff": "E-postayı kapat",
+      "turnedOff": "E-posta kapatıldı.",
+      "usernamePlaceholder": "toplanti@sirketiniz.com",
+      "fromPlaceholder": "Cenacle <toplanti@sirketiniz.com>",
+      "turnOffTitle": "E-posta kapatılsın mı?",
+      "turnOffDescription": "Cenacle toplantı davetlerini ve bildirim e-postalarını göndermeyi bırakır. Kayıtlı parola silinir; e-postayı yeniden açmak için sunucuyu ve parolasını tekrar girmeniz gerekir."
+    },
     "testEmail": {
       "title": "Deneme e-postası",
       "hint": "Size, sizin dilinizde örnek bir toplantı daveti gönderir; e-postanın çalıştığını ve davetlerin nasıl göründüğünü görürsünüz.",

@@ -10,6 +10,12 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Outgoing mail server in the app: administrators set the server, port, connection
+  (STARTTLS, TLS or an unencrypted relay inside the network), account, password and sender
+  in System console → Notifications, with the test invitation right below. The password is
+  never shown again; a change is in the audit log (`instance.mail_server_changed`, without
+  the password). `CENACLE_SMTP_HOST` still wins when set. Meeting e-mails reply to the
+  organizer. Migration 00081.
 - Assistants over MCP (ADR 0056): where administrators allow it (System console → Security),
   people make personal tokens (Settings → Assistants) for AI assistants that speak MCP, at
   `/api/mcp`. An assistant reads the person's channels, threads and meetings and searches
@@ -145,6 +151,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Changed
 
+- Meetings are for the organization: guests cannot be invited to meetings (the invitee
+  list leaves them out) and get no e-mail about meetings.
 - A call's summary message is no longer pushed (the call itself rang).
 - Interface review fixes: on phones the details and thread panel fill the screen; a
   notification sound plays as it is chosen and an own sound is named after its file is picked;

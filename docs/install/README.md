@@ -236,15 +236,24 @@ regularly, in one of two ways:
 People choose their notifications in Settings → Notifications. Two features need the
 server's help:
 
-| Setting                    | Default    | Meaning                                                                                                 |
-| -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------- |
-| `CENACLE_SMTP_HOST`        | (none)     | SMTP server for e-mail about missed mentions and direct messages; empty: no e-mail.                     |
-| `CENACLE_SMTP_PORT`        | `587`      | Its port.                                                                                               |
-| `CENACLE_SMTP_SECURITY`    | `starttls` | `starttls`, `tls` (port 465) or `none` (only for a relay on a trusted network).                         |
-| `CENACLE_SMTP_USERNAME`    | (none)     | Sign-in, if the server asks for one (password in `CENACLE_SMTP_PASSWORD` or `secrets/smtp_password`).   |
-| `CENACLE_SMTP_FROM`        | (none)     | Sender, e.g. `Cenacle <chat@example.com>`; required with a host.                                        |
-| `CENACLE_WEB_PUSH`         | `false`    | Notifications on devices where Cenacle is closed, through the browser makers' push services (internet). |
-| `CENACLE_WEB_PUSH_SUBJECT` | (none)     | A `mailto:` or `https:` contact for the push services; default: `mailto:` and `CENACLE_ADMIN_EMAIL`.    |
+| Setting                    | Default    | Meaning                                                                                                  |
+| -------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- |
+| `CENACLE_SMTP_HOST`        | (none)     | SMTP server for meeting invitations and e-mail about missed messages; empty: set in the app (see below). |
+| `CENACLE_SMTP_PORT`        | `587`      | Its port.                                                                                                |
+| `CENACLE_SMTP_SECURITY`    | `starttls` | `starttls`, `tls` (port 465) or `none` (only for a relay on a trusted network).                          |
+| `CENACLE_SMTP_USERNAME`    | (none)     | Sign-in, if the server asks for one (password in `CENACLE_SMTP_PASSWORD` or `secrets/smtp_password`).    |
+| `CENACLE_SMTP_FROM`        | (none)     | Sender, e.g. `Cenacle <chat@example.com>`; required with a host.                                         |
+| `CENACLE_WEB_PUSH`         | `false`    | Notifications on devices where Cenacle is closed, through the browser makers' push services (internet).  |
+| `CENACLE_WEB_PUSH_SUBJECT` | (none)     | A `mailto:` or `https:` contact for the push services; default: `mailto:` and `CENACLE_ADMIN_EMAIL`.     |
+
+Administrators can also set the mail server in the app instead: System console →
+Notifications → Outgoing mail server (server, port, connection, account, password,
+sender), and send themselves a test invitation right below it. Use an account made only
+for sending, such as `meetings@example.com`. The password is never shown again once
+saved; it is stored in the chat database, so protect its backups like the database
+itself. When `CENACLE_SMTP_HOST` is set, it wins and the app only shows it. Replies to
+an invitation go to the meeting's organizer (`Reply-To`). Meetings are for the
+organization: guests cannot be invited and get no meeting e-mail.
 
 ### Other settings
 

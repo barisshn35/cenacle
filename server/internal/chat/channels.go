@@ -599,10 +599,11 @@ func (h *Handlers) ListChannelMembers(w http.ResponseWriter, r *http.Request, ch
 	}
 	out := make([]api.Member, 0, len(rows))
 	for _, m := range rows {
-		out = append(out, api.Member{
-			User: personAPI(m.ID, m.DisplayName, m.Email, m.IsBot),
-			Role: api.MemberRole(m.Role),
-		})
+		person := personAPI(m.ID, m.DisplayName, m.Email, m.IsBot)
+		if m.IsGuest {
+			person.IsGuest = &m.IsGuest
+		}
+		out = append(out, api.Member{User: person, Role: api.MemberRole(m.Role)})
 	}
 	httpx.WriteJSON(w, http.StatusOK, struct {
 		Members []api.Member `json:"members"`
@@ -763,7 +764,11 @@ func (h *Handlers) SearchUsers(w http.ResponseWriter, r *http.Request, params ap
 		if visible != nil && !visible[u.ID] {
 			continue
 		}
-		out = append(out, personAPI(u.ID, u.DisplayName, u.Email, u.IsBot))
+		person := personAPI(u.ID, u.DisplayName, u.Email, u.IsBot)
+		if u.IsGuest {
+			person.IsGuest = &u.IsGuest
+		}
+		out = append(out, person)
 	}
 	httpx.WriteJSON(w, http.StatusOK, struct {
 		Users []api.Person `json:"users"`

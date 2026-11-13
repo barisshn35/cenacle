@@ -20,8 +20,8 @@ import (
 // push while they are away) and sends the e-mails about meetings (ADR 0054).
 type Meetings struct {
 	Queries   *store.Queries
-	SMTP      *SMTP  // nil: no e-mail
-	Push      Sender // nil: no web push
+	SMTP      MailRelay // nil: no e-mail
+	Push      Sender    // nil: no web push
 	Presence  Presence
 	Sessions  SessionLimits
 	PublicURL string
@@ -44,10 +44,16 @@ func (m *Meetings) Run(ctx context.Context) (int, error) {
 		return n, err
 	}
 	if m.SMTP != nil {
-		sent, err := m.sendMails(ctx)
-		n += sent
+		relay, err := m.SMTP.Relay(ctx)
 		if err != nil {
 			return n, err
+		}
+		if relay != nil {
+			sent, err := m.sendMails(ctx, relay)
+			n += sent
+			if err != nil {
+				return n, err
+			}
 		}
 	}
 	if err := m.Queries.PruneMeetingReminders(ctx); err != nil {
@@ -168,7 +174,7 @@ func (m *Meetings) remind(ctx context.Context) (int, error) {
 	return sent, nil
 }
 
-func (m *Meetings) sendMails(ctx context.Context) (int, error) {
+func (m *Meetings) sendMails(ctx context.Context, relay *SMTP) (int, error) {
 	q := m.Queries
 	rows, err := q.DueMeetingMails(ctx)
 	if err != nil || len(rows) == 0 {
@@ -197,7 +203,7 @@ func (m *Meetings) sendMails(ctx context.Context) (int, error) {
 			r.Kind, r.WasStartsAt, r.WasEndsAt = "invite", pgtype.Timestamptz{}, pgtype.Timestamptz{}
 		}
 		prefs := Read(r.Prefs)
-		if !r.EmailVerified || r.Email == "" || !prefs.Meetings.Email {
+		if r.Guest || !r.EmailVerified || r.Email == "" || !prefs.Meetings.Email {
 			if err := done(); err != nil {
 				return sent, err
 			}
@@ -217,12 +223,12 @@ func (m *Meetings) sendMails(ctx context.Context) (int, error) {
 		}
 		mm := MeetingMail{
 			Kind: r.Kind, MeetingID: idString(r.MeetingID), ChannelID: idString(r.ChannelID),
-			Title: r.Title, Agenda: r.Agenda, Organizer: r.OrganizerName, Workspace: r.WorkspaceName,
+			Title: r.Title, Agenda: r.Agenda, Organizer: r.OrganizerName, OrganizerEmail: r.OrganizerEmail, Workspace: r.WorkspaceName,
 			Start: r.StartsAt, End: r.EndsAt, TimeZone: r.Timezone, Rule: r.Rrule, Exdates: r.Exdates,
 			Sequence: int(r.Sequence), PlaceKind: r.ChannelKind, PlaceName: place,
 			People: names, PeopleTotal: int(total),
 			Language: r.Language, RecipientTZ: r.UserTimezone, RecipientName: r.DisplayName, RecipientEmail: r.Email,
-			PublicURL: m.PublicURL, From: m.SMTP.From,
+			PublicURL: m.PublicURL, From: relay.From,
 		}
 		if r.Kind == "cancel" {
 			// Taken off a meeting that goes on (its own cancellation is "cancel" too).
@@ -244,7 +250,7 @@ func (m *Meetings) sendMails(ctx context.Context) (int, error) {
 			return sent, err
 		}
 		sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
-		err = m.SMTP.Send(sendCtx, msg)
+		err = relay.Send(sendCtx, msg)
 		cancel()
 		if err != nil {
 			m.Log.WarnContext(ctx, "meeting e-mail", "error", err)
@@ -266,6 +272,13 @@ func (m *Meetings) SendSample(ctx context.Context, to, name, language, timezone 
 	if m.SMTP == nil {
 		return errNoSMTP
 	}
+	relay, err := m.SMTP.Relay(ctx)
+	if err != nil {
+		return err
+	}
+	if relay == nil {
+		return errNoSMTP
+	}
 	now := m.now()
 	loc := location(timezone)
 	day := now.In(loc).AddDate(0, 0, 7)
@@ -280,14 +293,14 @@ func (m *Meetings) SendSample(ctx context.Context, to, name, language, timezone 
 		Start: start, End: start.Add(45 * time.Minute), TimeZone: loc.String(),
 		PlaceKind: "public", PlaceName: place, People: []string{name}, PeopleTotal: 1,
 		Language: language, RecipientTZ: timezone, RecipientName: name, RecipientEmail: to,
-		PublicURL: m.PublicURL, From: m.SMTP.From,
+		PublicURL: m.PublicURL, From: relay.From,
 	}, now)
 	if err != nil {
 		return err
 	}
 	sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
 	defer cancel()
-	return m.SMTP.Send(sendCtx, msg)
+	return relay.Send(sendCtx, msg)
 }
 
 type mailError string

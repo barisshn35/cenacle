@@ -25,6 +25,7 @@ import (
 	"github.com/Cenacle-TR/cenacle/server/internal/egress"
 	"github.com/Cenacle-TR/cenacle/server/internal/events"
 	"github.com/Cenacle-TR/cenacle/server/internal/httpx"
+	"github.com/Cenacle-TR/cenacle/server/internal/notify"
 	"github.com/Cenacle-TR/cenacle/server/internal/store"
 	"github.com/Cenacle-TR/cenacle/server/internal/telemetry"
 )
@@ -84,8 +85,11 @@ type Handlers struct {
 	Settings map[string]any
 	// AccountURL is Cenacle ID's account page (where people change their name).
 	AccountURL string
-	// EmailAvailable: the installation sends e-mail (SMTP is configured).
-	EmailAvailable bool
+	// Mail is the installation's mail server (nil: never any e-mail).
+	// MailManaged is the one the server's own settings name (CENACLE_SMTP_*),
+	// which administrators cannot change in the app; nil when they can.
+	Mail        notify.MailRelay
+	MailManaged *notify.SMTP
 	// MeetingMail sends an administrator a sample invitation; nil without e-mail.
 	MeetingMail MeetingMailer
 	// PushPublicKey gives the web push (VAPID) public key; nil: web push is off.

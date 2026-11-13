@@ -318,14 +318,17 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			Push: &notify.Push{Egress: notify.PushEgress(), Subscriber: cfg.WebPushSubject, PublicKey: public, PrivateKey: private},
 		}
 	}
+	// E-mail goes through the mail server the configuration names, else the
+	// one administrators set in the app; with neither, none is sent.
+	relays := &notify.Relays{Store: queries}
 	if cfg.SMTPHost != "" {
-		deps.Email = &notify.Emailer{
-			Queries: queries, Presence: presence, PublicURL: cfg.PublicURL.String(), Log: log,
-			SMTP: &notify.SMTP{
-				Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername, Password: cfg.SMTPPassword,
-				From: cfg.SMTPFrom, Security: cfg.SMTPSecurity,
-			},
+		relays.Fixed = &notify.SMTP{
+			Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername, Password: cfg.SMTPPassword,
+			From: cfg.SMTPFrom, Security: cfg.SMTPSecurity,
 		}
+	}
+	deps.Email = &notify.Emailer{
+		Queries: queries, Presence: presence, PublicURL: cfg.PublicURL.String(), Log: log, SMTP: relays,
 	}
 	// Meeting reminders always; their pushes and e-mails when those are on.
 	meetingJob := &notify.Meetings{
@@ -334,9 +337,7 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 	if p, ok := deps.Push.(*notify.Pusher); ok {
 		meetingJob.Push = p.Push
 	}
-	if e, ok := deps.Email.(*notify.Emailer); ok {
-		meetingJob.SMTP = e.SMTP
-	}
+	meetingJob.SMTP = relays
 	deps.Meetings = meetingJob
 	// Semantic search keeps its index when an embedding model is set (ADR 0055).
 	aiClient := ai.New(cfg.AIURL, cfg.AIModel, cfg.AIAPIKey, cfg.AITimeout)
@@ -398,7 +399,8 @@ func serve(signals context.Context, cfg config.Config, log *slog.Logger) error {
 			TrustProxy:        cfg.TrustProxy,
 			Settings:          admin.Settings(cfg),
 			AccountURL:        auth.AccountURL(cfg.OIDCIssuer, cfg.PublicURL.String()),
-			EmailAvailable:    cfg.SMTPHost != "",
+			Mail:              relays,
+			MailManaged:       relays.Fixed,
 			MeetingMail:       meetingJob,
 			PushPublicKey:     pushPublicKey,
 			Ephemeral:         ephemeral,

@@ -88,7 +88,8 @@ func meetingInput(w http.ResponseWriter, r *http.Request, in api.MeetingInput) (
 }
 
 // meetingPeople checks the invitees: people of the place (the user left out,
-// no repeats, at most MaxMeetingInvitees).
+// no repeats, at most MaxMeetingInvitees). Meetings are for the organization:
+// guests cannot be invited.
 func (h *Handlers) meetingPeople(w http.ResponseWriter, r *http.Request, channel store.Channel, self openapi_types.UUID, ids []openapi_types.UUID) ([]openapi_types.UUID, bool) {
 	out := []openapi_types.UUID{}
 	for _, id := range ids {
@@ -111,7 +112,26 @@ func (h *Handlers) meetingPeople(w http.ResponseWriter, r *http.Request, channel
 			return nil, false
 		}
 	}
+	if !h.noGuestsInvited(w, r, channel.WorkspaceID, out) {
+		return nil, false
+	}
 	return out, true
+}
+
+// noGuestsInvited refuses guests among the invitees, or answers.
+func (h *Handlers) noGuestsInvited(w http.ResponseWriter, r *http.Request, ws pgtype.UUID, ids []openapi_types.UUID) bool {
+	for _, id := range ids {
+		role, err := h.Queries.GetWorkspaceRole(r.Context(), store.GetWorkspaceRoleParams{WorkspaceID: ws, UserID: pgUUID(id)})
+		if err != nil {
+			h.unavailable(w, r, "workspace role", err)
+			return false
+		}
+		if role == WorkspaceGuest {
+			badRequest(w, r, "Guests cannot be invited to meetings.")
+			return false
+		}
+	}
+	return true
 }
 
 // meetingFor finds a meeting the user is invited to.
@@ -256,6 +276,10 @@ func (h *Handlers) CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 		channel = c
 	} else {
+		// Before the conversation is opened: none is left behind for a refused meeting.
+		if !h.noGuestsInvited(w, r, pgUUID(in.WorkspaceId), in.UserIds) {
+			return
+		}
 		c, _, _, ok := h.openConversation(w, r, in.WorkspaceId, p.User, wsRole, in.UserIds)
 		if !ok {
 			return
@@ -821,7 +845,7 @@ func (h *Handlers) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 	if !ok || !requireInstanceAdmin(w, r, p) {
 		return
 	}
-	if h.MeetingMail == nil || !h.EmailAvailable {
+	if h.MeetingMail == nil || !h.emailAvailable(r.Context()) {
 		httpx.WriteProblem(w, r, httpx.Problem{Status: http.StatusConflict, Code: "email_unavailable", Detail: "E-mail is not set up on this server."})
 		return
 	}

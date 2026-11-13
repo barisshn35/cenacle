@@ -63,7 +63,7 @@ func (h *Handlers) notificationSettings(r *http.Request, user pgtype.UUID) (api.
 		return api.NotificationSettings{}, err
 	}
 	out := api.NotificationSettings{
-		Prefs: prefs, EmailAvailable: h.EmailAvailable,
+		Prefs: prefs, EmailAvailable: h.emailAvailable(ctx),
 		Channels:   make([]api.ChannelNotification, 0, len(chans)),
 		Workspaces: make([]api.WorkspaceNotification, 0, len(wss)),
 	}

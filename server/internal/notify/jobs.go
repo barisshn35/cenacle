@@ -409,7 +409,7 @@ func notificationTitle(author, channel, kind string) string {
 // away.
 type Emailer struct {
 	Queries   *store.Queries
-	SMTP      *SMTP
+	SMTP      MailRelay
 	Presence  Presence
 	PublicURL string
 	Log       *slog.Logger
@@ -425,6 +425,10 @@ func (e *Emailer) now() time.Time {
 
 // Run sends what is due; it returns how many e-mails went out.
 func (e *Emailer) Run(ctx context.Context) (int, error) {
+	relay, err := e.SMTP.Relay(ctx)
+	if err != nil || relay == nil {
+		return 0, err // no mail server (yet): nothing is marked sent
+	}
 	q := e.Queries
 	ids, err := q.EmailRecipients(ctx)
 	if err != nil || len(ids) == 0 {
@@ -492,7 +496,7 @@ func (e *Emailer) Run(ctx context.Context) (int, error) {
 		lastID := rows[len(rows)-1].MessageID
 		if len(lines) > 0 {
 			sendCtx, cancel := context.WithTimeout(ctx, sendTimeout)
-			err := e.SMTP.Send(sendCtx, Mail{To: who.email, Subject: emailSubject(len(lines)), Text: emailText(who.name, lines, e.PublicURL)})
+			err := relay.Send(sendCtx, Mail{To: who.email, Subject: emailSubject(len(lines)), Text: emailText(who.name, lines, e.PublicURL)})
 			cancel()
 			if err != nil {
 				e.Log.WarnContext(ctx, "e-mail notification", "error", err)

@@ -31,6 +31,7 @@ import (
 	"github.com/Cenacle-TR/cenacle/server/internal/config"
 	"github.com/Cenacle-TR/cenacle/server/internal/egress"
 	"github.com/Cenacle-TR/cenacle/server/internal/events"
+	"github.com/Cenacle-TR/cenacle/server/internal/notify"
 	"github.com/Cenacle-TR/cenacle/server/internal/realtime"
 	"github.com/Cenacle-TR/cenacle/server/internal/storage"
 	"github.com/Cenacle-TR/cenacle/server/internal/store"
@@ -105,6 +106,8 @@ type options struct {
 	store storage.Store
 	// members wraps what the realtime handler reads memberships from.
 	members func(realtime.MembershipSource) realtime.MembershipSource
+	// mailManaged is a mail server the server's own settings name.
+	mailManaged *notify.SMTP
 }
 
 func newStack(t *testing.T, sh shared, o options) *stack {
@@ -120,6 +123,7 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	queries := store.New(sh.pool)
+	relays := &notify.Relays{Store: queries, Fixed: o.mailManaged}
 	sessions := &auth.Sessions{Queries: queries, IdleTimeout: time.Hour, MaxAge: 24 * time.Hour}
 	if o.sessionMaxAge > 0 {
 		sessions.MaxAge = o.sessionMaxAge
@@ -180,8 +184,10 @@ func newStack(t *testing.T, sh shared, o options) *stack {
 			SourceURL: config.DefaultSourceURL,
 		},
 		Chat: &chat.Handlers{
-			Calls:   chat.NewCallControl(o.calls, public.String(), sh.valkey),
-			Queries: queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Replays: sh.valkey, Cookies: cookies, Log: log,
+			Mail: relays, MailManaged: o.mailManaged,
+			MeetingMail: &notify.Meetings{Queries: queries, Presence: presence, SMTP: relays, PublicURL: public.String(), Log: log},
+			Calls:       chat.NewCallControl(o.calls, public.String(), sh.valkey),
+			Queries:     queries, DB: sh.pool, Ephemeral: ephemeral, Limiter: sh.valkey, Replays: sh.valkey, Cookies: cookies, Log: log,
 			Audit: auditLog, PublicURL: public.String(), Egress: egressClient, Files: files,
 			AccountURL:        "http://id.test/account",
 			PushPublicKey:     pushKeyFunc(o.pushKey),

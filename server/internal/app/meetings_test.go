@@ -277,3 +277,72 @@ func TestMeetingReminders(t *testing.T) {
 		t.Errorf("reminders noted = %d, %v", count, err)
 	}
 }
+
+// Meetings are for the organization: guests are not invited and get no
+// e-mail about them, even when they became guests after the invitation.
+func TestMeetingsLeaveGuestsOut(t *testing.T) {
+	s := newStack(t, newShared(t), options{})
+	ctx := context.Background()
+	admin := s.admin()
+	ayse := s.userWithEmail("internal-a", "Ayşe", "ayse@example.com")
+	mert := s.userWithEmail("internal-m", "Mert", "mert@example.com")
+	misafir := s.userWithEmail("internal-g", "Misafir", "guest@outside.example")
+	var room struct {
+		ID string `json:"id"`
+	}
+	s.call(http.MethodPost, "/api/channels", admin, map[string]any{"name": "launch", "visibility": "private"}, &room)
+	for _, u := range []string{ayse, mert, misafir} {
+		s.call(http.MethodPost, "/api/channels/"+room.ID+"/members", admin, map[string]any{"user_id": s.userID(u)}, nil)
+	}
+	guest := func(u string) {
+		if _, err := s.pool.Exec(ctx, "UPDATE workspace_members SET role = 'guest' WHERE workspace_id = $1 AND user_id = $2", s.defaultWS, s.userID(u)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	guest(misafir)
+	if _, err := s.pool.Exec(ctx, "UPDATE workspaces SET calls_enabled = true WHERE id = $1", s.defaultWS); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now().Add(48 * time.Hour).Truncate(time.Hour)
+	input := func(users ...string) map[string]any {
+		ids := []string{}
+		for _, u := range users {
+			ids = append(ids, s.userID(u))
+		}
+		return map[string]any{"workspace_id": s.defaultWS, "channel_id": room.ID, "title": "Launch plan", "agenda": "",
+			"starts_at": start, "ends_at": start.Add(30 * time.Minute), "timezone": "UTC", "rrule": "", "user_ids": ids}
+	}
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/meetings", ayse, input(mert, misafir)); status != http.StatusBadRequest {
+		t.Errorf("guest invited = %d", status)
+	}
+	// Nor in a new conversation, which is then not opened at all.
+	conv := input(misafir)
+	delete(conv, "channel_id")
+	if status, _ := problemCode(t, s, http.MethodPost, "/api/meetings", ayse, conv); status != http.StatusBadRequest {
+		t.Errorf("guest in a new conversation = %d", status)
+	}
+	var conversations int
+	if err := s.pool.QueryRow(ctx, "SELECT count(*) FROM channels WHERE kind IN ('direct', 'group')").Scan(&conversations); err != nil || conversations != 0 {
+		t.Errorf("conversations opened = %d, %v", conversations, err)
+	}
+	var m meetingOut
+	if res := s.call(http.MethodPost, "/api/meetings", ayse, input(mert), &m); res.StatusCode != http.StatusCreated {
+		t.Fatalf("meeting = %d", res.StatusCode)
+	}
+	guest(mert)
+	smtpd := newFakeSMTP(t)
+	_, port, _ := net.SplitHostPort(smtpd.ln.Addr().String())
+	job := &notify.Meetings{
+		Queries: store.New(s.pool), Presence: fakePresence{}, PublicURL: "http://chat.test",
+		Log:  slog.New(slog.NewTextHandler(io.Discard, nil)),
+		SMTP: &notify.SMTP{Host: "127.0.0.1", Port: atoi(t, port), From: "Cenacle <chat@example.com>", Security: "none"},
+	}
+	if n, err := job.Run(ctx); err != nil || n != 0 {
+		t.Errorf("mails = %d, %v", n, err)
+	}
+	smtpd.mu.Lock()
+	defer smtpd.mu.Unlock()
+	if len(smtpd.mail) != 0 {
+		t.Errorf("a guest got e-mail:\n%s", strings.Join(smtpd.mail, "\n"))
+	}
+}

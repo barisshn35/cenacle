@@ -1188,6 +1188,27 @@ func (e ListColumnKind) Valid() bool {
 	}
 }
 
+// Defines values for MailServerSecurity.
+const (
+	MailServerSecurityNone     MailServerSecurity = "none"
+	MailServerSecurityStarttls MailServerSecurity = "starttls"
+	MailServerSecurityTls      MailServerSecurity = "tls"
+)
+
+// Valid indicates whether the value is a known member of the MailServerSecurity enum.
+func (e MailServerSecurity) Valid() bool {
+	switch e {
+	case MailServerSecurityNone:
+		return true
+	case MailServerSecurityStarttls:
+		return true
+	case MailServerSecurityTls:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MeetingMyResponse.
 const (
 	MeetingMyResponseMaybe   MeetingMyResponse = "maybe"
@@ -4032,6 +4053,32 @@ type MLSGroup struct {
 	} `json:"members"`
 }
 
+// MailServer defines model for MailServer.
+type MailServer struct {
+	// From The sender, as an address or "Name <address>".
+	From        string `json:"from"`
+	HasPassword *bool  `json:"has_password,omitempty"`
+
+	// Host The mail server's name or address; empty turns e-mail off.
+	Host string `json:"host"`
+
+	// Managed The server's own settings (CENACLE_SMTP_*) name the mail server; it cannot be changed here.
+	Managed *bool `json:"managed,omitempty"`
+
+	// Password The account's password. Empty keeps the saved one; no user name removes it.
+	Password *string `json:"password,omitempty"`
+	Port     int     `json:"port"`
+
+	// Security STARTTLS (usually port 587), TLS from the start (465), or none (a relay inside the network, usually 25).
+	Security MailServerSecurity `json:"security"`
+
+	// Username The account e-mails are sent with; empty when the server asks for none.
+	Username string `json:"username"`
+}
+
+// MailServerSecurity STARTTLS (usually port 587), TLS from the start (465), or none (a relay inside the network, usually 25).
+type MailServerSecurity string
+
 // Meeting defines model for Meeting.
 type Meeting struct {
 	Agenda    string             `json:"agenda"`
@@ -4495,6 +4542,9 @@ type Person struct {
 
 	// IsBot A bot (shows a badge).
 	IsBot *bool `json:"is_bot,omitempty"`
+
+	// IsGuest A guest of the workspace (channel members and people search); guests are not invited to meetings.
+	IsGuest *bool `json:"is_guest,omitempty"`
 }
 
 // Playbook defines model for Playbook.
@@ -6260,6 +6310,9 @@ type SetE2EEscrowKeyJSONRequestBody SetE2EEscrowKeyJSONBody
 // SetFederationPolicyJSONRequestBody defines body for SetFederationPolicy for application/json ContentType.
 type SetFederationPolicyJSONRequestBody = FederationPolicy
 
+// SetMailServerJSONRequestBody defines body for SetMailServer for application/json ContentType.
+type SetMailServerJSONRequestBody = MailServer
+
 // SetNotificationPolicyJSONRequestBody defines body for SetNotificationPolicy for application/json ContentType.
 type SetNotificationPolicyJSONRequestBody = NotificationPolicy
 
@@ -6780,6 +6833,12 @@ type ServerInterface interface {
 	// SetFederationPolicy Set which servers workspaces may connect to
 	// (PUT /api/admin/federation-policy)
 	SetFederationPolicy(w http.ResponseWriter, r *http.Request)
+	// GetMailServer The outgoing mail server (instance administrators)
+	// (GET /api/admin/mail-server)
+	GetMailServer(w http.ResponseWriter, r *http.Request)
+	// SetMailServer Set the outgoing mail server
+	// (PUT /api/admin/mail-server)
+	SetMailServer(w http.ResponseWriter, r *http.Request)
 	// GetNotificationPolicy What notifications outside the app may show (instance administrators)
 	// (GET /api/admin/notification-policy)
 	GetNotificationPolicy(w http.ResponseWriter, r *http.Request)
@@ -7917,6 +7976,18 @@ func (_ Unimplemented) GetFederationPolicy(w http.ResponseWriter, r *http.Reques
 // SetFederationPolicy Set which servers workspaces may connect to
 // (PUT /api/admin/federation-policy)
 func (_ Unimplemented) SetFederationPolicy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetMailServer The outgoing mail server (instance administrators)
+// (GET /api/admin/mail-server)
+func (_ Unimplemented) GetMailServer(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetMailServer Set the outgoing mail server
+// (PUT /api/admin/mail-server)
+func (_ Unimplemented) SetMailServer(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10405,6 +10476,34 @@ func (siw *ServerInterfaceWrapper) SetFederationPolicy(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetFederationPolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMailServer operation middleware
+func (siw *ServerInterfaceWrapper) GetMailServer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMailServer(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetMailServer operation middleware
+func (siw *ServerInterfaceWrapper) SetMailServer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMailServer(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -20283,6 +20382,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/admin/test-email", wrapper.SendTestEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/admin/mail-server", wrapper.GetMailServer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/admin/mail-server", wrapper.SetMailServer)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/calls/{id}/reactions", wrapper.SendCallReaction)

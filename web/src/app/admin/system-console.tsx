@@ -30,6 +30,7 @@ import { boardCell, boardRow } from '../shell/board-styles';
 import { SideNavDialog } from '../shell/side-nav-dialog';
 import { formatSize } from '../chat/files';
 import { AuditPanel } from './audit-panel';
+import { MailServerSection } from './mail-server';
 import { SoundDefaultsSection } from './sound-defaults';
 import { useSystemConsole } from './console-state';
 
@@ -595,6 +596,7 @@ function NotificationsPanel() {
     <div className="flex max-w-xl flex-col gap-6">
       {group('push_contents', ['full', 'sender', 'none'])}
       {group('email_contents', ['full', 'sender'])}
+      <MailServerSection />
       <TestEmail />
       <SoundDefaultsSection />
     </div>
