@@ -5,6 +5,7 @@ package app_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"math"
@@ -12,6 +13,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -167,5 +169,82 @@ func TestSemanticSearch(t *testing.T) {
 	s.call(http.MethodGet, "/api/admin/semantic-search", admin, nil, &st)
 	if st.State != "ready" || st.Model != "embed" {
 		t.Errorf("status: %+v", st)
+	}
+}
+
+// TestSemanticSearchHostedModel uses a model the way hosted services serve one:
+// over HTTPS, with a key, refusing a request now and then (429), and with wide
+// vectors (3072, as the largest hosted models give).
+func TestSemanticSearchHostedModel(t *testing.T) {
+	sh := newShared(t)
+	ctx := context.Background()
+	var ext bool
+	if err := sh.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')`).Scan(&ext); err != nil || !ext {
+		if os.Getenv("CI") != "" {
+			t.Fatal("pgvector is missing in the CI database")
+		}
+		t.Skip("pgvector is not in the test database")
+	}
+	const width = 3072
+	var calls atomic.Int32
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer hosted-key" {
+			http.Error(w, `{"error":{"message":"invalid key"}}`, http.StatusUnauthorized)
+			return
+		}
+		// The second request (the first batch of messages) is turned away.
+		if calls.Add(1) == 2 {
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, `{"error":{"message":"rate limit"}}`, http.StatusTooManyRequests)
+			return
+		}
+		var in struct {
+			Input []string `json:"input"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		data := make([]map[string]any, len(in.Input))
+		for i, text := range in.Input {
+			v := make([]float32, width)
+			copy(v, conceptVector(text))
+			// Hosted services may answer out of order; the index says where each goes.
+			data[len(in.Input)-1-i] = map[string]any{"object": "embedding", "index": i, "embedding": v}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": data, "model": "hosted-embed",
+			"usage": map[string]int{"prompt_tokens": 1, "total_tokens": 1}})
+	}))
+	t.Cleanup(srv.Close)
+	client := ai.New(srv.URL+"/v1", "tiny", "hosted-key", 5*time.Second)
+	client.HTTP.Transport = srv.Client().Transport
+	index := &chat.SemanticIndex{DB: sh.pool, AI: client, Model: "hosted-embed", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	s := newStack(t, sh, options{ai: client, semantic: index})
+	admin := s.admin()
+	ayse := s.user("hsem-a", "Ayşe")
+	mert := s.user("hsem-m", "Mert")
+	general := s.general(ayse)
+	s.general(mert)
+	s.send(mert, general, "Yeni sürüm yayın tarihi 4 Aralık", "hsem-0001")
+	s.send(mert, general, "Öğlen yemek ısmarlıyorum", "hsem-0002")
+	s.call(http.MethodPut, "/api/workspaces/"+s.defaultWS+"/ai", admin, map[string]any{"enabled": true}, nil)
+
+	// The refused batch stays queued and the next run indexes it.
+	if _, err := index.Run(ctx); !errors.Is(err, ai.ErrModel) {
+		t.Fatalf("a refused batch = %v", err)
+	}
+	if n, err := index.Run(ctx); err != nil || n < 2 {
+		t.Fatalf("after the refusal = %d, %v", n, err)
+	}
+	var dims int
+	if err := sh.pool.QueryRow(ctx, `SELECT dims FROM semantic_index`).Scan(&dims); err != nil || dims != width {
+		t.Fatalf("index width = %d, %v", dims, err)
+	}
+	s.call(http.MethodPut, "/api/me/ai", ayse, map[string]any{"accepted": true}, nil)
+	var out struct {
+		Results []struct {
+			Body string `json:"body"`
+		} `json:"results"`
+	}
+	res := s.call(http.MethodGet, "/api/search/messages?mode=meaning&workspace_id="+s.defaultWS+"&q=s%C3%BCr%C3%BCm+ne+zaman", ayse, nil, &out)
+	if res.StatusCode != http.StatusOK || len(out.Results) == 0 || out.Results[0].Body != "Yeni sürüm yayın tarihi 4 Aralık" {
+		t.Fatalf("by meaning = %d %+v", res.StatusCode, out.Results)
 	}
 }

@@ -28,6 +28,17 @@ CENACLE_AI_MODEL=qwen2.5:7b-instruct
 
 and `docker compose -f prod.yml --env-file .env.prod up -d server`.
 
+### A hosted model
+
+A hosted service with the same API works the same way: `CENACLE_AI_URL` is its base
+address (the part before `/chat/completions`, usually ending in `/v1`), and its key goes in
+`secrets/ai_api_key`. Cenacle sends each request with `max_tokens` (1024) and
+`temperature` (0.2); a model that refuses either of them answers with an error, and the
+request fails for the person who asked. Embedding models up to 4000 dimensions work for
+search by meaning. When the service refuses for a while (429), the messages waiting to be
+indexed stay in the queue. Requests then leave your network: the notice people accept
+names the service's host.
+
 ## The notice people accept
 
 Before a person's first AI request, Cenacle shows them what will happen: their request and
