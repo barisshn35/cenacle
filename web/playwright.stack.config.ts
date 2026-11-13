@@ -107,6 +107,23 @@ const serverEnv = {
   CENACLE_ADMIN_EMAIL: 'deniz@example.com',
   CENACLE_ANNOUNCEMENT_CHANNEL: 'Central',
   CENACLE_DEFAULT_CHANNELS: 'General',
+  // E-mail goes to the development Mailpit (meeting invitations are read there).
+  CENACLE_SMTP_HOST: '127.0.0.1',
+  CENACLE_SMTP_PORT: process.env.MAILPIT_SMTP_PORT ?? '11025',
+  CENACLE_SMTP_FROM: 'Cenacle <chat@example.com>',
+  CENACLE_SMTP_SECURITY: 'none',
+  // Optional services: live captions (a whisper.cpp server) and an AI model
+  // server with an embedding model (semantic search); their tests skip without.
+  ...(process.env.STACK_CAPTIONS_URL
+    ? { CENACLE_CAPTIONS_URL: process.env.STACK_CAPTIONS_URL }
+    : {}),
+  ...(process.env.STACK_AI_URL
+    ? {
+        CENACLE_AI_URL: process.env.STACK_AI_URL,
+        CENACLE_AI_MODEL: process.env.STACK_AI_MODEL ?? 'tiny',
+        CENACLE_AI_EMBEDDING_MODEL: process.env.STACK_AI_EMBEDDING_MODEL ?? '',
+      }
+    : {}),
   ...(callsOn
     ? {
         CENACLE_CALLS: 'on',

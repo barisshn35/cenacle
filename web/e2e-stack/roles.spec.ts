@@ -39,6 +39,8 @@ const ADMIN_READS = [
   '/api/admin/audit',
   '/api/admin/audit-stream',
   '/api/admin/web-app',
+  '/api/admin/semantic-search',
+  '/api/admin/assistants',
 ];
 
 test('only the instance administrator reaches the administration', async ({ browser }) => {
