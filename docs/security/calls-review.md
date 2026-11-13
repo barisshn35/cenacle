@@ -62,6 +62,8 @@ staying open after a declined call; a first call in a new conversation not ringi
 ## Limits
 
 Not tested: real cameras and microphones on hardware, macOS (not supported),
-TURN through a real NAT, and a soak longer than 30 minutes. Live
-captions are not supported (WCAG 1.2.4). The media server can read call media, so
-calls stay off in end-to-end encrypted channels.
+TURN through a real NAT, and a soak longer than 30 minutes. Live captions
+(ADR 0052) and recording (ADR 0053) came later: captions are optional, need the
+speech-to-text service in the institution and are visible to everyone in the call;
+a recording is announced to everyone and made in the recorder's browser. The media
+server can read call media, so calls stay off in end-to-end encrypted channels.

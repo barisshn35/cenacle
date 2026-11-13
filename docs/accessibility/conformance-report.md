@@ -7,8 +7,10 @@ editing environment. The earlier product assessment below must not be interprete
 as verification of calls. Keyboard/focus, screen readers, device dialogs, reflow,
 contrast and touch targets require the operator's browser/device checks.
 
-**WCAG 1.2.4 Captions (Live): Does not support.** Calls have no live captions or
-transcription. This is an explicit product limitation. Speaking is also indicated
+**WCAG 1.2.4 Captions (Live): Partially supports.** Calls have live captions
+(ADR 0052) when the installation runs the speech-to-text service and a workspace's
+administrators allow them; anyone in the call turns them on. Without the service
+there are none. Accuracy depends on the model. Speaking is also indicated
 by text, and device controls expose names/pressed states. Native desktop consent
 and source-menu accessibility still require platform verification.
 
@@ -84,7 +86,7 @@ Terms: **Supports**, **Partially supports** (some parts do not meet the criterio
 
 | Criterion                                       | Level              | Remarks                                                                                                                                                                                  |
 | ----------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.2.4 Captions (live)                           | Not applicable     | No live media yet; voice and video calls come with 1.0.                                                                                                                                  |
+| 1.2.4 Captions (live)                           | Partially supports | Live captions in calls when the installation runs the speech-to-text service (ADR 0052).                                                                                                 |
 | 1.2.5 Audio description (prerecorded)           | Not applicable     | No prerecorded media in the product itself.                                                                                                                                              |
 | 1.3.4 Orientation                               | Supports           | Works in portrait and landscape.                                                                                                                                                         |
 | 1.3.5 Identify input purpose                    | Supports           | Sign-in fields carry `autocomplete` (username, current-password, one-time-code, name).                                                                                                   |

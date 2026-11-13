@@ -73,3 +73,7 @@ console → Jobs shows how far it is. Encrypted, burn-on-read and deleted messag
 indexed; turning AI off in a workspace removes its vectors. A search by meaning sends the
 query to the model, so it needs the person to have accepted the AI notice. Changing the
 model indexes every message again.
+
+If the server stops while it indexes, that run stays "running" in System console → Jobs
+until the job queue gives it up after an hour; indexing then goes on by itself. Nothing is
+lost meanwhile: the messages wait in the queue.
