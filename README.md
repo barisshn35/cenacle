@@ -171,7 +171,7 @@ Numbers from the project's own tests (the 1.0 code, medians of three runs on 202
 - **About 400 million fuzzed inputs** across 22 parsers (images, link previews, feeds,
   webhook signatures, cards from other services) before 1.0.
 - **WCAG 2.2 AA and EN 301 549**, with a published
-  [conformance report](docs/accessibility/conformance-report.md) (for 0.41.0); target sizes and axe
+  [conformance report](docs/accessibility/conformance-report.md) (for 1.0); target sizes and axe
   checks run on every change.
 - **Every release** is signed with cosign, carries signed SPDX SBOMs and can be rebuilt bit
   for bit from its tag ([how to verify](docs/security/README.md)).

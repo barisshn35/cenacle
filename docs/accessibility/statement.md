@@ -5,7 +5,7 @@ reader, magnification, high contrast, on a phone or with limited time and attent
 
 ## Conformance status
 
-Cenacle 0.41.0 **partially conforms** to WCAG 2.2 level AA and to the matching clauses of
+Cenacle 1.0 **partially conforms** to WCAG 2.2 level AA and to the matching clauses of
 EN 301 549 V3.2.1: most criteria are met; the exceptions are listed below and in the
 [conformance report](conformance-report.md).
 
@@ -19,13 +19,16 @@ EN 301 549 V3.2.1: most criteria are met; the exceptions are listed below and in
   way.
 - New messages from others are announced to screen readers, briefly, one at a time.
 - Destructive actions are confirmed and can be undone.
+- Calls can have live captions in English and Turkish, and screen readers are told when
+  someone raises a hand or reacts.
 
 ## Known limitations
 
 - The app has not yet been tested in a full session with screen readers.
 - Custom theme colors are not checked for contrast.
 - Images people upload have no description, only their file name.
-- Voice messages and video clips have no transcript or captions.
+- Voice messages, video clips and call recordings have no transcript or captions.
+- A line of live captions in a call stays eight seconds.
 - Messages written in another language are not marked as such.
 
 ## How it is checked
@@ -41,5 +44,5 @@ through your organization's administrator, who can pass them on.
 
 ## Date
 
-Prepared on 2026-10-25 for 0.41.0; reviewed with every release that changes the
+Prepared on 2026-10-25 for 0.41.0 and reviewed on 2026-11-13 for 1.0; reviewed with every release that changes the
 interface.

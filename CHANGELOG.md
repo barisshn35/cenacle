@@ -47,7 +47,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   (whisper.cpp's server with a Whisper model, `captions.yml`, `install.sh --captions base|small`)
   writes out what people say. Workspace administrators allow them; anyone in a call turns them
   on and everyone sees who did; each person can hide them on their own screen. Each speaker's
-  app sends its own speech between pauses; neither audio nor text is stored. Migration 00075.
+  app sends its own speech between pauses, with the language they speak (the interface's
+  unless they choose another, so speech is written down, not translated); neither audio nor
+  text is stored. Migration 00075.
 - Calls: noise suppression (standard, strong with RNNoise, or off for music) and background
   blur (MediaPipe), done on the device before anything is sent, in the check before joining
   (its preview shows the blur) and in the call's devices; remembered per device (ADR 0051).
@@ -63,8 +65,8 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
   hold for calls too.
 - Calls: a check before joining (your camera's picture, the microphone's level, the
   microphone, camera and speaker to use, and whether to come in with them on; remembered,
-  and it can be turned off); raise a hand (everyone sees the order hands went up) and send a
-  reaction that floats over your tile. Migration 00074.
+  and it can be turned off); raise a hand (everyone sees the order hands went up, and screen
+  readers are told) and send a reaction that floats over your tile. Migration 00074.
 - Charts and live cards: a card can carry a bar or line chart (up to 24 labels, four series),
   drawn with a legend and the numbers as a table; a bot replaces the cards of its own message
   in place (`PUT …/messages/{id}/attachments`, `messages:write`) without marking it edited.
@@ -201,6 +203,9 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Fixed
 
+- A view across channels (Calendar, Today, Threads, Saved, Tasks) opened in a window about
+  770 to 890 pixels wide, such as an iPad held upright, kept an empty details panel beside
+  it and had half the width.
 - Cenacle ID's sign-in pages take the theme chosen in the app (web and desktop);
   before, they always followed the system, so a light app opened a dark sign-in.
 - Density (Appearance) changes what you see: "Comfortable" gives messages and channel
