@@ -502,6 +502,18 @@ function Participant({
   // The picture (or initials) is of the person, also on one's own tile ("You").
   const self = useSession().user;
   const realName = profile?.display_name ?? (own ? self.display_name : '');
+  // Someone else's hand going up is said once, as their reactions are.
+  const raised = hand > 0;
+  const [handTold, setHandTold] = useState(false);
+  useEffect(() => {
+    if (own || !raised) return;
+    const id = setTimeout(() => setHandTold(true), 5000);
+    return () => {
+      clearTimeout(id);
+      setHandTold(false);
+    };
+  }, [own, raised]);
+  const handSaid = !own && raised && !handTold ? t('handRaised', { name }) : '';
   const videos = own
     ? [...(local ?? [])]
         .filter(([kind]) => kind !== 'audio')
@@ -527,6 +539,9 @@ function Participant({
           </span>
         ))}
       </div>
+      <span aria-live="polite" className="sr-only">
+        {handSaid}
+      </span>
       {videos.length ? (
         videos.map((video) => (
           <MediaTile

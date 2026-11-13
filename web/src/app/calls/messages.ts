@@ -52,6 +52,8 @@ export const callMessages = {
       show: 'Show on my screen',
       waiting: 'What people say will show here.',
       cannotSend: 'This browser cannot send your speech for captions; you still see the others.',
+      spoken: 'Language I speak',
+      spokenAuto: 'Detect automatically',
     },
     effects: {
       noise: 'Noise suppression',
@@ -124,6 +126,7 @@ export const callMessages = {
     raiseHand: 'Raise hand',
     lowerHand: 'Lower hand',
     handPlace: 'Hand {{place}}',
+    handRaised: '{{name}} raised a hand',
     react: 'React',
     reactWith: 'React with {{emoji}}',
     reacted: '{{name}} reacted {{emoji}}',
@@ -233,6 +236,8 @@ export const callMessages = {
       waiting: 'Söylenenler burada görünecek.',
       cannotSend:
         'Bu tarayıcı konuşmanızı altyazı için gönderemiyor; diğerlerininkini yine görürsünüz.',
+      spoken: 'Konuştuğum dil',
+      spokenAuto: 'Otomatik algılansın',
     },
     effects: {
       noise: 'Gürültü bastırma',
@@ -307,6 +312,7 @@ export const callMessages = {
     raiseHand: 'El kaldır',
     lowerHand: 'Eli indir',
     handPlace: '{{place}}. el',
+    handRaised: '{{name}} el kaldırdı',
     react: 'Tepki ver',
     reactWith: '{{emoji}} ile tepki ver',
     reacted: '{{name}}, {{emoji}} tepkisi verdi',

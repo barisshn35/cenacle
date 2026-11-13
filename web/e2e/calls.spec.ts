@@ -485,9 +485,62 @@ test('live captions: everyone sees who turned them on, the lines, and may hide t
     'Ayşe Yılmaz:Let us start with the release.',
   );
   await expectNoAxeViolations(page, '[data-testid="captions"]');
+  // The language one speaks follows the interface until chosen, and is remembered.
+  const spoken = dialog.getByLabel('Language I speak');
+  await expect(spoken).toHaveValue('en');
+  await spoken.selectOption('tr');
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('cenacle.call.captions.language')))
+    .toBe('tr');
   await dialog.getByRole('button', { name: 'Hide on my screen' }).click();
   await expect(dialog.getByText('Let us start with the release.')).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Show on my screen' })).toBeVisible();
+});
+
+test('someone else’s raised hand shows its place and is said to screen readers', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the call view is the same on phones');
+  await mockApi(page);
+  await page.route('**/api/workspaces/*/calls/settings', (route) =>
+    route.fulfill({ json: settings }),
+  );
+  await page.goto(`/c/${GENERAL.id}`);
+  await expect(page.getByRole('heading', { name: 'General', exact: true })).toBeVisible();
+  const call = {
+    ...startedNowCall(),
+    participants: [
+      { id: 'p0', user_id: PEOPLE[0]!.id, state: 'connected', joined_at: null, left_at: null },
+      { id: 'p1', user_id: AYSE.id, state: 'connected', joined_at: null, left_at: null },
+    ],
+  };
+  const set = (c: unknown) =>
+    page.evaluate(async (c) => {
+      const m = (await import(/* @vite-ignore */ `${'/src/app/calls/state.ts'}`)) as {
+        useCall: { setState(state: Record<string, unknown>): void };
+      };
+      m.useCall.setState({
+        call: c as never,
+        session: { registerAudio: async () => () => undefined } as never,
+        connection: 'connected',
+        expanded: true,
+      });
+    }, c);
+  await set(call);
+  const tile = page.getByRole('dialog').getByRole('region', { name: AYSE.display_name });
+  await expect(tile).toBeVisible();
+  await set({
+    ...call,
+    participants: [
+      call.participants[0],
+      { ...call.participants[1], hand_raised_at: new Date().toISOString() },
+    ],
+  });
+  await expect(tile.getByTestId('raised-hand')).toHaveText('Hand 1');
+  await expect(tile.locator('[aria-live="polite"].sr-only')).toHaveText(
+    `${AYSE.display_name} raised a hand`,
+  );
 });
 
 test('a call that kept notes shows them from its summary, to copy or download', async ({

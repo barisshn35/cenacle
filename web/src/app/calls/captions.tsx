@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { CaptionsIcon, CaptionsOffIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { calls } from '@cenacle/core';
@@ -9,6 +9,38 @@ import { canSendCaptions, startCaptionSender } from './captions-sender';
 import { errorCode, useCall } from './state';
 
 const HIDE_KEY = 'cenacle.call.captions.hidden';
+const LANGUAGE_KEY = 'cenacle.call.captions.language';
+
+type Spoken = 'tr' | 'en' | 'auto';
+
+const selectClass =
+  'min-h-target h-8 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
+
+/**
+ * The language this person speaks, sent with their speech: the interface's
+ * language unless they chose another. Forcing the wrong one makes the
+ * speech-to-text server translate instead of write down what was said.
+ */
+function useSpoken(appLanguage: string) {
+  const [chosen, setChosen] = useState<Spoken | null>(() => {
+    try {
+      const v = localStorage.getItem(LANGUAGE_KEY);
+      return v === 'tr' || v === 'en' || v === 'auto' ? v : null;
+    } catch {
+      return null;
+    }
+  });
+  const spoken: Spoken = chosen ?? (appLanguage.startsWith('tr') ? 'tr' : 'en');
+  const choose = (v: Spoken) => {
+    setChosen(v);
+    try {
+      localStorage.setItem(LANGUAGE_KEY, v);
+    } catch {
+      // Private windows: for this page only.
+    }
+  };
+  return [spoken, choose] as const;
+}
 
 /** Turns captions on or off for the whole call. */
 export function CaptionsButton({ disabled }: { disabled: boolean }) {
@@ -68,7 +100,8 @@ export function CaptionsArea({ selfID }: { selfID: string }) {
   const by = useProfile(call?.captions_by ?? undefined)?.display_name;
   const on = !!call?.captions_on;
   const callID = call?.id;
-  const language = i18n.language.startsWith('tr') ? 'tr' : 'en';
+  const [language, setLanguage] = useSpoken(i18n.language);
+  const languageID = useId();
 
   useEffect(() => {
     if (!on || !connected || !audio || !callID) return;
@@ -95,9 +128,32 @@ export function CaptionsArea({ selfID }: { selfID: string }) {
               ? t('captions.onBy', { name: by })
               : t('captions.on')}
         </p>
-        <Button variant="ghost" size="sm" onClick={toggle}>
-          {hidden ? t('captions.show') : t('captions.hide')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canSendCaptions() && (
+            <>
+              <label htmlFor={languageID} className="text-sm">
+                {t('captions.spoken')}
+              </label>
+              <select
+                id={languageID}
+                className={selectClass}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Spoken)}
+              >
+                <option value="en" lang="en">
+                  English
+                </option>
+                <option value="tr" lang="tr">
+                  Türkçe
+                </option>
+                <option value="auto">{t('captions.spokenAuto')}</option>
+              </select>
+            </>
+          )}
+          <Button variant="ghost" size="sm" onClick={toggle}>
+            {hidden ? t('captions.show') : t('captions.hide')}
+          </Button>
+        </div>
       </div>
       {!canSendCaptions() && (
         <p className="text-xs text-muted-foreground">{t('captions.cannotSend')}</p>
@@ -108,7 +164,7 @@ export function CaptionsArea({ selfID }: { selfID: string }) {
           className="min-h-12 rounded-lg bg-foreground/90 px-3 py-2 text-[15px] leading-snug text-background"
         >
           {lines.length === 0 ? (
-            <p className="opacity-70">{t('captions.waiting')}</p>
+            <p className="opacity-70 forced-colors:opacity-100">{t('captions.waiting')}</p>
           ) : (
             lines.map((l) => <Line key={l.key} userID={l.userID} text={l.text} />)
           )}
