@@ -23,7 +23,11 @@ import (
 var mailFiles embed.FS
 
 var (
-	meetingHTML = htmltemplate.Must(htmltemplate.ParseFS(mailFiles, "mail/meeting.html.tmpl"))
+	meetingHTML = htmltemplate.Must(htmltemplate.New("meeting.html.tmpl").Funcs(htmltemplate.FuncMap{
+		// outlook writes markup only Outlook on Windows reads: it ignores
+		// max-width, so the card gets a fixed width there.
+		"outlook": func(s string) htmltemplate.HTML { return htmltemplate.HTML("<!--[if mso]>" + s + "<![endif]-->") }, //nolint:gosec // constant markup from the template
+	}).ParseFS(mailFiles, "mail/meeting.html.tmpl"))
 	meetingText = texttemplate.Must(texttemplate.ParseFS(mailFiles, "mail/meeting.txt.tmpl"))
 	logoPNG, _  = mailFiles.ReadFile("mail/logo.png")
 )
@@ -305,7 +309,7 @@ func RenderMeetingMail(m MeetingMail, now time.Time) (Mail, error) {
 
 	var where string
 	switch m.PlaceKind {
-	case "dm":
+	case "direct":
 		where = w.callInDirect
 	case "group":
 		where = w.callInGroup

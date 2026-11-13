@@ -635,7 +635,7 @@ func (h *Handlers) calendarItems(ctx context.Context, user store.User, from, to 
 // meetingPlace names where a meeting's call happens.
 func meetingPlace(kind, name, title string) string {
 	switch kind {
-	case "dm":
+	case "direct":
 		return "Cenacle call (direct conversation)"
 	case "group":
 		if title != "" {

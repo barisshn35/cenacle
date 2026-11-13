@@ -196,6 +196,9 @@ test('a meeting: the invitation e-mail with its calendar file, an answer, a canc
     expect(full.Inline.some((a) => a.ContentType === 'image/png')).toBe(true);
     expect(full.HTML).toContain('Release review');
     expect(full.Text).toContain('Agenda:');
+    // A meeting between two people is in their direct conversation, named as such.
+    expect(full.Text).toContain('Where: Cenacle call in your direct conversation');
+    expect(full.Text).not.toContain('direct:');
 
     // Mert answers in the calendar; Deniz sees it.
     await mert.goto('/calendar');
