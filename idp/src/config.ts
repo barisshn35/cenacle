@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { isIP } from 'node:net';
 import { z } from 'zod';
+import { checkMailServer, type MailServer, type MailServerProblem } from './mail/server.ts';
 
 /**
  * Which proxies may tell Cenacle ID the client's address and the original
@@ -104,6 +105,14 @@ const serverSchema = keySchema.extend({
   IDP_SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().min(100).max(120_000).default(15_000),
   /** Port for Prometheus metrics on IDP_HOST (internal); 0: off. */
   IDP_METRICS_PORT: z.coerce.number().int().min(0).max(65535).default(0),
+  /** The mail server (ADR 0057); none: administrators set it in the admin panel. */
+  IDP_SMTP_HOST: z.string().trim().default(''),
+  IDP_SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  IDP_SMTP_SECURITY: z.enum(['starttls', 'tls', 'none']).default('starttls'),
+  IDP_SMTP_USERNAME: z.string().trim().default(''),
+  IDP_SMTP_PASSWORD: z.string().default(''),
+  /** The sender, e.g. Cenacle ID <id@example.com>. */
+  IDP_SMTP_FROM: z.string().trim().default(''),
 });
 
 export interface DatabaseConfig {
@@ -136,6 +145,8 @@ export interface Config {
   signinNotice?: string;
   privacyUrl?: string;
   metricsPort: number;
+  /** The mail server the configuration names (ADR 0057). */
+  smtp?: MailServer;
 }
 
 export class ConfigError extends Error {
@@ -159,8 +170,18 @@ function resolveFiles(
   for (const key of keys) {
     const direct = env[key];
     const file = env[`${key}_FILE`];
-    if (direct !== undefined && file !== undefined) {
-      issues.push(`${key}: ${key} and ${key}_FILE are both set; use only one`);
+    // An empty value does not count: compose passes unset settings as "".
+    if (direct !== undefined && direct !== '' && file !== undefined) {
+      // Nor does an empty file: compose mounts optional secrets (the SMTP
+      // password) whether used or not, so the variable may set them.
+      let empty = false;
+      try {
+        empty = readFile(file).trim() === '';
+      } catch {
+        // Reported below as both set.
+      }
+      if (empty) values[key] = direct;
+      else issues.push(`${key}: ${key} and ${key}_FILE are both set; use only one`);
     } else if (file !== undefined) {
       try {
         values[key] = readFile(file).replace(/[\r\n]+$/, '');
@@ -213,6 +234,19 @@ export function loadKeyConfig(
 /** Full configuration of the identity server. */
 export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultReadFile): Config {
   const c = parse(serverSchema, env, readFile);
+  let smtp: MailServer | undefined;
+  if (c.IDP_SMTP_HOST !== '') {
+    smtp = {
+      host: c.IDP_SMTP_HOST,
+      port: c.IDP_SMTP_PORT,
+      security: c.IDP_SMTP_SECURITY,
+      username: c.IDP_SMTP_USERNAME,
+      password: c.IDP_SMTP_PASSWORD,
+      from: c.IDP_SMTP_FROM,
+    };
+    const problem = checkMailServer(smtp);
+    if (problem) throw new ConfigError([`IDP_SMTP_*: ${SMTP_PROBLEMS[problem]}`]);
+  }
   return {
     env: c.IDP_ENV,
     host: c.IDP_HOST,
@@ -232,5 +266,15 @@ export function loadConfig(env: Env = process.env, readFile: ReadFile = defaultR
     signinNotice: c.IDP_SIGNIN_NOTICE,
     privacyUrl: c.IDP_PRIVACY_URL,
     metricsPort: c.IDP_METRICS_PORT,
+    smtp,
   };
 }
+
+const SMTP_PROBLEMS: Record<MailServerProblem, string> = {
+  host: 'IDP_SMTP_HOST must be a host name or address, without a port',
+  port: 'IDP_SMTP_PORT must be 1-65535',
+  security: 'IDP_SMTP_SECURITY must be starttls, tls or none',
+  clearAccount: 'IDP_SMTP_USERNAME needs IDP_SMTP_SECURITY starttls or tls',
+  username: 'IDP_SMTP_USERNAME or IDP_SMTP_PASSWORD is too long',
+  from: 'IDP_SMTP_FROM must be an address or "Name <address>"',
+};

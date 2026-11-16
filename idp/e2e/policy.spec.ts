@@ -129,4 +129,28 @@ test('administrators change the sign-in policy', async ({ page }) => {
   // Passkeys now show on the account page.
   await page.goto(`${h.issuer}/account`);
   await expect(page.getByRole('heading', { name: 'Passkeys' })).toBeVisible();
+
+  // The mail server (ADR 0057): a mistake is shown at its field, the password never again.
+  await page.goto(`${h.issuer}/account/admin/mail`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('E-mail');
+  await axe(page);
+  await page.getByRole('textbox', { name: 'Server' }).fill('mail.example.com:587');
+  await page.getByRole('textbox', { name: 'Account' }).fill('id@example.com');
+  await page.getByLabel('Password', { exact: true }).fill('s3cret-pass');
+  await page.getByRole('textbox', { name: 'Sender' }).fill('Cenacle ID <id@example.com>');
+  await page.getByRole('button', { name: 'Save the mail server' }).click();
+  await expect(page.getByRole('alert')).toContainText('without a port');
+  await expect(page.getByRole('textbox', { name: 'Server' })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+  await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
+  await axe(page);
+  await page.getByRole('textbox', { name: 'Server' }).fill('mail.example.com');
+  await page.getByLabel('Password', { exact: true }).fill('s3cret-pass');
+  await page.getByRole('button', { name: 'Save the mail server' }).click();
+  await expect(page.getByText('The mail server is saved.')).toBeVisible();
+  await expect(page.getByText('A password is saved.')).toBeVisible();
+  expect(await page.content()).not.toContain('s3cret');
+  await axe(page);
 });

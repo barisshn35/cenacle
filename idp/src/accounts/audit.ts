@@ -31,6 +31,8 @@ export type AuditAction =
   | 'admin.provider.created'
   | 'admin.provider.updated'
   | 'admin.sign_in_policy.changed'
+  | 'admin.mail_server.changed'
+  | 'admin.mail_server.tested'
   | 'admin.provider.scim_token'
   | 'admin.provider.scim_stopped'
   | 'scim.user.created'

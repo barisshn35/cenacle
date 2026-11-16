@@ -84,6 +84,20 @@ spec:
             {{- if .Values.metrics.enabled }}
             - { name: IDP_METRICS_PORT, value: '9091' }
             {{- end }}
+            {{- if .Values.smtp.host }}
+            # E-mail (ADR 0057): the same mail server as the chat server.
+            - { name: IDP_SMTP_HOST, value: {{ .Values.smtp.host | quote }} }
+            - { name: IDP_SMTP_PORT, value: {{ .Values.smtp.port | quote }} }
+            - { name: IDP_SMTP_SECURITY, value: {{ .Values.smtp.security | quote }} }
+            - { name: IDP_SMTP_USERNAME, value: {{ .Values.smtp.username | quote }} }
+            - { name: IDP_SMTP_FROM, value: {{ .Values.smtp.from | quote }} }
+            - name: IDP_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: smtp-password
+                  optional: true
+            {{- end }}
             {{- with .Values.idp.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

@@ -250,9 +250,19 @@ services:
       IDP_LOG_LEVEL: ${IDP_LOG_LEVEL:-info}
       IDP_DATABASE_POOL_MAX: ${IDP_DATABASE_POOL_MAX:-}
       IDP_KEY_RETIRED_GRACE_SECONDS: ${IDP_KEY_RETIRED_GRACE_SECONDS:-}
+      # E-mail (ADR 0057): the chat server's mail server unless set apart; with
+      # neither, administrators set it in Cenacle ID's admin panel.
+      IDP_SMTP_HOST: ${IDP_SMTP_HOST:-${CENACLE_SMTP_HOST:-}}
+      IDP_SMTP_PORT: ${IDP_SMTP_PORT:-${CENACLE_SMTP_PORT:-587}}
+      IDP_SMTP_SECURITY: ${IDP_SMTP_SECURITY:-${CENACLE_SMTP_SECURITY:-starttls}}
+      IDP_SMTP_USERNAME: ${IDP_SMTP_USERNAME:-${CENACLE_SMTP_USERNAME:-}}
+      IDP_SMTP_PASSWORD: ${IDP_SMTP_PASSWORD:-${CENACLE_SMTP_PASSWORD:-}}
+      IDP_SMTP_PASSWORD_FILE: /run/secrets/smtp_password
+      IDP_SMTP_FROM: ${IDP_SMTP_FROM:-${CENACLE_SMTP_FROM:-}}
       # Used inside clients.json (${CENACLE_DOMAIN}).
       CENACLE_DOMAIN: ${CENACLE_DOMAIN}
-    secrets: [idp_database_url, idp_key_encryption_key, idp_cookie_keys, chat_client_secret]
+    secrets:
+      [idp_database_url, idp_key_encryption_key, idp_cookie_keys, chat_client_secret, smtp_password]
     volumes:
       - ./idp/clients.json:/etc/cenacle/clients.json:ro
     networks: [edge, data]

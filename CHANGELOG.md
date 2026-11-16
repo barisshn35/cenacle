@@ -10,6 +10,13 @@ Upgrade instructions live in [docs/upgrade](docs/upgrade/README.md).
 
 ### Added
 
+- Cenacle ID sends e-mail (ADR 0057): its own mail server, from `IDP_SMTP_*` (compose and
+  Helm fall back to the chat server's `CENACLE_SMTP_*`) or set by administrators in its admin
+  panel (Admin → E-mail), with a test e-mail. The password is encrypted at rest with
+  `IDP_KEY_ENCRYPTION_KEY`, never shown again, and changes are audited without it. An
+  account is refused over an unencrypted connection, and STARTTLS never falls back to clear
+  text. New dependency: nodemailer (MIT-0). Migration 0016 of Cenacle ID. An empty variable
+  and an empty secret file no longer count as both set in Cenacle ID's configuration.
 - Outgoing mail server in the app: administrators set the server, port, connection
   (STARTTLS, TLS or an unencrypted relay inside the network), account, password and sender
   in System console → Notifications, with the test invitation right below. The password is

@@ -7,6 +7,7 @@ import { federationUrls } from '../federation/protocols.ts';
 import { html, raw, type SafeHtml } from '../ui/html.ts';
 import { format, type Locale } from '../ui/messages.ts';
 import { alertBox, layout, noticeBox } from '../ui/pages.ts';
+import type { MailServerProblem, MailServerView } from '../mail/server.ts';
 import { ADMIN_MESSAGES } from './messages.ts';
 
 const button =
@@ -39,11 +40,11 @@ export interface AdminAccount {
 function frame(
   locale: Locale,
   title: string,
-  current: 'accounts' | 'directories' | 'providers' | 'signIn',
+  current: 'accounts' | 'directories' | 'providers' | 'signIn' | 'mail',
   body: SafeHtml,
 ): string {
   const m = ADMIN_MESSAGES[locale];
-  const tab = (key: 'accounts' | 'directories' | 'providers' | 'signIn', href: string) =>
+  const tab = (key: 'accounts' | 'directories' | 'providers' | 'signIn' | 'mail', href: string) =>
     html`<a
       href="${href}"
       ${key === current ? raw('aria-current="page"') : null}
@@ -62,6 +63,7 @@ function frame(
         <p class="px-2.5 pb-2 text-xs font-semibold text-muted-foreground">${m.title}</p>
         ${tab('accounts', '/account/admin')} ${tab('directories', '/account/admin/directories')}
         ${tab('providers', '/account/admin/providers')} ${tab('signIn', '/account/admin/sign-in')}
+        ${tab('mail', '/account/admin/mail')}
         <a
           href="/account"
           class="mt-3 flex h-8 min-h-target items-center rounded-[7px] px-2.5 text-sm text-muted-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -974,6 +976,128 @@ export function signInPolicyPage(opts: {
         <p class="text-sm text-muted-foreground">${m.providersHint}</p>
         <button type="submit" class="${primary} self-start">${m.save}</button>
       </form>
+    </div>`,
+  );
+}
+
+/** The mail server Cenacle ID sends e-mail through (ADR 0057). */
+export function mailServerPage(opts: {
+  locale: Locale;
+  server: MailServerView;
+  notice?: 'saved' | 'sent';
+  problem?: MailServerProblem;
+  error?: 'send' | 'noEmail' | 'off';
+  email?: string;
+}): string {
+  const m = ADMIN_MESSAGES[opts.locale].mail;
+  const s = opts.server;
+  const invalid = (...fields: MailServerProblem[]) =>
+    opts.problem && fields.includes(opts.problem)
+      ? raw('aria-invalid="true" aria-describedby="mail-problem"')
+      : null;
+  const field = (
+    name: string,
+    labelText: string,
+    value: string,
+    extra: {
+      hint?: string;
+      placeholder?: string;
+      type?: string;
+      mono?: boolean;
+      problems?: MailServerProblem[];
+      autocomplete?: string;
+    } = {},
+  ) =>
+    html`<div class="flex flex-col gap-1.5">
+      <label for="mail-${name}" class="${label}">${labelText}</label>
+      <input
+        id="mail-${name}"
+        name="${name}"
+        type="${extra.type ?? 'text'}"
+        value="${value}"
+        class="${input} ${extra.mono ? 'font-mono' : ''}"
+        autocomplete="${extra.autocomplete ?? 'off'}"
+        spellcheck="false"
+        placeholder="${extra.placeholder ?? ''}"
+        ${extra.hint ? raw(`aria-describedby="mail-${name}-hint"`) : null}
+        ${invalid(...(extra.problems ?? []))}
+      />
+      ${extra.hint ? html`<p id="mail-${name}-hint" class="${hint}">${extra.hint}</p>` : null}
+    </div>`;
+  const radio = (value: 'starttls' | 'tls' | 'none', text: string) =>
+    html`<label class="flex min-h-target items-start gap-2.5 text-sm">
+      <input
+        type="radio"
+        name="security"
+        value="${value}"
+        class="mt-0.5 size-4 accent-[var(--accent-brand)]"
+        ${raw(s.security === value ? 'checked' : '')}
+      />
+      <span>${text}</span>
+    </label>`;
+  const heading = html`<div class="flex flex-col gap-1">
+    <h1 class="text-2xl leading-8 font-semibold tracking-[-0.015em]">${m.title}</h1>
+    <p class="text-sm text-muted-foreground">${m.lead}</p>
+  </div>`;
+  const notice = opts.notice ? noticeBox(m[opts.notice]) : null;
+  const problem = opts.problem
+    ? alertBox('mail-problem', m.errors[opts.problem])
+    : opts.error
+      ? alertBox('mail-error', m.errors[opts.error])
+      : null;
+  const test = s.host
+    ? html`<section class="flex flex-col gap-2 border-t border-border pt-5">
+        <form method="post" action="/account/admin/mail/test" class="flex flex-col gap-2">
+          ${opts.email ? html`<p class="${hint}">${format(m.testHint, { email: opts.email })}</p>` : null}
+          <button type="submit" class="${secondary} self-start">${m.test}</button>
+        </form>
+      </section>`
+    : null;
+  if (s.managed) {
+    return frame(
+      opts.locale,
+      m.title,
+      'mail',
+      html`<div class="flex max-w-2xl flex-col gap-5">
+        ${heading} ${notice} ${problem}
+        <p class="text-sm">${format(m.managed, { host: s.host, port: s.port })}</p>
+        ${test}
+      </div>`,
+    );
+  }
+  return frame(
+    opts.locale,
+    m.title,
+    'mail',
+    html`<div class="flex max-w-2xl flex-col gap-5">
+      ${heading} ${notice} ${problem}
+      ${s.host ? null : html`<p class="text-sm text-muted-foreground">${m.off}</p>`}
+      <form method="post" action="/account/admin/mail" class="flex flex-col gap-5">
+        <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_7rem]">
+          ${field('host', m.host, s.host, { hint: m.hostHint, placeholder: 'mail.example.com', mono: true, problems: ['host'] })}
+          ${field('port', m.port, String(s.port), { mono: true, problems: ['port'] })}
+        </div>
+        <fieldset class="flex flex-col gap-1" ${invalid('security', 'clearAccount')}>
+          <legend class="${label} mb-1">${m.security}</legend>
+          ${radio('starttls', m.starttls)} ${radio('tls', m.tls)} ${radio('none', m.none)}
+        </fieldset>
+        ${field('username', m.username, s.username, {
+          hint: m.usernameHint,
+          placeholder: m.usernamePlaceholder,
+          problems: ['clearAccount', 'username'],
+        })}
+        ${field('password', m.password, '', {
+          type: 'password',
+          hint: s.hasPassword ? m.passwordKept : m.passwordHint,
+          problems: ['username'],
+          autocomplete: 'new-password',
+        })}
+        ${field('from', m.from, s.from, { hint: m.fromHint, placeholder: m.fromPlaceholder, problems: ['from'] })}
+        <div class="flex flex-wrap gap-2">
+          <button type="submit" class="${primary}">${m.save}</button>
+        </div>
+      </form>
+      ${test}
     </div>`,
   );
 }

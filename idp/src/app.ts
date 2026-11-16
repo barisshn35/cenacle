@@ -18,6 +18,8 @@ import type { TrustProxy } from './config.ts';
 import { registerAccount } from './account/routes.ts';
 import type { PasskeyStore } from './accounts/passkeys.ts';
 import type { PolicyStore } from './accounts/policy.ts';
+import type { Mailer } from './mail/send.ts';
+import type { MailServerStore } from './mail/server.ts';
 import { registerFederation } from './federation/routes.ts';
 import type { ProviderStore } from './federation/store.ts';
 import { registerAdmin } from './admin/routes.ts';
@@ -78,6 +80,8 @@ export interface OidcOptions {
   clients?: ClientMetadata[];
   /** The sign-in policy (two-step required, passkeys allowed). */
   policy?: PolicyStore;
+  /** The mail server and the e-mail sent through it (ADR 0057). */
+  mail?: { servers: MailServerStore; mailer: Mailer };
 }
 
 export interface AppOptions {
@@ -278,6 +282,7 @@ export async function buildApp(opts: AppOptions = {}): Promise<FastifyInstance> 
           cookieKeys,
           formActionOrigins: opts.oidc.formActionOrigins,
           policy: opts.oidc.policy,
+          mail: opts.oidc.mail,
         });
       }
     }

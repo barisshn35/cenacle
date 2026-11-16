@@ -27,6 +27,7 @@ import {
   directoriesPage,
   directoryPage,
   providerPage,
+  mailServerPage,
   providersPage,
   signInPolicyPage,
   type DirectoryForm,
@@ -41,6 +42,9 @@ import {
 } from '../federation/config.ts';
 import { endProviderSessions } from '../federation/people.ts';
 import { DEFAULT_POLICY, type PolicyStore } from '../accounts/policy.ts';
+import type { Mailer } from '../mail/send.ts';
+import { testMail } from '../mail/messages.ts';
+import { checkMailServer, type MailServerStore, type Security } from '../mail/server.ts';
 import type { ProviderStore } from '../federation/store.ts';
 
 export interface AdminOptions {
@@ -56,6 +60,8 @@ export interface AdminOptions {
   formActionOrigins: string[];
   /** The sign-in policy, set on its own admin page. */
   policy?: PolicyStore;
+  /** The mail server, set on its own admin page (ADR 0057). */
+  mail?: { servers: MailServerStore; mailer: Mailer };
 }
 
 const PAGE = 50;
@@ -375,6 +381,91 @@ export async function registerAdmin(app: FastifyInstance, opts: AdminOptions) {
     });
     return reply.redirect('/account/admin/sign-in?saved=1', 303);
   });
+
+  // --- mail server (ADR 0057) ------------------------------------------------
+
+  if (opts.mail) {
+    const { servers, mailer } = opts.mail;
+    app.get<{ Querystring: { saved?: string; sent?: string; error?: string } }>(
+      '/account/admin/mail',
+      async (request, reply) => {
+        const me = await admin(request, reply);
+        if (!me) return;
+        const q = request.query;
+        return page(
+          reply,
+          200,
+          mailServerPage({
+            locale: locale(request),
+            server: await servers.view(),
+            notice: q.saved !== undefined ? 'saved' : q.sent !== undefined ? 'sent' : undefined,
+            error:
+              q.error === 'send' || q.error === 'noEmail' || q.error === 'off'
+                ? q.error
+                : undefined,
+            email: me.email ?? undefined,
+          }),
+        );
+      },
+    );
+
+    app.post<{ Body: Body }>('/account/admin/mail', async (request, reply) => {
+      const user = await guardPost(request, reply);
+      if (!user) return;
+      if (servers.managed) return reply.code(409).send();
+      const b = request.body ?? {};
+      const security = (['starttls', 'tls', 'none'] as const).find((v) => v === b.security);
+      const input = {
+        host: (b.host ?? '').trim().toLowerCase(),
+        port: Number(b.port ?? ''),
+        security: security ?? ('' as Security),
+        username: security === 'none' ? '' : (b.username ?? '').trim(),
+        password: security === 'none' ? '' : (b.password ?? ''),
+        from: (b.from ?? '').trim(),
+      };
+      const problem = checkMailServer(input);
+      if (problem) {
+        const { password: _password, ...typed } = input;
+        return page(
+          reply,
+          400,
+          mailServerPage({
+            locale: locale(request),
+            server: { ...typed, hasPassword: (await servers.view()).hasPassword, managed: false },
+            problem,
+            email: user.email ?? undefined,
+          }),
+        );
+      }
+      const { passwordChanged } = await servers.set(input);
+      // What changed, never the password.
+      await audit.record('admin.mail_server.changed', user.id, request.ip, {
+        host: input.host,
+        port: input.host ? input.port : null,
+        security: input.host ? input.security : null,
+        username: input.username,
+        from: input.host ? input.from : '',
+        password_changed: passwordChanged,
+      });
+      return reply.redirect('/account/admin/mail?saved=1', 303);
+    });
+
+    app.post('/account/admin/mail/test', async (request, reply) => {
+      const user = await guardPost(request, reply);
+      if (!user) return;
+      if (!user.email) return reply.redirect('/account/admin/mail?error=noEmail', 303);
+      if (!(await mailer.available())) return reply.redirect('/account/admin/mail?error=off', 303);
+      const loc = locale(request);
+      try {
+        await mailer.send(testMail(loc, user.email, user.displayName, issuer));
+      } catch (err) {
+        request.log.warn({ err }, 'test e-mail');
+        return reply.redirect('/account/admin/mail?error=send', 303);
+      }
+      await audit.record('admin.mail_server.tested', user.id, request.ip, {});
+      return reply.redirect('/account/admin/mail?sent=1', 303);
+    });
+  }
 
   app.get('/account/admin/directories', async (request, reply) => {
     if (!(await admin(request, reply))) return;

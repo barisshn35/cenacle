@@ -5,6 +5,8 @@ import { AuditLog } from './accounts/audit.ts';
 import { MfaStore } from './accounts/mfa.ts';
 import { PasskeyStore } from './accounts/passkeys.ts';
 import { PolicyStore } from './accounts/policy.ts';
+import { Mailer } from './mail/send.ts';
+import { MailServerStore } from './mail/server.ts';
 import { UserStore } from './accounts/users.ts';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig } from './config.ts';
@@ -44,6 +46,7 @@ async function main(): Promise<void> {
   const clients = loadClients(config.clientsFile);
   const users = new UserStore(pool);
   const sources = new SourceStore(pool, config.keyEncryptionKey);
+  const mailServers = new MailServerStore(pool, config.keyEncryptionKey, config.smtp);
   const formActionOrigins = clientOrigins(clients);
 
   const provider = createProvider({
@@ -84,6 +87,7 @@ async function main(): Promise<void> {
       policy: new PolicyStore(pool),
       federation: new ProviderStore(pool, config.keyEncryptionKey),
       clients,
+      mail: { servers: mailServers, mailer: new Mailer(mailServers) },
     },
   });
 

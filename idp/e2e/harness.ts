@@ -14,6 +14,8 @@ import { AuditLog } from '../src/accounts/audit.ts';
 import { MfaStore } from '../src/accounts/mfa.ts';
 import { PasskeyStore } from '../src/accounts/passkeys.ts';
 import { PolicyStore, type SignInPolicy } from '../src/accounts/policy.ts';
+import { Mailer } from '../src/mail/send.ts';
+import { MailServerStore } from '../src/mail/server.ts';
 import { UserStore } from '../src/accounts/users.ts';
 import { buildApp } from '../src/app.ts';
 import { SourceStore } from '../src/directory/store.ts';
@@ -88,6 +90,7 @@ export async function startHarness(
   const kek = randomBytes(32);
   const sources = new SourceStore(pool, kek);
   const providers = new ProviderStore(pool, kek);
+  const mailServers = new MailServerStore(pool, kek);
   const keys = new KeyStore(pool, kek);
   await keys.ensureActiveKey();
   const policy = opts.policy ? new PolicyStore(pool) : undefined;
@@ -160,6 +163,7 @@ export async function startHarness(
         federation: opts.directory ? providers : undefined,
         policy,
         privacyUrl: opts.privacyUrl,
+        mail: { servers: mailServers, mailer: new Mailer(mailServers) },
       },
     });
     await app.listen({ host, port });
