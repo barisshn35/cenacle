@@ -3,7 +3,7 @@
 # Test-only OpenLDAP server for local development (IdP LDAP connector, v0.14).
 # Built from Alpine's maintained openldap packages; runs as the unprivileged
 # "ldap" user on port 3389 and seeds itself from LDIF on first start.
-FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 RUN apk add --no-cache openldap openldap-back-mdb openldap-clients \
  && mkdir -p /var/lib/openldap/data /run/openldap \
