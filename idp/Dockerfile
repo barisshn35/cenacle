@@ -6,7 +6,7 @@
 
 # Dependencies are pure JavaScript, so the build runs on the native build
 # platform (no emulation for arm64); only the node binary is target-specific.
-FROM --platform=$BUILDPLATFORM node:26.13.0-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS build
+FROM --platform=$BUILDPLATFORM node:26.13.0-alpine3.24@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS build
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 # pnpm, the version package.json's packageManager names, from the npm registry
@@ -32,7 +32,7 @@ RUN pnpm --filter @cenacle/idp build \
       /out/node_modules/.modules.yaml /out/node_modules/.pnpm-workspace-state-v1.json
 
 # The node binary for the target platform.
-FROM node:26.13.0-alpine3.24@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS node
+FROM node:26.13.0-alpine3.24@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS node
 
 # OpenSSL's FIPS provider, built from the validated 3.1.2 sources (only the
 # provider is used; node keeps its own OpenSSL library).
