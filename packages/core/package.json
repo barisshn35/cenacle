@@ -18,12 +18,12 @@
     "gen:api": "node scripts/gen-api.mjs"
   },
   "dependencies": {
-    "dexie": "4.4.6"
+    "dexie": "4.4.7"
   },
   "devDependencies": {
-    "fake-indexeddb": "6.2.6",
+    "fake-indexeddb": "6.2.8",
     "openapi-typescript": "7.13.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.1"
   }
 }
